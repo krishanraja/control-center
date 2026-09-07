@@ -1,186 +1,473 @@
 {
   "name": "Acquisition | Send Dispatcher",
   "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true
-  },
   "nodes": [
     {
       "name": "Webhook Dispatch",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [240, 200],
+      "position": [
+        200,
+        200
+      ],
       "parameters": {
         "path": "acquisition-send-dispatch",
         "httpMethod": "POST",
         "responseMode": "onReceived"
       },
-      "notes": "Fired by POST /api/acquisition/sends on every approved batch ({send_ids}). The payload is advisory — the fetch below re-reads status='approved' from the ledger, so replays and missed pings are both safe."
+      "notes": "Pinged by POST /api/acquisition/sends per approved batch. Fetch re-reads status=approved so replays are safe.",
+      "id": "d099291e-33a3-46ed-a5b8-8f01a914e34f",
+      "webhookId": "a2acb336-9e23-4dde-bde4-5761645d9705"
     },
     {
       "name": "Every 15 min sweep",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [240, 380],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        400
+      ],
       "parameters": {
-        "triggerTimes": { "item": [{ "mode": "everyX", "value": 15, "unit": "minutes" }] }
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
       },
-      "notes": "Fallback sweep so a missed webhook only delays a send, never drops it."
+      "id": "a329311b-5c9a-4a3c-acd4-6e28d7bb58a2"
     },
     {
       "name": "Fetch approved sends",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [520, 290],
+      "position": [
+        480,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?status=eq.approved&select=id,lane,frame_version,touch_number,rendered_subject,rendered_body,lead_id,leads(email,full_name,status)&order=approved_at.asc&limit=50",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
-      "notes": "Service-role read. Embeds the lead so suppression checks need no second call."
+      "alwaysOutputData": true,
+      "id": "c79b8493-ac07-469f-a214-466cece9fe37"
     },
     {
-      "name": "Prepare Resend payloads",
+      "name": "Prepare payloads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [800, 290],
+      "position": [
+        740,
+        300
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// One item per approved send, with per-lane sender identity and suppression.\n// Suppressed = lead missing/undeliverable or lead already churned/superseded/unsubscribed.\nconst FROM_BY_LANE = {\n  mm_ctrl: 'CTRL <ctrl@themindmaker.ai>',\n  fractionl_pulse: 'Fractionl <pulse@fractionl.ai>',\n  fractionl_circle: 'Fractionl <circle@fractionl.ai>',\n  legibility: 'Legibility <hello@themindmaker.ai>',\n  full_time: 'Full Time <fulltime@themindmaker.ai>',\n};\nconst rows = $('Fetch approved sends').all().map(i => i.json).flat();\nconst out = [];\nfor (const s of rows) {\n  const lead = s.leads || {};\n  const suppress = !lead.email || ['churned', 'superseded'].includes(lead.status);\n  out.push({ json: {\n    send_id: s.id,\n    lead_id: s.lead_id,\n    suppress,\n    from: FROM_BY_LANE[s.lane] || 'Mindmake <hello@themindmaker.ai>',\n    to: lead.email || null,\n    subject: s.rendered_subject || '(no subject)',\n    html: s.rendered_body || '',\n  }});\n}\nreturn out;"
-      }
+        "jsCode": "\n// One item per approved send. Per-lane sender identity + Resend key:\n// fractionl lanes send via the fractionl.ai domain key, everything else via\n// the themindmaker.ai key (Krish ruling 2026-07-16).\nconst FROM_BY_LANE = {\n  mm_ctrl: 'CTRL <ctrl@themindmaker.ai>',\n  legibility: 'Legibility <hello@themindmaker.ai>',\n  full_time: 'Full Time <fulltime@themindmaker.ai>',\n  fractionl_pulse: 'Fractionl Pulse <pulse@fractionl.ai>',\n  fractionl_circle: 'Fractionl Circle <circle@fractionl.ai>',\n};\nconst KEY_MM = '{{RESEND_API_KEY_2}}';\nconst KEY_FR = '{{RESEND_API_KEY}}';\nconst rows = $('Fetch approved sends').all().map(i => i.json).flat().filter(r => r && r.id);\nconst out = [];\nfor (const s of rows) {\n  const lead = s.leads || {};\n  const suppress = !lead.email || ['churned', 'superseded'].includes(lead.status);\n  const isFr = String(s.lane || '').indexOf('fractionl') === 0;\n  out.push({ json: {\n    send_id: s.id, lead_id: s.lead_id, suppress: suppress,\n    from: FROM_BY_LANE[s.lane] || 'Mindmaker <hello@themindmaker.ai>',\n    resend_auth: 'Bearer ' + (isFr ? KEY_FR : KEY_MM),\n    to: lead.email || null,\n    subject: s.rendered_subject || '(no subject)',\n    html: s.rendered_body || '',\n  }});\n}\nif (out.length === 0) return [{ json: { noop: true } }];\nreturn out;\n"
+      },
+      "id": "bffd23be-b0f9-4152-a77e-241133b5e596"
     },
     {
       "name": "Suppress or send?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1040, 290],
+      "position": [
+        980,
+        300
+      ],
       "parameters": {
         "conditions": {
           "boolean": [
-            { "value1": "={{ $json.suppress }}", "value2": true }
+            {
+              "value1": "={{ $json.suppress }}",
+              "value2": true
+            }
           ]
         }
-      }
+      },
+      "id": "e3225158-e02c-41fb-a13d-01f1354e8e8e"
     },
     {
       "name": "Mark suppressed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 180],
+      "position": [
+        1240,
+        180
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?id=eq.{{ $json.send_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'suppressed', error: 'lead unreachable or opted out at dispatch time' }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify({ status: 'suppressed', error: 'lead unreachable or opted out at dispatch time' }) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "onError": "continueRegularOutput",
+      "id": "1ad0c409-6bb1-4eca-9980-3df0a6cc4b93"
     },
     {
       "name": "Send via Resend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 400],
+      "position": [
+        1240,
+        420
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.resend.com/emails",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $json.resend_auth }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ from: $json.from, to: [$json.to], subject: $json.subject, html: $json.html }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "options": { "response": { "response": { "fullResponse": false } } }
+        "jsonBody": "={{ JSON.stringify({ from: $json.from, to: [$json.to], subject: $json.subject, html: $json.html }) }}"
       },
-      "credentials": { "httpHeaderAuth": { "name": "Resend API" } },
-      "continueOnFail": true,
-      "notes": "Credential 'Resend API' (httpHeaderAuth): header 'Authorization: Bearer <resend key>'. continueOnFail so one bounce doesn't strand the rest of the batch."
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Per-lane key: fractionl lanes use the fractionl.ai domain key, all else themindmaker.ai.",
+      "id": "8ca3f592-b1e2-40c1-ac0f-b24b549f78d4"
     },
     {
       "name": "Record outcome",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 400],
+      "position": [
+        1500,
+        420
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Pair each Resend response with its send; classify sent vs failed.\nconst prepared = $('Suppress or send?').all().map(i => i.json);\nconst responses = $('Send via Resend').all();\nconst out = [];\nresponses.forEach((r, idx) => {\n  const p = prepared[idx] || {};\n  const ok = !r.json?.error && (r.json?.id || r.json?.data?.id);\n  out.push({ json: {\n    send_id: p.send_id,\n    lead_id: p.lead_id,\n    ok: Boolean(ok),\n    resend_id: r.json?.id || r.json?.data?.id || null,\n    error: ok ? null : JSON.stringify(r.json?.error || r.error || 'unknown resend failure').slice(0, 500),\n    now: new Date().toISOString(),\n  }});\n});\nreturn out;"
-      }
+        "jsCode": "\nconst prepared = $('Suppress or send?').all().map(i => i.json);\nconst responses = $('Send via Resend').all();\nreturn responses.map((r, idx) => {\n  const p = prepared[idx] || {};\n  const ok = !(r.json && r.json.error) && (r.json && (r.json.id || (r.json.data && r.json.data.id)));\n  return { json: {\n    send_id: p.send_id, lead_id: p.lead_id, ok: Boolean(ok),\n    resend_id: (r.json && (r.json.id || (r.json.data && r.json.data.id))) || null,\n    error: ok ? null : JSON.stringify((r.json && r.json.error) || 'unknown resend failure').slice(0, 500),\n    now: new Date().toISOString(),\n  }};\n});\n"
+      },
+      "id": "5b1cb20c-d809-4a2a-bde1-10e56b655c6a"
     },
     {
       "name": "Mark send result",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1820, 400],
+      "position": [
+        1760,
+        420
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?id=eq.{{ $json.send_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.ok ? { status: 'sent', resend_id: $json.resend_id, sent_at: $json.now } : { status: 'failed', error: $json.error }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify($json.ok ? { status: 'sent', resend_id: $json.resend_id, sent_at: $json.now } : { status: 'failed', error: $json.error }) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "onError": "continueRegularOutput",
+      "id": "80cbb15a-b0ba-4869-a7a3-48688a7b4f13"
     },
     {
       "name": "Mark lead contacted",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2080, 400],
+      "position": [
+        2020,
+        420
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.lead_id }}&status=in.(ready,contacted,enriching,new)",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.ok ? { status: 'contacted', last_emailed_at: $json.now } : {}) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify($json.ok ? { status: 'contacted', last_emailed_at: $json.now } : {}) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
-      "notes": "Status filter keeps 'conversation'/'closed_*' leads untouched — dispatch never regresses a lead's stage."
+      "onError": "continueRegularOutput",
+      "notes": "Status filter never regresses conversation/closed leads.",
+      "id": "3a345cb4-6f90-482a-9ce7-6ad5274ef6e5"
+    },
+    {
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2280,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ workflow_id: 'acquisition-send-dispatcher', workflow_name: 'Acquisition | Send Dispatcher', agent_id: 'maya', status: 'success', outcome: 'dispatched:' + $('Prepare payloads').all().filter(i => !i.json.noop).length, outcome_count: $('Prepare payloads').all().filter(i => !i.json.noop).length, cost_estimate_usd: 0.0001, api_calls_count: 4 }]) }}"
+      },
+      "onError": "continueRegularOutput",
+      "id": "1353aa68-159d-4812-8539-a1cf0effc74f"
+    },
+    {
+      "name": "Any sends?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        860,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.noop === true }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "138a3c1c-9022-47c3-9915-ebd83e8022a8"
     }
   ],
   "connections": {
-    "Webhook Dispatch":     { "main": [[{ "node": "Fetch approved sends", "type": "main", "index": 0 }]] },
-    "Every 15 min sweep":   { "main": [[{ "node": "Fetch approved sends", "type": "main", "index": 0 }]] },
-    "Fetch approved sends": { "main": [[{ "node": "Prepare Resend payloads", "type": "main", "index": 0 }]] },
-    "Prepare Resend payloads": { "main": [[{ "node": "Suppress or send?", "type": "main", "index": 0 }]] },
-    "Suppress or send?":    { "main": [
-      [{ "node": "Mark suppressed", "type": "main", "index": 0 }],
-      [{ "node": "Send via Resend", "type": "main", "index": 0 }]
-    ] },
-    "Send via Resend":      { "main": [[{ "node": "Record outcome", "type": "main", "index": 0 }]] },
-    "Record outcome":       { "main": [[{ "node": "Mark send result", "type": "main", "index": 0 }]] },
-    "Mark send result":     { "main": [[{ "node": "Mark lead contacted", "type": "main", "index": 0 }]] }
+    "Webhook Dispatch": {
+      "main": [
+        [
+          {
+            "node": "Fetch approved sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 15 min sweep": {
+      "main": [
+        [
+          {
+            "node": "Fetch approved sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch approved sends": {
+      "main": [
+        [
+          {
+            "node": "Prepare payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare payloads": {
+      "main": [
+        [
+          {
+            "node": "Any sends?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suppress or send?": {
+      "main": [
+        [
+          {
+            "node": "Mark suppressed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send via Resend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send via Resend": {
+      "main": [
+        [
+          {
+            "node": "Record outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record outcome": {
+      "main": [
+        [
+          {
+            "node": "Mark send result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark send result": {
+      "main": [
+        [
+          {
+            "node": "Mark lead contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark lead contacted": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any sends?": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Suppress or send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120
+  },
+  "staticData": {
+    "node:Every 15 min sweep": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }

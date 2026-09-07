@@ -1,0 +1,227 @@
+{
+  "name": "System | Mindmaker OS | Product Proposal to GitHub Issue",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "product-proposal-approved",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh2-node-001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "product-proposal-approved-v1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = items[0].json;\nconst product = (d.product || '').toLowerCase();\n\n// onalert, gutted, merciless retired from the OS control plane 2026-07-06 (Krish directive).\n// Apps stay deployed until Krish sunsets them manually; do not route new proposals to them.\nconst repoMap = {\n  'fractionl-pulse': 'krishanraja/fractionl-pulse',\n  'fractionl-circle': 'krishanraja/fractionl-circle',\n  'plinth': 'krishanraja/plinth',\n  'full-time': 'krishanraja/full-time'\n};\n\nconst repo = repoMap[product] || 'krishraja10101/fractionl';\nconst fallback = !repoMap[product];\n\nconst issueBody = `## Product Improvement Proposal\n**Source:** Product Agent (autonomous) — approved by Agatha + Krish\n**Evidence:** ${d.evidence || 'N/A'}\n**Effort:** ${d.effort || 'unknown'} | **Impact:** ${d.impact || 'unknown'} | **Type:** ${d.type || 'feature'}\n\n## Description\n${d.description || 'No description provided.'}\n\n## Acceptance Criteria\n- [ ] Implementation matches description\n- [ ] Tested in staging\n- [ ] Agatha sign-off before production deploy`;\n\nconst issuePayload = JSON.stringify({\n  title: `[Product Agent] ${d.title || 'Untitled Proposal'}`,\n  body: issueBody,\n  labels: ['product-agent', 'approved', d.type || 'feature']\n});\n\nconst [owner, repoName] = repo.split('/');\n\nreturn [{json: {\n  issuePayload,\n  repo,\n  owner,\n  repoName,\n  title: d.title,\n  fallback,\n  product: d.product,\n  proposal_id: d.proposal_id\n}}];\n"
+      },
+      "id": "wh2-node-002",
+      "name": "Build GitHub Issue Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{ $json.repo }}/issues",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{GITHUB_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ $json.issuePayload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "wh2-node-003",
+      "name": "GitHub Create Issue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst ghResponse = items[0].json;\nconst inputData = $('Build GitHub Issue Body').first().json;\n\nconst success = ghResponse.number && ghResponse.html_url;\n\nif (success) {\n  const tgMsg = `\\u2705 GitHub issue #${ghResponse.number} created: [${inputData.title}](${ghResponse.html_url})${inputData.fallback ? '\\n\\u26a0\\ufe0f Note: fallback repo used - ' + inputData.product + ' repo not found' : ''}`;\n  return [{json: {success: true, issue_number: ghResponse.number, html_url: ghResponse.html_url, tgObject: {chat_id: 6773796504, text: tgMsg, parse_mode: 'Markdown'}, title: inputData.title}}];\n} else {\n  const errMsg = `\\u26a0\\ufe0f Failed to create GitHub issue for \"${inputData.title}\" (${inputData.product}). Error: ${ghResponse.message || 'Unknown'}. Manual action needed.`;\n  return [{json: {success: false, tgObject: {chat_id: 6773796504, text: errMsg, parse_mode: 'Markdown'}, title: inputData.title}}];\n}\n"
+      },
+      "id": "wh2-node-004",
+      "name": "Handle GitHub Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "jsonBody": "={{ $json.tgObject }}"
+      },
+      "id": "wh2-node-005",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({status: $(\"Handle GitHub Response\").first().json.success ? \"issue_created\" : \"error\", issue_url: $(\"Handle GitHub Response\").first().json.html_url || null}) }}",
+        "options": {}
+      },
+      "id": "wh2-node-006",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "log-supabase-q0nmkbgk1DEBR1bs",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build GitHub Issue Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build GitHub Issue Body": {
+      "main": [
+        [
+          {
+            "node": "GitHub Create Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub Create Issue": {
+      "main": [
+        [
+          {
+            "node": "Handle GitHub Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle GitHub Response": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

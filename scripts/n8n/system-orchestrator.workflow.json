@@ -1,0 +1,541 @@
+{
+  "name": "System | Mindmaker OS | Orchestrator",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mindmaker-orchestrator",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        224,
+        304
+      ],
+      "webhookId": "mindmaker-orchestrator",
+      "id": "7cd1faa2-5f79-4160-8f2b-ac00dcac02a8"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and normalize the incoming Supabase event\nconst body = $input.first().json.body || $input.first().json;\n\nconst eventType = body.type || body.event_type || 'UNKNOWN';\nconst record = body.record || body;\nconst oldRecord = body.old_record || {};\n\nconst agent = (record.agent || '').toLowerCase().trim();\nconst owner = (record.owner || '').toLowerCase().trim();\nconst status = record.status || '';\nconst priority = record.priority || '';\nconst urgency = record.urgency || '';\nconst taskId = record.id || '';\nconst title = record.title || '';\nconst venture = record.venture || '';\n\nconst isHighPriority = (\n  priority === 'pri-0' ||\n  urgency === 'CRITICAL' ||\n  urgency === 'high' ||\n  status === 'blocked' ||\n  (status === 'done' && oldRecord.status !== 'done')\n);\n\nconst statusChanged = oldRecord.status && oldRecord.status !== status;\nconst agentChanged = oldRecord.agent && oldRecord.agent !== agent;\n\n// Loop guard: suppress dispatch when an agent wrote a task assigned to itself with status=waiting.\n// These are self-queued tasks for later human review, NOT dispatch triggers.\n// Without this guard, agents with Execute Workflow Trigger loop infinitely (Priya bug, 2026-04-20).\n// Self-queued task detection (loop prevention).\n// Catches BOTH INSERT and UPDATE events since agents using UPSERT produce UPDATE on re-runs.\n// Only suppresses when owner == agent AND status is non-actionable (waiting / queued by self).\nconst isSelfQueuedTask = (\n  agent && agent === owner && status === 'waiting' &&\n  // Only skip if the task content itself didn't change meaningfully.\n  // If status changed from non-waiting to waiting, allow dispatch (state transition).\n  (!oldRecord.status || oldRecord.status === 'waiting')\n);\n\n// Only dispatch on meaningful events. Skip self-queued INSERTs.\nconst shouldDispatch = !isSelfQueuedTask;\n\nreturn [{\n  json: {\n    eventType,\n    agent,\n    owner,\n    status,\n    priority,\n    urgency,\n    taskId,\n    title,\n    venture,\n    isHighPriority,\n    statusChanged,\n    agentChanged,\n    isSelfQueuedTask,\n    shouldDispatch,\n    record,\n    oldRecord,\n    timestamp: new Date().toISOString()\n  }\n}];\n"
+      },
+      "name": "Parse Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        304
+      ],
+      "id": "f226a917-d5b1-468c-98ff-83317e139d48"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "high-priority-check",
+              "leftValue": "={{ $json.isHighPriority }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Is High Priority?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        208
+      ],
+      "id": "9c279404-7d98-4384-805e-093c7d07760b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": 6773796504,\n  \"parse_mode\": \"Markdown\",\n  \"text\": \"*MindMaker OS Alert*\\n\\n*Event:* {{ $json.eventType }}\\n*Task:* {{ $json.title }}\\n*Agent:* {{ $json.agent }}\\n*Status:* {{ $json.status }}\\n*Priority:* {{ $json.priority }}\\n*Urgency:* {{ $json.urgency }}\\n*Task ID:* `{{ $json.taskId }}`\\n*Venture:* {{ $json.venture }}\"\n}",
+        "options": {}
+      },
+      "name": "Telegram Alert to Krish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        912,
+        112
+      ],
+      "id": "46efc49f-7271-4d8f-921c-78e5275f4d6a",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agent Router - routes task events to the correct agent handler\nconst item = $input.first().json;\nconst agent = item.agent;\n\nconst validAgents = ['agatha','marcus','arlo','vera','zara','felix','cleo','nell','maya','nova','leo','priya','hunter','kai'];\n\nconst result = {\n  agent: agent,\n  isKnownAgent: validAgents.includes(agent),\n  taskId: item.taskId,\n  title: item.title,\n  status: item.status,\n  priority: item.priority,\n  urgency: item.urgency,\n  eventType: item.eventType,\n  venture: item.venture,\n  record: item.record,\n  oldRecord: item.oldRecord,\n  statusChanged: item.statusChanged,\n  agentChanged: item.agentChanged,\n  shouldDispatch: item.shouldDispatch !== false,\n  timestamp: item.timestamp,\n  routedAt: new Date().toISOString()\n};\n\nreturn [{ json: result }];"
+      },
+      "name": "Route by Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        400
+      ],
+      "id": "595636f0-143a-4442-8f7e-f8adf7df256f"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Agent Dispatch - routes to correct workflow per agent\nconst item = $input.first().json;\nconst agent = item.agent;\n\n// Canonical agent-to-workflow mapping (updated 2026-04-17)\nconst agentWorkflowMap = {\n  'zara': 'xAfMItfI8UfAqb3M',\n  'felix': 'gnwpyTFbusBrZG7P',\n  'leo': 'pyr9wurcs1M9utW3',\n  'nell': '8DlMfyTYsbnQGYR2',\n  'kai': 'fBgBwoAg0YdkabtU',\n  'cleo': 'AnhkJrJBvmohfqjJ',\n  'vera': 'l0nujD2PBYGeEtXx',\n  'marcus': 'TI1ozQbPtI69qlgO',\n  'nova': 'hCbvRXoGWaqG1Znx',\n  'maya': 'JtyxjXRQLPKB37DD',\n  'hunter': 'z2XxEJbKcz8YuEFq',\n  'priya': 'dm2CccS71EVO8kJY',\n  'agatha': 'NgVcpJ7PO7sTYvm9'\n};\n\nconst targetWorkflow = agentWorkflowMap[agent] || null;\n\nreturn [{\n  json: {\n    dispatched: true,\n    agent: agent,\n    isKnownAgent: item.isKnownAgent,\n    targetWorkflow: targetWorkflow,\n    hasWorkflow: !!targetWorkflow,\n    shouldDispatch: item.shouldDispatch === false ? false : true,\n    taskId: item.taskId,\n    title: item.title,\n    status: item.status,\n    eventType: item.eventType,\n    message: targetWorkflow \n      ? `Dispatching to workflow ${targetWorkflow} for agent ${agent}`\n      : `Event logged for agent ${agent} (no dedicated workflow mapped yet)`,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Agent Dispatch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        400
+      ],
+      "id": "a6f47a5a-75c1-46d9-9d28-da4f0c1b0e63"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];"
+      },
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        32
+      ],
+      "id": "03bebbd1-f18d-4df0-b457-f6f89aa79ced"
+    },
+    {
+      "parameters": {
+        "workflowId": "={{ $json.targetWorkflow }}",
+        "options": {}
+      },
+      "name": "Execute Agent Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        400
+      ],
+      "id": "564d7cd2-9616-45d0-bcdd-7611a1c685d2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-workflow",
+              "leftValue": "={{ $json.hasWorkflow }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "should-dispatch",
+              "leftValue": "={{ $json.shouldDispatch }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has Mapped Workflow?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        208
+      ],
+      "id": "e973f2e0-6d67-4883-8dc1-f92818048a68"
+    },
+    {
+      "name": "Is Cleo SEO Brief Task?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        560
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $('Parse Event').first().json.agent || '' }}",
+              "rightValue": "cleo",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $('Parse Event').first().json.status || '' }}",
+              "rightValue": "waiting",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ ($('Parse Event').first().json.record && $('Parse Event').first().json.record.workstream) || '' }}",
+              "rightValue": "seo-brief-ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b946873f-eefb-4977-89bc-6afef662e9db"
+    },
+    {
+      "name": "Parse Cleo Briefs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        640
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Parse Maya's 4-brief format from the task description.\n// Input: $json.record.description (or $json.description as fallback)\n// Output: 1 item per brief, each containing Cleo's webhook contract shape.\n\nconst VENTURE_TO_CHANNEL = {\n  'MINDMAKER': 'house',\n  'MINDMAKER-LIVE': 'house',\n  'MINDMAKER_LIVE': 'house',\n  'PAID': 'paid',\n  'BUILT': 'built',\n  // Retired brands, kept so a historical brief still routes.\n  'TECHONOMIC': 'paid',\n  'MYMU': 'house',\n  'BUILDER-ECONOMY': 'built',\n  'BUILDER_ECONOMY': 'built',\n  'ADFIXUS': 'linkedin',\n  'SIGNAL-NOISE': 'signal_noise',\n  'SIGNAL_NOISE': 'signal_noise',\n  'VERTICAL-VIDEO': 'vertical_video',\n  'LINKEDIN': 'linkedin'\n};\n\nconst channelAudience = {\n  paid: 'operators, founders and commercial leaders who can act on an economic insight',\n  house: 'senior leaders in legacy media and broadcast running AI transformation, plus operators and founders monetizing the open web in the AI era',\n  linkedin: 'media and ad-tech professionals in Krish network',\n  built: 'solo founders and small teams punching above their headcount with AI',\n  signal_noise: 'media and tech executives tracking AI transformation',\n  vertical_video: 'builders and operators on IG/TikTok'\n};\n\n// Read from Parse Event directly - Agent Dispatch drops record/description\nconst upstream = $('Parse Event').first().json;\nconst record = upstream.record || {};\nconst description = record.description || '';\nconst taskId = record.id || upstream.taskId || '';\n\nif (!description) {\n  return [{ json: {\n    brief_num: 0, venture: 'NONE', target_channel: 'linkedin',\n    hook: '', target_audience: '', contrarian_angle: '',\n    krish_approved: false, parse_error: 'empty description', taskId\n  }}];\n}\n\nconst chunks = description.split(/\\n\\s*---\\s*\\n/);\nconst briefs = [];\nfor (const chunk of chunks) {\n  const headerMatch = chunk.match(/BRIEF\\s*(\\d+)\\s*:\\s*([A-Z][A-Z0-9_-]*)/i);\n  if (!headerMatch) continue;\n  const brief_num = parseInt(headerMatch[1], 10);\n  const venture = headerMatch[2].toUpperCase().trim();\n  const target_channel = VENTURE_TO_CHANNEL[venture] || 'linkedin';\n\n  const titleMatch = chunk.match(/Title\\s*:\\s*(.+?)(?:\\n|$)/i);\n  const keywordMatch = chunk.match(/Keyword\\s*:\\s*(.+?)(?:\\n|$)/i);\n  const formatMatch = chunk.match(/Format\\s*:\\s*(.+?)(?:\\n|$)/i);\n  const pointsMatch = chunk.match(/Key Points\\s*:\\s*\\n([\\s\\S]*?)$/i);\n\n  const title = titleMatch ? titleMatch[1].trim() : '';\n  const keyword = keywordMatch ? keywordMatch[1].trim() : '';\n  const format = formatMatch ? formatMatch[1].trim() : '';\n  const points = pointsMatch\n    ? pointsMatch[1].split('\\n').map(l => l.replace(/^\\s*[-*]\\s*/, '').trim()).filter(Boolean)\n    : [];\n\n  let hook = title;\n  let target_audience = channelAudience[target_channel] || 'Krish LinkedIn network';\n  let contrarian_angle = points.length > 0 ? ('Most people miss: ' + points.join('; ')) : '';\n\n  briefs.push({\n    brief_num, venture, title, keyword, format, points,\n    krish_approved: true,\n    target_channel, hook, target_audience, contrarian_angle,\n    taskId\n  });\n}\n\nif (briefs.length === 0) {\n  return [{ json: {\n    brief_num: 0, venture: 'NONE', target_channel: 'linkedin',\n    hook: '', target_audience: '', contrarian_angle: '',\n    krish_approved: false, parse_error: 'no briefs matched pattern', taskId\n  }}];\n}\n\nreturn briefs.map(b => ({ json: b }));\n"
+      },
+      "id": "d1dcbc28-e46d-475e-9e68-fa90fe8262a0"
+    },
+    {
+      "name": "POST to Cleo Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1648,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://krishraja10101.app.n8n.cloud/webhook/content-factory",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ krish_approved: $json.krish_approved, target_channel: $json.target_channel, hook: $json.hook, target_audience: $json.target_audience, contrarian_angle: $json.contrarian_angle, _meta: { brief_num: $json.brief_num, venture: $json.venture, title: $json.title, taskId: $json.taskId } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "fb5740b6-eef6-412e-954c-e4afe9d59f0e"
+    },
+    {
+      "name": "Wait 1s (Cleo)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        640
+      ],
+      "parameters": {
+        "amount": 1
+      },
+      "webhookId": "cleo-translator-wait-001",
+      "id": "312321cc-ff0f-4b45-9cdd-798fc8a92ee3"
+    },
+    {
+      "name": "Mark Task Done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        640
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?id=eq.{{ $json._meta?.taskId || $('Parse Cleo Briefs').first().json.taskId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'done', completed_at: new Date().toISOString() } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "id": "da25818b-96c1-45ee-a75a-6a1684268525",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Heartbeat: cleo-translator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"u0kIULJBJL4dGcuR\", \"workflow_name\": \"Orchestrator Cleo Brief Translator\", \"agent_id\": \"orchestrator\", \"outcome\": \"success\", \"status\": \"success\", \"cost_estimate_usd\": 0, \"api_calls_count\": 5}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "id": "bea4a10d-c5ad-44fc-95ec-2237f117ed70",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Event": {
+      "main": [
+        [
+          {
+            "node": "Is High Priority?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route by Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is High Priority?": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert to Krish",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Route by Agent": {
+      "main": [
+        [
+          {
+            "node": "Agent Dispatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Alert to Krish": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Dispatch": {
+      "main": [
+        [
+          {
+            "node": "Is Cleo SEO Brief Task?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Mapped Workflow?": {
+      "main": [
+        [
+          {
+            "node": "Execute Agent Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Is Cleo SEO Brief Task?": {
+      "main": [
+        [
+          {
+            "node": "Parse Cleo Briefs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Mapped Workflow?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Cleo Briefs": {
+      "main": [
+        [
+          {
+            "node": "POST to Cleo Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST to Cleo Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait 1s (Cleo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1s (Cleo)": {
+      "main": [
+        [
+          {
+            "node": "Mark Task Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Task Done": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat: cleo-translator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": null
+}

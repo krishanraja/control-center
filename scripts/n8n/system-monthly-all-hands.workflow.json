@@ -1,0 +1,180 @@
+{
+  "name": "System | Mindmaker OS | Monthly All Hands",
+  "active": true,
+  "nodes": [
+    {
+      "id": "trigger",
+      "name": "Last Day of Month (9AM EST)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 14 28-31 * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "check-last-day",
+      "name": "Is Today Last Day?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst now = new Date();\nconst tomorrow = new Date(now);\ntomorrow.setDate(tomorrow.getDate() + 1);\nconst isLastDay = tomorrow.getDate() === 1;\nconst month = now.toLocaleString('default', { month: 'long' });\nconst year = now.getFullYear();\nreturn [{ json: { isLastDay, month, year, monthYear: month + ' ' + year } }];\n"
+      }
+    },
+    {
+      "id": "if-last-day",
+      "name": "Only if Last Day",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.isLastDay }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "notify-iris",
+      "name": "Iris — All Hands Starting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        900,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "6773796504"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            },
+            {
+              "name": "text",
+              "value": "=📊 *MindMaker OS — Monthly All Hands*\n\n*{{ $('Is Today Last Day?').item.json.monthYear }}*\n\nAgatha is running the monthly review now — KPIs, business vitals, agent scorecards, wins, misses, and next month's targets.\n\nFull exec summary will follow shortly via this channel.\n\n_All Hands run by Agatha (COO) · Ops-bot via Iris_"
+            }
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "log-supabase-WbHC2krWcX9IHbE7",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Last Day of Month (9AM EST)": {
+      "main": [
+        [
+          {
+            "node": "Is Today Last Day?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Today Last Day?": {
+      "main": [
+        [
+          {
+            "node": "Only if Last Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only if Last Day": {
+      "main": [
+        [
+          {
+            "node": "Iris — All Hands Starting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Iris — All Hands Starting": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Last Day of Month (9AM EST)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

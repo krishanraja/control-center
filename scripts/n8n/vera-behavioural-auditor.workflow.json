@@ -1,0 +1,213 @@
+{
+  "name": "Vera | Mindmaker OS | Behavioural Auditor",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Daily 2AM ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "5a0c2b8a-2b96-48cc-9d12-0c82c5095f59"
+    },
+    {
+      "name": "Run Vera Audit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        340
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Vera | Mindmaker OS | Behavioural Auditor (v3 — executions-based)\n// Reads execution truth from n8n /executions instead of workflow_runs proxy table.\n// Auto-derives cadence per workflow from its trigger nodes.\n// Sandbox-safe: uses this.helpers.httpRequest. No fetch. No $env.\n\nconst __helpers = this.helpers;\n\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const hasBody = opts.body !== undefined && opts.body !== null;\n\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (hasBody) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const msg = (body && body.message) ? body.message : (err.message || String(err));\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + msg);\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ' on ' + method + ' ' + url);\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return { statusCode: status, headers: res.headers || {}, body };\n}\n\n// ---------- config ----------\nconst startedAt = Date.now();\n\nlet auditType = 'daily';\ntry {\n  const items = $input.all();\n  if (items && items[0] && items[0].json && items[0].json.audit_type) {\n    auditType = items[0].json.audit_type;\n  }\n} catch (e) {}\nconst dayOfWeek = new Date().getUTCDay();\nconst utcHour = new Date().getUTCHours();\nif (auditType === 'daily' && dayOfWeek === 5 && utcHour >= 10 && utcHour <= 12) {\n  auditType = 'weekly';\n}\n\nconst N8N_BASE = 'https://krishraja10101.app.n8n.cloud/api/v1';\nconst N8N_KEY  = '{{N8N_API_JWT}}';\nconst SB_URL  = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY  = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst TG_BOT  = '{{TELEGRAM_BOT_TOKEN}}';\nconst TG_CHAT = '6773796504';\n\nconst MAX_WORKFLOWS = 50;\nconst EXECUTIONS_PER_WF = 20;\nconst ERROR_RATE_THRESHOLD = 0.5;   // 50% of last 20 runs errored -> medium finding\nconst CONSECUTIVE_ERRORS_RED = 3;   // last 3 consecutive errors -> high finding\nconst WEBHOOK_SILENCE_HOURS = 24 * 7;\nconst MANUAL_TRIGGER_GRACE_HOURS = 24 * 14;\n\nconst n8nHeaders = { 'X-N8N-API-KEY': N8N_KEY };\nconst sbHeaders  = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };\nconst sbWriteHeaders = Object.assign({}, sbHeaders, { Prefer: 'return=representation' });\n\n// ---------- n8n helpers ----------\nasync function n8nGet(path) {\n  try {\n    const r = await __httpRequest({ method: 'GET', url: N8N_BASE + path, headers: n8nHeaders });\n    return r.body;\n  } catch (e) {\n    throw new Error('n8nGet failed on ' + path + ': ' + (e.message || e));\n  }\n}\n\nasync function sbPost(table, body) {\n  try {\n    const r = await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/' + table, headers: sbWriteHeaders, body });\n    return r.body;\n  } catch (e) {\n    return { error: String(e.message || e), httpCode: e.httpCode || 0 };\n  }\n}\n\n// ---------- cron parsing ----------\n// Derive min interval in hours from a standard 5-field cron expression\n// Field order: minute hour dom month dow\nfunction cronToHours(expr) {\n  if (!expr || typeof expr !== 'string') return null;\n  const parts = expr.trim().split(/\\s+/);\n  if (parts.length !== 5) return null;\n  const [mn, hr, dom, mo, dow] = parts;\n\n  // Check minute-level frequency\n  if (mn.includes(',')) return 1;                          // multiple minute values within an hour\n  if (mn.startsWith('*/')) {\n    const step = Number(mn.slice(2));\n    if (step && step > 0) return step / 60;\n  }\n  if (mn === '*') return 1/60;                             // every minute (pathological)\n\n  // Hour-level\n  if (hr === '*') return 1;                                // every hour\n  if (hr.startsWith('*/')) {\n    const step = Number(hr.slice(2));\n    if (step && step > 0) return step;\n  }\n  if (hr.includes(',')) {\n    const hours = hr.split(',').map(Number).filter(n => !Number.isNaN(n));\n    if (hours.length >= 2) {\n      // Approximate: 24/count of specified hours\n      return Math.ceil(24 / hours.length);\n    }\n  }\n\n  // Day-of-month weekly/etc\n  if (dom === '*' && dow === '*') return 24;               // daily\n  if (dow !== '*') {\n    // Weekly schedule. Count days of week specified.\n    let days = 1;\n    if (dow.includes(',')) days = dow.split(',').length;\n    else if (dow.includes('-')) {\n      const [a, b] = dow.split('-').map(Number);\n      if (!Number.isNaN(a) && !Number.isNaN(b)) days = (b - a + 1);\n    }\n    return Math.ceil((24 * 7) / Math.max(days, 1));\n  }\n\n  if (dom !== '*') return 24 * 30;                         // monthly-ish fallback\n\n  return 24;  // safe daily default\n}\n\nfunction classifyWorkflow(wf) {\n  const nodes = wf.nodes || [];\n  let trigger_type = 'manual_only';\n  let minIntervalHours = null;\n  for (const n of nodes) {\n    const t = n.type || '';\n    const p = n.parameters || {};\n    if (t === 'n8n-nodes-base.scheduleTrigger') {\n      trigger_type = 'cron';\n      const rule = p.rule || {};\n      for (const ivl of (rule.interval || [])) {\n        let h = null;\n        if (ivl.field === 'cronExpression') h = cronToHours(ivl.expression);\n        else if (ivl.field === 'minutes' && ivl.minutesInterval) h = ivl.minutesInterval / 60;\n        else if (ivl.field === 'hours' && ivl.hoursInterval)   h = ivl.hoursInterval;\n        else if (ivl.field === 'days' && ivl.daysInterval)     h = ivl.daysInterval * 24;\n        else if (ivl.field === 'weeks')                         h = 24 * 7;\n        if (h !== null && (minIntervalHours === null || h < minIntervalHours)) minIntervalHours = h;\n      }\n    } else if (t === 'n8n-nodes-base.webhook' && trigger_type !== 'cron') {\n      trigger_type = 'webhook';\n    } else if ((t === 'n8n-nodes-base.gmailTrigger' || t === 'n8n-nodes-base.emailReadImap') && trigger_type !== 'cron') {\n      trigger_type = 'event';\n    }\n  }\n  // Compute max_silence_hours per trigger type\n  let max_silence_hours;\n  if (trigger_type === 'cron') {\n    // 1.5x interval, min 2h floor so a daily job has ~36h silence allowance\n    max_silence_hours = Math.max(2, Math.ceil((minIntervalHours || 24) * 1.5));\n  } else if (trigger_type === 'webhook') {\n    max_silence_hours = WEBHOOK_SILENCE_HOURS;\n  } else if (trigger_type === 'event') {\n    max_silence_hours = WEBHOOK_SILENCE_HOURS;\n  } else {\n    max_silence_hours = MANUAL_TRIGGER_GRACE_HOURS;\n  }\n  return { trigger_type, min_interval_hours: minIntervalHours, max_silence_hours };\n}\n\n// Extract agent prefix from workflow name e.g. \"Leo | Mindmaker OS | ...\" -> \"Leo\"\nfunction prefixOf(name) {\n  if (!name) return 'Unknown';\n  const first = String(name).split('|')[0].trim();\n  return first || 'Unknown';\n}\n\n// ---------- main audit ----------\nconst findings = [];\nconst auditedIds = [];\nlet cleanFlag = true;\nconst stats = { cron: 0, webhook: 0, event: 0, manual_only: 0, skipped: 0, errored_meta: 0 };\n\n// Enumerate active workflows\nconst wfList = await n8nGet('/workflows?active=true&limit=100');\nconst workflows = (wfList && wfList.data) || [];\nif (workflows.length === 0) {\n  findings.push({ band: 'meta', severity: 'high', subject: 'vera', reason: 'no active workflows returned by /workflows?active=true' });\n  cleanFlag = false;\n}\n\nconst toAudit = workflows.slice(0, MAX_WORKFLOWS);\nconst now = Date.now();\n\nfor (const summary of toAudit) {\n  const wfId = summary.id;\n  const wfName = summary.name || wfId;\n  auditedIds.push(wfId);\n\n  // Full workflow fetch for trigger classification\n  let wf;\n  try {\n    wf = await n8nGet('/workflows/' + wfId);\n  } catch (e) {\n    findings.push({ band: 'meta', severity: 'medium', subject: wfName, reason: 'fetch workflow failed: ' + String(e.message || e).substring(0, 140) });\n    stats.errored_meta++;\n    continue;\n  }\n\n  const classification = classifyWorkflow(wf);\n  stats[classification.trigger_type] = (stats[classification.trigger_type] || 0) + 1;\n\n  if (classification.trigger_type === 'manual_only') {\n    stats.skipped++;\n    continue;  // don't audit manual-only workflows\n  }\n\n  // Pull last N executions\n  let execs;\n  try {\n    const r = await n8nGet('/executions?workflowId=' + encodeURIComponent(wfId) + '&limit=' + EXECUTIONS_PER_WF);\n    execs = (r && r.data) || [];\n  } catch (e) {\n    findings.push({ band: 'meta', severity: 'medium', subject: wfName, reason: 'fetch executions failed: ' + String(e.message || e).substring(0, 140) });\n    stats.errored_meta++;\n    continue;\n  }\n\n  // Check 1: cadence silence\n  if (execs.length === 0) {\n    // Zero-history for webhook/event triggers is not actionable — it may simply never have been called.\n    // Only flag as high for cron (which should have fired by now).\n    if (classification.trigger_type === 'cron') {\n      const intervalLabel = classification.min_interval_hours != null ? ('~' + classification.min_interval_hours + 'h') : 'unknown interval';\n      findings.push({\n        band: 'cadence', severity: 'high', subject: wfName,\n        reason: 'no executions in history (cron, expected every ' + intervalLabel + ')',\n        trigger_type: classification.trigger_type,\n      });\n      cleanFlag = false;\n    }\n    // Webhook/event with zero history: silently skip — not a finding.\n    continue;\n  }\n\n  const latest = execs[0];\n  const latestStartedAt = latest.startedAt ? new Date(latest.startedAt).getTime() : null;\n  const hoursSince = latestStartedAt ? ((now - latestStartedAt) / 3600000) : 999;\n\n  if (hoursSince > classification.max_silence_hours) {\n    findings.push({\n      band: 'cadence',\n      severity: classification.trigger_type === 'cron' ? 'high' : 'medium',\n      subject: wfName,\n      reason: 'last execution ' + hoursSince.toFixed(1) + 'h ago (allowed ' + classification.max_silence_hours + 'h for ' + classification.trigger_type + ')',\n      trigger_type: classification.trigger_type,\n      hours_since: Math.round(hoursSince),\n    });\n    cleanFlag = false;\n  }\n\n  // Check 2: consecutive errors at the top of history\n  const consecutiveErrors = [];\n  for (const e of execs) {\n    if (e.status === 'error') consecutiveErrors.push(e);\n    else break;\n  }\n\n  // Check 3: error rate over last N (compute first, decide what to emit)\n  let highRate = false;\n  let errorCount = 0;\n  if (execs.length >= 5) {\n    errorCount = execs.filter(e => e.status === 'error').length;\n    const rate = errorCount / execs.length;\n    highRate = rate >= ERROR_RATE_THRESHOLD;\n  }\n\n  // Emit errors finding — avoid duplicates.\n  // If we'd emit both \"last 3+ errored\" and \"rate high\", keep only the high one.\n  // If only one error in last run AND rate is high, keep only the rate finding.\n  if (consecutiveErrors.length >= CONSECUTIVE_ERRORS_RED) {\n    findings.push({\n      band: 'errors', severity: 'high', subject: wfName,\n      reason: 'last ' + consecutiveErrors.length + ' executions all errored (most recent: ' + (consecutiveErrors[0].startedAt || '') + ')',\n    });\n    cleanFlag = false;\n  } else if (highRate) {\n    findings.push({\n      band: 'errors', severity: 'medium', subject: wfName,\n      reason: errorCount + '/' + execs.length + ' recent executions errored (' + Math.round((errorCount / execs.length) * 100) + '%)',\n    });\n    cleanFlag = false;\n  } else if (consecutiveErrors.length >= 1 && latest.status === 'error') {\n    findings.push({\n      band: 'errors', severity: 'medium', subject: wfName,\n      reason: 'most recent execution errored (' + consecutiveErrors.length + ' consecutive)',\n    });\n    cleanFlag = false;\n  }\n}\n\n// ---------- autonomy demotion check (weekly only) ----------\nlet autonomyFindings = [];\nif (auditType === 'weekly') {\n  const DEMOTION_THRESHOLD = 0.15; // >15 percentage-point week-over-week jump in rejection rate\n  const REJECTABLE_STATUSES = ['queued', 'sent', 'rejected']; // denominator: all attempted sends\n  const nowMs = Date.now();\n  const weekMs = 7 * 24 * 3600 * 1000;\n  const thisWeekStart = new Date(nowMs - weekMs).toISOString();\n  const lastWeekStart = new Date(nowMs - 2 * weekMs).toISOString();\n  const lastWeekEnd = thisWeekStart;\n\n  async function fetchSendsWithVenture(fromIso, toIso) {\n    // acquisition_sends has no venture column directly -- join via lead_id -> leads.primary_venture.\n    // PostgREST embed: select lead:leads(primary_venture)\n    const path = '/rest/v1/acquisition_sends?select=status,queued_at,lead:leads(primary_venture)'\n      + '&queued_at=gte.' + encodeURIComponent(fromIso)\n      + (toIso ? ('&queued_at=lt.' + encodeURIComponent(toIso)) : '');\n    const r = await __httpRequest({ method: 'GET', url: SB_URL + path, headers: sbHeaders });\n    return Array.isArray(r.body) ? r.body : [];\n  }\n\n  function rejectionRateByVenture(rows) {\n    const byVenture = {};\n    for (const row of rows) {\n      const venture = row.lead && row.lead.primary_venture;\n      if (!venture) continue;\n      if (!REJECTABLE_STATUSES.includes(row.status)) continue;\n      if (!byVenture[venture]) byVenture[venture] = { total: 0, rejected: 0 };\n      byVenture[venture].total++;\n      if (row.status === 'rejected') byVenture[venture].rejected++;\n    }\n    const rates = {};\n    for (const [venture, c] of Object.entries(byVenture)) {\n      rates[venture] = c.total > 0 ? (c.rejected / c.total) : null;\n    }\n    return rates;\n  }\n\n  try {\n    const [thisWeekRows, lastWeekRows] = await Promise.all([\n      fetchSendsWithVenture(thisWeekStart, null),\n      fetchSendsWithVenture(lastWeekStart, lastWeekEnd),\n    ]);\n    const thisRates = rejectionRateByVenture(thisWeekRows);\n    const lastRates = rejectionRateByVenture(lastWeekRows);\n\n    for (const [venture, thisRate] of Object.entries(thisRates)) {\n      const lastRate = lastRates[venture];\n      if (thisRate === null || lastRate === null) continue; // not enough volume either week -- skip, do not guess\n      const spike = thisRate - lastRate;\n      if (spike > DEMOTION_THRESHOLD) {\n        // Fetch current autonomy_level\n        const vrResp = await __httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/venture_registry?slug=eq.' + encodeURIComponent(venture) + '&select=slug,autonomy_level,autonomy_history', headers: sbHeaders });\n        const vr = Array.isArray(vrResp.body) ? vrResp.body[0] : null;\n        if (!vr) continue;\n        const levels = ['L1', 'L2', 'L3'];\n        const idx = levels.indexOf(vr.autonomy_level || 'L1');\n        const newLevel = levels[Math.max(0, idx - 1)]; // floor at L1, never auto-promote here\n        if (newLevel === vr.autonomy_level) continue; // already at floor, nothing to demote\n\n        const historyEntry = {\n          at: new Date().toISOString(),\n          from_level: vr.autonomy_level,\n          to_level: newLevel,\n          reason: 'rejection rate spiked ' + (spike * 100).toFixed(1) + 'pp week over week (' + (lastRate * 100).toFixed(1) + '% to ' + (thisRate * 100).toFixed(1) + '%)',\n          source: 'vera_weekly_audit',\n          metric_snapshot: { this_week_rate: thisRate, last_week_rate: lastRate, this_week_n: thisWeekRows.length, last_week_n: lastWeekRows.length },\n        };\n        const newHistory = (Array.isArray(vr.autonomy_history) ? vr.autonomy_history : []).concat([historyEntry]);\n\n        await __httpRequest({\n          method: 'PATCH',\n          url: SB_URL + '/rest/v1/venture_registry?slug=eq.' + encodeURIComponent(venture),\n          headers: sbWriteHeaders,\n          body: { autonomy_level: newLevel, autonomy_history: newHistory },\n        });\n\n        await sbPost('audit_log', {\n          event_type: 'vera_autonomy_demotion',\n          actor: 'vera',\n          target: venture,\n          display_message: 'Vera demoted ' + venture + ' from ' + vr.autonomy_level + ' to ' + newLevel + ' (rejection rate spike ' + (spike * 100).toFixed(1) + 'pp)',\n          details: JSON.stringify(historyEntry),\n        });\n\n        autonomyFindings.push({ band: 'autonomy', severity: 'high', subject: venture, reason: historyEntry.reason });\n        cleanFlag = false;\n\n        try {\n          await __httpRequest({\n            method: 'POST',\n            url: 'https://api.telegram.org/bot' + TG_BOT + '/sendMessage',\n            body: { chat_id: TG_CHAT, text: '⚠️ Vera: autonomy demotion\\n' + venture + ': ' + vr.autonomy_level + ' -> ' + newLevel + '\\n' + historyEntry.reason },\n          });\n        } catch (e) {}\n      }\n    }\n  } catch (e) {\n    // Never let this check take down the existing cadence/error audit or its Supabase/Telegram writes.\n    autonomyFindings.push({ band: 'meta', severity: 'medium', subject: 'vera', reason: 'autonomy demotion check failed: ' + String(e.message || e).substring(0, 160) });\n  }\n}\nfindings.push(...autonomyFindings);\n\n// ---------- write audit ----------\n// vera_audit schema: audit_type (CHECK daily|weekly), agents_checked (text[]), clean (bool), findings (jsonb)\nconst auditInsert = await sbPost('vera_audit', {\n  audit_type: auditType,\n  agents_checked: auditedIds,\n  clean: cleanFlag,\n  findings: findings,\n});\nconst auditWriteError = auditInsert && auditInsert.error ? auditInsert.error : null;\n\n// ---------- write to audit_log (for CC Activity Feed) ----------\nconst summaryMsg = `Vera completed ${auditType} audit. ${findings.length} findings detected across ${auditedIds.length} workflows.`;\nconst activityInsert = await sbPost('audit_log', {\n  event_type: 'vera_audit_complete',\n  actor: 'vera',\n  target: 'system',\n  display_message: summaryMsg,\n  details: JSON.stringify({ clean: cleanFlag, findings: findings.length })\n});\nconst activityWriteError = activityInsert && activityInsert.error ? activityInsert.error : null;\n\n\n// ---------- telegram summary ----------\nconst statusEmoji = cleanFlag ? '\\ud83d\\udfe2' : '\\u26a0\\ufe0f';\nlet tg = '\\ud83d\\udee1\\ufe0f Vera: Audit complete (' + auditType + ') ' + statusEmoji + '\\n';\ntg += 'Workflows audited: ' + auditedIds.length + ' | Findings: ' + findings.length + '\\n';\ntg += 'Types: cron=' + (stats.cron||0) + ' webhook=' + (stats.webhook||0) + ' event=' + (stats.event||0) + ' manual=' + (stats.manual_only||0) + ' skipped=' + (stats.skipped||0);\nif (auditWriteError) tg += '\\n\\u26a0\\ufe0f vera_audit write failed: ' + auditWriteError;\n\nif (findings.length > 0) {\n  const highs = findings.filter(f => f.severity === 'high');\n  const meds  = findings.filter(f => f.severity === 'medium');\n\n  tg += '\\n\\nHigh severity: ' + highs.length + ' | Medium: ' + meds.length;\n\n  if (highs.length > 0) {\n    tg += '\\n\\n\\ud83d\\udd34 HIGH:';\n    const shown = highs.slice(0, 8);\n    for (const f of shown) {\n      tg += '\\n  \\u2022 ' + f.subject + '\\n      ' + f.reason;\n    }\n    if (highs.length > 8) tg += '\\n  ... +' + (highs.length - 8) + ' more high';\n  }\n\n  if (meds.length > 0) {\n    // Group mediums by owner prefix for compactness\n    const medsByPrefix = {};\n    for (const f of meds) {\n      const k = prefixOf(f.subject);\n      if (!medsByPrefix[k]) medsByPrefix[k] = [];\n      medsByPrefix[k].push(f);\n    }\n    const prefixes = Object.keys(medsByPrefix).sort((a, b) => medsByPrefix[b].length - medsByPrefix[a].length);\n    tg += '\\n\\n\\ud83d\\udfe1 MEDIUM (grouped):';\n    let shown = 0;\n    for (const p of prefixes) {\n      if (shown >= 12) break;\n      const count = medsByPrefix[p].length;\n      tg += '\\n  ' + p + ': ' + count + ' finding' + (count === 1 ? '' : 's');\n      shown += count;\n    }\n    if (shown < meds.length) tg += '\\n  ... +' + (meds.length - shown) + ' more medium';\n  }\n}\n\nlet tgOk = false;\ntry {\n  await __httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + TG_BOT + '/sendMessage',\n    body: { chat_id: TG_CHAT, text: tg },\n  });\n  tgOk = true;\n} catch (e) {}\n\nconst durationMs = Date.now() - startedAt;\n\nreturn [{ json: {\n  audit_type: auditType,\n  workflows_audited: auditedIds.length,\n  clean: cleanFlag,\n  findings_count: findings.length,\n  findings: findings,\n  stats: stats,\n  audit_write_error: auditWriteError,\n  telegram_sent: tgOk,\n  duration_ms: durationMs,\n  telegram_text: tg,\n  activity_write_error: activityWriteError\n} }];\n"
+      },
+      "id": "85db0571-5953-45b0-b96d-558fefb3243b",
+      "disabled": true
+    },
+    {
+      "name": "Friday 6AM ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        480
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * 5"
+            }
+          ]
+        }
+      },
+      "id": "2eb9111a-0178-4b08-8c37-ebe7827837d1"
+    },
+    {
+      "name": "Sticky Note e6542957",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        600
+      ],
+      "parameters": {
+        "content": "## Vera Behavioural Auditor (N8N-10)\n\n**Triggers**\n- Daily 2 AM ET (07:00 UTC) — health check only\n- Friday 6 AM ET (11:00 UTC) — deep audit + quality scoring + feedback consumption\n\n**What it does**\n1. Detects silent failures across 3 bands (no exec / all fail / heartbeat-no-downstream)\n2. Pulls credential_health issues (Phase 2)\n3. Friday: samples 3 outputs per outward agent, Sonnet quality score (1-10)\n4. Friday: consumes feedback_queue, creates corrections at confidence > 0.8\n5. Tracks Phase 3 gate (4 consecutive clean + Mindmaker revenue, unlock task to Agatha)\n6. Routes to Agatha via Telegram, NEVER directly to Krish\n7. Writes vera_audit + heartbeat with cost\n\n**Key rules**\n- Telegram to Agatha-bot chat (8761660894 / 6773796504)\n- LLM: Anthropic Sonnet via $env.ANTHROPIC_API_KEY\n- Phase 3 unlock writes a pri-1 task assigned to agatha\n- Heartbeat captures duration, tokens, cost",
+        "color": 4,
+        "width": 460,
+        "height": 380
+      },
+      "id": "43e6b8c1-6ae3-449e-88e9-cbb0af3935c8"
+    },
+    {
+      "name": "Sticky Note 05442fe1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        750
+      ],
+      "parameters": {
+        "content": "## Schedule mapping\n- Daily 2 AM ET = 0 7 * * * UTC\n- Friday 6 AM ET = 0 11 * * 5 UTC\n\nBoth feed the same Code node. The node detects mode from input + day-of-week.",
+        "color": 5,
+        "width": 320,
+        "height": 180
+      },
+      "id": "faeac056-14ed-4392-8d20-dcd5f2b347b9"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        680
+      ],
+      "id": "723baf70-d3e7-4773-8978-42d5d09be029"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"vera\",\n  \"target\": \"Behavioural Auditor\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Audit Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        50
+      ],
+      "id": "9388a917-35f5-47a0-9dfe-c33a724e8b95",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 2AM ET": {
+      "main": [
+        [
+          {
+            "node": "Run Vera Audit",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Audit Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Friday 6AM ET": {
+      "main": [
+        [
+          {
+            "node": "Run Vera Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run Vera Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "node:Daily 2AM ET": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Friday 6AM ET": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

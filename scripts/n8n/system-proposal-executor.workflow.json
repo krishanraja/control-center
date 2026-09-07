@@ -1,0 +1,199 @@
+{
+  "name": "System | Mindmaker OS | Proposal Executor",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: $workflow.name, agent_id: 'mm-proposal-executor', status: 'success', outcome: 'success', run_at: new Date().toISOString(), cost_estimate_usd: 0, api_calls_count: 3 } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Execution to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1008,
+        400
+      ],
+      "id": "9ed15a8d-70a6-41a8-8af9-720c2df9482c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '6773796504', text: $json.skip ? 'Proposal Executor: No approved proposals found.' : `Proposal Executor - Executed:\\n\\nTitle: ${$json.title}\\nProposal ID: ${$json.proposalId}\\nStatus: ${$json.status}\\nActions: ${($json.actions || []).join(', ')}\\nBackup ID: ${$json.rollbackId || 'none'}\\nQuality Baseline: ${$json.qualityBaseline || 'N/A'}`, parse_mode: 'Markdown' } }}",
+        "options": {}
+      },
+      "name": "Telegram Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1328,
+        304
+      ],
+      "id": "509a4c0b-9851-45be-a631-4fbe105ac058",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return {\n    json: async () => res,\n    ok: true,\n    status: 200\n  };\n};\n\nconst proposal = $input.first().json;\n\nif (proposal.skip) {\n  return [{ json: { skip: true, message: proposal.message } }];\n}\n\nconst N8N_URL = 'https://krishraja10101.app.n8n.cloud/api/v1';\nconst N8N_KEY = '{{N8N_API_JWT}}';\nconst SUPABASE_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SUPABASE_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\nconst results = { proposalId: proposal.id, title: proposal.title, actions: [] };\n\ntry {\n  // Step A: If there is a current workflow, create a backup\n  let rollbackId = null;\n  if (proposal.current_workflow_id) {\n    const wfResp = await fetch(`${N8N_URL}/workflows/${proposal.current_workflow_id}`, {\n      headers: { 'X-N8N-API-KEY': N8N_KEY }\n    });\n    const wf = await wfResp.json();\n\n    if (wf && wf.nodes) {\n      const today = new Date().toISOString().split('T')[0];\n      const backupName = `[BACKUP] ${wf.name} - pre-change ${today}`;\n      const backupResp = await fetch(`${N8N_URL}/workflows`, {\n        method: 'POST',\n        headers: { 'X-N8N-API-KEY': N8N_KEY, 'Content-Type': 'application/json' },\n        body: JSON.stringify({\n          name: backupName,\n          nodes: wf.nodes,\n          connections: wf.connections,\n          settings: wf.settings || { executionOrder: 'v1' }\n        })\n      });\n      const backup = await backupResp.json();\n      rollbackId = backup.id;\n      results.actions.push(`Backup created: ${backupName} (ID: ${rollbackId})`);\n    }\n  }\n\n  // Step B: Apply proposed changes\n  const changes = proposal.proposed_changes || {};\n  if (proposal.current_workflow_id && (changes.nodes || changes.connections)) {\n    const wfResp = await fetch(`${N8N_URL}/workflows/${proposal.current_workflow_id}`, {\n      headers: { 'X-N8N-API-KEY': N8N_KEY }\n    });\n    const currentWf = await wfResp.json();\n\n    let updatedNodes = currentWf.nodes || [];\n    let updatedConnections = currentWf.connections || {};\n\n    // Add new nodes\n    if (changes.add_nodes) {\n      updatedNodes = [...updatedNodes, ...changes.add_nodes];\n    }\n    // Remove nodes by id\n    if (changes.remove_node_ids) {\n      updatedNodes = updatedNodes.filter(n => !changes.remove_node_ids.includes(n.id));\n    }\n    // Replace nodes by id\n    if (changes.replace_nodes) {\n      for (const replacement of changes.replace_nodes) {\n        const idx = updatedNodes.findIndex(n => n.id === replacement.id);\n        if (idx >= 0) updatedNodes[idx] = replacement;\n      }\n    }\n    // Update connections\n    if (changes.connections) {\n      updatedConnections = { ...updatedConnections, ...changes.connections };\n    }\n    // Full replacement of connections\n    if (changes.replace_connections) {\n      updatedConnections = changes.replace_connections;\n    }\n\n    const patchResp = await fetch(`${N8N_URL}/workflows/${proposal.current_workflow_id}`, {\n      method: 'PUT',\n      headers: { 'X-N8N-API-KEY': N8N_KEY, 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        name: currentWf.name,\n        nodes: updatedNodes,\n        connections: updatedConnections,\n        settings: currentWf.settings || { executionOrder: 'v1' }\n      })\n    });\n    const patchResult = await patchResp.json();\n    results.actions.push(`Workflow ${proposal.current_workflow_id} updated with proposed changes`);\n  } else if (changes.create_new) {\n    // Create a brand new workflow from the proposal\n    const createResp = await fetch(`${N8N_URL}/workflows`, {\n      method: 'POST',\n      headers: { 'X-N8N-API-KEY': N8N_KEY, 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        name: changes.create_new.name || proposal.title,\n        nodes: changes.create_new.nodes || [],\n        connections: changes.create_new.connections || {},\n        settings: changes.create_new.settings || { executionOrder: 'v1' }\n      })\n    });\n    const newWf = await createResp.json();\n    results.actions.push(`New workflow created: ${newWf.name} (ID: ${newWf.id})`);\n  }\n\n  // Step C: Compute quality baseline from last 10 runs\n  let qualityBaseline = null;\n  if (proposal.current_workflow_id) {\n    const runsResp = await fetch(\n      `${SUPABASE_URL}/rest/v1/workflow_runs?workflow_id=eq.${proposal.current_workflow_id}&order=run_at.desc&limit=10`,\n      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }\n    );\n    const runs = await runsResp.json();\n    if (runs && runs.length > 0) {\n      const scores = runs.filter(r => r.quality_score != null).map(r => parseFloat(r.quality_score));\n      if (scores.length > 0) {\n        qualityBaseline = scores.reduce((a, b) => a + b, 0) / scores.length;\n      }\n    }\n  }\n\n  // Step D: Update proposal status to 'executing'\n  const now = new Date().toISOString();\n  const updateBody = {\n    status: 'executing',\n    executed_at: now,\n    updated_at: now\n  };\n  if (rollbackId) updateBody.rollback_workflow_id = rollbackId;\n  if (qualityBaseline !== null) updateBody.quality_baseline = qualityBaseline;\n\n  await fetch(\n    `${SUPABASE_URL}/rest/v1/workflow_proposals?id=eq.${proposal.id}`,\n    {\n      method: 'PATCH',\n      headers: {\n        'apikey': SUPABASE_KEY,\n        'Authorization': `Bearer ${SUPABASE_KEY}`,\n        'Content-Type': 'application/json',\n        'Prefer': 'return=minimal'\n      },\n      body: JSON.stringify(updateBody)\n    }\n  );\n  results.actions.push('Proposal status updated to executing');\n  results.status = 'executing';\n  results.rollbackId = rollbackId;\n  results.qualityBaseline = qualityBaseline;\n\n} catch (err) {\n  results.error = err.message;\n  results.status = 'error';\n}\n\nreturn [{ json: results }];"
+      },
+      "name": "Process Each Proposal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        304
+      ],
+      "id": "34ac19d6-7518-4c31-8f22-26117c55eac7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst SUPABASE_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SUPABASE_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\nconst proposals = await __httpRequest({\n  method: 'GET',\n  url: `${SUPABASE_URL}/rest/v1/workflow_proposals?status=eq.approved&order=approved_at`,\n  headers: {\n    'apikey': SUPABASE_KEY,\n    'Authorization': `Bearer ${SUPABASE_KEY}`\n  },\n  json: true\n});\n\nif (!proposals || proposals.length === 0) {\n  return [{ json: { skip: true, message: 'No approved proposals found' } }];\n}\n\nreturn proposals.map(p => ({ json: p }));"
+      },
+      "name": "Fetch Approved Proposals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        304
+      ],
+      "id": "7c464dc6-5e22-401a-99f3-cb4eced69c06"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "proposal-executor",
+        "options": {}
+      },
+      "name": "On Approval Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        208,
+        400
+      ],
+      "webhookId": "proposal-executor",
+      "id": "27ce6c78-9160-437d-afc1-25c0c0461430"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        208
+      ],
+      "id": "2fd4a8da-445d-4e7e-b521-6eda51f0e6c7"
+    }
+  ],
+  "connections": {
+    "Log Execution to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Each Proposal": {
+      "main": [
+        [
+          {
+            "node": "Log Execution to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Approved Proposals": {
+      "main": [
+        [
+          {
+            "node": "Process Each Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Approved Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Approved Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Every 6 Hours": {
+      "recurrenceRules": [
+        6
+      ],
+      "recurrenceRuleSignatures": [
+        "hours:6"
+      ]
+    }
+  }
+}

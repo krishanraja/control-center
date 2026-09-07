@@ -1,0 +1,329 @@
+{
+  "name": "UTIL - Anna Call Agenda Rebuild",
+  "active": false,
+  "nodes": [
+    {
+      "id": "72ef74ff-3dc5-405b-9f01-7bc09617fcf8",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e058ef91-7d3e-4634-99c8-9129654837fe",
+      "name": "Get Metadata Pre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "9870f1df-ac4b-40fe-aa7e-83a04e27ed0e",
+      "name": "Build Delete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst s = sheets.find(x => x.properties.title === \"Anna Call Agenda\");\nconst requests = s ? [{deleteSheet:{sheetId: s.properties.sheetId}}] : [];\nreturn [{json:{requests}}];"
+      }
+    },
+    {
+      "id": "5ac4bf98-431b-4a9d-8c07-bc06950279e6",
+      "name": "Delete Old Tab",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "28550ad5-0531-434a-953e-3386bceaf37c",
+      "name": "Create Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "title": "Anna Call Agenda",
+        "options": {
+          "tabColor": "d93025"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "c9d3fb6f-45e8-4d02-9891-8e1827117ffa",
+      "name": "Action Plan Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const rows = [\n\n{Section:\"1. LOCKED\",Item:\"Round tables only\",Detail:\"No long banquet tables exist. Roughly 10 tables of 10. Long-table plan is dead.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Load-in from 9:00 AM\",Detail:\"Restaurant opens 9:00. Structural builds (backdrop, lanterns) can start straight away and take 45-90 min. Anything touching the tables must wait until after her team lays cloths at 9:30-10:00.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Venue has NO microphone\",Detail:\"They do not own one. We supply our own mic for speeches and games.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Cannot connect our playlist to venue speakers (yet)\",Detail:\"House music runs off 8tracks and they do not hand over control. Anna is checking whether the PC/iPad route the shisha lounge uses could work for us.\",Owner:\"-\",Due:\"-\",Status:\"Anna checking\"},\n{Section:\"1. LOCKED\",Item:\"Power everywhere\",Detail:\"Every white pillar has a socket, pillars roughly every 2m. Power is not a constraint on where anything goes.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Tables arrive almost bare\",Detail:\"White tablecloths only. All tableware is silver stainless, no gold. Tables carry water glasses and nothing else. Cutlery and plates live on the buffet table for guests to collect.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"One large TV screen at the back\",Detail:\"The two small side screens have been removed. The remaining screen is 3.3m high x 4.7m wide including frame. It can be blanked, set to the Namaste logo, loaded with a static image we send Anna, run as a slideshow via HDMI, or draped by a decor vendor.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Parking is solved\",Detail:\"2 and possibly 3 reserved host spaces. Send Anna registration numbers a day before and she puts reserved signs out. Free public parking next door behind Argal House, UPPER level only, roughly 30-50 spaces, free all Saturday.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Kids menu is 5-11 year olds\",Detail:\"Minimum 10 children. Krish told Anna we have roughly 15 in that band, so the minimum is comfortably met and is no longer a cost problem.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"NEW OPTION: half-price adult menu for children\",Detail:\"Anna offered the normal adult menu at half price for children as an alternative to the kids menu. She still recommends the kids menu for 5-11s. This option was not on the table before.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Under-5s bring their own food\",Detail:\"Anna called it pretty normal. Parents bring a lunchbox. She just wants to know roughly what is coming.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Butcher paper over the tablecloths approved\",Detail:\"Loz idea to layer scribbleable paper over the white cloths. Anna said fine.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Paper lanterns approved\",Detail:\"Another function strung them from the marquee sides and it worked well. Anna is sending photos.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Flower wall is movable\",Detail:\"Anna will position the red flower wall wherever we want and we can build in front of it. It is not fixed to one spot.\",Owner:\"-\",Due:\"-\",Status:\"Locked\"},\n{Section:\"1. LOCKED\",Item:\"Another function is in the venue that day\",Detail:\"They are also planning to drape the TV. Anna offered to introduce us so we can share a decor vendor and split the cost.\",Owner:\"-\",Due:\"-\",Status:\"Opportunity\"},\n\n{Section:\"2. ANNA OWES US\",Item:\"Floor plan with measurements\",Detail:\"Skeleton plan plus wide-angle photos so we can see how it translates to the real space. She has never sent one.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Photos of past 100-guest events on round tables\",Detail:\"To sanity check how 10 tables of 10 actually feel in the space.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Backdrop position options\",Detail:\"Photos showing backdrop at the side vs at the front, with tables arranged around each.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Photo of the red flower wall\",Detail:\"So Loz can decide whether to use it or build in front of it.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Paper lantern photos\",Detail:\"From the previous function that installed them.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Answer on Spotify to venue speakers\",Detail:\"She is asking the shisha lounge how they run their own music through the system. Decides whether we hire a speaker.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"DJ Gurj contact, setup photo, pricing\",Detail:\"She quoted roughly £350 for 4 hours, versus £550-600 for their club DJ. He came to the venue in advance last time and respected the music policy, which is why she recommends him.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Pavan Verma phone number\",Detail:\"Saxophonist. His number was missing from the vendor list she sent.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Power socket map\",Detail:\"Marked on the floor plan so we can place anything that needs power.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"TV draping logistics\",Detail:\"Measurements already given (3.3m x 4.7m). Still need the practicalities of covering it.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n{Section:\"2. ANNA OWES US\",Item:\"Introduction to the other function host\",Detail:\"For shared decor vendor and split cost on the TV drape.\",Owner:\"Anna\",Due:\"Chase Tue Aug 4\",Status:\"Awaiting\"},\n\n{Section:\"3. WE OWE ANNA\",Item:\"Book the food tasting NOW\",Detail:\"Her explicit point: the menu must be finalised before it goes to the kitchen, so tasting early leaves room to swap dishes. This is the single most time-sensitive thing from the call.\",Owner:\"Both\",Due:\"Mon Aug 3\",Status:\"Not started\"},\n{Section:\"3. WE OWE ANNA\",Item:\"Vendor and load-in schedule\",Detail:\"Who arrives when, doing what. She wants it on her own spreadsheet template which she shares with her team and the kitchen. Send in any format and she will transpose it.\",Owner:\"Loz\",Due:\"Fri Aug 14\",Status:\"Not started\"},\n{Section:\"3. WE OWE ANNA\",Item:\"Final kids split\",Detail:\"How many on kids menu, how many on half-price adult menu, how many BYO. She is holding for family feedback.\",Owner:\"Krish\",Due:\"Fri Aug 14\",Status:\"Not started\"},\n{Section:\"3. WE OWE ANNA\",Item:\"Decision on the TV screen\",Detail:\"Drape it, blank it, Namaste logo, our static image, or slideshow via HDMI.\",Owner:\"Both\",Due:\"Fri Aug 7\",Status:\"Not started\"},\n{Section:\"3. WE OWE ANNA\",Item:\"What BYO food is coming\",Detail:\"For the under-5s. She asked to be told.\",Owner:\"Krish\",Due:\"Fri Aug 14\",Status:\"Not started\"},\n{Section:\"3. WE OWE ANNA\",Item:\"List of zones we want on the floor plan\",Detail:\"Kids play, arts and crafts, quiet corner, photo spot. She places the buffet, drinks table and service stations around whatever we tell her, then flags anything that will not work.\",Owner:\"Loz\",Due:\"Fri Aug 7\",Status:\"Not started\"},\n{Section:\"3. WE OWE ANNA\",Item:\"Car registration numbers\",Detail:\"A day before the event so she can put reserved signs out.\",Owner:\"Krish\",Due:\"Fri Sep 4\",Status:\"Not started\"},\n\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Music: one hire solves three problems\",Detail:\"Anna made the point herself. A musician brings their own PA, plays it during their breaks, and will run our playlist through it. That covers speakers, live music and the mic gap in a single booking. DJ Gurj is roughly £350 for 4 hours. Saxophonist is the alternative.\",Owner:\"Both\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Microphone\",Detail:\"We must supply one regardless. Bundle it with the speaker hire or with whoever we book.\",Owner:\"Krish\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"TV screen: hide it or use it\",Detail:\"3.3m x 4.7m is the largest single visual surface in the room. Draping costs money. Uploading a static image costs nothing and Anna will load it from the back office. Niece illustration on that screen would be the cheapest high-impact move available.\",Owner:\"Both\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Fix the Guest List kids data\",Detail:\"Krish told Anna 13 toddlers and roughly 15 children aged 5-11. The Guest List currently shows only 6 on kids menu and 13 on BYO. One of the two is wrong and it drives the catering order.\",Owner:\"Krish\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Kids menu vs half-price adult menu\",Detail:\"New option from the call. Kids menu is pizza, chips, nuggets, paneer rolls, sandwiches. Half-price adult menu is roughly £19-20 per child.\",Owner:\"Both\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Gulab Jamun add-on\",Detail:\"+£2.50 per person across the whole party, roughly £230 at 92 confirmed. Their standard dessert selection is normally £6.00pp.\",Owner:\"Both\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Second non-veg dish\",Detail:\"Butter Chicken £14.50 alone, or add Lamb Rogan Josh £15.00. Roughly 15 guests marked Non Veg.\",Owner:\"Krish\",Due:\"Sun Aug 2\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Drinks quantities\",Detail:\"Prosecco serves 6 glasses per bottle, 77 confirmed adults. Suggested: 14 prosecco, 12 wine split across the three house options, 30 Cobra. Roughly £1,000.\",Owner:\"Both\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Cake\",Detail:\"Baker, size for roughly 92, delivery timing. No cutting fee and they serve it with dessert.\",Owner:\"Loz\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"4. DECIDE THIS WEEK\",Item:\"Take the vendor share or not\",Detail:\"If we are draping the TV anyway, splitting a decor vendor with the other function is free money. Say yes to the introduction now, decide later.\",Owner:\"Both\",Due:\"Sun Aug 2\",Status:\"Open\"},\n\n{Section:\"5. STILL TO ASK\",Item:\"Jain guest charging\",Detail:\"Charged a la carte only, or a la carte plus the per-person buffet rate? Roughly £40 either way.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Who does the £2.50 dessert apply to\",Detail:\"Adults only, or does it include kids on the kids menu and BYO toddlers?\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Soft drinks for BYO kids\",Detail:\"Under-5s are free and get juice. Is a 6-year-old on BYO still charged the £5pp?\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Chai round at 14:30\",Detail:\"Served to elder tables rather than self-serve. Feasible, and what does it cost? Chai Masala is £5 on the menu.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Kids food 15 minutes early\",Detail:\"Kids buffet out before the adult buffet opens so parents eat hot food.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Section 1 as a quiet corner\",Detail:\"Complication from the call: Section 1 is where the buffet and welcome drinks normally go. If we want a quiet elder corner or toddler zone there, it competes for that space. Raise it early.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"High chairs\",Detail:\"How many do they have? We have 13 toddlers.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Toilets and baby changing\",Detail:\"Where, how many, is there changing facility.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Cake delivery and storage\",Detail:\"What time do they want it, and can they refrigerate it.\",Owner:\"Loz\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Bubbles and confetti\",Detail:\"Bubble wands for kids and a bubble send-off at 16:00.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Gifts and cards storage\",Detail:\"Somewhere secure for envelopes during the party.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Deposit and balance\",Detail:\"Confirm the £500 is received and receipted. When is the balance due?\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Bank transfer arrangement\",Detail:\"Needs accounts team approval in advance. What do they need and by when?\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Confirm the two hard dates\",Detail:\"Menu and drinks lock 2 weeks prior (Sat 22 Aug). Final numbers 1 day prior (Fri 4 Sep).\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Accessibility ramp\",Detail:\"Does it need pre-booking? Two steps at the entrance, one into the marquee.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n{Section:\"5. STILL TO ASK\",Item:\"Bar area 16:00-18:00\",Detail:\"Music and playlist there, shisha price per pipe, and how late we want to hold the reserved tables.\",Owner:\"Krish\",Due:\"Fri Aug 7\",Status:\"Open\"},\n\n{Section:\"6. THINK ABOUT\",Item:\"Round tables are fixed, so mixing has to come from the table top\",Detail:\"The layout lever is gone. Story tables, quiz sheets, butcher paper and advice cards now carry the entire load of stopping this feeling like a seated function.\",Owner:\"Both\",Due:\"-\",Status:\"-\"},\n{Section:\"6. THINK ABOUT\",Item:\"The bare table is an opportunity\",Detail:\"White cloth plus water glasses and nothing else is an unusually blank canvas. Everything the niece illustrates lands on an empty surface rather than competing with venue styling.\",Owner:\"Loz\",Due:\"-\",Status:\"-\"},\n{Section:\"6. THINK ABOUT\",Item:\"Section 2 keeps open floor even when full\",Detail:\"Anna confirmed there is mingling space, dance floor space and room for kids to run even with all tables in. That is where the games and the bubble send-off happen.\",Owner:\"Both\",Due:\"-\",Status:\"-\"},\n{Section:\"6. THINK ABOUT\",Item:\"The screen is the cheapest big design surface we have\",Detail:\"3.3m x 4.7m. Hiding it costs money. Using it costs a file upload. A niece illustration or a slow photo slideshow would do more for the room than any decor spend of equivalent cost.\",Owner:\"Both\",Due:\"-\",Status:\"-\"},\n{Section:\"6. THINK ABOUT\",Item:\"Hiring a musician is a systems decision, not a music decision\",Detail:\"It solves the missing mic, the missing speaker and the missing playlist route in one line item. Judge the cost against buying a speaker plus a mic plus doing without live music.\",Owner:\"Both\",Due:\"-\",Status:\"-\"},\n{Section:\"6. THINK ABOUT\",Item:\"Anna works from her own spreadsheet\",Detail:\"She transposes everything we send into her template because that is what her team and kitchen read on the day. Do not fight it. Send clean information in any format and let her convert.\",Owner:\"Both\",Due:\"-\",Status:\"-\"},\n\n{Section:\"7. CALL NOTES\",Item:\"Anna working style\",Detail:\"Prefers questions by email so she can work through them between functions. She had two functions the same weekend as our call and apologised for slow replies during the World Cup period. Everything she agrees to goes onto her own spreadsheet, which she shares with her team and the kitchen.\",Owner:\"-\",Due:\"-\",Status:\"-\"},\n{Section:\"7. CALL NOTES\",Item:\"Tasting sequencing\",Detail:\"Her explicit advice: taste early. Dishes sometimes differ from expectation and the menu has to be locked before it reaches the kitchen, so the earlier we taste the more room we have to switch anything.\",Owner:\"-\",Due:\"-\",Status:\"-\"},\n{Section:\"7. CALL NOTES\",Item:\"Why DJ Gurj specifically\",Detail:\"The marquee is a covered garden, not an insulated room, so bass carries. She allowed a DJ years ago, the party pushed him louder and louder, and it became a problem. DJ Gurj visited beforehand, agreed to work within the music policy, and the night went well. That history is why he is the only DJ she recommends.\",Owner:\"-\",Due:\"-\",Status:\"-\"},\n{Section:\"7. CALL NOTES\",Item:\"Setup sequencing detail\",Detail:\"Anything structural (backdrop, lanterns) can start from 9:00 and takes 45-90 minutes. Anything involving the tables has to wait for her team to lay cloths at 9:30-10:00. Send her the vendor timings so she can sequence around her own staff.\",Owner:\"-\",Due:\"-\",Status:\"-\"},\n{Section:\"7. CALL NOTES\",Item:\"Vendor sharing precedent\",Detail:\"Anna raised the idea unprompted and mentioned doing the same at her own wedding in Poland, coordinating church decorations with the party booked after hers and splitting the cost. She is comfortable brokering the introduction.\",Owner:\"-\",Due:\"-\",Status:\"-\"},\n{Section:\"7. CALL NOTES\",Item:\"Floor plan is the unlock\",Detail:\"Almost every open creative decision is blocked on seeing the plan to scale. Loz made the point directly on the call: you cannot judge how much to add until you see how 10 tables of 10 actually sit in the space.\",Owner:\"-\",Due:\"-\",Status:\"-\"}\n\n];\nreturn rows.map(r => ({json: r}));"
+      }
+    },
+    {
+      "id": "755b8cec-54ea-4e1c-8d16-964e9ea1f101",
+      "name": "Write Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Anna Call Agenda"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn",
+          "useAppend": true
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "507939e2-29b3-4945-b4f3-86531a4072ee",
+      "name": "Get Metadata Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f68139d8-f544-43cb-b107-76a87b6bee68",
+      "name": "Build Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst s = sheets.find(x => x.properties.title === \"Anna Call Agenda\");\nif (!s) return [{json:{requests:[]}}];\nconst sid = s.properties.sheetId;\nconst requests = [];\n\nrequests.push({updateSheetProperties:{properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},fields:\"gridProperties.frozenRowCount\"}});\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{backgroundColor:{red:0.12,green:0.16,blue:0.22},horizontalAlignment:\"LEFT\",verticalAlignment:\"MIDDLE\",wrapStrategy:\"WRAP\",textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:11}}},fields:\"userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)\"}});\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:120},cell:{userEnteredFormat:{verticalAlignment:\"TOP\",wrapStrategy:\"WRAP\",textFormat:{fontSize:10}}},fields:\"userEnteredFormat(verticalAlignment,wrapStrategy,textFormat)\"}});\n\n[135,260,540,80,110,105].forEach((w,i) => {\n  requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:\"COLUMNS\",startIndex:i,endIndex:i+1},properties:{pixelSize:w},fields:\"pixelSize\"}});\n});\n\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:120,startColumnIndex:1,endColumnIndex:2},cell:{userEnteredFormat:{textFormat:{bold:true,fontSize:10}}},fields:\"userEnteredFormat.textFormat\"}});\n\nconst secRule = (txt,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:120,startColumnIndex:0,endColumnIndex:1}],booleanRule:{condition:{type:\"TEXT_CONTAINS\",values:[{userEnteredValue:txt}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(secRule(\"1. LOCKED\",{red:0.82,green:0.94,blue:0.85},{red:0.04,green:0.35,blue:0.18}));\nrequests.push(secRule(\"2. ANNA OWES\",{red:1,green:0.95,blue:0.8},{red:0.48,green:0.33,blue:0.02}));\nrequests.push(secRule(\"3. WE OWE\",{red:1,green:0.87,blue:0.87},{red:0.6,green:0.11,blue:0.11}));\nrequests.push(secRule(\"4. DECIDE\",{red:0.85,green:0.91,blue:0.99},{red:0.06,green:0.27,blue:0.56}));\nrequests.push(secRule(\"5. STILL TO ASK\",{red:0.91,green:0.88,blue:0.99},{red:0.32,green:0.16,blue:0.6}));\nrequests.push(secRule(\"6. THINK ABOUT\",{red:0.93,green:0.93,blue:0.93},{red:0.3,green:0.3,blue:0.3}));\nrequests.push(secRule(\"7. CALL NOTES\",{red:0.97,green:0.97,blue:0.97},{red:0.45,green:0.45,blue:0.45}));\n\nconst ownerRule = (name,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:120,startColumnIndex:3,endColumnIndex:4}],booleanRule:{condition:{type:\"TEXT_EQ\",values:[{userEnteredValue:name}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(ownerRule(\"Krish\",{red:0.85,green:0.91,blue:0.99},{red:0.06,green:0.27,blue:0.56}));\nrequests.push(ownerRule(\"Loz\",{red:0.99,green:0.89,blue:0.94},{red:0.6,green:0.09,blue:0.33}));\nrequests.push(ownerRule(\"Both\",{red:0.88,green:0.89,blue:0.99},{red:0.2,green:0.19,blue:0.6}));\nrequests.push(ownerRule(\"Anna\",{red:1,green:0.95,blue:0.8},{red:0.48,green:0.33,blue:0.02}));\n\nconst statusRule = (txt,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:120,startColumnIndex:5,endColumnIndex:6}],booleanRule:{condition:{type:\"TEXT_CONTAINS\",values:[{userEnteredValue:txt}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(statusRule(\"Locked\",{red:0.82,green:0.94,blue:0.85},{red:0.04,green:0.35,blue:0.18}));\nrequests.push(statusRule(\"Awaiting\",{red:1,green:0.95,blue:0.8},{red:0.48,green:0.33,blue:0.02}));\nrequests.push(statusRule(\"Open\",{red:1,green:0.87,blue:0.87},{red:0.6,green:0.11,blue:0.11}));\nrequests.push(statusRule(\"Opportunity\",{red:0.85,green:0.91,blue:0.99},{red:0.06,green:0.27,blue:0.56}));\n\nrequests.push({addBanding:{bandedRange:{range:{sheetId:sid,startRowIndex:1,endRowIndex:120,startColumnIndex:0,endColumnIndex:6},rowProperties:{firstBandColor:{red:1,green:1,blue:1},secondBandColor:{red:0.975,green:0.975,blue:0.98}}}}});\n\nrequests.push({updateSheetProperties:{properties:{sheetId:sid,index:1},fields:\"index\"}});\n\nreturn [{json:{requests}}];"
+      }
+    },
+    {
+      "id": "a6f7f048-9ca1-4462-9501-afaca21d8724",
+      "name": "Apply Format",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Metadata Pre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Metadata Pre": {
+      "main": [
+        [
+          {
+            "node": "Build Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Delete": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Tab": {
+      "main": [
+        [
+          {
+            "node": "Create Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Tab": {
+      "main": [
+        [
+          {
+            "node": "Action Plan Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Plan Rows": {
+      "main": [
+        [
+          {
+            "node": "Write Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Rows": {
+      "main": [
+        [
+          {
+            "node": "Get Metadata Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Metadata Post": {
+      "main": [
+        [
+          {
+            "node": "Build Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Format": {
+      "main": [
+        [
+          {
+            "node": "Apply Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

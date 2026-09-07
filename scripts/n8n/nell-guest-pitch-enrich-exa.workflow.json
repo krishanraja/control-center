@@ -1,0 +1,344 @@
+{
+  "name": "Nell | Mindmaker OS | Guest Pitch Enrich (Exa)",
+  "active": true,
+  "nodes": [
+    {
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "path": "guest-pitch-enrich-v2",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "webhookId": "guest-pitch-enrich-2026-05-23"
+    },
+    {
+      "id": "Fetch_Guest",
+      "name": "Fetch Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests?id=eq.{{ $json.body.guest_id }}&select=*",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "Brave_Person",
+      "name": "Brave Person",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent(($json.name || '') + ' ' + (($json.podcast_target || '').replace(/_/g, ' ')) + ' founder builder') }}&count=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iZ4rGHcvsTUEPmy6",
+          "name": "Brave Search API"
+        }
+      }
+    },
+    {
+      "id": "Fetch_Ventures",
+      "name": "Fetch Ventures",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/venture_registry?select=slug,display_name,kind,icp_description&active=eq.true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "Compile_Context",
+      "name": "Compile Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        304
+      ],
+      "parameters": {
+        "jsCode": "const guest = $('Fetch Guest').first().json;\nconst guestRow = Array.isArray(guest) ? guest[0] : guest;\nconst braveBody = $('Brave Person').first().json;\nconst braveResults = ((braveBody && braveBody.web && braveBody.web.results) || []).slice(0, 4).map(r => ({\n  title: r.title, url: r.url, description: r.description\n}));\nconst ventures = $('Fetch Ventures').first().json;\nconst ventureList = Array.isArray(ventures) ? ventures : [];\nconst venture = ventureList.find(v => v.slug === guestRow.podcast_target) || null;\nconst exaBody = $('Exa Enrich').first().json;\nconst exa = ((exaBody && exaBody.results) || []).slice(0, 4).map(r => ({ title: r.title, url: r.url, text: (r.text || '').slice(0, 350) }));\nreturn [{ json: { guest: guestRow, venture, brave: braveResults, exa } }];\n"
+      }
+    },
+    {
+      "id": "Sonnet_Pitch",
+      "name": "Sonnet Pitch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: \"You are Krish Raja's outreach assistant. Krish runs two podcasts: Signal & Noise (contrarian builder stories, novel craft, under-told voices for ambitious founders) and Built (solo or small-team builders shipping unusually leveraged work, infra, distribution stories that compound).\\n\\nWrite a cold pitch draft inviting this person to be a podcast guest. Honor these rules:\\n- Krish's voice: direct, conversational, no fluff, no corporate jargon, no hype words.\\n- NEVER use em dashes (U+2014) or en dashes (U+2013). Use commas, colons, semicolons, parentheses, or line breaks.\\n- 80 to 120 words. Hard cap.\\n- Open with one specific reference to something they actually DID or SAID. Use the Exa findings FIRST (their real writing, talks, episodes), then Brave + one_liner. Reference the substance of a real piece, never a bare URL or vague work.\\n- One short paragraph on what the show is about and the angle you'd want to explore with them.\\n- End with a low-friction CTA (15-min async chat, voice memo, whatever fits the channel).\\n- Sign as 'Krish'. No subject line. No formatting markers.\\n- Pick best_channel from email, linkedin, twitter, personal_url based on what's available and what suits them.\\n\\nEvery pitch must meet five standards: undeniably unique, well-researched (built on their actual work in the findings), thoughtful, kind, genuinely helpful. Operator-to-operator, never fawning. If the findings contain real substance, a generic pitch is a failure. Return ONLY a JSON object with keys: pitch_draft (string), best_channel (one of: email, linkedin, twitter, personal_url), reasoning (one short sentence on why this pitch + channel fit). No prose outside the JSON.\", messages: [{ role: 'user', content: 'Guest:\\n' + JSON.stringify($('Compile Context').item.json.guest) + '\\n\\nVenture context:\\n' + JSON.stringify($('Compile Context').item.json.venture) + '\\n\\nBrave results:\\n' + JSON.stringify($('Compile Context').item.json.brave) }] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_Sonnet",
+      "name": "Parse Sonnet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        304
+      ],
+      "parameters": {
+        "jsCode": "\nconst item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nif (!parsed || !parsed.pitch_draft) {\n  return [{ json: { id: $('Compile Context').first().json.guest.id, pitch_draft: null, best_channel: null, quality_score: 'red', error: 'parse_failed' } }];\n}\nconst draft = String(parsed.pitch_draft || '').trim();\nconst hasEmDash = draft.includes('—');\nconst hasEnDash = draft.includes('–');\nconst tooLong = draft.split(/\\s+/).length > 130;\nconst tooShort = draft.split(/\\s+/).length < 60;\nlet quality = 'green';\nconst flags = [];\nif (hasEmDash || hasEnDash) { quality = 'red'; flags.push('dash_violation'); }\nif (tooLong) { if (quality === 'green') quality = 'amber'; flags.push('over_length'); }\nif (tooShort) { if (quality === 'green') quality = 'amber'; flags.push('under_length'); }\nconst allowedChannels = new Set(['email', 'linkedin', 'twitter', 'personal_url']);\nconst channel = allowedChannels.has(parsed.best_channel) ? parsed.best_channel : null;\nreturn [{ json: {\n  id: $('Compile Context').first().json.guest.id,\n  pitch_draft: draft,\n  best_channel: channel,\n  quality_score: quality,\n  flags\n} }];\n"
+      }
+    },
+    {
+      "id": "Patch_Guest",
+      "name": "Patch Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        304
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests?id=eq.{{ $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pitch_draft: $json.pitch_draft, best_channel: $json.best_channel, quality_score: $json.quality_score, updated_at: new Date().toISOString() }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.exa.ai/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: ((($('Fetch Guest').first().json[0]||$('Fetch Guest').first().json).name||'') + ' ' + (($('Fetch Guest').first().json[0]||$('Fetch Guest').first().json).one_liner||'')).trim().slice(0,180), type:'auto', numResults:4, contents:{ text:{ maxCharacters:400 } } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        520
+      ],
+      "name": "Exa Enrich",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pC89kmtU97Hf7Y13",
+          "name": "Exa API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "23ff2887-62cc-4ddf-a274-f0ab94bd2e3f"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Guest": {
+      "main": [
+        [
+          {
+            "node": "Brave Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Person": {
+      "main": [
+        [
+          {
+            "node": "Exa Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Ventures": {
+      "main": [
+        [
+          {
+            "node": "Compile Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Context": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Pitch": {
+      "main": [
+        [
+          {
+            "node": "Parse Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Patch Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exa Enrich": {
+      "main": [
+        [
+          {
+            "node": "Fetch Ventures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "staticData": null
+}

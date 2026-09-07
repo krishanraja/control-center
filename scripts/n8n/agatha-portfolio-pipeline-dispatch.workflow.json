@@ -1,0 +1,530 @@
+{
+  "name": "Agatha | Mindmaker OS | Portfolio Pipeline Dispatch",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Approval Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "path": "pipeline-dispatch",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "11756b25-79a6-49cc-b225-cc658bfce779",
+      "id": "8da61cb8-73ba-4b70-bd36-aeaa0988271b"
+    },
+    {
+      "name": "Check Approval Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "approved",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "in_progress",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "120f4fb1-29f6-4f49-b6ff-8b0efbb4ecef"
+    },
+    {
+      "name": "Route by Venture",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        500,
+        200
+      ],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.venture }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "mindmaker",
+              "output": 0
+            },
+            {
+              "value2": "audience",
+              "output": 1
+            },
+            {
+              "value2": "media",
+              "output": 2
+            }
+          ]
+        },
+        "fallbackOutput": 3
+      },
+      "id": "15a53701-18a1-49c8-835a-a54b25d3bd8d"
+    },
+    {
+      "name": "Add to Instantly Advisory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instantly.ai/api/v2/leads",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ZWY4NGE2YzItN2Q2MC00M2VkLWE5NTUtMWExNTE2YzlhMDUxOnRWSHR2cGt0dXBBSA=="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ campaign: 'd7603286-dbc7-433d-8a42-f1466856a194', email: $json.contact_email || '', first_name: $json.contact_first_name || '', last_name: $json.contact_last_name || '', company_name: $json.contact_company || '', skip_if_in_workspace: true, custom_variables: { customVar1: $json.draft_subject || 'AI decision at your company', customVar2: $json.draft_hook || 'Following up from our conversation.' } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "5c413981-28f2-4b6a-a304-211ab61a9a93"
+    },
+    {
+      "name": "Add to Instantly Nurture",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instantly.ai/api/v2/leads",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ZWY4NGE2YzItN2Q2MC00M2VkLWE5NTUtMWExNTE2YzlhMDUxOnRWSHR2cGt0dXBBSA=="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ campaign: 'd7603286-dbc7-433d-8a42-f1466856a194', email: $json.contact_email || '', first_name: $json.contact_first_name || '', last_name: $json.contact_last_name || '', company_name: $json.contact_company || '', skip_if_in_workspace: true }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "3945d8f4-55e6-4784-bfeb-c9f98b93ab14"
+    },
+    {
+      "name": "Notify Krish: Media Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: '6773796504', parse_mode: 'Markdown', text: '*Podcast Guest Approved*\\n\\nSend invite to: ' + ($json.contact_first_name || '') + ' ' + ($json.contact_last_name || '') + '\\n\\nDraft:\\n' + ($json.evidence || '').substring(0, 500) + '\\n\\nBooking link: ctrl.themindmaker.ai/booking' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "4cf82d7f-cd0c-4ff1-8031-0aff141a138e",
+      "disabled": true
+    },
+    {
+      "name": "Notify Krish: CTRL Beta Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: '6773796504', parse_mode: 'Markdown', text: '*CTRL Beta Invite Approved*\\n\\nSend to: ' + ($json.contact_first_name || '') + ' ' + ($json.contact_last_name || '') + '\\n\\n' + ($json.evidence || '').substring(0, 500) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "8ef3b28c-cff7-44eb-87fb-07de8d606bae",
+      "disabled": true
+    },
+    {
+      "name": "Create Follow-Up Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ title: 'Follow up: did ' + ($('Unwrap Body').item.json.contact_first_name || 'contact') + ' reply?', status: 'active', owner: 'krish', agent: 'agatha', venture: $('Unwrap Body').item.json.venture, workstream: $('Unwrap Body').item.json.workstream, group_label: $('Unwrap Body').item.json.group_label, due_date: new Date(Date.now() + 3*86400000).toISOString(), next_step: 'Check if ' + ($('Unwrap Body').item.json.contact_first_name || 'contact') + ' (' + ($('Unwrap Body').item.json.contact_email || 'no email') + ') opened or replied. Send follow-up 2 if no response in 3 days.' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "b345cc39-e98a-4e46-8f68-8a62d5ebc58f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ actor: 'krish', event_type: 'pipeline_approved_dispatched', target: ($('Unwrap Body').item.json.contact_first_name || '') + ' ' + ($('Unwrap Body').item.json.contact_last_name || ''), display_message: 'Pipeline approved: ' + ($('Unwrap Body').item.json.contact_first_name || 'Contact') + ' dispatched via ' + $('Unwrap Body').item.json.venture + '/' + $('Unwrap Body').item.json.workstream, details: JSON.stringify({ venture: $('Unwrap Body').item.json.venture, workstream: $('Unwrap Body').item.json.workstream, task_id: $('Unwrap Body').item.json.task_id, contact_email: $('Unwrap Body').item.json.contact_email }) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "1b5b5119-14b2-4c91-9e4e-6e5a249a2afa",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Log Rejection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        500,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ actor: 'krish', event_type: 'pipeline_rejected', target: $('Unwrap Body').item.json.task_id || 'unknown', display_message: 'Pipeline lead rejected: ' + ($('Unwrap Body').item.json.contact_first_name || 'unknown') + ' ' + ($('Unwrap Body').item.json.contact_last_name || ''), details: JSON.stringify({ task_id: $('Unwrap Body').item.json.task_id, venture: $('Unwrap Body').item.json.venture }) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "a2686a23-7ec9-4eac-baad-f1c1c9da7106",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Unwrap Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        125,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Webhook v2 nests the request body under .body. Spread it to top level so\n// downstream nodes can use $json.<field> naturally.\nconst raw = $input.item.json;\nconst body = raw.body && typeof raw.body === 'object' ? raw.body : {};\nreturn { ...body };\n"
+      },
+      "id": "f90ad84d-0403-4378-928a-475e35d1fc9f"
+    }
+  ],
+  "connections": {
+    "Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Unwrap Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Approval Status": {
+      "main": [
+        [
+          {
+            "node": "Route by Venture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Venture": {
+      "main": [
+        [
+          {
+            "node": "Add to Instantly Advisory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add to Instantly Nurture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Krish: Media Approved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Krish: CTRL Beta Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Instantly Advisory": {
+      "main": [
+        [
+          {
+            "node": "Create Follow-Up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Instantly Nurture": {
+      "main": [
+        [
+          {
+            "node": "Create Follow-Up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Krish: Media Approved": {
+      "main": [
+        [
+          {
+            "node": "Create Follow-Up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Krish: CTRL Beta Approved": {
+      "main": [
+        [
+          {
+            "node": "Create Follow-Up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Follow-Up Task": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unwrap Body": {
+      "main": [
+        [
+          {
+            "node": "Check Approval Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120,
+    "availableInMCP": true
+  },
+  "staticData": null
+}

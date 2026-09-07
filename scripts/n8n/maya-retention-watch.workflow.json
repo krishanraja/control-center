@@ -1,90 +1,162 @@
 {
   "name": "Maya | Retention Watch",
   "active": true,
-  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
   "nodes": [
     {
+      "id": "6b5e9523-f2f6-40f8-8b78-7defb04f5a55",
       "name": "Daily 13:00 UTC",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [240, 240],
-      "parameters": { "rule": { "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 13, "triggerAtMinute": 0 }] } }
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 13,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
     },
-    { "name": "Run now", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [240, 420], "parameters": {} },
     {
+      "id": "ee6e8efc-45e7-448b-a80b-e2b819c128e3",
       "name": "CTRL subscriptions",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [480, 300],
+      "position": [
+        224,
+        96
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://api.stripe.com/v1/subscriptions?status=all&limit=100&expand[]=data.customer",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "credentials": { "httpHeaderAuth": { "id": "fVDCMOkPByL0V1F5", "name": "Stripe mindmake_llc restricted (reconciliation)" } },
       "onError": "continueRegularOutput",
-      "notes": "CTRL/mindmake_llc account (the paid subs). Extend to legibility/fractionl/fulltime Stripe creds as those lanes take paid subs."
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fVDCMOkPByL0V1F5",
+          "name": "Stripe mindmaker_llc restricted (reconciliation)"
+        }
+      }
     },
     {
+      "id": "7fb3442b-040c-48a8-97b5-a4dd4dd482a2",
       "name": "Churned with email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [720, 220],
+      "position": [
+        448,
+        96
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?kind=eq.churned&email=not.is.null&select=product,email,stripe_customer_id,churned_at",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
+      "id": "a42be7e5-af46-4c53-b897-aee6bb66ba97",
       "name": "Recent retention",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [720, 380],
+      "position": [
+        672,
+        96
+      ],
       "parameters": {
         "method": "GET",
         "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/retention_events?select=email,kind,sent_at&sent_at=gte.{{ new Date(Date.now() - 14*86400000).toISOString() }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
       "executeOnce": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
+      "id": "87b0edd3-f3a7-4a0f-8db3-0b81aa5a3f0b",
       "name": "Detect retention actions",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300],
+      "position": [
+        896,
+        96
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
         "jsCode": "const subsResp = $('CTRL subscriptions').first().json;\nconst subs = Array.isArray(subsResp && subsResp.data) ? subsResp.data : [];\nconst churned = $('Churned with email').all().map(i => i.json).filter(x => x && x.email);\nconst recentRows = $('Recent retention').all().map(i => i.json);\nconst seen = new Set(recentRows.map(r => (r.email || '') + '|' + r.kind));\nconst tasks = [];\nconst events = [];\nfunction push(kind, email, product, scid, title, desc) {\n  if (!email || seen.has(email + '|' + kind)) return;\n  seen.add(email + '|' + kind);\n  const id = 'ret-' + kind + '-' + String(scid || email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);\n  tasks.push({ id, title, description: desc, agent: 'maya', status: 'waiting', workstream: 'retention' });\n  events.push({ product, email, stripe_customer_id: scid || null, kind, status: 'detected', meta: {} });\n}\nfor (const s of subs) {\n  const email = s.customer && s.customer.email;\n  const scid = s.customer && s.customer.id;\n  if (s.status === 'past_due' || s.status === 'unpaid') {\n    push('dunning', email, 'mm_ctrl', scid, 'Recover CTRL payment: ' + email, 'Subscription ' + s.id + ' is ' + s.status + '. Card failed; recover before it cancels.');\n  } else if (s.cancel_at_period_end && s.status === 'active') {\n    push('cancel_save', email, 'mm_ctrl', scid, 'Save cancelling CTRL sub: ' + email, 'Subscription ' + s.id + ' is set to cancel at period end. Offer the pause or the 30% save.');\n  }\n}\nfor (const c of churned) {\n  push('winback', c.email, c.product, c.stripe_customer_id, 'Win back ' + c.product + ': ' + c.email, 'Churned ' + (c.churned_at || '') + '. Send a win-back.');\n}\nreturn [{ json: { tasks, events, n: tasks.length } }];"
       },
-      "executeOnce": true,
-      "notes": "Detection only, no send. Surfaces dunning / cancel-save / win-back into the decisions queue (tasks, workstream=retention). 14-day cooldown via retention_events. Auto-email upgrade needs a reusable Resend credential."
+      "executeOnce": true
     },
     {
+      "id": "ad37852f-c304-4025-ab52-04a0c721a639",
       "name": "Upsert decision tasks",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1200, 220],
+      "position": [
+        1120,
+        96
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?on_conflict=id",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
-        "headerParameters": { "parameters": [
-          { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -92,24 +164,41 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
       "executeOnce": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
+      "id": "c0649c67-0c80-4a5a-8e69-fec84237ee5e",
       "name": "Log retention_events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1200, 380],
+      "position": [
+        1344,
+        96
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/retention_events",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
-        "headerParameters": { "parameters": [
-          { "name": "Prefer", "value": "return=minimal" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -117,24 +206,41 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
       "executeOnce": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
+      "id": "59a50391-87ec-4ce0-950f-12a14ae6618d",
       "name": "Heartbeat",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1440, 300],
+      "position": [
+        1568,
+        96
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
-        "headerParameters": { "parameters": [
-          { "name": "Prefer", "value": "return=minimal" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -142,19 +248,129 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
       "executeOnce": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "4a1ab4f2-d4bf-412e-ab5a-2ba8247b75e2",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {}
     }
   ],
   "connections": {
-    "Daily 13:00 UTC": { "main": [[{ "node": "CTRL subscriptions", "type": "main", "index": 0 }]] },
-    "Run now":         { "main": [[{ "node": "CTRL subscriptions", "type": "main", "index": 0 }]] },
-    "CTRL subscriptions": { "main": [[{ "node": "Churned with email", "type": "main", "index": 0 }]] },
-    "Churned with email": { "main": [[{ "node": "Recent retention", "type": "main", "index": 0 }]] },
-    "Recent retention":   { "main": [[{ "node": "Detect retention actions", "type": "main", "index": 0 }]] },
-    "Detect retention actions": { "main": [[{ "node": "Upsert decision tasks", "type": "main", "index": 0 }]] },
-    "Upsert decision tasks": { "main": [[{ "node": "Log retention_events", "type": "main", "index": 0 }]] },
-    "Log retention_events": { "main": [[{ "node": "Heartbeat", "type": "main", "index": 0 }]] }
+    "Daily 13:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "CTRL subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CTRL subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Churned with email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Churned with email": {
+      "main": [
+        [
+          {
+            "node": "Recent retention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recent retention": {
+      "main": [
+        [
+          {
+            "node": "Detect retention actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect retention actions": {
+      "main": [
+        [
+          {
+            "node": "Upsert decision tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert decision tasks": {
+      "main": [
+        [
+          {
+            "node": "Log retention_events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log retention_events": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now": {
+      "main": [
+        [
+          {
+            "node": "CTRL subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Daily 13:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }

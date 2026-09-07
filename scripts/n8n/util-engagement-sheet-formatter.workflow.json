@@ -1,0 +1,234 @@
+{
+  "name": "UTIL - Engagement Sheet Formatter",
+  "active": false,
+  "nodes": [
+    {
+      "id": "ab80974e-11a3-4712-a6c9-37e6253630f3",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "48758264-cdcb-48cf-800b-45256772518a",
+      "name": "Create Anna Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "title": "Anna - Confirmed",
+        "options": {
+          "tabColor": "0b8043"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "50ea7f89-819d-40c6-87c4-edabc633e074",
+      "name": "Anna Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const rows = [\n{Area:'CONTACT',Item:'Anna, Events Manager',Detail:'01923 840157 | info@namastelounge.com | 66 Joel Street, Northwood HA6 1LL. Working hours Wed-Sun 09:00-17:00.',Action:'She proposed a call Sat 14:30'},\n{Area:'BOOKING',Item:'What is secured',Detail:'Full Garden Marquee 12:00-16:00, £4,000 min spend. PLUS Bar Lounge 16:00-18:00 with VIP seating area AND dance floor table reserved.',Action:'Locked'},\n{Area:'BOOKING',Item:'Bar area min spend WAIVED',Detail:'Normally £1,200 for the bar lounge. Anna has waived it for us. Guests can buy individually or we open a tab.',Action:'Big win, no action'},\n{Area:'BOOKING',Item:'Bar tables past 18:00',Detail:'Reserved tables can be held later than 18:00 if we ask. Just tell her what time.',Action:'Decide and tell her'},\n{Area:'MONEY',Item:'What counts toward the £4,000',Detail:'Everything: food, drinks AND the 12.5% service charge. It is simply the minimum final bill.',Action:'Non-issue at 92 confirmed'},\n{Area:'MONEY',Item:'Payment methods',Detail:'Cash or card on the day. Bank transfer only if pre-arranged (needs accounts team approval in advance).',Action:'Decide by Wed Sep 2'},\n{Area:'DEADLINE',Item:'Free cancellation',Detail:'Up to 4 weeks before = Sat 8 Aug 2026.',Action:'Awareness only'},\n{Area:'DEADLINE',Item:'Menu + drinks pre-order LOCKED',Detail:'Must be finalised at least 2 weeks before = approx Sat 22 Aug 2026.',Action:'HARD DEADLINE - biggest date in the plan'},\n{Area:'DEADLINE',Item:'Final guest numbers',Detail:'Can be confirmed up to ONE DAY before the event.',Action:'Fri 4 Sep at the latest'},\n{Area:'FOOD',Item:'Our menu approved',Detail:'Anna: the menu looks great. Veg buffet (4 starters, 4 mains, rice, breads, salad) + non-veg a la carte to tables.',Action:'Approved, confirm in writing by Aug 22'},\n{Area:'FOOD',Item:'Buffet is UNLIMITED',Detail:'Team replenishes throughout. Starters usually eaten in 20-30 min but they allow ~1 hour for starters and ~1 hour for mains.',Action:'Shapes the run of show'},\n{Area:'FOOD',Item:'Gulab Jamun add-on',Detail:'+£2.50 per person for the ENTIRE party. Takes menu from £38.00pp to £40.50pp. Their standard dessert selection is normally £6.00pp.',Action:'DECIDE: yes/no. Costs ~£220 at current numbers'},\n{Area:'FOOD',Item:'A la carte prices',Detail:'Butter Chicken £14.50. Lamb Rogan Josh £15.00. Served to specified tables alongside the buffet.',Action:'Give Anna the table list'},\n{Area:'FOOD',Item:'A la carte rule',Detail:'Fine to run alongside buffet as long as she knows which guests/tables and the instruction comes from us as host.',Action:'Part of the table plan'},\n{Area:'FOOD',Item:'KIDS MENU - minimum 10',Detail:'NOT waivable. Dishes are made specially for private events. We currently project ~6 kids on it, so we pay for 10 = £250 floor.',Action:'Accepted, priced in'},\n{Area:'FOOD',Item:'Kids menu contents',Detail:'Margarita Pizza, Chips, Mini Paneer Rolls, Chicken Nuggets, Malai Chicken, Cheese & Cucumber Sandwiches, Carrot & Cucumber Sticks. Own buffet table, replenished.',Action:'Tell parents - may convert BYO families'},\n{Area:'FOOD',Item:'Babies and toddlers BYO',Detail:'Happy for us to bring their own food. Anna wants to know what we are planning to bring.',Action:'Tell Anna what is coming'},\n{Area:'FOOD',Item:'JAIN starters',Detail:'Jain Puri £9.50 | Sev Puri £9.50 | Chana Papdi Chaat £9.50 | Kurkuri Bhindi £11.00',Action:'Pre-order for our Jain guest'},\n{Area:'FOOD',Item:'JAIN mains',Detail:'Paneer Makhani £15.50 | Chana Masala £12.00 | Bhindi Masala £12.50 | Corn Masala £12.00 | Mutter Paneer £12.50 | Methi Corn £12.50',Action:'Suggested: Sev Puri + Paneer Makhani = £25'},\n{Area:'FOOD',Item:'Cake',Detail:'Own celebration cake welcome. NO cake-cutting fee. They will cut and serve it alongside desserts.',Action:'Order cake by Fri Aug 7'},\n{Area:'DRINKS',Item:'Prosecco yield',Detail:'One bottle serves approximately 6 glasses.',Action:'Drives the welcome-drink order'},\n{Area:'DRINKS',Item:'Soft drinks',Detail:'Unlimited, charged per person INCLUDING children. Under-5s are NOT charged and get fruit juice provided free.',Action:'Check under-5 count reduces the bill'},\n{Area:'DRINKS',Item:'House wines',Detail:'Red: Sonadora Organic Tempranillo. White: Kleinkloof Sauvignon Blanc. Rose: Pinot Grigio Ramato. Order can be split across all three.',Action:'Decide the split'},\n{Area:'DRINKS',Item:'Bottled beers 330ml',Detail:'Sol, Sagres, Heineken, Desperados, Cobra.',Action:'Cobra £5 is the cheapest'},\n{Area:'DRINKS',Item:'Unfinished bottles',Detail:'Anything purchased and unfinished can move to the Bar Lounge / shisha area, or be taken home.',Action:'No waste risk on over-ordering'},\n{Area:'DRINKS',Item:'Cocktails and mocktails',Detail:'Cocktails £14.00. Mocktails £12.00. Cocktail/mocktail wheels available.',Action:'Expensive - skip for welcome drinks'},\n{Area:'DRINKS',Item:'Welcome drinks location',Detail:'MUST be served within our hired area (the Garden Marquee). Not outside it.',Action:'Kills the outside-arrival idea'},\n{Area:'SHISHA',Item:'Ratio exception granted',Detail:'Usual policy is 1 shisha per 2 guests. Anna is allowing approx 1 per 4 guests for us, depending on how many use the lounge.',Action:'Halves the post-4pm shisha cost'},\n{Area:'ENTERTAINMENT',Item:'Music policy',Detail:'Solo musician or solo singer ONLY. No band. Background volume in line with their music policy. They must bring own PA and microphone. Power sockets available.',Action:'Book by Fri Aug 7 or go playlist-only'},\n{Area:'DECOR',Item:'What is included as standard',Detail:'Garden floral styling plus their red/pink flower wall.',Action:'Free backdrop - use it for photos'},\n{Area:'DECOR',Item:'What is NOT included',Detail:'No additional themed decor. We are welcome to decorate ourselves or use an external supplier.',Action:'Loz is creative director'},\n{Area:'LOGISTICS',Item:'HARD STOP 16:00',Detail:'Marquee must be vacated by 16:00. Another event follows and their suppliers start setting up from 16:30. Garden bill closes 16:00 sharp.',Action:'Build the 16:00 transition into the run of show'},\n{Area:'LOGISTICS',Item:'Weather',Detail:'Marquee is fully waterproof. Heaters available if it is cool.',Action:'No wet-weather plan needed'},\n{Area:'LOGISTICS',Item:'Parking',Detail:'Limited spaces directly outside, first come first served. Anna will reserve TWO spaces for us. Large public car park next door.',Action:'Allocate the 2 spaces to elders'},\n{Area:'LOGISTICS',Item:'Accessibility',Detail:'Two steps at the main entrance, one step into the marquee. Portable ramp available for wheelchairs or reduced mobility.',Action:'Tell the elders in advance - removes anxiety'},\n{Area:'TASTING',Item:'Food tasting available',Detail:'For 2 people. Mon-Thu 12:00-21:00, Fri 12:00-16:00. Can meet Anna afterwards Sat/Sun to go through final details if not busy.',Action:'BOOK IT - dish tweaks allowed after'},\n{Area:'VENDORS',Item:'Photo booth',Detail:'Picture Blast Events 0800 193 3333 (Candice). Memory Lens.',Action:'Optional'},\n{Area:'VENDORS',Item:'Kids party specialist',Detail:'Giggleverse - Ursula 07947 836552. Styling, decor, dress-up, photo booth. Luxe Bounce - Azra Teja 07487 621930 (bouncy castle, soft play).',Action:'Probably skip - our own kids plan is cheaper'},\n{Area:'VENDORS',Item:'Balloons and florals',Detail:'Buba Balloons - Tina 07962 356616. I Decor Your Day - Iryna 07454 676142. Cushte London info@cushte.com. KA Arts - Kavita 07429 195858.',Action:'Loz to decide if any are needed'},\n{Area:'VENDORS',Item:'Music and entertainment',Detail:'DJ Gurj djgurj0@gmail.com (bar area?). Saxophonist Pavan Verma. Saryu Thakrar 07734 655510 (Bollywood sax). RKB - Kanak 07432 622601 (singer).',Action:'Solo only in the marquee'},\n{Area:'VENDORS',Item:'Other',Detail:'Crazy Cotton - Hitesh (candy floss). Me Events - Paul 07973 791276 (casino tables). Manic Mascots 07564 835878. LED numbers: Suzie 07980 267892, Nikhil 07809 365420.',Action:'Candy floss = cheap kid win if budget allows'},\n{Area:'OPEN ASKS',Item:'Free things to confirm with Anna',Detail:'1) Chai round served to elder tables at 14:30. 2) Kids food out 15 min before adult buffet. 3) Section 1 set up as quiet elder corner + toddler area. 4) Setup access time on the day. 5) Fairy lights already in the marquee?',Action:'One email, all free, do by Fri Aug 21'}\n];\nreturn rows.map(r => ({json: r}));"
+      }
+    },
+    {
+      "id": "ced9bdc1-0e4a-4dbd-bda8-d61f17ad69e9",
+      "name": "Write Anna Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Anna - Confirmed"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn",
+          "useAppend": true
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "af6f92f0-b1c2-4b47-bcc3-b987e6b5a595",
+      "name": "Get Sheet Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "d835a259-b5d1-45bb-b36d-958a612218f2",
+      "name": "Build Format Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst idOf = (t) => { const s = sheets.find(x => x.properties.title === t); return s ? s.properties.sheetId : null; };\n\nconst DARK = {red:0.12,green:0.16,blue:0.22};\nconst WHITE = {red:1,green:1,blue:1};\nconst requests = [];\n\nconst styleTab = (title, widths) => {\n  const sid = idOf(title);\n  if (sid === null) return;\n  requests.push({updateSheetProperties:{properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}});\n  requests.push({repeatCell:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{backgroundColor:DARK,horizontalAlignment:'LEFT',verticalAlignment:'MIDDLE',wrapStrategy:'WRAP',textFormat:{foregroundColor:WHITE,bold:true,fontSize:11}}},fields:'userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)'}});\n  requests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:200},cell:{userEnteredFormat:{verticalAlignment:'TOP',wrapStrategy:'WRAP',textFormat:{fontSize:10}}},fields:'userEnteredFormat(verticalAlignment,wrapStrategy,textFormat)'}});\n  widths.forEach((w,i) => {\n    requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:'COLUMNS',startIndex:i,endIndex:i+1},properties:{pixelSize:w},fields:'pixelSize'}});\n  });\n  requests.push({addBanding:{bandedRange:{range:{sheetId:sid,startRowIndex:1,endRowIndex:200},rowProperties:{firstBandColor:{red:1,green:1,blue:1},secondBandColor:{red:0.97,green:0.97,blue:0.98}}}}});\n};\n\nstyleTab('Fun & Immersive Ideas',[250,520,120,190,270,110]);\nstyleTab('War Plan',[150,470,90,120,115,300]);\nstyleTab('Anna - Confirmed',[150,240,560,270]);\n\nconst funId = idOf('Fun & Immersive Ideas');\nif (funId !== null) {\n  requests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:funId,startRowIndex:1,endRowIndex:200,startColumnIndex:5,endColumnIndex:6}],booleanRule:{condition:{type:'TEXT_CONTAINS',values:[{userEnteredValue:'DO IT'}]},format:{backgroundColor:{red:0.82,green:0.94,blue:0.85},textFormat:{bold:true,foregroundColor:{red:0.04,green:0.35,blue:0.18}}}}},index:0}});\n  requests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:funId,startRowIndex:1,endRowIndex:200,startColumnIndex:5,endColumnIndex:6}],booleanRule:{condition:{type:'TEXT_CONTAINS',values:[{userEnteredValue:'MAYBE'}]},format:{backgroundColor:{red:1,green:0.95,blue:0.8},textFormat:{bold:true,foregroundColor:{red:0.48,green:0.33,blue:0.02}}}}},index:0}});\n}\n\nconst warId = idOf('War Plan');\nif (warId !== null) {\n  const ownerRule = (name,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:warId,startRowIndex:1,endRowIndex:200,startColumnIndex:2,endColumnIndex:3}],booleanRule:{condition:{type:'TEXT_EQ',values:[{userEnteredValue:name}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\n  requests.push(ownerRule('Krish',{red:0.85,green:0.91,blue:0.99},{red:0.06,green:0.27,blue:0.56}));\n  requests.push(ownerRule('Loz',{red:0.99,green:0.89,blue:0.94},{red:0.6,green:0.09,blue:0.33}));\n  requests.push(ownerRule('Both',{red:0.88,green:0.89,blue:0.99},{red:0.2,green:0.19,blue:0.6}));\n  requests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:warId,startRowIndex:1,endRowIndex:200,startColumnIndex:4,endColumnIndex:5}],booleanRule:{condition:{type:'TEXT_EQ',values:[{userEnteredValue:'Done'}]},format:{backgroundColor:{red:0.82,green:0.94,blue:0.85},textFormat:{bold:true,foregroundColor:{red:0.04,green:0.35,blue:0.18}}}}},index:0}});\n  requests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:warId,startRowIndex:1,endRowIndex:200,startColumnIndex:1,endColumnIndex:2}],booleanRule:{condition:{type:'TEXT_CONTAINS',values:[{userEnteredValue:'HARD DEADLINE'}]},format:{backgroundColor:{red:1,green:0.87,blue:0.87},textFormat:{bold:true,foregroundColor:{red:0.6,green:0.11,blue:0.11}}}}},index:0}});\n  requests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:warId,startRowIndex:1,endRowIndex:200,startColumnIndex:0,endColumnIndex:1}],booleanRule:{condition:{type:'TEXT_CONTAINS',values:[{userEnteredValue:'EVENT WEEK'}]},format:{backgroundColor:{red:0.99,green:0.91,blue:0.8},textFormat:{bold:true}}}},index:0}});\n}\n\nconst annaId = idOf('Anna - Confirmed');\nif (annaId !== null) {\n  requests.push({repeatCell:{range:{sheetId:annaId,startRowIndex:1,endRowIndex:200,startColumnIndex:0,endColumnIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true,fontSize:10}}},fields:'userEnteredFormat.textFormat'}});\n  requests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:annaId,startRowIndex:1,endRowIndex:200,startColumnIndex:0,endColumnIndex:1}],booleanRule:{condition:{type:'TEXT_CONTAINS',values:[{userEnteredValue:'DEADLINE'}]},format:{backgroundColor:{red:1,green:0.87,blue:0.87},textFormat:{bold:true,foregroundColor:{red:0.6,green:0.11,blue:0.11}}}}},index:0}});\n}\n\n['Actions & Negotiation','Scenario Planner','Archive','Post-4pm Continuation','Namaste Info'].forEach(t => {\n  const sid = idOf(t);\n  if (sid !== null) requests.push({updateSheetProperties:{properties:{sheetId:sid,hidden:true},fields:'hidden'}});\n});\n\n['Dashboard','War Plan','Guest List','Fun & Immersive Ideas','Anna - Confirmed','Cost Model'].forEach((t,i) => {\n  const sid = idOf(t);\n  if (sid !== null) requests.push({updateSheetProperties:{properties:{sheetId:sid,index:i},fields:'index'}});\n});\n\nreturn [{json:{requests}}];"
+      }
+    },
+    {
+      "id": "b40b5bb0-4efa-4e92-84b1-7b6524e006ff",
+      "name": "Apply Formatting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Create Anna Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Anna Tab": {
+      "main": [
+        [
+          {
+            "node": "Anna Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anna Rows": {
+      "main": [
+        [
+          {
+            "node": "Write Anna Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Anna Rows": {
+      "main": [
+        [
+          {
+            "node": "Get Sheet Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sheet Metadata": {
+      "main": [
+        [
+          {
+            "node": "Build Format Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Format Request": {
+      "main": [
+        [
+          {
+            "node": "Apply Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

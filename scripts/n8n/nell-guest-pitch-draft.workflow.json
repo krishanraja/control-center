@@ -1,6 +1,6 @@
 {
-  "name": "Nell | mind/make OS | Guest Pitch Draft",
-  "description": null,
+  "name": "Nell | Mindmaker OS | Guest Pitch Draft",
+  "active": true,
   "nodes": [
     {
       "id": "Webhook_Trigger",
@@ -177,7 +177,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: \"You are drafting an outbound pitch for Krish Raja to a potential podcast guest. Krish hosts two shows:\\n\\nBuilt: AI-native builders, indie hackers, founders building in public. Audience: developers, makers, technical founders. Tone: practitioner, accelerationist, specific.\\n\\nSignal Noise: senior media and adtech operators with public POV. Audience: C-suite at media, agencies, publishers. Tone: peer-to-peer, industry insider, contrarian.\\n\\nYou receive ONE guest row. Generate a JSON object with these keys exactly:\\n\\n{\\n  \\\"pitch_draft\\\": \\\"warm 80-150 word pitch, ready to send as LinkedIn DM or short email. References ONE specific thing from their public work (one_liner / personal_url / why_fit). Frames the pod fit in one sentence. Ends with one specific question they can answer in a reply (yes/no or two-options, not open-ended). NO subject line.\\\",\\n  \\\"suggested_angles\\\": \\\"2-3 angles for the actual recorded conversation, NOT the pitch. Each angle is one sentence: a specific question or topic grounded in their named work. Newline-separated.\\\",\\n  \\\"quality_score\\\": \\\"green | amber | red\\\",\\n  \\\"quality_reason\\\": \\\"one sentence why this score\\\"\\n}\\n\\nKrish voice rules (non-negotiable):\\n- No em dashes (U+2014) anywhere. Use commas, semicolons, colons, parentheses, line breaks.\\n- British-Australian register. Direct, dry, anti-hype.\\n- No buzzwords (transforming, leveraging, unlocking, journey, ecosystem when used vaguely).\\n- No corporate apologies (sorry for the cold reach, hope this finds you well).\\n- No fawning (love your work, huge fan, your podcast appearance was incredible).\\n- Concrete over abstract. Named projects, named outcomes.\\n- Krish IS a builder running a 14-agent AI OS inside Mindmake. He pitches operator-to-operator, not host-to-prospect.\\n\\nquality_score rubric:\\n- green: real named person, clear public POV, named project Krish can reference, strong show-fit.\\n- amber: username only OR thin public work OR show-fit uncertain. Still draft pitch but flag for human review.\\n- red: insufficient data to write a credible pitch. Return pitch_draft as \\\"(insufficient data: need to enrich first)\\\" and explain in quality_reason.\\n\\nIf the guest's `name` looks like a username (no space, all lowercase, looks like a handle), use \\\"the maker of [one_liner]\\\" framing in the pitch. Do not pretend you know their real name.\\n\\nIf podcast_target is `built`: pitch lands harder on specific shipped product, technical depth, the build-in-public angle.\\nIf podcast_target is `signal_noise`: pitch lands on industry POV, audience-of-peers framing, what Krish has seen building and running Mindmake.\\n\\nReturn ONLY the JSON object. No preamble, no markdown fence.\", messages: [{ role: 'user', content: JSON.stringify({ id: $json.id, name: $json.name, podcast_target: $json.podcast_target, one_liner: $json.one_liner, why_fit: $json.why_fit, personal_url: $json.personal_url, linkedin_url: $json.linkedin_url, twitter_handle: $json.twitter_handle, fit_score: $json.fit_score, attainability_score: $json.attainability_score, best_channel: $json.best_channel, raw_data: $json.raw_data }) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: \"You are drafting an outbound pitch for Krish Raja to a potential podcast guest. Krish hosts two shows:\\n\\nBuilt: AI-native builders, indie hackers, founders building in public. Audience: developers, makers, technical founders. Tone: practitioner, accelerationist, specific.\\n\\nSignal Noise: senior media and adtech operators with public POV. Audience: C-suite at media, agencies, publishers. Tone: peer-to-peer, industry insider, contrarian.\\n\\nYou receive ONE guest row. Generate a JSON object with these keys exactly:\\n\\n{\\n  \\\"pitch_draft\\\": \\\"warm 80-150 word pitch, ready to send as LinkedIn DM or short email. References ONE specific thing from their public work (one_liner / personal_url / why_fit). Frames the pod fit in one sentence. Ends with one specific question they can answer in a reply (yes/no or two-options, not open-ended). NO subject line.\\\",\\n  \\\"suggested_angles\\\": \\\"2-3 angles for the actual recorded conversation, NOT the pitch. Each angle is one sentence: a specific question or topic grounded in their named work. Newline-separated.\\\",\\n  \\\"quality_score\\\": \\\"green | amber | red\\\",\\n  \\\"quality_reason\\\": \\\"one sentence why this score\\\"\\n}\\n\\nKrish voice rules (non-negotiable):\\n- No em dashes (U+2014) anywhere. Use commas, semicolons, colons, parentheses, line breaks.\\n- British-Australian register. Direct, dry, anti-hype.\\n- No buzzwords (transforming, leveraging, unlocking, journey, ecosystem when used vaguely).\\n- No corporate apologies (sorry for the cold reach, hope this finds you well).\\n- No fawning (love your work, huge fan, your podcast appearance was incredible).\\n- Concrete over abstract. Named projects, named outcomes.\\n- Krish IS a builder running a 14-agent AI OS inside Mindmaker. He pitches operator-to-operator, not host-to-prospect.\\n\\nquality_score rubric:\\n- green: real named person, clear public POV, named project Krish can reference, strong show-fit.\\n- amber: username only OR thin public work OR show-fit uncertain. Still draft pitch but flag for human review.\\n- red: insufficient data to write a credible pitch. Return pitch_draft as \\\"(insufficient data: need to enrich first)\\\" and explain in quality_reason.\\n\\nIf the guest's `name` looks like a username (no space, all lowercase, looks like a handle), use \\\"the maker of [one_liner]\\\" framing in the pitch. Do not pretend you know their real name.\\n\\nIf podcast_target is `built`: pitch lands harder on specific shipped product, technical depth, the build-in-public angle.\\nIf podcast_target is `signal_noise`: pitch lands on industry POV, audience-of-peers framing, what Krish has seen building and running Mindmaker.\\n\\nYou ALSO receive exa_findings: real, recent things this person wrote, said, or appeared in, pulled live from the web. This is your specificity fuel: reference ONE concrete finding by its substance, never a URL. If exa_findings has real content, never score red. Stay operator-to-operator, never fawning. Return ONLY the JSON object. No preamble, no markdown fence.\", messages: [{ role: 'user', content: JSON.stringify({ id: $('Wait 5s').item.json.id, name: $('Wait 5s').item.json.name, podcast_target: $('Wait 5s').item.json.podcast_target, one_liner: $('Wait 5s').item.json.one_liner, why_fit: $('Wait 5s').item.json.why_fit, personal_url: $('Wait 5s').item.json.personal_url, linkedin_url: $('Wait 5s').item.json.linkedin_url, twitter_handle: $('Wait 5s').item.json.twitter_handle, fit_score: $('Wait 5s').item.json.fit_score, attainability_score: $('Wait 5s').item.json.attainability_score, best_channel: $('Wait 5s').item.json.best_channel, raw_data: $('Wait 5s').item.json.raw_data, exa_findings: (($('Exa Enrich').item.json.results)||[]).map(r=>({title:r.title,url:r.url,text:(r.text||'').slice(0,350)})), podcast_appearances: ((((($('Podchaser Enrich').item.json||{}).data||{}).episodes||{}).data)||[]).map(e=>({show:(e.podcast||{}).title,episode:e.title,date:e.airDate})) }) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "options": {
@@ -353,6 +353,78 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.exa.ai/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: (($('Wait 5s').item.json.name||'') + ' ' + ($('Wait 5s').item.json.one_liner||'') + ' ' + ($('Wait 5s').item.json.why_fit||'')).trim().slice(0,200), type:'auto', numResults:4, contents:{ text:{ maxCharacters:400 } } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        360
+      ],
+      "name": "Exa Enrich",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pC89kmtU97Hf7Y13",
+          "name": "Exa API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "d75e6561-6d68-453a-93f0-bed80713dcfd"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.podchaser.com/graphql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: 'query { episodes(searchTerm: ' + JSON.stringify((($('Wait 5s').item.json.name||'') + ' ' + ($('Wait 5s').item.json.one_liner||'').slice(0,30)).trim()) + ', first: 4, sort: {sortBy: RELEVANCE}) { data { title airDate podcast { title } } } }' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        540
+      ],
+      "name": "Podchaser Enrich",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "19GxCNhqykVKmZPx",
+          "name": "Podchaser API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "3a286c9f-4272-447b-a1d3-7560c3b2d30c"
     }
   ],
   "connections": {
@@ -433,7 +505,7 @@
       "main": [
         [
           {
-            "node": "Sonnet Pitch",
+            "node": "Exa Enrich",
             "type": "main",
             "index": 0
           }
@@ -483,6 +555,28 @@
           }
         ]
       ]
+    },
+    "Exa Enrich": {
+      "main": [
+        [
+          {
+            "node": "Podchaser Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podchaser Enrich": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -490,5 +584,15 @@
     "saveDataSuccessExecution": "all",
     "saveExecutionProgress": true,
     "saveManualExecutions": true
+  },
+  "staticData": {
+    "node:Every 12h": {
+      "recurrenceRules": [
+        0
+      ],
+      "recurrenceRuleSignatures": [
+        "hours:12"
+      ]
+    }
   }
 }

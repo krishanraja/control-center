@@ -1,0 +1,147 @@
+{
+  "name": "System | Mindmaker OS | Status Board API",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "status-api",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh",
+      "name": "Status API Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "ab3ec18b-73f5-438e-a3a2-50bbc98bf475"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1lxhOwWWA-lNfM-veizfvcIhSd5yBq51ASq468p9s6Kk",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Status",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lxhOwWWA-lNfM-veizfvcIhSd5yBq51ASq468p9s6Kk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "read",
+      "name": "Read Status Board",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        480,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst rows = $input.all().map(i => i.json);\n// Get latest entry per agent_id\nconst latest = {};\nfor (const row of rows) {\n  if (!row.agent_id) continue;\n  if (!latest[row.agent_id] || row.timestamp > latest[row.agent_id].timestamp) {\n    latest[row.agent_id] = row;\n  }\n}\n// Also get N8N workflow statuses - last 24 agents\nconst agents = Object.values(latest);\nconst n8n_flows = rows.filter(r => r.type === 'workflow').slice(-24);\nreturn [{\n  json: {\n    agents,\n    n8n_flows,\n    last_updated: new Date().toISOString(),\n    total_agents: agents.length,\n    running: agents.filter(a => a.status === 'running').length,\n    blocked: agents.filter(a => a.status === 'blocked' || a.status === 'error').length\n  }\n}];\n"
+      },
+      "id": "transform",
+      "name": "Get Latest Per Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "resp",
+      "name": "Return JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        960,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];"
+      },
+      "id": "log-supabase-gJtEJ9kwSsAffxc3",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Status API Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Status Board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Status Board": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Per Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Per Agent": {
+      "main": [
+        [
+          {
+            "node": "Return JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return JSON": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": null
+}

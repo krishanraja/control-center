@@ -1,0 +1,493 @@
+{
+  "name": "Agatha | Mindmaker OS | Content Angle Approval",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/webhook/content-angle-approval",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d11c52d8-8fff-4162-b713-4d60e77ecf87",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "85014d39-d8b5-4269-ad41-155cdf4ee662"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZICpbmlXil11qMjs",
+          "mode": "list",
+          "cachedResultName": "Cleo Newsletter Sweep"
+        },
+        "workflowInputs": {
+          "value": {},
+          "schema": [],
+          "mappingMode": "defineBelow",
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "aed7ce35-3822-456d-8ca4-68f8baf5c7be",
+      "name": "Cleo Newsletter Sweep",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookData = $('Webhook Trigger').item.json;\nconst angles = webhookData.angles || [];\nconst weekOf = webhookData.week_of || new Date().toISOString().split('T')[0];\n\n// Enrichment from Cleo Newsletter Sweep\nconst enrichment = $('Cleo Newsletter Sweep').first()?.json || {};\nconst identity_prepend = $('Build Identity Prepend').first().json.identity_prepend || '';\nconst plan_stale = $('Build Identity Prepend').first().json.plan_stale || false;\nconst themes = enrichment.newsletter_themes || [];\nconst notes = enrichment.inspiration_notes || [];\n\nconst enrichmentBlock = (themes.length > 0 || notes.length > 0)\n  ? '\\n\\n<recent_context>\\nWhat Krish has been reading in newsletters this week:\\n' +\n    (themes.length > 0 ? themes.map(t => '- ' + t).join('\\n') : '(none)') +\n    '\\n\\nAngles from the Cleo inspiration folder:\\n' +\n    (notes.length > 0 ? notes.map(n => '- ' + n).join('\\n') : '(none)') +\n    '\\n\\nUse this context to bias toward angles that connect to themes Krish is already engaging with, or that counter a dominant narrative.\\n</recent_context>'\n  : '';\n\nconst prompt = identity_prepend + 'You are Agatha, COO of Mindmaker OS. Select the 2 strongest LinkedIn angles for Krish to choose from this week.\\n\\n<krish_voice>\\nHis differentiators: British-Australian-Brooklyn hybrid. Opens with opinion or provocation, never context. Specific and personal beats generic. Only he can write it - it relies on his real experience or POV. Warm with people, sharp on ideas.\\n</krish_voice>\\n\\n<selection_criteria>\\nPrioritise angles that:\\n- Have a provocation strong enough to stop the scroll\\n- Could only come from Krish specifically (not any AI founder)\\n- Avoid: transformative, ecosystem, innovative, cutting-edge, \"In today\\'s landscape\", or anything that sounds generated\\n\\nDeprioritise: trend-chasing, generic industry takes, anything that opens with context rather than opinion\\n</selection_criteria>' + enrichmentBlock + '\\n\\n<angles>\\n' +\n  angles.map((a, i) => (i+1) + '. ' + a.title + '\\nHook: \"' + a.hook + '\"\\nAngle: ' + a.angle).join('\\n\\n') +\n  '\\n</angles>\\n\\nReturn a clean Telegram message (markdown) with the top 2 angles, each with: title, the opening hook, and a one-line reason why it works for Krish specifically.';\n\nreturn { prompt, angles, week_of: weekOf, plan_stale };\n"
+      },
+      "id": "db7f84fc-a856-433d-a998-556f5a187974",
+      "name": "Process Angles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 600, \"messages\": [{\"role\": \"user\", \"content\": \"={{ $json.prompt }}\"}]}",
+        "options": {}
+      },
+      "id": "58948b15-c72d-4eb4-8de5-b2a3ea8f605a",
+      "name": "Agatha Review with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        848,
+        304
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build approval rows for each angle + 1 reject placeholder, store in Supabase, send single Telegram message with inline keyboard\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/approvals';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst BOT_TOKEN = '{{TELEGRAM_BOT_TOKEN}}';\nconst CHAT_ID = '6773796504';\nconst TARGET_WEBHOOK = 'https://krishraja10101.app.n8n.cloud/webhook/content-distribute-linkedin';\n\nconst response = $json.content && $json.content[0] ? $json.content[0].text : '';\nconst weekOf = $('Process Angles').first().json.week_of;\nconst angles = $('Process Angles').first().json.angles || [];\n\n// Build message text\nlet message = '\\u270d\\ufe0f *Content Angles \\u2014 Week of ' + weekOf + '*\\n' +\n  'Agatha picks (' + angles.length + ' angles):\\n\\n' +\n  response;\n\n// Build inline keyboard rows and approval row data\nconst keyboard = [[]];\nconst approvalRows = [];\nfor (let i = 0; i < Math.min(angles.length, 2); i++) {\n  const label = i === 0 ? 'A' : 'B';\n  const draftId = weekOf + '-' + label;\n  const angle = angles[i] || {};\n  keyboard[0].push({ text: 'Approve ' + label, callback_data: 'approve|' + draftId });\n  approvalRows.push({\n    source_workflow: 'Content Angle Approval',\n    source_workflow_id: 'NgVcpJ7PO7sTYvm9',\n    draft_id: draftId,\n    title: 'Content Angle ' + label + ' for Week of ' + weekOf,\n    summary: (angle.title || angle.hook || 'LinkedIn post draft').toString().slice(0, 400),\n    agent_name: 'Cleo',\n    payload: {\n      krish_approved: true,\n      approved_session: draftId,\n      text: ((angle.hook || '') + '\\n\\n' + (angle.angle || '')).trim(),\n      author_urn: 'krish-raja'\n    },\n    target_workflow: 'LinkedIn Distribution',\n    target_webhook_url: TARGET_WEBHOOK,\n    status: 'pending'\n  });\n}\nkeyboard.push([{ text: 'None this week', callback_data: 'reject|' + weekOf + '-NONE' }]);\napprovalRows.push({\n  source_workflow: 'Content Angle Approval',\n  source_workflow_id: 'NgVcpJ7PO7sTYvm9',\n  draft_id: weekOf + '-NONE',\n  title: 'Skip all angles for Week of ' + weekOf,\n  summary: 'Krish chose to skip this week',\n  agent_name: 'Cleo',\n  payload: {},\n  target_workflow: 'LinkedIn Distribution',\n  target_webhook_url: TARGET_WEBHOOK,\n  status: 'pending'\n});\n\n// Insert approval rows\nconst createdRows = [];\nfor (const row of approvalRows) {\n  try {\n    const resp = await this.helpers.httpRequest({\n      method: 'POST',\n      url: SUPA_URL,\n      headers: {\n        apikey: SUPA_KEY,\n        Authorization: 'Bearer ' + SUPA_KEY,\n        'Content-Type': 'application/json',\n        Prefer: 'return=representation'\n      },\n      body: row,\n      json: true\n    });\n    createdRows.push(Array.isArray(resp) ? resp[0] : resp);\n  } catch (e) {\n    createdRows.push({ error: String(e), draft_id: row.draft_id });\n  }\n}\n\n// Send single Telegram message with inline keyboard\nlet messageId = null;\nlet tgError = null;\ntry {\n  const tgResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: {\n      chat_id: CHAT_ID,\n      text: message,\n      parse_mode: 'Markdown',\n      reply_markup: { inline_keyboard: keyboard }\n    },\n    json: true\n  });\n  messageId = tgResp && tgResp.result ? tgResp.result.message_id : null;\n} catch (e) {\n  tgError = String(e);\n}\n\n// Store telegram_message_id back to each row\nif (messageId) {\n  for (const row of createdRows) {\n    if (!row || !row.id) continue;\n    try {\n      await this.helpers.httpRequest({\n        method: 'PATCH',\n        url: SUPA_URL + '?id=eq.' + row.id,\n        headers: {\n          apikey: SUPA_KEY,\n          Authorization: 'Bearer ' + SUPA_KEY,\n          'Content-Type': 'application/json'\n        },\n        body: { telegram_message_id: String(messageId) },\n        json: true\n      });\n    } catch (e) {\n      // swallow, keep going\n    }\n  }\n}\n\nreturn [{\n  json: {\n    success: !tgError,\n    message_id: messageId,\n    approvals_created: createdRows.filter(r => r && r.id).length,\n    week_of: weekOf,\n    tg_error: tgError\n  }\n}];"
+      },
+      "id": "e7c372d1-f270-41a7-b003-ff545207c921",
+      "name": "Prepare, Store and Send",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        304
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"success\", \"message\": \"Content angles sent to Agatha for approval\"}",
+        "options": {}
+      },
+      "id": "8a3005f4-85e4-484d-96ff-4ae0564fc5d0",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst sweepData = $('Cleo Newsletter Sweep').first()?.json || {};\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'agatha',\n  duration_ms: duration,\n  api_calls: (sweepData.api_calls || 0) + 2,\n  cost_usd: (sweepData.cost_usd || 0),\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log', enrichment_used: (sweepData.newsletter_themes || []).length > 0 })\n};\n\nawait __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];\n"
+      },
+      "id": "7b1790c2-8094-4793-98b4-6357a65d8659",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "id": "builder-gemini-Agatha-Review-with-C",
+      "name": "Build Gemini Body for Agatha Review with Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "gemini-fb-Agatha-Review-with-C",
+      "name": "Gemini Fallback for Agatha Review with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1104,
+        528
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "exec-trigger-d671f79f",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        504
+      ]
+    },
+    {
+      "id": "696493d3-c0ce-42fb-bcdf-d2d94f4c5318",
+      "name": "Load Agatha Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        668,
+        112
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.agatha&select=brief_content",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "907786b7-a7c3-46dc-97cb-895f707d467c",
+      "name": "Load Voice Rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        668,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "e35ae563-e62d-40b3-befd-86231287291a",
+      "name": "Load Agatha Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        668,
+        496
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.agatha&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "c2debfa1-5e1f-48d4-a260-c8559ccb0581",
+      "name": "Build Identity Prepend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        888,
+        304
+      ],
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('Load Agatha Brief').first().json;\nconst voiceRaw = $('Load Voice Rules').first().json;\nconst planRaw  = $('Load Agatha Plan').first().json;\n\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Cleo Newsletter Sweep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleo Newsletter Sweep": {
+      "main": [
+        [
+          {
+            "node": "Load Agatha Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Voice Rules",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Agatha Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Angles": {
+      "main": [
+        [
+          {
+            "node": "Agatha Review with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agatha Review with Claude": {
+      "main": [
+        [
+          {
+            "node": "Prepare, Store and Send",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Agatha Review with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Agatha Review with Claude": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Agatha Review with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Agatha Review with Claude": {
+      "main": [
+        [
+          {
+            "node": "Prepare, Store and Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Cleo Newsletter Sweep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agatha Brief": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agatha Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Process Angles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare, Store and Send": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": null
+}

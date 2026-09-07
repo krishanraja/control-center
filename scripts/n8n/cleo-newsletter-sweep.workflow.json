@@ -1,0 +1,896 @@
+{
+  "name": "Cleo | Mindmaker OS | Newsletter Sweep",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Cleo Newsletter Sweep. Enrichment sub-workflow. Returns newsletter_themes, inspiration_notes, cost_usd, api_calls. Graceful degradation via continueRegularOutput plus defensive parsers.",
+        "color": 5
+      },
+      "name": "Sticky Note 8f657380",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ],
+      "id": "fb22f374-3d72-476f-b3c3-cdbe047761f1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Sub-Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        304
+      ],
+      "id": "3541f565-b36b-4d68-9b31-c6fb265cb5a8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rs1",
+              "name": "run_start_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "rs2",
+              "name": "run_start_ms",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Record Start",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        304
+      ],
+      "id": "cad16c1e-c3fe-4841-8360-2e1f1e8cdb34"
+    },
+    {
+      "parameters": {
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "label:newsletter newer_than:7d"
+            },
+            {
+              "name": "maxResults",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Gmail List Newsletters",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        208
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lHiqteKckU5IUxQ6",
+          "name": "Gmail account"
+        }
+      },
+      "id": "e5ace959-3c67-4e0d-a4d4-f7f9b0935043"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst first = (items[0] && items[0].json) || {};\nconst messages = (first.messages || []).slice(0, 10);\nreturn messages.map(m => ({ json: { id: m.id } }));"
+      },
+      "name": "Gmail Limit to 10",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        208
+      ],
+      "executeOnce": true,
+      "id": "9b9185c4-677c-425c-bccd-7e9428580295"
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.id || \"none\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "metadata"
+            },
+            {
+              "name": "metadataHeaders",
+              "value": "Subject"
+            },
+            {
+              "name": "metadataHeaders",
+              "value": "From"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Gmail Fetch Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        912,
+        208
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lHiqteKckU5IUxQ6",
+          "name": "Gmail account"
+        }
+      },
+      "id": "f9ba35eb-8bcf-4839-af54-e888f975a73e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst newsletters = items.map(it => {\n  const j = it.json || {};\n  if (j._empty || j.error) return null;\n  const headers = (j.payload && j.payload.headers) || [];\n  const getH = (n) => {\n    const h = headers.find(x => (x.name || '').toLowerCase() === n.toLowerCase());\n    return h ? h.value : '';\n  };\n  return {\n    subject: getH('Subject'),\n    from: getH('From'),\n    snippet: (j.snippet || '').slice(0, 240),\n  };\n}).filter(n => n && n.subject);\nreturn [{ json: { newsletters, gmail_count: newsletters.length } }];\n"
+      },
+      "name": "Gmail Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        208
+      ],
+      "alwaysOutputData": true,
+      "id": "a65e8f72-f6f8-4dc9-ad78-a6e18bc48b46"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "name": "Combine Gmail and Drive",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1600,
+        304
+      ],
+      "id": "51703f40-4648-443e-bce0-06b365aac149"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "eq.cleo_inspiration_folder_id"
+            },
+            {
+              "name": "select",
+              "value": "value"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Drive Lookup Folder ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        512
+      ],
+      "executeOnce": true,
+      "id": "bb259ec1-4fd2-4159-973f-50e276fcc782",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet folder_id = '';\ntry {\n  const first = items[0] && items[0].json;\n  if (Array.isArray(first) && first.length > 0) folder_id = first[0].value || '';\n  else if (first && typeof first === 'object') folder_id = first.value || '';\n} catch (e) { folder_id = ''; }\n// Reject placeholders and invalid IDs\nconst looksLikeId = folder_id && !/YOUR_|PLACEHOLDER|HERE/i.test(folder_id) && folder_id.length >= 12;\nreturn [{ json: { folder_id: looksLikeId ? folder_id : '' } }];"
+      },
+      "name": "Drive Normalize Folder ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        512
+      ],
+      "id": "a7151402-cce8-4a88-952a-90b00352be77"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "drive-has-folder",
+              "leftValue": "={{ $json.folder_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Drive Has Folder ID",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        512
+      ],
+      "id": "2e7c52f2-7477-4de9-ad0d-bb46ddaf944d"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ \"'\" + $json.folder_id + \"' in parents and trashed=false\" }}"
+            },
+            {
+              "name": "orderBy",
+              "value": "modifiedTime desc"
+            },
+            {
+              "name": "pageSize",
+              "value": "10"
+            },
+            {
+              "name": "fields",
+              "value": "files(id,name,mimeType,modifiedTime)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Drive List Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        448
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "3a90bb25-b66b-4436-8407-25ddcfe4aa30"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst first = (items[0] && items[0].json) || {};\nconst files = (first.files || []).map(f => ({ name: f.name || '', mimeType: f.mimeType || '' }));\nreturn [{ json: { inspiration_files: files, drive_count: files.length } }];\n"
+      },
+      "name": "Drive Normalize Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        448
+      ],
+      "id": "15b42361-212d-4f10-990e-05a6821f4c31"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ds1",
+              "name": "inspiration_files",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "ds2",
+              "name": "drive_count",
+              "value": 0,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Drive Skip Empty",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        624
+      ],
+      "id": "e78f4d7d-2d22-4a08-a8df-8d8b0ce6e557"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst d = (items[0] && items[0].json) || {};\nconst newsletters = d.newsletters || [];\nconst files = d.inspiration_files || [];\nlet newsletterText;\nif (newsletters.length > 0) {\n  newsletterText = newsletters.map(function(n, i){ return (i+1) + '. [' + (n.from || 'unknown') + '] ' + n.subject + '\\n   ' + (n.snippet || ''); }).join('\\n\\n');\n} else {\n  newsletterText = '(no newsletters in last 7 days)';\n}\nlet filesText;\nif (files.length > 0) {\n  filesText = files.map(function(f, i){ return (i+1) + '. ' + f.name; }).join('\\n');\n} else {\n  filesText = '(no inspiration files)';\n}\nconst userPrompt = 'Given these newsletter subjects and snippets:\\n' + newsletterText + '\\n\\nAnd these inspiration folder items:\\n' + filesText + '\\n\\nExtract:\\n1. newsletter_themes: array of 3-5 recurring themes (each one sentence)\\n2. inspiration_notes: array of 2-3 specific angles or ideas worth exploring\\n\\nReturn as JSON only, no markdown wrapper.';\nconst extract_body = {\n  model: 'claude-haiku-4-5-20251001',\n  max_tokens: 500,\n  temperature: 0.2,\n  system: (($('Build Identity Prepend').first().json.identity_prepend) || '') + 'You extract content themes from newsletters and inspiration materials. Return JSON only with keys newsletter_themes and inspiration_notes, both arrays of strings.',\n  messages: [{ role: 'user', content: userPrompt }],\n};\nreturn [{ json: { extract_body, newsletters, inspiration_files: files, gmail_count: d.gmail_count || 0, drive_count: d.drive_count || 0 } }];\n"
+      },
+      "name": "Build Extract Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        304
+      ],
+      "id": "cf301b63-6a98-4c0c-a028-ddd2308a32eb"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.extract_body }}",
+        "options": {}
+      },
+      "name": "Anthropic Extract Themes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2048,
+        304
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "73551d15-6aa7-43b7-a9e4-88c60dcf6983"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst d = (items[0] && items[0].json) || {};\nlet newsletter_themes = [];\nlet inspiration_notes = [];\ntry {\n  const text = (d.content && d.content[0] && d.content[0].text) || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const obj = JSON.parse(jsonMatch[0]);\n    newsletter_themes = Array.isArray(obj.newsletter_themes) ? obj.newsletter_themes : [];\n    inspiration_notes = Array.isArray(obj.inspiration_notes) ? obj.inspiration_notes : [];\n  }\n} catch (e) { newsletter_themes = []; inspiration_notes = []; }\nconst usage = d.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst cost_usd = (inputTokens / 1000000) * 1.0 + (outputTokens / 1000000) * 5.0;\nconst api_calls = 13;\nreturn [{ json: { newsletter_themes, inspiration_notes, cost_usd: Math.round(cost_usd * 100000) / 100000, api_calls } }];\n"
+      },
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2272,
+        304
+      ],
+      "id": "ee0db7cd-7b9d-4a25-a5ba-f5b2f11f4f85"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Newsletter Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $json.cost_usd, api_calls_count: $json.api_calls } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat Workflow Runs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2480,
+        304
+      ],
+      "id": "5649518e-0022-4b4b-8307-7366699aca11",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rc1",
+              "name": "newsletter_themes",
+              "value": "={{ $('Parse Response').item.json.newsletter_themes }}",
+              "type": "array"
+            },
+            {
+              "id": "rc2",
+              "name": "inspiration_notes",
+              "value": "={{ $('Parse Response').item.json.inspiration_notes }}",
+              "type": "array"
+            },
+            {
+              "id": "rc3",
+              "name": "cost_usd",
+              "value": "={{ $('Parse Response').item.json.cost_usd }}",
+              "type": "number"
+            },
+            {
+              "id": "rc4",
+              "name": "api_calls",
+              "value": "={{ $('Parse Response').item.json.api_calls }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Return to Caller",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2704,
+        304
+      ],
+      "id": "0a59872b-5b29-4ad0-8168-33dfa744d4d8"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Anthropic Extract Themes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        528
+      ],
+      "id": "8bd24078-f618-41a7-9b22-21d85a4b682d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Anthropic Extract Themes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2304,
+        528
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "749a0b31-2c22-41ce-beeb-c318f4432d8c"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.cleo&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Load Agent Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        480
+      ],
+      "id": "f0e55b68-4890-4b9c-9cfa-dbc81be297a9",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst briefRaw = $('Load Agent Brief').first().json;\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst brief = briefArr[0]?.brief_content || '';\nconst identity_prepend = brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '';\n\nreturn $input.all().map(item => ({\n  json: { ...item.json, identity_prepend }\n}));\n"
+      },
+      "name": "Build Identity Prepend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        480
+      ],
+      "id": "9d7e6805-7931-411c-9623-0d43d8885fd1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"cleo\",\n  \"target\": \"Newsletter Sweep\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Run to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        154
+      ],
+      "id": "627b1a86-b5d2-49f3-8db2-3f9538a2344d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Sub-Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Record Start",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Run to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Start": {
+      "main": [
+        [
+          {
+            "node": "Gmail List Newsletters",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Drive Lookup Folder ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail List Newsletters": {
+      "main": [
+        [
+          {
+            "node": "Gmail Limit to 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Limit to 10": {
+      "main": [
+        [
+          {
+            "node": "Gmail Fetch Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Fetch Message": {
+      "main": [
+        [
+          {
+            "node": "Gmail Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Normalize": {
+      "main": [
+        [
+          {
+            "node": "Combine Gmail and Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Gmail and Drive": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Lookup Folder ID": {
+      "main": [
+        [
+          {
+            "node": "Drive Normalize Folder ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Normalize Folder ID": {
+      "main": [
+        [
+          {
+            "node": "Drive Has Folder ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Has Folder ID": {
+      "main": [
+        [
+          {
+            "node": "Drive List Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drive Skip Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive List Files": {
+      "main": [
+        [
+          {
+            "node": "Drive Normalize Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Normalize Files": {
+      "main": [
+        [
+          {
+            "node": "Combine Gmail and Drive",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Drive Skip Empty": {
+      "main": [
+        [
+          {
+            "node": "Combine Gmail and Drive",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Build Extract Body": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Extract Themes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Extract Themes": {
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Anthropic Extract Themes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Workflow Runs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat Workflow Runs": {
+      "main": [
+        [
+          {
+            "node": "Return to Caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Anthropic Extract Themes": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Anthropic Extract Themes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Anthropic Extract Themes": {
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Build Extract Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "staticData": null
+}

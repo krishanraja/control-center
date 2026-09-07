@@ -1,0 +1,234 @@
+{
+  "name": "UTIL - Anna Call Agenda",
+  "active": false,
+  "nodes": [
+    {
+      "id": "2c207795-fd28-42c5-bf1c-616595075736",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "892e9489-5406-4752-a27c-30204f0da851",
+      "name": "Create Call Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "title": "Anna Call Agenda",
+        "options": {
+          "tabColor": "d93025"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "042b6b87-11f4-4c7c-8213-72d0acb05546",
+      "name": "Call Agenda Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const rows = [\n{Section:'A. DECIDE FIRST',Topic:'Gulab Jamun add-on',Detail:'+£2.50 per person applied to the WHOLE party. Takes menu £38.00 to £40.50pp. Approx £230 at 92 confirmed. Their normal dessert selection is £6.00pp.',Position:'YES. Cheapest possible dessert upgrade and the one dessert this crowd expects.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Second non-veg a la carte dish',Detail:'Butter Chicken £14.50 vs adding Lamb Rogan Josh £15.00. Approx 15 guests marked Non Veg in Guest List.',Position:'Butter Chicken only. A second dish doubles service admin for marginal gain.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Cluster the non-veg guests',Detail:'Anna needs a table list for a la carte. Scattered non-veg guests make service messy.',Position:'Seat all ~15 non-veg on 2 tables. Feed into the table plan.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Kids menu allocation',Detail:'We pay for 10 minimum (£250) but only ~6 kids are on it. We have ~13 toddlers on BYO.',Position:'Move 4 toddlers off BYO onto the kids menu. Already paid for, free upgrade for 4 families.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Drinks order quantities',Detail:'Prosecco serves ~6 glasses/bottle. 77 confirmed adults. Verified prices: Prosecco £35, house wine £29-33, Cobra 330ml £5.',Position:'14 prosecco, 12 wine (5 white / 5 red / 2 rose), 30 Cobra. Approx £1,000.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'BYO list for babies and toddlers',Detail:'Anna explicitly asked what we plan to bring.',Position:'Ask the 4-5 families this week. Likely pouches, snacks, milk.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Bar tables past 18:00',Detail:'Anna offered to hold the VIP and dance floor tables later if we ask.',Position:'Ask to hold until 19:00. No cost, we can leave earlier.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Music: solo musician or playlist',Detail:'Solo only, no band. They bring own PA and mic. Anna vendor list has Pavan Verma and Saryu Thakrar (sax), Kanak (singer).',Position:'Playlist as the base. Book a sax for 45 min around the chai and cake beat only if under £300.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Food tasting slots to offer',Detail:'Tasting is for 2. Mon-Thu 12:00-21:00, Fri 12:00-16:00. Anna works Wed-Sun 09:00-17:00.',Position:'Bring 3 dates to the call so it gets booked live.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Cake',Detail:'Own cake welcome, no cutting fee, they serve it with dessert. Need size for ~92.',Position:'Loz to brief a baker this week. Order by Fri Aug 7.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Setup time we need',Detail:'Loz has prints, cards, guestbook, props, kids kits to lay out across ~12 tables.',Position:'Ask for 90 minutes. Arrive 10:30.',Answer:''},\n{Section:'A. DECIDE FIRST',Topic:'Count the under-5s',Detail:'Under-5s are NOT charged the £5pp soft drink and get free fruit juice.',Position:'Count them in the Guest List before the call. Roughly 13 toddlers = up to £65 off.',Answer:''},\n{Section:'B. MUST ASK',Topic:'Jain guest charging',Detail:'They order a la carte (Sev Puri £9.50 + Paneer Makhani £15.50 = £25).',Position:'ASK: are they charged a la carte ONLY, or a la carte PLUS the per-person buffet rate?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Who does the £2.50 dessert apply to',Detail:'Anna said entire party.',Position:'ASK: does it include kids on the kids menu and BYO toddlers, or adults only?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Soft drinks for BYO kids',Detail:'£5pp including children, under-5s free.',Position:'ASK: is a 6-year-old on BYO still charged the £5 soft drinks?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Kids menu 10 covers',Detail:'Minimum is not waivable.',Position:'ASK: can we allocate those 10 paid covers to whoever we choose on the day?',Answer:''},\n{Section:'B. MUST ASK',Topic:'TABLE LAYOUT - the big one',Detail:'We are actively trying to avoid a round-table function feel.',Position:'ASK: how many tables, what size, round or long? Can we have long banquet tables instead of rounds?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Setup access time',Detail:'Marquee is ours 12:00-16:00 but decor needs laying out before.',Position:'ASK: what time can we get in to decorate?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Lighting already in the marquee',Detail:'Standard decor is garden floral styling plus the red/pink flower wall.',Position:'ASK: are fairy lights or festoon already installed, or do we bring our own?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Section 1 as a quiet corner',Detail:'40-cap section. We want elders away from speakers plus a toddler zone.',Position:'ASK: can it be set with softer seating as a quiet elder corner and toddler area?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Chai round at 14:30',Detail:'Chai Masala is £5 on the menu. We want it served to elder tables, not self-serve.',Position:'ASK: can your team run a served chai round at 14:30, and what does it cost?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Kids eat 15 minutes early',Detail:'Kids food is on its own buffet table.',Position:'ASK: can kids food come out 15 min before the adult buffet opens?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Microphone and PA',Detail:'We are running speeches, a quiz and a Mr & Mrs round. Musician brings their own PA.',Position:'ASK: is there a house mic we can use, or do we need to hire one?',Answer:''},\n{Section:'B. MUST ASK',Topic:'High chairs',Detail:'~13 toddlers confirmed.',Position:'ASK: how many high chairs do you have?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Toilets and baby changing',Detail:'Relevant for elders and 13 toddlers.',Position:'ASK: where are they, how many, is there baby changing?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Cake delivery and storage',Detail:'They cut and serve it.',Position:'ASK: what time do you want the cake delivered, and can you store it refrigerated?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Bubbles and confetti',Detail:'We plan bubble wands for kids and a bubble send-off at 16:00.',Position:'ASK: any restriction on bubbles or confetti inside the marquee?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Gifts and cards storage',Detail:'People will bring envelopes and gifts.',Position:'ASK: is there somewhere secure to keep gifts and cards during the party?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Deposit and balance',Detail:'£500 deposit was required to secure.',Position:'ASK: confirm the £500 is received and receipted. When is the balance due?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Bank transfer arrangement',Detail:'Transfer needs accounts team approval in advance.',Position:'ASK: what do you need from us and by when to pay by transfer?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Confirm the two hard dates',Detail:'Menu and drinks lock 2 weeks prior. Final numbers 1 day prior.',Position:'ASK: confirm exact dates. We have Sat 22 Aug and Fri 4 Sep.',Answer:''},\n{Section:'B. MUST ASK',Topic:'Parking claim process',Detail:'Anna is reserving 2 spaces for us.',Position:'ASK: how do we claim them on the day and who do we tell?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Accessibility ramp',Detail:'Two steps at entrance, one into the marquee, portable ramp available.',Position:'ASK: does the ramp need pre-booking? We have elders with reduced mobility.',Answer:''},\n{Section:'B. MUST ASK',Topic:'Bar area 16:00-18:00',Detail:'Min spend waived, VIP and dance floor tables reserved.',Position:'ASK: is there music there, can we play our playlist, and what is shisha per pipe?',Answer:''},\n{Section:'B. MUST ASK',Topic:'Flower wall',Detail:'Included in standard decor, and it is our free photo backdrop.',Position:'ASK: where exactly is it, is it lit, and can guests photograph against it all day?',Answer:''},\n{Section:'C. IF TIME',Topic:'Projector or screen',Detail:'Optional photo slideshow.',Position:'ASK: is there a screen or projector available?',Answer:''},\n{Section:'C. IF TIME',Topic:'Outdoor space beyond the marquee',Detail:'Kids will want to move.',Position:'ASK: is there any safe garden space they can use?',Answer:''},\n{Section:'C. IF TIME',Topic:'Clearing our decor',Detail:'Their next event sets up from 16:30.',Position:'ASK: do we clear everything at 16:00, or can props stay while we are in the bar?',Answer:''},\n{Section:'C. IF TIME',Topic:'Noise curfew in the bar',Detail:'We may stay past 18:00.',Position:'ASK: is there a music or noise curfew in the bar lounge?',Answer:''},\n{Section:'C. IF TIME',Topic:'Vendor recommendations',Detail:'Anna sent a vendor list.',Position:'ASK: which of these have actually worked well in the marquee specifically?',Answer:''}\n];\nreturn rows.map(r => ({json: r}));"
+      }
+    },
+    {
+      "id": "aeb69375-7b6a-455b-8faf-91a1c9e782d7",
+      "name": "Write Call Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Anna Call Agenda"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn",
+          "useAppend": true
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "4afedb58-d4aa-453c-b6e8-2c3ddb3be799",
+      "name": "Get Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f45aa9d2-4858-4527-b341-97613b6fc133",
+      "name": "Build Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst s = sheets.find(x => x.properties.title === 'Anna Call Agenda');\nif (!s) return [{json:{requests:[]}}];\nconst sid = s.properties.sheetId;\nconst requests = [];\n\nrequests.push({updateSheetProperties:{properties:{sheetId:sid,gridProperties:{frozenRowCount:1,frozenColumnCount:1}},fields:'gridProperties(frozenRowCount,frozenColumnCount)'}});\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{backgroundColor:{red:0.12,green:0.16,blue:0.22},horizontalAlignment:'LEFT',verticalAlignment:'MIDDLE',wrapStrategy:'WRAP',textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:11}}},fields:'userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)'}});\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:100},cell:{userEnteredFormat:{verticalAlignment:'TOP',wrapStrategy:'WRAP',textFormat:{fontSize:10}}},fields:'userEnteredFormat(verticalAlignment,wrapStrategy,textFormat)'}});\n\n[150,230,430,430,300].forEach((w,i) => {\n  requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:'COLUMNS',startIndex:i,endIndex:i+1},properties:{pixelSize:w},fields:'pixelSize'}});\n});\n\n// Topic column bold\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:100,startColumnIndex:1,endColumnIndex:2},cell:{userEnteredFormat:{textFormat:{bold:true,fontSize:10}}},fields:'userEnteredFormat.textFormat'}});\n\n// Answer column highlighted as the live fill-in\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:100,startColumnIndex:4,endColumnIndex:5},cell:{userEnteredFormat:{backgroundColor:{red:1,green:0.98,blue:0.9}}},fields:'userEnteredFormat.backgroundColor'}});\n\nconst secRule = (txt,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:100,startColumnIndex:0,endColumnIndex:1}],booleanRule:{condition:{type:'TEXT_CONTAINS',values:[{userEnteredValue:txt}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(secRule('A. DECIDE',{red:0.85,green:0.91,blue:0.99},{red:0.06,green:0.27,blue:0.56}));\nrequests.push(secRule('B. MUST ASK',{red:1,green:0.87,blue:0.87},{red:0.6,green:0.11,blue:0.11}));\nrequests.push(secRule('C. IF TIME',{red:0.93,green:0.93,blue:0.93},{red:0.35,green:0.35,blue:0.35}));\n\n// Put it right after Dashboard\nrequests.push({updateSheetProperties:{properties:{sheetId:sid,index:1},fields:'index'}});\n\nreturn [{json:{requests}}];"
+      }
+    },
+    {
+      "id": "0de8be2a-49bd-46e1-b924-d537e6feaaf9",
+      "name": "Apply Format",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Create Call Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Call Tab": {
+      "main": [
+        [
+          {
+            "node": "Call Agenda Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Agenda Rows": {
+      "main": [
+        [
+          {
+            "node": "Write Call Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Call Rows": {
+      "main": [
+        [
+          {
+            "node": "Get Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Metadata": {
+      "main": [
+        [
+          {
+            "node": "Build Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Format": {
+      "main": [
+        [
+          {
+            "node": "Apply Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

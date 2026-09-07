@@ -1,67 +1,219 @@
 {
-  "name": "Sonnet | Task Lever Rater",
-  "active": false,
-  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "name": "Sonnet | Mindmaker OS | Task Lever Rater",
+  "active": true,
   "nodes": [
     {
-      "name": "Every 5 minutes",
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX"
+            }
+          ]
+        }
+      },
+      "name": "Every 2 hours",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 280],
-      "parameters": {
-        "triggerTimes": { "item": [{ "mode": "everyX", "value": 5, "unit": "minutes" }] }
-      }
+      "position": [
+        240,
+        288
+      ],
+      "id": "e713261b-3435-4883-aeb0-b7e9dc8b7e3d"
     },
     {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?lever_score=is.null&status=in.(active,waiting,blocked,new)&select=id,title,description,agent,workstream&limit=20",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
       "name": "Fetch unrated",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [500, 280],
-      "parameters": {
-        "method": "GET",
-        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?lever_score=is.null&status=in.(active,waiting,blocked,new)&select=id,title,description,agent,workstream&limit=20",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
-      },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "position": [
+        512,
+        288
+      ],
+      "id": "68bc9413-91ee-498b-81a4-442064410486",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
     },
     {
-      "name": "Sonnet rate",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [760, 280],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You are Marcus rating tasks for Krish\\'s 6 SaaS products + advisory business. For each task, return its lever_score (1-10, how much closing this task moves MRR; 10 = closes a paid deal or ships a paid feature directly; 5 = clearly useful prep work that unlocks a 10; 1 = busywork) AND est_hours_to_revenue (estimated hours until the revenue impact materialises; <= 4 for \"ship today\" wins, 40+ for long-shot bets). Output ONLY a JSON array: [{ id: string, lever_score: int, est_hours_to_revenue: int }] one per input task.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth"
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-opus-5', max_tokens: 16000, output_config: { effort: 'low' }, system: \"You are Marcus rating tasks for Krish's Mindmaker Live venture and advisory business. For each task, return its lever_score (1-10, how much closing this task moves MRR; 10 = closes a paid deal or ships a paid feature directly; 5 = clearly useful prep work that unlocks a 10; 1 = busywork) AND est_hours_to_revenue (estimated hours until the revenue impact materialises; <= 4 for \\\"ship today\\\" wins, 40+ for long-shot bets). Output ONLY a JSON array: [{ id: string, lever_score: int, est_hours_to_revenue: int }] one per input task. No prose, no code fences.\", messages: [{ role: 'user', content: JSON.stringify($json.tasks) }] }) }}",
+        "options": {}
       },
-      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+      "name": "Sonnet rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        768,
+        288
+      ],
+      "id": "3a22b9a5-51b7-44d1-a2c3-30f1c1192c15",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
-      "name": "Parse + patch",
+      "parameters": {
+        "jsCode": "// Anthropic returns content as an array of blocks, not choices[0].message.content.\n// Thinking is ON BY DEFAULT on Claude Opus 5, so the array contains thinking blocks\n// alongside the text block — take the text blocks specifically rather than index 0.\nconst blocks = $input.first().json.content || [];\nconst text = blocks\n  .filter(b => b && b.type === 'text')\n  .map(b => b.text)\n  .join('')\n  .trim();\n\nlet ratings = [];\ntry {\n  const a = text.indexOf('['); const b = text.lastIndexOf(']');\n  if (a >= 0 && b > a) ratings = JSON.parse(text.slice(a, b + 1));\n} catch { ratings = []; }\n\n// One item per rating so the PATCH runs as a normal HTTP Request node with the\n// Supabase credential attached. The previous version wrote to Supabase from inside\n// this Code node using $credentials, which n8n removed from Code nodes — that is the\n// \"$credentials is not defined\" failure. Doing the write in an HTTP Request node also\n// means the service key never has to appear in code.\nconst now = new Date().toISOString();\nreturn ratings\n  .filter(r => r && r.id)\n  .map(r => ({ json: {\n    id: r.id,\n    lever_score: r.lever_score,\n    est_hours_to_revenue: r.est_hours_to_revenue,\n    lever_rated_at: now,\n  } }));\n"
+      },
+      "name": "Parse ratings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, 280],
+      "position": [
+        1024,
+        288
+      ],
+      "id": "4bf59768-c66f-40ab-b2d8-e20e1d2c823e"
+    },
+    {
+      "name": "Patch task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1244,
+        288
+      ],
       "parameters": {
-        "language": "javaScript",
-        "jsCode": "const text = ($input.first().json.content || []).map(b => b.text || '').join('').trim();\nlet ratings = [];\ntry {\n  const a = text.indexOf('['); const b = text.lastIndexOf(']');\n  if (a >= 0 && b > a) ratings = JSON.parse(text.slice(a, b + 1));\n} catch { ratings = []; }\nconst SUPA='https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst hdr={ apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}`, Prefer: 'return=minimal' };\nfor (const r of ratings) {\n  if (!r?.id) continue;\n  await this.helpers.httpRequest({\n    method: 'PATCH',\n    url: `${SUPA}/tasks?id=eq.${r.id}`,\n    headers: { ...hdr, 'Content-Type': 'application/json' },\n    body: JSON.stringify({ lever_score: r.lever_score, est_hours_to_revenue: r.est_hours_to_revenue, lever_rated_at: new Date().toISOString() }),\n    json: true,\n  });\n}\nreturn [{ json: { rated: ratings.length } }];"
-      }
+        "method": "PATCH",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?id=eq.' + $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lever_score: $json.lever_score, est_hours_to_revenue: $json.est_hours_to_revenue, lever_rated_at: $json.lever_rated_at }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "4d25e984-1b03-4eeb-837b-2bb6adb12d6e",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "name": "Batch tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        408
+      ],
+      "parameters": {
+        "jsCode": "// Supabase returns a JSON array, and n8n splits an array response into one item\n// per row — so without this node the HTTP Request below fires once PER TASK. The\n// 16:04 run made 20 separate Opus calls and the parser read only the first,\n// discarding 19. The prompt was always written for a batch (\"one per input task\"),\n// so collapse the rows back into a single item and make one call.\nreturn [{ json: { tasks: $input.all().map(i => i.json) } }];\n"
+      },
+      "id": "d5308249-71e8-4477-8ddb-3f28328b3ff7"
     }
   ],
   "connections": {
-    "Every 5 minutes": { "main": [[{ "node": "Fetch unrated",  "type": "main", "index": 0 }]] },
-    "Fetch unrated":   { "main": [[{ "node": "Sonnet rate",    "type": "main", "index": 0 }]] },
-    "Sonnet rate":     { "main": [[{ "node": "Parse + patch",  "type": "main", "index": 0 }]] }
-  }
+    "Fetch unrated": {
+      "main": [
+        [
+          {
+            "node": "Batch tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet rate": {
+      "main": [
+        [
+          {
+            "node": "Parse ratings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 2 hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch unrated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse ratings": {
+      "main": [
+        [
+          {
+            "node": "Patch task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch tasks": {
+      "main": [
+        [
+          {
+            "node": "Sonnet rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null
 }

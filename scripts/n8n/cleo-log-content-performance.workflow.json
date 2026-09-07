@@ -1,0 +1,149 @@
+{
+  "name": "Cleo | Mindmaker OS | Log Content Performance",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Log Content Performance",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "content-log-performance",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-log-performance",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      },
+      "id": "0a4592ac-1eac-4a50-a60e-3d81764b6da9"
+    },
+    {
+      "name": "Append to Mission Control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      },
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1JdUn2iQoJdzQVTnJUWv2DsZ6wAjBj-82fThWIXWCUK4",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Content Performance",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "id": "61b19c12-4c91-4b0b-a9af-1c8c590dbaef"
+    },
+    {
+      "parameters": {
+        "jsCode": "let startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $('Log Content Performance').first().json.body?.agent_id || $('Log Content Performance').first().json.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $('Log Content Performance').first().json.body?.api_call_count || $('Log Content Performance').first().json.api_call_count || 0,\n  cost_usd: $('Log Content Performance').first().json.body?.total_cost || $('Log Content Performance').first().json.total_cost || 0,\n  outcome: $('Log Content Performance').first().json.body?.outcome || $('Log Content Performance').first().json.outcome || 'completed',\n  outcome_count: $('Log Content Performance').first().json.body?.result_count || $('Log Content Performance').first().json.result_count || 0,\n  quality_score: $('Log Content Performance').first().json.body?.quality_score || $('Log Content Performance').first().json.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log', doc_title: $('Log Content Performance').first().json.body?.doc_title, target_channel: $('Log Content Performance').first().json.body?.target_channel, doc_url: $('Log Content Performance').first().json.body?.doc_url })\n};\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        400
+      ],
+      "id": "f48e934a-6d48-4253-bc0e-a0bf29c10f2f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"cleo\",\n  \"target\": \"Log Content Performance\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Run to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        150
+      ],
+      "id": "6374c27d-4da0-44f6-9f4c-a0be99b967f9",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Log Content Performance": {
+      "main": [
+        [
+          {
+            "node": "Append to Mission Control",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Run to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Mission Control": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

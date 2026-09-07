@@ -1,0 +1,577 @@
+{
+  "name": "System | Stripe Reconciliation | Nightly",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Daily 05:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 5 * * *"
+            }
+          ]
+        }
+      },
+      "id": "253ddb4f-ae87-4c7d-9061-9042fed0e999"
+    },
+    {
+      "name": "Fetch Price Map",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        300
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.stripe_price_product_map&select=value",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bc03ecd3-6008-4e01-91c8-7a69c1b4c18b"
+    },
+    {
+      "name": "Fetch Stripe Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.stripe.com/v1/subscriptions?status=all&limit=100&expand[]=data.customer",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fVDCMOkPByL0V1F5",
+          "name": "Stripe mindmaker_llc restricted (reconciliation)"
+        }
+      },
+      "id": "76b81e03-850e-4708-85c6-4158dbb3adf4"
+    },
+    {
+      "name": "Fetch OS Paid Rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        300
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?select=id,product,stripe_customer_id&kind=eq.paid",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "653b3a0f-a6c0-43a6-bad6-e31d6108a1ae"
+    },
+    {
+      "name": "Build Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Build the reconciliation plan from the Stripe response + price map. No secrets in this node.\n// Stripe (all four active accounts) is ground truth for subscription customers; webhooks stay as fast alerts.\nconst cfgRows = $('Fetch Price Map').first().json;\nlet priceMap = {};\ntry { const row = Array.isArray(cfgRows) ? cfgRows[0] : (cfgRows && cfgRows.body ? cfgRows.body[0] : cfgRows); const v = row && row.value; if (v) priceMap = (typeof v === 'string') ? JSON.parse(v) : v; } catch (e) {}\nconst ACCOUNT_NODES = ['Fetch Stripe Subscriptions', 'Fetch Stripe Fulltime', 'Fetch Stripe Fractionl'];\nlet subs = []; let hasMore = false;\nfor (const nn of ACCOUNT_NODES) {\n  let resp = null;\n  try { resp = $(nn).first().json; } catch (e) { resp = null; }\n  if (resp && Array.isArray(resp.data)) { subs = subs.concat(resp.data); hasMore = hasMore || !!resp.has_more; }\n}\n\nconst LIVE = ['active', 'trialing', 'past_due'];\nconst upserts = []; const unmapped = {}; const activeSet = new Set();\nfor (const s of subs) {\n  if (!LIVE.includes(s.status)) continue;\n  const item = s.items && s.items.data && s.items.data[0];\n  const price = item && item.price;\n  const priceId = price && price.id;\n  const product = priceMap[priceId] || (price && priceMap[price.product]) || null;\n  if (!product) { if (priceId) unmapped[priceId] = ((price.nickname || '') + ' ' + ((price.unit_amount || 0) / 100) + ' ' + (price.currency || '')).trim(); continue; }\n  const cust = (typeof s.customer === 'object' && s.customer) ? s.customer : {};\n  const custId = cust.id || s.customer;\n  activeSet.add(product + '|' + custId);\n  upserts.push({ product, kind: 'paid', email: cust.email || null, full_name: cust.name || null,\n    stripe_customer_id: custId, stripe_subscription_id: s.id,\n    plan: (price && (price.nickname || priceId)) || null,\n    mrr_usd: (function(){ if (!price || price.unit_amount == null) return null;\n      var amt = price.unit_amount / 100;\n      var iv = (price.recurring && price.recurring.interval) || 'month';\n      var months = iv === 'year' ? 12 : (iv === 'week' ? (1/4.33) : (iv === 'day' ? (1/30) : 1));\n      var FX = { usd: 1, aud: 0.65, eur: 1.08, gbp: 1.27 }; // rough, honest-enough; revisit if non-usd volume grows\n      var fx = FX[String(price.currency || 'usd').toLowerCase()] || 1;\n      return Math.round((amt / months) * fx * 100) / 100; })(),\n    became_paid_at: s.start_date ? new Date(s.start_date * 1000).toISOString() : null,\n    churned_at: null, source: 'stripe_reconciliation', attribution_confidence: 'reconciled' });\n}\nconst paidRowsResp = $('Fetch OS Paid Rows').first().json;\nconst paidRows = Array.isArray(paidRowsResp) ? paidRowsResp : ((paidRowsResp && paidRowsResp.body) ? paidRowsResp.body : $('Fetch OS Paid Rows').all().map(i => i.json));\nconst churnIds = [];\nconst mapped = [...new Set(Object.values(priceMap))];\nfor (const r of paidRows) {\n  if (!r.stripe_customer_id || !mapped.includes(r.product)) continue;\n  if (!activeSet.has(r.product + '|' + r.stripe_customer_id)) churnIds.push(r.id);\n}\nreturn [{ json: {\n  upserts, has_upserts: upserts.length > 0,\n  churn_filter: churnIds.length > 0 ? 'id=in.(' + churnIds.join(',') + ')' : null, has_churn: churnIds.length > 0,\n  unmapped, has_unmapped: Object.keys(unmapped).length > 0,\n  stats: { subs_seen: subs.length, upserts: upserts.length, churn: churnIds.length, unmapped: Object.keys(unmapped).length, stripe_has_more_unfetched: hasMore },\n} }];\n"
+      },
+      "id": "9946a2b7-cc78-49e5-a574-bf79beda8bc5"
+    },
+    {
+      "name": "Has Upserts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.has_upserts }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "5c824209-a440-4f4c-8a0f-b7785310bb7f"
+    },
+    {
+      "name": "Upsert Customers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        140
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?on_conflict=product,stripe_customer_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.upserts) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "id": "efc031a2-d20c-429a-82d3-283811ba3fa5"
+    },
+    {
+      "name": "Has Churn?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        420
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.has_churn }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e7f2a67e-55fc-47df-8ebf-cb90b715b419"
+    },
+    {
+      "name": "Mark Churned",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        380
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?' + $json.churn_filter }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ kind: 'churned', churned_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "id": "c2b34bbb-8320-4b85-acc2-7670395933cd"
+    },
+    {
+      "name": "Audit Unmapped",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Build Plan').item.json.has_unmapped ? [{ actor: 'system', event_type: 'stripe-reconciliation-unmapped', display_message: 'Stripe reconciliation: unmapped price ids need stripe_price_product_map entries: ' + Object.keys($('Build Plan').item.json.unmapped).join(', '), details: JSON.stringify($('Build Plan').item.json.unmapped) }] : []) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "id": "2744f7cd-82b1-460f-925e-75d4a1635bbd"
+    },
+    {
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: 'stripe-reconciliation-nightly', workflow_name: 'System | Stripe Reconciliation | Nightly', agent_id: 'system', status: 'success', outcome: 'subs:' + $('Build Plan').item.json.stats.subs_seen + ' upserts:' + $('Build Plan').item.json.stats.upserts + ' churn:' + $('Build Plan').item.json.stats.churn + ' unmapped:' + $('Build Plan').item.json.stats.unmapped + (($('Build Plan').item.json.stats.stripe_has_more_unfetched) ? ' WARN:has_more_page' : ''), outcome_count: $('Build Plan').item.json.stats.upserts, cost_estimate_usd: 0.0001, api_calls_count: 7 }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "id": "4e284f56-1e2a-4ce3-964e-fb8ee0c26134"
+    },
+    {
+      "name": "Fetch Stripe Fulltime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        420
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.stripe.com/v1/subscriptions?status=all&limit=100&expand[]=data.customer",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ypXHVgzHNPbHhBML",
+          "name": "Stripe fulltime (reconciliation)"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "5c175860-5eab-4175-8f3e-bc1e4b2d512e"
+    },
+    {
+      "name": "Fetch Stripe Fractionl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        420
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.stripe.com/v1/subscriptions?status=all&limit=100&expand[]=data.customer",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FBIEkgebPlY7gwRl",
+          "name": "Stripe fractionl_ai (reconciliation)"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "d5744260-aa54-4e37-8e11-4f52f1fa761d"
+    },
+    {
+      "name": "Webhook Reconcile Now",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        440,
+        500
+      ],
+      "parameters": {
+        "path": "stripe-reconcile-now",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "notes": "On-demand reconciliation across all four accounts. Same idempotent path as the nightly cron.",
+      "id": "92d21b8e-1f9e-4791-9c1c-7e2ba85ab001",
+      "webhookId": "46c29959-b5e6-461d-88b4-60f334b7803f"
+    }
+  ],
+  "connections": {
+    "Daily 05:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Price Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Price Map": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stripe Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Stripe Subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stripe Fulltime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch OS Paid Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Plan": {
+      "main": [
+        [
+          {
+            "node": "Has Upserts?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Churn?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Audit Unmapped",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Upserts?": {
+      "main": [
+        [
+          {
+            "node": "Upsert Customers",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Has Churn?": {
+      "main": [
+        [
+          {
+            "node": "Mark Churned",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Audit Unmapped": {
+      "main": [
+        []
+      ]
+    },
+    "Fetch Stripe Fulltime": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stripe Fractionl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Stripe Fractionl": {
+      "main": [
+        [
+          {
+            "node": "Fetch OS Paid Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Reconcile Now": {
+      "main": [
+        [
+          {
+            "node": "Fetch Price Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 300,
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Daily 05:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

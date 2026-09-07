@@ -1,0 +1,248 @@
+{
+  "name": "System | Mindmaker OS | Cost Advisor",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 5 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Weekly Schedule (Mon 5AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d4b54127-24b9-4547-855e-065e5e340787"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return {\n    json: async () => res,\n    ok: true,\n    status: 200\n  };\n};\n\n// Fetch workflow_runs for current month, group by agent and API\nconst now = new Date();\nconst monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();\n\nconst headers = {\n  'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n  'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n  'Content-Type': 'application/json'\n};\n\nconst spendResp = await fetch('https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs?created_at=gte.' + monthStart + '&order=created_at.desc&limit=2000', {\n  headers\n});\nconst runs = await spendResp.json();\n\nconst allRuns = Array.isArray(runs) ? runs : [];\n\n// Group by agent\nconst byAgent = {};\nfor (const run of allRuns) {\n  const agent = run.agent_id || 'unknown';\n  if (!byAgent[agent]) {\n    byAgent[agent] = { totalCost: 0, totalApiCalls: 0, runs: 0, outcomes: {}, totalOutcomeCount: 0 };\n  }\n  byAgent[agent].totalCost += (run.cost_usd || 0);\n  byAgent[agent].totalApiCalls += (run.api_calls || 0);\n  byAgent[agent].runs++;\n  byAgent[agent].totalOutcomeCount += (run.outcome_count || 0);\n  \n  const outcome = run.outcome || 'unknown';\n  if (!byAgent[agent].outcomes[outcome]) byAgent[agent].outcomes[outcome] = 0;\n  byAgent[agent].outcomes[outcome]++;\n}\n\nreturn [{ json: { byAgent, totalRuns: allRuns.length, monthStart } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Fetch Spend Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        0
+      ],
+      "id": "2e2f4877-f4a3-4f83-8cfa-f0bd7b1bca20"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return {\n    json: async () => res,\n    ok: true,\n    status: 200\n  };\n};\n\nconst headers = {\n  'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n  'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n  'Content-Type': 'application/json'\n};\n\nconst capsResp = await fetch('https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_capabilities?select=*&limit=500', {\n  headers\n});\nconst capabilities = await capsResp.json();\n\nconst prevData = $input.first().json;\n\nreturn [{ json: { ...prevData, capabilities: Array.isArray(capabilities) ? capabilities : [] } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Fetch Budget Limits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ],
+      "id": "2484ff42-bf4e-4c55-9367-6046a18c100c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst byAgent = data.byAgent || {};\nconst capabilities = data.capabilities || [];\n\nconst insights = [];\nconst recommendations = [];\n\n// Build budget map from capabilities\nconst budgetMap = {};\nconst capsByAgent = {};\nfor (const cap of capabilities) {\n  const agentId = cap.agent_id || cap.agent_name;\n  if (!budgetMap[agentId]) {\n    budgetMap[agentId] = cap.monthly_budget_usd || 0;\n  } else {\n    budgetMap[agentId] = Math.max(budgetMap[agentId], cap.monthly_budget_usd || 0);\n  }\n  if (!capsByAgent[agentId]) capsByAgent[agentId] = [];\n  capsByAgent[agentId].push(cap);\n}\n\n// 1. Agents approaching budget limits (>80% used)\nfor (const [agent, info] of Object.entries(byAgent)) {\n  const budget = budgetMap[agent] || 0;\n  if (budget > 0) {\n    const pct = (info.totalCost / budget) * 100;\n    if (pct > 80) {\n      insights.push({\n        type: 'budget_warning',\n        agent,\n        detail: agent + ' has used $' + info.totalCost.toFixed(2) + ' of $' + budget.toFixed(2) + ' budget (' + pct.toFixed(1) + '%)',\n        severity: pct > 100 ? 'critical' : 'warning'\n      });\n    }\n  }\n}\n\n// 2. Cost per outcome metrics\nfor (const [agent, info] of Object.entries(byAgent)) {\n  if (info.totalOutcomeCount > 0 && info.totalCost > 0) {\n    const costPerOutcome = info.totalCost / info.totalOutcomeCount;\n    insights.push({\n      type: 'cost_per_outcome',\n      agent,\n      detail: agent + ': $' + costPerOutcome.toFixed(4) + ' per outcome (' + info.totalOutcomeCount + ' outcomes, $' + info.totalCost.toFixed(2) + ' total)',\n      severity: 'info'\n    });\n  }\n}\n\n// 3. Free tier / unused capacity\nfor (const cap of capabilities) {\n  const agentId = cap.agent_id || cap.agent_name;\n  if (cap.is_active && (cap.monthly_spend_usd || 0) === 0 && (cap.monthly_budget_usd || 0) > 0) {\n    recommendations.push({\n      type: 'free_capacity',\n      agent: agentId,\n      api: cap.api_name || cap.capability_name || '',\n      detail: 'Budget allocated but zero spend - free capacity available'\n    });\n  }\n}\n\n// 4. Model tiering suggestions\nfor (const [agent, info] of Object.entries(byAgent)) {\n  if (info.totalCost > 5) {\n    recommendations.push({\n      type: 'model_tiering',\n      agent,\n      detail: 'Consider using Haiku for simple tasks, Sonnet for moderate tasks, and Opus only for complex reasoning to reduce costs'\n    });\n  }\n}\n\nreturn [{ json: { insights, recommendations, byAgent, totalRuns: data.totalRuns, capabilities } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Cost Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        0
+      ],
+      "id": "0ef44b77-8469-48e3-bc5e-27b620d8c1ff"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return {\n    json: async () => res,\n    ok: true,\n    status: 200\n  };\n};\n\nconst data = $input.first().json;\nconst byAgent = data.byAgent || {};\nconst capabilities = data.capabilities || [];\n\nconst headers = {\n  'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n  'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n  'Content-Type': 'application/json',\n  'Prefer': 'return=representation'\n};\n\n// Update monthly_spend_usd for each agent's capabilities\nfor (const cap of capabilities) {\n  const agentId = cap.agent_id || cap.agent_name;\n  const agentData = byAgent[agentId];\n  if (agentData && cap.id) {\n    const spend = agentData.totalCost || 0;\n    await fetch('https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_capabilities?id=eq.' + cap.id, {\n      method: 'PATCH',\n      headers,\n      body: JSON.stringify({ monthly_spend_usd: spend })\n    });\n  }\n}\n\nreturn [{ json: { ...data, capabilities_updated: true } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Update Capabilities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "7df67740-3d24-41b0-b01f-9ec5599bf137"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst insights = data.insights || [];\nconst recommendations = data.recommendations || [];\nconst byAgent = data.byAgent || {};\n\nconst lines = [\n  '--- MindMaker Cost Advisor - Weekly Report ---',\n  '',\n  'Agent: Marcus',\n  'Total workflow runs this month: ' + (data.totalRuns || 0),\n  ''\n];\n\n// Spend by agent\nlines.push('-- Spend by Agent --');\nfor (const [agent, info] of Object.entries(byAgent)) {\n  lines.push('  ' + agent + ': $' + (info.totalCost || 0).toFixed(2) + ' (' + info.runs + ' runs, ' + info.totalApiCalls + ' API calls)');\n}\nlines.push('');\n\n// Insights\nif (insights.length > 0) {\n  lines.push('-- Insights --');\n  for (const i of insights) {\n    lines.push('  [' + i.severity.toUpperCase() + '] ' + i.detail);\n  }\n  lines.push('');\n}\n\n// Recommendations\nif (recommendations.length > 0) {\n  lines.push('-- Recommendations --');\n  for (const r of recommendations) {\n    lines.push('  - ' + r.detail);\n  }\n}\n\nif (insights.length === 0 && recommendations.length === 0) {\n  lines.push('All agents operating within budget. No issues detected.');\n}\n\nconst message = lines.join('\\n');\n\nreturn [{ json: { message, insightCount: insights.length, recommendationCount: recommendations.length } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Prepare Telegram Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        0
+      ],
+      "id": "63ec8869-6c16-4b56-8d1c-6cdf2919d478"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '6773796504', text: $json.message, parse_mode: 'Markdown' } }}",
+        "options": {}
+      },
+      "name": "Telegram Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        0
+      ],
+      "id": "fa0ea4bc-76db-46a5-9fbd-4462c4dbe3f1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: $workflow.name, agent_id: 'system', status: 'success', outcome: 'success', run_at: new Date().toISOString(), cost_estimate_usd: 0, api_calls_count: 1 } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Execution to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "4d240206-6abf-44ee-9610-c5bc4c383a95",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Weekly Schedule (Mon 5AM)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Spend Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Spend Data": {
+      "main": [
+        [
+          {
+            "node": "Fetch Budget Limits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Budget Limits": {
+      "main": [
+        [
+          {
+            "node": "Cost Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cost Analysis": {
+      "main": [
+        [
+          {
+            "node": "Update Capabilities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Capabilities": {
+      "main": [
+        [
+          {
+            "node": "Prepare Telegram Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Telegram Report": {
+      "main": [
+        [
+          {
+            "node": "Telegram Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Report": {
+      "main": [
+        [
+          {
+            "node": "Log Execution to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Weekly Schedule (Mon 5AM)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

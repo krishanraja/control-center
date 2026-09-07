@@ -1,0 +1,1073 @@
+{
+  "name": "Agatha | mind/make OS | State of Union Weekly",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "content": {
+          "config": {
+            "name": "Sticky Note 98e4e81f",
+            "parameters": {
+              "content": "State of Union Weekly. Fires Sunday 8pm ET. Pulls 7 Supabase tables for the past week, calls Anthropic Sonnet 4.6, uploads HTML-formatted Google Doc to Business Ops folder via Drive multipart, patches home_intelligence summary, Telegrams Krish a link, heartbeats success to workflow_runs. v1 no fallback model.",
+              "height": 200,
+              "width": 500,
+              "color": 4
+            },
+            "position": [
+              192,
+              352
+            ]
+          }
+        }
+      },
+      "name": "Sticky Note b6693d9e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ],
+      "id": "372440d1-cfda-4233-b25f-7bf55d7b24b6"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 0 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Sunday 8pm ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        400
+      ],
+      "id": "44cfe30f-ddbe-4681-aed6-c32c137803e0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "start_iso",
+              "name": "run_start_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "week_end",
+              "name": "week_end_date",
+              "value": "={{ $now.toFormat(\"yyyy-MM-dd\") }}",
+              "type": "string"
+            },
+            {
+              "id": "week_start",
+              "name": "week_start_iso",
+              "value": "={{ $now.minus({ days: 7 }).toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Record Start Time",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        400
+      ],
+      "id": "392bc179-c229-47b7-b728-8f246ae367b5"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.agatha"
+            },
+            {
+              "name": "select",
+              "value": "brief_content"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Load Agatha Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        640,
+        400
+      ],
+      "id": "bd062bcd-abdb-465f-a0a3-a19562371d88",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "created_at",
+              "value": "=gte.{{ $(\"Record Start Time\").item.json.week_start_iso }}"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        112
+      ],
+      "id": "b5d4af01-69bd-4abd-a171-dc69312e18bc",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 7,
+        "options": {}
+      },
+      "name": "Merge Week Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1088,
+        464
+      ],
+      "id": "22197151-c5fc-4d9c-a91d-f04be3a109ab"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "created_at",
+              "value": "=gte.{{ $(\"Record Start Time\").item.json.week_start_iso }}"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Zara Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        224
+      ],
+      "id": "3cd43925-bb82-4dbf-8299-4d06ef4cfed6",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,title,status,agent,priority,blocked_by,updated_at"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        352
+      ],
+      "id": "8cf25cc4-2cce-463c-9ef9-6d668ece32c9",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_health",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "order",
+              "value": "checked_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "14"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Product Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        464
+      ],
+      "id": "0757e045-1a91-4b87-94cd-5fc391fcded9",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/business_metrics",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,label,value,target,status,unit,updated_at"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Business Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        592
+      ],
+      "id": "e824723d-a93f-49d5-ab65-0938b22b990e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/vera_audit",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "audit_date",
+              "value": "=gte.{{ $(\"Record Start Time\").item.json.week_start_iso }}"
+            },
+            {
+              "name": "order",
+              "value": "audit_date.desc"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Vera Audits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        704
+      ],
+      "id": "0fdd4304-26c9-4bd2-8f96-b21694969c98",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.current"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Home Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        832
+      ],
+      "id": "7c255bbc-a923-4bfa-91df-70d98662a08f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Agent Plan (CURRENT PLAN block) ===\nlet plan = {};\nlet plan_stale = false;\ntry {\n  const planRaw = $('Load Agatha Plan').first().json;\n  const planArr = Array.isArray(planRaw) ? planRaw : (planRaw.data ? (typeof planRaw.data === 'string' ? JSON.parse(planRaw.data) : planRaw.data) : [planRaw]);\n  plan = (Array.isArray(planArr) ? planArr[0] : planArr) || {};\n} catch(e) { plan = {}; }\nconst STALE_HOURS = 72;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst briefRows = $('Load Agatha Brief').all();\nconst briefContent = (briefRows[0] && briefRows[0].json && briefRows[0].json.brief_content) || 'You are Agatha, the operations agent.';\n\nconst auditLog = $('Read Audit Log').all().map(i => i.json);\nconst signals = $('Read Zara Signals').all().map(i => i.json);\nconst tasks = $('Read Tasks').all().map(i => i.json);\nconst productHealth = $('Read Product Health').all().map(i => i.json);\nconst businessMetrics = $('Read Business Metrics').all().map(i => i.json);\nconst veraAudits = $('Read Vera Audits').all().map(i => i.json);\nconst homeIntelRows = $('Read Home Intelligence').all().map(i => i.json);\nconst homeIntel = homeIntelRows[0] || {};\n\nconst taskCounts = tasks.reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc; }, {});\nconst topSignals = [...signals].sort((a, b) => (b.signal_score || 0) - (a.signal_score || 0)).slice(0, 5);\nconst productSummary = productHealth.map(p => p.app_name + ': http ' + p.http_status + ', ' + p.system_status).join('; ');\nconst veraLatest = veraAudits[0] || {};\n\nconst weekEnd = $('Record Start Time').item.json.week_end_date;\n\nconst sections = [];\nsections.push('Generate the MindMaker OS Weekly State of Union for the week ending ' + weekEnd + '.');\nsections.push('');\nsections.push('DATA:');\nsections.push('');\nsections.push('Audit log (' + auditLog.length + ' entries last 7d):');\nsections.push(JSON.stringify(auditLog.slice(0, 50), null, 2));\nsections.push('');\nsections.push('Signals (' + signals.length + ' total, top 5 by score):');\nsections.push(JSON.stringify(topSignals, null, 2));\nsections.push('');\nsections.push('Tasks by status: ' + JSON.stringify(taskCounts));\nsections.push('');\nsections.push('Product health: ' + (productSummary || 'no rows'));\nsections.push('');\nsections.push('Business metrics:');\nsections.push(JSON.stringify(businessMetrics, null, 2));\nsections.push('');\nsections.push('Vera audits: ' + veraAudits.length + ' runs, latest quality_score ' + (veraLatest.quality_score != null ? veraLatest.quality_score : 'n/a') + ', clean: ' + (veraLatest.clean != null ? veraLatest.clean : 'n/a'));\nsections.push('');\nsections.push('Home intelligence current summary: ' + (homeIntel.summary || 'none'));\nsections.push('');\nsections.push('OUTPUT FORMAT (4 sections, max 800 words total, no em dashes anywhere. Use markdown headers exactly as shown):');\nsections.push('');\nsections.push('## Exec Summary');\nsections.push('3 bullet points, each one sentence.');\nsections.push('');\nsections.push('## Highlights');\nsections.push('What worked this week, cite specific data.');\nsections.push('');\nsections.push('## Lowlights');\nsections.push('What failed or stalled, cite root cause.');\nsections.push('');\nsections.push('## Opportunities');\nsections.push('3 specific things to do next week.');\nconst userPrompt = sections.join('\\n');\n\nconst anthropic_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 2000,\n  temperature: 0.3,\n  system: briefContent + (planBlock ? '\\n\\n' + planBlock : ''),\n  messages: [{ role: 'user', content: userPrompt }]\n};\n\nreturn [{ json: { anthropic_body, week_end: weekEnd, run_start_iso: $('Record Start Time').item.json.run_start_iso, plan_stale } }];\n"
+      },
+      "name": "Build Synthesis Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        464
+      ],
+      "id": "71268602-ecc7-4607-a8bc-caadd6ac648c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "name": "Call Anthropic Sonnet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        464
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "411471db-d8a2-4252-ac0a-19cb282ed8aa"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst raw = item.content && item.content[0] && item.content[0].text ? item.content[0].text : '';\nconst cleaned = raw.replace(/\\u2014/g, '-').replace(/\\u2013/g, '-');\n\nconst weekEnd = $('Build Synthesis Prompt').item.json.week_end;\nconst runStartIso = $('Build Synthesis Prompt').item.json.run_start_iso;\nconst docTitle = '[State] MindMaker OS Week of ' + weekEnd;\n\nconst lines = cleaned.split('\\n');\nlet execSummary = '';\nlet opportunities = [];\nlet currentSection = null;\nconst buckets = { exec: [], highlights: [], lowlights: [], opportunities: [] };\n\nfor (const line of lines) {\n  const trimmed = line.trim();\n  const lower = trimmed.toLowerCase();\n  if (lower.startsWith('## exec') || lower.match(/^#+\\s*exec/)) { currentSection = 'exec'; continue; }\n  if (lower.startsWith('## highlights') || lower.match(/^#+\\s*highlights/)) { currentSection = 'highlights'; continue; }\n  if (lower.startsWith('## lowlights') || lower.match(/^#+\\s*lowlights/)) { currentSection = 'lowlights'; continue; }\n  if (lower.startsWith('## opportunities') || lower.match(/^#+\\s*opportunities/)) { currentSection = 'opportunities'; continue; }\n  if (currentSection && trimmed) buckets[currentSection].push(trimmed);\n}\n\nexecSummary = buckets.exec.join(' ').slice(0, 800);\nopportunities = buckets.opportunities.filter(l => l.match(/^[\\-\\*\\d]/)).slice(0, 3);\nconst recommendedFocus = (opportunities[0] || '').replace(/^[\\-\\*\\d\\.\\)\\s]+/, '').trim();\n\nfunction inlineFormat(text) {\n  text = text.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');\n  text = text.replace(/\\*(.+?)\\*/g, '<em>$1</em>');\n  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');\n  return text;\n}\n\nfunction mdToHtml(text) {\n  const ls = text.split('\\n');\n  const out = [];\n  for (const line of ls) {\n    const t = line.trim();\n    if (t === '') continue;\n    if (/^#{1,6}\\s/.test(t)) {\n      const level = t.match(/^(#+)/)[1].length;\n      const content = t.replace(/^#+\\s+/, '');\n      out.push('<h' + level + '>' + inlineFormat(content) + '</h' + level + '>');\n    } else if (/^[\\-\\*]\\s/.test(t)) {\n      out.push('<li>' + inlineFormat(t.replace(/^[\\-\\*]\\s+/, '')) + '</li>');\n    } else {\n      out.push('<p>' + inlineFormat(t) + '</p>');\n    }\n  }\n  return out.join('\\n');\n}\n\nconst bodyHtml = mdToHtml(cleaned);\nconst html = '<html><head><style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.5}h1{font-size:18pt;margin-bottom:12pt}h2{font-size:14pt;margin-top:16pt;margin-bottom:8pt}p{margin:0 0 10pt 0}li{margin-bottom:4pt}</style></head><body><h1>' + docTitle + '</h1>\\n' + bodyHtml + '</body></html>';\n\nconst folderId = '1JIdyXTnf0zvSUQPg_8oK5F-rI82sQVeV';\nconst boundary = 'sou_boundary_' + Date.now();\nconst metadata = JSON.stringify({ name: docTitle, mimeType: 'application/vnd.google-apps.document', parents: [folderId] });\nconst multipart_body = '--' + boundary + '\\r\\nContent-Type: application/json; charset=UTF-8\\r\\n\\r\\n' + metadata + '\\r\\n--' + boundary + '\\r\\nContent-Type: text/html; charset=UTF-8\\r\\n\\r\\n' + html + '\\r\\n--' + boundary + '--';\n\nreturn [{ json: { multipart_body, multipart_boundary: boundary, doc_title: docTitle, week_end: weekEnd, run_start_iso: runStartIso, exec_summary: execSummary, recommended_focus: recommendedFocus, opportunities, synthesis: cleaned } }];\n"
+      },
+      "name": "Build Doc HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        464
+      ],
+      "id": "d781d68d-983a-4d69-99e7-f776f7a8efb6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "={{ \"multipart/related; boundary=\" + $json.multipart_boundary }}",
+        "body": "={{ $json.multipart_body }}",
+        "options": {}
+      },
+      "name": "Upload to Drive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1920,
+        464
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "145e4d0f-5509-497b-9d81-6083175b1957",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const synth = $('Build Doc HTML').item.json;\nconst drive = $('Upload to Drive').item.json;\nconst docId = drive.id;\n\nconst summaryObj = {\n  headline: 'Week of ' + synth.week_end + ' State of Union',\n  body: synth.exec_summary || 'See full doc for details.',\n  recommended_focus: synth.recommended_focus || (synth.opportunities[0] || '')\n};\n\nconst patch_body = {\n  summary: JSON.stringify(summaryObj),\n  generated_at: new Date().toISOString()\n};\n\nreturn [{ json: { patch_body, doc_id: docId, doc_url: drive.webViewLink, week_end: synth.week_end, run_start_iso: synth.run_start_iso } }];\n"
+      },
+      "name": "Build Home Intel Patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        464
+      ],
+      "id": "746dfdbd-9877-4841-bb12-6b77931eb5cf"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.current"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.patch_body }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Patch Home Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2368,
+        464
+      ],
+      "id": "364a2551-0aec-4992-8031-6dec4c7e8fb1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", parse_mode: \"Markdown\", text: \"State of Union: Week of \" + $(\"Build Home Intel Patch\").item.json.week_end + \" ready.\\n\\nDive deeper: \" + $(\"Build Home Intel Patch\").item.json.doc_url } }}",
+        "options": {}
+      },
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2592,
+        464
+      ],
+      "id": "679b6e4a-e077-4909-8f84-e615d806ba5b",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: $workflow.name, agent_id: \"agatha\", run_at: $now.toISO(), duration_ms: $now.diff($(\"Build Home Intel Patch\").item.json.run_start_iso).toMillis(), outcome: \"success\", status: \"Doc created: \" + $(\"Build Home Intel Patch\").item.json.doc_id, cost_estimate_usd: 0.01, api_calls_count: 11 } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2800,
+        464
+      ],
+      "id": "de9407e8-c110-4243-8b95-e3e764e632a3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Call Anthropic Sonnet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        688
+      ],
+      "id": "6b463435-f943-42e9-bc61-11083d0dddbc"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Call Anthropic Sonnet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1744,
+        688
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "1edfb20a-05ee-4724-ad30-1bdeb15fc5eb",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.agatha&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "sendQuery": false,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Load Agatha Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        640,
+        592
+      ],
+      "id": "f04881ab-2a2d-4338-9928-5224e2c646a4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Sunday 8pm ET": {
+      "main": [
+        [
+          {
+            "node": "Record Start Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Start Time": {
+      "main": [
+        [
+          {
+            "node": "Load Agatha Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Agatha Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agatha Brief": {
+      "main": [
+        [
+          {
+            "node": "Read Audit Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Zara Signals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Product Health",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Business Metrics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Vera Audits",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Home Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Week Data": {
+      "main": [
+        [
+          {
+            "node": "Build Synthesis Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Zara Signals": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Read Product Health": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Read Business Metrics": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Read Vera Audits": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Read Home Intelligence": {
+      "main": [
+        [
+          {
+            "node": "Merge Week Data",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Build Synthesis Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Anthropic Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Anthropic Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Build Doc HTML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Call Anthropic Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Doc HTML": {
+      "main": [
+        [
+          {
+            "node": "Upload to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Drive": {
+      "main": [
+        [
+          {
+            "node": "Build Home Intel Patch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Home Intel Patch": {
+      "main": [
+        [
+          {
+            "node": "Patch Home Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Home Intelligence": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Notify": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Call Anthropic Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Call Anthropic Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Call Anthropic Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Build Doc HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agatha Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Synthesis Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": {
+    "node:Sunday 8pm ET": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

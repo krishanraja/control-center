@@ -1,0 +1,467 @@
+{
+  "name": "Priya | Mindmaker OS | Weekly Product Rollup",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Monday 8am EST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        400
+      ],
+      "id": "14375e26-3c2b-4de2-867e-d8c8153643a9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();\nreturn [{ json: { healthUrl: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_health?select=*&order=checked_at.desc&checked_at=gte.' + weekAgo } }];"
+      },
+      "name": "Prepare URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        400
+      ],
+      "id": "ecec8dc3-3517-4342-aa3d-73b259c181bf"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.healthUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Week Health Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        592,
+        400
+      ],
+      "id": "4267e538-052a-4435-9309-849b875279a6",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/search/issues?q=user:krishanraja+is:issue+is:open&per_page=50",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{GITHUB_TOKEN_2}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch GitHub Issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        768,
+        400
+      ],
+      "executeOnce": true,
+      "id": "9a20c8f8-fe29-48b7-b908-cade6eb2bef0"
+    },
+    {
+      "parameters": {
+        "jsCode": "const healthResp = $('Fetch Week Health Data').first().json;\nconst issuesResp = $('Fetch GitHub Issues').first().json;\nconst healthBody = healthResp.body || healthResp || [];\nconst records = Array.isArray(healthBody) ? healthBody : [];\nconst issuesBody = issuesResp.body || issuesResp || {};\nconst issues = issuesBody.items || [];\nconst today = new Date().toISOString().split('T')[0];\nconst appData = {};\n// Live product set for OS rollup purposes (2026-07-06): gutted, merciless, onalert retired from the control plane.\n// plinth and full-time added (own Vercel projects + own Supabase). Neither exposes a product-truth endpoint yet, [RETIRED 2026-08-11: Plinth was renamed Legibility 2026-08-07 and then retired; it has zero customers and no live Stripe path.]\n// so there is no per-product config to wire here beyond the app_name key used to match product_health rows and\n// GitHub repo name. TODO: once plinth/full-time have health-check ingestion wired into product_health, their\n// checks/healthy/down/broken counts will populate here automatically; until then they will show checks=0, score=100 (default).\nconst appNames = ['mm-ctrl','fractionl-circle','fractionl-pulse','plinth','full-time','mindmaker'];\nfor (const name of appNames) {\n  appData[name] = { checks: 0, healthy: 0, down: 0, broken: 0, lastCommitDays: 0, openIssues: 0 };\n}\nfor (const r of records) {\n  const name = r.app_name;\n  if (!appData[name]) continue;\n  appData[name].checks++;\n  if (r.system_status === 'healthy') appData[name].healthy++;\n  else if (r.system_status === 'down') appData[name].down++;\n  else appData[name].broken++;\n  if (appData[name].checks === 1) {\n    appData[name].lastCommitDays = r.days_since_last_commit;\n    appData[name].openIssues = r.open_issues;\n  }\n}\nfor (const issue of issues) {\n  const repoName = (issue.repository_url || '').split('/').pop();\n  if (appData[repoName]) appData[repoName].openIssues++;\n}\nlet rankings = [];\nfor (const [name, data] of Object.entries(appData)) {\n  let score = 100;\n  if (data.checks > 0) score = Math.round((data.healthy / data.checks) * 60);\n  if (data.lastCommitDays > 14) score -= 20;\n  else if (data.lastCommitDays > 7) score -= 10;\n  if (data.down > 0) score -= data.down * 15;\n  if (data.broken > 0) score -= data.broken * 10;\n  score = Math.max(0, Math.min(100, score));\n  rankings.push({ name, score, ...data });\n}\nrankings.sort((a, b) => a.score - b.score);\nlet report = 'PRIYA WEEKLY ROLLUP // ' + today + '\\n\\nPRODUCTION READINESS:\\n';\nfor (const r of rankings) {\n  const bar = r.score >= 80 ? 'READY' : r.score >= 50 ? 'NEEDS WORK' : 'AT RISK';\n  report += '  ' + r.name + ': ' + r.score + '/100 [' + bar + ']';\n  if (r.checks > 0) report += ' (uptime: ' + Math.round(r.healthy/r.checks*100) + '%)';\n  report += '\\n';\n}\nreport += '\\nTOP ACTIONS:\\n';\nlet actions = [];\nfor (const r of rankings) {\n  if (r.down > 0) actions.push('Fix ' + r.name + ' downtime');\n  if (r.broken > 0) actions.push('Fix ' + r.name + ' errors');\n  if (r.lastCommitDays > 10) actions.push('Ship ' + r.name + ' (stalling at ' + r.lastCommitDays + 'd)');\n}\nif (actions.length === 0) actions.push('All apps healthy. Ship features.');\nfor (let i = 0; i < Math.min(3, actions.length); i++) {\n  report += '  ' + (i+1) + '. ' + actions[i] + '\\n';\n}\nreport += '\\n' + records.length + ' health checks, ' + issues.length + ' open issues this week.';\nconst worstApp = rankings[0] || { name: 'none', score: 100 };\nreturn [{ json: { report_text: report, telegram_text: report, today, worst_app: worstApp.name, worst_score: worstApp.score, total_checks: records.length, total_issues: issues.length } }];"
+      },
+      "name": "Build Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        400
+      ],
+      "id": "f139669e-e5e0-47dc-ae9f-9687b6fb664f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { parse_mode: 'Markdown', chat_id: \"6773796504\", text: $json.telegram_text } }}",
+        "options": {}
+      },
+      "name": "Send Weekly Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        400
+      ],
+      "id": "a7a3d16f-0a2e-40e4-b818-fb09eeb50816",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { id: \"priya-weekly-\" + $('Build Weekly Report').item.json.today, agent: \"priya\", venture: \"ops\", group: \"product-health\", group_label: \"Product Health\", title: \"Weekly rollup: worst \" + $('Build Weekly Report').item.json.worst_app + \" (\" + $('Build Weekly Report').item.json.worst_score + \"/100) // \" + $('Build Weekly Report').item.json.today, description: $('Build Weekly Report').item.json.report_text, status: \"waiting\", priority: $('Build Weekly Report').item.json.worst_score < 50 ? \"pri-1\" : \"pri-2\", owner: \"priya\", weekly_goal_id: $('Map Task to Goal').item.json.weekly_goal_id || null, created: new Date().toISOString() } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Create Weekly Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1312,
+        400
+      ],
+      "id": "3313d913-66a8-40ba-bd32-9cfe2e102c8f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1488,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "id": "f3e57d6d-ca17-4aba-9945-fe4527b3770a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"jpii0fEFmNTk2jCt\", \"workflow_name\": \"Priya Weekly Product Rollup\", \"agent_id\": \"priya\", \"status\": \"success\", \"cost_estimate_usd\": 0, \"api_calls_count\": 0}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1688,
+        200
+      ],
+      "name": "Heartbeat: priya",
+      "id": "49548f11-dcbb-4c5d-950a-29b786deef45",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Audit payload for Priya weekly product rollup\nconst d = $input.first().json;\nconst total = d.products_total || d.products || 0;\nconst issuesWeek = d.issues_total || d.issues || 0;\nconst week = d.week_of || new Date().toISOString().slice(0, 10);\n\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'priya',\n      event_type: 'product-rollup-weekly',\n      display_message: `Priya weekly product rollup (week of ${week}): ${total} products tracked, ${issuesWeek} issues this week.`,\n      details: JSON.stringify({ products_total: total, issues_total: issuesWeek, week_of: week })\n    }\n  }\n}];"
+      },
+      "name": "Build Audit (priya_weekly Write Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1288,
+        400
+      ],
+      "id": "0d5c3104-dbc6-4d2a-a3fe-6edb06078318"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/goals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "eq.active"
+            },
+            {
+              "name": "select",
+              "value": "id,title,current"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Weekly Goals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        200,
+        560
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "63fe4bd0-548c-48e4-80d7-89f6af8a6de4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst goalsRaw = $('Read Weekly Goals').first().json;\nconst goalsArr = Array.isArray(goalsRaw) ? goalsRaw : (goalsRaw.data || [goalsRaw]);\nconst goals = goalsArr.filter(g => g && g.id);\nconst bwr = $('Build Weekly Report').first().json || {};\n\nfunction pickGoalId(text) {\n  if (!text || !goals.length) return null;\n  const hay = String(text).toLowerCase();\n  let best = null, bestLen = 0;\n  for (const g of goals) {\n    for (const c of [g.title, g.current].filter(Boolean)) {\n      for (const tok of String(c).toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 4)) {\n        if (hay.includes(tok) && tok.length > bestLen) { best = g.id; bestLen = tok.length; }\n      }\n    }\n  }\n  return best;\n}\n\nconst text = (bwr.report_text || '') + ' product health weekly rollup ' + (bwr.worst_app||'');\nconst weekly_goal_id = pickGoalId(text);\nreturn $input.all().map(item => ({ json: { ...(item.json||{}), weekly_goal_id } }));\n"
+      },
+      "name": "Map Task to Goal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        400
+      ],
+      "id": "d2d3bb25-cd6a-4056-89d4-851fc0356a97"
+    }
+  ],
+  "connections": {
+    "Monday 8am EST": {
+      "main": [
+        [
+          {
+            "node": "Prepare URLs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Weekly Goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare URLs": {
+      "main": [
+        [
+          {
+            "node": "Fetch Week Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Week Health Data": {
+      "main": [
+        [
+          {
+            "node": "Fetch GitHub Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch GitHub Issues": {
+      "main": [
+        [
+          {
+            "node": "Build Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Weekly Report": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Weekly Telegram": {
+      "main": [
+        [
+          {
+            "node": "Map Task to Goal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Weekly Task": {
+      "main": [
+        [
+          {
+            "node": "Build Audit (priya_weekly Write Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (priya_weekly Write Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Write Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Task to Goal": {
+      "main": [
+        [
+          {
+            "node": "Create Weekly Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": {
+    "node:Monday 8am EST": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

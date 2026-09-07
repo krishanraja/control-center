@@ -1,0 +1,325 @@
+{
+  "name": "Stripe | Fractionl | Revenue Alert",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fractionl-stripe-revenue",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      },
+      "webhookId": "8eeea5ea-5a86-4db9-8ffa-28c3d7559d87",
+      "id": "8237007f-d506-402d-a5a8-dc8880ee1b97"
+    },
+    {
+      "name": "Payment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.type }}",
+              "rightValue": "payment_intent.succeeded",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "5295e4a8-7e1f-41e3-b3c2-c3cd6b10ec27"
+    },
+    {
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        200
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m",
+              "name": "msg",
+              "type": "string",
+              "value": "=💰 *Fractionl Payment*\n\n${{ Math.round($json.body.data.object.amount / 100) }} received\nTime: {{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "f48d9d02-d95c-4878-b868-93754062760b"
+    },
+    {
+      "name": "Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"chat_id\":\"6773796504\",\"text\":\"{{ $json.msg }}\",\"parse_mode\":\"Markdown\"}"
+      },
+      "id": "82c77fd1-b9f4-4979-a00c-53dbc3fabf9c",
+      "disabled": true
+    },
+    {
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: \"zjgOgd3puahqBwql\", workflow_name: \"OS - Revenue: Fractionl Stripe Alert\", agent_id: \"system\", outcome: \"success\", outcome_count: 1, status: \"success\", cost_estimate_usd: 0, api_calls_count: 1, metadata: JSON.stringify({ amount_cents: $(\"Stripe Webhook\").item.json.body.data.object.amount, customer_email: $(\"Stripe Webhook\").item.json.body.data.object.metadata.customer_email || \"unknown\", product: \"fractionl\" }) } }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "7bea6696-cc9a-400d-959c-0535ebb5c27e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Supabase: Upsert Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        440,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?on_conflict=product,stripe_customer_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const webhookData = $node[\"Stripe Webhook\"].json;\n  const evt = webhookData.body || webhookData;\n  const t = (evt.type || '').toLowerCase();\n  const obj = evt.data?.object || {};\n  const isPaid    = t === 'checkout.session.completed' || t === 'invoice.payment_succeeded' || t === 'customer.subscription.created' || t === 'customer.subscription.updated';\n  const isChurned = t === 'customer.subscription.deleted';\n  const kind      = isChurned ? 'churned' : isPaid ? 'paid' : 'paid';\n  const product   = 'fractionl_circle';\n  const customerId = obj.customer || obj.id || null;\n  const email      = obj.customer_email || obj.customer_details?.email || obj.receipt_email || null;\n  const name       = obj.customer_details?.name || obj.metadata?.full_name || null;\n  const plan       = obj.plan?.nickname || obj.items?.data?.[0]?.price?.nickname || obj.metadata?.plan || null;\n  const mrr        = obj.plan?.amount ? obj.plan.amount / 100 : (obj.amount_total ? obj.amount_total / 100 : (obj.amount_paid ? obj.amount_paid / 100 : null));\n  const utm        = obj.metadata?.utm_source || obj.metadata?.attribution_channel || null;\n  const now        = new Date().toISOString();\n  const lu         = $json || {};\n  const lead       = lu.id ? lu : (Array.isArray(lu) && lu.length > 0 ? lu[0] : null);\n  const attribution_lead_id    = lead ? lead.id : null;\n  const attribution_task_id    = lead ? (lead.promoted_task_id || null) : null;\n  const attribution_channel    = lead ? (utm || ('agent:' + (lead.assignee_agent || 'unknown'))) : (utm || null);\n  const attribution_confidence = lead ? 'exact_email' : (utm ? 'utm' : 'unattributed');\n  return JSON.stringify({\n    product, kind, email, full_name: name,\n    stripe_customer_id: customerId,\n    stripe_subscription_id: obj.subscription || obj.id || null,\n    plan, mrr_usd: mrr,\n    became_paid_at: isPaid && !isChurned ? now : null,\n    churned_at:     isChurned ? now : null,\n    source: utm,\n    raw: evt,\n    attribution_lead_id, attribution_task_id, attribution_channel, attribution_confidence,\n  });\n})() }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      },
+      "id": "8ffc59e4-1340-4610-acaa-ebffa8c09ced"
+    },
+    {
+      "name": "Lookup Attribution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        440,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?email=ilike.{{ encodeURIComponent(($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer_details?.email || $json.body?.data?.object?.receipt_email || '__none__')) }}&select=id,promoted_task_id,assignee_agent&order=created_at.desc&limit=1",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      },
+      "id": "f4a8ee3b-c54a-46df-bd8d-f28caeda7b46",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"zjgOgd3puahqBwql\", \"workflow_name\": \"Stripe | Fractionl | Revenue Alert\", \"agent_id\": \"stripe\", \"duration_ms\": 0, \"api_calls\": 1, \"cost_usd\": 0.0001, \"outcome\": \"webhook_received\", \"outcome_count\": 1, \"status\": \"success\", \"metadata\": \"{\\\"source\\\": \\\"stripe_webhook_heartbeat\\\"}\"}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "heartbeat-zjgOgd3p",
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        540
+      ],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "node": "Payment?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lookup Attribution",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment?": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Attribution": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Upsert Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

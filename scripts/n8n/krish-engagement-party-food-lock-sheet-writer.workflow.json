@@ -1,0 +1,232 @@
+{
+  "name": "Krish | Engagement Party | Food Lock Sheet Writer",
+  "active": false,
+  "nodes": [
+    {
+      "id": "8b06fd5d-7067-4967-b067-782387c78a02",
+      "name": "Run Food Lock",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "d2c7098b-f09b-4bd1-a936-d34daa600130",
+      "name": "Create FOOD LOCKED Tab",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1EmgbglxPIHmPnn0YXC8WgyU2PPyODgUd_KtStmTJyLM:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"requests\":[{\"addSheet\":{\"properties\":{\"title\":\"FOOD LOCKED 5 SEP\",\"gridProperties\":{\"rowCount\":200,\"columnCount\":10}}}}]}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "1ff799f9-b3aa-4602-8a53-bd89e155a81d",
+      "name": "Write FOOD LOCKED Rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1EmgbglxPIHmPnn0YXC8WgyU2PPyODgUd_KtStmTJyLM/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"valueInputOption\":\"RAW\",\"data\":[{\"range\":\"'FOOD LOCKED 5 SEP'!A1\",\"values\":[[\"FOOD LOCKED - 5 SEP 2026\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"Locked 27 Aug 2026. Supersedes the 22 Aug booked estimate. Sharing Set Menu is dead. Nothing is binding until Anna reissues the estimate.\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"SECTION\",\"ITEM\",\"DETAIL\",\"QTY\",\"UNIT GBP\",\"TOTAL GBP\",\"STATUS\"],[\"BOOKED\",\"High Chai Refill Buffet\",\"6 savouries plus 6 sweets plus unlimited masala chai. Replenished up to 3 hours. Flat rate, no veg / non-veg split.\",78,38,2964,\"LOCKED\"],[\"BOOKED\",\"Live Dosa Station\",\"Flat fee. Cooked to order. Window requested 12:30-14:00 instead of 12:00-13:30. Item list conflict unresolved.\",1,700,700,\"PENDING ANNA\"],[\"BOOKED\",\"Special Kids Menu\",\"Plated to named tables, not the kids buffet. 10-minimum waived by Anna 26 Aug. Kids will NOT be seated together.\",5,25,125,\"PENDING ANNA\"],[\"BOOKED\",\"Jain a la carte - Kala\",\"Sev Puri 9.50 plus Paneer Makhani 15.50. No onion, no garlic. Separate preparation.\",1,25,25,\"PENDING ANNA\"],[\"BOOKED\",\"Unlimited soft drinks\",\"79 adults plus 5 kids aged 5-11. Under-5s free and get fruit juice.\",84,5,420,\"LOCKED\"],[\"BOOKED\",\"Welcome prosecco\",\"6 glasses per bottle, 54 welcome glasses. Must be poured inside the marquee.\",9,30,270,\"LOCKED\"],[\"BOOKED\",\"Beer 330ml\",\"Cobra default. Sol, Sagres, Heineken, Desperados also available. Unfinished bottles move to the bar or go home.\",30,5,150,\"LOCKED\"],[\"BOOKED\",\"House wine\",\"Split across Tempranillo, Sauvignon Blanc, Pinot Grigio Ramato.\",6,25,150,\"LOCKED\"],[\"\",\"SUBTOTAL BEFORE SERVICE\",\"\",\"\",\"\",4804,\"\"],[\"\",\"Service charge 12.5%\",\"Mandatory. Counts toward the minimum spend.\",\"\",\"\",600.5,\"\"],[\"\",\"VENUE TOTAL\",\"\",\"\",\"\",5404.5,\"\"],[\"\",\"Minimum spend\",\"Full Garden Marquee 12:00-16:00\",\"\",\"\",4000,\"\"],[\"\",\"OVER MINIMUM\",\"Minimum spend is a non-issue\",\"\",\"\",1404.5,\"\"],[\"\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"SERVED - SAVOURY\",\"Classic Bombay Sandwich\",\"Contains wheat. NOT gluten-free.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SAVOURY\",\"Crispy Bhajia\",\"GLUTEN-FREE. Anna confirmed 24 Jun and 26 Aug. Krish confirmed 27 Aug that this stays on the menu.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SAVOURY\",\"Vada Pav\",\"Pav bun. NOT gluten-free.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SAVOURY\",\"Paneer Tikka Roll\",\"Tikka is gluten-free, the roll is not. Asked Anna for a separate unrolled tray.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"SERVED - SAVOURY\",\"Chicken Tikka Roll\",\"The only veg / non-veg difference in the whole menu. Tikka is gluten-free, the roll is not.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"SERVED - SAVOURY\",\"Chana Chaat\",\"Gluten-free status UNCONFIRMED. Depends on whether it contains wheat papdi.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"SERVED - SWEET\",\"Jelabi\",\"Contains wheat, soya. The only Indian sweet left once Kaju Katri is excluded.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SWEET\",\"Double Chocolate Mousse\",\"Contains milk, soya, egg. GLUTEN-FREE. The only sweet on the spread that is both gluten-free and nut-free.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SWEET\",\"Chocolate and Orange Tartlets\",\"Contains milk, soya, egg, wheat.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SWEET\",\"Blueberry Mini Muffins\",\"Contains wheat, egg, milk. Kid default.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SWEET\",\"Vegan Sultana Scones\",\"Contains wheat. Vegan cover.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - SWEET\",\"Mini Vegan Victoria Sponge Cake\",\"Contains wheat, soya. Second vegan cover.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - DRINK\",\"Unlimited Masala Chai\",\"Included in the 38 per head. The only beverage inside the package.\",\"\",\"\",\"\",\"LOCKED\"],[\"SERVED - STATION\",\"Dosa station contents\",\"CONFLICT. Anna 26 Aug says Dosa, Idli, Uttapam, Medu Vada. The Live Stations menu says Mini Plain Dosa, Mini Cheese Dosa, Mini Masala Dosa, Mini Uthappam, Sambar, Coconut Chutney. Gluten-free either way.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"NOT SELECTED - NUTS\",\"Kaju Katri\",\"EXCLUDED. Contains cashew nuts. Nut allergy confirmed real by Krish 27 Aug.\",\"\",\"\",\"\",\"DEAD\"],[\"NOT SELECTED - NUTS\",\"Mini Carrot Cake\",\"EXCLUDED. Contains walnuts.\",\"\",\"\",\"\",\"DEAD\"],[\"NOT SELECTED - NUTS\",\"Mini Vegan Chocolate Cherry Tart\",\"EXCLUDED. Contains almonds.\",\"\",\"\",\"\",\"DEAD\"],[\"NOT SELECTED - NUTS\",\"Mini Vegan Chocolate Orange Finger\",\"EXCLUDED. Contains almonds. Was one of only three gluten-free sweets Anna named.\",\"\",\"\",\"\",\"DEAD\"],[\"NOT SELECTED\",\"White Chocolate and Raspberry Mousse\",\"Not chosen. Second mousse, redundant against Double Chocolate Mousse.\",\"\",\"\",\"\",\"DEAD\"],[\"NOT SELECTED\",\"Vegan Mini Victoria Cake\",\"Not chosen. Near duplicate of Mini Vegan Victoria Sponge Cake.\",\"\",\"\",\"\",\"DEAD\"],[\"\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"DIETARY\",\"Nut-free\",\"REAL ALLERGY, confirmed by Krish 27 Aug. Four desserts excluded outright. Written kitchen cross-contamination confirmation still outstanding from Anna.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"DIETARY\",\"Gluten\",\"INTOLERANCE, not coeliac. Loz plus others. Shared buffet acceptable, no separate plating needed. Gluten-free available: Crispy Bhajia, Double Chocolate Mousse, all dosa station items.\",\"\",\"\",\"\",\"LOCKED\"],[\"DIETARY\",\"Gluten - open risk\",\"Guest List column O flags only ONE gluten-free guest. Krish says there are others. Real names needed in the dietary register before 2 Sep.\",\"\",\"\",\"\",\"OPEN - KRISH\"],[\"DIETARY\",\"Jain\",\"Kala. Separate a la carte preparation, no onion or garlic. Anna 24 Jun said excluded from buffet charges. Needs re-confirming.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"KILLED\",\"Sharing Set Menu at 40.50 per head\",\"Superseded 27 Aug. Was 64 covers on the booked estimate at 2592.\",\"\",\"\",\"\",\"DEAD\"],[\"KILLED\",\"Gulab Jamun at 2.50 per head\",\"Belonged to the Sharing Set dessert course. Not applicable to High Chai.\",\"\",\"\",\"\",\"DEAD\"],[\"KILLED\",\"Butter Chicken and Lamb Rogan Josh a la carte\",\"Killed by Krish 27 Aug. High Chai already includes chicken tikka. Removes the non-veg table list, the separated buffet and the cross-contamination protocol entirely.\",\"\",\"\",\"\",\"DEAD\"],[\"KILLED\",\"Celebration cake\",\"Killed earlier. No cake-cutting fee was available.\",\"\",\"\",\"\",\"DEAD\"],[\"KILLED\",\"Tikki bar, Chaat station, Duck station, Dessert cart, Canape menu, Platter menu, Four Cuisine menu\",\"Never ordered.\",\"\",\"\",\"\",\"DEAD\"],[\"\",\"\",\"\",\"\",\"\",\"\",\"\"],[\"OPEN\",\"Estimate not reissued\",\"The venue system still shows Sharing Set, 64 covers, 40.50 per head, total 3928.50. Nothing is binding until a new PDF lands.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"OPEN\",\"Headcount reconciliation\",\"Krish told Anna 5 kids. Guest List shows 4 on Kids menu with RSVP Yes. Reconcile before 2 Sep or pay 25 for a phantom.\",\"\",\"\",\"\",\"OPEN - KRISH\"],[\"OPEN\",\"Dosa throughput\",\"78 adults, 90 minutes, one station. Chef count and covers per hour not confirmed.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"OPEN\",\"Fruit platter\",\"Only 1 of the 6 chosen sweets is gluten-free. Asked Anna to add a fresh fruit platter and price it.\",\"\",\"\",\"\",\"PENDING ANNA\"],[\"OPEN\",\"Food after 14:00\",\"Dosa station ends 14:00. Two of the four hours run on sandwiches, bhajia and sweets only. A second 1.5 hour block has not been priced.\",\"\",\"\",\"\",\"OPEN - KRISH\"],[\"DEADLINE\",\"Final headcount and dietary register to Anna\",\"Allowed up to one day before the event. Target Tue 2 Sep.\",\"\",\"\",\"\",\"OPEN - KRISH\"]]}]}"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "6fcef2e2-b23d-4e10-b0d8-d385f02235c2",
+      "name": "Clear Costings Tab",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0/values/Costings:clear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{}"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "bf683d93-c81a-4380-8f30-33c2ff0d393e",
+      "name": "Write Costings Rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"valueInputOption\":\"RAW\",\"data\":[{\"range\":\"Costings!A1\",\"values\":[[\"COSTINGS - LOCKED 27 AUG 2026\",\"\",\"\",\"\",\"\"],[\"High Chai plus Live Dosa Station. Replaces the 30.59 blended model, which was wrong: 30 veg / 32 non-veg is the RESTAURANT three-tier service, not the private event buffet.\",\"\",\"\",\"\",\"\"],[\"\",\"\",\"\",\"\",\"\"],[\"INPUTS\",\"VALUE\",\"\",\"\",\"NOTE\"],[\"Confirmed adults, RSVP Yes\",79,\"\",\"\",\"Guest List live count.\"],[\"Less Jain guest billed a la carte\",1,\"\",\"\",\"Anna 24 Jun: excluded from buffet charges. Needs re-confirming.\"],[\"HIGH CHAI COVERS\",78,\"\",\"\",\"Planning baseline. Final number goes to Anna 2 Sep.\"],[\"Kids on Kids Menu, aged 5-11\",5,\"\",\"\",\"Guest List shows 4. Reconcile before 2 Sep.\"],[\"Toddlers on BYO, under 5\",13,\"\",\"\",\"Not charged. Fruit juice provided free.\"],[\"High Chai rate per head\",38,\"\",\"\",\"Anna 26 Aug. The 30 / 32 rate is restaurant three-tier service and does not apply here.\"],[\"Soft drinks per head\",5,\"\",\"\",\"Adults plus kids aged 5-11.\"],[\"Service charge\",\"12.5%\",\"\",\"\",\"Mandatory. Counts toward the minimum spend.\"],[\"Venue minimum spend\",4000,\"\",\"\",\"Full Garden Marquee 12:00-16:00.\"],[\"\",\"\",\"\",\"\",\"\"],[\"VENUE FOOD AND DRINK\",\"QTY\",\"UNIT GBP\",\"COST GBP\",\"WHAT THE MONEY ACTUALLY BUYS\"],[\"High Chai refill buffet\",78,38,2964,\"Six savouries: Classic Bombay Sandwich, Crispy Bhajia, Vada Pav, Paneer Tikka Roll, Chicken Tikka Roll, Chana Chaat. Six sweets: Jelabi, Double Chocolate Mousse, Chocolate and Orange Tartlets, Blueberry Mini Muffins, Vegan Sultana Scones, Mini Vegan Victoria Sponge Cake. Unlimited masala chai. Replenished up to 3 hours. Flat rate, no veg / non-veg split.\"],[\"Live Dosa Station\",1,700,700,\"Cooked to order in front of guests. Confirmed gluten-free by Anna 26 Aug. Requested window 12:30-14:00. Contents pending: either Dosa, Idli, Uttapam and Medu Vada, or Mini Plain, Cheese and Masala Dosa with Mini Uthappam, Sambar and Coconut Chutney.\"],[\"Special Kids Menu\",5,25,125,\"Margarita pizza, chips, mini paneer rolls, chicken nuggets, malai chicken, cheese and cucumber sandwiches, carrot and cucumber sticks. Plated to named tables. The 10-meal minimum was waived.\"],[\"Jain a la carte\",1,25,25,\"Sev Puri 9.50 plus Paneer Makhani 15.50. No onion, no garlic.\"],[\"Unlimited soft drinks\",84,5,420,\"Coke, Diet Coke, lemonade, orange juice. Unlimited. 79 adults plus 5 kids. Under-5s free.\"],[\"Welcome prosecco\",9,30,270,\"54 glasses at 6 per bottle. Must be served inside the marquee.\"],[\"Beer 330ml\",30,5,150,\"Sol, Sagres, Heineken, Desperados, Cobra. Unfinished bottles transfer to the bar or go home.\"],[\"House wine\",6,25,150,\"Split freely across red, white and rose.\"],[\"SUBTOTAL BEFORE SERVICE\",\"\",\"\",4804,\"\"],[\"Service charge 12.5%\",\"\",\"\",600.5,\"Mandatory. Counts toward the minimum spend.\"],[\"VENUE BILL INCL SERVICE\",\"\",\"\",5404.5,\"\"],[\"Minimum spend\",\"\",\"\",4000,\"\"],[\"OVER MINIMUM\",\"\",\"\",1404.5,\"The minimum spend is a non-issue and has been for weeks.\"],[\"Venue cost per paid head\",\"\",\"\",65.11,\"83 paid heads: 78 High Chai covers plus 5 kids.\"],[\"\",\"\",\"\",\"\",\"\"],[\"NON-VENUE COSTS\",\"\",\"\",\"COST GBP\",\"NOTE\"],[\"Katy Jungmann, one hour sax\",\"\",\"\",390,\"Timing still TBC between 13:00 and 14:30.\"],[\"Rakesh, PA plus 2 wireless mics\",\"\",\"\",250,\"12:00-16:00. Krish brings the DJ decks.\"],[\"NON-VENUE TOTAL\",\"\",\"\",640,\"\"],[\"ALL IN\",\"\",\"\",6044.5,\"Venue plus non-venue.\"],[\"\",\"\",\"\",\"\",\"\"],[\"WHAT CHANGED ON 27 AUG\",\"\",\"\",\"IMPACT GBP\",\"WHY\"],[\"Rate corrected from 30.59 blended to 38 flat\",\"\",\"\",578,\"The 30 / 32 rate is restaurant three-tier service, not the private event buffet. Anna 26 Aug.\"],[\"Covers raised from 74 to 78\",\"\",\"\",152,\"79 confirmed adults less Kala, who is on Jain a la carte.\"],[\"Dosa station switched from FALSE to TRUE\",\"\",\"\",700,\"Reverses the earlier final OUT decision. Now load-bearing for gluten-free coverage and for making High Chai read as a meal.\"],[\"Sharing Set replaced by High Chai\",\"\",\"\",-195,\"38 versus 40.50 per head. Menu format change made 5 days after the two-week lock expired.\"],[\"Butter chicken killed\",\"\",\"\",0,\"Removes the non-veg table list and the separated buffet workstream entirely.\"],[\"Gulab jamun dead\",\"\",\"\",0,\"It belonged to the Sharing Set dessert course.\"],[\"\",\"\",\"\",\"\",\"\"],[\"WARNINGS\",\"\",\"\",\"\",\"\"],[\"Nothing here is binding until Anna reissues the estimate\",\"\",\"\",\"\",\"The venue system still shows Sharing Set, 64 covers, 40.50 per head, total 3928.50.\"],[\"Dashboard tab formulas may point at old Costings cells\",\"\",\"\",\"\",\"This tab was cleared and rewritten with a new layout on 27 Aug. Repoint anything that breaks.\"],[\"Scenario Planner tab is broken\",\"\",\"\",\"\",\"It shows a 4.00 adult menu, a 3059.5 percent service charge and REF errors. Do not read numbers from it.\"]]}]}"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "c3497de6-e017-4e66-ad3f-5304739c454c",
+      "name": "Sticky Note a7c888b4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## Engagement Party Food Lock, 27 Aug 2026\nWrites the FOOD LOCKED 5 SEP tab into the Food Options workbook and rewrites the Costings tab in the main planning sheet. Run manually. Re-running is safe: the tab create swallows the already-exists error, and both writes overwrite in place.",
+        "color": 3,
+        "width": 1180,
+        "height": 200
+      }
+    },
+    {
+      "id": "88863364-423d-4147-8f16-551ef9f1e8c1",
+      "name": "Fix Costings Number Format",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "contentType": "json",
+        "jsonBody": "{\"requests\":[{\"repeatCell\":{\"range\":{\"sheetId\":957485248,\"startRowIndex\":12,\"endRowIndex\":13,\"startColumnIndex\":1,\"endColumnIndex\":2},\"cell\":{\"userEnteredFormat\":{\"numberFormat\":{\"type\":\"CURRENCY\",\"pattern\":\"£#,##0.00\"}}},\"fields\":\"userEnteredFormat.numberFormat\"}}]}",
+        "method": "POST",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Run Food Lock": {
+      "main": [
+        [
+          {
+            "node": "Create FOOD LOCKED Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create FOOD LOCKED Tab": {
+      "main": [
+        [
+          {
+            "node": "Write FOOD LOCKED Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write FOOD LOCKED Rows": {
+      "main": [
+        [
+          {
+            "node": "Clear Costings Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Costings Tab": {
+      "main": [
+        [
+          {
+            "node": "Write Costings Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Costings Rows": {
+      "main": [
+        [
+          {
+            "node": "Fix Costings Number Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

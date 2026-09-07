@@ -1,0 +1,1343 @@
+{
+  "name": "Hunter | Mindmaker OS | Job Sweep",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Mon + Thu 8AM UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        304
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1,3"
+            }
+          ]
+        }
+      },
+      "id": "b85d99fb-5dc2-48b5-8715-9282a301eb25"
+    },
+    {
+      "name": "Build Search URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "jsCode": "const SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/hunter_search_urls';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst qp = { toString: () => 'select=url%2Cpriority%2Clabel%2Clocation&active=eq.true&order=priority.asc%2Clabel.asc' };\nlet rows = [];\ntry {\n  rows = await this.helpers.httpRequest({\n    method: 'GET',\n    url: SUPA_URL + '?' + qp.toString(),\n    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },\n    json: true\n  });\n  if (!Array.isArray(rows)) rows = [];\n} catch (e) {\n  throw new Error('Failed to fetch hunter_search_urls: ' + (e.message || e));\n}\nif (rows.length === 0) {\n  throw new Error('hunter_search_urls returned 0 active rows - check table');\n}\nconst urlConfig = rows.map(r => ({ url: r.url, a: r.priority, l: r.label }));\nreturn [{ json: { searchUrls: rows.map(r => r.url), urlConfig, urlCount: rows.length } }];\n"
+      },
+      "id": "3f70f01f-8d56-4900-941d-1e1c34f52327"
+    },
+    {
+      "name": "Trigger Apify LinkedIn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.linkedin_jobs.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { urls: $json.searchUrls, limit: 25 } }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "484780ae-f6a0-41eb-96b8-53462e574825"
+    },
+    {
+      "name": "Wait 7 Min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        304
+      ],
+      "parameters": {
+        "amount": 420,
+        "unit": "seconds"
+      },
+      "webhookId": "79ac3def-01bd-47b8-814a-5a0e6e93e7be",
+      "id": "bb520261-a6ee-4446-a033-d1b6cb07b549"
+    },
+    {
+      "name": "Check Apify Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        304
+      ],
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $(\"Trigger Apify LinkedIn\").item.json.data.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "GET"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "0ae789e6-4dc8-454a-b026-2868a84ad2dd"
+    },
+    {
+      "name": "Apify Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "apify-status-succeeded",
+              "leftValue": "={{ $json.data.status }}",
+              "rightValue": "SUCCEEDED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3160bc86-cae1-40b0-9a54-fa70cd5e38bf"
+    },
+    {
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        192
+      ],
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items?limit=200",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "f3783114-3700-4314-bd6b-615cb74960c4"
+    },
+    {
+      "name": "Normalize and Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const raw=$input.all();let jobs=[];for(const i of raw){if(Array.isArray(i.json))jobs=jobs.concat(i.json);else if(i.json&&(i.json.title||i.json.companyName))jobs.push(i.json);}\nconst norm=jobs.map(j=>({title:j.title||j.jobTitle||'',company:j.companyName||j.company||j.organization||'',location:j.location||j.jobLocation||(j.locations_derived?j.locations_derived[0]:'')||'',url:j.link||j.url||j.jobUrl||'',salary:j.salaryInfo||j.salary_raw||'',description:(j.descriptionHtml||j.description||j.description_text||'').substring(0,4000),seniority:j.seniority||'',companySize:j.linkedin_org_size||'',companyIndustry:j.linkedin_org_industry||'',id:j.id||String(j.linkedin_id||'')}));\nconst seen=new Set();const uniq=norm.filter(j=>{if(!j.url||seen.has(j.url))return false;seen.add(j.url);return true;});\nconst blocked=['meta','amazon','philip morris','altria','british american tobacco','reynolds american','juul','draftkings','fanduel','caesars','mgm resorts','penn entertainment','bet365','flutter','kindred','integral ad science','doubleverify','moat','comscore nielsen','oracle data cloud','nielsen marketing','adobe analytics attribution','marin software','kenshoo','skai'];const clean=uniq.filter(j=>!blocked.some(b=>j.company.toLowerCase().includes(b)));\nreturn [{json:{allJobs:clean,total:jobs.length,unique:uniq.length,blocked:uniq.length-clean.length,apifyCost:uniq.length*0.001}}];"
+      },
+      "alwaysOutputData": true,
+      "id": "5da06b30-8384-4f16-b357-5e269d8396fe"
+    },
+    {
+      "name": "Dedup Against Seen Roles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const allJobs = $('Normalize and Filter').first().json.allJobs;\nlet seenUrls = new Set();\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/hunter_seen_roles?select=job_url',\n    headers: { 'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}', 'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}' },\n    json: true\n  });\n  if (Array.isArray(resp)) seenUrls = new Set(resp.map(r => r.job_url).filter(Boolean));\n} catch (e) {}\nconst fresh = allJobs.filter(j => !seenUrls.has(j.url));\nif (!fresh.length) return [{ json: { _empty: true, skip: allJobs.length, seenCount: seenUrls.size } }];\nreturn fresh.map(j => ({ json: j }));"
+      },
+      "alwaysOutputData": true,
+      "id": "000e5623-5ecf-49be-92d1-47022307a062"
+    },
+    {
+      "name": "New Roles?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "n1",
+              "leftValue": "={{ $json._empty ? 0 : 1 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "53edfd9d-ed05-47ce-9d72-1ab8a5f8fb62"
+    },
+    {
+      "name": "Load Agent Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        200
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.hunter&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "8e24f957-3856-4ed3-b6f2-6c423acb954d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Build Identity Prepend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const briefArr = $('Load Agent Brief').all().map(i => i.json);\nconst planArr  = $('Load Agent Plan').all().map(i => i.json);\n\nconst briefRaw = briefArr[0];\nconst briefRow = Array.isArray(briefRaw) ? briefRaw[0] : (briefRaw && briefRaw.data ? briefRaw.data[0] : briefRaw);\nconst brief = (briefRow && briefRow.brief_content) || '';\n\nconst voice = 'Write as Krish Raja: direct, specific, no hedging. No em dashes. No filler adjectives. Concrete artifacts and numbers over abstractions.';\n\nconst planRaw = planArr[0];\nconst plan = Array.isArray(planRaw) ? (planRaw[0] || {}) : (planRaw && planRaw.data ? (planRaw.data[0] || {}) : (planRaw || {}));\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase   ? 'Phase: ' + plan.current_phase + '\\n' : '') +\n  (plan.objective       ? 'Objective: ' + plan.objective + '\\n' : '') +\n  (plan.next_milestone  ? 'Next milestone: ' + plan.next_milestone + '\\n' : '') +\n  (plan.blockers        ? 'Blockers: ' + plan.blockers + '\\n' : '') +\n  (plan.doc_link        ? 'Plan doc: ' + plan.doc_link + '\\n' : '') +\n  (plan.status          ? 'Status: ' + plan.status + '\\n' : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageMs = Date.now() - new Date(plan.last_rendered_at).getTime();\n  if (isNaN(ageMs) || ageMs > 72 * 3600 * 1000) plan_stale = true;\n}\n\nlet jobs = [];\ntry {\n  jobs = $('Dedup Against Seen Roles').all().map(i => i.json).filter(j => j && !j._empty);\n} catch (e) { jobs = []; }\n\nif (!jobs.length) {\n  return [{ json: { identity_prepend, plan_stale } }];\n}\nreturn jobs.map(j => ({ json: { ...j, identity_prepend, plan_stale } }));\n"
+      },
+      "executeOnce": true,
+      "id": "8475c972-157d-42c5-bf05-2238758ba903"
+    },
+    {
+      "name": "No New TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        64
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "6773796504"
+            },
+            {
+              "name": "text",
+              "value": "=Hunter: All roles already seen. No scoring needed."
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "9a979d6a-0c9f-4666-bf51-8af719ac78c3",
+      "disabled": true
+    },
+    {
+      "name": "Wait 3 More Min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        528
+      ],
+      "parameters": {
+        "amount": 180,
+        "unit": "seconds"
+      },
+      "webhookId": "cabe4d69-74b7-4a1f-a8f4-d33274dc7829",
+      "id": "75cd7bf3-b335-485a-87c6-9bc2c3e796cd"
+    },
+    {
+      "name": "Check Status Retry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        528
+      ],
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $(\"Trigger Apify LinkedIn\").item.json.data.id }}",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "f9238cd6-ed45-4ec0-99d1-8b554b27d8a2"
+    },
+    {
+      "name": "Retry OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        528
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "apify-status-succeeded-retry",
+              "leftValue": "={{ $json.data.status }}",
+              "rightValue": "SUCCEEDED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0bdb1fbd-7f0a-4f18-8480-16658e85a7d0"
+    },
+    {
+      "name": "Error Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        720
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "6773796504"
+            },
+            {
+              "name": "text",
+              "value": "=Hunter Error: Apify timeout after 5 min. Check Apify dashboard."
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "1925f8cd-68ca-4c5d-9c37-02e0d53e432d",
+      "disabled": true
+    },
+    {
+      "name": "Fetch Apify Registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        400
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/apify_actor_registry",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "task_category,actor_slug,required_input_shape"
+            },
+            {
+              "name": "is_primary",
+              "value": "eq.true"
+            },
+            {
+              "name": "killed",
+              "value": "eq.false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "90dc0d53-7e21-4c9f-ad10-90d5bbff25a6",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Aggregate Apify Registry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r && r.actor_slug);\nconst apifyRegistry = {};\nfor (const r of rows) apifyRegistry[r.task_category] = r.actor_slug;\nreturn [{ json: { apifyRegistry } }];\n"
+      },
+      "id": "e78af4bb-9748-4da3-a870-9891e7e5f5f5"
+    },
+    {
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        504
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "8399f5f0-eb23-4248-93b8-0d23bafa1a26"
+    },
+    {
+      "name": "Load Agent Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        360
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.hunter&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "500497c9-9ad8-4985-b8d1-ae7923866e07",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Score with Claude",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        2640,
+        304
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Score this job for Krish Raja.\n\nTITLE: {{ $json.title }}\nCOMPANY: {{ $json.company }}\nLOCATION: {{ $json.location }}\nSALARY: {{ $json.salary }}\nSIZE: {{ $json.companySize }}\nINDUSTRY: {{ $json.companyIndustry }}\nSENIORITY: {{ $json.seniority }}\nDESCRIPTION:\n{{ $json.description }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.identity_prepend }}\n\nYou are Hunter, a strict job scoring agent for Krish Raja. Most roles score 5-7. Only exceptional matches score 9-10.\n\nPROFILE: 16yr tech exec. Microsoft, Nine ($9M-$61M), Nexxen ($4M-$38M), Captify ($0-$12M ARR MD APAC). Technical strategist: codes AND closes deals. Harvard exec programs. Brooklyn NYC. Domains: AI/ML, media, adtech, martech, data, SaaS.\n\nAUTO-REJECT (one hit = score 0): 1.Comp<$150K 2.IC/Manager seniority 3.Pure quota no strategy 4.Domain mismatch(clinical/manufacturing/gaming/payments) 5.CS/Eng degree REQUIRED 6.Daily coding primary 7.Pre-seed unfunded 8.Archetype B but title=Engineering/ML/Infra\n\nARCHETYPE: A=AI-native co building GTM. B=Non-AI co hiring FIRST commercial AI exec(COMMERCIAL not technical)\n\nRUBRIC (6 dims, 0/1/2 each, map 12->10): Comp(2=$200K+,1=$150-200K,0=<$150K) Seniority(2=VP+,1=Dir,0=Mgr) CompanyType-A(2=funded AI B+,1=adjacent,0=legacy) CompanyType-B(2=non-AI with AI revenue mandate,1=adjacent,0=legacy) RoleFit(2=builds GTM or IS the AI lead,1=GTM+AI component,0=sales only) Domain(2=data/AI/media/adtech/SaaS,1=adjacent,0=unrelated) BONUS=+1 if all converge\n\nINSTANT 10: All dims converge | Non-AI hiring FIRST commercial AI exec | Deep domain match\nGEO: NYC/remote=OK. London=10/10 only. Other=reject unless remote.\n\nFOR 9-10: Write why_this_role (2-3 sentences, use proof): Captify $0-$12M ARR team 18 EBITDA 22% | Nine $9M-$61M 70+ products | Nexxen $4M-$38M | Fox $600K/yr 4mo close | Mindmaker OS v3 multi-agent system\n\nRespond ONLY with JSON matching the schema."
+            }
+          ]
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "e76f99f9-c53c-4139-ac0b-4eaa36bc1062"
+    },
+    {
+      "name": "Claude Sonnet",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        2640,
+        512
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-6",
+          "cachedResultName": "Claude Sonnet 4"
+        },
+        "options": {
+          "maxTokensToSample": 2048
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "dd047e7e-0c32-43d2-98d3-25f62a42781c"
+    },
+    {
+      "name": "Score Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        2800,
+        512
+      ],
+      "parameters": {
+        "jsonSchemaExample": "{\"score\":9,\"archetype\":\"A\",\"comp_estimate\":\"$250K+\",\"stage\":\"Series D\",\"dimension_scores\":{\"compensation\":2,\"seniority\":2,\"company_type\":2,\"role_fit\":2,\"domain_match\":1},\"auto_rejected\":false,\"rejection_reason\":null,\"why_this_role\":\"Proof point.\",\"cv_base\":\"CV-A\"}"
+      },
+      "id": "dfa1902b-8fc0-415b-bd0e-f45a52673911"
+    },
+    {
+      "name": "Build Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        304
+      ],
+      "parameters": {
+        "jsCode": "const items=$input.all();\nlet stats;\ntry { stats=$('Normalize and Filter').first().json; } catch(e) { stats={total:0,unique:0,blocked:0,apifyCost:0}; }\nif(!stats.apifyCost && stats.apifyCost!==0) stats.apifyCost=0;\nif(!stats.total) stats.total=items.length;\nif(!stats.unique) stats.unique=items.length;\nif(!stats.blocked && stats.blocked!==0) stats.blocked=0;\nstats.total=Number(stats.total||0);stats.unique=Number(stats.unique||0);stats.blocked=Number(stats.blocked||0);stats.apifyCost=Number(stats.apifyCost||0);\nlet inputs;\ntry { inputs=$('Dedup Against Seen Roles').all(); } catch(e) { inputs=$('Normalize and Filter').all(); }\nif(!inputs||!inputs.length) inputs=items;\nconst scored=items.map((it,i)=>{\n  const s=it.json.output||it.json;\n  const j=inputs[i]?inputs[i].json:{};\n  return {\n    title:j.title||s.title||'',company:j.company||s.company||'',url:j.url||'',location:j.location||'',\n    job_id:j.id||'',score:s.score||0,archetype:s.archetype||'A',\n    comp_estimate:s.comp_estimate||'unclear',stage:s.stage||'',\n    why_this_role:s.why_this_role||'',cv_base:s.cv_base||'CV-A',\n    auto_rejected:s.auto_rejected||false,rejection_reason:s.rejection_reason||null\n  };\n});\nconst qual=scored.filter(r=>r.score>=9&&!r.auto_rejected);\nconst near=scored.filter(r=>r.score>=7&&r.score<9&&!r.auto_rejected).sort((a,b)=>b.score-a.score).slice(0,3);\nconst cc=scored.length*0.012;const tc=(stats.apifyCost||0)+cc;\nlet msg='';\nif(qual.length){\n  const rb=qual.map(r=>'ROLE: '+r.title+' at '+r.company+'\\nScore: '+r.score+'/10 | Archetype: '+r.archetype+' | Comp: '+r.comp_estimate+' | Stage: '+r.stage+'\\nWhy '+r.score+'/10: '+r.why_this_role+'\\nURL: '+r.url+'\\nCV base: '+r.cv_base).join('\\n\\n---\\n\\n');\n  msg='<b>Hunter Sweep</b>\\n\\n<b>'+qual.length+' qualifying</b>\\n'+stats.total+' scraped | '+stats.unique+' unique | '+scored.length+' scored | '+qual.length+' pipeline (9+)\\n\\n'+rb+'\\n\\nTasks created.\\n\\nCost: $'+Number(tc||0).toFixed(3)+' (Apify $'+Number(stats.apifyCost||0).toFixed(3)+' + Claude $'+Number(cc||0).toFixed(3)+')';\n} else {\n  msg='<b>Hunter Sweep</b>\\n\\n'+stats.total+' scraped | '+stats.unique+' unique | '+scored.length+' scored | 0 pipeline (9+)\\n\\nNo roles cleared 9/10.';\n  if(near.length) msg+='\\n\\nNear misses:\\n'+near.map(r=>'- '+r.title+' at '+r.company+' ('+r.score+'/10)').join('\\n');\n  msg+='\\n\\nCost: $'+Number(tc||0).toFixed(3)+' (Apify $'+Number(stats.apifyCost||0).toFixed(3)+' + Claude $'+Number(cc||0).toFixed(3)+')';\n}\nconst si=scored.map(r=>({job_id:r.job_id||r.url,job_url:r.url,title:r.title,company:r.company,archetype:r.archetype,score:r.score,auto_rejected:r.auto_rejected,rejection_reason:r.rejection_reason}));\nconst ti=qual.map(r=>({agent:'hunter',workstream:'high-score-role',title:r.title+' at '+r.company,description:'Score: '+r.score+'/10 | Archetype: '+r.archetype+' | Comp: '+r.comp_estimate+'\\nWhy: '+r.why_this_role+'\\nURL: '+r.url+'\\nCV: '+r.cv_base,status:'waiting',priority:'pri-1'}));\nreturn[{json:{telegramMsg:msg,seenInserts:si,taskInserts:ti,hasQ:qual.length>0,cost:tc,audit:JSON.stringify({scraped:stats.total,unique:stats.unique,blocked:stats.blocked,scored:scored.length,qualifying:qual.length,cost:tc})}}];"
+      },
+      "id": "e5dda6d5-83e7-4f83-b4ba-1eccd7a553ec"
+    },
+    {
+      "name": "Insert Seen Roles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3120,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/hunter_seen_roles",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.seenInserts }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "alwaysOutputData": true,
+      "id": "fcf6bd2d-8b12-42a2-849d-889f51870796",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Any 9-10?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "q1",
+              "leftValue": "={{ $(\"Build Output\").item.json.hasQ }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "99c6ec39-fce5-4aec-8238-d5e40532db94"
+    },
+    {
+      "name": "Insert Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3600,
+        208
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $(\"Build Output\").item.json.taskInserts }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "3ed3b69f-52eb-43c2-9573-025f92a77b90",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3840,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "6773796504"
+            },
+            {
+              "name": "text",
+              "value": "={{ $(\"Build Output\").item.json.telegramMsg }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "d4029180-0352-4b6b-9ba8-675f9e515c97",
+      "disabled": true
+    },
+    {
+      "name": "Score with Gemini (Failover)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        2992,
+        480
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Score this job for Krish Raja.\n\nTITLE: {{ $json.title }}\nCOMPANY: {{ $json.company }}\nLOCATION: {{ $json.location }}\nSALARY: {{ $json.salary }}\nSIZE: {{ $json.companySize }}\nINDUSTRY: {{ $json.companyIndustry }}\nSENIORITY: {{ $json.seniority }}\nDESCRIPTION:\n{{ $json.description }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.identity_prepend }}\n\nYou are Hunter, a strict job scoring agent for Krish Raja. Most roles score 5-7. Only exceptional matches score 9-10.\n\nPROFILE: 16yr tech exec. Microsoft, Nine ($9M-$61M), Nexxen ($4M-$38M), Captify ($0-$12M ARR MD APAC). Technical strategist: codes AND closes deals. Harvard exec programs. Brooklyn NYC. Domains: AI/ML, media, adtech, martech, data, SaaS.\n\nAUTO-REJECT (one hit = score 0): 1.Comp<$150K 2.IC/Manager seniority 3.Pure quota no strategy 4.Domain mismatch(clinical/manufacturing/gaming/payments) 5.CS/Eng degree REQUIRED 6.Daily coding primary 7.Pre-seed unfunded 8.Archetype B but title=Engineering/ML/Infra\n\nARCHETYPE: A=AI-native co building GTM. B=Non-AI co hiring FIRST commercial AI exec(COMMERCIAL not technical)\n\nRUBRIC (6 dims, 0/1/2 each, map 12->10): Comp(2=$200K+,1=$150-200K,0=<$150K) Seniority(2=VP+,1=Dir,0=Mgr) CompanyType-A(2=funded AI B+,1=adjacent,0=legacy) CompanyType-B(2=non-AI with AI revenue mandate,1=adjacent,0=legacy) RoleFit(2=builds GTM or IS the AI lead,1=GTM+AI component,0=sales only) Domain(2=data/AI/media/adtech/SaaS,1=adjacent,0=unrelated) BONUS=+1 if all converge\n\nINSTANT 10: All dims converge | Non-AI hiring FIRST commercial AI exec | Deep domain match\nGEO: NYC/remote=OK. London=10/10 only. Other=reject unless remote.\n\nFOR 9-10: Write why_this_role (2-3 sentences, use proof): Captify $0-$12M ARR team 18 EBITDA 22% | Nine $9M-$61M 70+ products | Nexxen $4M-$38M | Fox $600K/yr 4mo close | Mindmaker OS v3 multi-agent system\n\nRespond ONLY with JSON matching the schema."
+            }
+          ]
+        }
+      },
+      "id": "4ca284ed-d2c1-4d63-984b-5df2ca5f2d58"
+    },
+    {
+      "name": "Gemini Failover",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        688
+      ],
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {
+          "maxOutputTokens": 2048
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "a516bf5b-53a0-4a7d-8bae-a5ba780daac4"
+    },
+    {
+      "name": "Gemini Score Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        2960,
+        688
+      ],
+      "parameters": {
+        "jsonSchemaExample": "{\"score\":9,\"archetype\":\"A\",\"comp_estimate\":\"$250K+\",\"stage\":\"Series D\",\"dimension_scores\":{\"compensation\":2,\"seniority\":2,\"company_type\":2,\"role_fit\":2,\"domain_match\":1},\"auto_rejected\":false,\"rejection_reason\":null,\"why_this_role\":\"Proof point.\",\"cv_base\":\"CV-A\"}"
+      },
+      "id": "863d4479-94eb-4e90-bca4-3bc9d5dab0a8"
+    },
+    {
+      "name": "Build Audit (hunter Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3880,
+        304
+      ],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst scanned = d.urls_scanned || d.sources || 0;\nconst matches = d.matches || d.qualified || 0;\nconst top = d.top_match || null;\nconst topStr = top ? '. Top: ' + (top.title || '') + ' at ' + (top.company || '') : '';\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'hunter',\n      event_type: 'job-sweep-complete',\n      display_message: 'Hunter job sweep: ' + scanned + ' URLs scanned, ' + matches + ' matches above threshold' + topStr + '.',\n      details: JSON.stringify({ urls_scanned: scanned, matches, top_match: top })\n    }\n  }\n}];"
+      },
+      "id": "64e08c3c-d2fb-405a-99d7-bd7751930287"
+    },
+    {
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4080,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "retryOnFail": true,
+      "id": "80eaa6fd-1a68-4f60-8faa-d93d70cfd233",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4320,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_id",
+              "value": "z2XxEJbKcz8YuEFq"
+            },
+            {
+              "name": "workflow_name",
+              "value": "Hunter v2 - Full Job Sweep"
+            },
+            {
+              "name": "ran_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "cost_estimate_usd",
+              "value": "={{ $(\"Build Output\").item.json.cost }}"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "b4234c43-4b69-4b45-8fd3-4717d382286e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Mon + Thu 8AM UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Search URLs": {
+      "main": [
+        [
+          {
+            "node": "Trigger Apify LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Apify LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Wait 7 Min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 7 Min": {
+      "main": [
+        [
+          {
+            "node": "Check Apify Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Apify Status": {
+      "main": [
+        [
+          {
+            "node": "Apify Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Done?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 3 More Min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Results": {
+      "main": [
+        [
+          {
+            "node": "Normalize and Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize and Filter": {
+      "main": [
+        [
+          {
+            "node": "Dedup Against Seen Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Against Seen Roles": {
+      "main": [
+        [
+          {
+            "node": "New Roles?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Roles?": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New TG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Score with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 More Min": {
+      "main": [
+        [
+          {
+            "node": "Check Status Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status Retry": {
+      "main": [
+        [
+          {
+            "node": "Retry OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry OK?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Apify Registry": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score with Claude": {
+      "main": [
+        [
+          {
+            "node": "Build Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Score with Gemini (Failover)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Score with Claude",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Score with Claude",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Output": {
+      "main": [
+        [
+          {
+            "node": "Insert Seen Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Seen Roles": {
+      "main": [
+        [
+          {
+            "node": "Any 9-10?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any 9-10?": {
+      "main": [
+        [
+          {
+            "node": "Insert Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Tasks": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Build Audit (hunter Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score with Gemini (Failover)": {
+      "main": [
+        [
+          {
+            "node": "Build Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Failover": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Score with Gemini (Failover)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Score Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Score with Gemini (Failover)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (hunter Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Apify Registry": {
+      "main": [
+        [
+          {
+            "node": "Build Search URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Mon + Thu 8AM UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

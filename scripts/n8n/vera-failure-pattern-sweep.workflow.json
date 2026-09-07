@@ -1,5 +1,6 @@
 {
-  "name": "Vera | mind/make OS | Failure Pattern Sweep",
+  "name": "Vera | Mindmaker OS | Failure Pattern Sweep",
+  "active": true,
   "nodes": [
     {
       "id": "871d336b-9475-49d2-9cad-2e9bd233b12f",
@@ -31,9 +32,9 @@
         304
       ],
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase service role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       },
       "parameters": {
@@ -55,7 +56,9 @@
               "value": "application/json"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       }
     },
     {
@@ -121,7 +124,9 @@
         "chatId": "6773796504",
         "additionalFields": {},
         "text": "=Vera failure pattern sweep\n{{ $('Parse').first().json.count }} new correction proposal(s) in the Org tab pending approval.\n\n{{ $('Parse').first().json.corrections.map(c => '- ' + c.workflow_name + ' (' + c.failure_count + ' failures, agent: ' + c.agent + ')').join('\\n') }}\n\nReview: https://control-center-mindmaker.vercel.app/org"
-      }
+      },
+      "webhookId": "b576d15d-2a4b-4b64-ac12-abd39e54c8af",
+      "disabled": true
     },
     {
       "id": "9d76d8a4-c927-49a5-ac3e-600f615dfd15",
@@ -193,6 +198,17 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveDataErrorExecution": "all"
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Schedule (Sun 07:00 UTC)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }

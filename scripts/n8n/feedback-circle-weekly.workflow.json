@@ -1,0 +1,304 @@
+{
+  "name": "Feedback | Circle | Weekly",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Every Monday 8AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weekday": 1,
+              "atHour": 8,
+              "atMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "01c2a4a4-cc45-437c-9c97-65b46f24d358"
+    },
+    {
+      "name": "On-Demand Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        380
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "product-feedback-fractionl-circle",
+        "responseMode": "onReceived"
+      },
+      "webhookId": "pd-fractionl-circle",
+      "id": "c940ad93-4c07-42d3-b808-081ab5878d45"
+    },
+    {
+      "name": "Get User Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        290
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://ksyuwacuigshvcyptlhe.supabase.co/rest/v1/user_profiles?select=id,created_at&limit=2000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials['Supabase Service Role'].value }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $credentials['Supabase Service Role'].value }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "816dd856-a1da-42d0-b005-abac3d170cc7"
+    },
+    {
+      "name": "Get GitHub Issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        470
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/krishanraja/fractionl-circle/issues?state=open&per_page=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{GITHUB_TOKEN}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e95e5270-b2a2-4676-bb74-55fa4672a5e8"
+    },
+    {
+      "name": "Get Stripe Revenue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        650
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.stripe.com/v1/charges?limit=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{STRIPE_RESTRICTED_KEY}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "fda2720c-996e-41bb-ac77-0f32bcdbc66c"
+    },
+    {
+      "name": "Build Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        470
+      ],
+      "parameters": {
+        "jsCode": "// Get user data - handle both array response and error response\nconst userData = $('Get User Data').all()[0]?.json;\nlet userArr = [];\nlet userError = null;\n\nif (Array.isArray(userData)) {\n  userArr = userData;\n} else if (userData && userData.code) {\n  userError = userData.message || 'Supabase query error';\n} else {\n  // Handle other formats\n  userArr = [];\n}\n\nconst total = userArr.length;\nconst now = new Date();\nconst weekAgo = new Date(now - 7*24*60*60*1000);\nconst monthAgo = new Date(now - 30*24*60*60*1000);\nconst newThisWeek = userArr.filter(u => u.created_at && new Date(u.created_at) > weekAgo).length;\nconst newThisMonth = userArr.filter(u => u.created_at && new Date(u.created_at) > monthAgo).length;\n\n// GitHub issues\nlet ghIssues = [];\nlet ghError = null;\ntry {\n  const ghData = $('Get GitHub Issues').all()[0]?.json;\n  if (Array.isArray(ghData)) {\n    ghIssues = ghData.slice(0, 5);\n  } else if (ghData && ghData.message) {\n    ghError = ghData.message;\n  }\n} catch(e) {\n  ghError = 'GitHub query failed';\n}\n\n// Stripe revenue\nlet stripeRevenue = null;\nlet stripeError = null;\ntry {\n  const stripeData = $('Get Stripe Revenue').all()[0]?.json;\n  if (stripeData && stripeData.data) {\n    const charges = stripeData.data;\n    const mtd = charges\n      .filter(c => c.status === 'succeeded' && new Date(c.created * 1000) > monthAgo)\n      .reduce((sum, c) => sum + c.amount, 0) / 100;\n    stripeRevenue = mtd;\n  } else if (stripeData && stripeData.error) {\n    stripeError = stripeData.error.message;\n  }\n} catch(e) {\n  stripeError = 'Stripe query failed';\n}\n\n// Build message (plain text, no Markdown to avoid JSON issues)\nlet msg = `⭕ Fractionl Circle: Weekly digest\\n`;\nmsg += `Date: ${now.toISOString().split('T')[0]}\\n\\n`;\n\nif (userError) {\n  msg += `Users: ERROR - ${userError}\\n`;\n} else {\n  msg += `Users: ${total} total | ${newThisWeek} new this week | ${newThisMonth} new this month\\n`;\n}\n\nif (stripeRevenue !== null) {\n  msg += `Revenue MTD: $$${stripeRevenue.toFixed(2)}\\n`;\n} else if (stripeError) {\n  msg += `Revenue: ERROR - ${stripeError}\\n`;\n} else {\n  msg += `Revenue: No Stripe key configured\\n`;\n}\n\nif (ghIssues.length > 0) {\n  msg += `\\nOpen GitHub Issues (${ghIssues.length}): \\n`;\n  ghIssues.forEach(i => {\n    msg += `- #${i.number}: ${i.title}\\n`;\n  });\n} else if (ghError) {\n  msg += `GitHub Issues: ERROR - ${ghError}\\n`;\n} else {\n  msg += `GitHub Issues: None open (or no repo)\\n`;\n}\n\nmsg += `\\nNext: Agatha to review + feed to Product Agent. No changes without approval.`;\n\n// Build Telegram payload directly to avoid JSON template issues\nconst telegramPayload = {\n  chat_id: \"6773796504\",\n  text: msg,\n  parse_mode: \"Markdown\"\n};\n\n// Structured output for Product Agent to consume\nconst structured = {\n  app: \"Fractionl Circle\",\n  date: now.toISOString().split('T')[0],\n  users: { total, newThisWeek, newThisMonth },\n  revenue_mtd: stripeRevenue,\n  open_issues: ghIssues.map(i => ({ number: i.number, title: i.title, labels: (i.labels||[]).map(l=>l.name) })),\n  errors: { user: userError, github: ghError, stripe: stripeError },\n  agatha_review_required: true\n};\n\nreturn [{ json: { telegramPayload, structured } }];"
+      },
+      "id": "6b854138-4a7b-4476-a0d6-d8cbaaca3010"
+    },
+    {
+      "name": "Telegram to Agatha",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        470
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.telegramPayload }}"
+      },
+      "id": "44c711d9-69c4-4f60-9cf9-e93d2561df20",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// audit-fix 2026-05-19: pull Supabase service_role from bound credential\nconst __supa = await this.getCredentials('supabaseApi');\nconst __SUPABASE_KEY = (__supa && __supa.serviceRole) || '';\nif (!__SUPABASE_KEY) throw new Error('Supabase service_role credential not bound');\n// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': __SUPABASE_KEY,\n    'Authorization': `Bearer ${__SUPABASE_KEY}`,\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        570
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        }
+      },
+      "id": "be9bb934-2ccd-4bc4-99cb-9d5f21b9f182"
+    }
+  ],
+  "connections": {
+    "Every Monday 8AM": {
+      "main": [
+        [
+          {
+            "node": "Get User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On-Demand Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Data": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Issues": {
+      "main": [
+        [
+          {
+            "node": "Get Stripe Revenue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stripe Revenue": {
+      "main": [
+        [
+          {
+            "node": "Build Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Digest": {
+      "main": [
+        [
+          {
+            "node": "Telegram to Agatha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram to Agatha": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Every Monday 8AM": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

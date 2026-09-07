@@ -1,0 +1,405 @@
+{
+  "name": "Agatha | Mindmaker OS | Portfolio Pipeline Analytics",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Daily 6AM UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "55538073-e1a3-434c-880e-e6e3fec34f44"
+    },
+    {
+      "name": "Query Pipeline Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        250,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "venture,workstream,status,created,krish_notes,tier,icp_score"
+            },
+            {
+              "name": "workstream",
+              "value": "in.(beta_cohort,podcast_booking,advisory_sales,nurture)"
+            },
+            {
+              "name": "created",
+              "value": "=gte.{{ new Date(Date.now() - 7*86400000).toISOString() }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "7df24c28-00ec-4dd1-8ab7-3ae12c797505",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Query Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        250,
+        400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "signal_score,signal_type,venture,created_at"
+            },
+            {
+              "name": "signal_type",
+              "value": "eq.pipeline_tier3"
+            },
+            {
+              "name": "created_at",
+              "value": "=gte.{{ new Date(Date.now() - 7*86400000).toISOString() }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "a983fa83-406c-4ab4-a9ba-83e8bb97f1a7",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Aggregate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst allItems = $input.all();\nconst tasks = [];\nconst signals = [];\n\nfor (const item of allItems) {\n  const body = item.json.body || item.json;\n  if (Array.isArray(body)) {\n    for (const row of body) {\n      if (row.workstream) tasks.push(row);\n      else if (row.signal_score !== undefined) signals.push(row);\n    }\n  }\n}\n\n// Use structured tier column now (not regex on krish_notes)\nconst tier1 = tasks.filter(t => t.tier === 1).length;\nconst tier2 = tasks.filter(t => t.tier === 2).length;\nconst approved = tasks.filter(t => ['in_progress','done'].includes(t.status)).length;\nconst total_inbound = tasks.length + signals.length;\nconst eligible = tier1 + tier2;\nconst approval_rate = eligible > 0 ? Math.round((approved / eligible) * 100) : 0;\n\nconst by_track = {};\nfor (const t of tasks) {\n  const v = t.venture || 'unknown';\n  by_track[v] = (by_track[v] || 0) + 1;\n}\n\nconst metrics = [\n  { id: 'pipeline_inbound_7d', label: 'Pipeline (7d)', value: total_inbound },\n  { id: 'pipeline_tier1', label: 'Tier 1 Leads', value: tier1 },\n  { id: 'pipeline_approved', label: 'Approved (7d)', value: approved, progress_pct: approval_rate },\n  { id: 'pipeline_by_track', label: 'By Track', value: JSON.stringify(by_track) }\n];\n\nreturn [{ json: { metrics, tier1, tier2, approved, total_inbound, approval_rate } }];\n"
+      },
+      "id": "6dc75f28-ce27-4664-9ccb-f2081b35f824"
+    },
+    {
+      "name": "Fetch home_intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.current"
+            },
+            {
+              "name": "select",
+              "value": "metrics"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "98a0348d-0cb8-4178-b231-c615d753edbd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Merge and Write Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst items = $input.all();\nconst hiRow = items.find(i => i.json.body || (Array.isArray(i.json) && i.json[0]?.metrics));\nconst metricsItem = items.find(i => i.json.metrics);\n\nlet existingMetrics = [];\ntry {\n  const hiBody = hiRow?.json?.body || hiRow?.json || [];\n  const hiData = Array.isArray(hiBody) ? hiBody[0] : hiBody;\n  existingMetrics = Array.isArray(hiData?.metrics) ? hiData.metrics : [];\n} catch(e) { existingMetrics = []; }\n\nconst newMetrics = metricsItem?.json?.metrics || [];\n\n// Upsert new metrics into existing array\nfor (const nm of newMetrics) {\n  const idx = existingMetrics.findIndex(m => m.id === nm.id);\n  if (idx >= 0) existingMetrics[idx] = nm;\n  else existingMetrics.push(nm);\n}\n\nreturn [{ json: { merged_metrics: existingMetrics, summary: metricsItem?.json || {} } }];\n"
+      },
+      "id": "69da824c-0c66-4be9-ad45-a7986c749c37"
+    },
+    {
+      "name": "Update home_intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.current"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ metrics: $json.merged_metrics, updated_at: new Date().toISOString() }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "b4750299-5251-4e6e-8b99-e3e4fe2ed843",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1500,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ actor: 'agatha', event_type: 'pipeline_analytics_refreshed', target: 'home_intelligence', display_message: 'Pipeline analytics refreshed: ' + $json.summary.total_inbound + ' inbound (7d), ' + $json.summary.tier1 + ' Tier 1, ' + $json.summary.approved + ' approved.', details: JSON.stringify($json.summary) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "4bc5e8ce-cbc6-480c-8d6f-315ff7b43164",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 6AM UTC": {
+      "main": [
+        [
+          {
+            "node": "Query Pipeline Tasks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pipeline Tasks": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Signals": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Fetch home_intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch home_intelligence": {
+      "main": [
+        [
+          {
+            "node": "Merge and Write Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge and Write Metrics": {
+      "main": [
+        [
+          {
+            "node": "Update home_intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update home_intelligence": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120,
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Daily 6AM UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

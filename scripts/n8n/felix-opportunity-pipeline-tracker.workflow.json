@@ -1,0 +1,1178 @@
+{
+  "name": "Felix | Mindmaker OS | Opportunity Pipeline Tracker",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        200,
+        400
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 15 * * 1-5"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * 5"
+            }
+          ]
+        }
+      },
+      "id": "5372276f-e935-47d4-a7b4-f352869f1a96"
+    },
+    {
+      "name": "Route Daily Vs Audit",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        400
+      ],
+      "parameters": {
+        "mode": "expression",
+        "output": "={{ $now.weekday === 5 && $now.hour >= 16 ? 1 : 0 }}",
+        "numberOutputs": 2
+      },
+      "id": "23e9e625-8b65-4d6a-a191-f25ab8811d81"
+    },
+    {
+      "name": "Read Brief + Voice + Pricing Floors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "key",
+              "value": "in.(brief,voice,felix_pricing_floors)"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "253516e1-6e30-4bac-8cff-326e663155bd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Product Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        340
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_health",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "14"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "37eb66b5-6748-4873-b877-0e330c629ccb",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Zara Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "routed_to",
+              "value": "eq.felix"
+            },
+            {
+              "name": "score",
+              "value": "gte.7"
+            },
+            {
+              "name": "order",
+              "value": "surfaced_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "50"
+            },
+            {
+              "name": "surfaced_at",
+              "value": "={{ \"gte.\" + new Date(Date.now() - 7*24*60*60*1000).toISOString() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "ecc7e800-9907-4353-8473-6500c8036039",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        620
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "agent",
+              "value": "eq.felix"
+            },
+            {
+              "name": "status",
+              "value": "neq.completed"
+            },
+            {
+              "name": "order",
+              "value": "created.desc"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "ea4acd42-053d-4760-bf5c-8fee57c4f52a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Contacted Persons",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        760
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "person_email,contacted_at"
+            },
+            {
+              "name": "contacted_at",
+              "value": "={{ \"gte.\" + new Date(Date.now() - 7*24*60*60*1000).toISOString() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "alwaysOutputData": true,
+      "id": "3b57a67c-deb8-465c-903b-18574bd06101",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Build Pipeline + Dedup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "let signals = [];\ntry { signals = $('Read Zara Signals').all().map(i => i.json); } catch(e) { signals = []; }\n\nlet tasks = [];\ntry { tasks = $('Read Tasks').all().map(i => i.json); } catch(e) { tasks = []; }\n\nlet contactedRaw = [];\ntry { contactedRaw = $('Read Contacted Persons').all().map(i => i.json); } catch(e) { contactedRaw = []; }\n\nlet health = [];\ntry { health = $('Read Product Health').all().map(i => i.json); } catch(e) { health = []; }\n\nlet config = [];\ntry { config = $('Read Brief + Voice + Pricing Floors').all().map(i => i.json); } catch(e) { config = []; }\n\nconst pricingFloors = (config.find(c => c && c.key === 'felix_pricing_floors') || {}).value || null;\n\nconst contactedEmails = new Set(contactedRaw.map(r => (r && r.person_email ? String(r.person_email).toLowerCase() : null)).filter(Boolean));\n\nconst now = new Date();\nconst staleLimit = new Date(now.getTime() - (48 * 60 * 60 * 1000));\n\nconst warmPathsNew = [];\nconst warmPathsStale = [];\nconst warmPathsForWrite = [];\nconst contactedForWrite = [];\nlet skippedDedup = 0;\n\nfor (const s of signals) {\n  if (!s) continue;\n  const email = s.person_email ? String(s.person_email).toLowerCase() : null;\n  if (email && contactedEmails.has(email)) { skippedDedup++; continue; }\n  const surfaced = new Date(s.surfaced_at || s.created_at || now.toISOString());\n  const summary = s.summary || s.description || (s.company_name ? 'Signal for ' + s.company_name : 'Signal ID: ' + s.id);\n  const warmPath = { company_name: s.company_name || null, signal_source: 'zara', signal_id: s.id || null, person_email: s.person_email || null, stage: 'warm_path', score: s.score != null ? s.score : null, summary, created_at: now.toISOString() };\n  warmPathsForWrite.push(warmPath);\n  if (email) { contactedForWrite.push({ person_email: email, agent: 'felix', context: 'pipeline outreach', contacted_at: now.toISOString() }); contactedEmails.add(email); }\n  if (surfaced < staleLimit) warmPathsStale.push(summary); else warmPathsNew.push(summary);\n}\n\nreturn [{ json: { warm_paths_new_count: warmPathsNew.length, warm_paths_stale_count: warmPathsStale.length, tasks_open: tasks.length, skipped_dedup: skippedDedup, stale_signals_list: warmPathsStale, new_signals_list: warmPathsNew, warm_paths_for_write: warmPathsForWrite, contacted_for_write: contactedForWrite, has_writes: warmPathsForWrite.length > 0, pricing_floors_loaded: pricingFloors != null, product_health_rows: health.length, mode: 'daily_pipeline' }}];"
+      },
+      "id": "8b29f354-18e8-4459-a310-3a8e94dc260f"
+    },
+    {
+      "name": "Has New Opportunities",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1180,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-writes",
+              "leftValue": "={{ $json.has_writes }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "1ab0a72d-bb81-47b1-920a-ccfb98fa960b"
+    },
+    {
+      "name": "Write Opportunities",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1440,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/opportunities",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.warm_paths_for_write }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "18f73eee-24ad-4d8e-a7c1-add4acdbda8b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Write Contacted Persons",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1440,
+        440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $(\"Build Pipeline + Dedup\").first().json.contacted_for_write }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "c297e052-eef7-4f4e-b7a5-9d350750d6eb",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Daily Status Relay",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1700,
+        400
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify($(\"Build Pipeline + Dedup\").first().json) }}",
+        "options": {}
+      },
+      "id": "2dec211f-3e7e-44ac-ad02-c6d376c282a2"
+    },
+    {
+      "name": "Check Stale Paths",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1960,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "stale-gt-zero",
+              "leftValue": "={{ $json.warm_paths_stale_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f020b0c0-a1b9-4932-8887-9c0e5f3a23cf"
+    },
+    {
+      "name": "Daily Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2220,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { parse_mode: 'Markdown', chat_id: 6773796504, text: \"Felix daily pipeline\\n\\n\" + $json.warm_paths_new_count + \" new warm path(s), \" + $json.warm_paths_stale_count + \" stale (>48h)\\n\" + $json.tasks_open + \" open tasks\\n\" + $json.skipped_dedup + \" skipped (contacted in last 7d)\\n\\nStale:\\n\" + (($json.stale_signals_list && $json.stale_signals_list.length) ? $json.stale_signals_list.slice(0,10).join(\"\\n\") : \"None\") } }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "5443f156-db98-4257-a89b-761a211c48de",
+      "disabled": true
+    },
+    {
+      "name": "Merge For Audit",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2520,
+        650
+      ],
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "cbbc3d9d-a933-4379-9109-03fd19bb11a2"
+    },
+    {
+      "name": "Fetch Instantly Campaigns",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        900
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.instantly.ai/api/v2/campaigns",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "50"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ZWY4NGE2YzItN2Q2MC00M2VkLWE5NTUtMWExNTE2YzlhMDUxOnRWSHR2cGt0dXBBSA=="
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "0f6e50f7-bad7-4dcb-8a13-ec5f7577564a"
+    },
+    {
+      "name": "Audit Instantly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        900
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nlet raw = items.length ? items[0].json : {};\n\nlet campaigns = [];\nif (Array.isArray(raw)) campaigns = raw;\nelse if (Array.isArray(raw.items)) campaigns = raw.items;\nelse if (Array.isArray(raw.data)) campaigns = raw.data;\nelse if (Array.isArray(raw.results)) campaigns = raw.results;\n\nconst flagged = [];\nconst summary = [];\n\nfor (const c of campaigns) {\n  if (!c) continue;\n  const name = c.name || c.id || 'unnamed';\n  const status = c.status != null ? c.status : 'unknown';\n  const sent = Number(c.emails_sent || c.sent || (c.stats && c.stats.emails_sent) || 0);\n  const replied = Number(c.replied || (c.stats && c.stats.replied) || c.reply_count || 0);\n  const bounced = Number(c.bounced || (c.stats && c.stats.bounced) || c.bounce_count || 0);\n  const replyRate = sent > 0 ? (replied / sent) * 100 : 0;\n  const bounceRate = sent > 0 ? (bounced / sent) * 100 : 0;\n  const issues = [];\n  if (bounceRate > 5) issues.push('bounce ' + bounceRate.toFixed(1) + '%');\n  if (sent >= 50 && replyRate < 2) issues.push('reply ' + replyRate.toFixed(2) + '%');\n  if (status === 'paused' || status === 2 || status === 'PAUSED') issues.push('paused');\n  const row = { name, status, sent, replied, bounced, reply_rate: Number(replyRate.toFixed(2)), bounce_rate: Number(bounceRate.toFixed(2)), issues };\n  summary.push(row);\n  if (issues.length) flagged.push(row);\n}\n\nreturn [{ json: { campaigns_total: campaigns.length, flagged_count: flagged.length, flagged, summary, mode: 'friday_audit' }}];"
+      },
+      "id": "48087d6b-b6e3-4273-8592-64648033581e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Instantly Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        900
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "id": "04829114-bd4b-48e5-a532-69c82c7b32bf",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Friday Audit Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1440,
+        900
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { parse_mode: 'Markdown', chat_id: 6773796504, text: \"Felix Friday Instantly audit\\n\\n\" + $(\"Audit Instantly\").first().json.campaigns_total + \" campaigns, \" + $(\"Audit Instantly\").first().json.flagged_count + \" flagged\\n\\n\" + ($(\"Audit Instantly\").first().json.flagged && $(\"Audit Instantly\").first().json.flagged.length ? $(\"Audit Instantly\").first().json.flagged.slice(0,8).map(f => f.name + \": \" + f.issues.join(\", \")).join(\"\\n\") : \"All healthy\") } }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "728e53ef-c823-41e5-83b7-cc0503d92b8b",
+      "disabled": true
+    },
+    {
+      "name": "Friday Relay",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1700,
+        900
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify($(\"Audit Instantly\").first().json) }}",
+        "options": {}
+      },
+      "id": "a68b1b81-d860-47a5-8662-8ff04912152f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Pipeline Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2780,
+        650
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "id": "1ad4453d-922b-481c-891e-ab7fbf732bae",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3040,
+        650
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: $workflow.name, execution_id: $execution.id, actor: \"felix\", mode: ($(\"Merge For Audit\").first().json.mode || \"unknown\"), status: \"ok\", cost_estimate_usd: 0, ran_at: new Date().toISOString() } }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "5e906e08-8f8c-44d5-84ab-9b2a24a9a266",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Sticky Note b32a3e9e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        610,
+        150
+      ],
+      "parameters": {
+        "content": "## Daily Pipeline Scan (Mon-Fri 3PM)\nReads brief, voice, pricing floors, product_health, zara_signals (score>=7), tasks, and contacted_persons. Dedups against 7-day contact window. Writes warm paths to opportunities and contacted_persons. Alerts on stale signals.",
+        "color": 4,
+        "width": 1860,
+        "height": 760
+      },
+      "id": "1b9e3084-7130-48bb-b282-55efaedd8326"
+    },
+    {
+      "name": "Sticky Note 0beff58f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        610,
+        850
+      ],
+      "parameters": {
+        "content": "## Friday Instantly Audit (Fri 4PM)\nFetches Instantly campaigns, computes reply/bounce rates, flags bounce>5% and reply<2%. Writes instantly_quality event to audit_log. Telegram summary.",
+        "color": 5,
+        "width": 1340,
+        "height": 200
+      },
+      "id": "2b51ac9a-1aa2-44e8-ba8e-e0dabf8fd72b"
+    },
+    {
+      "name": "Sticky Note dda74778",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2470,
+        600
+      ],
+      "parameters": {
+        "content": "## Convergence + Heartbeat\nBoth paths write a pipeline audit_log entry and a workflow_runs heartbeat with cost_estimate_usd (0 for this build, no LLM calls).",
+        "color": 3,
+        "width": 820,
+        "height": 200
+      },
+      "id": "5082c738-61ee-4c66-9044-1632eb0e943d"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        600
+      ],
+      "id": "cdfcf4da-8bad-4d35-90e6-e7200bf6079b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Audit payload for Felix Instantly quality check\nconst d = $input.first().json;\nconst campaigns = d.campaigns_total || 0;\nconst flagged = d.flagged_count || 0;\nconst leads = d.leads_total || 0;\nconst bounce = d.bounce_rate != null ? `${d.bounce_rate}%` : 'n/a';\n\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'felix',\n      event_type: 'instantly_quality',\n      display_message: `Felix Instantly quality: ${campaigns} campaigns, ${leads} leads, ${flagged} flagged, bounce ${bounce}.`,\n      details: JSON.stringify({ campaigns_total: campaigns, flagged_count: flagged, leads_total: leads, bounce_rate: d.bounce_rate, flagged: d.flagged })\n    }\n  }\n}];"
+      },
+      "name": "Build Audit (felix Write Instantly Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        900
+      ],
+      "id": "6c1f9c13-8918-4bde-bdfc-d37e113c4a97"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Audit payload for Felix pipeline tracker\nconst d = $('Merge For Audit').first().json;\nconst isFriday = d.mode === 'friday_audit';\nconst opps = d.opportunities_total || 0;\nconst value = d.pipeline_value || 0;\nconst valueStr = typeof value === 'number' ? `$${value.toLocaleString()}` : value;\n\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'felix',\n      event_type: isFriday ? 'pipeline-tracker-friday' : 'pipeline-tracker',\n      display_message: `${isFriday ? 'Felix pipeline Friday audit' : 'Felix pipeline tracker'}: ${opps} active opportunities, ${valueStr} value.`,\n      details: JSON.stringify(d)\n    }\n  }\n}];"
+      },
+      "name": "Build Audit (felix Write Pipeline Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        650
+      ],
+      "id": "0028a520-84ba-402e-bad3-f84abbbd86db"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route Daily Vs Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Daily Vs Audit": {
+      "main": [
+        [
+          {
+            "node": "Read Brief + Voice + Pricing Floors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Instantly Campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Brief + Voice + Pricing Floors": {
+      "main": [
+        [
+          {
+            "node": "Read Product Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Product Health": {
+      "main": [
+        [
+          {
+            "node": "Read Zara Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Zara Signals": {
+      "main": [
+        [
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Read Contacted Persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Contacted Persons": {
+      "main": [
+        [
+          {
+            "node": "Build Pipeline + Dedup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pipeline + Dedup": {
+      "main": [
+        [
+          {
+            "node": "Has New Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Write Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Daily Status Relay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Write Contacted Persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Contacted Persons": {
+      "main": [
+        [
+          {
+            "node": "Daily Status Relay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Status Relay": {
+      "main": [
+        [
+          {
+            "node": "Check Stale Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Stale Paths": {
+      "main": [
+        [
+          {
+            "node": "Daily Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Merge For Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge For Audit": {
+      "main": [
+        [
+          {
+            "node": "Build Audit (felix Write Pipeline Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Instantly Campaigns": {
+      "main": [
+        [
+          {
+            "node": "Audit Instantly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Instantly": {
+      "main": [
+        [
+          {
+            "node": "Build Audit (felix Write Instantly Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Instantly Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Friday Audit Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Friday Audit Telegram": {
+      "main": [
+        [
+          {
+            "node": "Friday Relay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Friday Relay": {
+      "main": [
+        [
+          {
+            "node": "Merge For Audit",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Write Pipeline Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route Daily Vs Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (felix Write Instantly Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Write Instantly Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (felix Write Pipeline Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Write Pipeline Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "global": {
+      "opportunities": [
+        {
+          "contact": "",
+          "notes": "",
+          "date": "2026-04-15",
+          "last_updated": "2026-04-15"
+        }
+      ],
+      "last_updated": "2026-04-15"
+    },
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        null,
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null,
+        null
+      ]
+    }
+  }
+}

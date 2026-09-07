@@ -1,0 +1,108 @@
+{
+  "name": "Fleet | Attribution & Product-Truth Health",
+  "active": true,
+  "nodes": [
+    {
+      "id": "fb7d7151-76de-4460-976d-6973b3e0decf",
+      "name": "Daily 06:15 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "51aa94ed-d71c-44c8-9fa2-a4563b1df3ca",
+      "name": "Probe Fleet Product-Truth",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const apps = [\n  { app: 'circle', url: 'https://circle.fractionl.ai/agent.json' },\n  { app: 'pulse', url: 'https://pulse.fractionl.ai/product-truth.json' },\n  { app: 'ctrl', url: 'https://ctrl.themindmaker.ai/.well-known/product.json' }\n  // TODO: gutted, merciless, onalert retired from the OS control plane 2026-07-06 (Krish directive). Removed from this health check. Apps stay deployed until Krish sunsets them manually; do not re-add.\n  // TODO: plinth (https://plinth-tan.vercel.app) and full-time (https://full-time-alpha.vercel.app) are the replacement products but neither exposes a product-truth endpoint yet. Add them here once each ships one; do not invent a URL in the meantime.\n];\nconst failures = [];\nconst summary = [];\nfor (const a of apps) {\n  let status = 0, ok = false;\n  try {\n    const res = await this.helpers.httpRequest({ method: 'GET', url: a.url, returnFullResponse: true, timeout: 15000, ignoreHttpStatusErrors: true });\n    status = res.statusCode;\n    ok = status >= 200 && status < 300;\n  } catch (e) { status = -1; ok = false; }\n  summary.push({ app: a.app, status, ok });\n  if (!ok) failures.push(a.app + ' (' + status + ')');\n}\nif (failures.length === 0) return [];\nconst list = failures.join(', ');\nreturn [{ json: { alert: true, failures, summary, checked_at: new Date().toISOString(), text: 'Fleet attribution health alert: ' + failures.length + ' product-truth surface(s) DOWN - ' + list + '. The fleet sells from these; check the app and its emit wiring (MINDMAKER_OS_ARCHITECTURE 11.4).' } }];"
+      }
+    },
+    {
+      "id": "e6c4115f-7703-4e98-a6e3-f09af6ef51bf",
+      "name": "Alert Ops",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "6773796504",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "ABpXiy5vKhhi6SNV",
+          "name": "Cleo - Telegram account"
+        }
+      },
+      "webhookId": "7ea3b5ac-cdc7-4400-964b-f73f34bf1d5b",
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Daily 06:15 UTC": {
+      "main": [
+        [
+          {
+            "node": "Probe Fleet Product-Truth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe Fleet Product-Truth": {
+      "main": [
+        [
+          {
+            "node": "Alert Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Daily 06:15 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

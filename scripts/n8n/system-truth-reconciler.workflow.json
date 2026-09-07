@@ -1,0 +1,448 @@
+{
+  "name": "System | Mindmaker OS | Truth Reconciler",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 0"
+            }
+          ]
+        }
+      },
+      "name": "Sun 07:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        304
+      ],
+      "id": "6207cecc-38ac-42a7-81b8-bf06e63ca446"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.fleet_skill_workflow_map_v1&select=value",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.supabase.serviceRoleKey }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $credentials.supabase.serviceRoleKey }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Fetch Skill Map",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        224
+      ],
+      "id": "458b8634-823a-48eb-9899-ab92018687cd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://krishraja10101.app.n8n.cloud/api/v1/workflows?limit=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $credentials.n8nApi.apiKey }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Fetch Live Workflows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        384
+      ],
+      "id": "f233dcf7-3923-4cb4-835c-68867ecc2103"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/vera_audit?select=findings&order=audit_date.desc&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $credentials.supabase.serviceRoleKey }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Vera Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        544
+      ],
+      "id": "e7c3f7e9-156d-495e-819f-5e304a6a30e1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const skillMapRow = $('Fetch Skill Map').first().json;\nconst skillMap = (skillMapRow && skillMapRow[0] && skillMapRow[0].value) || {};\nconst liveResp = $('Fetch Live Workflows').first().json;\nconst liveWorkflows = (liveResp && liveResp.data) ? liveResp.data : [];\nconst veraResp = $('Fetch Vera Findings').first().json;\nconst findings = (veraResp && veraResp[0] && veraResp[0].findings) ? veraResp[0].findings : [];\n\nconst skillIds = new Set(Object.values(skillMap));\nconst liveIds = new Set(liveWorkflows.map(w => w.id));\nconst liveById = Object.fromEntries(liveWorkflows.map(w => [w.id, w]));\n\nconst skillNotLive = [...skillIds].filter(id => !liveIds.has(id));\nconst liveNotSkill = liveWorkflows.filter(w => !skillIds.has(w.id)).map(w => `${w.id} (${w.name})`);\nconst skillActiveLiveInactive = [];\nfor (const id of skillIds) {\n if (liveById[id] && liveById[id].active === false) {\n  skillActiveLiveInactive.push(`${id} (${liveById[id].name})`);\n }\n}\nconst failingSubjects = new Set(findings.filter(f => f.band === 'errors' && f.severity === 'high').map(f => f.subject));\nconst skillHealthyVeraFailing = [];\nfor (const id of skillIds) {\n if (liveById[id] && failingSubjects.has(liveById[id].name)) {\n  skillHealthyVeraFailing.push(`${id} (${liveById[id].name})`);\n }\n}\nconst delta = skillNotLive.length + liveNotSkill.length + skillActiveLiveInactive.length + skillHealthyVeraFailing.length;\nlet report = `Fleet Drift Report\\nGenerated: ${new Date().toISOString()}\\nDelta: ${delta}\\n\\n`;\nif (skillNotLive.length) report += `In skill but not live (${skillNotLive.length}):\\n${skillNotLive.map(s => '- ' + s).join('\\n')}\\n\\n`;\nif (liveNotSkill.length) report += `Live but not in skill (${liveNotSkill.length}):\\n${liveNotSkill.map(s => '- ' + s).join('\\n')}\\n\\n`;\nif (skillActiveLiveInactive.length) report += `Skill says active, n8n inactive (${skillActiveLiveInactive.length}):\\n${skillActiveLiveInactive.map(s => '- ' + s).join('\\n')}\\n\\n`;\nif (skillHealthyVeraFailing.length) report += `Skill says healthy, Vera reports failing (${skillHealthyVeraFailing.length}):\\n${skillHealthyVeraFailing.map(s => '- ' + s).join('\\n')}\\n\\n`;\nif (delta === 0) report += 'No drift detected. Fleet skill is reconciled.\\n';\nreturn [{ json: { workflows_in_skill_but_not_live: skillNotLive, workflows_live_but_not_in_skill: liveNotSkill, workflows_skill_says_active_n8n_says_inactive: skillActiveLiveInactive, workflows_skill_says_healthy_vera_says_failing: skillHealthyVeraFailing, delta_count: delta, report_text: report } }];"
+      },
+      "name": "Compute Drift",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        384
+      ],
+      "id": "134b3ea3-ced0-4dbf-b93c-7771e6060b66"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/fleet_drift_report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $credentials.supabase.serviceRoleKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflows_in_skill_but_not_live: $json.workflows_in_skill_but_not_live, workflows_live_but_not_in_skill: $json.workflows_live_but_not_in_skill, workflows_skill_says_active_n8n_says_inactive: $json.workflows_skill_says_active_n8n_says_inactive, workflows_skill_says_healthy_vera_says_failing: $json.workflows_skill_says_healthy_vera_says_failing, delta_count: $json.delta_count, report_text: $json.report_text }) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Drift Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1008,
+        384
+      ],
+      "id": "77959c66-d20f-4dc5-9ea8-ca10b69ce25e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.opsTelegram.token }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: $('Compute Drift').first().json.report_text.slice(0, 4000) }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Telegram Drift",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        384
+      ],
+      "id": "0209b187-a229-4e03-9b26-43259a9d3494",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Compute Drift').first().json.delta_count }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "name": "Maybe Propose",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        384
+      ],
+      "id": "32805d19-a925-4d0f-bb42-0fc74d283550"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_proposals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $credentials.supabase.serviceRoleKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=ignore-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ agent_id: 'truth_reconciler', proposal_type: 'cross_agent', title: 'Fleet skill reconciliation required', description: $('Compute Drift').first().json.report_text.slice(0, 1000), priority: 'high', status: 'proposed' }) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Proposal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        320
+      ],
+      "id": "f64129fa-636f-449c-82f5-f4d953c4af1d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $credentials.supabase.serviceRoleKey }}"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: 'truth_reconciler', workflow_name: 'Truth Reconciler', agent_id: 'system', outcome: 'success', status: 'success', cost_estimate_usd: 0.0001, api_calls_count: 5 }) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        384
+      ],
+      "id": "9133060e-0461-40a7-82e8-354cd87fbd48",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Sun 07:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Skill Map",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Live Workflows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Vera Findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Skill Map": {
+      "main": [
+        [
+          {
+            "node": "Compute Drift",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Live Workflows": {
+      "main": [
+        [
+          {
+            "node": "Compute Drift",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Vera Findings": {
+      "main": [
+        [
+          {
+            "node": "Compute Drift",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Drift": {
+      "main": [
+        [
+          {
+            "node": "Write Drift Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Drift Report": {
+      "main": [
+        [
+          {
+            "node": "Telegram Drift",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Drift": {
+      "main": [
+        [
+          {
+            "node": "Maybe Propose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Maybe Propose": {
+      "main": [
+        [
+          {
+            "node": "Write Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Proposal": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Sun 07:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:TEMP audit-fire": {
+      "recurrenceRules": []
+    }
+  }
+}

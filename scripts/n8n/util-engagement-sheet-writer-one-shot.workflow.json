@@ -1,0 +1,253 @@
+{
+  "name": "UTIL - Engagement Sheet Writer (one-shot)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "bfe88fbd-a4a1-465a-8223-b8fb9bf3a5c2",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "5762ab17-64b5-4770-8597-c105348accc0",
+      "name": "Create Fun Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "title": "Fun & Immersive Ideas",
+        "options": {
+          "tabColor": "e91e63"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "c9b06812-e8db-44ad-aa43-c326f88254fe",
+      "name": "Fun Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const rows = [\n{Idea:'1. Story tables, not table numbers',How:'Each table is a chapter of Krish & Loz: where we met, first date, the proposal, Sydney, Brooklyn, etc. Niece illustrates a card per chapter. Guests find their seat via an illustrated story map at the entrance.',Cost:'£15 print',NieceArt:'YES - chapter cards + map',Kills:'Numbered round tables + boring table plan board',Verdict:'DO IT'},\n{Idea:'2. Buffet released by game score',How:'Tables earn their buffet call order through the quiz. No MC droning table 1 please. Winning table eats first, losing table gets affectionate booing.',Cost:'£0',NieceArt:'-',Kills:'The buffet queue announcement drone',Verdict:'DO IT'},\n{Idea:'3. Krish & Loz pub quiz',How:'One sheet per table, 10 questions. Written so you need BOTH families to win (5 about Krish, 5 about Loz). Instant cross-family teamwork.',Cost:'£5 print',NieceArt:'Optional borders',Kills:'Strangers-at-a-table silence',Verdict:'DO IT'},\n{Idea:'4. Mr & Mrs live paddle round',How:'Krish & Loz back to back with KRISH/LOZ paddles. 8 questions (who said I love you first, who is tidier). Families shout answers. 10 minutes, replaces half the speeches.',Cost:'£10 paddles',NieceArt:'YES - paddle faces',Kills:'Long speeches',Verdict:'DO IT'},\n{Idea:'5. Photo missions + shared album QR',How:'Mission card per table: cross-family selfie, recreate the proposal, eldest + youngest together, best florals. All photos land in one shared album via QR on the table.',Cost:'£0-5',NieceArt:'Card design',Kills:'Passive sitting; builds your album for free',Verdict:'DO IT'},\n{Idea:'6. Advice & predictions cards',How:'Illustrated cards on every table: advice for the marriage / prediction for 2036. Dropped in a box, best 3 read aloud during speeches. Keepsake box afterwards.',Cost:'£10 print',NieceArt:'YES - card frame',Kills:'Dead air; the unused guestbook problem',Verdict:'DO IT'},\n{Idea:'7. Signing print guestbook',How:'One large niece-illustrated garden/tree print. Everyone signs a leaf or flower. Frame it in the flat afterwards.',Cost:'£20-30 print',NieceArt:'YES - the hero piece',Kills:'Guestbook nobody writes in',Verdict:'DO IT'},\n{Idea:'8. Chai + cake as a ceremony beat (14:30)',How:'Served chai round to tables (not self-serve), cake cut, one short toast WITH chai in hand. Elders centred, everyone gathered mid-afternoon.',Cost:'~£75 (chai £5pp x15)',NieceArt:'-',Kills:'The mid-afternoon lull',Verdict:'DO IT'},\n{Idea:'9. Two-sides bingo',How:'Find someone who... card mixing both families (supports the wrong football team, flew furthest, knew Krish before the beard). First full card wins a prize at speeches.',Cost:'£5 print',NieceArt:'Optional',Kills:'Families not mixing',Verdict:'MAYBE'},\n{Idea:'10. Crowdsourced playlist',How:'QR sent pre-event: add one song that reminds you of Krish or Loz. That IS the marquee playlist. Guests hear their song and tell each other why.',Cost:'£0',NieceArt:'-',Kills:'Generic background music',Verdict:'MAYBE'},\n{Idea:'11. Bubble send-off at 16:00',How:'Bubble wands out for the marquee-to-bar transition. Turns the awkward everyone must leave by 4 moment into a send-off.',Cost:'£15 (doubles as kids toy)',NieceArt:'-',Kills:'The awkward venue-clear moment',Verdict:'DO IT'},\n{Idea:'12. Kids: explorer kits + photographer badges',How:'Scavenger hunt kits for littles; older kids get an official photographer badge + disposable camera or phone missions. They FEEL employed.',Cost:'£25',NieceArt:'YES - badges',Kills:'Bored kids orbiting the buffet',Verdict:'DO IT'},\n{Idea:'13. Joke awards at speeches',How:'3 niece-drawn certificates: loudest auntie, furthest travelled, best florals (dress code enforcement). 2 minutes of laughs.',Cost:'£5',NieceArt:'YES - certificates',Kills:'Guests as pure spectators',Verdict:'MAYBE'},\n{Idea:'14. Elder story cards at chai',How:'Each elder table gets one card at chai: tell your table how you met your spouse. The single cheapest way to make elders the entertainment, not the audience.',Cost:'£2',NieceArt:'Optional',Kills:'Elders as spectators',Verdict:'DO IT'},\n{Idea:'NIECE BRIEF (consolidated)',How:'Chapter cards (~8), story map, paddle faces x2, advice card frame, guestbook hero print, photographer badges, 3 certificates. All A5/A4, print at home or £20 print shop.',Cost:'TOTAL ALL IDEAS: ~£100-130',NieceArt:'Deadline Aug 22 for printing',Kills:'-',Verdict:'BRIEF HER THIS WEEK'}\n];\nreturn rows.map(r => ({json: r}));"
+      }
+    },
+    {
+      "id": "8b5b7c7f-e655-4456-a14e-ef6dc5c2188f",
+      "name": "Write Fun Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Fun & Immersive Ideas"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn",
+          "useAppend": true
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "095b4daf-b6ae-4ba8-bb84-ca868774f2f7",
+      "name": "Create War Plan Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "title": "War Plan",
+        "options": {
+          "tabColor": "1a73e8"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "d54b9c47-2755-4aab-a76c-cca37b8a7306",
+      "name": "War Plan Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const rows = [\n{Week:'DONE',Task:'Venue secured, deposit, invites sent, RSVPs collected (89 yes), menu approved by Anna, drinks priced. Arch + welcome sign: killed. Loz = creative director from here.',Owner:'-',Deadline:'-',Status:'Done',Notes:'Context for anyone opening this fresh'},\n{Week:'W1: Jul 27-Aug 2',Task:'Chase non-repliers: Tarun family (9), Kiran friend group (3), Priya',Owner:'Krish',Deadline:'Wed Jul 29',Status:'Not started',Notes:'12 heads swing the catering order'},\n{Week:'W1: Jul 27-Aug 2',Task:'Rish + Jo to send remaining invites: Kam+partner, Raj+Dimple, Tesh+Bhavna, Rakhee+Dilip, Tess',Owner:'Krish',Deadline:'Wed Jul 29',Status:'Not started',Notes:'Marked Not Invited Yet in Guest List'},\n{Week:'W1: Jul 27-Aug 2',Task:'Call with Anna (she proposed Sat 14:30) + book food tasting date',Owner:'Krish',Deadline:'Sat Aug 1',Status:'Not started',Notes:'Tasting: Mon-Thu 12-21:00, Fri 12-16:00, for 2'},\n{Week:'W1: Jul 27-Aug 2',Task:'Loz creative kickoff: pick the winners from Fun & Immersive Ideas tab',Owner:'Loz',Deadline:'Sun Aug 2',Status:'Not started',Notes:'DO ITs are pre-marked, veto freely'},\n{Week:'W1: Jul 27-Aug 2',Task:'Brief niece: illustration asset list + Aug 22 deadline',Owner:'Loz',Deadline:'Sun Aug 2',Status:'Not started',Notes:'Full list = last row of Fun tab'},\n{Week:'W1: Jul 27-Aug 2',Task:'Tell Anna what BYO food is coming for babies/toddlers',Owner:'Both',Deadline:'Sun Aug 2',Status:'Not started',Notes:'She asked to be told'},\n{Week:'W2: Aug 3-9',Task:'Book solo musician/singer (no band, own PA) or decide none + playlist',Owner:'Both',Deadline:'Fri Aug 7',Status:'Not started',Notes:'Saxophonist Pavan Verma on Anna vendor list; DJ Gurj for bar?'},\n{Week:'W2: Aug 3-9',Task:'Book photographer',Owner:'Both',Deadline:'Fri Aug 7',Status:'Not started',Notes:'Sept Saturdays go fast'},\n{Week:'W2: Aug 3-9',Task:'Order cake - secret garden brief to baker',Owner:'Loz',Deadline:'Fri Aug 7',Status:'Not started',Notes:'No cutting fee, venue serves it with dessert'},\n{Week:'W2: Aug 3-9',Task:'Tell Anna how late to hold reserved bar tables (past 18:00?)',Owner:'Krish',Deadline:'Fri Aug 7',Status:'Not started',Notes:'She offered extension'},\n{Week:'W2: Aug 3-9',Task:'Free cancellation window closes Aug 8 - no action, just awareness',Owner:'-',Deadline:'Sat Aug 8',Status:'-',Notes:'Fully committed after this'},\n{Week:'W3: Aug 10-16',Task:'Food tasting at Namaste (2 people)',Owner:'Both',Deadline:'Fri Aug 14',Status:'Not started',Notes:'Final dish tweaks allowed after'},\n{Week:'W3: Aug 10-16',Task:'Dietary sweep of all Yes RSVPs; finalise non-veg table list + Jain pre-order',Owner:'Krish',Deadline:'Fri Aug 14',Status:'Not started',Notes:'Anna needs table list for a la carte Butter Chicken'},\n{Week:'W3: Aug 10-16',Task:'Buy all props: paddles, card box, ink pads, bubble wands, disposable cameras, picnic blanket',Owner:'Loz',Deadline:'Sun Aug 16',Status:'Not started',Notes:'One Amazon basket, ~£60'},\n{Week:'W3: Aug 10-16',Task:'Niece check-in: illustration drafts',Owner:'Loz',Deadline:'Sun Aug 16',Status:'Not started',Notes:'Buffer week before print'},\n{Week:'W4: Aug 17-23',Task:'HARD DEADLINE: lock menu + drinks pre-order with Anna in writing',Owner:'Krish',Deadline:'Fri Aug 22',Status:'Not started',Notes:'Venue requires 2 weeks before. Include Gulab Jamun +£2.50pp decision'},\n{Week:'W4: Aug 17-23',Task:'Niece final illustration files delivered',Owner:'Loz',Deadline:'Fri Aug 22',Status:'Not started',Notes:'-'},\n{Week:'W4: Aug 17-23',Task:'Print run: chapter cards, story map, quiz sheets, mission cards, advice cards, guestbook print',Owner:'Loz',Deadline:'Sun Aug 23',Status:'Not started',Notes:'~£40 print shop'},\n{Week:'W4: Aug 17-23',Task:'Table plan v1 with deliberate family mixing (story tables)',Owner:'Both',Deadline:'Sun Aug 23',Status:'Not started',Notes:'Use Guest List Table column'},\n{Week:'W4: Aug 17-23',Task:'Confirm with Anna: chai round 14:30, kids eat 15 min early, Section 1 quiet corner, welcome drinks in marquee',Owner:'Krish',Deadline:'Fri Aug 21',Status:'Not started',Notes:'All free asks'},\n{Week:'W5: Aug 24-30',Task:'WhatsApp the post-4pm crowd: who stays for bar/shisha',Owner:'Krish',Deadline:'Wed Aug 26',Status:'Not started',Notes:'Sizes shisha pre-order (1 per 4 granted)'},\n{Week:'W5: Aug 24-30',Task:'Lock table plan v2 after last RSVPs',Owner:'Both',Deadline:'Fri Aug 28',Status:'Not started',Notes:'-'},\n{Week:'W5: Aug 24-30',Task:'Run of show final + game scripts + brief the MC',Owner:'Both',Deadline:'Sun Aug 30',Status:'Not started',Notes:'Who MCs the quiz + paddles? Rish? Dips?'},\n{Week:'W5: Aug 24-30',Task:'Collect Mr & Mrs questions secretly from both families',Owner:'Loz',Deadline:'Sun Aug 30',Status:'Not started',Notes:'WhatsApp both sides separately'},\n{Week:'EVENT WEEK',Task:'Final numbers to Anna (allowed up to 1 day before)',Owner:'Krish',Deadline:'Thu Sep 3',Status:'Not started',Notes:'-'},\n{Week:'EVENT WEEK',Task:'Payment: pre-arrange bank transfer OR confirm card on the day',Owner:'Krish',Deadline:'Wed Sep 2',Status:'Not started',Notes:'Transfer needs accounts team pre-approval'},\n{Week:'EVENT WEEK',Task:'Pack: props, prints, guestbook, cake stand, kids kits, QR stands',Owner:'Loz',Deadline:'Fri Sep 4',Status:'Not started',Notes:'-'},\n{Week:'EVENT WEEK',Task:'Confirm setup access time with Anna + collect cake',Owner:'Both',Deadline:'Sat Sep 5 AM',Status:'Not started',Notes:'-'},\n{Week:'EVENT WEEK',Task:'12:30 sharp: showtime',Owner:'Both',Deadline:'Sat Sep 5',Status:'Not started',Notes:'Get engaged-partied'}\n];\nreturn rows.map(r => ({json: r}));"
+      }
+    },
+    {
+      "id": "7aac212d-3a27-42ed-b207-b97899951a2f",
+      "name": "Write War Plan Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "War Plan"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn",
+          "useAppend": true
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Create Fun Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Fun Tab": {
+      "main": [
+        [
+          {
+            "node": "Fun Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fun Rows": {
+      "main": [
+        [
+          {
+            "node": "Write Fun Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Fun Rows": {
+      "main": [
+        [
+          {
+            "node": "Create War Plan Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create War Plan Tab": {
+      "main": [
+        [
+          {
+            "node": "War Plan Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "War Plan Rows": {
+      "main": [
+        [
+          {
+            "node": "Write War Plan Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

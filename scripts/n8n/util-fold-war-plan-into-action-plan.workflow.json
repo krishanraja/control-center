@@ -1,0 +1,329 @@
+{
+  "name": "UTIL - Fold War Plan into Action Plan",
+  "active": false,
+  "nodes": [
+    {
+      "id": "619a87fa-70c1-444f-9312-414589aa0047",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "aaf0effd-879e-41bf-aa62-13347df4c663",
+      "name": "Get Metadata Pre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "d48a1431-60b3-4563-9d18-156aa477be7b",
+      "name": "Build Pre Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst requests = [];\n// Remove the two tabs being folded together\n[\"Anna Call Agenda\",\"Action Plan\"].forEach(t => {\n  const s = sheets.find(x => x.properties.title === t);\n  if (s) requests.push({deleteSheet:{sheetId: s.properties.sheetId}});\n});\n// Hide War Plan, content is folded into the new tab\nconst wp = sheets.find(x => x.properties.title === \"War Plan\");\nif (wp) requests.push({updateSheetProperties:{properties:{sheetId: wp.properties.sheetId, hidden:true},fields:\"hidden\"}});\nreturn [{json:{requests}}];"
+      }
+    },
+    {
+      "id": "2a07e8c4-40a1-4913-bd92-3e184f70b4a6",
+      "name": "Apply Pre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "87c986b4-7e4b-4db6-9043-99fa614a8e52",
+      "name": "Create Action Plan",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "title": "Action Plan",
+        "options": {
+          "tabColor": "d93025"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "e439c1a8-5e29-411d-98a1-09a65fad47d6",
+      "name": "Plan Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const rows = [\n\n{Block:\"CRITICAL PATH\",Item:\"Close the headcount\",Detail:\"12 still not replied: Tarun family (9), Kiran friend group (3), Priya. Five invites Rish and Jo have not sent: Kam, Raj, Tesh and Rakhee couples plus Tess. Also fix the kids data. You told Anna 13 toddlers and roughly 15 children aged 5-11, but the Guest List says 6 on kids menu and 13 on BYO. Catering, table plan and cost all sit on this number.\",Owner:\"Krish\",By:\"Fri 7 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Book the food tasting\",Detail:\"Anna was explicit that the menu locks before it reaches the kitchen, so tasting early is what buys the option to change dishes at all. For 2 people. Mon-Thu 12:00-21:00, Fri 12:00-16:00. Send her three dates.\",Owner:\"Both\",By:\"Mon 3 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Decide the sound setup\",Detail:\"There is no house mic and no way to play your playlist through venue speakers. One booking closes all three gaps, because musicians bring their own PA and will run your playlist during breaks. Options: DJ Gurj around £350 for 4 hours, saxophonist Pavan Verma, or buy a speaker plus mic and run playlist only. Speeches, quiz and the paddle round all depend on this.\",Owner:\"Both\",By:\"Sun 2 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Chase Anna for the floor plan pack\",Detail:\"One chase, eleven items: floor plan with measurements, photos of past 100-guest events on round tables, backdrop position options (side vs front), red flower wall photo, paper lantern photos, the Spotify answer, DJ Gurj contact and pricing, Pavan Verma phone number, power socket map, TV draping logistics, and the introduction to the other function that day. Every creative decision is blocked on the floor plan.\",Owner:\"Krish\",By:\"Tue 4 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Brief the niece\",Detail:\"Longest lead item in the plan. Asset list is the final row of the Fun and Immersive Ideas tab: chapter cards, story map, paddle faces, advice card frame, guestbook hero print, photographer badges, joke certificates. Add TV screen artwork if you decide to use the screen. Files needed 22 Aug for the print run.\",Owner:\"Loz\",By:\"Sun 2 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Book photographer\",Detail:\"September Saturdays fill up. Nothing depends on it downstream but it cannot be left late.\",Owner:\"Both\",By:\"Fri 7 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Order the cake\",Detail:\"Secret garden brief, sized for roughly 92. No cutting fee and the venue cuts and serves it alongside dessert.\",Owner:\"Loz\",By:\"Fri 7 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"HARD DEADLINE: lock menu and drinks with Anna in writing\",Detail:\"Venue requires two weeks notice. Everything else is built backwards from this date. Must contain: final buffet selection, gulab jamun yes or no, non-veg a la carte dishes plus the table list, Jain pre-order, the kids split, and drinks quantities.\",Owner:\"Krish\",By:\"Sat 22 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"Table plan\",Detail:\"Roughly 10 round tables of 10. Cluster the 15 non-veg guests onto 2 tables so a la carte service is clean. Elders away from the speakers. Deliberate family mixing, because round tables will not do it for you.\",Owner:\"Both\",By:\"Sun 30 Aug\",Status:\"Not started\"},\n{Block:\"CRITICAL PATH\",Item:\"HARD DEADLINE: final numbers to Anna\",Detail:\"Allowed up to one day before the event. Send the dietary summary at the same time.\",Owner:\"Krish\",By:\"Thu 3 Sep\",Status:\"Not started\"},\n\n{Block:\"ONE EMAIL TO ANNA\",Item:\"Money and catering questions\",Detail:\"1. Jain guest: charged a la carte only, or a la carte plus the per-person buffet rate? 2. Does the £2.50 gulab jamun apply to kids on the kids menu and BYO toddlers, or adults only? 3. Soft drinks £5pp: does a 6-year-old on BYO still get charged? Under-5s confirmed free. 4. Confirm the £500 deposit is received and receipted, and when the balance is due. 5. Bank transfer: what do you need from us and by when. 6. Confirm the two hard dates: menu lock Sat 22 Aug, final numbers Fri 4 Sep. 7. Chai round served to elder tables at 14:30: feasible and what does it cost. 8. Shisha price per pipe, and how late we can hold the reserved bar tables.\",Owner:\"Krish\",By:\"Fri 7 Aug\",Status:\"Not started\"},\n{Block:\"ONE EMAIL TO ANNA\",Item:\"Day-of logistics questions\",Detail:\"1. Kids food out 15 minutes before the adult buffet opens. 2. Section 1 as a quiet elder corner and toddler zone. Flag: Section 1 is normally where the buffet and welcome drinks go, so this competes for the space. 3. How many high chairs. 4. Toilets and baby changing, where and how many. 5. Bubbles and confetti allowed inside the marquee. 6. Somewhere secure for gifts and cards. 7. Accessibility ramp: pre-book or available on request. 8. Bar area 16:00-18:00: music and playlist arrangement.\",Owner:\"Krish\",By:\"Fri 7 Aug\",Status:\"Not started\"},\n\n{Block:\"DECIDE BETWEEN YOU\",Item:\"Gulab jamun\",Detail:\"Plus £2.50 per person across the whole party, roughly £230 at 92 confirmed. Their standard dessert selection is normally £6.00pp, so this is the cheapest upgrade available.\",Owner:\"Both\",By:\"Sun 2 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"Kids menu or half-price adult menu\",Detail:\"New option from the call. Kids menu is £25 (pizza, chips, nuggets, paneer rolls, sandwiches, veg sticks) on its own replenished buffet table. Half-price adult menu is roughly £20. Anna still recommends the kids menu for 5-11s.\",Owner:\"Both\",By:\"Sun 2 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"Second non-veg dish\",Detail:\"Butter Chicken £14.50 alone, or add Lamb Rogan Josh £15.00. Roughly 15 guests marked Non Veg. A second dish doubles the service admin for marginal gain.\",Owner:\"Krish\",By:\"Sun 2 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"Drinks quantities\",Detail:\"Prosecco serves 6 glasses per bottle, 77 confirmed adults. Suggested: 14 prosecco, 12 wine split across the three house options, 30 Cobra. Roughly £1,000. Unfinished bottles move to the bar or go home, so over-ordering carries no waste risk.\",Owner:\"Both\",By:\"Fri 7 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"TV screen: hide it or use it\",Detail:\"3.3m high by 4.7m wide at the back of the marquee. Draping costs money and needs a vendor. Using it costs a file upload that Anna loads from the back office, or a laptop and HDMI for a slideshow. It is the largest visual surface in the room and the cheapest high-impact move available.\",Owner:\"Both\",By:\"Sun 2 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"Which fun ideas make the cut\",Detail:\"Fun and Immersive Ideas tab holds 14 with DO IT items pre-marked. All of them together cost £100-130. Round tables are fixed, so these now carry the entire load of stopping this feeling like a seated function.\",Owner:\"Loz\",By:\"Sun 2 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"Share a decor vendor with the other function\",Detail:\"Another party is in the venue the same day and is also planning to drape the TV. Anna offered to introduce you and split the cost. Free money if you are draping anyway. Say yes to the introduction now and decide later.\",Owner:\"Both\",By:\"Sun 2 Aug\",Status:\"Open\"},\n{Block:\"DECIDE BETWEEN YOU\",Item:\"What Section 1 is for\",Detail:\"Quiet elder corner and toddler zone, or the buffet and welcome drinks area. It cannot comfortably be both. Anna needs to know before she draws the floor plan.\",Owner:\"Both\",By:\"Sun 2 Aug\",Status:\"Open\"},\n\n{Block:\"SETTLED\",Item:\"Round tables only\",Detail:\"No long banquet tables exist. Roughly 10 tables of 10.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"Load-in from 9:00\",Detail:\"Structural builds like backdrops and lanterns can start at 9:00 and take 45-90 minutes. Anything touching the tables waits until after her team lays cloths at 9:30 to 10:00.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"No house microphone\",Detail:\"The venue does not own one. You supply it.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"No playlist route to venue speakers\",Detail:\"House music runs off 8tracks and they do not hand over control. Anna is checking whether the shisha lounge method could work. Assume not.\",Owner:\"-\",By:\"-\",Status:\"Anna checking\"},\n{Block:\"SETTLED\",Item:\"Power everywhere\",Detail:\"Every white pillar has a socket, pillars roughly every 2m. Placement is not constrained by power.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"Tables arrive nearly bare\",Detail:\"White tablecloths only, all silver stainless tableware, no gold. Tables carry water glasses and nothing else. Cutlery and plates sit on the buffet table for guests to collect. An unusually blank canvas.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"One large TV screen\",Detail:\"3.3m by 4.7m including frame, at the back. The two small side screens have been removed.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"Parking is solved\",Detail:\"Two and possibly three reserved host spaces, send registration numbers the day before. Free public parking next door behind Argal House, UPPER level only, roughly 30-50 spaces, free all Saturday.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"Kids arrangements\",Detail:\"Kids menu is for 5-11 year olds, minimum 10, comfortably met at roughly 15. Under-5s bring their own lunchbox and Anna called that normal. She just wants to know what is coming.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"Decor approvals\",Detail:\"Butcher paper over the white tablecloths approved. Paper lanterns strung from the marquee sides approved. The red flower wall is movable and you can build in front of it.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"Commercial wins already banked\",Detail:\"Menu approved by Anna. Bar lounge £1,200 minimum spend waived. Shisha ratio relaxed from 1 per 2 guests to roughly 1 per 4. No cake cutting fee.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n{Block:\"SETTLED\",Item:\"16:00 is a hard stop\",Detail:\"Marquee vacated at 16:00 sharp, garden bill closes, another function loads in from 16:30. Everyone moves to the bar lounge, where the VIP seating and dance floor table are reserved.\",Owner:\"-\",By:\"-\",Status:\"Locked\"},\n\n{Block:\"FINAL WEEKS\",Item:\"Props and print run\",Detail:\"One Amazon basket plus one print shop trip. Paddles, card box, bubble wands, disposable cameras, picnic blanket. Print the chapter cards, story map, quiz sheets, mission cards, advice cards and guestbook print. Roughly £100 all in.\",Owner:\"Loz\",By:\"Sun 23 Aug\",Status:\"Not started\"},\n{Block:\"FINAL WEEKS\",Item:\"Run of show and game scripts\",Detail:\"Who MCs the quiz and the paddle round. Collect Mr and Mrs questions from both families separately without the other knowing. Time the speeches at 10 minutes total.\",Owner:\"Both\",By:\"Sun 30 Aug\",Status:\"Not started\"},\n{Block:\"FINAL WEEKS\",Item:\"WhatsApp the post-4pm crowd\",Detail:\"Who is staying for the bar and shisha. Sizes the shisha pre-order at the relaxed 1 per 4 ratio.\",Owner:\"Krish\",By:\"Wed 26 Aug\",Status:\"Not started\"},\n{Block:\"FINAL WEEKS\",Item:\"Event week admin\",Detail:\"Send car registration numbers to Anna. Confirm payment method (card on the day, or pre-arranged bank transfer). Pack props, prints, guestbook, cake stand and kids kits. Collect the cake Saturday morning.\",Owner:\"Both\",By:\"Fri 4 Sep\",Status:\"Not started\"},\n\n{Block:\"THINK ABOUT\",Item:\"The layout lever is gone\",Detail:\"Round tables are fixed, so mixing has to come from what sits on the table rather than its shape. Story tables, quiz sheets, butcher paper and advice cards just became load-bearing rather than decorative.\",Owner:\"Both\",By:\"-\",Status:\"-\"},\n{Block:\"THINK ABOUT\",Item:\"Hiring a musician is a systems decision\",Detail:\"It solves the missing mic, the missing speaker and the missing playlist route in one line item. Judge £350 against buying a speaker plus a mic plus having no live music.\",Owner:\"Both\",By:\"-\",Status:\"-\"},\n{Block:\"THINK ABOUT\",Item:\"The screen is the cheapest big surface you have\",Detail:\"3.3m by 4.7m. Hiding it costs money, using it costs a file upload. A niece illustration or a slow photo slideshow would do more for the room than any decor spend of the same value.\",Owner:\"Both\",By:\"-\",Status:\"-\"},\n{Block:\"THINK ABOUT\",Item:\"Section 2 keeps open floor even when full\",Detail:\"Anna confirmed there is mingling space, dance floor space and room for kids to run even with every table in. That is where the games and the 16:00 bubble send-off happen.\",Owner:\"Both\",By:\"-\",Status:\"-\"},\n{Block:\"THINK ABOUT\",Item:\"Anna works from her own spreadsheet\",Detail:\"She transposes whatever you send into her own template, because that is what her team and the kitchen read on the day. Do not fight it. Send clean information in any format and let her convert.\",Owner:\"Both\",By:\"-\",Status:\"-\"},\n\n{Block:\"CALL NOTES 31 JUL\",Item:\"Anna working style\",Detail:\"Prefers questions by email so she can work through them between functions. She had two functions the weekend of the call and apologised for slow replies during the World Cup period. Everything she agrees goes onto her own spreadsheet, shared with her team and kitchen.\",Owner:\"-\",By:\"-\",Status:\"-\"},\n{Block:\"CALL NOTES 31 JUL\",Item:\"Why the tasting sequencing matters\",Detail:\"Dishes sometimes differ from expectation and the menu must be locked before it reaches the kitchen. The earlier you taste, the more room there is to switch anything.\",Owner:\"-\",By:\"-\",Status:\"-\"},\n{Block:\"CALL NOTES 31 JUL\",Item:\"Why DJ Gurj specifically\",Detail:\"The marquee is a covered garden, not an insulated room, so bass carries. Anna allowed a DJ years ago, the party pushed him louder and louder, and it became a problem. DJ Gurj visited beforehand, agreed to work within the music policy, and the night went well. That is why he is the only DJ she recommends.\",Owner:\"-\",By:\"-\",Status:\"-\"},\n{Block:\"CALL NOTES 31 JUL\",Item:\"Vendor sharing precedent\",Detail:\"Anna raised it unprompted and mentioned doing the same at her own wedding in Poland, coordinating church decorations with the party booked after hers and splitting the cost. She is comfortable brokering the introduction.\",Owner:\"-\",By:\"-\",Status:\"-\"},\n{Block:\"CALL NOTES 31 JUL\",Item:\"The floor plan is the unlock\",Detail:\"Almost every open creative decision is blocked on seeing the space to scale. Loz made the point on the call: you cannot judge how much to add until you see how 10 tables of 10 actually sit in the room.\",Owner:\"-\",By:\"-\",Status:\"-\"}\n\n];\nreturn rows.map(r => ({json: r}));"
+      }
+    },
+    {
+      "id": "236cb5a5-5c98-4322-bbef-928249f1d792",
+      "name": "Write Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Action Plan"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn",
+          "useAppend": true
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "6509bf3a-a8da-4a25-b1a5-65892f50bc1d",
+      "name": "Get Metadata Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "ef34fbac-ab79-4597-9fc3-315adb4ba06a",
+      "name": "Build Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst s = sheets.find(x => x.properties.title === \"Action Plan\");\nif (!s) return [{json:{requests:[]}}];\nconst sid = s.properties.sheetId;\nconst requests = [];\n\nrequests.push({updateSheetProperties:{properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},fields:\"gridProperties.frozenRowCount\"}});\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{backgroundColor:{red:0.12,green:0.16,blue:0.22},horizontalAlignment:\"LEFT\",verticalAlignment:\"MIDDLE\",wrapStrategy:\"WRAP\",textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:11}}},fields:\"userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)\"}});\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:80},cell:{userEnteredFormat:{verticalAlignment:\"TOP\",wrapStrategy:\"WRAP\",textFormat:{fontSize:10}}},fields:\"userEnteredFormat(verticalAlignment,wrapStrategy,textFormat)\"}});\n\n[150,270,560,80,105,105].forEach((w,i) => {\n  requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:\"COLUMNS\",startIndex:i,endIndex:i+1},properties:{pixelSize:w},fields:\"pixelSize\"}});\n});\n\nrequests.push({repeatCell:{range:{sheetId:sid,startRowIndex:1,endRowIndex:80,startColumnIndex:1,endColumnIndex:2},cell:{userEnteredFormat:{textFormat:{bold:true,fontSize:10}}},fields:\"userEnteredFormat.textFormat\"}});\n\nconst blockRule = (txt,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:80,startColumnIndex:0,endColumnIndex:1}],booleanRule:{condition:{type:\"TEXT_CONTAINS\",values:[{userEnteredValue:txt}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(blockRule(\"CRITICAL PATH\",{red:0.99,green:0.82,blue:0.82},{red:0.55,green:0.06,blue:0.06}));\nrequests.push(blockRule(\"ONE EMAIL\",{red:1,green:0.93,blue:0.78},{red:0.48,green:0.31,blue:0.02}));\nrequests.push(blockRule(\"DECIDE BETWEEN YOU\",{red:0.83,green:0.9,blue:0.99},{red:0.05,green:0.25,blue:0.56}));\nrequests.push(blockRule(\"SETTLED\",{red:0.83,green:0.94,blue:0.86},{red:0.04,green:0.35,blue:0.18}));\nrequests.push(blockRule(\"FINAL WEEKS\",{red:0.91,green:0.88,blue:0.99},{red:0.32,green:0.16,blue:0.6}));\nrequests.push(blockRule(\"THINK ABOUT\",{red:0.93,green:0.93,blue:0.93},{red:0.3,green:0.3,blue:0.3}));\nrequests.push(blockRule(\"CALL NOTES\",{red:0.97,green:0.97,blue:0.97},{red:0.45,green:0.45,blue:0.45}));\n\n// HARD DEADLINE rows stand out in the Item column\nrequests.push({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:80,startColumnIndex:1,endColumnIndex:2}],booleanRule:{condition:{type:\"TEXT_CONTAINS\",values:[{userEnteredValue:\"HARD DEADLINE\"}]},format:{backgroundColor:{red:0.99,green:0.75,blue:0.75},textFormat:{bold:true,foregroundColor:{red:0.5,green:0.03,blue:0.03}}}}},index:0}});\n\nconst ownerRule = (name,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:80,startColumnIndex:3,endColumnIndex:4}],booleanRule:{condition:{type:\"TEXT_EQ\",values:[{userEnteredValue:name}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(ownerRule(\"Krish\",{red:0.85,green:0.91,blue:0.99},{red:0.06,green:0.27,blue:0.56}));\nrequests.push(ownerRule(\"Loz\",{red:0.99,green:0.89,blue:0.94},{red:0.6,green:0.09,blue:0.33}));\nrequests.push(ownerRule(\"Both\",{red:0.88,green:0.89,blue:0.99},{red:0.2,green:0.19,blue:0.6}));\n\nconst statusRule = (txt,bg,fg) => ({addConditionalFormatRule:{rule:{ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:80,startColumnIndex:5,endColumnIndex:6}],booleanRule:{condition:{type:\"TEXT_CONTAINS\",values:[{userEnteredValue:txt}]},format:{backgroundColor:bg,textFormat:{bold:true,foregroundColor:fg}}}},index:0}});\nrequests.push(statusRule(\"Locked\",{red:0.83,green:0.94,blue:0.86},{red:0.04,green:0.35,blue:0.18}));\nrequests.push(statusRule(\"Done\",{red:0.83,green:0.94,blue:0.86},{red:0.04,green:0.35,blue:0.18}));\nrequests.push(statusRule(\"Not started\",{red:1,green:0.93,blue:0.78},{red:0.48,green:0.31,blue:0.02}));\nrequests.push(statusRule(\"Open\",{red:0.99,green:0.82,blue:0.82},{red:0.55,green:0.06,blue:0.06}));\n\nrequests.push({addBanding:{bandedRange:{range:{sheetId:sid,startRowIndex:1,endRowIndex:80,startColumnIndex:0,endColumnIndex:6},rowProperties:{firstBandColor:{red:1,green:1,blue:1},secondBandColor:{red:0.975,green:0.975,blue:0.98}}}}});\n\nrequests.push({updateSheetProperties:{properties:{sheetId:sid,index:1},fields:\"index\"}});\n\nreturn [{json:{requests}}];"
+      }
+    },
+    {
+      "id": "3695ed11-3bf9-4e82-aecc-b3158fa59f8f",
+      "name": "Apply Format",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Metadata Pre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Metadata Pre": {
+      "main": [
+        [
+          {
+            "node": "Build Pre Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pre Requests": {
+      "main": [
+        [
+          {
+            "node": "Apply Pre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Pre": {
+      "main": [
+        [
+          {
+            "node": "Create Action Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Action Plan": {
+      "main": [
+        [
+          {
+            "node": "Plan Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Rows": {
+      "main": [
+        [
+          {
+            "node": "Write Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Rows": {
+      "main": [
+        [
+          {
+            "node": "Get Metadata Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Metadata Post": {
+      "main": [
+        [
+          {
+            "node": "Build Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Format": {
+      "main": [
+        [
+          {
+            "node": "Apply Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

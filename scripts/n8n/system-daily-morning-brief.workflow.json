@@ -1,0 +1,212 @@
+{
+  "name": "System | Mindmaker OS | Daily Morning Brief",
+  "active": true,
+  "nodes": [
+    {
+      "name": "9AM Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 14,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "5edc5724-c9fa-4d09-b5dc-5485079c1ae7"
+    },
+    {
+      "name": "Get All Workflows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://krishraja10101.app.n8n.cloud/api/v1/workflows?limit=50",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "{{N8N_API_JWT}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "17045855-6684-45b5-98cd-1304b497456e"
+    },
+    {
+      "name": "Get Recent Errors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        500
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://krishraja10101.app.n8n.cloud/api/v1/executions?status=error&limit=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "{{N8N_API_JWT}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "62b21780-7718-4a31-929f-6d5fdac40fb2"
+    },
+    {
+      "name": "Build Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        400
+      ],
+      "parameters": {
+        "jsCode": "\nconst wfs = $('Get All Workflows').first().json;\nconst errs = $('Get Recent Errors').first().json;\nconst allWfs = wfs.data || [];\nconst activeCount = allWfs.filter(w => w.active).length;\nconst inactiveCount = allWfs.length - activeCount;\nconst errCount = (errs.data || []).length;\nconst statusEmoji = errCount > 0 ? '⚠️' : '✅';\nconst msg = `${statusEmoji} *OS Morning Brief*\n\n🤖 Workflows: ${activeCount} active / ${inactiveCount} inactive\n🚨 Recent errors: ${errCount}\n💰 Revenue: check Mission Control for MTD data\n\n${errCount > 0 ? '⚠️ Errors detected — check N8N executions' : '✅ All systems nominal'}\n\n📊 Mission Control: https://docs.google.com/spreadsheets/d/1JdUn2iQoJdzQVTnJUWv2DsZ6wAjBj-82fThWIXWCUK4/edit`;\nreturn [{ json: { msg } }];\n"
+      },
+      "id": "64474f9f-0a99-4c09-b873-ab0aa8a94bc2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: $workflow.name, agent_id: 'morning-brief', status: 'success', outcome: 'success', run_at: new Date().toISOString(), cost_estimate_usd: 0, api_calls_count: 2 } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Execution to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "0de48cd2-6d1a-4456-96b1-7f87be22f86f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "9AM Daily": {
+      "main": [
+        [
+          {
+            "node": "Get All Workflows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Recent Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Workflows": {
+      "main": [
+        [
+          {
+            "node": "Build Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Errors": {
+      "main": [
+        [
+          {
+            "node": "Build Brief",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Build Brief": {
+      "main": [
+        [
+          {
+            "node": "Log Execution to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:9AM Daily": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

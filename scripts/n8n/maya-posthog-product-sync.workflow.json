@@ -1,33 +1,38 @@
 {
   "name": "Maya | PostHog Product Sync",
   "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true
-  },
   "nodes": [
     {
+      "id": "53e8ad8a-41d8-4b73-a9f7-ff1f310ea55b",
       "name": "Daily 06:30 UTC",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [240, 240],
+      "position": [
+        0,
+        0
+      ],
       "parameters": {
-        "rule": { "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 6, "triggerAtMinute": 30 }] }
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
       }
     },
     {
-      "name": "Run now",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [240, 420],
-      "parameters": {}
-    },
-    {
+      "id": "1b037055-b95d-40db-b22c-5d46ff1c6d09",
       "name": "Build query",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 320],
+      "position": [
+        224,
+        96
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
@@ -35,33 +40,58 @@
       }
     },
     {
+      "id": "7b5067e7-2a1b-427e-a164-2e4abf16c561",
       "name": "PostHog query",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [720, 320],
+      "position": [
+        448,
+        96
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://us.posthog.com/api/projects/517641/query/",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "credentials": { "httpHeaderAuth": { "id": "odnaFGsgEa1trPhd", "name": "PostHog API" } },
       "onError": "continueRegularOutput",
-      "notes": "HogQL query API. Bearer personal key (PostHog API credential). Free within limits."
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "odnaFGsgEa1trPhd",
+          "name": "PostHog API"
+        }
+      }
     },
     {
+      "id": "0db40147-3b51-4c19-8316-724853483424",
       "name": "Map metrics",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 320],
+      "position": [
+        672,
+        96
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
@@ -70,19 +100,31 @@
       "executeOnce": true
     },
     {
+      "id": "f9c7f48d-ea95-4abc-945e-0132779b0766",
       "name": "Upsert product_metrics",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1200, 320],
+      "position": [
+        896,
+        96
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_metrics?on_conflict=product,metric_date,window_days",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
-        "headerParameters": { "parameters": [
-          { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -90,24 +132,41 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
       "executeOnce": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
+      "id": "ce132a04-185b-4e2f-b4da-43d1dd888383",
       "name": "Heartbeat",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1440, 320],
+      "position": [
+        1120,
+        96
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
-        "headerParameters": { "parameters": [
-          { "name": "Prefer", "value": "return=minimal" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
@@ -115,17 +174,107 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
       "executeOnce": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "f851599c-bd98-4b98-9761-574f4a32ab60",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {}
     }
   ],
   "connections": {
-    "Daily 06:30 UTC": { "main": [[{ "node": "Build query", "type": "main", "index": 0 }]] },
-    "Run now":         { "main": [[{ "node": "Build query", "type": "main", "index": 0 }]] },
-    "Build query":     { "main": [[{ "node": "PostHog query", "type": "main", "index": 0 }]] },
-    "PostHog query":   { "main": [[{ "node": "Map metrics", "type": "main", "index": 0 }]] },
-    "Map metrics":     { "main": [[{ "node": "Upsert product_metrics", "type": "main", "index": 0 }]] },
-    "Upsert product_metrics": { "main": [[{ "node": "Heartbeat", "type": "main", "index": 0 }]] }
+    "Daily 06:30 UTC": {
+      "main": [
+        [
+          {
+            "node": "Build query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build query": {
+      "main": [
+        [
+          {
+            "node": "PostHog query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostHog query": {
+      "main": [
+        [
+          {
+            "node": "Map metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map metrics": {
+      "main": [
+        [
+          {
+            "node": "Upsert product_metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert product_metrics": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now": {
+      "main": [
+        [
+          {
+            "node": "Build query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Daily 06:30 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }

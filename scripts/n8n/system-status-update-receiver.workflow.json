@@ -1,0 +1,148 @@
+{
+  "name": "System | Mindmaker OS | Status Update Receiver",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "status-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Status Update Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "status-update-receiver"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\n// Two kinds of heartbeat reach this webhook and they are not the same thing.\n//\n//  * WORKFLOW heartbeats carry workflow_id + workflow_name and describe one\n//    n8n execution. They belong in workflow_runs.\n//  * AGENT heartbeats come from the VPS agents (curl, type:'agent'). They have\n//    no workflow_id because they are not n8n workflows. They belong on the\n//    agents row, in last_run / last_output.\n//\n// The CLO-002 guard (audit C4) was right that anonymous rows must not pollute\n// workflow_runs, but it tested for the wrong thing: it rejected every\n// agent heartbeat too, so 100% of traffic failed and the fleet went dark for\n// weeks with nothing recorded. Reject only genuinely unidentified callers.\n\nconst agentId = body.agent_id || body.agent || '';\nconst agentName = body.agent_name || '';\nconst wfId = body.workflow_id || '';\nconst wfName = body.workflow_name || '';\n\nif (!agentId && !agentName && !wfId) {\n  throw new Error('unidentified heartbeat: need agent_id/agent_name or workflow_id');\n}\n\n// The roster keys on a short lowercase slug (\"priya\"); the VPS sends a\n// descriptive id (\"product-agent\") plus the display name. Prefer the name,\n// which matches the slug, and fall back to the id.\nconst slug = (agentName || agentId).toLowerCase().replace(/[^a-z0-9]/g, '');\n\nconst isWorkflow = Boolean(wfId && wfName);\nconst now = new Date().toISOString();\n\nreturn [{\n  json: {\n    kind: isWorkflow ? 'workflow' : 'agent',\n    timestamp: body.timestamp || now,\n    agent_id: slug,\n    agent_id_raw: agentId,\n    agent_name: agentName,\n    workflow_id: wfId || null,\n    workflow_name: wfName || null,\n    status: body.status || 'unknown',\n    outcome: body.outcome || '',\n    summary: body.summary || '',\n    next_run: body.next_run || '',\n    duration_ms: body.duration_ms || 0,\n    cost_usd: body.cost_usd || 0,\n    api_calls: body.api_calls || 0,\n    quality_score: body.quality_score || null,\n    detail: body.detail || body.message || body.summary || '',\n    raw: JSON.stringify(body)\n  }\n}];\n"
+      },
+      "id": "node-validate",
+      "name": "Validate & Normalise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lxhOwWWA-lNfM-veizfvcIhSd5yBq51ASq468p9s6Kk",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Status"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-append",
+      "name": "Append to Status Board",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        680,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const cfg = { method: opts.method || 'POST', url: opts.url, headers: opts.headers || {}, json: true, returnFullResponse: true, timeout: 15000 };\n  if (opts.body) cfg.body = opts.body;\n  try {\n    const res = await __helpers.httpRequest(cfg);\n    return res.body || res;\n  } catch (err) {\n    return { error: err.message };\n  }\n}\nconst d = $('Validate & Normalise').first().json;\nconst SERVICE_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst H = {\n  'apikey': SERVICE_KEY,\n  'Authorization': 'Bearer ' + SERVICE_KEY,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=minimal'\n};\n\n// Agent heartbeats update the agent's own row. They are deliberately NOT\n// written to workflow_runs, which is one row per n8n execution.\nif (d.kind === 'agent') {\n  const out = d.summary || d.detail || d.outcome || '';\n  await __httpRequest({\n    method: 'PATCH',\n    url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.' + encodeURIComponent(d.agent_id),\n    headers: H,\n    body: { last_run: d.timestamp, last_output: out }\n  });\n  return [{ json: { logged: 'agent', agent_id: d.agent_id } }];\n}\n\nconst payload = {\n  workflow_id: d.workflow_id,\n  workflow_name: d.workflow_name,\n  agent_id: d.agent_id,\n  duration_ms: d.duration_ms,\n  api_calls: d.api_calls,\n  cost_usd: d.cost_usd,\n  outcome: d.outcome,\n  outcome_count: 0,\n  quality_score: d.quality_score,\n  status: d.status,\n  metadata: JSON.stringify({ source: 'status_update_webhook', detail: d.detail })\n};\nawait __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: H,\n  body: payload\n});\nreturn [{ json: { logged: 'workflow' } }];\n"
+      },
+      "id": "node-supabase",
+      "name": "Log to workflow_runs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"received\": true, \"agent_id\": $('Validate & Normalise').first().json.agent_id, \"status\": $('Validate & Normalise').first().json.status } }}",
+        "options": {}
+      },
+      "id": "node-respond",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Status Update Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Normalise": {
+      "main": [
+        [
+          {
+            "node": "Append to Status Board",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to workflow_runs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Status Board": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to workflow_runs": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null
+}

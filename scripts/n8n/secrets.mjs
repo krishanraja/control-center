@@ -30,6 +30,32 @@ export const PLACEHOLDERS = {
   // snapshots and check-no-secrets had no rule for it. Cloud had drifted to a
   // DIFFERENT bot token, so a --apply would also have swapped the bot.
   '{{TELEGRAM_BOT_TOKEN}}': 'TELEGRAM_BOT_TOKEN',
+  // Added 2026-09-07 while rebuilding git/cloud parity. A faithful export of
+  // all 109 live workflows failed check-no-secrets on secrets this map did not
+  // know about: a SECOND Telegram bot (the ops bot, distinct from the one
+  // above, so they need separate tokens or a --apply swaps the bot), the OS
+  // project's anon key, and an n8n-issued API JWT used by workflows that call
+  // the n8n API itself.
+  '{{TELEGRAM_BOT_TOKEN_OPS}}': 'TELEGRAM_BOT_TOKEN_OPS',
+  '{{N8N_API_JWT}}': 'N8N_API_JWT',
+  '{{ANTHROPIC_API_KEY}}': 'ANTHROPIC_API_KEY',
+  // Added 2026-09-07. GitHub push protection rejected the parity commit on
+  // three more classes this map and check-no-secrets both missed: GitHub PATs,
+  // a Stripe RESTRICTED LIVE key, and Resend keys. Two distinct GitHub tokens
+  // and three distinct Resend keys exist in the fleet, so each needs its own
+  // slot rather than one shared placeholder.
+  '{{GITHUB_TOKEN}}': 'GITHUB_TOKEN',
+  '{{GITHUB_TOKEN_2}}': 'GITHUB_TOKEN_2',
+  '{{STRIPE_RESTRICTED_KEY}}': 'STRIPE_RESTRICTED_KEY',
+  '{{RESEND_API_KEY}}': 'RESEND_API_KEY',
+  '{{RESEND_API_KEY_2}}': 'RESEND_API_KEY_2',
+  '{{RESEND_API_KEY_3}}': 'RESEND_API_KEY_3',
+  // Round three. GitHub named these two explicitly after the previous push was
+  // rejected: a Perplexity key and an Apify token, both inline in Zara's
+  // sweeps. The lesson is the general one, not the specific keys: an export of
+  // the whole fleet surfaces every secret anyone ever pasted into a node.
+  '{{PERPLEXITY_API_KEY}}': 'PERPLEXITY_API_KEY',
+  '{{APIFY_API_TOKEN}}': 'APIFY_API_TOKEN',
 }
 
 function walk(value, fn) {

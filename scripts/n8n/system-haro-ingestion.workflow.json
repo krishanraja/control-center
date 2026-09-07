@@ -1,0 +1,425 @@
+{
+  "name": "System | Mindmaker OS | HARO Ingestion",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "name": "Every 30 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "db5d50b5-545c-46fc-956c-aed6d98a4c4e"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 50,
+        "filters": {
+          "q": "(from:haro@helpareporter.com OR from:noreply@featured.com OR from:mail@helpareporter.com OR from:noreply@connectively.us) newer_than:2d"
+        },
+        "options": {}
+      },
+      "name": "Gmail: Get HARO Messages",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        250,
+        400
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lHiqteKckU5IUxQ6",
+          "name": "Gmail account"
+        }
+      },
+      "webhookId": "4140704d-7dc3-45b1-8f3e-9ed5efdc43d5",
+      "id": "393aae1d-0693-488e-a639-fb1b9161a2a4"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Filter out emails we've already ingested\nconst incoming = $input.all();\nif (incoming.length === 0) return [{ json: { skipped: true, reason: 'no new emails', count: 0 } }];\n\nreturn incoming.map(it => ({\n  json: {\n    gmailId: it.json.id,\n    threadId: it.json.threadId,\n    subject: (it.json.payload?.headers || []).find(h => h.name === 'Subject')?.value || '',\n    from: (it.json.payload?.headers || []).find(h => h.name === 'From')?.value || '',\n    receivedAt: new Date(parseInt(it.json.internalDate || '0')).toISOString(),\n    snippet: it.json.snippet || '',\n    body: it.json.payload?.parts ? extractBody(it.json.payload) : (it.json.payload?.body?.data ? Buffer.from(it.json.payload.body.data, 'base64').toString('utf8') : '')\n  }\n}));\n\nfunction extractBody(payload) {\n  if (payload.body?.data) {\n    return Buffer.from(payload.body.data, 'base64').toString('utf8');\n  }\n  for (const part of (payload.parts || [])) {\n    if (part.mimeType === 'text/plain' && part.body?.data) {\n      return Buffer.from(part.body.data, 'base64').toString('utf8');\n    }\n    if (part.parts) {\n      const nested = extractBody(part);\n      if (nested) return nested;\n    }\n  }\n  return '';\n}\n"
+      },
+      "name": "Normalize Gmail Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        400
+      ],
+      "id": "c34a3ea7-64ea-43aa-afef-a6668d3fce4a"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/haro_queries",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "gmail_message_id",
+              "value": "=eq.{{ $json.gmailId }}"
+            },
+            {
+              "name": "select",
+              "value": "id"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Dedup Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        750,
+        400
+      ],
+      "id": "48989a32-3f8a-4ba4-a15a-61e08ad6729a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst normalized = $('Normalize Gmail Messages').all();\nconst out = [];\nfor (let i = 0; i < items.length; i++) {\n  const existing = items[i].json;\n  const isNew = Array.isArray(existing) && existing.length === 0;\n  if (isNew && normalized[i]) {\n    out.push({ json: normalized[i].json });\n  }\n}\nreturn out.length > 0 ? out : [{ json: { skipped: true, reason: 'all already ingested' } }];\n"
+      },
+      "name": "Filter New Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "45c9d201-f36d-4005-a4db-b5d6b0b9c981"
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-haiku-4-5',\n  max_tokens: 4000,\n  system: 'You are an email parser. Extract individual press queries from HARO-style emails. Each email may contain multiple separate query requests from journalists. Return ONLY valid JSON array with no markdown.',\n  messages: [{\n    role: 'user',\n    content: 'Extract every individual press query in this email. For each one return: journalist_name, outlet, category, query_text (the actual question/request), deadline (ISO8601 or null), requirements (word count / expertise required / other constraints as string), email_to_pitch (the reply-to address or provided email, or null). Return strictly JSON array like [{journalist_name, outlet, category, query_text, deadline, requirements, email_to_pitch}]. If no queries found, return []. Email subject: ' + $json.subject + '\\n\\nEmail body:\\n' + ($json.body || $json.snippet).slice(0, 20000)\n  }]\n}) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi"
+      },
+      "name": "Haiku: Extract Queries",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        400
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "02d7d4ee-0a1f-4305-82eb-edc301d3e755"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Haiku returns JSON array. Each email can produce N query rows.\nconst items = $input.all();\nconst sources = $('Filter New Only').all();\nconst out = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const haiku = items[i].json;\n  const src = sources[i]?.json || {};\n  if (!src.gmailId) continue;\n  \n  let queries = [];\n  try {\n    const text = haiku.content?.[0]?.text || '';\n    // Strip any markdown code fences if Haiku used them despite instructions\n    const cleaned = text.replace(/^```json\\s*|\\s*```$/g, '').trim();\n    queries = JSON.parse(cleaned);\n    if (!Array.isArray(queries)) queries = [];\n  } catch (e) {\n    console.log('parse err on gmail', src.gmailId, ':', e.message);\n    queries = [];\n  }\n  \n  for (const q of queries) {\n    out.push({ json: {\n      gmail_message_id: src.gmailId + '::' + (q.query_text || '').slice(0,64),\n      received_at: src.receivedAt,\n      subject: src.subject || null,\n      source: 'haro',\n      journalist_name: q.journalist_name || null,\n      outlet: q.outlet || null,\n      category: q.category || null,\n      query_text: (q.query_text || '').slice(0, 4000),\n      deadline: q.deadline || null,\n      requirements: q.requirements || null,\n      email_to_pitch: q.email_to_pitch || null,\n      status: 'new'\n    } });\n  }\n}\n\nreturn out.length > 0 ? out : [{ json: { skipped: true, reason: 'no queries extracted' } }];\n"
+      },
+      "name": "Build Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        400
+      ],
+      "id": "189f6ba4-c2b6-491e-809b-38afd53c5d8b"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/haro_queries",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=ignore-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": false
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Insert HARO Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1750,
+        400
+      ],
+      "id": "87a37e44-fed4-4259-b8ff-4005a0049c5b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  workflow_id: $workflow.id,\n  workflow_name: 'HARO Ingestion',\n  agent_id: 'system',\n  outcome: 'success',\n  status: 'success',\n  cost_estimate_usd: 0.002,\n  api_calls_count: 3\n}) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        400
+      ],
+      "id": "2eb4a4ba-f4ac-4acf-848f-17190df4e7fd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const rows = $('Build Rows').all().filter(i => !i.json.skipped);\n  return JSON.stringify({\n    actor: 'haro-ingestion',\n    event_type: 'haro-queries-ingested',\n    display_message: 'HARO Ingestion: ' + rows.length + ' new queries captured',\n    details: JSON.stringify({ count: rows.length })\n  });\n})() }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1875,
+        400
+      ],
+      "id": "0c25c770-6e7c-4dab-b36c-1a30ea7c312b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 min": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Get HARO Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Get HARO Messages": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gmail Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gmail Messages": {
+      "main": [
+        [
+          {
+            "node": "Dedup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Check": {
+      "main": [
+        [
+          {
+            "node": "Filter New Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New Only": {
+      "main": [
+        [
+          {
+            "node": "Haiku: Extract Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku: Extract Queries": {
+      "main": [
+        [
+          {
+            "node": "Build Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows": {
+      "main": [
+        [
+          {
+            "node": "Insert HARO Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert HARO Row": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Every 30 min": {
+      "recurrenceRules": [
+        10
+      ],
+      "recurrenceRuleSignatures": [
+        "hours:2"
+      ]
+    }
+  }
+}

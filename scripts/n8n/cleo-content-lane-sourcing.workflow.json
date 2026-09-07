@@ -1,5 +1,6 @@
 {
-  "name": "Cleo | mind/make OS | Content Lane Sourcing",
+  "name": "Cleo | Mindmaker OS | Content Lane Sourcing",
+  "active": true,
   "nodes": [
     {
       "name": "Daily 13:00 UTC",
@@ -66,7 +67,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "id": "024a82ce-9e27-4a67-a8f2-55cba4c4aa2f"
+      "id": "024a82ce-9e27-4a67-a8f2-55cba4c4aa2f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Get Cadence",
@@ -88,7 +95,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "id": "fd6546c7-fe42-4ca7-8d2e-2b5e6206334e"
+      "id": "fd6546c7-fe42-4ca7-8d2e-2b5e6206334e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Get Lane Configs",
@@ -110,7 +123,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "id": "f2b45ae7-698f-495d-8fbf-8c5955b13701"
+      "id": "f2b45ae7-698f-495d-8fbf-8c5955b13701",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Get Recent Drafts",
@@ -132,7 +151,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "id": "b9b7330e-5860-41a6-85ac-31c4aedbb6c3"
+      "id": "b9b7330e-5860-41a6-85ac-31c4aedbb6c3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Plan Due Lanes",
@@ -182,7 +207,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "perplexityApi"
       },
-      "id": "8e2da951-87a5-4085-a543-29475b450135"
+      "id": "8e2da951-87a5-4085-a543-29475b450135",
+      "credentials": {
+        "perplexityApi": {
+          "id": "RtaqJmoj4e469ZMx",
+          "name": "Perplexity account 2026-05-27b"
+        }
+      }
     },
     {
       "name": "Sonnet Draft",
@@ -222,7 +253,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "anthropicApi"
       },
-      "id": "8f224186-dfc8-41e6-981e-c8f9942b14bb"
+      "id": "8f224186-dfc8-41e6-981e-c8f9942b14bb",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      }
     },
     {
       "name": "Map Idea Row",
@@ -277,7 +314,13 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "id": "0987bd02-1214-4bc5-b973-1e6c59d5025b"
+      "id": "0987bd02-1214-4bc5-b973-1e6c59d5025b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Build Heartbeat",
@@ -289,7 +332,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "function rows(nm){const out=[];for(const it of $(nm).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const recent=rows('Get Recent Drafts');\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;for(const cc of cadence){if(!['overdue','due_soon','no_data'].includes(cc.status))continue;if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;due++;}\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | mind/make OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'success',outcome_count:due,status:'success',metadata:{lanes_due:due}}}];"
+        "jsCode": "function rows(nm){const out=[];for(const it of $(nm).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const recent=rows('Get Recent Drafts');\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;for(const cc of cadence){if(!['overdue','due_soon','no_data'].includes(cc.status))continue;if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;due++;}\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | Mindmaker OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'success',outcome_count:due,status:'success',metadata:{lanes_due:due}}}];"
       },
       "id": "3348bb2b-9be8-4211-b53a-866973d77753"
     },
@@ -332,7 +375,13 @@
         "nodeCredentialType": "supabaseApi"
       },
       "executeOnce": true,
-      "id": "e52b8210-6051-4170-b951-54bd3d9a8b45"
+      "id": "e52b8210-6051-4170-b951-54bd3d9a8b45",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -466,9 +515,14 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "_snapshot": {
-    "workflow_id": "rRAyEUs7NsY06hFy",
-    "exported": "2026-07-27",
-    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source"
+  "staticData": {
+    "node:Daily 13:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }
