@@ -19,7 +19,7 @@ Charter in `CHARTER.md`. Decision in `docs/DECISIONS/016-ikigai-v4-one-swing.md`
 ## Vercel state (6 September 2026)
 
 - `main` fast-forwarded to `19010fc`; control-center production deployment `dpl_3z5PW1ob4tr1ReQt5f9KYMLL8fjp` READY at `controlcenter.krishraja.com` with 28 crons (the four one-swing crons registered). `GET /api/scorecard` serves the twelve weeks and targets; `/api/room` answers 401 without the access cookie.
-- Env added to control-center (production and preview): `GITHUB_REPOS` (the fifteen active repos), `GITHUB_AUTHOR=krishanraja`, `UNASKED_HOURS_PER_COMMIT=0.5`, `VITE_BRIDGES_LANE_ENABLED=false`. `GITHUB_TOKEN` already existed and is reused; the first Saturday run (04:00 UTC) proves whether it can read commits. `PARTNER_EMAIL` unset until a partner exists.
+- Env added to control-center (production and preview): `GITHUB_REPOS` (the fifteen active repos), `GITHUB_AUTHOR=krishanraja` (no longer read since 2026-09-07: every commit in every listed repo counts), `UNASKED_HOURS_PER_COMMIT=0.5`, `VITE_BRIDGES_LANE_ENABLED=false`. `GITHUB_TOKEN` already existed and is reused; the first Saturday run (04:00 UTC) proves whether it can read commits. `PARTNER_EMAIL` unset until a partner exists.
 - Compound's ignored-build command now treats an unknown previous commit as "build" (`git cat-file -e` guard); the first production build after the fast-forward failed on `fatal: bad object` because seven commits landed at once. Redeployed from main via the API as `dpl_9NBPPqiRwztVDjHuMhPjMXmxrF1A`.
 - The cron secret is stored as sensitive and cannot be read back, so no cron was fired by hand. Monday 10:00 UTC drafts approaches and 10:30 UTC sends the first scorecard to Telegram; Saturday 04:00 and 04:30 UTC count commits and freeze the week.
 

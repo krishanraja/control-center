@@ -12,6 +12,13 @@ import { weekEndingFor, weekRangeUtc } from '../_scorecard.js'
 // default 0.5). The estimate is labelled as one everywhere it renders; the
 // commit count is the fact.
 //
+// Every commit in the repo counts, not only those authored under Krish's
+// GitHub login. Krish, 2026-09-07: a dry run showed most session commits carry
+// the coding agent's noreply address (36 of 38 in one repo, 18 of 34 in this
+// one), which an author filter drops, so the tripwire was reading roughly half
+// the truth. Every repo in GITHUB_REPOS is his, so every commit in it is his
+// build. GITHUB_AUTHOR is no longer read.
+//
 // Runs Saturday 04:00 UTC (vercel.json), before the Friday freeze at 04:30, so
 // the freeze reads a synced row. Accepts ?week_ending=YYYY-MM-DD for backfills.
 //
@@ -36,8 +43,8 @@ function nextLink(header: string | null): string | null {
   return null
 }
 
-async function countCommits(repo: string, author: string, token: string, since: string, until: string): Promise<number> {
-  const params = new URLSearchParams({ author, since, until, per_page: '100' })
+async function countCommits(repo: string, token: string, since: string, until: string): Promise<number> {
+  const params = new URLSearchParams({ since, until, per_page: '100' })
   let url: string | null = `https://api.github.com/repos/${repo}/commits?${params.toString()}`
   let total = 0
   for (let page = 0; page < MAX_PAGES && url; page += 1) {
@@ -63,7 +70,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const token = process.env.GITHUB_TOKEN || ''
   const repos = (process.env.GITHUB_REPOS || '').split(',').map(s => s.trim()).filter(Boolean)
-  const author = (process.env.GITHUB_AUTHOR || '').trim()
   if (!token || repos.length === 0) {
     return res.status(200).json({ ok: false, skipped: 'github_not_configured' })
   }
@@ -84,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const counts: Record<string, number> = {}
     let commits = 0
     for (const repo of repos) {
-      const n = await countCommits(repo, author, token, start.toISOString(), end.toISOString())
+      const n = await countCommits(repo, token, start.toISOString(), end.toISOString())
       counts[repo] = n
       commits += n
     }
@@ -97,7 +103,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       hours_estimate: hours,
       hours_per_commit: hoursPerCommit,
       repos: repos.map(r => ({ repo: r, commits: counts[r] })),
-      author: author || null,
+      // Null on purpose since 2026-09-07: the count is every commit in the repo.
+      author: null,
       synced_at: now,
       updated_at: now,
     }, { onConflict: 'week_ending' })
