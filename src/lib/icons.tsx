@@ -163,7 +163,12 @@ export const ShieldAlert = premium(L.ShieldAlert, 'ShieldAlert')
 export const ShieldCheck = premium(L.ShieldCheck, 'ShieldCheck')
 export const SkipForward = premium(L.SkipForward, 'SkipForward')
 export const SlidersHorizontal = premium(L.SlidersHorizontal, 'SlidersHorizontal')
-export const Sparkles = premium(L.Sparkles, 'Sparkles')
+// No magic sparkle icons (Krish, 2026-09-08). Eighty call sites reach for
+// Sparkles to mean "the machine did this" and Wand2 to mean "refine or enrich
+// this". Both glyphs read as magic, and nothing here is magic: it is a model
+// call with a cost and a wait. The names stay so no call site changes; the
+// glyphs become the literal ones. Cpu for machine work, PenLine for an edit.
+export const Sparkles = premium(L.Cpu, 'Sparkles')
 export const StickyNote = premium(L.StickyNote, 'StickyNote')
 export const Square = premium(L.Square, 'Square')
 export const Sun = premium(L.Sun, 'Sun')
@@ -187,7 +192,7 @@ export const UserCog = premium(L.UserCog, 'UserCog')
 export const UserMinus = premium(L.UserMinus, 'UserMinus')
 export const UserPlus = premium(L.UserPlus, 'UserPlus')
 export const Users = premium(L.Users, 'Users')
-export const Wand2 = premium(L.Wand2, 'Wand2')
+export const Wand2 = premium(L.PenLine, 'Wand2')
 export const Workflow = premium(L.Workflow, 'Workflow')
 export const X = premium(L.X, 'X')
 export const XCircle = premium(L.XCircle, 'XCircle')
