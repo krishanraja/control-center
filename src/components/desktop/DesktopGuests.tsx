@@ -22,6 +22,7 @@ import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { GuestCard } from '../GuestCard'
 import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { FreshnessLine } from '../shared/FreshnessLine'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -214,8 +215,9 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             Visibility
           </h1>
           <p className="text-body text-white/55 mt-1">
-            Guests worth interviewing, and the events worth being at. Side by side.
+            Podcast guests to invite, and the stages, calls for papers and press to pitch. Side by side.
           </p>
+          <FreshnessLine lane="visibility" />
         </div>
         <div className="flex items-center gap-3">
           {isFocusModeEnabled() && calibrated && (

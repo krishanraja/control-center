@@ -22,11 +22,12 @@ looks identical to a dead one from here. Each needs a decision, not a sweep.
 > `ui/dialog`) and those files are load-bearing primitives — treat that
 > section as superseded.
 
-> **2026-09-06 one swing (ADR-016).** `DesktopBridges`, `MobileBridges`,
-> `BridgeCard`, `HunterStatus` and `useBridges` are flag-reachable, not dead:
-> the Bridges lane renders only when `VITE_BRIDGES_LANE_ENABLED=true` and the
-> deep link `#/people?lane=bridges` still resolves. The job search is parked,
-> not deleted. Do not sweep them.
+> **2026-09-07.** The Bridges lane is the Hunt lane and is on by default
+> (`VITE_BRIDGES_LANE_ENABLED=false` hides it). `DesktopBridges`,
+> `MobileBridges`, `BridgeCard`, `HunterStatus`, `useBridges` and
+> `useHuntRoles` are live. The Pipeline lane (`DesktopLeads`, `MobileLeads`)
+> left the nav but still renders on `#/people?lane=pipeline`; its import
+> dropzones are also mounted on Network. Do not sweep any of them.
 
 Most are v1 surfaces superseded by a v2 (`Sidebar` by `DesktopSidebar`,
 `DesktopAcquisition` by the folded Growth tab), which is the same class of

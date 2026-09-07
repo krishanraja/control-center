@@ -53,6 +53,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (roles.error) throw new Error(roles.error.message)
 
     const byContact = new Map((contacts.data || []).map(c => [c.contact_key as string, c]))
+    // People from the Control Center graph (contacts) carry a contact_key
+    // that is their LinkedIn slug, or contact:<uuid> when they have none, and
+    // are not in network_contacts. Look them up there so the card names them.
+    const missing = contactKeys.filter(k => !byContact.has(k))
+    const ccKeys = [...new Set(rows.map(b => b.contact_key as string | null)
+      .filter((k): k is string => !!k && k.startsWith('contact:')))]
+    const ccIds = ccKeys.map(k => k.slice('contact:'.length))
+    if (ccIds.length) {
+      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url').in('id', ccIds)
+      for (const c of data || []) {
+        byContact.set(`contact:${c.id}`, {
+          contact_key: `contact:${c.id}`, full_name: c.full_name, current_title: c.title,
+          current_company: c.company, strength_score: 0, linkedin_url: c.linkedin_url, strength_evidence: null,
+        })
+      }
+    }
+    for (const slug of missing.slice(0, 25)) {
+      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url')
+        .ilike('linkedin_url_norm', `%/in/${slug}%`).limit(1)
+      const c = (data || [])[0]
+      if (c) {
+        byContact.set(slug, {
+          contact_key: slug, full_name: c.full_name, current_title: c.title, current_company: c.company,
+          strength_score: 0, linkedin_url: c.linkedin_url || `https://www.linkedin.com/in/${slug}`, strength_evidence: null,
+        })
+      }
+    }
     const byJob = new Map((roles.data || []).map(r => [r.job_id as string, r]))
     const stateCounts: Record<string, number> = {}
     for (const r of counts.data || []) {

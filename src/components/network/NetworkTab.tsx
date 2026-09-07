@@ -11,6 +11,9 @@ import { SkeletonList } from '../shared/Skeleton'
 import { useNetworkGeo, geoLabel } from '../../hooks/useNetworkGeo'
 import { Working } from '../shared/Working'
 import { AddPersonFromImage } from './AddPersonFromImage'
+import { LeadImportDropzone } from '../LeadImportDropzone'
+import { SubstackImportDropzone } from '../SubstackImportDropzone'
+import { FreshnessLine } from '../shared/FreshnessLine'
 
 // The Network surface.
 //
@@ -32,6 +35,10 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
   const [lastQuestion, setLastQuestion] = useState('')
   const [recommendation, setRecommendation] = useState<{ venture: string; intent: string } | null>(null)
+  // The three ways people get into the graph sit together: a screenshot, a
+  // document or CSV, a Substack export. They used to be split across two
+  // lanes (this one and the retired Pipeline lane).
+  const [addOpen, setAddOpen] = useState(false)
 
   const runSearch = useCallback((q: string, f: FilterState) => {
     setLastQuestion(q)
@@ -137,9 +144,32 @@ export function NetworkTab({ narrow, onOpenPerson }: {
             extra right-aligned button here was chrome the thumb never asked
             for. (Before either existed, the v2 surface was read-only.) */}
         {!narrow && (
-          <div className="flex justify-end px-4 pb-1">
-            <AddPersonFromImage onAdded={() => { if (lastQuestion) runSearch(lastQuestion, filters) }} />
+          <div className="flex items-center justify-between gap-3 px-4 pb-1">
+            <FreshnessLine lane="network" className="mt-0" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAddOpen(v => !v)}
+                aria-expanded={addOpen}
+                data-testid="network-add-people"
+                className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
+              >
+                {addOpen ? 'Close' : 'Add people from a file'}
+              </button>
+              <AddPersonFromImage onAdded={() => { if (lastQuestion) runSearch(lastQuestion, filters) }} />
+            </div>
           </div>
+        )}
+        {!narrow && addOpen && (
+          <section className="mx-4 mb-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3" data-testid="network-add-people-panel">
+            <p className="text-label text-white/55 mb-2">
+              Drop a document or CSV of people, or a Substack subscriber export. Everyone lands in this one graph.
+            </p>
+            <LeadImportDropzone />
+            <div className="mt-3">
+              <SubstackImportDropzone />
+            </div>
+          </section>
         )}
         {!hasRun && <VentureRecommender onRecommend={onRecommend} loading={s.loading} active={recommendation} />}
       </div>

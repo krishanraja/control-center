@@ -21,6 +21,7 @@ const TIER_META: Record<BridgeTier, { label: string; Icon: LucideIcon; chip: str
   newsletter_move: { label: 'Just joined, per a16z newsletter', Icon: Newspaper, chip: 'bg-sky-500/10 text-sky-300' },
   ex_employee: { label: 'Worked there', Icon: History, chip: 'bg-violet-500/15 text-violet-200' },
   headhunter: { label: 'Headhunter path', Icon: Megaphone, chip: 'bg-amber-500/10 text-amber-300' },
+  cold_target: { label: 'Outside your network, named', Icon: Compass, chip: 'bg-sky-500/10 text-sky-200' },
   peer_transition: { label: 'Outside network', Icon: Compass, chip: 'bg-white/[0.08] text-white/60' },
 }
 

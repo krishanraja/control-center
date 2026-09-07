@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Search, FileText } from '@/lib/icons'
+import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Search, FileText, Play } from '@/lib/icons'
 import { Eyebrow } from './shared/Eyebrow'
 import { Working } from './shared/Working'
 import { useToast } from './shared/Toast'
@@ -23,23 +23,24 @@ interface HunterStatusPayload {
   alert: { failure_type: string; detail: string | null; run_count: number } | null
   waitingOnKrish: number | null
   approvedAwaitingBuild: number | null
+  deadApproved?: number | null
   packagesBuilt: number | null
   nextFireUtc: string
 }
 
 interface Command {
   id: number
-  command: 'source' | 'packages'
+  command: 'process' | 'source' | 'packages'
   state: 'queued' | 'running' | 'done' | 'failed'
   requested_at: string
   result: string | null
   error: string | null
 }
 
-// Hunter runs inside a scheduled cloud session, so a button cannot execute it
-// directly. It queues the command and a Routine on the hour runs it. Saying so
-// is the point: the button this replaces wrote a note and looked like a
-// trigger.
+// Hunter runs on GitHub Actions. A press queues the command and fires a
+// dispatch, so it starts within a minute; if the dispatch cannot be sent the
+// hourly drain picks the queued row up instead. The caption says which.
+const RUNS_NOW = 'starts within a minute'
 const RUNS_WITHIN = 'runs within the hour'
 
 function ago(iso: string): string {
@@ -66,7 +67,7 @@ export function HunterStatus() {
   const loadCommands = () =>
     fetch('/api/hunter/run')
       .then(r => r.json())
-      .then(j => { if (j?.ok) setCommands(j.commands as Command[]) })
+      .then(j => { if (j?.ok) setCommands((j.commands as Command[]) || []) })
       .catch(() => { /* the strip is useful without the queue */ })
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export function HunterStatus() {
     return () => { live = false; clearInterval(poll) }
   }, [])
 
-  const queue = async (command: 'source' | 'packages') => {
+  const queue = async (command: 'process' | 'source' | 'packages') => {
     setBusy(command)
     try {
       const r = await fetch('/api/hunter/run', {
@@ -90,7 +91,9 @@ export function HunterStatus() {
       })
       const j = await r.json()
       toast(j?.ok
-        ? j.queued ? `Queued. It ${RUNS_WITHIN}.` : 'Already queued, waiting to run.'
+        ? j.queued
+          ? (j.dispatched ? `Started. It ${RUNS_NOW}.` : `Queued. It ${RUNS_WITHIN}.`)
+          : 'Already queued, waiting to run.'
         : `Could not queue: ${j?.error || 'unknown error'}`)
       await loadCommands()
     } catch {
@@ -149,7 +152,13 @@ export function HunterStatus() {
         {s.approvedAwaitingBuild != null && s.approvedAwaitingBuild > 0 && (
           <span className="flex items-baseline gap-1.5 text-white/60">
             <span className="text-ui font-semibold tabular-nums text-white/80">{s.approvedAwaitingBuild}</span>
-            <span className="text-label">approved, packages build next run</span>
+            <span className="text-label">said Yes, package not built yet</span>
+          </span>
+        )}
+        {s.deadApproved != null && s.deadApproved > 0 && (
+          <span className="flex items-baseline gap-1.5 text-amber-200/80">
+            <span className="text-ui font-semibold tabular-nums">{s.deadApproved}</span>
+            <span className="text-label">said Yes but the posting is gone, your call on the sheet</span>
           </span>
         )}
         {s.packagesBuilt != null && (
@@ -164,6 +173,15 @@ export function HunterStatus() {
           buttons onto separate lines on a phone. It belongs under them. */}
       <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2 sm:flex sm:items-center">
         <button
+          onClick={() => queue('process')}
+          disabled={busy === 'process'}
+          data-testid="hunter-process"
+          className="col-span-2 sm:col-auto flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg bg-violet-500/20 border border-violet-400/30 text-violet-100 hover:bg-violet-500/30 disabled:opacity-50 text-label font-semibold transition-colors"
+        >
+          {busy === 'process' ? <Working size={12} /> : <Play size={12} />}
+          Process my verdicts
+        </button>
+        <button
           onClick={() => queue('source')}
           disabled={busy === 'source'}
           className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
@@ -177,7 +195,7 @@ export function HunterStatus() {
           className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
         >
           {busy === 'packages' ? <Working size={12} /> : <FileText size={12} />}
-          Build approved packages
+          Build packages
         </button>
         <span className="text-micro text-white/40">
           {inFlight
@@ -188,7 +206,7 @@ export function HunterStatus() {
               ? lastDone.state === 'failed'
                 ? `last ${lastDone.command} failed: ${(lastDone.error || '').slice(0, 60)}`
                 : `last ${lastDone.command}: ${lastDone.result || 'done'}`
-              : `queues a run, ${RUNS_WITHIN}`}
+              : `Process reads column A on the sheet and does the rest; ${RUNS_NOW}`}
         </span>
       </div>
     </section>

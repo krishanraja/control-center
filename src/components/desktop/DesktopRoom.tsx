@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Check, Search, Users, X } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { FreshnessLine } from '../shared/FreshnessLine'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'
 import { RoomCard } from '../room/RoomCard'
@@ -14,7 +15,7 @@ import type { RoomProposal, RoomState } from '../../hooks/useRoom'
 // because that is where the work waits; every other state is one chip away
 // so a sent approach can be moved along when the reply comes.
 
-const SUBTITLE = 'The 25 leaders who fit the face. The OS drafts, you send.'
+const SUBTITLE = 'Mindmake sales list: up to 25 leaders you already know at PE or VC backed media, adtech and data companies. The OS finds a news hook and drafts the note. You send.'
 
 /** The counts line, in ladder order, only the states that have anyone. */
 function countsLine(counts: Record<string, number>): string {
@@ -86,6 +87,7 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
         The Room
       </h1>
       <p className="text-body text-white/55 mt-1">{SUBTITLE}</p>
+      <FreshnessLine lane="room" />
     </header>
   )
 
