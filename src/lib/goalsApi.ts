@@ -1,6 +1,9 @@
 import { getZone } from './civilDate'
+import { requestJson, requestOk } from './apiFetch'
 
-const API = import.meta.env.VITE_API_URL ?? ''
+// The goal gate runs a model pass on every create, so a create is allowed
+// more time than a plain save before it is called hung.
+const GATE_TIMEOUT_MS = 25_000
 
 // The ONE wire path for goal writes (guarded by scripts/check-goal-ladder.mts).
 //
@@ -45,10 +48,10 @@ export async function createGoal(input: {
   override?: boolean
 }): Promise<CreateGoalResult> {
   const title = input.title.trim()
-  const r = await fetch(`${API}/api/objectives`, {
+  const r = await requestJson<{ ok?: boolean; error?: string; gate?: GateVerdictWire }>('/api/objectives', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    timeoutMs: GATE_TIMEOUT_MS,
+    body: {
       id: `${input.horizon}:${goalSlug(title)}`,
       title,
       horizon: input.horizon,
@@ -60,13 +63,13 @@ export async function createGoal(input: {
       // The week an objective belongs to is the device's Monday, so the zone
       // rides along the way every day-scoped pilot call sends it.
       tz: getZone(),
-    }),
+    },
   })
-  const j = await r.json().catch(() => ({}))
-  if (r.status === 422 && j?.error === 'goal_gate') {
-    return { ok: false, gate: j.gate as GateVerdictWire }
+  const j = r.json
+  if (r.status === 422 && j?.error === 'goal_gate' && j.gate) {
+    return { ok: false, gate: j.gate }
   }
-  if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+  if (!r.ok || !j || j.ok === false) throw new Error(j?.error || `The server could not save that (${r.status}).`)
   return { ok: true }
 }
 
@@ -75,29 +78,19 @@ export async function createGoal(input: {
  * Horizon-agnostic: keys off goalId.
  */
 export async function patchGoal(body: Record<string, unknown>): Promise<void> {
-  const r = await fetch(`${API}/api/goals`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, tz: getZone() }),
-  })
-  const j = await r.json().catch(() => ({}))
-  if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
+  await requestOk('/api/goals', { method: 'PATCH', body: { ...body, tz: getZone() }, timeoutMs: 12_000 })
 }
 
 /** Accept a Marcus-proposed goal (status proposed → active). */
 export async function acceptProposed(id: string): Promise<void> {
-  const r = await fetch(`${API}/api/objectives/${encodeURIComponent(id)}/nominate-accept`, { method: 'POST' })
-  const j = await r.json().catch(() => ({}))
-  if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
+  await requestOk(`/api/objectives/${encodeURIComponent(id)}/nominate-accept`, { method: 'POST', timeoutMs: 12_000 })
 }
 
 /** Reject a Marcus-proposed goal, with the reason that teaches the nominator. */
 export async function rejectProposed(id: string, reason?: string): Promise<void> {
-  const r = await fetch(`${API}/api/objectives/${encodeURIComponent(id)}/nominate-reject`, {
+  await requestOk(`/api/objectives/${encodeURIComponent(id)}/nominate-reject`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason_text: reason || null }),
+    body: { reason_text: reason || null },
+    timeoutMs: 12_000,
   })
-  const j = await r.json().catch(() => ({}))
-  if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
 }

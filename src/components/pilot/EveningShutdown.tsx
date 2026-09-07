@@ -9,6 +9,10 @@ import type { TomorrowSlot } from '../../types/pilot'
 import { OneActionPicker } from './OneActionPicker'
 import { Tap, VoiceField } from './controls'
 import { Modal } from '../shared/Modal'
+import { Pending } from '../shared/Pending'
+import { useElapsed } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
+import { failureMessage } from '../../lib/apiFetch'
 
 // The evening shutdown. Tomorrow's 3, chosen tonight at higher capacity so
 // the morning does not have to choose. Slot 1 is the ONE: the thing that must
@@ -90,6 +94,11 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
   const [moreOpen, setMoreOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // What was committed, held so a failed save can be retried without
+  // retyping. The picker's own state is gone by then.
+  const [lastCommit, setLastCommit] = useState<{ one: string; url?: string } | null>(null)
+  const saveMs = useElapsed(saving)
+  const work = useWork('pilot.shutdown')
 
   const weekly = useMemo(() => (canon?.weekly ?? []).filter(g => g.status === 'active'), [canon])
   const jobFor = (goalId: string) => weekly.find(g => g.id === goalId)?.job ?? null
@@ -106,6 +115,7 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
   const commit = async (one: string, pickedUrl?: string) => {
     setSaving(true)
     setError(null)
+    setLastCommit({ one, url: pickedUrl })
     try {
       const tomorrow: TomorrowSlot[] = [
         { slot: 1, text: one, goal_id: oneGoalId || null, job: jobFor(oneGoalId) },
@@ -121,7 +131,8 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
       h.notifySuccess()
       onSaved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save')
+      h.error()
+      setError(failureMessage(e, 'Could not close the day.'))
       setSaving(false)
     }
   }
@@ -199,7 +210,22 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
             </>
           )}
 
-          {error && <p className="text-body text-ink-muted">{error}</p>}
+          {saving && (
+            <Pending label={work.label} elapsedMs={saveMs} expectedMs={work.expectedMs} className="text-ink-muted" />
+          )}
+          {error && !saving && (
+            <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 flex flex-col gap-2">
+              <p className="text-body text-ink">{error}</p>
+              {lastCommit && (
+                <p className="text-body text-ink-faint">Your words are kept: &ldquo;{lastCommit.one}&rdquo;</p>
+              )}
+              {lastCommit && (
+                <Tap onTap={() => { h.tap(); void commit(lastCommit.one, lastCommit.url) }} feel="success" className="self-start">
+                  Try again
+                </Tap>
+              )}
+            </div>
+          )}
         </div>
 
         <footer className="shrink-0 px-6 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] sm:pb-5 border-t border-white/[0.06] bg-base">

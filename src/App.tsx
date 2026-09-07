@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/shared/Toast'
+import { OfflineLine } from './components/shared/OfflineLine'
 import { AmbientField } from './components/shared/AmbientField'
 import { DesktopSidebar } from './components/DesktopSidebar'
 import { BottomNav } from './components/BottomNav'
@@ -208,6 +209,7 @@ export default function App() {
 
   return (
     <ToastProvider>
+      <OfflineLine />
       <AgentsProvider>
         {/* PILOT LAYER: today's check-in gates the whole shell. On a red day the
             gate renders one action instead of this tree until something ships.

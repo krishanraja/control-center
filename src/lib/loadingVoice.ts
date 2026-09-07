@@ -98,6 +98,24 @@ export const WORK = {
   // ── Infrastructure, Arlo (Technical Operations) ─────────────────────────
   'systems.poll':        { agent: 'arlo', doing: 'polling the services' },
 
+  // ── The daily loop: the gate, the shutdown, the canon ───────────────────
+  'pilot.boot':          { doing: 'reading the day', sub: 'This morning\'s check-in and last night\'s choice', expectedMs: 4_000 },
+  'pilot.checkin':       { doing: 'saving the check-in', expectedMs: 5_000 },
+  'pilot.shutdown':      { doing: 'closing the day', sub: 'Writing tomorrow onto Home', expectedMs: 6_000 },
+  'goals.gate':          { doing: 'checking the objective against the rung', sub: 'A weekly objective has to fit inside a week', expectedMs: 12_000 },
+  'goals.carry':         { doing: 'carrying it into this week', expectedMs: 5_000 },
+  'goals.ladder':        { doing: 'reading the goals', expectedMs: 5_000 },
+  'goals.history':       { doing: 'reading the archive', expectedMs: 6_000 },
+  'focus.slot':          { doing: 'saving', expectedMs: 5_000 },
+  'focus.lock':          {
+    agent: 'marcus',
+    doing: 'planning today around your 3',
+    sub: 'Every list on every tab reorders behind these three',
+    stages: ['Writing the three onto Home', 'Reading every queue against them', 'Ranking what serves them'],
+    expectedMs: 25_000,
+  },
+  'focus.suggest':       { agent: 'marcus', doing: 'reading the week', sub: 'One move per objective, then the leverage picks', expectedMs: 20_000 },
+
   // ── Work no agent performs: plain reads, local transforms, IO ───────────
   'agent.trigger':       { doing: 'starting the agent run' },
   'file.import':         { doing: 'importing' },

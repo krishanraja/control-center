@@ -9,6 +9,10 @@ import { bucketFor, type StateBucket } from '../../lib/pilotStoic'
 import { MicButton, browserCanRecord } from '../shared/VoiceCapture'
 import { ThumbSlider, ENERGY_NOTCHES, ANXIETY_NOTCHES } from './ThumbSlider'
 import { Tap } from './controls'
+import { Working } from '../shared/Working'
+import { Pending } from '../shared/Pending'
+import { useElapsed } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
 
 /**
  * The gate, as four screens instead of one long form.
@@ -78,6 +82,8 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
   const [chosen, setChosen] = useState<PilotMode | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const saveMs = useElapsed(saving)
+  const saveWork = useWork('pilot.checkin')
 
   const [venture, setVenture] = useState<string | null>(null)
   const answered = energy !== null && anxiety !== null
@@ -358,7 +364,10 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
                   {lastEvening.tomorrow_one}
                 </p>
               )}
-              {error && <p className="mt-4 text-body text-ink-muted">{error}</p>}
+              {saving && saveMs >= 3000 && (
+                <Pending label={saveWork.label} elapsedMs={saveMs} expectedMs={saveWork.expectedMs} className="mt-4 text-ink-muted" />
+              )}
+              {error && !saving && <p className="mt-4 text-body text-ink-muted">{error}</p>}
             </Fade>
           )}
         </main>
@@ -375,8 +384,9 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
             </button>
           )}
           {stage === 'set' ? (
-            <Tap className="flex-1 justify-center flex items-center !min-h-[54px]" onTap={commit} disabled={saving} feel="success">
-              {saving ? 'Saving' : 'Start'}
+            <Tap className="flex-1 justify-center flex items-center gap-2 !min-h-[54px]" onTap={commit} disabled={saving} feel="success">
+              {saving && <Working size={14} />}
+              Start
             </Tap>
           ) : (
             <Tap

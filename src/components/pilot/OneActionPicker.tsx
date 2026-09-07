@@ -401,8 +401,9 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
             <p className="text-body leading-relaxed text-ink">{hint}</p>
           </div>
         )}
-        <Tap onTap={commitFree} disabled={saving || !text.trim()} feel="success">
-          {saving ? 'Saving' : submitLabel}
+        <Tap onTap={commitFree} disabled={saving || !text.trim()} feel="success" className="flex items-center justify-center gap-2">
+          {saving && <Working size={14} />}
+          {submitLabel}
         </Tap>
         <Tap
           variant="quiet"
@@ -446,8 +447,9 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         )}
         {hint && <p className="text-body text-ink-muted leading-relaxed">{hint}</p>}
 
-        <Tap onTap={commitGuided} disabled={saving || !rest.trim()} feel="success">
-          {saving ? 'Saving' : submitLabel}
+        <Tap onTap={commitGuided} disabled={saving || !rest.trim()} feel="success" className="flex items-center justify-center gap-2">
+          {saving && <Working size={14} />}
+          {submitLabel}
         </Tap>
       </div>
     )
