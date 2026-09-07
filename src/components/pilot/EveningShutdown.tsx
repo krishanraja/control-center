@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { ChevronDown } from '@/lib/icons'
 import { isAfterShutdownHour } from '../../lib/pilotDay'
 import { saveEvening, skipEvening, usePilotState } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -84,6 +85,9 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
   const [second, setSecond] = useState<ExtraSlot>({ text: '', goalId: '' })
   const [third, setThird] = useState<ExtraSlot>({ text: '', goalId: '' })
   const [oneGoalId, setOneGoalId] = useState('')
+  // What shipped, the link, a second and a third: worth having, never worth
+  // making the ONE scroll off a phone. Folded until asked for.
+  const [moreOpen, setMoreOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -122,6 +126,12 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
     }
   }
 
+  // Layout contract, and the reason a phone can always get out: the shell is
+  // a flex column that never scrolls itself. The header (title, close) and the
+  // footer (Not now) are fixed rows; only the middle scrolls. The first
+  // version let the whole sheet scroll, so the close control scrolled off the
+  // top, and it sat under the bottom nav (z-50 against the nav's z-60), so
+  // "Not now" was buried. z-[70] is what BottomSheet uses for the same reason.
   return (
     <Modal
       open
@@ -129,56 +139,74 @@ export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSav
       title="Shutdown"
       hideTitle
       overlayClassName="bg-base/80 backdrop-blur-sm"
-      className="sm:max-w-[460px] max-h-[92dvh] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-6 text-ink overflow-y-auto"
+      className="z-[70] sm:max-w-[460px] max-h-[calc(92dvh/var(--z,1))] p-0 overflow-hidden flex flex-col text-ink"
     >
-        <div>
+        <header className="shrink-0 px-6 pt-5 pb-3 pr-14">
           <h2 className="font-display text-title leading-tight">Shutdown</h2>
-          <p className="text-body text-ink-faint mt-1">Choose tomorrow now, so the morning does not have to. The first one is the one that must leave the machine.</p>
-        </div>
+          <p className="text-body text-ink-faint mt-1">Choose tomorrow now, so the morning does not have to.</p>
+        </header>
 
-        <div className="flex flex-col gap-2.5">
-          <span className="text-body text-ink-muted">What shipped today</span>
-          <VoiceField value={shipped} onChange={setShipped} placeholder="Optional" rows={2} />
-        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4 flex flex-col gap-6">
+          <div className="flex flex-col gap-2.5">
+            <span className="text-body text-ink-muted">Tomorrow&rsquo;s ONE. The thing that must leave the machine.</span>
+            <ServesChips weekly={weekly} value={oneGoalId} onChange={setOneGoalId} disabled={saving} />
+            <OneActionPicker onCommit={commit} saving={saving} submitLabel="Close the day" />
+          </div>
 
-        <div className="flex flex-col gap-2.5">
-          <span className="text-body text-ink-muted">Tomorrow&rsquo;s ONE</span>
-          <ServesChips weekly={weekly} value={oneGoalId} onChange={setOneGoalId} disabled={saving} />
-          <OneActionPicker onCommit={commit} saving={saving} submitLabel="Close the day" />
-        </div>
+          <button
+            type="button"
+            onClick={() => { h.tap(); setMoreOpen(o => !o) }}
+            aria-expanded={moreOpen}
+            className="inline-flex items-center gap-1.5 text-body text-ink-faint hover:text-ink-muted self-start min-h-[44px]"
+          >
+            <ChevronDown size={14} className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+            {moreOpen ? 'Less' : 'What shipped, a link, a second and third'}
+          </button>
 
-        <div className="flex flex-col gap-2.5">
-          <span className="text-body text-ink-muted">Link to it</span>
-          <input
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            inputMode="url"
-            placeholder="Optional. A draft, an editor, a campaign."
-            className="w-full px-4 py-3.5 min-h-[52px] rounded-xl bg-white/[0.03] border border-white/10 text-lede text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
-          />
-        </div>
+          {moreOpen && (
+            <>
+              <div className="flex flex-col gap-2.5">
+                <span className="text-body text-ink-muted">What shipped today</span>
+                <VoiceField value={shipped} onChange={setShipped} placeholder="Optional" rows={2} />
+              </div>
 
-        <div className="flex flex-col gap-2.5">
-          <span className="text-body text-ink-muted">Second, if there is one</span>
-          <VoiceField value={second.text} onChange={t => setSecond(s => ({ ...s, text: t }))} placeholder="Optional" rows={1} />
-          {second.text.trim() && (
-            <ServesChips weekly={weekly} value={second.goalId} onChange={id => setSecond(s => ({ ...s, goalId: id }))} disabled={saving} />
+              <div className="flex flex-col gap-2.5">
+                <span className="text-body text-ink-muted">Link to the ONE</span>
+                <input
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  inputMode="url"
+                  placeholder="Optional. A draft, an editor, a campaign."
+                  className="w-full px-4 py-3.5 min-h-[52px] rounded-xl bg-white/[0.03] border border-white/10 text-lede text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <span className="text-body text-ink-muted">Second, if there is one</span>
+                <VoiceField value={second.text} onChange={t => setSecond(s => ({ ...s, text: t }))} placeholder="Optional" rows={1} />
+                {second.text.trim() && (
+                  <ServesChips weekly={weekly} value={second.goalId} onChange={id => setSecond(s => ({ ...s, goalId: id }))} disabled={saving} />
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <span className="text-body text-ink-muted">Third, if there is one</span>
+                <VoiceField value={third.text} onChange={t => setThird(s => ({ ...s, text: t }))} placeholder="Optional" rows={1} />
+                {third.text.trim() && (
+                  <ServesChips weekly={weekly} value={third.goalId} onChange={id => setThird(s => ({ ...s, goalId: id }))} disabled={saving} />
+                )}
+              </div>
+            </>
           )}
+
+          {error && <p className="text-body text-ink-muted">{error}</p>}
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <span className="text-body text-ink-muted">Third, if there is one</span>
-          <VoiceField value={third.text} onChange={t => setThird(s => ({ ...s, text: t }))} placeholder="Optional" rows={1} />
-          {third.text.trim() && (
-            <ServesChips weekly={weekly} value={third.goalId} onChange={id => setThird(s => ({ ...s, goalId: id }))} disabled={saving} />
-          )}
-        </div>
-
-        {error && <p className="text-body text-ink-muted">{error}</p>}
-
-        <Tap variant="quiet" className="!min-h-[48px] text-body self-start flex items-center" onTap={() => { h.tap(); onClose() }}>
-          Not now
-        </Tap>
+        <footer className="shrink-0 px-6 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] sm:pb-5 border-t border-white/[0.06] bg-base">
+          <Tap variant="quiet" className="w-full justify-center flex items-center !min-h-[48px] text-body" onTap={() => { h.tap(); onClose() }}>
+            Not now
+          </Tap>
+        </footer>
     </Modal>
   )
 }
