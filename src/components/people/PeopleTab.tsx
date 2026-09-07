@@ -5,11 +5,12 @@ import { isBridgesLane } from '../../lib/bridgesLane'
 import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
 
-// People: the one tab for every human pipeline. Pipeline (leads), Network
-// (contacts), Visibility (guests + targets) and the Room (the 25 leaders who
-// fit the face, job 1 of the one swing) render here as lanes behind one nav
-// entry. The lane components are the existing tab components, untouched;
-// each stays its own lazy chunk.
+// People: the one tab for every human pipeline. Network (the graph), Hunt
+// (the job search: roles Krish said Yes to and who gets him in), Visibility
+// (guests + stages) and the Room (the 25 leaders who fit the face, job 1 of
+// the one swing) render here as lanes behind one nav entry. The lane
+// components are the existing tab components, untouched; each stays its own
+// lazy chunk.
 //
 // Bridges (hunter's warm paths into open roles) is parked under the ikigai v4
 // and only appears when VITE_BRIDGES_LANE_ENABLED is on (src/lib/bridgesLane.ts).
@@ -32,12 +33,16 @@ const MobileRoom = lazy(() => import('../mobile/MobileRoom').then(m => ({ defaul
 
 export type PeopleLane = 'pipeline' | 'network' | 'visibility' | 'room' | 'bridges'
 
+// One person graph, four purposes. Network is the graph and the three ways
+// people get into it; Hunt, Visibility and Room are the three reasons to
+// talk to someone (a job, content and stages, a Mindmake conversation). The
+// Pipeline lane (deal leads) left the nav on 2026-09-07: its import doors
+// moved to Network, and `?lane=pipeline` still renders it for the old links.
 const LANES: Array<{ id: PeopleLane; label: string }> = [
-  { id: 'pipeline', label: 'Pipeline' },
   { id: 'network', label: 'Network' },
+  ...(isBridgesLane() ? [{ id: 'bridges' as const, label: 'Hunt' }] : []),
   { id: 'visibility', label: 'Visibility' },
   { id: 'room', label: 'Room' },
-  ...(isBridgesLane() ? [{ id: 'bridges' as const, label: 'Bridges' }] : []),
 ]
 
 interface Props {

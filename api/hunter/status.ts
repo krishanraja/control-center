@@ -2,8 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 
-// Hunter runs Monday and Thursday as a scheduled cloud session, not a
-// daemon. Nothing listens between runs, so this route is observation only:
+// Hunter runs on GitHub Actions: Monday and Thursday on a schedule, and
+// within a minute of a button press. Nothing listens between runs, so this
+// route is observation only. It is not a daemon. Nothing listens between runs, so this route is observation only:
 // it answers "is it alive, and what is waiting on me" and points the
 // waiting work at the sheet, which is where verdicts are actually given.
 
@@ -43,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['GET'])) return
 
   try {
-    const [lastRun, alert, waiting, approved, built] = await Promise.all([
+    const [lastRun, alert, waiting, approved, built, dead] = await Promise.all([
       supabase
         .from('workflow_runs')
         .select('run_at, status, outcome, cost_usd, duration_ms, error_message, metadata')
@@ -66,11 +67,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .in('package_status', ['none', 'queued'])
         .not('krish_verdict', 'is', null),
       countRoles(q => q.eq('package_status', 'built')),
+      supabase
+        .from('hunter_seen_roles')
+        .select('krish_verdict')
+        .eq('status', 'dead')
+        .not('krish_verdict', 'is', null),
     ])
     if (lastRun.error) throw new Error(lastRun.error.message)
     const approvedCount = approved.error
       ? null
       : (approved.data || []).filter((r: { krish_verdict: string | null }) =>
+          GO_WORDS.has((r.krish_verdict || '').trim().toLowerCase())).length
+
+    const deadCount = dead.error
+      ? null
+      : (dead.data || []).filter((r: { krish_verdict: string | null }) =>
           GO_WORDS.has((r.krish_verdict || '').trim().toLowerCase())).length
 
     return res.status(200).json({
@@ -79,6 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       alert: alert.data || null,
       waitingOnKrish: waiting,
       approvedAwaitingBuild: approvedCount,
+      deadApproved: deadCount,
       packagesBuilt: built,
       nextFireUtc: nextFireUtc(new Date()),
     })

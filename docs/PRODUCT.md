@@ -229,9 +229,26 @@ day to day, so `#people` with no params lands there, while `?lane=`, `?lead=`,
 `?guest=` / `?target=` and `?room=` deep links land on their own lane. On
 mobile the + create sheet carries the tab's create action (Add a person).
 
-**Bridges is parked** (2026-09-06, ADR-016): the hunter warm-intro lane for
-the job search renders only when `VITE_BRIDGES_LANE_ENABLED=true`; the deep
-link `?lane=bridges` still resolves. Tables and the hunter agent are untouched.
+**Hunt** (lane id `bridges`, un-parked 2026-09-07 on Krish's instruction):
+the job search. The roles he said Yes to on the Pipeline sheet, each with its
+package (CV and cover letter) and the person who can get him in, plus the
+five warmest paths with a draft. Three buttons: Process my verdicts (reads
+column A of the sheet and does everything that follows: builds, finds the
+person, archives the decided, sorts), Find roles, Build packages. A press
+queues a `hunter_commands` row and fires a GitHub `repository_dispatch` on
+`krishanraja/hunter`, so the run starts within a minute; the hourly drain is
+the fallback. Hidden again with `VITE_BRIDGES_LANE_ENABLED=false`.
+
+**Pipeline (deal leads) left the nav** the same day: it was 8 live leads and
+143 buried ones. Its two import doors moved to Network, next to the
+screenshot button, so the three ways people enter the one graph sit
+together. `?lane=pipeline` still renders the old lane.
+
+**Every lane says what it is for in its first line and when it was last
+refreshed** (`/api/people/freshness`). Visibility's outbound half gained a
+Tuesday refresh (`/api/discover-visibility-targets`): past-date targets are
+dropped with the reason, and the oldest queued targets with no research in
+60 days get a fresh brief.
 
 ---
 
