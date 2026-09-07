@@ -80,16 +80,22 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
    opens People → Room. Absent otherwise, so a quiet week costs the canon
    nothing.
 4. **GoalLadder** - the top two layers of the canon: **OS** (the single
-   mission line since ADR-016, inline edit, quiet stale markers) and **THIS
-   WEEK** (≤3 single-line objectives, done toggles, serves-chip, job chip,
-   optional venture tag).
-   Still the ONE goal editor; writes travel `src/lib/goalsApi.ts`.
+   mission line since ADR-016, inline edit, quiet stale markers; the OS
+   composer appears only at cold start, ADR-018) and **THIS WEEK** (≤3
+   single-line objectives for the current operator week, done toggles,
+   serves-chip, job chip, optional venture tag; "Week closed" on Saturday
+   and Sunday). Nothing composes inline any more: the week's "+ Add" opens
+   the Focus Ritual at the weekly step, the one weekly composer. Writes
+   still travel `src/lib/goalsApi.ts`.
 5. **TodayList** - the third layer: exactly 3 slots from `daily_focus`,
-   done toggles, weekly-goal chip when linked. Three quiet empty slots when
-   unset — the CTA is the ask, the layer never begs.
+   done toggles, weekly-goal chip when linked. Every slot is editable in
+   place (inline on desktop, the focused editor sheet on a phone) through
+   `POST /api/daily-focus/slot`. Slots the shutdown wrote the night before
+   are already filled. Three quiet empty bars when unset; the CTA is the
+   ask, the layer never begs.
 6. **CanonCta** - THE one contextual ask, under the layer it serves:
-   "Set this week's 3" or "Pick your 3 for today" → opens the Focus Ritual.
-   Hidden when the canon is fresh.
+   "Set this week's 3" (Monday to Friday only) or "Pick your 3 for today"
+   → opens the Focus Ritual. Hidden when the canon is fresh.
 7. **The doors** (2026-08-22, seated together 2026-08-25) - Focus and Intel
    side by side at the bottom of both shells, never numbers (counting
    anything about the operator in ambient chrome breaks the Focus
@@ -134,9 +140,15 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 | SignalsDoor / SignalsDrawer | `home_intelligence.external_signals` + `zara_signals` | `useHomeIntelligence`, `useZaraSignals` |
 
 ### Writes
-- **GoalLadder** → `POST /api/objectives` (gated create) and
-  `PATCH /api/goals` (title / status), both via `src/lib/goalsApi.ts`.
+- **GoalLadder** → `POST /api/objectives` (gated create, OS at cold start)
+  and `PATCH /api/goals` (title / status), both via `src/lib/goalsApi.ts`.
+  Weekly objectives are created in the Focus Ritual over the same wire path;
+  `POST /api/objectives` stamps `week_start` (next Monday on a weekend).
 - **TodayList · done toggle** → `POST /api/daily-focus/complete`.
+- **TodayList · slot edit** → `POST /api/daily-focus/slot` (leaves the day
+  `pending`; only the ritual lock calibrates).
+- **Saturday 05:00 UTC cron** `/api/goals/week-close` → still-active weekly
+  rows for a past week become `missed` with `closed_at`; nothing is deleted.
 - **VitalsLine · Log** → `POST /api/pilot/ships` (manual).
 
 ### Behaviour rules
@@ -160,8 +172,9 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 |---|---|
 | No critical alerts | Banner absent (zero height). |
 | Cold start (no OS goals) | The ladder's empty state carries the ask: "Set your OS goals." |
-| New week, nothing set | "No objectives set for this week." + the one CTA. |
-| Day not locked | Three quiet numbered slots + the one CTA. |
+| New week, nothing set | "No objectives set for this week." + the one CTA; the ritual's weekly step shows last week's outcomes with Carry. |
+| Saturday or Sunday | "Week closed. Set next week's 3 on Monday." No weekly CTA. |
+| Day not locked | Three quiet numbered slots (tap to write) + the one CTA. |
 | Loading | One HomeSkeleton in the page's real proportions; a warm cache paints straight through. |
 
 ### SLAs

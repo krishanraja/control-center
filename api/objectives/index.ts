@@ -4,6 +4,8 @@ import { syncNorthStar } from '../_northStar.js'
 import { gateGoal, type Horizon } from '../_goalGate.js'
 import { logGoalChange } from '../_goals.js'
 import { isJob } from '../_mission.js'
+import { getOperatorTz } from '../_timezone.js'
+import { targetWeekStartIn } from '../_week.js'
 
 // Objective Layer, Phase 4.
 // GET  /api/objectives           list active objectives (plus optional nominations)
@@ -38,6 +40,8 @@ interface CreateBody {
 }
 
 const ALLOWED_HORIZON = new Set(['os', 'weekly'])
+// Mirrors goals_status_objective_check. 'missed' is what the Saturday close
+// writes; a client never creates a goal already missed.
 const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped'])
 
 function setCors(res: VercelResponse) {
@@ -111,6 +115,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
     if (row.status === 'active') row.activated_at = new Date().toISOString()
+
+    // Which week this objective is for, keyed by the operator's own Monday.
+    // Monday to Friday it is this week; on a weekend the week has closed and
+    // the objective belongs to the one that starts on Monday. This column is
+    // what "is this week set" reads, replacing the touched-this-week guess.
+    if (row.horizon === 'weekly') {
+      row.week_start = targetWeekStartIn(new Date(), await getOperatorTz())
+    }
 
     // The gate runs HERE, not only in the editor. /api/goals/gate is a preview
     // for live feedback while typing; this is the enforcement point, so a

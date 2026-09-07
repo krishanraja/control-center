@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import type { PilotMode, YesterdayRecap } from '../../types/pilot'
+import type { PilotCheckin, PilotMode, YesterdayRecap } from '../../types/pilot'
 import { computeMode, saveMorning } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
 import { INTENTS, type Intent } from '../../lib/pilotIntent'
@@ -27,6 +27,8 @@ const API = import.meta.env.VITE_API_URL ?? ''
 
 interface Props {
   yesterday: YesterdayRecap | null
+  /** Last night's shutdown, when it chose today's ONE. Null when none was filed. */
+  lastEvening?: PilotCheckin | null
   today: string
   /** The reading rides along so the gate can route an anxious day to Focus. */
   onDone: (mode: PilotMode, intent: Intent | null, reading?: { anxiety: number | null }) => void
@@ -62,7 +64,7 @@ const MOOD_CHIPS_DEFAULT = ['clear', 'steady', 'scattered', 'flat', 'wired', 'he
 
 type Stage = 'read' | 'word' | 'intent' | 'set'
 
-export function MorningCheckin({ yesterday, today, onDone }: Props) {
+export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }: Props) {
   const h = useHaptics()
   const [stage, setStage] = useState<Stage>('read')
   const [energy, setEnergy] = useState<number | null>(null)
@@ -189,7 +191,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
             ))}
           </div>
           <p className="mt-3 h-[18px] text-label text-ink-faint truncate">
-            {yesterdayLine(yesterday)}
+            {yesterdayLine(yesterday, lastEvening)}
           </p>
         </header>
 
@@ -348,6 +350,14 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
               {intent && (
                 <p className="mt-5 text-body text-ink-faint">{intent.blurb}</p>
               )}
+              {/* What last night chose for today. Choosing happened at higher
+                  capacity; the morning only confirms it, never re-decides. */}
+              {lastEvening?.tomorrow_one && (
+                <p className="mt-4 text-body text-ink-muted leading-snug">
+                  <span className="text-ink-faint">Last night you chose: </span>
+                  {lastEvening.tomorrow_one}
+                </p>
+              )}
               {error && <p className="mt-4 text-body text-ink-muted">{error}</p>}
             </Fade>
           )}
@@ -390,17 +400,21 @@ function Fade({ children }: { children: React.ReactNode }) {
 }
 
 /** Yesterday in one line, or a quiet placeholder on the first ever day. */
-function yesterdayLine(y: YesterdayRecap | null): string {
+function yesterdayLine(y: YesterdayRecap | null, evening: PilotCheckin | null): string {
+  // Last night's shutdown said what shipped, in his words. That beats a count.
+  const said = evening?.shipped_today?.trim()
+  const shipped = said ? ` Shipped: ${said.length > 60 ? `${said.slice(0, 57)}...` : said}` : ''
   // A skipped day still shipped, or did not. Say so without a reading, and
   // without the reproach a "you skipped this" line would carry.
   if (y?.skipped) {
-    return y.ships === 0 ? 'Yesterday: no check-in.' : `Yesterday: no check-in, ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
+    const base = y.ships === 0 ? 'Yesterday: no check-in.' : `Yesterday: no check-in, ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
+    return `${base}${shipped}`
   }
-  if (!y || y.energy === null || y.anxiety === null) return 'First check-in.'
+  if (!y || y.energy === null || y.anxiety === null) return said ? `Yesterday.${shipped}` : 'First check-in.'
   const state = readingFor(y.energy, y.anxiety).replace(/\.$/, '')
   const word = y.one_word ? `, ${y.one_word}` : ''
   const ships = y.ships === 0
     ? 'nothing left the machine'
     : `${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}`
-  return `Yesterday: ${state.toLowerCase()}${word}. ${ships}.`
+  return `Yesterday: ${state.toLowerCase()}${word}. ${ships}.${shipped}`
 }

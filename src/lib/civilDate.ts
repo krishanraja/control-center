@@ -241,6 +241,16 @@ export function isMonday(now: Date = new Date(), zone: string = resolved): boole
   return parts(now, zone).weekday === 'Mon'
 }
 
+/**
+ * Saturday or Sunday in the active zone. The weekly rung closes on Saturday
+ * (api/goals/week-close.ts) and asks again on Monday, so the weekend is the
+ * one time the week is neither set nor asking.
+ */
+export function isWeekend(now: Date = new Date(), zone: string = resolved): boolean {
+  const d = parts(now, zone).weekday
+  return d === 'Sat' || d === 'Sun'
+}
+
 /** Milliseconds to add to a wall-clock time in `zone` to get UTC. */
 function offsetMs(at: Date, zone: string): number {
   const f = new Intl.DateTimeFormat('en-GB', {

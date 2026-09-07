@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { civilYmd } from '../lib/civilDate'
+import { civilYmd, shiftYmd } from '../lib/civilDate'
 
 // Phase 1 of focus + tasks inbox brief. Single canonical reader of
 // today's daily_focus row + yesterday's carry-over candidate. Shared
@@ -76,8 +76,8 @@ async function fetchAll(): Promise<void> {
   if (inflight) return inflight
   inflight = (async () => {
     const today = ymd(new Date())
-    const y = new Date(); y.setUTCDate(y.getUTCDate() - 1)
-    const yesterday = ymd(y)
+    // Shift the civil date, not the UTC clock: near midnight the two disagree.
+    const yesterday = shiftYmd(today, -1)
 
     const [tRes, yRes] = await Promise.all([
       supabase.from('daily_focus').select('*').eq('focus_date', today).maybeSingle(),

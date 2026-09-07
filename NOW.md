@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-09-07
+as_of: 2026-09-08
 head: 7dcd0259
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet.
 
-## Where it is right now (as of 2026-09-07)
+## Where it is right now (as of 2026-09-08)
 
 - **Live** at `controlcenter.krishraja.com`, auto-deployed from `main` on Vercel, Supabase behind it. CI runs lint, three typechecks and thirty structural guards on every push (`.github/workflows/ci.yml`).
 - **The one swing is the operating frame** (ADR-016, `docs/plans/one-swing/CHARTER.md`): one mission, five jobs in priority order. Jobs 1 (the Room) and 2 (the scorecard) are built and live since 5 September. Jobs 3, 4 and 5 are gated on the first paid room. Gate G1 is open; G2 to G4 are closed. Ledger and Vercel state: `docs/plans/one-swing/STATE.md`.
@@ -43,6 +43,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-08 **Goals canon aligned: shutdown feeds tomorrow, weeks close on Saturday, Today is manual first** (ADR-018). Why: the shutdown prompt returned on every new tab (sessionStorage), no evening row had ever been saved, `daily_focus` was empty, Home carried two weekly composers (one expanded inline on a no-scroll screen), and nothing ever closed a week. One writer for tomorrow's 3 (`api/_dailyFocus.ts`), `goals.week_start` plus a Saturday `week-close` cron and a `missed` status, editable Today slots, the ritual as the one weekly composer, and the goal spine now carries today's frame and the last four weeks into every Ask.
 - 2026-09-07 **One Content surface, nothing lost.** Why: three generations of Content tab shipped in one bundle behind a flag that was not in `.env.example`, so a fresh deploy served the retired triage pile; three candidate models rendered in one column; the video engine had no desktop path. The v1 files are deleted, the parity ledger names where every feature went, the lane reads in the order you act, the Composer rail is three stages, the phone deck clears the upstream pile, and learning proposals from the Studio have a reader. Hardening in the same change: a `content_engine_runs` ledger written by every content cron and read by the obligation strip, `feed/ingest` fails instead of skipping when unconfigured, a daily watch on the Windows runner, an env-example guard, and the four content and video Playwright specs now run in CI.
 - 2026-09-07 **The scorecard counts every commit, not one login** (`37af6d3c`, guard `e86e31b8`). Why: a dry run showed most session commits carry the coding agent's address (36 of 38 in one repo, 18 of 34 here), so the Rule 6 tripwire "was reading roughly half the truth". `GITHUB_AUTHOR` is no longer read anywhere and the guard fails if either reader brings it back.
 - 2026-09-07 **Architecture doc: the one-surface retirement closed out** (#280, #281). The last three references to a VPS or Drive copy removed; the three weekly Documentation Refresh Routines recorded as deleted by Krish; the fleet's last reference to the trashed Drive file removed.

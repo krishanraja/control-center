@@ -3,23 +3,30 @@ import { Check, Plus, Target, X } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useQuickCreateListener } from '../../lib/quickCreate'
+import { openFocusRitual } from '../../lib/focusRitual'
+import { isWeekend } from '../../lib/civilDate'
 import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 import { Eyebrow } from '../shared/Eyebrow'
 import { FocusedEditor } from '../shared/FocusedEditor'
-import { OptionChips, ServesPicker, VentureChips } from './GoalPickers'
-import { JOB_OPTIONS, jobLabel } from '../../content/jobs'
+import { jobLabel } from '../../content/jobs'
 import { Skeleton } from '../shared/Skeleton'
 import { Working } from '../shared/Working'
 
-// GoalLadder — the canon on Home: OS goals → this week's objectives, ONE place
-// to enter a goal at either rung (canon §0a.2), rebuilt as a display-grade
-// surface in the 2026-08-20 recompose.
+// GoalLadder, the canon on Home: OS goals → this week's objectives, rebuilt
+// as a display-grade surface in the 2026-08-20 recompose.
 //
 // Krish: "radically simplified to an overall OS objective: this week's
 // objectives and today's objectives that should feed and be canon for
 // everything." This surface is the top two layers; TodayList renders the
-// third from daily_focus. Two rungs, one editor, one wire path
-// (src/lib/goalsApi.ts), staleness flagged quietly but urgently.
+// third from daily_focus. One wire path (src/lib/goalsApi.ts), staleness
+// flagged quietly but urgently.
+//
+// Where goals are ENTERED (2026-09-08): the OS goal is composed here, inline,
+// and only at cold start (ADR-016: the OS rung is one line, rarely edited).
+// Weekly objectives are composed in the Focus Ritual overlay and nowhere
+// else. The inline weekly composer that used to expand here pushed the rest
+// of a no-scroll Home off the bottom of the frame, and duplicated the ritual's
+// weekly step. "+ Add" on the week now opens the ritual at that step.
 
 export type Horizon = 'os' | 'weekly'
 
@@ -35,12 +42,9 @@ export function GoalLadder({ variant = 'desktop' }: {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // ── composer state (one editor, both rungs) ────────────────────────────────
+  // ── composer state (the OS goal, cold start only) ──────────────────────────
   const [adding, setAdding] = useState<Horizon | null>(null)
   const [title, setTitle] = useState('')
-  const [parentId, setParentId] = useState('')
-  const [venture, setVenture] = useState('')
-  const [job, setJob] = useState('')
   const [gate, setGate] = useState<GateVerdict | null>(null)
 
   // ── inline edit (title + retire only; the legacy % / notes fields retired) ─
@@ -49,39 +53,35 @@ export function GoalLadder({ variant = 'desktop' }: {
 
   const os = canon?.os ?? []
   const weekly = canon?.weekly ?? []
-  const ventures = canon?.ventures ?? []
   const compact = variant === 'mobile'
   const osTitle = useMemo(() => new Map(os.map(g => [g.id, g.title])), [os])
   const weeklyActive = weekly.filter(g => g.status === 'active').length
   const weeklyDone = weekly.length - weeklyActive
+  const weekend = isWeekend()
 
-  const needsParent = (hz: Horizon) => hz !== 'os'
-
+  // The OS composer opens here; the weekly one is the ritual's. Both entry
+  // points keep the same name so the create sheet and the guard read one map.
   const openAdd = (hz: Horizon) => {
     h.select()
     setEditing(null)
-    setAdding(hz); setTitle(''); setVenture(''); setJob(''); setGate(null)
-    setParentId(hz === 'weekly' && os.length >= 1 ? os[0].id : '')
+    if (hz === 'weekly') { openFocusRitual('weekly'); return }
+    setAdding('os'); setTitle(''); setGate(null)
   }
 
   // On a phone the create sheet (+) is the only way in; the inline "+ Add"
-  // links render on desktop only. The sheet reaches the same composer here.
+  // links render on desktop only. The sheet reaches the same entry points.
   useQuickCreateListener('goal:os', () => openAdd('os'))
   useQuickCreateListener('goal:weekly', () => openAdd('weekly'))
 
   const save = async (opts: { override?: boolean } = {}) => {
-    const hz = adding
     const raw = title.trim()
-    if (!hz || !raw || saving) return
-    if (needsParent(hz) && !parentId) return
+    if (adding !== 'os' || !raw || saving) return
     setSaving(true)
     try {
       const result = await createGoal({
         title: raw,
-        horizon: hz,
-        parentId: needsParent(hz) ? parentId : null,
-        venture: hz === 'weekly' ? (venture || null) : null,
-        job: hz === 'weekly' ? (job || null) : null,
+        horizon: 'os',
+        parentId: null,
         override: opts.override === true,
       })
       // A held gate is not a failure: the form stays open with the verdict
@@ -92,7 +92,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         return
       }
       h.success()
-      setAdding(null); setTitle(''); setParentId(''); setVenture(''); setJob(''); setGate(null)
+      setAdding(null); setTitle(''); setGate(null)
       refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save')
@@ -174,10 +174,10 @@ export function GoalLadder({ variant = 'desktop' }: {
     </span>
   )
 
-  const composer = adding && (
+  const composer = adding === 'os' && (
     <div className="mt-2.5 rounded-xl border border-violet-400/25 bg-violet-500/[0.06] p-3">
       <div className="flex items-center justify-between mb-2">
-        <Eyebrow tone="accent">{adding === 'os' ? 'New OS goal' : 'New weekly objective'}</Eyebrow>
+        <Eyebrow tone="accent">New OS goal</Eyebrow>
         <button type="button" onClick={() => { setAdding(null); setGate(null) }} aria-label="Cancel" className="text-white/35 hover:text-white/70">
           <X size={14} />
         </button>
@@ -188,17 +188,9 @@ export function GoalLadder({ variant = 'desktop' }: {
         value={title}
         onChange={e => { setTitle(e.target.value); if (gate) setGate(null) }}
         onKeyDown={e => { if (e.key === 'Enter') void save(); if (e.key === 'Escape') { setAdding(null); setGate(null) } }}
-        placeholder={adding === 'os' ? 'What is the whole system for?' : 'What moves an OS goal this week?'}
+        placeholder="What is the whole system for?"
         className="w-full min-h-[40px] px-3 rounded-lg bg-white/[0.04] border border-white/10 text-body text-white/90 placeholder:text-white/25 outline-none focus:border-violet-400/40"
       />
-
-      {adding !== 'os' && (
-        <div className="mt-2.5 space-y-2.5">
-          <ServesPicker os={os} value={parentId} onChange={setParentId} disabled={saving} />
-          <OptionChips label="Which job of the OS does this serve?" options={JOB_OPTIONS} value={job} onChange={setJob} disabled={saving} />
-          <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={saving} />
-        </div>
-      )}
 
       {/* The gate did not pass: the specific failures stay attached to the
           form, a one-click fix where the gate could suggest one, and an
@@ -219,14 +211,14 @@ export function GoalLadder({ variant = 'desktop' }: {
             </ul>
           )}
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            {gate.suggested_tier && gate.suggested_tier !== adding && (
+            {gate.suggested_tier === 'weekly' && (
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => { const t = gate.suggested_tier!; setGate(null); setAdding(t) }}
+                onClick={() => { setGate(null); setAdding(null); openFocusRitual('weekly') }}
                 className="min-h-[30px] px-2.5 rounded-md bg-amber-400/15 border border-amber-300/30 text-label text-amber-100 hover:bg-amber-400/25 disabled:opacity-50"
               >
-                Move to {gate.suggested_tier === 'os' ? 'OS goals' : 'This week'}
+                Move to This week
               </button>
             )}
             {gate.suggested_rewrite && (
@@ -262,7 +254,7 @@ export function GoalLadder({ variant = 'desktop' }: {
       <button
         type="button"
         onClick={() => void save()}
-        disabled={saving || !title.trim() || (adding !== 'os' && !parentId)}
+        disabled={saving || !title.trim()}
         className="mt-3 w-full min-h-[38px] rounded-lg btn-contrast text-label font-semibold disabled:opacity-40"
       >
         {saving ? 'Saving…' : 'Add'}
@@ -278,7 +270,9 @@ export function GoalLadder({ variant = 'desktop' }: {
       <section aria-label="OS goals" className="min-w-0">
         <div className="flex items-baseline gap-2 mb-2">
           <Eyebrow>OS</Eyebrow>
-          {!compact && (
+          {/* One OS goal, rarely edited (ADR-016). The composer is offered
+              only at cold start; after that, tap the line to edit it. */}
+          {!compact && os.length === 0 && (
             <button
               type="button"
               onClick={() => openAdd('os')}
@@ -349,7 +343,7 @@ export function GoalLadder({ variant = 'desktop' }: {
           {weekly.length > 0 && (
             <span className="text-micro text-white/35 tabular-nums font-mono">{weeklyDone}/{weekly.length}</span>
           )}
-          {!compact && os.length > 0 && weeklyActive < 3 && (
+          {!compact && os.length > 0 && weeklyActive < 3 && !weekend && (
             <button
               type="button"
               onClick={() => openAdd('weekly')}
@@ -362,7 +356,11 @@ export function GoalLadder({ variant = 'desktop' }: {
         </div>
         {weekly.length === 0 ? (
           <p className="text-body text-white/40 leading-relaxed">
-            {os.length === 0 ? 'Set an OS goal first.' : 'No objectives set for this week.'}
+            {os.length === 0
+              ? 'Set an OS goal first.'
+              : weekend
+                ? 'Week closed. Set next week’s 3 on Monday.'
+                : 'No objectives set for this week.'}
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
@@ -416,7 +414,6 @@ export function GoalLadder({ variant = 'desktop' }: {
             })}
           </ul>
         )}
-        {adding === 'weekly' && composer}
       </section>
 
       {/* The phone's goal editor. Writes stay on the one wire path (patch →

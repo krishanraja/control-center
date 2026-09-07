@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
 import { useGoalCanon } from './useGoalCanon'
 import { useDailyFocus, isFocusEnabled } from './useDailyFocus'
-import { civilYmd, weekOf } from '../lib/civilDate'
+import { weekOf, isWeekend } from '../lib/civilDate'
+import { isFlaggedToday, flagToday } from '../lib/dayFlag'
 import { usePilotStateContext } from '../contexts/PilotStateContext'
 
 // The staleness machine behind the canon: OS goals → this week's objectives →
@@ -32,13 +33,6 @@ export interface CanonCta {
 
 const DISMISS_KEY = 'focus_ritual_dismissed_date'
 
-function safeGet(key: string): string | null {
-  try { return localStorage.getItem(key) } catch { return null }
-}
-function safeSet(key: string, val: string): void {
-  try { localStorage.setItem(key, val) } catch { /* ignore */ }
-}
-
 export interface AltitudesResult {
   altitudes: Altitude[]            // always [os, weekly, daily]
   os: Altitude
@@ -67,8 +61,8 @@ export function useAltitudes(): AltitudesResult {
   const demandOk = pilot.profile.allowsHigherAltitudeDemand
 
   const loading = canonLoading || df.loading
-  const todayYmd = civilYmd(new Date())
-  const dismissedToday = safeGet(DISMISS_KEY) === todayYmd
+  const dismissedToday = isFlaggedToday(DISMISS_KEY)
+  const weekend = isWeekend()
 
   // ── OS ─────────────────────────────────────────────────────────────────────
   // The top of the canon. Rarely changes; stale after 90 untouched days
@@ -91,27 +85,31 @@ export function useAltitudes(): AltitudesResult {
   }
 
   // ── Weekly ─────────────────────────────────────────────────────────────────
-  // Active weekly rows ARE the current week's set: committing a new week
-  // retires the previous set. Fresh = at least one weekly row touched inside
-  // the current ISO week; anything else on a new week asks again.
-  const currentWeek = weekOf(new Date())
+  // A weekly row belongs to the week its week_start names (the operator's
+  // Monday, written by POST /api/objectives). This week is set when at least
+  // one row carries the current key. The Saturday close moves last week's
+  // leftovers to `missed`, so on Monday the rung is empty and asks again. The
+  // weekend is the one time it neither counts as set nor asks: the week has
+  // closed, and Monday is when it refills.
+  const currentWeek = canon?.currentWeek || weekOf(new Date())
   const weeklyRows = canon?.weekly ?? []
-  const touchedThisWeek = weeklyRows.some(g => {
-    try { return weekOf(new Date(g.updated_at)) === currentWeek } catch { return false }
-  })
-  const weeklySet = weeklyRows.length > 0 && touchedThisWeek
-  const weeklyDoneCount = weeklyRows.filter(g => g.status === 'done').length
-  const weeklyNeeds = demandOk && !osEmpty && !weeklySet && !dismissedToday
+  // A row with no week_start predates the cadence; it counts as this week's.
+  const thisWeekRows = weeklyRows.filter(g => !g.week_start || g.week_start === currentWeek)
+  const weeklySet = thisWeekRows.length > 0
+  const weeklyDoneCount = thisWeekRows.filter(g => g.status === 'done').length
+  const weeklyNeeds = demandOk && !osEmpty && !weeklySet && !dismissedToday && !weekend
   const weekly: Altitude = {
     id: 'weekly',
     label: 'Week',
     state: weeklySet ? 'set' : weeklyRows.length > 0 ? 'stale' : 'unset',
     needsAttention: weeklyNeeds,
     summary: weeklySet
-      ? `${weeklyDoneCount}/${weeklyRows.length} done`
-      : weeklyRows.length > 0
-        ? 'New week. Set this week’s 3'
-        : 'Set this week’s objectives',
+      ? `${weeklyDoneCount}/${thisWeekRows.length} done`
+      : weekend
+        ? 'Week closed. Set next week’s 3 on Monday'
+        : (canon?.lastWeek?.length ?? 0) > 0
+          ? 'New week. Set this week’s 3'
+          : 'Set this week’s objectives',
     count: weeklyNeeds ? 1 : 0,
   }
 
@@ -148,7 +146,7 @@ export function useAltitudes(): AltitudesResult {
     : null
 
   const dismissToday = useCallback(() => {
-    safeSet(DISMISS_KEY, civilYmd(new Date()))
+    flagToday(DISMISS_KEY)
     setV(v => v + 1)
   }, [])
 

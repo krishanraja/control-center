@@ -151,6 +151,10 @@
     {
       "path": "/api/scorecard/friday",
       "schedule": "30 4 * * 6"
+    },
+    {
+      "path": "/api/goals/week-close",
+      "schedule": "0 5 * * 6"
     }
   ],
   "functions": {
