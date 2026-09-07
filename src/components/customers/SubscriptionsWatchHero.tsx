@@ -29,10 +29,12 @@ function nameOf(c: CustomerRow): string {
 
 export function computeNextSubscriptions(
   expansionPlays: CustomerRow[],
-  totals: { mrrUsd: number; paid: number },
+  totals: { mrrLabel: string; paid: number },
 ): NextSubscriptions {
   const top = expansionPlays[0]
-  const mrrLabel = `$${Math.round(totals.mrrUsd).toLocaleString()}/mo`
+  // Committed MRR as Stripe states it (api/_revenue.ts), never a sum over
+  // customers.mrr_usd, so the hero agrees with the ticker under it.
+  const mrrLabel = `${totals.mrrLabel}/mo`
   if (top) {
     const detail = top.mrr_usd != null && top.mrr_usd > 0 ? `$${Math.round(top.mrr_usd)}/mo` : null
     return {
@@ -61,7 +63,7 @@ export function computeNextSubscriptions(
 
 interface Props {
   expansionPlays: CustomerRow[]
-  totals: { mrrUsd: number; paid: number }
+  totals: { mrrLabel: string; paid: number }
   onOpen?: (customer: CustomerRow) => void
   narrow?: boolean
 }

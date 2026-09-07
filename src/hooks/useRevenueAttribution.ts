@@ -82,7 +82,7 @@ export function useRevenueAttribution() {
   const [leadsById, setLeadsById]   = useState<Map<string, any>>(new Map())
   const [tasksById, setTasksById]   = useState<Map<string, any>>(new Map())
   const [loading,   setLoading]     = useState(true)
-  const { revenue } = useRevenue()
+  const { revenue, syncNow, syncing } = useRevenue()
 
   useEffect(() => {
     let cancelled = false
@@ -171,6 +171,7 @@ export function useRevenueAttribution() {
     customers: attributed,
     liveMrr, mrrDelta7d, mrrDelta28d, projection,
     revenue,
+    syncNow, syncing,
     buckets,
     loading: customersLoading || loading,
   }

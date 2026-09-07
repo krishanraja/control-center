@@ -6,6 +6,7 @@ import {
   type CustomerRow, type CustomerProduct,
 } from '../../hooks/useCustomers'
 import { Skeleton } from '../shared/Skeleton'
+import { useRevenue, formatCommittedMrr } from '../../hooks/useRevenue'
 
 /**
  * SubscribersList — the roster the watch-hero doesn't show. Subscriptions is
@@ -29,7 +30,10 @@ function displayName(c: CustomerRow): string {
 
 function mrrLabel(c: CustomerRow): string {
   if (typeof c.mrr_usd === 'number' && c.mrr_usd > 0) {
-    return `$${Math.round(c.mrr_usd).toLocaleString()}/mo`
+    // Cents matter at this scale: $6.75 rounded to $7 is a different number
+    // from the one Stripe settles.
+    const n = Number(c.mrr_usd)
+    return `$${(Number.isInteger(n) ? n.toLocaleString() : n.toFixed(2))}/mo`
   }
   if (c.mrr_usd === 0) return 'one-time'
   return ''
@@ -56,6 +60,7 @@ function productLabel(product: CustomerProduct): string {
 
 export function SubscribersList() {
   const { customers, loading } = useCustomers()
+  const { revenue } = useRevenue()
 
   // Active subscriber = kind === 'paid'. Defensively also require no
   // churned_at, matching the same MRR-sum definition useCustomers already
@@ -70,11 +75,6 @@ export function SubscribersList() {
         return bt - at
       })
   }, [customers])
-
-  const totalMrr = useMemo(
-    () => active.reduce((sum, c) => sum + (typeof c.mrr_usd === 'number' ? c.mrr_usd : 0), 0),
-    [active],
-  )
 
   const byProduct = useMemo(() => {
     const counts = new Map<CustomerProduct, number>()
@@ -107,10 +107,10 @@ export function SubscribersList() {
 
   return (
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden flex-shrink-0">
-      <header className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-1.5">
+      <header className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-x-1.5 gap-y-0.5 flex-wrap">
         <Users size={12} className="text-white/45" />
         <h3 className="text-label font-semibold text-white">Subscribers</h3>
-        <span className="text-micro text-white/40 ml-auto">Every active subscriber, newest first</span>
+        <span className="text-micro text-white/40 sm:ml-auto">Every active subscriber, newest first</span>
       </header>
 
       {active.length === 0 ? (
@@ -123,8 +123,11 @@ export function SubscribersList() {
           <div className="px-4 py-3 border-b border-white/[0.05] flex flex-wrap items-start gap-x-5 gap-y-2">
             <div>
               <p className="text-micro uppercase tracking-[0.14em] text-white/35">Active MRR</p>
+              {/* Stripe's committed figure (api/_revenue.ts), the same one the
+                  ticker above shows, rather than a sum over customers.mrr_usd
+                  that used to disagree with it on the same screen. */}
               <p className="text-ui font-semibold tabular-nums text-emerald-300">
-                ${Math.round(totalMrr).toLocaleString()}/mo
+                {formatCommittedMrr(revenue)}/mo
               </p>
             </div>
             <div>
@@ -134,7 +137,7 @@ export function SubscribersList() {
             {newest && (
               <div className="min-w-0">
                 <p className="text-micro uppercase tracking-[0.14em] text-white/35">Newest</p>
-                <p className="text-label text-white/70 truncate max-w-[220px]">
+                <p className="text-label text-white/70 break-words">
                   {displayName(newest)}
                   {newestWhen && <span className="text-white/40"> · {newestWhen.relative}</span>}
                 </p>
@@ -170,8 +173,8 @@ export function SubscribersList() {
                 <li key={c.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-body font-semibold text-white truncate">{displayName(c)}</p>
-                      {c.email && c.full_name && <p className="text-micro text-white/45 truncate">{c.email}</p>}
+                      <p className="text-body font-semibold text-white break-words">{displayName(c)}</p>
+                      {c.email && c.full_name && <p className="text-micro text-white/45 break-words">{c.email}</p>}
                     </div>
                     {mrr && (
                       <span className="text-label tabular-nums text-emerald-300 flex-shrink-0">{mrr}</span>

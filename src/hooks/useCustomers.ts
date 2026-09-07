@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { withoutTestRecords } from './../lib/recordHygiene'
+import { CUSTOMERS_REFRESH_EVENT } from './useRevenue'
 
 export type CustomerKind    = 'paid' | 'free_signup' | 'trial' | 'waitlist' | 'churned'
 export type CustomerProduct =
@@ -105,7 +106,11 @@ export function useCustomers() {
     }
     load()
     const iv = setInterval(load, 60_000)
-    return () => { cancelled = true; clearInterval(iv) }
+    // A manual Stripe sync rewrites this ledger; reload at once rather than
+    // showing the pre-sync roster for up to a minute afterwards.
+    const onRefresh = () => { void load() }
+    window.addEventListener(CUSTOMERS_REFRESH_EVENT, onRefresh)
+    return () => { cancelled = true; clearInterval(iv); window.removeEventListener(CUSTOMERS_REFRESH_EVENT, onRefresh) }
   }, [])
 
   const buckets = useMemo<ProductBucket[]>(() => {

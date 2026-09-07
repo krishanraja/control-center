@@ -88,7 +88,10 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
         <p className={`${narrow ? 'text-ui' : 'text-lede'} font-display font-semibold text-white leading-[1.15] tracking-tight truncate`}>
           {headline}
         </p>
-        <p className="text-label text-white/55 leading-snug truncate mt-0.5">{sub}</p>
+        {/* Wraps rather than truncates: the supporting line carries the count
+            or the figure, and an ellipsis there hides exactly the number the
+            hero exists to state. */}
+        <p className="text-label text-white/55 leading-snug break-words mt-0.5">{sub}</p>
       </div>
       {!clear && actionSlot}
       {!clear && !actionSlot && actionLabel && (

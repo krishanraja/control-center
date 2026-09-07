@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 const API = import.meta.env.VITE_API_URL || ''
 
@@ -13,7 +13,23 @@ export interface RevenueSummary {
   active_subscriptions: number
   empty: boolean
   as_of: string
+  /** When the Stripe pull last wrote the revenue tables. Null before the first sync. */
+  synced_at?: string | null
 }
+
+/** Fired after a manual Stripe sync so ledger readers reload without waiting a poll. */
+export const CUSTOMERS_REFRESH_EVENT = 'cc:customers-refresh'
+
+/** Hours since the last Stripe sync, or null when unknown. */
+export function syncAgeHours(r: RevenueSummary | null, now = Date.now()): number | null {
+  if (!r?.synced_at) return null
+  const t = new Date(r.synced_at).getTime()
+  if (Number.isNaN(t)) return null
+  return Math.max(0, (now - t) / 3_600_000)
+}
+
+/** The cron runs daily; past a day and a half the tab should say it is behind. */
+export const SYNC_STALE_HOURS = 36
 
 /**
  * The two revenue figures, straight from Stripe via /api/revenue.
@@ -26,6 +42,8 @@ export interface RevenueSummary {
 export function useRevenue(pollMs = 300_000) {
   const [data, setData] = useState<RevenueSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [tick, setTick] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -50,10 +68,35 @@ export function useRevenue(pollMs = 300_000) {
     }
     void load()
     const t = setInterval(load, pollMs)
-    return () => { cancelled = true; clearInterval(t) }
-  }, [pollMs])
+    const onRefresh = () => { void load() }
+    window.addEventListener(CUSTOMERS_REFRESH_EVENT, onRefresh)
+    return () => { cancelled = true; clearInterval(t); window.removeEventListener(CUSTOMERS_REFRESH_EVENT, onRefresh) }
+  }, [pollMs, tick])
 
-  return { revenue: data, loading }
+  const refresh = useCallback(() => setTick(n => n + 1), [])
+
+  /**
+   * Pull Stripe now instead of waiting for the 08:00 UTC cron. POST is
+   * accepted with the dashboard cookie (api/_auth.ts guardCronRoute). Resolves
+   * to an error string, or null on success; every reader of the revenue and
+   * customers tables is told to reload either way.
+   */
+  const syncNow = useCallback(async (): Promise<string | null> => {
+    setSyncing(true)
+    try {
+      const r = await fetch(`${API}/api/revenue/sync`, { method: 'POST', credentials: 'include' })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j?.ok === false) return typeof j?.error === 'string' ? j.error : `HTTP ${r.status}`
+      return null
+    } catch (e) {
+      return e instanceof Error ? e.message : 'sync failed'
+    } finally {
+      setSyncing(false)
+      window.dispatchEvent(new Event(CUSTOMERS_REFRESH_EVENT))
+    }
+  }, [])
+
+  return { revenue: data, loading, refresh, syncNow, syncing }
 }
 
 /** "$14.75/mo + A$9.58/mo" — non-USD plans stay in their own currency. */

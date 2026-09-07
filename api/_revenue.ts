@@ -34,6 +34,8 @@ export interface RevenueSummary {
   /** True when no revenue has been synced yet, so callers can say so. */
   empty: boolean
   as_of: string
+  /** When the Stripe pull last wrote these tables. Null until the first sync. */
+  synced_at: string | null
 }
 
 const DAY = 86_400_000
@@ -46,7 +48,7 @@ export async function loadRevenue(): Promise<RevenueSummary> {
       .select('kind, occurred_at, gross_cents, net_cents, usd_cents')
       .limit(10_000),
     supabase.from('revenue_subscriptions')
-      .select('status, currency, mrr_cents, mrr_usd_cents')
+      .select('status, currency, mrr_cents, mrr_usd_cents, synced_at')
       .limit(5_000),
   ])
 
@@ -72,7 +74,10 @@ export async function loadRevenue(): Promise<RevenueSummary> {
   let mrrUsd = 0
   const other = new Map<string, number>()
   let activeCount = 0
+  let syncedAt: string | null = null
   for (const s of subs) {
+    const at = typeof s.synced_at === 'string' ? s.synced_at : null
+    if (at && (!syncedAt || at > syncedAt)) syncedAt = at
     if (!LIVE.has(String(s.status))) continue
     activeCount += 1
     const usd = s.mrr_usd_cents == null ? null : Number(s.mrr_usd_cents)
@@ -94,5 +99,6 @@ export async function loadRevenue(): Promise<RevenueSummary> {
     active_subscriptions: activeCount,
     empty: events.length === 0 && subs.length === 0,
     as_of: new Date().toISOString(),
+    synced_at: syncedAt,
   }
 }
