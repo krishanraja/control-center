@@ -1,5 +1,5 @@
 -- Acquisition OS: first-class sequence proposals + send sampling
--- (Growth tab Phase 2 — see docs/MINDMAKE_OS_ARCHITECTURE.md §11.5)
+-- (Growth tab Phase 2, see docs/MINDMAKE_OS_ARCHITECTURE.md §11.5)
 --
 -- 1. acquisition_sequences: a proposed nurture / frame-promotion /
 --    re-engagement sequence awaiting a Krish ruling. Surfaces in

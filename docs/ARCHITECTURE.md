@@ -8,7 +8,7 @@
 > **OS-wide architecture lives elsewhere.** For the canonical description of
 > the entire mind/make OS — agent fleet, cron topology, Supabase taxonomy,
 > N8N workflow inventory, four-tier self-healing, data flows end-to-end,
-> aspirational targets — read [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md).
+> aspirational targets, read [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md).
 > That file on `main` is the only copy (ruling 2026-09-07: the VPS and Google
 > Drive mirrors are deleted). It is the source of truth all AI tools align to;
 > this doc is its repo-scoped subset and points to it rather than repeating it.
