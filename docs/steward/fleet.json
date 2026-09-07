@@ -63,10 +63,10 @@
       "docs_roots": ["docs"],
       "state_doc": "docs/DOCUMENTATION_GOVERNANCE.md",
       "history_dir": "docs/history",
-      "truth_files": ["public/product-truth.json", "public/llms.txt"],
+      "truth_files": ["public/product-truth.json", "public/llms.txt", "public/.well-known/ai-plugin.json"],
       "docs_check": "node scripts/docs-audit.mjs",
       "rules_files": ["docs/DOCUMENTATION_GOVERNANCE.md", "docs/AGENT_BRIEFING.md"],
-      "write_allowlist": ["**/*.md", "public/product-truth.json", "public/llms.txt", "public/ai-plugin.json"],
+      "write_allowlist": ["**/*.md", "public/product-truth.json", "public/llms.txt", "public/.well-known/ai-plugin.json"],
       "bootstrap_head": "7df98a5"
     },
     {
