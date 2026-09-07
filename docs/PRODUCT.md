@@ -514,7 +514,14 @@ a bottom sheet (`growth/Composer.tsx`): one required question at the top in
 the operator's words, product and channel as chips, everything optional
 under "More", one full-width action riding above the keyboard. The desk gets
 the same fields inline. No `<select>` and no date picker anywhere in either:
-a score is ten chips, a week is two.
+a score is ten chips, a week is two. The + create sheet carries both ("Add a
+place", "Add a clip") and lands on the right section with the sheet open.
+
+**The board on a phone is a list, not a kanban.** The desk keeps five
+columns; a phone shows only the stages holding a card, top to bottom, and
+the arrows on each card move it. On a phone no section repeats the line
+under the pill: a section head carries only what the pill does not (a
+count, an action).
 
 ---
 

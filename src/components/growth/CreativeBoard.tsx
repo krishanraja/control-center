@@ -1,5 +1,5 @@
 import { OptionChips } from '../goals/GoalPickers'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Film, Plus, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead } from './atoms'
@@ -36,9 +36,11 @@ const STAGE_TONE: Record<Stage, string> = {
   dropped: 'text-white/30 border-white/[0.08]',
 }
 
-export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop' | 'mobile' }) {
+export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData; variant: 'desktop' | 'mobile'; composeSignal?: number }) {
   const { toast } = useToast()
   const [adding, setAdding] = useState(false)
+  // The + create sheet's "Add a clip" lands here (via GrowthTab).
+  useEffect(() => { if (composeSignal > 0) setAdding(true) }, [composeSignal])
   const [openId, setOpenId] = useState<string | null>(null)
   const [showDropped, setShowDropped] = useState(false)
   const thisWeek = useMemo(() => mondayOf(new Date()), [])
@@ -78,11 +80,18 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
     )
   }
 
+  // Phone: a stacked list by stage, not a kanban. The desk's five columns at
+  // 760px wide scrolled sideways inside the vertical scroller, and the h-full
+  // frame squeezed them to a 30px sliver under the empty note (seen live,
+  // 2026-09-08). On a phone the stages read top to bottom, only the ones
+  // holding a card, and the arrows on each card move it.
+  const phone = variant === 'mobile'
+
   return (
-    <div className="space-y-4 pb-8 min-h-0 flex flex-col h-full">
+    <div className={`space-y-4 pb-8 min-h-0 flex flex-col ${phone ? '' : 'h-full'}`}>
       <SectionHead
-        title="Creative board"
-        sub="Brief to posted. Drag a card, or use the arrows. The script and shot notes live on the card because you are the one filming."
+        title={phone ? undefined : 'Creative board'}
+        sub={phone ? undefined : 'Brief to posted. Drag a card, or use the arrows. The script and shot notes live on the card because you are the one filming.'}
         action={
           <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
             <Plus size={13} className="inline -mt-0.5 mr-1" />{adding && variant === 'desktop' ? 'Close' : 'New clip'}
@@ -114,13 +123,38 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
 
       {g.cards.length === 0 && (
         <EmptyNote>
-          No creative cards yet. Nothing here is generated for you: a card exists once you or an agent writes one,
-          and the board stays empty until then. Start one with New card, capped at {BATCH_MIN} to {BATCH_MAX} script
-          candidates for the week.
+          No clips yet. Nothing here is generated for you: a card exists once you or an agent writes one,
+          and the board stays empty until then. Start one with New clip, capped at {BATCH_MIN} to {BATCH_MAX} a week.
         </EmptyNote>
       )}
-      {/* The columns render even at zero cards: the pipeline is the point, and an
-          empty board still has to show what the stages are and take a drop. */}
+      {phone ? (
+        live.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {BOARD_STAGES.map(stage => {
+              const inStage = live.filter(c => c.stage === stage)
+              if (inStage.length === 0) return null
+              return (
+                <section key={stage} className="rounded-xl border border-white/[0.07] bg-white/[0.015]">
+                  <header className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.06]">
+                    <span className={`text-micro font-semibold uppercase tracking-[0.14em] ${STAGE_TONE[stage].split(' ')[0]}`}>
+                      {STAGE_LABEL[stage]}
+                    </span>
+                    <span className="text-micro text-white/35 tabular-nums ml-auto">{inStage.length}</span>
+                  </header>
+                  <div className="p-2 space-y-2">
+                    {inStage.map(c => (
+                      <BoardCard key={c.id} card={c} thisWeek={thisWeek} onOpen={() => setOpenId(c.id)} onMove={move} />
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
+          </div>
+        )
+      ) : (
+      /* The columns render even at zero cards on the desk: the pipeline is the
+         point, and an empty board still has to show what the stages are and
+         take a drop. */
       <div className="flex-1 min-h-0 overflow-x-auto">
           <div className="flex gap-3 min-h-0 h-full" style={{ minWidth: variant === 'desktop' ? 940 : 760 }}>
             {BOARD_STAGES.map(stage => {
@@ -155,6 +189,7 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
             })}
           </div>
       </div>
+      )}
 
       {showDropped && dropped.length > 0 && (
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3">
@@ -210,18 +245,18 @@ function BoardCard({ card, thisWeek, onOpen, onMove }: {
           aria-label="Move back a stage"
           onClick={e => { e.stopPropagation(); onMove(card, -1) }}
           disabled={i <= 0}
-          className="text-white/35 hover:text-white/80 disabled:opacity-20 p-0.5"
+          className="text-white/35 hover:text-white/80 disabled:opacity-20 min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
         >
-          <ChevronLeft size={13} />
+          <ChevronLeft size={15} />
         </button>
         <button
           type="button"
           aria-label="Move forward a stage"
           onClick={e => { e.stopPropagation(); onMove(card, 1) }}
           disabled={i >= BOARD_STAGES.length - 1}
-          className="text-white/35 hover:text-white/80 disabled:opacity-20 p-0.5"
+          className="text-white/35 hover:text-white/80 disabled:opacity-20 min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
         >
-          <ChevronRight size={13} />
+          <ChevronRight size={15} />
         </button>
       </div>
     </div>

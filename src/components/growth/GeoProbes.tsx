@@ -63,7 +63,7 @@ export function GeoProbes({ g, variant }: { g: GrowthData; variant: 'desktop' | 
     <div className="space-y-4">
       <SectionHead
         title="Do AI answers mention you?"
-        sub="The questions your buyers ask, put to the AI answer engines. One score: how often you are in the answer."
+        sub={variant === 'desktop' ? 'The questions your buyers ask, put to the AI answer engines. One score: how often you are in the answer.' : undefined}
       />
 
       {g.probes.length === 0 ? (

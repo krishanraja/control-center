@@ -50,11 +50,11 @@ export function CouncilFeed({ g, variant, onNavigate }: {
   return (
     <div className="space-y-4 pb-8">
       <SectionHead
-        title="Weekly review"
+        title={variant === 'desktop' ? 'Weekly review' : undefined}
         sub={
           g.reviews.length
-            ? `${g.reviews.length} review${g.reviews.length === 1 ? '' : 's'}, ${undecided} waiting on your ruling. One per product, written every Sunday from the real numbers.`
-            : 'One verdict per product, written every Sunday from the real numbers: what to stop, what to do next.'
+            ? `${g.reviews.length} review${g.reviews.length === 1 ? '' : 's'}, ${undecided} waiting on your ruling.${variant === 'desktop' ? ' One per product, written every Sunday from the real numbers.' : ''}`
+            : variant === 'desktop' ? 'One verdict per product, written every Sunday from the real numbers: what to stop, what to do next.' : undefined
         }
       />
 

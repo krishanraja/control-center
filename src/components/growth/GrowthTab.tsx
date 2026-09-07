@@ -94,10 +94,12 @@ export function GrowthTab({
     }
   }, [g.touchpoints, g.cards, g.reviews, g.probes])
 
-  // The + create sheet's "Add a touchpoint": land on the map with its
+  // The + create sheet's "Add a place": land on the map with its
   // composer open, wherever in Growth you were.
   const [mapCompose, setMapCompose] = useState(0)
   useQuickCreateListener('touchpoint', () => { setSection('map'); setMapCompose(n => n + 1) })
+  const [clipCompose, setClipCompose] = useState(0)
+  useQuickCreateListener('clip', () => { setSection('work'); setClipCompose(n => n + 1) })
 
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
@@ -151,7 +153,7 @@ export function GrowthTab({
         {section === 'map' ? (
           <TouchpointMap g={g} variant={variant} composeSignal={mapCompose} />
         ) : section === 'work' ? (
-          <CreativeBoard g={g} variant={variant} />
+          <CreativeBoard g={g} variant={variant} composeSignal={clipCompose} />
         ) : section === 'signals' ? (
           <div className="space-y-4">
             {/* Venture health at a glance, relocated from Home in the 2026-08-20
