@@ -152,12 +152,17 @@ export interface ContentIdeaRow {
     falsifiable_test?: string | null
     named_entities?: string[] | null
     why_non_obvious?: string | null
+    /** Independent Money and Built readings over this exact source record.
+     * Kept open here because the versioned runtime parser rejects malformed or
+     * unsupported shapes before the UI treats them as decisions. */
+    editorial_radar?: Record<string, unknown> | null
     // Research + enrichment (dive-deeper / challenge / transform).
     research?: string[] | null
     sources?: string[] | null
     deep_dives?: Array<{ query: string; findings: string; citations?: string[]; at: string }> | null
     visual_suggestion?: string | null
-    generated_by?: 'transform' | 'creator_scout' | null
+    generated_by?: 'transform' | 'creator_scout' | 'editorial_radar' | null
+    editorial_route?: Record<string, unknown> | null
     // Content Engine layer (revise / challenge / score / push-to-cleo).
     revisions?: Array<{ mode: string; value?: string | null; instruction?: string | null; at: string; chars?: number }> | null
     challenges?: Array<{

@@ -22,6 +22,8 @@ import { Pending } from '../shared/Pending'
 import { BriefComposer } from './BriefComposer'
 import { ComposerShell, ComposerRail, MetaDot } from './ComposerShell'
 import { EditPalette } from './EditPalette'
+import { EditorialOpportunityGate } from './EditorialOpportunityGate'
+import type { EditorialSeries } from '../../lib/editorialOpportunities'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -51,6 +53,9 @@ interface Props {
   ideaId?: string
   /** A weekly brief, by ISO week. */
   week?: string
+  /** Optional editorial lens over a neutral source. This stays inside the
+   * existing composer route instead of becoming another ideas UI. */
+  editorialSeries?: EditorialSeries | null
   narrow: boolean
   onClose: () => void
 }
@@ -71,10 +76,10 @@ interface Props {
  * the palette inside it (EditPalette, over editGroups()) — which is the part
  * that drifted.
  */
-export function ContentComposer({ ideaId, week, narrow, onClose }: Props) {
+export function ContentComposer({ ideaId, week, editorialSeries, narrow, onClose }: Props) {
   if (week) return <BriefComposer week={week} narrow={narrow} onClose={onClose} />
   if (!ideaId) return null
-  return <IdeaComposer ideaId={ideaId} narrow={narrow} onClose={onClose} />
+  return <IdeaComposer ideaId={ideaId} editorialSeries={editorialSeries} narrow={narrow} onClose={onClose} />
 }
 
 const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
@@ -92,7 +97,7 @@ const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
 // Hoisted: O(1) membership test for stored distribution values.
 const CHANNEL_VALUES = new Set(MEDIA_CHANNELS.map(c => c.value as string))
 
-function IdeaComposer({ ideaId, narrow, onClose }: { ideaId: string; narrow: boolean; onClose: () => void }) {
+function IdeaComposer({ ideaId, editorialSeries, narrow, onClose }: { ideaId: string; editorialSeries?: EditorialSeries | null; narrow: boolean; onClose: () => void }) {
   const { ideas } = useRealtimeContentIdeas()
   const idea = useMemo(() => ideas.find(i => i.id === ideaId) || null, [ideas, ideaId])
 
@@ -215,6 +220,10 @@ function IdeaComposer({ ideaId, narrow, onClose }: { ideaId: string; narrow: boo
   // `fallback={null}` in App.tsx, meant opening a piece went blank, spinner,
   // content. The composer's own shape is recognisable, so promise that instead.
   if (!idea) return <SkeletonDetail full />
+
+  if (editorialSeries) {
+    return <EditorialOpportunityGate idea={idea} series={editorialSeries} onClose={onClose} />
+  }
 
   const openRail = (t: RailTab) => setTab(t)
 

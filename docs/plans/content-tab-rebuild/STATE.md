@@ -34,14 +34,14 @@ output. The existing architecture is the foundation, not something to replace.
 | ID | Phase | Status | Owner | Pass signal |
 |---|---|---|---|---|
 | P-17 | Systemise the approved Content design and text-integrity rule | DONE | Codex | shared doctrine, CI regression guard, production-component sweep and long-copy renders pass at 320 px, 390 px and desktop widths |
-| P-18 | Mount the independent editorial lens pass inside the existing Content suggestion and composer flow | NOT STARTED | Codex | same record and actions at desktop and mobile, no new queue or route |
+| P-18 | Mount the independent editorial lens pass inside the existing Content suggestion and composer flow | IN REVIEW | Codex | same source record appears in its Money and Built rooms, opens in the shared composer shell, and approval creates one revision-bound `publication` child; hard blocks stop, near-misses require a reason, pass and approval stay series-scoped |
 | P-19 | Add one output registry and production selector for Substack, LinkedIn, video, carousel and podcast | NOT STARTED | Codex | every target derives from one approved story and preserves provenance |
 | P-20 | Bind Video and Carousel Studio starts to exact approved `ProductionBriefV1` artifacts | NOT STARTED | Codex | stale or unapproved content cannot start production; retries are idempotent |
 | P-21 | Apply the approved skin to every connected Content and Studio state | NOT STARTED | Codex | shared primitives survive long, empty, loading, stale and error states at narrow and wide viewports |
 | P-22 | Preview, UX audit and production release | NOT STARTED | Codex then Krish | primary idea-to-output tasks pass in preview; exact production release remains separately approved |
 
-Exactly one next action: merge the accepted contract and design PRs, then begin
-P-18 from GitHub `main`.
+Exactly one next action: verify P-18 in the authenticated Vercel preview, then
+merge it or repair the exact failing state before beginning P-19.
 
 The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest state machine, advance=develop (not relabel), server guard against zombie review cards, one count source with honest labels, state-aware inline actions, a "Do this next" hero (with inline schedule) that removes all next-action ambiguity, and a Composer that flows finish→next. **All planned phases (P-3..P-16) are now DONE, done-as-existing, or done-lean.** Canonical architecture doc §changelog updated (2026-06-17 entry). Everything merged to main and prod-verified (render + server guard). The only thing NOT exercised on prod is the mutating click-through of Approve/Schedule on real content — left for Krish, since those are real content decisions.
 

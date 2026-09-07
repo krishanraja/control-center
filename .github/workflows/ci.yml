@@ -209,6 +209,9 @@ jobs:
       # clause is clipped. Content and Studio surfaces must wrap the full text
       # or place it behind a deliberate disclosure, never ellipsise it.
       - run: npm run check:editorial-text
+      # One neutral source, independent series judgements, one approved child
+      # lineage and no second Content UI.
+      - run: npm run check:content-spine
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it
