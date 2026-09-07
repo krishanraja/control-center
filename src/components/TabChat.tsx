@@ -224,7 +224,7 @@ export function TabChatHost({ tab, narrow, params, suppressed = false }: TabChat
     <>
       {/* Desktop entry. Mobile reaches this through the + sheet, which is why
           the pill matches the ⌘I capture pill's placement and sits above it. */}
-      {!suppressed && (
+      {!suppressed && !narrow && (
         <button
           type="button"
           onClick={openPanel}

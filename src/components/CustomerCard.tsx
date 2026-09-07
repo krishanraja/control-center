@@ -9,6 +9,20 @@ interface Props {
   customer: CustomerRow
 }
 
+// customers.source is a machine tag. Say where the row came from in words.
+const SOURCE_LABEL: Record<string, string> = {
+  stripe_sync: 'Stripe',
+  stripe_reconciliation: 'Stripe',
+  stripe_webhook: 'Stripe webhook',
+  profiles: 'app signup',
+  pulse_landing: 'Pulse landing page',
+}
+
+export function sourceLabel(source?: string | null): string {
+  if (!source) return ''
+  return SOURCE_LABEL[source] || source.replace(/[_-]+/g, ' ')
+}
+
 export function CustomerCard({ customer: c }: Props) {
   const name = c.full_name || (c.email ? c.email.split('@')[0] : 'Unnamed')
   const productLabel = PRODUCT_LABEL[c.product] || c.product
@@ -40,14 +54,14 @@ export function CustomerCard({ customer: c }: Props) {
         {typeof c.mrr_usd === 'number' && c.mrr_usd > 0 && (
           <span className="text-micro tabular-nums text-emerald-300 flex-shrink-0">
             <DollarSign size={9} className="inline" />
-            {Math.round(c.mrr_usd).toLocaleString()}/mo
+            {Number.isInteger(Number(c.mrr_usd)) ? Number(c.mrr_usd).toLocaleString() : Number(c.mrr_usd).toFixed(2)}/mo
           </span>
         )}
       </header>
 
       {(c.source || when) && (
         <div className="flex items-center justify-between gap-3 mt-2 text-micro text-white/40">
-          <span className="truncate">{c.source ? `via ${c.source}` : ''}</span>
+          <span className="break-words">{c.source ? `via ${sourceLabel(c.source)}` : ''}</span>
           <span className="tabular-nums flex-shrink-0">{when ? humanAgo(when) : ''}</span>
         </div>
       )}

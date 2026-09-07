@@ -7,6 +7,7 @@ import {
   type CustomerProduct,
 } from '../../hooks/useCustomers'
 import { MrrTicker } from '../MrrTicker'
+import { useRevenue, formatCommittedMrr } from '../../hooks/useRevenue'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
@@ -19,12 +20,21 @@ import { BoardSkeleton, Skeleton } from '../shared/Skeleton'
 
 export function DesktopCustomers() {
   const { buckets, totals, customers, loading, error } = useCustomers()
+  const { revenue } = useRevenue()
   const [selected, setSelected] = useState<CustomerProduct | null>(null)
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
-  const activeProducts = buckets.filter(b => b.total > 0)
+  // Money first: the product that is paying opens by default, not whichever
+  // retired product happens to sit first in the enum with a free signup left.
+  const activeProducts = useMemo(
+    () => buckets.filter(b => b.total > 0).sort((a, b) => b.mrrUsd - a.mrrUsd || b.paid - a.paid || b.total - a.total),
+    [buckets],
+  )
   const current = (selected && buckets.find(b => b.product === selected)) || activeProducts[0] || null
+  // Committed MRR as Stripe states it, so the header, the hero and the ticker
+  // under them all carry the same figure.
+  const mrrLabel = formatCommittedMrr(revenue)
 
   // Expansion plays = paid customers whose Maya sweeper flagged them for
   // outreach (`needs_outreach_at <= now`) AND we haven't emailed them recently.
@@ -73,7 +83,7 @@ export function DesktopCustomers() {
           <Skeleton h={12} w={256} r={4} className="mt-1.5 mb-[3px]" />
         ) : (
           <p className="text-xs md:text-body text-white/50 mt-0.5">
-            {`${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo · ${totals.freeSignups} free · ${totals.waitlist} waitlist`}
+            {`${totals.paid} paid · ${mrrLabel}/mo · ${totals.freeSignups} free · ${totals.waitlist} waitlist`}
           </p>
         )}
       </div>
@@ -118,9 +128,6 @@ export function DesktopCustomers() {
         </section>
       )}
 
-      <p className="text-micro text-white/30">
-        Ambient surface: revenue truth to read, nothing to action here. Expansion plays worth a decision land on Home.
-      </p>
       <MrrTicker variant="desktop" />
       <SubscribersList />
       <CustomerCouncilCard />
@@ -143,7 +150,6 @@ export function DesktopCustomers() {
 
       <div className="space-y-2">
         {activeProducts
-          .sort((a, b) => b.mrrUsd - a.mrrUsd || b.paid - a.paid)
           .map(b => {
             const isSelected = current?.product === b.product
             return (
@@ -204,7 +210,7 @@ export function DesktopCustomers() {
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <KpiTile label="Paid"     value={current.paid}     icon={CheckCircle2} tone="emerald" />
         <KpiTile label="MRR / mo" value={`$${Math.round(current.mrrUsd).toLocaleString()}`} icon={DollarSign} tone="emerald" />
         <KpiTile label="Signups"  value={current.freeSignups} icon={TrendingUp} tone="violet" />
@@ -241,7 +247,7 @@ export function DesktopCustomers() {
     <div className="flex flex-col gap-4">
       <SubscriptionsWatchHero
         expansionPlays={expansionPlays}
-        totals={{ mrrUsd: totals.mrrUsd, paid: totals.paid }}
+        totals={{ mrrLabel, paid: totals.paid }}
         onOpen={() => scrollToExpansion()}
       />
       <SplitPane left={left} right={right} hasSelection={current != null} onBack={() => setSelected(null)} />

@@ -276,7 +276,10 @@ export default function App() {
               // honor), so the shell must not wrap it in a scroll container.
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={2} /></div></DeferredFallback>}>
                 <ErrorBoundary label="Home">
-                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
+                  {/* The doors row sits at the bottom of this canvas, so the
+                      bottom padding reserves the pill gutter: without it the
+                      ⌘I and ⌘/ pills float over the Intel door at every width. */}
+                  <div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col">
                     <DesktopHome onNavigate={navigate} />
                   </div>
                 </ErrorBoundary>
@@ -287,7 +290,9 @@ export default function App() {
               // shell must not wrap it in a second scroll container.
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div></DeferredFallback>}>
                 <ErrorBoundary label="Growth">
-                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
+                  {/* Same gutter as Home: the board's last row and its Retire
+                      controls sit bottom-right, under the pills otherwise. */}
+                  <div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col">
                     <GrowthTab
                       variant="desktop"
                       initialSection={growthEntrySection}
@@ -359,7 +364,7 @@ export default function App() {
           )}
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
           <PendingFlagModal />
-          <QuickCaptureIdea />
+          <QuickCaptureIdea narrow={narrow} />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
           {/* The one mobile create control: tab-aware + button (CreateSheet).
               Keyed on the same `narrow` state as the shell (the old md:hidden

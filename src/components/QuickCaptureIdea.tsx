@@ -149,7 +149,7 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
  * Desktop-only floating pill + the ⌘I global hotkey. Mobile uses
  * the CreateSheet + button instead.
  */
-export function QuickCaptureIdea() {
+export function QuickCaptureIdea({ narrow = false }: { narrow?: boolean } = {}) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -170,7 +170,11 @@ export function QuickCaptureIdea() {
 
   return (
     <>
-      {/* Floating pill — desktop-only (min-[900px]). Mobile uses the CreateSheet + button. */}
+      {/* Floating pill — desktop-only. Mobile uses the CreateSheet + button.
+          Gated on the same `narrow` the shell uses, not on width alone: a
+          touch viewport between 900 and 1023px renders the mobile shell (its
+          + button and bottom nav) and used to get this pill on top of them. */}
+      {!narrow && (
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -183,6 +187,7 @@ export function QuickCaptureIdea() {
           ⌘I
         </kbd>
       </button>
+      )}
 
       <ContentIdeaModal open={open} onClose={() => setOpen(false)} />
     </>

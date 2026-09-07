@@ -1,12 +1,22 @@
 import React from 'react'
-import { TrendingUp, TrendingDown, Target } from '@/lib/icons'
+import { TrendingUp, TrendingDown, RefreshCw } from '@/lib/icons'
 import { useRevenueAttribution } from '../hooks/useRevenueAttribution'
 import { formatMrr } from '../lib/mrrDisplay'
-import { formatCommittedMrr } from '../hooks/useRevenue'
+import { formatCommittedMrr, syncAgeHours, SYNC_STALE_HOURS } from '../hooks/useRevenue'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 import { useMoodSource } from './shared/AmbientField'
 import { Skeleton } from './shared/Skeleton'
 import { Sparkline } from './shared/Sparkline'
+import { Working } from './shared/Working'
+import { useToast } from './shared/Toast'
+
+/** "just now", "5h ago", "3 days ago": plain words for how old the Stripe pull is. */
+export function syncAgeLabel(hours: number | null): string {
+  if (hours == null) return 'never synced'
+  if (hours < 1) return 'synced just now'
+  if (hours < 48) return `synced ${Math.round(hours)}h ago`
+  return `synced ${Math.round(hours / 24)} days ago`
+}
 
 interface Props {
   variant?: 'mobile' | 'desktop'
@@ -22,9 +32,18 @@ interface Props {
  * driven by `home_intelligence.momentum.mrr` (Marcus, daily brief).
  */
 export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
-  const { liveMrr, mrrDelta7d, loading, revenue } = useRevenueAttribution()
+  const { liveMrr, mrrDelta7d, revenue, syncNow, syncing } = useRevenueAttribution()
   const { intel } = useHomeIntelligence()
+  const { toast } = useToast()
   const sparkline = intel.momentum?.mrr ?? []
+  const ageHours = syncAgeHours(revenue)
+  const behind = ageHours == null || ageHours > SYNC_STALE_HOURS
+
+  const runSync = async () => {
+    const err = await syncNow()
+    if (err) toast(`Stripe sync failed: ${err}`, 'error')
+    else toast('Stripe synced. Revenue and subscribers are current.', 'success')
+  }
 
   const isMobile = variant === 'mobile'
   const deltaPositive = mrrDelta7d >= 0
@@ -89,6 +108,28 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
         </div>
       </div>
 
+      {/* Freshness, stated. Every number above comes from the daily Stripe
+          pull; when that pull is behind, the tab says so in the same breath
+          rather than presenting a stale figure as today's. Sync now is the
+          on-demand backstop for the same route the cron hits. */}
+      {revenue && (
+        <div className={`mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3 flex-wrap text-micro ${behind ? 'text-amber-300' : 'text-white/40'}`}>
+          <span>
+            {behind && ageHours != null ? 'Stripe is behind: ' : 'Stripe '}
+            {syncAgeLabel(ageHours)}
+          </span>
+          <button
+            type="button"
+            onClick={() => { void runSync() }}
+            disabled={syncing}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-micro font-medium text-white/70 hover:bg-white/[0.08] disabled:opacity-50"
+            title="Pull Stripe now"
+          >
+            {syncing ? <Working size={11} /> : <RefreshCw size={11} />}
+            {syncing ? 'Syncing' : 'Sync now'}
+          </button>
+        </div>
+      )}
       {/* The goal bar is gone with system_config.mrr_goal_usd (2026-08-20):
           a revenue target belongs on the goal ladder, judged by the gate,
           not in a display setting beside the number. */}
