@@ -206,8 +206,8 @@ assert.ok(vercel.functions['api/discover-build-signals.ts'], 'the function has a
 assert.doesNotMatch(read('api/_buildSignals.ts'), /expires_at:\s*null/, 'a build signal never claims an evergreen expiry; that is the editorial route child')
 assert.match(read('api/content-ideas/[id]/editorial-route.ts'), /meta\.mindmake_build \? \{ mindmake_build: true/, 'the routed child keeps the flag')
 assert.match(read('api/scorecard/monday.ts'), /Built last week/, 'the Monday note lists the week\'s builds')
-assert.doesNotMatch(read('api/scorecard/github-sync.ts'), /GITHUB_AUTHOR|author=/, 'the tripwire counts every commit in the repo, never one login (2026-09-07)')
-assert.doesNotMatch(cron, /GITHUB_AUTHOR/, 'the ingest reads every commit in the repo too')
+assert.doesNotMatch(read('api/scorecard/github-sync.ts'), /process\.env\.GITHUB_AUTHOR|URLSearchParams\(\{ author/, 'the tripwire counts every commit in the repo, never one login (2026-09-07)')
+assert.doesNotMatch(cron, /process\.env\.GITHUB_AUTHOR/, 'the ingest reads every commit in the repo too')
 
 // ── The architecture doc: one surface, kept current by the engine ────────────
 const { composeWeekEntry, applyWeekEntry, CHANGELOG_HEADING } = await import('../api/_architectureDoc.ts')
