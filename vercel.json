@@ -69,6 +69,10 @@
       "schedule": "0 14 * * 1"
     },
     {
+      "path": "/api/video-studio/runner/watch",
+      "schedule": "30 6 * * *"
+    },
+    {
       "path": "/api/acquisition/governor",
       "schedule": "0 */6 * * *"
     },

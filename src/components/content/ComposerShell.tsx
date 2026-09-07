@@ -66,23 +66,82 @@ export interface ComposerTab<T extends string> {
   icon: React.ReactNode
 }
 
+// Labels are always visible on every tab. They used to appear only on the
+// selected one, which left Refine as an unlabelled wand on a rail that
+// defaults elsewhere (OBS-029: "Tab-style without labels is divination").
+export interface ComposerStage<T extends string> {
+  id: string
+  label: string
+  /** The rail tabs that belong to this stage, in order. */
+  tabs: T[]
+}
+
 /**
  * The desktop rail: a tab strip over one panel.
  *
- * Labels are always visible. They used to appear only on the selected tab,
- * which left Refine as an unlabelled wand on a rail that defaults elsewhere,
- * and is logged in docs/plans/content-tab-rebuild/OBSERVATIONS.md as OBS-029:
- * "Tab-style without labels is divination." That is a large part of why the
- * palette felt missing even on the surface that had it.
+ * With `stages` the strip reads as a sequence: Draft, then Strengthen, then
+ * Produce. The current stage (from the piece's state) is lit, the others are
+ * reachable, and each stage's tabs sit under its label so twenty-six tools
+ * never face you at once. Without `stages` it is the flat strip the brief uses.
  */
-export function ComposerRail<T extends string>({ tabs, tab, onTab, children }: {
+export function ComposerRail<T extends string>({ tabs, tab, onTab, children, stages, currentStage }: {
   tabs: ComposerTab<T>[]
   tab: T
   onTab: (id: T) => void
   children: React.ReactNode
+  stages?: ComposerStage<T>[]
+  /** Which stage the piece is at right now, by id. */
+  currentStage?: string
 }) {
+  const byId = new Map(tabs.map(t => [t.id, t]))
+  const activeStage = stages?.find(s => s.tabs.includes(tab))?.id
   return (
     <aside className="w-[380px] flex-shrink-0 border-l border-white/[0.08] flex flex-col min-h-0">
+      {stages ? (
+        <div className="flex-shrink-0 border-b border-white/[0.06] px-2 pt-2" data-testid="composer-stages">
+          {/* The sequence. The lit stage is the one whose tool is open; the
+              ringed number is where the piece actually is. */}
+          <div className="flex items-center gap-1">
+            {stages.map((stage, index) => {
+              const lit = stage.id === activeStage
+              const here = stage.id === currentStage
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  onClick={() => onTab(stage.tabs[0])}
+                  data-testid={`composer-stage-${stage.id}`}
+                  aria-current={here ? 'step' : undefined}
+                  aria-pressed={lit}
+                  className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-micro uppercase tracking-[0.14em] transition-colors ${lit ? 'bg-white/[0.06] text-white/85' : 'text-white/40 hover:text-white/70'}`}
+                >
+                  <span className={`inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-micro tabular-nums ${here ? 'bg-emerald-400/25 text-emerald-200' : lit ? 'bg-white/15 text-white/80' : 'bg-white/[0.06] text-white/40'}`}>{index + 1}</span>
+                  <span>{stage.label}</span>
+                </button>
+              )
+            })}
+          </div>
+          {/* Only the open stage's tools. The others are one stage click away. */}
+          <div className="flex items-center gap-0.5 pt-1.5">
+            {(stages.find(s => s.id === activeStage)?.tabs || []).map(id => {
+              const t = byId.get(id)
+              if (!t) return null
+              return (
+                <button
+                  key={t.id} type="button" onClick={() => onTab(t.id)} title={t.label}
+                  aria-label={t.label} aria-pressed={tab === t.id}
+                  data-testid={`composer-rail-${t.id}`}
+                  className={`flex flex-shrink-0 items-center gap-1.5 rounded-t-md px-2.5 py-2 text-micro transition-colors ${
+                    tab === t.id ? 'bg-white/[0.06] text-white/90' : 'text-white/45 hover:text-white/75'
+                  }`}
+                >
+                  {t.icon}<span>{t.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
       <div className="flex items-center gap-0.5 px-2 pt-2 border-b border-white/[0.06] flex-shrink-0 overflow-x-auto">
         {tabs.map(t => (
           <button
@@ -97,6 +156,7 @@ export function ComposerRail<T extends string>({ tabs, tab, onTab, children }: {
           </button>
         ))}
       </div>
+      )}
       <div className="flex-1 min-h-0 overflow-y-auto p-3">{children}</div>
     </aside>
   )

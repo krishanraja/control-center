@@ -15,6 +15,7 @@ import {
   laneForShift,
   type CorpusItem, type ProposedShift, type VerifiedShift,
 } from '../_trendGate.js'
+import { withContentRun } from '../_runs.js'
 
 // Weekly shift detection (Content Engine v2, spec §4).
 //
@@ -430,7 +431,7 @@ export async function classifyUnclassified(limit = 60) {
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (guardCronRoute(req, res)) return
   try {
@@ -442,3 +443,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 export const config = { maxDuration: 300 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('shifts_detect', handler)

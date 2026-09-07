@@ -5,6 +5,7 @@ import { checkDuplicate } from './_dedup.js'
 import { getOperatorTz, ymdIn, shiftYmd } from './_timezone.js'
 import { weekEndingFor, weekRangeUtc } from './_scorecard.js'
 import { buildSignalRow, buildSourceRef, fetchRepoWeek, normalizeRepo, type BuildSignalRow } from './_buildSignals.js'
+import { withContentRun } from './_runs.js'
 
 // discover-build-signals: the week's builds, offered as content.
 //
@@ -49,7 +50,7 @@ function decided(row: Row): boolean {
   return Boolean(decisions && Object.keys(decisions).length)
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardCronRoute(req, res)) return
   const started = Date.now()
   const dry = req.query.dry === '1'
@@ -195,3 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: msg })
   }
 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('build_signals', handler)

@@ -50,6 +50,13 @@ async function mock(page: Page) {
   await page.route('**/rest/v1/shifts*', (r: Route) => r.fulfill({ json: SHIFTS }))
 }
 
+/** Shifts and the week's surfaced cards live under the "Also here" fold now:
+ *  context, not obligations. Open it before looking for a shift. */
+async function openAlsoHere(page: Page, lane: 'built' | 'paid') {
+  await page.getByTestId(`content-room-${lane}`).click()
+  await page.getByTestId(`content-also-here-${lane}`).locator('summary').click()
+}
+
 test.describe('the content rooms', () => {
   test('Built leads with its own shift, then labels the cross-cutting one', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
@@ -58,7 +65,7 @@ test.describe('the content rooms', () => {
     await mock(page)
     await page.goto('/#/content')
 
-    await page.getByTestId('content-room-built').click()
+    await openAlsoHere(page, 'built')
     await expect(page.getByText('Agent teams are moving into CI pipelines')).toBeVisible()
     await expect(page.getByTestId('shifts-cross-cutting')).toBeVisible()
     await expect(page.getByText('Governments claim pre-release veto power over frontier AI')).toBeVisible()
@@ -78,7 +85,7 @@ test.describe('the content rooms', () => {
     await mock(page)
     await page.goto('/#/content')
 
-    await page.getByTestId('content-room-built').click()
+    await openAlsoHere(page, 'built')
     await page.getByText('Agent teams are moving into CI pipelines').click()
     await expect(page.getByTestId('shift-dossier')).toBeVisible()
     await expect(page.getByText(/For your org:/)).toBeVisible()
@@ -92,7 +99,7 @@ test.describe('the content rooms', () => {
     await mock(page)
     await page.goto('/#/content')
 
-    await page.getByTestId('content-room-built').click()
+    await openAlsoHere(page, 'built')
     await page.getByText('Governments claim pre-release veto power over frontier AI').click()
     await expect(page.getByTestId('shift-dossier')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Accept' })).toBeVisible()
@@ -106,7 +113,7 @@ test.describe('the content rooms', () => {
     await mock(page)
     await page.goto('/#/content')
 
-    await page.getByTestId('content-room-paid').click()
+    await openAlsoHere(page, 'paid')
     await expect(page.getByTestId('shifts-own-empty')).toBeVisible()
     await expect(page.getByText('Agent teams are moving into CI pipelines')).toHaveCount(0)
     await expect(page.getByTestId('shifts-cross-cutting')).toBeVisible()

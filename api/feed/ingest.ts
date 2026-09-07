@@ -3,6 +3,7 @@ import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { fetchPoolDays, poolConfigured } from '../_pool.js'
 import { purgeBoundary } from '../_weeks.js'
+import { withContentRun } from '../_runs.js'
 
 // Daily Feed ingest (Content Engine v2, spec §4).
 //
@@ -19,12 +20,15 @@ import { purgeBoundary } from '../_weeks.js'
 
 const LOOKBACK_DAYS = 2
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (guardCronRoute(req, res)) return
 
+  // An unconfigured pool is a failure, not a quiet success. This used to
+  // return 200 with a `skipped` note nobody read, so the feed could stop for
+  // weeks while every cron dashboard stayed green.
   if (!poolConfigured()) {
-    return res.status(200).json({ ok: true, skipped: 'pool not configured (CTRL_SUPABASE_URL / CTRL_SUPABASE_SERVICE_KEY unset)' })
+    return res.status(500).json({ ok: false, error: 'pool not configured (CTRL_SUPABASE_URL / CTRL_SUPABASE_SERVICE_KEY unset)' })
   }
 
   try {
@@ -84,3 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) })
   }
 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('feed_ingest', handler)

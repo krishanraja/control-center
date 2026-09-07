@@ -9,6 +9,7 @@ import { scoreArc, surface, surfacingReason, VISIBLE_SLOTS, RESERVED_FOR_UNTHEME
 import { lintCard } from '../_cardLint.js'
 import type { Lens, Channel } from '../_lenses.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
+import { withContentRun } from '../_runs.js'
 
 // The step between "the detector found arcs" and "Krish sees seven cards".
 //
@@ -293,7 +294,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (guardCronRoute(req, res)) return
   try {
@@ -305,3 +306,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 export const config = { maxDuration: 300 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('arcs_surface', handler)

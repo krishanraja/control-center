@@ -64,11 +64,20 @@ New tables (RLS: anon SELECT, service_role ALL — house pattern; all writes via
 
 Model tiering per MT-003: Sonnet for detect/assemble/essay; Haiku for why-lines and classification. Grounding: `content_voice_block`, `content_corpus`, Five Standards advisory scoring carries over.
 
-## 5. UI (flag `VITE_CONTENT_V2_ENABLED` — ON in prod since 2026-08)
+## 5. UI (the only Content surface since 2026-09-07; the build flag is gone)
 
-> **Current shape (2026-08-21).** The shipped rooms are **Built / Paid /
-> Library** (`ContentV2Tab`, test ids `content-room-<id>`), with the brief
-> queue folded into the deck rather than a "This Week" room. On mobile the
+> **Current shape (2026-09-07).** One surface. The v1 triage tab and the
+> `VITE_CONTENT_V2_ENABLED` fork are deleted; what they carried has a named
+> home in `CONTENT-ENGINE-PARITY-LEDGER.md`. The rooms are **Built / Paid /
+> Library** (`ContentV2Tab`, test ids `content-room-<id>`). A lane reads in
+> the order you act: the Next card, ideas ready to shape, the pieces in
+> progress by state, then "Also here" (surfaced cards and shifts, folded) and
+> a Supply drawer (seed rail, feed, unsorted). The Library holds the
+> calendar, backburner, settled shifts, evergreens and the Studio's learning
+> proposals. The Composer rail is three stages, Draft / Strengthen / Produce,
+> and opens on the stage the piece is at. The phone leads with the Queue
+> deck: rulings first, then video reviews, then the upstream pile to keep or
+> bin. On mobile the
 > tab leads with a **Queue** view — the finite decision deck
 > (`MobileDecisionDeck`) — and the three rooms sit beside it as segments;
 > the research entry point is desktop-only chrome, and creation runs
@@ -80,7 +89,7 @@ Model tiering per MT-003: Sonnet for detect/assemble/essay; Haiku for why-lines 
 > below is the original spec, kept for the intent and the details that
 > still hold (composer, feed semantics, purge).
 
-Four rooms replace mode-switched triage (desktop `DesktopContent.tsx` + mobile `MobileContent.tsx`):
+Four rooms replaced mode-switched triage (the original design; the v1 files are gone):
 
 - **This Week** (default): BriefCard (title, assembled stamp, stats chips, Review and edit) + DecisionQueue (typed cards, four kinds, finite) + the ambient ledger sentence. Zero open-ended triage.
 - **Shifts**: register grid (emerald identity: eyebrow, momentum sparkline from `momentum_history`, verdict chip Accelerating/Steady/Fading, totals, provenance bar) + dossier drawer (week-by-week evidence rows tagged lived/reconstructed; actions: Write from this shift -> Composer seeded with dossier as materials; Add to this week's brief; Retire).
@@ -102,7 +111,7 @@ Four rooms replace mode-switched triage (desktop `DesktopContent.tsx` + mobile `
 | PR-A | Schema migration + engine core (pool client, trend gate port, ingest/detect/assemble/purge, briefs API) + crons; flag off | tsc + eslint green; seeded dry-run of detect+assemble against live pool data verified by SQL |
 | PR-B | UI rooms + Composer rich text + fan-out + mobile queue; flag off | fixture/preview harness screenshots (desktop + 390px), zero-scroll invariant, boot-resilient Playwright walk |
 | PR-C | Backfill + migration scripts; run once with logs into audit_log | shifts register populated, provenance bars honest, pile at zero |
-| Flip | `VITE_CONTENT_V2_ENABLED=true` in Vercel + redeploy | Krish's live sign-off on the first assembled brief |
+| Flip | done 2026-09-07: the flag is removed and v2 is the only surface | Krish's live sign-off on the first assembled brief |
 | PR-D+ | Repo-wide coherence pass: every other tab adopts the idiom (typed finite decisions, rooms, provenance honesty, thumb-zone mobile) | per-tab screenshots |
 
 ## 8. Explicitly out of scope (v1)

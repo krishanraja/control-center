@@ -215,6 +215,17 @@ jobs:
       # Every production start must bind one exact approved Content revision;
       # no Video or Carousel Studio route may re-ideate around it.
       - run: npm run check:content-production
+      # The Content tab says when a cron has gone quiet. It can only say so
+      # for crons it knows about, so the schedule table and vercel.json are
+      # held to the same set, and every listed job must record its runs.
+      - run: npx tsx scripts/check-content-engine-schedule.mts
+      # A variable the code reads and .env.example does not name is a feature
+      # that can vanish in one environment with nothing in the logs.
+      - run: npx tsx scripts/check-env-example.mts
+      # Behaviour tests for the pure halves of the content-to-production
+      # bridge and the run ledger. The structural guards above assert that
+      # lines exist; these assert what the functions do.
+      - run: npx tsx --test tests/api/*.test.ts
       # Krish's own builds as Content Engine supply: five named products,
       # everything else anonymous, no figure in a Money of AI candidate, one
       # source type declared in three places, the Saturday cron wired.
@@ -247,3 +258,30 @@ jobs:
       # steward's validator runs here; the head/as_of half only holds on main
       # and runs in .github/workflows/docs-steward.yml.
       - run: node scripts/steward/validate.mjs . --fleet docs/steward/fleet.json --repo control-center
+
+  # The Content surface and the Video Engine reviewer, in a real browser
+  # against the production build with every network call mocked. These
+  # specs existed for months and never ran in CI, so a broken surface
+  # shipped green. Placeholder Supabase values are enough: nothing connects.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_UI_V2_ENABLED: 'true'
+          VITE_VIDEO_ENGINE_ENABLED: 'true'
+      - run: npx playwright test e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts --reporter=line
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_UI_V2_ENABLED: 'true'
+          VITE_VIDEO_ENGINE_ENABLED: 'true'
