@@ -3,6 +3,9 @@ import React, { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Film, Plus, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead } from './atoms'
+import { Ask, ComposerShell, LINE_CLS, More, PARA_CLS } from './Composer'
+import { VoiceField } from '../pilot/controls'
+import { failureMessage } from '../../lib/apiFetch'
 import {
   BATCH_MAX, BATCH_MIN, BOARD_STAGES, PRODUCTS, PRODUCT_LABEL, STAGE_LABEL,
   mondayOf, shortDate,
@@ -82,7 +85,7 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
         sub="Brief to posted. Drag a card, or use the arrows. The script and shot notes live on the card because you are the one filming."
         action={
           <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
-            <Plus size={13} className="inline -mt-0.5 mr-1" />{adding ? 'Close' : 'New card'}
+            <Plus size={13} className="inline -mt-0.5 mr-1" />{adding && variant === 'desktop' ? 'Close' : 'New clip'}
           </button>
         }
       />
@@ -107,7 +110,7 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
         )}
       </div>
 
-      {adding && <AddCard g={g} thisWeek={thisWeek} onDone={() => setAdding(false)} />}
+      <AddCard g={g} variant={variant} open={adding} thisWeek={thisWeek} onDone={() => setAdding(false)} />
 
       {g.cards.length === 0 && (
         <EmptyNote>
@@ -354,8 +357,9 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
   )
 }
 
-function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onDone: () => void }) {
+function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; variant: 'desktop' | 'mobile'; open: boolean; thisWeek: string; onDone: () => void }) {
   const { toast } = useToast()
+  const nextWeek = useMemo(() => mondayOf(new Date(Date.parse(`${thisWeek}T00:00:00Z`) + 7 * 86_400_000)), [thisWeek])
   const [form, setForm] = useState({
     product_slug: 'full-time' as ProductSlug,
     title: '',
@@ -368,69 +372,94 @@ function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onD
     batch_week: thisWeek,
   })
   const [saving, setSaving] = useState(false)
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = <K extends keyof typeof form>(k: K) => (v: (typeof form)[K]) => setForm(f => ({ ...f, [k]: v }))
+  const onText = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  const options = g.touchpoints.filter(t => t.product_slug === form.product_slug && t.coverage_status !== 'retired')
+  // The places on the map for this product, as chips. The first version was a
+  // native <select> of 70-character options, which a phone renders as a wheel
+  // of truncated sentences.
+  const places = g.touchpoints.filter(t => t.product_slug === form.product_slug && t.coverage_status !== 'retired')
 
   const submit = async () => {
-    if (!form.title.trim()) { toast('Give the card a title.', 'error'); return }
+    if (!form.title.trim()) { toast('Say what the clip is.', 'error'); return }
     setSaving(true)
     try {
       await g.addCard({ ...form, touchpoint_id: form.touchpoint_id || null })
-      toast('Card on the board.', 'success')
+      toast('On the board.', 'success')
       onDone()
     } catch (e) {
-      toast(`Could not add: ${String(e)}`, 'error')
+      toast(failureMessage(e, 'Could not add it.'), 'error')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Product" wide>
+    <ComposerShell
+      variant={variant}
+      open={open}
+      onClose={onDone}
+      label="Add a clip"
+      primaryLabel="Add to the board"
+      onPrimary={submit}
+      busy={saving}
+      canSubmit={Boolean(form.title.trim())}
+    >
+      <Ask label="What is the clip?" hint="One line. The title on the card.">
+        <VoiceField value={form.title} onChange={set('title')} rows={2} placeholder="Why 0 of 114 signups ever activated" autoFocus={variant === 'desktop'} />
+      </Ask>
+      <Ask label="Which product?">
+        <OptionChips
+          options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
+          value={form.product_slug}
+          onChange={v => { set('product_slug')(v as ProductSlug); set('touchpoint_id')('') }}
+        />
+      </Ask>
+      <Ask label="Which week?">
+        <OptionChips
+          options={[
+            { value: thisWeek, label: `This week, ${shortDate(thisWeek)}` },
+            { value: nextWeek, label: `Next week, ${shortDate(nextWeek)}` },
+          ]}
+          value={form.batch_week}
+          onChange={set('batch_week')}
+        />
+      </Ask>
+      {places.length > 0 && (
+        <Ask label="Which place on the map is it for?" hint="Optional. Ties the clip to where the buyers are.">
           <OptionChips
-            options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
-            value={form.product_slug}
-            onChange={v => set('product_slug')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+            options={[{ value: '', label: 'Not tied to one' }, ...places.map(t => ({ value: t.id, label: t.icp_trigger.length > 48 ? `${t.icp_trigger.slice(0, 46)}...` : t.icp_trigger }))]}
+            value={form.touchpoint_id}
+            onChange={set('touchpoint_id')}
           />
-        </Field>
-        <Field label="Batch week (Monday)">
-          <input type="date" value={form.batch_week} onChange={set('batch_week')} className={INPUT_CLS} />
-        </Field>
-        <Field label="Title" wide>
-          <input value={form.title} onChange={set('title')} className={INPUT_CLS} placeholder="What the clip is" />
-        </Field>
-        <Field label="Touchpoint" wide>
-          <select value={form.touchpoint_id} onChange={set('touchpoint_id')} className={`${INPUT_CLS} cursor-pointer`}>
-            <option value="">Not tied to a touchpoint</option>
-            {options.map(t => <option key={t.id} value={t.id}>{t.icp_trigger.slice(0, 70)}</option>)}
-          </select>
-        </Field>
-        <Field label="Magic sentence" wide>
-          <input value={form.magic_sentence} onChange={set('magic_sentence')} className={INPUT_CLS} placeholder="The one line it has to land" />
-        </Field>
-        <Field label="Target account">
-          <input value={form.target_account} onChange={set('target_account')} className={INPUT_CLS} placeholder="TikTok, Reels, LinkedIn" />
-        </Field>
-        <Field label="Brief">
-          <textarea value={form.brief} onChange={set('brief')} rows={2} className={INPUT_CLS} />
-        </Field>
-        <Field label="Script" wide>
-          <textarea value={form.script} onChange={set('script')} rows={4} className={`${INPUT_CLS} font-mono text-label`} />
-        </Field>
-        <Field label="Shot notes" wide>
-          <textarea value={form.shot_notes} onChange={set('shot_notes')} rows={2} className={INPUT_CLS} />
-        </Field>
-      </div>
-      <div className="flex gap-2 mt-3">
-        <button type="button" onClick={submit} disabled={saving} className={BTN_PRIMARY}>
-          {saving ? 'Adding…' : 'Add to board'}
-        </button>
-        <button type="button" onClick={onDone} className={BTN_GHOST}>Cancel</button>
-      </div>
-    </div>
+        </Ask>
+      )}
+
+      <More label="The line, the account, the script">
+        <Ask label="The one line it has to land">
+          <input value={form.magic_sentence} onChange={onText('magic_sentence')} className={LINE_CLS} placeholder="Optional" />
+        </Ask>
+        <Ask label="Where does it post?">
+          <OptionChips
+            options={ACCOUNTS.map(a => ({ value: a, label: a }))}
+            value={form.target_account}
+            onChange={v => set('target_account')(v === form.target_account ? '' : v)}
+          />
+        </Ask>
+        <Ask label="What is it for?">
+          <textarea value={form.brief} onChange={onText('brief')} rows={2} className={PARA_CLS} placeholder="Optional" />
+        </Ask>
+        <Ask label="Script" hint="What you read to camera. Can come later.">
+          <textarea value={form.script} onChange={onText('script')} rows={4} className={`${PARA_CLS} font-mono text-label`} placeholder="Optional" />
+        </Ask>
+        <Ask label="Shot notes">
+          <textarea value={form.shot_notes} onChange={onText('shot_notes')} rows={2} className={PARA_CLS} placeholder="Framing, b-roll, Higgsfield prompt notes" />
+        </Ask>
+      </More>
+    </ComposerShell>
   )
 }
+
+/** Where a clip can post. Chips over a free box, with the box's old hint as the set. */
+const ACCOUNTS = ['LinkedIn', 'TikTok', 'Reels', 'YouTube Shorts', 'Substack', 'X']

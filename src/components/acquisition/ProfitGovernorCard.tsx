@@ -5,10 +5,10 @@ import { laneAction, type LaneDetail } from '../../hooks/useLaneDetail'
 import { BudgetBar } from './BudgetBar'
 
 /**
- * Profit Governor — the lane's P&L with the hard gates visible:
+ * Profit Governor: the lane's P&L with the hard gates visible:
  * contribution-margin headline, cost stack vs attributed MRR, CAC vs LTV,
  * budget burn (80% warn / 100% breaker), one-tap pause/resume, budget editor.
- * The gates themselves live in /api/acquisition/lanes/:slug — this card just
+ * The gates themselves live in /api/acquisition/lanes/:slug. This card just
  * makes them legible.
  */
 export function ProfitGovernorCard({
@@ -61,6 +61,7 @@ export function ProfitGovernorCard({
         <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Profit governor
         </h2>
+        <span className="hidden sm:inline text-micro text-white/30">what it earns minus what its agents cost</span>
         <span className={`ml-auto text-body font-semibold tabular-nums ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>
           {positive ? '+' : ''}${margin.toFixed(2)}/mo
         </span>
@@ -113,14 +114,14 @@ export function ProfitGovernorCard({
               ))}
             </div>
 
-            <div className="flex items-baseline gap-4 pt-1 text-micro text-white/40 tabular-nums">
-              <span>CAC {econ.cac_usd != null ? `$${Number(econ.cac_usd).toFixed(0)}` : '—'}</span>
-              <span>LTV est. {econ.ltv_estimate_usd != null ? `$${Number(econ.ltv_estimate_usd).toFixed(0)}` : '—'}</span>
+            <div className="flex items-baseline gap-x-4 gap-y-1 flex-wrap pt-1 text-micro text-white/40 tabular-nums">
+              <span>Cost per new customer {econ.cac_usd != null ? `$${Number(econ.cac_usd).toFixed(0)}` : 'none yet'}</span>
+              <span>Lifetime value est. {econ.ltv_estimate_usd != null ? `$${Number(econ.ltv_estimate_usd).toFixed(0)}` : 'none yet'}</span>
               <span>{econ.new_paid_mtd} new paid MTD</span>
             </div>
           </>
         ) : (
-          <p className="text-label text-white/35">No economics yet for this lane.</p>
+          <p className="text-label text-white/35">Nothing is tagged to this product yet, so there is no cost or revenue to show.</p>
         )}
 
         <BudgetBar
@@ -135,7 +136,7 @@ export function ProfitGovernorCard({
             <button
               type="button"
               disabled={busy}
-              onClick={() => act({ action: 'pause', reason: 'manual pause from Growth tab' }, 'Lane paused — workflows deactivated.')}
+              onClick={() => act({ action: 'pause', reason: 'manual pause from Growth tab' }, 'Lane paused. Its workflows are switched off.')}
               className="rounded-lg border border-rose-400/25 px-2.5 py-1 text-micro font-medium text-rose-300/80 hover:text-rose-300 transition-colors disabled:opacity-40 flex items-center gap-1"
             >
               <Pause size={10} /> Pause lane

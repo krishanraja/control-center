@@ -21,10 +21,10 @@ import type { GrowthData } from '../../hooks/useGrowth'
  * signal_type='geo-citation', which has never held a single row, and it
  * duplicates growth_geo_probes, which is the real GEO surface.
  */
-export function SignalsPanel({ g }: { g: GrowthData }) {
+export function SignalsPanel({ g, variant }: { g: GrowthData; variant: 'desktop' | 'mobile' }) {
   return (
     <div className="space-y-4 pb-8">
-      <GeoProbes g={g} />
+      <GeoProbes g={g} variant={variant} />
       <SeoRankPanel />
     </div>
   )

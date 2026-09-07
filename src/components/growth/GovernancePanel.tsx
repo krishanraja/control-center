@@ -10,6 +10,7 @@ import { IntegrationsPanel } from '../acquisition/IntegrationsPanel'
 import { ChurnReengagementQueue } from '../acquisition/ChurnReengagementQueue'
 import { EmptyNote, SectionHead } from './atoms'
 import { Working } from '../shared/Working'
+import { useSpend } from '../../hooks/useSpend'
 
 /**
  * E) GOVERNANCE: the per-lane control plane. What growth costs, how much rope
@@ -41,10 +42,12 @@ export function GovernancePanel({
   variant,
   lane: laneParam,
   onSelectLane,
+  onNavigate,
 }: {
   variant: 'desktop' | 'mobile'
   lane?: string | null
   onSelectLane?: (slug: string) => void
+  onNavigate?: (tab: string, params?: Record<string, string>) => void
 }) {
   const { data, loading, error, refresh } = useAcquisition()
   const [pickedSlug, setPickedSlug] = useState<string | null>(laneParam || null)
@@ -88,8 +91,8 @@ export function GovernancePanel({
   return (
     <div className="space-y-4 pb-8">
       <SectionHead
-        title="Governance"
-        sub="What this lane costs, how much freedom its agents have, and what they are allowed to say. Every number comes straight from the live system."
+        title="Spend limits"
+        sub="Per product: the budget its agents may spend, how much they may do without you, and what they may say. Pick a product."
         action={
           <button
             type="button"
@@ -108,6 +111,8 @@ export function GovernancePanel({
           {error}
         </div>
       )}
+
+      <SpendContext lane={selected?.name || null} onNavigate={onNavigate} />
 
       {orderedLanes.length === 0 ? (
         !error && (
@@ -177,6 +182,43 @@ export function GovernancePanel({
             </>
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The bridge to Intel's costings (2026-09-08). Intel's spend is the bills:
+ * every invoice and subscription the OS pays, from spend_invoices and the
+ * service registry. The lane economics below count only what is TAGGED to a
+ * lane: agent runs on the lane's workflows, API calls carrying the lane in
+ * their metadata, lane_costs rows and lane-assigned tools. Nearly everything
+ * the OS pays for is shared and untagged, so a lane reads $0 while Intel
+ * reads hundreds. Both are true; they answer different questions. This line
+ * says so, with Intel's number beside it, instead of leaving the two tabs to
+ * contradict each other in silence. The controls stay here because they are
+ * per-product rope, which is a Growth decision, not a bill.
+ */
+function SpendContext({ lane, onNavigate }: { lane: string | null; onNavigate?: (tab: string, params?: Record<string, string>) => void }) {
+  const { spend } = useSpend()
+  if (!spend || spend.empty) return null
+  const total = Math.round(spend.month_usd)
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] px-4 py-3 flex flex-col gap-1.5">
+      <p className="text-body text-white/85 leading-snug tabular-nums">
+        The whole OS has cost ${total.toLocaleString()} so far this month. That is Intel&rsquo;s number, from the bills.
+      </p>
+      <p className="text-label text-white/45 leading-snug">
+        The figures below count only what is tagged to {lane ? `${lane}` : 'this product'}: its agents&rsquo; runs, its API calls, its own tools. Shared costs stay in Intel, so the lane number is smaller. The limits here cap what the agents may add on top.
+      </p>
+      {onNavigate && (
+        <button
+          type="button"
+          onClick={() => onNavigate('os', { sub: 'intel' })}
+          className="self-start text-label font-medium text-white/60 hover:text-white/85 underline decoration-white/20 underline-offset-2 min-h-[32px]"
+        >
+          Open the costings in Intel
+        </button>
       )}
     </div>
   )

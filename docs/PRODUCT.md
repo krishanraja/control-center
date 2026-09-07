@@ -480,11 +480,41 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 ## Tab: Growth
 
 One tab, five sections in the order of the weekly loop (Map, Work, Signals,
-Council, Governance), both device classes via `growth/GrowthTab`. On a phone
-it leads with one line (the number of map questions waiting) and each
-touchpoint row collapses to a single readable line that expands on tap; the
-+ create sheet carries "Add a touchpoint". Full spec and runbook:
-[`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+Council, Governance), both device classes via `growth/GrowthTab`. Full spec
+and runbook: [`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+
+**It says what it is for (2026-09-08).** The header carries the purpose in
+one sentence ("Find buyers where they already are, make them something each
+week, and see whether it worked") and a second line under the pills says what
+the open section is for. Krish had asked, in so many words, why the tab did
+not just say that.
+
+**Read first, rows second.** Every section that shows evidence opens on a
+sentence that says what the evidence means, with the rows folded under it:
+
+- *What's moving* leads with "asked N questions across M engines, K answers
+  mentioned you, cited instead: these hosts", per product, computed from
+  `growth_geo_probes` on every render. The questions sit behind "Show the N
+  questions"; the engine's answer text never renders on a phone.
+- *Weekly review* leads with the council's headline, then "Do next" (each
+  move has "Put on today", the Today slot write path, and "Make it a clip",
+  the creative board write path), then "Stop", then the findings folded
+  under "Why: the evidence", then the ruling. The council already wrote the
+  headline every Sunday; the surface used to bury it as one key: value row.
+- *Spend limits* opens with Intel's whole-OS spend for the month beside a
+  line saying the lane figures below count only what is tagged to the lane
+  (agent runs, tagged API calls, lane costs, lane tools), so the two tabs
+  stop contradicting each other. The autonomy card says the rungs in words
+  ("You approve every send", "They send, you check 1 in 10", "They send, you
+  only see exceptions"). Connected tools are two lines each, name and price,
+  then the job or the reason it is locked, in full.
+
+**Composers are the house shape.** Adding a place or a clip on a phone opens
+a bottom sheet (`growth/Composer.tsx`): one required question at the top in
+the operator's words, product and channel as chips, everything optional
+under "More", one full-width action riding above the keyboard. The desk gets
+the same fields inline. No `<select>` and no date picker anywhere in either:
+a score is ten chips, a week is two.
 
 ---
 
