@@ -208,7 +208,7 @@ assert.match(read('api/content-ideas/[id]/editorial-route.ts'), /meta\.mindmake_
 assert.match(read('api/scorecard/monday.ts'), /Built last week/, 'the Monday note lists the week\'s builds')
 
 // ── The architecture doc: one surface, kept current by the engine ────────────
-const { composeWeekEntry, applyWeekEntry, CHANGELOG_HEADING } = await import('../api/architecture/weekly.ts')
+const { composeWeekEntry, applyWeekEntry, CHANGELOG_HEADING } = await import('../api/_architectureDoc.ts')
 const doc = read('docs/MINDMAKE_OS_ARCHITECTURE.md')
 assert.doesNotMatch(doc.slice(0, 20000), /six places|byte-identical across/, 'the header no longer claims a six-surface inventory')
 assert.match(doc.slice(0, 20000), /\*\*Last engine refresh:\*\* (\d{4}-\d{2}-\d{2}|never)/, 'the header carries the engine stamp')
