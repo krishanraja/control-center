@@ -202,6 +202,11 @@ One source, one weight, one rhythm — the icon counterpart of the type sweep.
   The one sanctioned character mark is the middle dot as a separator.
 - **Identity marks are not icons:** `MindmakeIdentity`, `AgentAvatar`,
   `DrawnCheck` and the hand-drawn sparklines stay bespoke.
+- **No magic sparkle icons** (Krish, 2026-09-08). Nothing here is magic; it
+  is a model call with a cost and a wait. `Sparkles` and `Wand2` still exist
+  as names in `@/lib/icons` so no call site changes, but they render `Cpu`
+  (machine work) and `PenLine` (an edit). Do not import a sparkle, wand,
+  star burst or similar glyph under any other name.
 
 ## Responsive identity
 
