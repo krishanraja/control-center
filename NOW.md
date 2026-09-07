@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet.
 
-## Where it is right now (as of 2026-09-07)
+## Where it is right now (as of 2026-09-08)
 
 - **Live** at `controlcenter.krishraja.com`, auto-deployed from `main` on Vercel, Supabase behind it. CI runs lint, three typechecks and thirty structural guards on every push (`.github/workflows/ci.yml`).
 - **The one swing is the operating frame** (ADR-016, `docs/plans/one-swing/CHARTER.md`): one mission, five jobs in priority order. Jobs 1 (the Room) and 2 (the scorecard) are built and live since 5 September. Jobs 3, 4 and 5 are gated on the first paid room. Gate G1 is open; G2 to G4 are closed. Ledger and Vercel state: `docs/plans/one-swing/STATE.md`.
