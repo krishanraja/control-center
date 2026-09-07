@@ -14,8 +14,8 @@ import { useToast } from '../shared/Toast'
 import { useReducedMotion } from '../shared/motion'
 import {
   VIDEO_GATE_LABEL,
-  VIDEO_SERIES_LABEL,
   rememberVideoStudioReturnFocus,
+  videoPreviewStateLabel,
   videoStudioListItemIsWellFormed,
   type VideoStudioReviewListItem,
 } from '../../lib/videoStudio'
@@ -394,7 +394,7 @@ export function MobileDecisionDeck({
           // min-h-0 + overflow-y-auto: a long card scrolls inside itself. Without
           // it the card grew past the stage, pushed the thumb-zone buttons into
           // the nav clearance, and "Not a shift" sat under the + button.
-          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing min-h-0 overflow-y-auto ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : idea ? 'border-white/[0.08] bg-white/[0.02]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
+          className={`rounded-2xl border p-4 select-none cursor-grab active:cursor-grabbing min-h-0 overflow-y-auto ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : idea ? 'border-white/[0.08] bg-white/[0.02]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
           {idea ? (
             <>
@@ -412,7 +412,7 @@ export function MobileDecisionDeck({
           ) : (
           <>
           {video && !videoMalformed ? (
-            <VideoBrandLockup series={video.series} placement="card" className="-ml-7 mb-3" />
+            <VideoBrandLockup series={video.series} placement="card" className="mb-3" />
           ) : null}
           <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
           <h3 className="text-lede font-bold text-white mt-3 leading-snug">
@@ -441,7 +441,9 @@ export function MobileDecisionDeck({
             <p className="text-micro text-violet-200/65 mt-3">
               {videoMalformed
                 ? 'Decision blocked'
-                : `${VIDEO_SERIES_LABEL[video.series]} · ${videoNeedsSyncAttention ? 'Local sync attention' : video.preview_state === 'available' ? 'Preview ready' : video.preview_state}`}
+                : videoNeedsSyncAttention
+                  ? 'Decided. The studio computer has not confirmed it yet.'
+                  : `${videoPreviewStateLabel(video.preview_state)}. Open it to compare, direct a change, or decide.`}
             </p>
           ) : null}
           {d?.kind === 'shift_proposal' && p.summary ? (

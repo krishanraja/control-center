@@ -180,7 +180,11 @@ export function VideoCompareStage({
               {comparison.state === 'expired' ? 'This private preview expired' : activeFailed ? 'This preview could not play' : 'No preview is available yet'}
             </p>
             <p className="mt-1 text-label leading-relaxed text-white/45">
-              Refresh to request a new private viewing link. Your source media has not moved.
+              {comparison.state === 'expired'
+                ? 'The studio computer uploads a fresh one on its next pass. Your source media has not moved.'
+                : activeFailed
+                  ? 'Refresh to retry the private link. Your source media has not moved.'
+                  : 'The studio computer has not uploaded the proxies for this review. Your source media has not moved.'}
             </p>
           </div>
         </div>

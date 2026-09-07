@@ -499,7 +499,12 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
     && (review.runner_state === 'offline' || review.runner_state === 'queued' || review.runner_state === 'working' || review.runner_state === 'attention')
   const waiting = Boolean(queuedInstruction) || durablePrepareInFlight || prepareHasChild || serverWaiting
   const runner = runnerCopy(review)
-  const canUse = pendingDecision && allPassed && bindingsComplete && !malformed && !editorialRoute && !waiting
+  // A treatment or final decision is a judgement about pictures. With no
+  // preview there is nothing to judge, so the primary button stays off and
+  // the reason is said under it. The story gate is words and needs no media.
+  const needsPreview = review.gate === 'treatment' || review.gate === 'final'
+  const previewMissing = needsPreview && review.preview.state !== 'available'
+  const canUse = pendingDecision && allPassed && bindingsComplete && !malformed && !editorialRoute && !waiting && !previewMissing
   const canKeep = pendingDecision && bindingsComplete && !malformed && !waiting
   const activeVersionMatches = Boolean(activeReadback.job
     && activeReadback.job.job_id === review.job_id
@@ -1108,6 +1113,13 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
               )}
               {!allPassed && (
                 <p className="mt-2 text-center text-micro leading-relaxed text-white/38">Every blocking check must pass before a candidate can be used.</p>
+              )}
+              {previewMissing && pendingDecision && !waiting && (
+                <p data-testid="video-preview-missing" className="mt-2 text-center text-micro leading-relaxed text-amber-100/65">
+                  {review.preview.state === 'expired'
+                    ? 'The private preview has expired. The studio computer must upload a fresh one before this can be judged.'
+                    : 'No preview to judge yet. The studio computer has not uploaded the proxies for this review.'}
+                </p>
               )}
               {!bindingsComplete && (
                 <p className="mt-2 text-center text-micro leading-relaxed text-amber-100/65">Exact version binding is incomplete. Refresh before deciding.</p>

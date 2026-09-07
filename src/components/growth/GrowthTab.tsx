@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useGrowth } from '../../hooks/useGrowth'
 import { BATCH_MAX, citationRate, mondayOf, pct } from '../../lib/growth'
 import { TouchpointMap } from './TouchpointMap'
+import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 import { CreativeBoard } from './CreativeBoard'
 import { CouncilFeed } from './CouncilFeed'
 import { SignalsPanel } from './SignalsPanel'
@@ -135,7 +136,7 @@ export function GrowthTab({
           heading meant the specs broke when "Touchpoint map" was renamed along
           with the section labels; a panel id says WHICH section is showing
           without depending on any word inside it. */}
-      <div data-testid={`growth-panel-${section}`} className="flex-1 min-h-0 overflow-y-auto">
+      <div data-testid={`growth-panel-${section}`} className={`flex-1 min-h-0 overflow-y-auto ${variant === 'mobile' ? BOTTOM_NAV_PAD : ''}`}>
         {section === 'map' ? (
           <TouchpointMap g={g} variant={variant} composeSignal={mapCompose} />
         ) : section === 'work' ? (

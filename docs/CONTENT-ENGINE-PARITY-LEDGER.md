@@ -51,6 +51,8 @@ commit, plus the two surfaces as they rendered before this change.
 
 ## Known gaps left open on purpose
 
+- Two lockup systems draw the same two publications: `VideoBrandLockup` (video, official assets by data URI) and `SeriesIdentity` (lanes, public assets by hash). Since 2026-09-08 they share plate colour, border and shadow so they read as one brand; folding them into one component is the follow-up.
+
 - Studio `active_preferences` are prose that is hashed and counted, never
   parsed. The treatment registry is the only learning that changes renders.
 - The editorial radar had written nothing in production as of this change
