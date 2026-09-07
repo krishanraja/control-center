@@ -2,7 +2,7 @@
 
 ## Delivery state
 
-- Status: approved visual contract, review-branch implementation complete; release verification in progress
+- Status: live in production since 2026-09-07. The control-plane migrations are applied to the Mindmaker OS project, `VITE_VIDEO_ENGINE_ENABLED` is on, the Windows runner heartbeats (idle, Drive ready), and the two synthetic validation jobs written on 2026-09-05 as activation proof are retired from the queue (`20260908100000_video_studio_jobs_retired.sql`). No real job has been projected yet; the first will arrive through a production brief the runner claims.
 - Canonical state route: `docs/plans/video-engine/STATE.md`
 - First approval artifact: `docs/plans/video-engine/mock-mobile-magic-v1.html`
 - Control Center base: `f25daafcbb2fda06416be0973ea40444d520d893`
@@ -112,7 +112,7 @@ An unrelated legacy approval route contains an exposed credential-like value and
 
 - Outcome: the secure mobile reviewer, command plane, signed recovery bridge, private preview contract, independent runner, Drive discovery and first client-neutral Studio session gateway are merged to GitHub main. Editorial Radar v2 is in review-branch implementation.
 - Phase: editorial boundary correction, Control Center opportunity-surface design, then private release verification.
-- Current truth: the production integration is not activated. The portable gateway currently supports a fail-closed bearer for local Codex and Claude Code. Consumer Claude.ai and ChatGPT OAuth, the Control Center Learning Inbox, weekly proposal compiler, production migrations, private bucket, environment, deployment, background-task installation, mounted Drive identity and retention schedule have not been activated. Chat pulse delivery has been removed by decision.
+- Current truth (2026-09-07): the production control plane is activated. Migrations, environment, deployment, the runner's scheduled task and the mounted Drive identity are live; the runner heartbeats idle with the Drive ready. The portable gateway supports a fail-closed bearer for local Codex and Claude Code. Learning proposals have a reader in the Content Library. Still not activated: consumer Claude.ai and ChatGPT OAuth, the weekly proposal compiler, and the preview retention schedule. Chat pulse delivery has been removed by decision.
 - Locked: the approval record, interaction contract, blocking gates, runtime independence, and non-goals above.
 - Authority: GitHub `main` remains canonical; implementation is reviewable branch work only.
 - Risks: live database and Storage behaviour remain unverified; OAuth and bearer rotation need dedicated threat review; installation and credential configuration remain release-gated; the revised responsive wordmark needs visual re-review.

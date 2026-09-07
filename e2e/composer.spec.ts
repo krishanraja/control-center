@@ -92,6 +92,9 @@ test('the rail tabs carry their labels, not just icons', async ({ page }) => {
 test('the brief gets the whole palette, not four chips', async ({ page }) => {
   await openBrief(page)
   const chips = page.locator('[data-testid^="edit-chip-"]')
+  // count() does not wait, and on a slow CI runner it once read 0 before the
+  // palette mounted. Wait for the first chip, then count.
+  await expect(chips.first()).toBeVisible()
   // 28 at the time of writing. The assertion is deliberately "many more than
   // four" rather than an exact count, so adding a preset does not fail it.
   expect(await chips.count()).toBeGreaterThan(20)

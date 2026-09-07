@@ -19,7 +19,6 @@ import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { videoEngineEnabled } from './lib/videoStudio'
 import { isTypingTarget } from './lib/hotkeys'
-import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
 import { useReducedMotion } from './components/shared/motion'
 import { parseEditorialSeries } from './lib/editorialOpportunities'
@@ -245,11 +244,12 @@ export default function App() {
                 <Suspense fallback={<MobileRouteFallback />}>
                   {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
-                  {tab === 'growth'    && <ErrorBoundary label="Growth"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
-                  {/* Reserve BottomNav clearance (like every MobileShell tab) so
-                      the deck's thumb-zone actions and the room scroll tails are
-                      never hidden behind the fixed nav bar. */}
-                  {tab === 'content'   && <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>}
+                  {tab === 'growth'    && <ErrorBoundary label="Growth"><div className="px-5 pt-7 h-full flex flex-col overflow-hidden"><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
+                  {/* BottomNav clearance belongs on the SCROLLER inside each tab
+                      (MobileShell does the same), never on this overflow-hidden
+                      wrapper: padding here shortens the scroll viewport, so the
+                      last rows were unreachable above a blank band. */}
+                  {tab === 'content'   && <ErrorBoundary label="Content"><div className="px-5 pt-7 h-full flex flex-col overflow-hidden"><ContentV2Tab variant="mobile" /></div></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
                   {/* Focus is designed to fit one screen with the tools collapsed;

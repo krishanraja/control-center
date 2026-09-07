@@ -76,17 +76,23 @@ export function useRoom(state: RoomState | null = null) {
   const [targets, setTargets] = useState<RoomRow[]>([])
   const [stateCounts, setStateCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  // A read that failed is not an empty Room. This used to be a bare catch, so
+  // a stale cookie on the phone and a genuinely empty list looked identical.
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
       const r = await fetch(state ? `/api/room?state=${encodeURIComponent(state)}` : '/api/room')
-      const j = await r.json()
+      const j = await r.json().catch(() => null)
       if (j?.ok) {
         setTargets((j.targets as RoomRow[]) || [])
         setStateCounts((j.stateCounts as Record<string, number>) || {})
+        setError(null)
+      } else {
+        setError(r.status === 401 ? 'not_signed_in' : (j?.error as string) || `http_${r.status}`)
       }
     } catch {
-      // the lane renders its quiet empty state; the next poll retries
+      setError('network')
     }
     setLoading(false)
   }, [state])
@@ -104,7 +110,7 @@ export function useRoom(state: RoomState | null = null) {
     }
   }, [load])
 
-  return { targets, stateCounts, loading, refetch: load }
+  return { targets, stateCounts, loading, error, refetch: load }
 }
 
 async function readJson(r: Response): Promise<Record<string, unknown>> {
@@ -141,15 +147,21 @@ export async function draftRoom(id: string): Promise<RoomRow> {
   return j.target as RoomRow
 }
 
-/** Proposals only. Nothing is added until Accept is pressed on one. */
-export async function seedRoom(limit = 5): Promise<RoomProposal[]> {
+/** Proposals only. Nothing is added until Accept is pressed on one.
+ *  `degraded` names any search stage that did not run (for example
+ *  'embedding:unavailable' when no embedding key is configured), so an empty
+ *  result can say why instead of "nobody fits". */
+export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; degraded: string[] }> {
   const r = await fetch('/api/room/seed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ limit }),
   })
   const j = await readJson(r)
-  return (j.proposals as RoomProposal[]) || []
+  return {
+    proposals: (j.proposals as RoomProposal[]) || [],
+    degraded: Array.isArray(j.degraded) ? (j.degraded as unknown[]).map(String) : [],
+  }
 }
 
 export async function addRoomTarget(input: {

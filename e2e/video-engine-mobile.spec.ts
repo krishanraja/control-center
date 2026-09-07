@@ -593,7 +593,7 @@ async function renderedSeriesMetrics(wordmark: Locator) {
 
 async function expectContainedOfficialLockup(lockup: Locator, series: 'money_of_ai' | 'built_with_ai') {
   await expect(lockup).toHaveAttribute('data-official-asset-source', 'krishanraja/mindmake')
-  expect(await lockup.evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgb(9, 11, 15)')
+  expect(await lockup.evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgb(10, 16, 13)')
   const geometry = await lockupGeometry(lockup)
   expect(geometry.left).toBeGreaterThanOrEqual(0)
   expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth + 0.5)
@@ -606,7 +606,12 @@ async function expectContainedOfficialLockup(lockup: Locator, series: 'money_of_
     expect(mark.top).toBeGreaterThanOrEqual(geometry.top - 0.5)
     expect(mark.bottom).toBeLessThanOrEqual(geometry.bottom + 0.5)
   }
-  expect(geometry.marks[0].right).toBeLessThan(geometry.marks[1].left)
+  // The card stacks the two marks; every other placement is a horizontal rail.
+  if (await lockup.getAttribute('data-placement') === 'card') {
+    expect(geometry.marks[0].bottom).toBeLessThanOrEqual(geometry.marks[1].top + 0.5)
+  } else {
+    expect(geometry.marks[0].right).toBeLessThan(geometry.marks[1].left)
+  }
 
   const wordmark = lockup.getByTestId(`video-series-wordmark-${series}`)
   await expect(wordmark).toHaveAttribute('data-min-letter-height', '16')

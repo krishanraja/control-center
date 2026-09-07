@@ -11,6 +11,16 @@ export type VideoStudioPlatform = 'youtube_shorts' | 'linkedin' | 'tiktok' | 'in
 export type VideoStudioGate = 'story' | 'treatment' | 'final' | 'learning'
 export type VideoStudioReviewStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested' | 'superseded'
 export type VideoStudioPreviewState = 'processing' | 'available' | 'unavailable' | 'expired'
+
+/** Plain words for a preview state. A raw enum value used to reach the card. */
+export function videoPreviewStateLabel(state: VideoStudioPreviewState | string): string {
+  switch (state) {
+    case 'available': return 'Preview ready'
+    case 'processing': return 'Preview being prepared'
+    case 'expired': return 'Preview expired'
+    default: return 'No preview yet'
+  }
+}
 export type VideoStudioEditorialState =
   | 'ingesting'
   | 'needs_story_review'
