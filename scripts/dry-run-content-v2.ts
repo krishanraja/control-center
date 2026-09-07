@@ -30,7 +30,7 @@ async function main() {
         source_url: s.url, source_snippet: s.say, source_captured_at: `${s.day}T12:00:00Z`,
         state: 'seeded', origin: 'agent', horizon: 'news',
         expires_at: (await import('../api/_weeks.js')).purgeBoundary().toISOString(),
-        title_norm: t, meta: { pool: { day: s.day, category: s.category, source: s.source, source_count: s.sourceCount } },
+        title_norm: t, meta: { pool: { day: s.day, category: s.category, source: s.source, source_count: s.sourceCount, source_urls: s.sourceUrls } },
       })
     }
     if (rows.length) {
