@@ -435,10 +435,11 @@ export function buildMetaFor(week: RepoWeekBuild): BuildMeta {
   }
 }
 
-/** The three subjects most likely to carry the week's story: PR titles first,
- *  then the commits with the longest bodies. */
+/** The three subjects most likely to carry the week's story: PR titles with
+ *  the longest bodies first (a body that explains itself is the editorial
+ *  one), then the commits with the longest bodies. */
 export function leadSubjects(week: RepoWeekBuild, n = 3): string[] {
-  const fromPrs = week.prs.map(p => p.title)
+  const fromPrs = [...week.prs].sort((a, b) => b.body.length - a.body.length).map(p => p.title)
   const fromCommits = [...week.commits].sort((a, b) => b.body.length - a.body.length).map(c => c.subject)
   const seen = new Set<string>()
   const out: string[] = []

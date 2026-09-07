@@ -69,6 +69,14 @@ one of them; the target is one published piece a week, so one Built and one
 Money candidate per repo per week is the right supply. A busier week ranks
 first when the per-run cap of eight bites.
 
+**No author filter.** The scorecard's `github-sync` counts commits by
+`GITHUB_AUTHOR`; this ingest reads every commit in the repo. A dry run on
+2026-09-07 found most session commits carry the coding agent's noreply
+address (36 of 38 in one repo, 18 of 34 in Control Center), which the login
+filter drops. Every repo in `GITHUB_REPOS` is Krish's, so every commit in it
+is his build. The tripwire's undercount is the scorecard's own question to
+settle; it is recorded, not changed, here.
+
 ## The registry: who may be named
 
 `NAMED_BUILD_PRODUCTS` in `api/_buildSignals.ts`. Exactly five, in code, not

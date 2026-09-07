@@ -212,6 +212,9 @@ jobs:
       # One neutral source, independent series judgements, one approved child
       # lineage and no second Content UI.
       - run: npm run check:content-spine
+      # Every production start must bind one exact approved Content revision;
+      # no Video or Carousel Studio route may re-ideate around it.
+      - run: npm run check:content-production
       # Krish's own builds as Content Engine supply: five named products,
       # everything else anonymous, no figure in a Money of AI candidate, one
       # source type declared in three places, the Saturday cron wired.

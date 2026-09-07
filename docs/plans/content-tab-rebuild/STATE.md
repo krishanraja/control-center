@@ -35,13 +35,14 @@ output. The existing architecture is the foundation, not something to replace.
 |---|---|---|---|---|
 | P-17 | Systemise the approved Content design and text-integrity rule | DONE | Codex | shared doctrine, CI regression guard, production-component sweep and long-copy renders pass at 320 px, 390 px and desktop widths |
 | P-18 | Mount the independent editorial lens pass inside the existing Content suggestion and composer flow | IN REVIEW | Codex | same source record appears in its Money and Built rooms, opens in the shared composer shell, and approval creates one revision-bound `publication` child; hard blocks stop, near-misses require a reason, pass and approval stay series-scoped |
-| P-19 | Add one output registry and production selector for Substack, LinkedIn, video, carousel and podcast | IN PROGRESS | Codex | the registry and one shared Outputs shelf now cover text, audio, video scripts and Studio carousels; the revision-bound production selector remains to be connected |
-| P-20 | Bind Video and Carousel Studio starts to exact approved `ProductionBriefV1` artifacts | NOT STARTED | Codex | stale or unapproved content cannot start production; retries are idempotent |
-| P-21 | Apply the approved skin to every connected Content and Studio state | NOT STARTED | Codex | shared primitives survive long, empty, loading, stale and error states at narrow and wide viewports |
-| P-22 | Preview, UX audit and production release | NOT STARTED | Codex then Krish | primary idea-to-output tasks pass in preview; exact production release remains separately approved |
+| P-19 | Add one output registry and production selector for Substack, LinkedIn, video, carousel and podcast | DONE | Codex | one compact Outputs shelf now creates and retains every written, audio, video-script and Studio route from the current story; no output owns an idea inbox |
+| P-20 | Bind Video and Carousel Studio starts to exact approved `ProductionBriefV1` artifacts | DONE | Codex | Control Center hashes exact approvals, retires them on meaningful edits, creates idempotent briefs and leases them through the existing authenticated Windows runner boundary; the Studio imports them content-addressed and materializes short-native jobs without Codex |
+| P-21 | Apply the approved skin to every connected Content and Studio state | DONE | Codex | shared Editorial Desk paper/kicker primitives own connected states, composer chrome grows for long text, and an app-wide complete-copy invariant neutralises legacy ellipsis and line clamps so copy wraps instead of disappearing |
+| P-22 | Preview, UX audit and production release | IN PROGRESS | Codex then Krish | automated checks and local visual acceptance must pass before the two repositories merge and Control Center deploys |
 
-Exactly one next action: verify P-18 in the authenticated Vercel preview, then
-merge it or repair the exact failing state before beginning P-19.
+Exactly one next action: run the complete automated and rendered-browser
+acceptance pass, then merge both repository changes and verify the deployed
+approved story → Studio handoff in the existing Control Center UI.
 
 ### 2026-09-07 addition: build signals (Krish's own builds as supply)
 

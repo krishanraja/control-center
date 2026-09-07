@@ -129,7 +129,7 @@ export function EditorialOpportunityGate({
 
           <SeriesIdentity series={publicKey} className="max-w-full" />
 
-          <article className="rounded-2xl border border-[#cfd6c8] bg-[#f4f1e6] p-5 text-[#102017] shadow-e2 sm:p-7">
+          <article className="editorial-paper rounded-2xl p-5 sm:p-7">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-micro font-bold uppercase tracking-[0.14em] ${hardBlocked ? 'text-rose-700' : needsReason ? 'text-amber-700' : 'text-emerald-700'}`}>
                 {hardBlocked ? 'Blocked' : needsReason ? 'Needs judgement' : 'Ready to shape'}
@@ -154,7 +154,7 @@ export function EditorialOpportunityGate({
             </div>
 
             <div className="mt-7">
-              <div className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Recommended angle</div>
+              <div className="editorial-kicker">Recommended angle</div>
               <div className="mt-2 rounded-xl border border-emerald-700/24 bg-white/45 p-4">
                 <p className="break-words text-[1.08rem] font-semibold leading-snug">
                   {opportunity.recommended_version || opportunity.angle}
@@ -170,7 +170,7 @@ export function EditorialOpportunityGate({
 
             {opportunity.source_urls.length ? (
               <div className="mt-7 border-t border-[#102017]/14 pt-5">
-                <div className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Evidence</div>
+                <div className="editorial-kicker">Evidence</div>
                 <div className="mt-2 flex flex-col items-start gap-2">
                   {opportunity.source_urls.map(url => (
                     <a key={url} href={url} target="_blank" rel="noreferrer noopener" className="inline-flex max-w-full items-start gap-1.5 break-all text-label text-emerald-800 underline underline-offset-2">

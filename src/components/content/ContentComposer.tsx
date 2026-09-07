@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, MessageSquare, Paperclip, PenLine, RotateCcw,
-  Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
+  Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge, Film, Layers,
 } from '@/lib/icons'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
@@ -24,7 +24,13 @@ import { ComposerShell, ComposerRail, MetaDot } from './ComposerShell'
 import { EditPalette } from './EditPalette'
 import { EditorialOpportunityGate } from './EditorialOpportunityGate'
 import type { EditorialSeries } from '../../lib/editorialOpportunities'
-import { storedContentOutputs } from '../../lib/contentOutputs'
+import {
+  CONTENT_OUTPUTS,
+  hasExactProductionApproval,
+  storedContentOutputs,
+  storedProductionBriefs,
+  type ContentOutputDefinition,
+} from '../../lib/contentOutputs'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -1568,20 +1574,201 @@ function RailContent({ tab, idea, draft, onApplyDraft, selection, onClearSelecti
  */
 function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   const { toast } = useToast()
+  const h = useHaptics()
   const [open, setOpen] = useState<string | null>(null)
+  const [family, setFamily] = useState<'written' | 'script' | 'studio'>('written')
+  const [selected, setSelected] = useState('substack')
+  const [sourceMode, setSourceMode] = useState<'extract' | 'solo' | 'short_native'>('short_native')
+  const [hardGatesConfirmed, setHardGatesConfirmed] = useState(false)
+  const [busy, setBusy] = useState(false)
   const cuts = useMemo(() => storedContentOutputs(idea.transformed_outputs), [idea.transformed_outputs])
+  const briefs = useMemo(() => storedProductionBriefs(idea.transformed_outputs), [idea.transformed_outputs])
+  const exactApproval = hasExactProductionApproval(idea.meta)
+  const canonicalSeries = idea.lane === 'publication' && (idea.lane_slot === 'money_of_ai' || idea.lane_slot === 'built_with_ai')
+  const launchers = useMemo(() => CONTENT_OUTPUTS.filter((definition) => (
+    family === 'written'
+      ? definition.engine === 'channel_cut'
+      : family === 'script'
+        ? definition.engine === 'video_script'
+        : definition.engine === 'studio'
+  )), [family])
+  const selectedDefinition = launchers.find((definition) => definition.key === selected) || launchers[0]
 
-  if (!cuts.length) {
-    return (
-      <div className="p-4 text-label text-white/45 leading-relaxed">
-        No outputs yet. Open <span className="text-white/70">Refine</span> and choose a channel or video length.
-        Every adaptation is saved against this story, so the approved argument stays intact and each output keeps the same lineage.
-      </div>
-    )
+  useEffect(() => {
+    const first = CONTENT_OUTPUTS.find((definition) => (
+      family === 'written'
+        ? definition.engine === 'channel_cut'
+        : family === 'script'
+          ? definition.engine === 'video_script'
+          : definition.engine === 'studio'
+    ))
+    if (first) setSelected(first.key)
+  }, [family, idea.id])
+
+  const approveExactRevision = async () => {
+    h.heavy(); setBusy(true)
+    try {
+      const response = await fetch('/api/content-ideas', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: idea.id, state: 'approved' }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok || body?.ok === false) throw new Error(body?.error || `HTTP ${response.status}`)
+      h.success(); toast('Exact revision approved.', 'success')
+    } catch (error) {
+      h.error(); toast(`Could not approve this revision: ${(error as Error).message}`, 'error')
+    } finally { setBusy(false) }
+  }
+
+  const createOutput = async (definition: ContentOutputDefinition) => {
+    if (!idea.body?.trim()) { toast('Finish the source story first.', 'error'); return }
+    if (!exactApproval) { toast('Approve this exact revision first.', 'error'); return }
+    h.heavy(); setBusy(true)
+    try {
+      let response: Response
+      if (definition.engine === 'channel_cut') {
+        response = await fetch(`/api/content-ideas/${idea.id}/channel-cut`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: definition.key, source_text: idea.body }),
+        })
+      } else if (definition.engine === 'video_script') {
+        response = await fetch(`/api/content-ideas/${idea.id}/video-script`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ duration: definition.key.replace(/^video_/, ''), source_text: idea.body }),
+        })
+      } else {
+        if (!canonicalSeries) throw new Error('Choose The Money of AI or Built With AI before starting Studio.')
+        if (!hardGatesConfirmed) throw new Error('Confirm the five production gates first.')
+        const productionKind = definition.family === 'carousel' ? 'carousel' : 'video'
+        response = await fetch(`/api/content-ideas/${idea.id}/production-brief`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            production_kinds: [productionKind],
+            source_mode: productionKind === 'carousel' ? 'written' : sourceMode,
+            confirm_hard_gates: true,
+          }),
+        })
+      }
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok || body?.ok === false) throw new Error(body?.error || `HTTP ${response.status}`)
+      h.success()
+      toast(definition.engine === 'studio' ? 'Exact production brief is ready for Studio.' : `${definition.label} saved.`, 'success')
+    } catch (error) {
+      h.error(); toast(`Could not create ${definition.label}: ${(error as Error).message}`, 'error')
+    } finally { setBusy(false) }
   }
 
   return (
-    <div className="p-3 space-y-2">
+    <div className="space-y-3 p-3">
+      <section className="editorial-paper rounded-2xl p-3.5" aria-label="Create an output from this story">
+        <div className="editorial-kicker">Make from this story</div>
+        <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl border border-[#102017]/12 bg-[#102017]/[0.035] p-1">
+          {([
+            ['written', 'Write'],
+            ['script', 'Video script'],
+            ['studio', 'Studio'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFamily(key)}
+              aria-pressed={family === key}
+              className={`min-h-[42px] rounded-lg px-2 text-label font-semibold ${family === key ? 'bg-[#102017] text-[#f4f1e6]' : 'text-[#102017]/60'}`}
+            >{label}</button>
+          ))}
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-1.5">
+          {launchers.map(definition => (
+            <button
+              key={definition.key}
+              type="button"
+              onClick={() => setSelected(definition.key)}
+              aria-pressed={selectedDefinition?.key === definition.key}
+              className={`min-h-[44px] break-words rounded-xl border px-3 py-2 text-left text-label font-semibold leading-snug ${selectedDefinition?.key === definition.key ? 'border-emerald-700/35 bg-white/60 text-[#102017]' : 'border-[#102017]/12 text-[#102017]/62'}`}
+            >{definition.label}</button>
+          ))}
+        </div>
+
+        {family === 'studio' ? (
+          <div className="mt-3 space-y-3 border-t border-[#102017]/12 pt-3">
+            {selectedDefinition?.family === 'video' ? (
+              <fieldset>
+                <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Source</legend>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {([
+                    ['short_native', 'Record'],
+                    ['solo', 'Solo file'],
+                    ['extract', 'Podcast'],
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setSourceMode(mode)}
+                      aria-pressed={sourceMode === mode}
+                      className={`min-h-[42px] rounded-lg border px-2 text-label font-semibold ${sourceMode === mode ? 'border-emerald-700/35 bg-emerald-700/[0.08]' : 'border-[#102017]/12 text-[#102017]/58'}`}
+                    >{label}</button>
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
+            <label className="flex min-h-[44px] cursor-pointer items-start gap-2 rounded-xl border border-[#102017]/12 bg-white/35 p-3 text-label leading-relaxed text-[#102017]/72">
+              <input
+                type="checkbox"
+                checked={hardGatesConfirmed}
+                onChange={event => setHardGatesConfirmed(event.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-emerald-700"
+              />
+              <span>Facts, rights, confidentiality, meaning and series naming are cleared for this exact revision.</span>
+            </label>
+          </div>
+        ) : null}
+
+        {!exactApproval ? (
+          <div className="mt-3 rounded-xl border border-amber-700/20 bg-amber-600/[0.07] p-3">
+            <p className="text-label leading-relaxed text-[#102017]/70">Outputs bind to an exact approved revision. Editing it retires that approval.</p>
+            {(idea.state === 'review' || idea.state === 'approved') ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={approveExactRevision}
+                className="mt-2 min-h-[44px] w-full rounded-xl bg-[#102017] px-4 text-label font-bold text-[#f4f1e6] disabled:opacity-45"
+              >Approve this exact revision</button>
+            ) : null}
+          </div>
+        ) : selectedDefinition ? (
+          <button
+            type="button"
+            disabled={busy || (family === 'studio' && (!hardGatesConfirmed || !canonicalSeries))}
+            onClick={() => createOutput(selectedDefinition)}
+            className="mt-3 flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-300 px-4 text-label font-bold text-emerald-950 shadow-[0_8px_20px_rgba(65,197,137,.15)] disabled:opacity-45"
+          >
+            {busy ? <Working size={14} /> : family === 'studio' ? selectedDefinition.family === 'video' ? <Film size={15} /> : <Layers size={15} /> : <Sparkles size={15} />}
+            {family === 'studio' ? 'Create exact Studio brief' : `Make ${selectedDefinition.label}`}
+          </button>
+        ) : null}
+      </section>
+
+      {briefs.length ? (
+        <section className="space-y-2" aria-label="Studio production briefs">
+          <div className="px-1 text-micro font-semibold uppercase tracking-[0.14em] text-white/35">Studio briefs</div>
+          {briefs.map(brief => (
+            <div key={brief.brief_id} className="rounded-xl border border-emerald-300/15 bg-emerald-300/[0.045] p-3">
+              <div className="flex flex-wrap items-center gap-2 text-label text-emerald-100/85">
+                {brief.production_kinds.includes('video') ? <Film size={14} /> : <Layers size={14} />}
+                <strong>{brief.production_kinds.join(' + ')}</strong>
+                <span className="text-micro uppercase tracking-[0.14em] text-emerald-200/55">{brief.status.replace(/_/g, ' ')}</span>
+              </div>
+              <p className="mt-1 break-all text-micro leading-relaxed text-white/38">{brief.brief_id}</p>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      <div className="px-1 text-micro font-semibold uppercase tracking-[0.14em] text-white/35">Saved outputs</div>
+      {!cuts.length ? (
+        <p className="px-1 pb-2 text-label leading-relaxed text-white/45">Nothing made from this revision yet.</p>
+      ) : null}
       {cuts.map(({ definition, artifact, body }) => {
         const words = body.trim().split(/\s+/).length
         const bad: string[] = Array.isArray(artifact.unsupported_numbers) ? artifact.unsupported_numbers as string[] : []

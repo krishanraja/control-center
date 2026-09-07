@@ -56,7 +56,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const token = process.env.GITHUB_TOKEN || ''
   const configured = (process.env.GITHUB_REPOS || '').split(',').map(normalizeRepo).filter(Boolean)
-  const author = (process.env.GITHUB_AUTHOR || '').trim()
+  // No author filter, on purpose. The scorecard's github-sync filters by
+  // GITHUB_AUTHOR because its question is "commits by Krish"; this route's
+  // question is "what got built in Krish's repos", and a 2026-09-07 dry run
+  // showed most session commits carry the coding agent's noreply address
+  // (36 of 38 in one repo, 18 of 34 here), which the login filter drops.
+  // Every repo in GITHUB_REPOS is his, so every commit in it is his build.
+  const author = ''
   if (!token || configured.length === 0) {
     return res.status(200).json({ ok: false, skipped: 'github_not_configured' })
   }

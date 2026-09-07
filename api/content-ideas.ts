@@ -7,6 +7,7 @@ import { canonicalUrl, titleNorm, contentHash } from './_text.js'
 import { classifyRelevance, relevanceReasonCode } from './_relevance.js'
 import { SYNTHESIS_MODEL } from './_models.js'
 import { recordShip } from './_ships.js'
+import { contentRevisionHash, createProductionApproval, jsonRecord, readProductionApproval } from './_productionBrief.js'
 
 // Content ideas inbox endpoint.
 //
@@ -320,6 +321,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ ok: false, error: 'no updatable fields supplied' })
     }
 
+    const changesApprovedContent = ['idea', 'thesis', 'body'].some((key) => Object.prototype.hasOwnProperty.call(updates, key))
+    let current: {
+      idea: string
+      thesis: string | null
+      body: string | null
+      lane: string | null
+      lane_slot: string | null
+      state: string
+      meta: Record<string, unknown> | null
+      transformed_outputs: Record<string, unknown> | null
+      updated_at: string
+    } | null = null
+    if (changesApprovedContent || updates.state === 'review' || updates.state === 'approved') {
+      const read = await supabase
+        .from('content_ideas')
+        .select('idea,thesis,body,lane,lane_slot,state,meta,transformed_outputs,updated_at')
+        .eq('id', id)
+        .single()
+      if (read.error || !read.data) return res.status(404).json({ ok: false, error: 'idea_not_found' })
+      current = read.data as typeof current
+    }
+
     // ── Honest-state guard (CORE_PROBLEM F-1 / J-01) ─────────────────────────
     // A card may not enter `review`/`approved` without a real body. This is the
     // bug that filled the queue with empty "in review" cards. We resolve the
@@ -330,13 +353,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let effectiveBody = incomingBody
       let cleoChatLen = 0
       if (effectiveBody === undefined) {
-        const { data: cur } = await supabase
-          .from('content_ideas')
-          .select('body, meta')
-          .eq('id', id)
-          .single()
-        effectiveBody = (cur?.body as string | null) || ''
-        const chat = (cur?.meta as { cleo_chat?: unknown[] } | null)?.cleo_chat
+        effectiveBody = current?.body || ''
+        const chat = (current?.meta as { cleo_chat?: unknown[] } | null)?.cleo_chat
         cleoChatLen = Array.isArray(chat) ? chat.length : 0
       }
       const hasRealBody = (effectiveBody || '').trim().length >= 200 || cleoChatLen > 0
@@ -351,14 +369,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const { data, error } = await supabase
+    // Approval is an exact editorial revision, not a floating state label.
+    // Any later title/thesis/body change retires the receipt and returns the
+    // piece to review. Re-approving stamps a new hash over the effective values
+    // in this same request, so Studio can never start from stale prose.
+    if (current) {
+      const effectiveRevision = {
+        idea: typeof updates.idea === 'string' ? updates.idea : current.idea,
+        thesis: typeof updates.thesis === 'string' ? updates.thesis : current.thesis,
+        body: typeof updates.body === 'string' ? updates.body : current.body,
+        lane: current.lane,
+        lane_slot: current.lane_slot,
+      }
+      const meta = jsonRecord(current.meta)
+      const revisionChanged = contentRevisionHash(effectiveRevision) !== contentRevisionHash(current)
+      if (updates.state === 'approved') {
+        const approvedAt = new Date().toISOString()
+        updates.meta = {
+          ...meta,
+          production_approval: createProductionApproval(effectiveRevision, approvedAt),
+        }
+      } else if (revisionChanged && readProductionApproval(meta.production_approval)) {
+        const outputs = jsonRecord(current.transformed_outputs)
+        const briefs = jsonRecord(outputs.production_briefs)
+        const retiredBriefs = Object.fromEntries(Object.entries(briefs).map(([briefId, value]) => {
+          const envelope = jsonRecord(value)
+          const brief = jsonRecord(envelope.brief)
+          return [briefId, brief.content_revision_hash === contentRevisionHash(effectiveRevision)
+            || !['ready_for_studio', 'leased'].includes(String(envelope.status || ''))
+            ? envelope
+            : {
+                ...envelope,
+                status: 'retired_revision_changed',
+                retired_at: new Date().toISOString(),
+              }]
+        }))
+        updates.meta = {
+          ...meta,
+          production_approval: null,
+          production_approval_invalidated_at: new Date().toISOString(),
+        }
+        updates.transformed_outputs = { ...outputs, production_briefs: retiredBriefs }
+        if (current.state === 'approved' && updates.state === undefined) updates.state = 'review'
+      }
+    }
+
+    let updateQuery = supabase
       .from('content_ideas')
       .update(updates)
       .eq('id', id)
+    if (current) updateQuery = updateQuery.eq('updated_at', current.updated_at)
+    const { data, error } = await updateQuery
       .select()
       .single()
 
-    if (error) return res.status(500).json({ ok: false, error: error.message })
+    if (error) {
+      if (current && /0 rows|no rows|multiple \(or no\) rows/i.test(error.message)) {
+        return res.status(409).json({ ok: false, error: 'content_changed_retry' })
+      }
+      return res.status(500).json({ ok: false, error: error.message })
+    }
 
     // A published piece left the machine toward readers: it is a ship on the
     // scorecard (ADR-016). Dedup on the idea id so a second flip to published

@@ -13,7 +13,10 @@ const files = roots.flatMap((root) => {
     return statSync(path).isDirectory() ? visit(path) : /\.tsx?$/.test(path) ? [path] : []
   })
   return visit(root)
-})
+}).concat([
+  'docs/design/editorial-desk/mock-v2/index.html',
+  'docs/design/editorial-desk/mock-v3/index.html',
+])
 
 const forbidden = [
   { pattern: /(?:^|[\s'"`])truncate(?:[\s'"`]|$)/m, label: 'Tailwind truncate' },
@@ -36,4 +39,11 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`Editorial text integrity: ${files.length} Content and Studio component files contain no truncation or line clamps.`)
+const designSystem = readFileSync('src/index.css', 'utf8')
+if (!/\.truncate\s*\{[\s\S]*?white-space:\s*normal\s*!important/.test(designSystem)
+  || !/\.line-clamp-1,[\s\S]*?-webkit-line-clamp:\s*unset\s*!important/.test(designSystem)) {
+  console.error('Editorial text integrity failed. The app-wide complete-copy invariant is missing.')
+  process.exit(1)
+}
+
+console.log(`Editorial text integrity: ${files.length} Content and Studio files are clean; legacy Control Center truncation utilities are neutralised by the shared design system.`)
