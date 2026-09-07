@@ -1,0 +1,31 @@
+{
+  "revision": "v2-compact",
+  "baseline": {
+    "path": "docs/design/editorial-desk/mock/index.html",
+    "sha256": "CC2861D95D6891B490BF094966548FEDCD70B6D7D3C14573D9692591831B3D2D"
+  },
+  "candidate": {
+    "path": "docs/design/editorial-desk/mock-v2/index.html",
+    "sha256": "3B73C669F568FF4765A3C9CFC1567D1C23AC2C7C94FCCC1210A019D57A84BD4C"
+  },
+  "approved_changes": [
+    "Remove explanatory copy that repeats known workflow context",
+    "Keep one editorial decision visible at a time",
+    "Move receipts and alternative angles into deliberate disclosures",
+    "Make the primary mobile decision fit inside one viewport",
+    "Use the existing Control Center navigation, segmented controls, density and touch-target rhythm"
+  ],
+  "invariants": [
+    "The Cut Room interaction spine remains intact",
+    "Content remains the only editorial UI",
+    "The Money of AI and Built With AI remain independent lenses on one source record",
+    "The source evidence and strongest counter-case remain accessible",
+    "Completed content requires approval before production",
+    "Only one state-correct primary action is shown"
+  ],
+  "excluded_scope": [
+    "Production React implementation",
+    "Backend or schema changes",
+    "Compound"
+  ]
+}

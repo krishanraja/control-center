@@ -163,6 +163,20 @@ nine tokens, and every uppercase label's tracking normalized to the eyebrow
 recipe's `0.14em`. `scripts/check-type-tokens.mts` runs in CI and fails any
 new `text-[Npx]` or off-recipe uppercase tracking, so the sweep stays swept.
 
+### Text integrity
+
+User-facing text is never cut off, ellipsised or line-clamped. This is most
+important for claims, evidence, objections, instructions, decisions, drafts
+and feedback, where a missing clause can reverse the meaning. Let the surface
+grow, wrap long tokens, or move secondary material behind a deliberate tap.
+The page may scroll naturally. A card must not gain its own scrollbar.
+
+Navigation and compact controls use intentionally written short labels when
+space is scarce. They do not shorten a full label with an ellipsis. Dynamic
+choices that cannot fit move into `ChipOverflow`, where the full text remains
+visible. `scripts/check-editorial-text-integrity.mts` holds this rule across
+Content and the Video and Carousel Studio projection.
+
 ## Iconography
 
 One source, one weight, one rhythm — the icon counterpart of the type sweep.
@@ -238,9 +252,9 @@ each:
    replacement for a small-set select) or the purpose-built `ServesPicker`
    (parent OS goal as full-width readable rows) and `VentureChips`, all in
    `components/goals/GoalPickers.tsx`. Sets that outgrow a line:
-   `shared/ChipOverflow` (+N into a sheet). Long dynamic chip labels get
-   `text-left` + `truncate`: a chip never wraps to a second line and never
-   centres its text.
+   `shared/ChipOverflow` (+N into a sheet). A dynamic label that cannot fit
+   moves into the sheet and remains whole. Do not abbreviate it with an
+   ellipsis or clip it inside a chip.
 
 ## Create — the one + button
 

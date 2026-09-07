@@ -591,7 +591,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
         <div className="px-3 pt-2 border-t border-white/[0.06] flex-shrink-0 space-y-1.5">
           {selection && (
             <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-2.5 py-1.5 text-micro text-amber-100">
-              <span className="flex-1 truncate">Selected: “{selection.slice(0, 48)}{selection.length > 48 ? '…' : ''}”</span>
+              <span className="min-w-0 flex-1 break-words">Selected: “{selection}”</span>
               <button type="button" onClick={() => setSelection('')} aria-label="Clear selection" className="text-white/45 active:text-white/80"><X size={13} /></button>
             </div>
           )}
@@ -648,7 +648,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
               {selection && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-3 py-2 space-y-0.5">
                   <div className="flex items-center gap-1.5 text-label text-amber-100">
-                    <span className="flex-1 truncate">Adjusting just: “{selection.slice(0, 56)}{selection.length > 56 ? '…' : ''}”</span>
+                    <span className="min-w-0 flex-1 break-words">Adjusting just: “{selection}”</span>
                     <button type="button" onClick={() => setSelection('')} aria-label="Adjust whole draft" className="text-white/45 active:text-white/80"><X size={14} /></button>
                   </div>
                   <p className="text-micro text-amber-200/50">Anything you tap rewrites only this passage. Clear the selection to adjust the whole draft.</p>
@@ -822,7 +822,7 @@ function TitleField({ idea }: { idea: ContentIdeaRow }) {
     )
   }
   return (
-    <button type="button" onClick={() => setEditing(true)} className="text-left w-full truncate text-ui font-semibold text-white hover:text-white/80" title="Click to rename">
+    <button type="button" onClick={() => setEditing(true)} className="w-full break-words text-left text-ui font-semibold text-white hover:text-white/80" title="Click to rename">
       {idea.idea}
     </button>
   )
@@ -1308,7 +1308,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
                         <span className={`text-micro px-1.5 py-0.5 rounded border ${SEV_STYLE[s.severity]}`}>{DIM_LABEL[s.dimension] || s.dimension}</span>
                         {state && <span className="text-micro text-white/40">{state === 'accepted' ? <span className="inline-flex items-center gap-1"><Check size={10} strokeWidth={2.5} /> applied</span> : 'dismissed'}</span>}
                       </div>
-                      {s.quote && <p className="text-micro text-white/40 italic leading-snug mb-1 line-clamp-2">"{s.quote}"</p>}
+                      {s.quote && <p className="mb-1 break-words text-micro italic leading-snug text-white/40">"{s.quote}"</p>}
                       <p className="text-label text-white/80 leading-snug">{s.issue}</p>
                       {s.suggestion && <p className="text-label text-white/55 leading-snug mt-0.5">{s.suggestion}</p>}
                       {!state && (
@@ -1503,7 +1503,7 @@ function SynthesisCitationStrip({ idea }: { idea: ContentIdeaRow }) {
                 className="inline-flex items-center gap-1 max-w-[260px] px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
               >
                 <span className="text-micro text-violet-200/80 font-mono tabular-nums flex-shrink-0">[{c.ref}]</span>
-                <span className="text-micro text-white/70 truncate">{c.title || c.id.slice(0, 8)}</span>
+                <span className="min-w-0 break-words text-micro text-white/70">{c.title || c.id.slice(0, 8)}</span>
               </a>
             )
           })}
@@ -1874,7 +1874,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
       {selection && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-2.5 py-2 space-y-0.5">
           <div className="flex items-center gap-1.5 text-micro text-amber-100">
-            <span className="flex-1 truncate">Adjusting just: “{selection.slice(0, 60)}{selection.length > 60 ? '…' : ''}”</span>
+            <span className="min-w-0 flex-1 break-words">Adjusting just: “{selection}”</span>
             <button type="button" onClick={onClearSelection} title="Adjust the whole draft instead" className="text-white/45 hover:text-white/80"><X size={12} /></button>
           </div>
           <p className="text-micro text-amber-200/50">Any chip below rewrites only this passage. Clear the selection to adjust the whole draft.</p>
@@ -2032,9 +2032,9 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
                 : <FileText size={11} className="text-emerald-200 mt-0.5 flex-shrink-0" />}
             <div className="min-w-0 flex-1">
               {m.kind === 'link' && m.url ? (
-                <a href={m.url} target="_blank" rel="noreferrer noopener" className="text-micro text-sky-200/90 hover:text-sky-200 truncate block">{m.title || m.url}</a>
+                <a href={m.url} target="_blank" rel="noreferrer noopener" className="block break-all text-micro text-sky-200/90 hover:text-sky-200">{m.title || m.url}</a>
               ) : (
-                <div className="text-micro text-white/80 truncate">{m.title || 'Pasted material'}</div>
+                <div className="break-words text-micro text-white/80">{m.title || 'Pasted material'}</div>
               )}
               <div className="text-micro text-white/35">
                 {m.kind === 'research' ? 'cleo research' : m.kind}
@@ -2165,7 +2165,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
         ) : (
           <ul className="space-y-1">
             {links.slice(0, 12).map((u, i) => (
-              <li key={i} className="min-w-0"><a href={u} target="_blank" rel="noreferrer noopener" className="text-micro text-sky-200/80 hover:text-sky-200 truncate block">{prettyUrl(u)}</a></li>
+              <li key={i} className="min-w-0"><a href={u} target="_blank" rel="noreferrer noopener" className="block break-all text-micro text-sky-200/80 hover:text-sky-200">{prettyUrl(u)}</a></li>
             ))}
           </ul>
         )}

@@ -1,0 +1,30 @@
+{
+  "revision": "v3-text-integrity",
+  "baseline": {
+    "path": "docs/design/editorial-desk/mock-v2/index.html",
+    "sha256": "3B73C669F568FF4765A3C9CFC1567D1C23AC2C7C94FCCC1210A019D57A84BD4C"
+  },
+  "candidate": {
+    "path": "docs/design/editorial-desk/mock-v3/index.html",
+    "sha256": "9C512E943389EC6AD2E32EB48985F193058A5A56918336D2D8B6BA7FD9C02686"
+  },
+  "approved_changes": [
+    "Allow the source headline to wrap in full",
+    "Show the complete counter-case without a line clamp",
+    "Let compact navigation scroll when full labels do not fit",
+    "Remove the short-height rule that hid or clipped editorial content"
+  ],
+  "invariants": [
+    "The approved compact Cut Room layout is unchanged",
+    "Content remains the only editorial UI",
+    "The two editorial lenses remain independent",
+    "One decision remains visible at a time",
+    "The standard 390 by 844 primary decision remains contained in one viewport"
+  ],
+  "excluded_scope": [
+    "New navigation",
+    "New idea pipeline",
+    "Production release",
+    "Compound"
+  ]
+}
