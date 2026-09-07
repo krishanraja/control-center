@@ -933,7 +933,7 @@ Every Claude Code agent workspace follows the same file convention. Loading orde
 
 ```
 workspace/
-  MINDMAKE_OS_ARCHITECTURE.md   ← THIS FILE - canonical, single OS reference
+  (no architecture doc in the workspace since 2026-09-07: it lives only in the control-center repo, §0c)
   IDENTITY.md         - name, role, emoji, vibe
   USER.md             - who the agent serves and how
   ORG.md              - fleet-wide identity (every agent loads this)
@@ -2022,7 +2022,7 @@ Traces to O-2 (revenue), O-3 (one person running 15-30), O-6 (nothing external w
 
 | You need… | Look at |
 |---|---|
-| The OS architecture (this doc) | VPS: `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md` · Repo: `docs/MINDMAKE_OS_ARCHITECTURE.md` · Drive: Infrastructure folder |
+| The OS architecture (this doc) | ONE surface since 2026-09-07 (§0c): `github.com/krishanraja/control-center`, `docs/MINDMAKE_OS_ARCHITECTURE.md` on `main`. A checkout follows it; the VPS and Drive copies are deleted |
 | An API key or credential | `TOOLS.md` (workspace root) - never paste in docs or briefs |
 | What an agent does | `agents.brief_content` (DB) → `skills/agent-{id}/SKILL.md` (rendered) |
 | What an agent should do this sprint | `agent_plans` row + `active/{id}-action.md` |
@@ -2274,7 +2274,7 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 
 # Workspaces (Claude Code agents)
 /root/.openclaw/workspace/                                   # Agatha (main, canonical)
-/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md       # THIS FILE
+#   (no architecture doc here: the workspace copy was deleted 2026-09-07, see §0c)
 /root/.openclaw/workspace/audits/                            # Periodic audit reports
 /root/.openclaw/workspace-ops/                               # Arlo
 /root/.openclaw/workspace-cleo/                              # Cleo
