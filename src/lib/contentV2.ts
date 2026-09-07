@@ -1,12 +1,9 @@
 // Content Engine v2 client layer (docs/CONTENT-ENGINE-V2-SPEC.md).
-// Flag-gated: the four-room Content tab replaces triage only when
-// VITE_CONTENT_V2_ENABLED is true at build time.
+// This is the only Content surface. The build-time flag that used to choose
+// between it and the retired triage surface is gone: a flag missing from one
+// environment silently served a different product, and nothing errored.
 
 import { publicSeriesLabel } from './publicSeries'
-
-export function contentV2Enabled(): boolean {
-  return String(import.meta.env.VITE_CONTENT_V2_ENABLED) === 'true'
-}
 
 // ---------------------------------------------------------------------------
 // The queue's week window.
@@ -173,8 +170,8 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 
 // The LIVE fan-out (ContentV2Tab -> BriefComposer). This is the list Krish
 // actually sees when pushing content, which is why fixing v1's LANE_ADAPTS and
-// SynthesisModal did not change what he was looking at: v2 is the live system
-// and v1 does not render while VITE_CONTENT_V2_ENABLED is on.
+// SynthesisModal did not change what he was looking at: v2 was already the
+// live system, and since 2026-09-07 it is the only one.
 //
 // Publication is a VENTURE with two formats and two registers, so offering
 // it as one destination would be the same mistake as offering "Builder Economy

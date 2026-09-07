@@ -11,6 +11,7 @@ import { StartFromResearch } from '../content/StartFromResearch'
 import { useVideoStudioReviews } from '../../hooks/useVideoStudioReviews'
 import { videoEngineEnabled } from '../../lib/videoStudio'
 import { publicSeriesLabel } from '../../lib/publicSeries'
+import { useContentTriage } from '../../hooks/useContentTriage'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -30,6 +31,9 @@ import { publicSeriesLabel } from '../../lib/publicSeries'
 //
 // One surface, lane-first. Deliberately NOT two peer modes over one table:
 // that is the pattern that produced two goal editors and four focus subsystems.
+// The retired triage surface that used to sit behind a build flag is gone; its
+// jobs live here now: the phone deck clears the upstream pile, the desk lane
+// shows the pieces in flight, and the Library holds the calendar and backburner.
 
 export type RoomId = 'built' | 'paid' | 'library'
 /** Mobile adds a Queue view (the decision deck) as a peer of the rooms. */
@@ -46,8 +50,17 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'built')
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
-  const videoQueue = useVideoStudioReviews(mobile && videoEngineEnabled())
+  // Both viewports read the video queue: the phone decides from the deck, the
+  // desk from the obligation strip. Desktop used to have no way in at all.
+  const videoQueue = useVideoStudioReviews(videoEngineEnabled())
   const { ideas } = useRealtimeContentIdeas()
+  const triage = useContentTriage()
+  // The phone deck clears the upstream pile: raw seeds and research, one card
+  // at a time. Drafts and gates stay on the desk where they get real attention.
+  const upstream = useMemo(
+    () => triage.deck.filter(i => i.state === 'seeded' || i.state === 'researching'),
+    [triage.deck],
+  )
 
   const counts = useMemo(() => {
     const live = ideas.filter(i => !i.library_at)
@@ -70,8 +83,8 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
       ? [{
           id: 'queue' as ViewId,
           label: 'Queue',
-            badge: v2.decisions.length + videoQueue.reviews.length ? (
-              <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{v2.decisions.length + videoQueue.reviews.length}</span>
+            badge: v2.decisions.length + videoQueue.reviews.length + upstream.length ? (
+              <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{v2.decisions.length + videoQueue.reviews.length + upstream.length}</span>
           ) : undefined,
         }]
       : []),
@@ -97,7 +110,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
           inside its cap instead; the rooms keep their space. */}
       {!mobile && (
         <div className="shrink-0 max-h-[38vh] overflow-y-auto">
-          <ObligationStrip v2={v2} />
+          <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} />
         </div>
       )}
 
@@ -134,12 +147,14 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
             videoReviews={videoQueue.reviews}
             videoLoading={videoQueue.loading}
             videoQueueError={Boolean(videoQueue.error)}
+            triage={triage}
+            upstream={upstream}
           />
         </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto">
           {room === 'library'
-            ? <LibraryRoom v2={v2} ideas={ideas} />
+            ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
             : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} />}
         </div>
       )}

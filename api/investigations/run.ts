@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { runInvestigation, type RunOpts } from '../_investigation.js'
 import type { HarnessName } from '../_harness.js'
+import { withContentRun } from '../_runs.js'
 
 // The MYMU: Teardown weekly investigation.
 //
@@ -23,7 +24,7 @@ function authorized(req: VercelRequest): boolean {
   return Boolean(secret) && auth === `Bearer ${secret}`
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -69,3 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 export const config = { maxDuration: 300 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('investigations', handler)

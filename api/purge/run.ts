@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { isoWeekLabel, queueWindowStart } from '../_weeks.js'
+import { withContentRun } from '../_runs.js'
 
 // The Monday purge (Content Engine v2, spec §4). Mon 14:00 UTC, after send.
 //
@@ -21,7 +22,7 @@ import { isoWeekLabel, queueWindowStart } from '../_weeks.js'
 //
 //   GET (CRON_SECRET) — Mon 14:00 UTC   ·   POST — manual
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (guardCronRoute(req, res)) return
 
@@ -152,3 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) })
   }
 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('purge', handler)

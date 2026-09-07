@@ -7,6 +7,7 @@ import {
   isOnDirection,
 } from './_judgmentLens.js'
 import { loadCuratedVoices } from './_creators.js'
+import { withContentRun } from './_runs.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // discover-lens-radar — the cadenced "judgment economy" content radar.
@@ -122,7 +123,7 @@ function checkSecret(req: VercelRequest): boolean {
   return got === expected
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
   }
@@ -197,3 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: message })
   }
 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('lens_radar', handler)

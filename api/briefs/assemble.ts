@@ -8,6 +8,7 @@ import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 import { goalsSpine } from '../_goals.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
 import { faceBlock } from '../_mission.js'
+import { withContentRun } from '../_runs.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -362,7 +363,7 @@ export async function runAssemble(force = false) {
   return { week, brief_id: brief.id, items: items.length, headlines: headlines.length, expiring: expiring ?? 0 }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (guardCronRoute(req, res)) return
   const force = req.method === 'POST' ? Boolean((req.body || {}).force) : false
@@ -375,3 +376,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 export const config = { maxDuration: 300 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('briefs_assemble', handler)
