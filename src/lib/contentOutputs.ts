@@ -74,6 +74,23 @@ export interface StoredProductionBrief {
   source_mode: 'extract' | 'solo' | 'short_native' | 'written'
   created_at: string | null
   status: string
+  /** The Studio job the runner created from this brief, once it has. */
+  job_id: string | null
+  /** The runner's safe failure code, when the claim did not end in a job. */
+  safe_code: string | null
+}
+
+/** What the runner has done with a brief, in words. Statuses come from
+ *  api/video-studio/_productionBriefQueue.ts. */
+export function productionBriefStatusLabel(status: string): string {
+  switch (status) {
+    case 'ready_for_studio': return 'Waiting for the studio computer to claim it'
+    case 'leased': return 'Claimed by the studio computer'
+    case 'imported': return 'Imported into the studio'
+    case 'awaiting_source_bundle': return 'Imported. Needs a recording before a job can start'
+    case 'failed': return 'The studio computer could not import it'
+    default: return status.replace(/_/g, ' ')
+  }
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -110,6 +127,8 @@ export function storedProductionBriefs(outputs: unknown): StoredProductionBrief[
       source_mode: sourceMode as StoredProductionBrief['source_mode'],
       created_at: typeof wrapper?.created_at === 'string' ? wrapper.created_at : null,
       status: typeof wrapper?.status === 'string' ? wrapper.status : 'ready_for_studio',
+      job_id: typeof wrapper?.job_id === 'string' ? wrapper.job_id : null,
+      safe_code: typeof wrapper?.safe_code === 'string' ? wrapper.safe_code : null,
     }]
   }).sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))
 }

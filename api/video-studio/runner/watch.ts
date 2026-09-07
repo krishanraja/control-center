@@ -23,12 +23,21 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const [heartbeat, commands, reviews, briefs] = await Promise.all([
     supabase.from('video_studio_runner_heartbeats').select('occurred_at, runner_status, drive_state').order('occurred_at', { ascending: false }).limit(1),
     supabase.from('video_studio_commands').select('id', { count: 'exact', head: true }).in('status', ['queued', 'leased']),
-    supabase.from('video_studio_review_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('video_studio_review_requests').select('id, job_id').eq('status', 'pending').limit(500),
     supabase.from('content_ideas').select('id, meta').eq('state', 'approved').not('meta->production_brief', 'is', null).limit(200),
   ])
   for (const result of [heartbeat, commands, reviews, briefs]) {
     if (result.error) return res.status(503).json({ ok: false, error: `runner watch read failed: ${result.error.message}` })
   }
+
+  // Reviews on retired jobs are not waiting for anyone.
+  const pendingJobIds = [...new Set((reviews.data || []).map((row) => String(row.job_id)))]
+  const retired = pendingJobIds.length
+    ? await supabase.from('video_studio_jobs').select('job_id').in('job_id', pendingJobIds).not('retired_at', 'is', null)
+    : { data: [], error: null }
+  if (retired.error) return res.status(503).json({ ok: false, error: `runner watch read failed: ${retired.error.message}` })
+  const retiredIds = new Set((retired.data || []).map((row) => String(row.job_id)))
+  const pendingReviews = (reviews.data || []).filter((row) => !retiredIds.has(String(row.job_id))).length
 
   const last = heartbeat.data?.[0] || null
   const silentHours = last ? (now - Date.parse(last.occurred_at)) / 3_600_000 : null
@@ -45,11 +54,11 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const waiting = (commands.count || 0) + (reviews.count || 0) + readyBriefs + expiredLeases
+  const waiting = (commands.count || 0) + pendingReviews + readyBriefs + expiredLeases
   const silent = silentHours === null || silentHours > SILENT_AFTER_HOURS
   const counts = {
     queued_commands: commands.count || 0,
-    pending_reviews: reviews.count || 0,
+    pending_reviews: pendingReviews,
     ready_briefs: readyBriefs,
     expired_brief_leases: expiredLeases,
     silent_hours: silentHours === null ? -1 : Math.round(silentHours),

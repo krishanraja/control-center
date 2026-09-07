@@ -49,16 +49,28 @@ const MINDMAKE_SIZE: Record<Placement, string> = {
   preview: 'w-[60px]',
 }
 
+// The card is the one placement that stacks. A phone card's content box is
+// about 229 CSS px at 390 wide under the 1.2x zoom; the horizontal rail is
+// 259 to 294. It cannot fit, and the old answer, bleeding it out of the card
+// with a negative margin, clipped the Mindmake mark. The design contract says
+// allocate a larger identity beat rather than shrink the lettering, so the
+// card gives the wordmark its own row and keeps every letter at the floor.
 const PLATE_SIZE: Record<Placement, string> = {
-  header: 'h-9 gap-[3px] px-[3px] sm:h-10 sm:gap-1.5 sm:px-1.5',
-  card: 'h-9 gap-[3px] px-[3px]',
-  preview: 'h-9 gap-[3px] px-[3px]',
+  header: 'h-9 flex-row items-center gap-[3px] px-[3px] sm:h-10 sm:gap-1.5 sm:px-1.5',
+  card: 'h-auto flex-col items-start gap-1.5 px-2.5 py-2',
+  preview: 'h-9 flex-row items-center gap-[3px] px-[3px]',
 }
 
 /**
  * Responsive, official-artwork identity lockup. Mindmake stays a compact
  * anchor; the series wordmark gets its own horizontal measure instead of both
  * marks being made illegible inside one small square.
+ *
+ * The plate shares its colour, border and shadow with SeriesIdentity in
+ * components/shared/MindmakeIdentity.tsx, so the two publications read as one
+ * brand whether the card is a lane header or a video review. Folding the two
+ * components into one is recorded as a follow-up in the parity ledger. Never
+ * offset this plate outside its container: the deck card clips overflow.
  */
 export function VideoBrandLockup({
   series,
@@ -78,12 +90,12 @@ export function VideoBrandLockup({
       data-placement={placement}
       data-official-asset-source="krishanraja/mindmake"
       aria-label={`${label} by Mindmake`}
-      className={`pointer-events-none inline-flex w-fit items-center rounded-xl border border-white/[0.09] bg-[#090b0f] shadow-e2 ${PLATE_SIZE[placement]} ${className}`}
+      className={`pointer-events-none inline-flex w-fit rounded-xl border border-white/[0.12] bg-[#0a100d] shadow-e1 ${PLATE_SIZE[placement]} ${className}`}
     >
       <span className={`grid flex-none place-items-center ${MINDMAKE_SIZE[placement]}`} aria-hidden="true">
         <img src={MINDMAKE_WORDMARK_SRC} alt="" className="h-auto w-full" draggable={false} />
       </span>
-      <span className="h-5 w-px flex-none bg-white/[0.12]" aria-hidden="true" />
+      <span className={placement === 'card' ? 'h-px w-full flex-none bg-white/[0.12]' : 'h-5 w-px flex-none bg-white/[0.12]'} aria-hidden="true" />
       <svg
         data-testid={`video-series-wordmark-${series}`}
         data-min-letter-height="16"

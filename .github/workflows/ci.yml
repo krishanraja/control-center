@@ -279,7 +279,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: placeholder
           VITE_UI_V2_ENABLED: 'true'
           VITE_VIDEO_ENGINE_ENABLED: 'true'
-      - run: npx playwright test e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts --reporter=line
+      - run: npx playwright test e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts e2e/growth-scroll.spec.ts --reporter=line
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder

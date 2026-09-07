@@ -12,6 +12,7 @@ import { useVideoStudioReviews } from '../../hooks/useVideoStudioReviews'
 import { videoEngineEnabled } from '../../lib/videoStudio'
 import { publicSeriesLabel } from '../../lib/publicSeries'
 import { useContentTriage } from '../../hooks/useContentTriage'
+import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -141,7 +142,10 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
       </div>
 
       {mobile && room === 'queue' ? (
-        <div className="flex-1 min-h-0 flex flex-col">
+        // The deck is a fixed stage, not a scroller, so the nav clearance is
+        // padding on the stage itself: the thumb-zone buttons sit above the
+        // fixed BottomNav instead of under it.
+        <div className={`flex-1 min-h-0 flex flex-col ${BOTTOM_NAV_PAD}`}>
           <MobileDecisionDeck
             v2={v2}
             videoReviews={videoQueue.reviews}
@@ -152,7 +156,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
           />
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div data-testid="content-room-scroll" className={`flex-1 min-h-0 overflow-y-auto ${mobile ? BOTTOM_NAV_PAD : ''}`}>
           {room === 'library'
             ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
             : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} />}

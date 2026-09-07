@@ -24,7 +24,7 @@ import { ComposerShell, ComposerRail, MetaDot, type ComposerStage } from './Comp
 import { EditPalette } from './EditPalette'
 import { EditorialOpportunityGate } from './EditorialOpportunityGate'
 import type { EditorialSeries } from '../../lib/editorialOpportunities'
-import {
+import { productionBriefStatusLabel,
   CONTENT_OUTPUTS,
   hasExactProductionApproval,
   storedContentOutputs,
@@ -1782,9 +1782,18 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
               <div className="flex flex-wrap items-center gap-2 text-label text-emerald-100/85">
                 {brief.production_kinds.includes('video') ? <Film size={14} /> : <Layers size={14} />}
                 <strong>{brief.production_kinds.join(' + ')}</strong>
-                <span className="text-micro uppercase tracking-[0.14em] text-emerald-200/55">{brief.status.replace(/_/g, ' ')}</span>
               </div>
-              <p className="mt-1 break-all text-micro leading-relaxed text-white/38">{brief.brief_id}</p>
+              {/* The brief used to end here with a raw status word and an id.
+                  This is the one place the thread from an approved piece to a
+                  studio job is visible, so it says what the runner did. */}
+              <p className="mt-1 text-label leading-relaxed text-white/70">{productionBriefStatusLabel(brief.status)}</p>
+              {brief.job_id ? (
+                <p className="mt-0.5 break-all text-micro leading-relaxed text-emerald-200/70">Studio job {brief.job_id}. Its reviews reach the Queue and the strip above the rooms.</p>
+              ) : null}
+              {brief.safe_code ? (
+                <p className="mt-0.5 text-micro leading-relaxed text-amber-100/70">Runner code: {brief.safe_code.replace(/_/g, ' ')}</p>
+              ) : null}
+              <p className="mt-1 break-all text-micro leading-relaxed text-white/30">{brief.brief_id}</p>
             </div>
           ))}
         </section>
