@@ -211,6 +211,45 @@ test.describe('the evening shutdown', () => {
   })
 })
 
+test.describe('the evening shutdown on a phone', () => {
+  test('the way out is on screen without scrolling, above the bottom nav', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      timezoneId: 'America/New_York',
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(new Date('2026-08-12T22:30:00Z')) // 18:30 New York
+    const posts: any[] = []
+    await mockPilot(page, { morning: answeredMorning, onPost: b => posts.push(b) })
+    await page.goto('/')
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    await expect.poll(async () => {
+      await page.keyboard.press('Shift')
+      return page.getByRole('heading', { name: 'Shutdown' }).count()
+    }, { timeout: 10_000 }).toBeGreaterThan(0)
+
+    // Both exits are inside the viewport with nothing scrolled, and nothing
+    // covers them: the close in the pinned header, Not now in the pinned footer.
+    const notNow = page.getByRole('button', { name: 'Not now' })
+    await expect(notNow).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Close' })).toBeInViewport()
+    const box = await notNow.boundingBox()
+    expect(box).not.toBeNull()
+    const hit = await page.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y)
+      return el ? (el.closest('button')?.textContent || el.tagName) : 'nothing'
+    }, [box!.x + box!.width / 2, box!.y + box!.height / 2])
+    expect(hit).toContain('Not now')
+
+    await notNow.click()
+    await expect(page.getByRole('heading', { name: 'Shutdown' })).toHaveCount(0)
+    await expect.poll(() => posts.some(b => b.kind === 'evening' && b.skipped === true)).toBe(true)
+    await ctx.close()
+  })
+})
+
 test.describe('the clock follows the device', () => {
   test('sends the device zone, and a stale stored one does not stick across loads', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'Australia/Sydney' })
