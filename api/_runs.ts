@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { supabase } from './_supabase.js'
 
 // The run ledger for the Content Engine's crons.
 //
@@ -56,6 +55,10 @@ export function classifyRun(statusCode: number, body: unknown, threw: Error | nu
 
 export async function recordContentRun(row: ContentRunRecord): Promise<void> {
   try {
+    // Loaded here, not at module top: _supabase.js throws at import when the
+    // env is unset, which is correct for a route and fatal for the pure
+    // halves (classifyRun, countsFrom) that tests and guards import.
+    const { supabase } = await import('./_supabase.js')
     await supabase.from('content_engine_runs').insert(row)
   } catch {
     // Best effort by design: the ledger must never be the reason a cron fails.
