@@ -61,6 +61,7 @@ All under `api/`. Every file with relative imports must use `.js` extension (ESM
 | `api/discover-build-signals.ts` | `/api/discover-build-signals` | GET (cron, Sat 05:00 UTC) / POST; `?dry=1`, `?week_ending=`, `?repos=` |
 | `api/_buildSignals.ts` | the five nameable products, the GitHub reads, the `build_signal` row and its lens digest | (lib) |
 | `api/content-opportunities/refresh.ts` | `/api/content-opportunities/refresh` (cron, daily 12:00 UTC): both lenses over `pool_headline` and `build_signal` rows | GET |
+| `api/architecture/weekly.ts` | `/api/architecture/weekly` (cron, Sun 13:00 UTC): writes the week's builds into `docs/MINDMAKE_OS_ARCHITECTURE.md` section 20 on GitHub main; `?dry=1` | GET / POST |
 | `api/_seedSources.ts` | seed source registry (used by above) | (lib) |
 | `api/_content.ts` | shared helpers: `callClaude`, `callClaudeMessages`, `sanitizeVoice`, voice/corpus/materials grounding | (lib) |
 | `api/triage/relevance-sweep.ts` | `/api/triage/relevance-sweep` | POST |

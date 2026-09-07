@@ -137,6 +137,10 @@
       "schedule": "0 5 * * 6"
     },
     {
+      "path": "/api/architecture/weekly",
+      "schedule": "0 13 * * 0"
+    },
+    {
       "path": "/api/scorecard/friday",
       "schedule": "30 4 * * 6"
     }
@@ -165,6 +169,9 @@
     },
     "api/discover-build-signals.ts": {
       "maxDuration": 120
+    },
+    "api/architecture/weekly.ts": {
+      "maxDuration": 60
     },
     "api/scorecard/monday.ts": {
       "maxDuration": 60

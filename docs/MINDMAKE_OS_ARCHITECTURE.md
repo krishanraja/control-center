@@ -8,22 +8,13 @@
 >
 > **Secrets rule.** This file contains NO credentials. Every key, token, webhook URL, and API endpoint lives in `TOOLS.md` (workspace root) and Supabase `system_config`. When something here says "fetch the X key", that means "look it up in TOOLS.md".
 >
-> **Canonical location & full copy inventory.** This document lives in EXACTLY these six places, kept in sync together. No copy may exist anywhere else (local disk, Downloads, OneDrive, scratch repo clones) - any other "OS architecture" file is stale; delete it, never maintain it. All six are byte-identical on the body (verified 2026-08-11: 332,688 bytes, sha256 `975bfb4d263f2d377c7300a92b99141ea678c72218e468055e1f4480e740318f`). Copies 3-5 carry YAML frontmatter above that identical body; 1, 2 and 6 do not.
+> **Canonical location: ONE surface.** This document lives in exactly one place: `docs/MINDMAKE_OS_ARCHITECTURE.md` on `main` of `github.com/krishanraja/control-center`. Read it from a checkout or from `https://raw.githubusercontent.com/krishanraja/control-center/main/docs/MINDMAKE_OS_ARCHITECTURE.md`. **Ruling, Krish, 2026-09-07:** the six-surface inventory that used to sit here (VPS workspace copy, three VPS skill bodies, the VPS repo clone as a write target, and the Google Drive mirror by id) is retired and the copies are deleted for good, because they were too fragile to keep in step and nothing read them. The `mindmake-os` skills on every client are thin routers that point here and carry no body. A copy anywhere else is stale by definition; delete it, never maintain it. No sync script exists any more; there is nothing to sync.
 >
-> **Every one of 1-5 is a path ON THE VPS.** They were previously written as `~/...`, which read as the local Windows machine and is the single most confusing thing about this list. It is `/root` on the VPS.
+> **Kept current by the engine.** `api/architecture/weekly.ts` (Vercel cron, Sunday 13:00 UTC) writes one dated entry at the top of section 20 from the week's build signals and stamps the line below. The Monday note reads the stamp back and says so when it is older than ten days, so a dark cron reads as stale, never as silence. People write rulings (section 0a); the engine writes the record (section 20).
 >
-> 1. **VPS, source of truth:** `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`
-> 2. **control-center GitHub repo:** `docs/MINDMAKE_OS_ARCHITECTURE.md`. **ONE FILENAME, settled 2026-09-06: `MINDMAKE_OS_ARCHITECTURE.md`, no R.** It previously existed under two spellings: the repo tracked `MINDMAKE_` while the VPS source, Drive and all three skill directories used `MINDMAKER_`. The sync script wrote the `MINDMAKER_` path into the repo clone, which git does not track, so **surface 2 diverged silently from the 2026-08-29 rebrand until 2026-09-06** and GitHub accumulated a 2026-09-02 creator-scout entry the other five never received. Nothing errored, because the script was faithfully syncing a file nobody reads. Everything is now `MINDMAKE_` and the skill directories are `mindmake-os`, matching the naming law and the slug. Four scripts key off this name (`sync-architecture-surfaces.py`, `sync-to-drive.py`, `regen-arch-section-4.py`, `os-autonomous-diagnostics.py`); **rename this file without changing all four and surface 2 goes dark with no error.** The VPS clone at `/root/Projects/control-center/docs/...` is the same surface; the sync script writes that path directly, so it can be current while GitHub is behind. **Push, or GitHub silently lags.**
-> 3. **VPS Claude skill:** `/root/.claude/skills/mindmake-os/SKILL.md` - frontmatter + this exact body.
-> 4. **VPS Cursor skill:** `/root/.cursor/skills-cursor/mindmake-os/SKILL.md` - frontmatter + this exact body.
-> 5. **VPS OpenClaw skill:** `/root/.openclaw/skills/mindmake-os/SKILL.md` - the copy skill-aware agents on the VPS load.
-> 6. **Google Drive:** `MINDMAKE_OS_ARCHITECTURE.md` in the `Infrastructure` folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. **This is now SCRIPTED, not manual.** `scripts/sync-to-drive.py` writes it in place by id. Older text here said Krish updates it by hand and that it lags; that has not been true since the script existed, and it no longer lags.
+> **Last engine refresh:** never
 >
-> **The two skills on Krish's WINDOWS machine are deliberately NOT copies of this document, and must never be given the body.** `~/.claude/skills/mindmake-os/SKILL.md` and `~/.cursor/skills/mindmake-os/SKILL.md` (note: `skills`, not `skills-cursor`, which is the VPS spelling) are both an 11 KB **thin truth-router** that names this document as the authority and embeds no architecture body at all. That is a deliberate design: a router carries no claims that can go stale, so it needs no sync. Overwriting either with the 322 KB body destroys that and creates two more surfaces to keep in step. They are not surfaces 3 and 4; those are on the VPS.
->
-> **Sync procedure.** Merge doc edits to GitHub main, then on the VPS: `git -C /root/Projects/control-center pull --ff-only`, `touch` the repo doc so it wins newest-mtime, `python3 /root/.openclaw/workspace/scripts/sync-architecture-surfaces.py` (surfaces 1-5; exit 0 = no change, 1 = changed, 2 = contradictions found, 3 = error, and it writes its report to `/root/.openclaw/workspace/audits/architecture-sync/latest.md` rather than stdout), then `python3 .../sync-to-drive.py` (surface 6; expect `failed=0`).
->
-> **A seventh surface exists and has no automated sync: Claude *browser* skills.** After an update Krish copies the skill body there by hand. It is not counted in the six because nothing can verify it. If it is no longer used, delete it rather than leaving an unverifiable copy.
+> **Update procedure.** Edit this file on GitHub `main`, by PR or by direct push, and that is the whole procedure. The VPS clone at `/root/Projects/control-center` follows with `git pull --ff-only`; it is a checkout, not a surface.
 >
 > **Last reconciled against live state.** **2026-09-07: the OS is PULL-ONLY, Kai is retired, and n8n git/cloud parity is rebuilt - see section 0b, which supersedes anything below it about notifying Krish or about Kai.** Telegram push was removed across all six layers that could reach him (57 n8n workflows, the openclaw cron registry, 12 agent templates, Control Center's own API, the VPS root crontab, and two unreachable archived workflows); 14 cron runs overnight confirmed zero pings, with the only message going to Lauren as intended. The alerts were never stale workflows: n8n ran 2,355 executions in fourteen days and nearly all succeeded, over commercial data frozen since June. **Kai retired**: both its jobs are done by `/api/health/fleet-reconcile` and `/api/health/connections-sweep`, Vercel crons that exist because Kai's approach failed, and nothing read `kai_workflow_snapshots`. **Parity rebuilt**: 154 drift items to 0, `sync.sh --apply` safe again. **107 lost audience contacts recovered** (leads 274 -> 282). Five silent failures fixed, four workflows retired, six retired-brand workflows archived, and Guest Scout's pitch chain, Agatha's State of Union and the credential-health writer repaired.
 >
@@ -325,6 +316,26 @@ the CLOUD workflows; moving them to n8n credentials is the actual fix.
   GitHub PAT found in two local clone `.git/config` files. The Full Time
   `sk_live_` is **expired**, which is why nightly revenue reconciliation fails.
 
+
+## 0c. CANON as of 2026-09-07 - one surface, kept current by the engine
+
+**Ruling (Krish).** The VPS and Google Drive copies of this document are deleted for good: too fragile to keep up to date, and nothing read them. GitHub `main` is the only surface. The engine keeps it current: the Content Engine's build signals (`docs/CONTENT-ENGINE-BUILD-SIGNALS.md`) feed a Sunday cron that writes the week's entry at the top of section 20 and stamps the header. The three "Weekly Documentation Refresh" Routines (Fractionl Circle, Mindmaker, MM-Ctrl, all Sunday 08:00 UTC, created 2026-05-14 via the HTTP API) are superseded by it and are to be deleted from the Routines list; an agent cannot delete a Routine created that way, so that step is Krish's.
+
+**What this retires on the VPS** (the exact steps, for whoever is on the box; also filed as a task for Agatha):
+
+```
+rm -f /root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md /root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md
+# the three skill bodies become the thin router from krishanraja/ai-harness skills/mindmake-os/SKILL.md
+for d in /root/.claude/skills/mindmaker-os /root/.claude/skills/mindmake-os /root/.cursor/skills-cursor/mindmaker-os /root/.cursor/skills-cursor/mindmake-os /root/.openclaw/skills/mindmaker-os /root/.openclaw/skills/mindmake-os; do
+  [ -d "$d" ] && cp /root/Projects/ai-harness/skills/mindmake-os/SKILL.md "$d/SKILL.md"
+done
+mv /root/.openclaw/workspace/scripts/sync-architecture-surfaces.py /root/.openclaw/workspace/scripts/_retired/
+# in sync-to-drive.py remove the MINDMAKE_OS_ARCHITECTURE entry (the Drive file is trashed; the write would 404 every six hours)
+# in os-autonomous-diagnostics.py and regen-arch-section-4.py point the doc path at /root/Projects/control-center/docs/MINDMAKE_OS_ARCHITECTURE.md, or retire the check
+grep -rn "MINDMAKER_OS_ARCHITECTURE\|sync-architecture-surfaces" /root/.openclaw /root/.claude /root/.cursor --include=*.py --include=*.sh --include=*.md -l
+```
+
+**What it does not change.** `sync-to-drive.py` keeps mirroring agent briefs and actions to Drive; only the architecture entry goes. Section 4's regeneration from the live schema, where it still runs, must write to the checkout and push, never to a local copy.
 
 ## 1. Outcomes - what the OS is for
 
@@ -1764,7 +1775,7 @@ These run shell scripts and Python that never call an LLM. Cheapest possible cad
 */5  *   * * *   poll_sync_queue.py               # Supabase sync queue
 */15 *   * * *   cc-doc-creator.sh                # Auto-create Google Docs
 */15 *   * * *   render-identity.py               # Render agent identities
-0    */6 * * *   refresh_token.sh + sync-to-drive.py
+0    */6 * * *   refresh_token.sh + sync-to-drive.py   # agent briefs and actions only since 2026-09-07; the architecture doc is no longer mirrored
 0    3   * * *   workspace_maintenance.sh + arlo-daily-contradiction-audit.sh
 0    3   * * 1   vera-contradiction-audit.sh
 0    6   * * *   Download Cleo's DRAFTS.md from Google Doc
@@ -2292,18 +2303,31 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 /root/.openclaw/workspace/scripts/render-identity.py         # Brief → SKILL.md (15m)
 /root/.openclaw/workspace/scripts/regenerate-standards-digest.py  # 2:30 AM UTC
 /root/.openclaw/workspace/scripts/fire-pending-flags.py      # (2m)
-/root/.openclaw/workspace/scripts/sync-to-drive.py           # (6h)
+/root/.openclaw/workspace/scripts/sync-to-drive.py           # (6h) agent briefs and actions; architecture doc entry removed 2026-09-07
 
 # Repos
 ~/Projects/control-center/                                   # Control Center repo (PRs land here)
 n8n/workflows/                                               # Versioned snapshots of audited workflows
-docs/MINDMAKE_OS_ARCHITECTURE.md                            # Repo mirror of this file
+docs/MINDMAKE_OS_ARCHITECTURE.md                            # THIS FILE, the one surface (2026-09-07)
 docs/audits/                                                 # Closure architecture audit reports here
 ```
 
 ---
 
 ## 20. Recent architectural changes - rolling changelog
+
+### 2026-09-07: one surface, and the engine keeps it current
+
+**The ruling (Krish).** Delete the VPS and Google Drive copies of this document for good; GitHub is the only surface; the engine keeps it up to date regularly. See section 0c.
+
+**What shipped.**
+- **`api/architecture/weekly.ts`**, Vercel cron Sunday 13:00 UTC: reads the week's `build_signal` rows, composes one dated entry (named products by name, side builds as one line, the radar's verdict per lens), inserts or replaces it at the top of this section by a per-week marker, stamps the header's "Last engine refresh" line, and commits to `main` through the GitHub contents API with `[skip ci]`. Says `github_write_forbidden` and writes an audit row rather than faking a refresh if the token cannot write.
+- **The Monday note** (`api/scorecard/monday.ts`) reads the stamp from the raw file and says "Architecture doc: engine refresh stale" when it is older than ten days.
+- **The header, section 19 and section 21** now describe one location. The six-surface inventory, the sync procedure and the byte-identical rule are gone.
+- **The `mindmake-os` skill** in `krishanraja/ai-harness` is rewritten as a router to this GitHub file only, with no VPS or Drive paths and no sync block. Krish uploads it once to the Claude cloud skill store; after that it never needs to change, because it carries no fact that can go stale.
+- **Google Drive** file `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc` is in the trash as of 2026-09-07.
+- **The three "Weekly Documentation Refresh" Routines** are superseded; deletion is Krish's, per section 0c.
+
 
 ### 2026-09-07: build signals, Krish's own builds as Content Engine supply
 
@@ -2884,14 +2908,9 @@ Edit this file when the architecture *genuinely* changes: new agent, new pillar,
 
 **Anti-duplication rule.** This is the only OS architecture document. If you're tempted to write a sibling - "OS-2026-XX.md", "Mindmake Architecture v2.txt", "complete-os-reference.md" - anywhere in the workspace, edit this file instead. Multiple architecture docs drift; one canonical file does not.
 
-**Canonical mirror locations (the inventory).** This document is mirrored to the locations below. When you update one, update all of them. Krish refers agents to this doc at the start of any OS update, so this list is the single source of truth for "where does this doc live" - you do not need to be told the locations again.
+**One location, no mirrors (ruling 2026-09-07).** This file on GitHub `main` is the only copy. The engine writes section 20 weekly (`api/architecture/weekly.ts`); people write everything else, here, by PR or push. If you are on the VPS and want to read it, `git -C /root/Projects/control-center pull --ff-only` and read the checkout.
 
-1. **Repo (easiest to PR and review).** `krishanraja/control-center` → `docs/MINDMAKE_OS_ARCHITECTURE.md`. Locally on Krish's Windows machine: `C:\Users\krish\control-center\docs\MINDMAKE_OS_ARCHITECTURE.md`.
-2. **VPS (what agents read on session wake).** `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`. Per-agent workspaces (`workspace-cleo`, `workspace-ops`, ...) symlink to this canonical copy.
-3. **`mindmake-os` skill, Claude Code.** `C:\Users\krish\.claude\skills\mindmake-os\SKILL.md` (YAML frontmatter + this body).
-4. **`mindmake-os` skill, Cursor.** `C:\Users\krish\.cursor\skills-cursor\mindmake-os\SKILL.md` (same body as #3).
-5. **`mindmake-os` skill on the VPS.** `/root/.openclaw/skills/mindmake-os/SKILL.md` (rendered/synced copy that skill-aware agents on the VPS load).
-6. **Google Drive (human-readable mirror).** Infrastructure folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. Updated **in place by id** by the VPS script `/root/.openclaw/workspace/scripts/sync-to-drive.py` (gog CLI), verified working 2026-07-07; run it after the surface-1-to-5 sync. (The Drive MCP remains create-only, so never try to update this file through MCP; manual drag-drop is only the fallback if the script's gog auth breaks.)
+1. **GitHub, the one surface.** `krishanraja/control-center` on `main`, `docs/MINDMAKE_OS_ARCHITECTURE.md`. Raw read: `https://raw.githubusercontent.com/krishanraja/control-center/main/docs/MINDMAKE_OS_ARCHITECTURE.md`. Locally: any checkout of the repo (Krish's Windows machine, the VPS clone at `/root/Projects/control-center`), which is a checkout and not a copy.
 
-The document BODY (everything below the YAML frontmatter) must be byte-identical across locations 1 through 5. Location 6 (Drive) lags until Krish manually replaces it. The repo is for PR and review; the VPS is what agents actually read on wake; the two skill copies are what Claude Code and Cursor load; Drive is what humans share.
+Retired 2026-09-07 and deleted: the VPS workspace copy, the three VPS skill bodies (Claude, Cursor, OpenClaw), and the Google Drive mirror (file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`, trashed 2026-09-07). `sync-architecture-surfaces.py` is retired; `sync-to-drive.py` no longer carries this file. The `mindmake-os` skill on every client is a thin router with no body.
 

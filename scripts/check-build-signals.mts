@@ -207,4 +207,32 @@ assert.doesNotMatch(read('api/_buildSignals.ts'), /expires_at:\s*null/, 'a build
 assert.match(read('api/content-ideas/[id]/editorial-route.ts'), /meta\.mindmake_build \? \{ mindmake_build: true/, 'the routed child keeps the flag')
 assert.match(read('api/scorecard/monday.ts'), /Built last week/, 'the Monday note lists the week\'s builds')
 
+// ── The architecture doc: one surface, kept current by the engine ────────────
+const { composeWeekEntry, applyWeekEntry, CHANGELOG_HEADING } = await import('../api/architecture/weekly.ts')
+const doc = read('docs/MINDMAKE_OS_ARCHITECTURE.md')
+assert.doesNotMatch(doc.slice(0, 20000), /six places|byte-identical across/, 'the header no longer claims a six-surface inventory')
+assert.match(doc.slice(0, 20000), /\*\*Last engine refresh:\*\* (\d{4}-\d{2}-\d{2}|never)/, 'the header carries the engine stamp')
+assert.match(doc, /^## 0c\. CANON as of 2026-09-07/m, 'the one-surface ruling is recorded')
+assert.ok(doc.includes(CHANGELOG_HEADING), 'the changelog heading the engine inserts under still exists')
+const entry = composeWeekEntry('2026-09-11', '2026-09-13', [
+  { idea: 'x', source_captured_at: null, meta: { build: { repo: 'krishanraja/control-center', commit_count: 34, pr_count: 2, files_changed: 300, additions: 15283, deletions: 1640, prs: [{ title: 'Add the Room' }, { title: 'Add the scorecard' }] }, editorial_radar: { lenses: { built_with_ai: { status: 'eligible' }, money_of_ai: { status: 'near_miss' } } } } },
+  { idea: 'y', source_captured_at: null, meta: { build: { repo: 'krishanraja/hunter', commit_count: 38, pr_count: 0, prs: [{ title: 'Read Krish\'s verdicts back' }] } } },
+])
+assert.match(entry, /\*\*Control Center\*\*: 34 commits, 2 merged PRs, 300 files/)
+assert.match(entry, /Built with AI an angle ready, The Money of AI a near miss/)
+assert.match(entry, /\*\*a side builds\*\*: 38 commits across 1 repo/)
+assert.doesNotMatch(entry, /hunter|verdicts/, 'an anonymous repo never leaks into the public doc')
+const once = applyWeekEntry(doc, '2026-09-11', entry, '2026-09-13')
+assert.ok(once.next.includes(entry) && !once.replaced, 'first write inserts under the heading')
+assert.match(once.next, /\*\*Last engine refresh:\*\* 2026-09-13/)
+const twice = applyWeekEntry(once.next, '2026-09-11', entry.replace('34 commits', '35 commits'), '2026-09-14')
+assert.ok(twice.replaced && twice.next.includes('35 commits') && !twice.next.includes('34 commits, 2 merged'), 'a re-run replaces the week, never duplicates it')
+const weekly = read('api/architecture/weekly.ts')
+assert.match(weekly, /\[skip ci\]/, 'the engine commit skips CI')
+assert.match(weekly, /github_write_forbidden/, 'a token that cannot write says so instead of faking a refresh')
+assert.doesNotMatch(weekly, /sendGmail|callClaude/, 'the doc writer sends nothing and invents nothing')
+const archCron = vercel.crons.find(c => c.path === '/api/architecture/weekly')
+assert.equal(archCron?.schedule, '0 13 * * 0', 'the Sunday refresh is registered after the Saturday ingest and the Sunday radar')
+assert.match(read('api/scorecard/monday.ts'), /Architecture doc: engine refresh stale/, 'the Monday note reads the stamp back')
+
 console.log('PASS  five named products, anonymous side builds, no figures in the Money of AI, one source type in three places, cron wired')

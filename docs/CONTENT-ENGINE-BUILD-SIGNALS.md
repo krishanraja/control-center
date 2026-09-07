@@ -135,6 +135,19 @@ anonymous line for the rest, and how many build signals were offered, judged
 and found an angle. Charter compliance for "public by default". Nothing
 sends beyond what the note already does.
 
+## The architecture doc, kept current by the same engine
+
+Ruling, Krish, 2026-09-07: the VPS and Drive copies of
+`docs/MINDMAKE_OS_ARCHITECTURE.md` are deleted for good; GitHub `main` is the
+one surface. `api/architecture/weekly.ts` (Sunday 13:00 UTC, after the
+Saturday ingest and the Sunday radar) composes one dated entry from the
+week's build signals (named products by name, side builds as one line, the
+radar's verdict per lens), inserts or replaces it at the top of section 20 by
+a per-week marker, stamps the header's "Last engine refresh" line, and
+commits to `main` through the GitHub contents API with `[skip ci]`. The
+Monday note reads the stamp from the raw file and says when it is stale. The
+doc is public, so the same registry applies: nothing anonymous is named.
+
 ## What a sibling repo should carry
 
 The ingest reads what is there. It is better when the repo carries:

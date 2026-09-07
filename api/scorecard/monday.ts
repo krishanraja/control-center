@@ -132,6 +132,28 @@ async function builtLastWeek(weekEnding: string): Promise<string[]> {
   return lines
 }
 
+/** The architecture doc's engine stamp, read from the one surface. A dark
+ *  Sunday cron must read as stale here, never as silence (ruling 2026-09-07,
+ *  docs/MINDMAKE_OS_ARCHITECTURE.md section 0c). */
+async function architectureDocLine(today: string): Promise<string> {
+  try {
+    const r = await fetch('https://raw.githubusercontent.com/krishanraja/control-center/main/docs/MINDMAKE_OS_ARCHITECTURE.md', {
+      headers: { Range: 'bytes=0-20000', 'User-Agent': 'control-center-scorecard' },
+    })
+    if (!r.ok && r.status !== 206) return `Architecture doc: could not read the stamp (HTTP ${r.status}).`
+    const head = await r.text()
+    const m = head.match(/\*\*Last engine refresh:\*\* (\d{4}-\d{2}-\d{2}|never)/)
+    if (!m) return 'Architecture doc: no engine stamp found in the header.'
+    if (m[1] === 'never') return 'Architecture doc: the engine has not refreshed it yet (first run is the coming Sunday 13:00 UTC).'
+    const age = Math.round((Date.parse(today) - Date.parse(m[1])) / 86_400_000)
+    return age > 10
+      ? `Architecture doc: engine refresh stale, last ${m[1]} (${age} days ago).`
+      : `Architecture doc: engine refresh ${m[1]}.`
+  } catch (err) {
+    return `Architecture doc: could not read the stamp (${err instanceof Error ? err.message : String(err)}).`
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardCronRoute(req, res)) return
 
@@ -176,6 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const built = await builtLastWeek(lastWeek)
     lines.push(built.length ? 'Built last week:' : 'Built last week: nothing recorded.')
     lines.push(...built)
+    lines.push(await architectureDocLine(today))
     lines.push('')
     if (drafted.count > 0) {
       lines.push(`${drafted.count} drafted ${drafted.count === 1 ? 'approach' : 'approaches'} waiting to send${drafted.names.length ? `: ${drafted.names.join(', ')}` : ''}.`)

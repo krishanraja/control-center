@@ -67,7 +67,12 @@ audit `docs/audits/2026-09-07-build-signals-week-37.md`.
 - The routed publication child keeps the flag; the chip reads "Mindmake
   build, <public name>". The Monday note lists the week's builds.
 - Migration `20260907160000_build_signals.sql`: the CHECK and a live
-  source_ref unique index. Not yet applied to production.
+  source_ref unique index. Applied to production 2026-09-07 through the
+  Supabase connector (ledger name `build_signals`). Merged to main and
+  deployed the same day; the Saturday cron is registered.
+- Same day, second ruling: the architecture doc has one surface (GitHub
+  main) and `api/architecture/weekly.ts` (Sun 13:00 UTC) writes the week's
+  builds into its section 20. See `docs/MINDMAKE_OS_ARCHITECTURE.md` 0c.
 
 The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest state machine, advance=develop (not relabel), server guard against zombie review cards, one count source with honest labels, state-aware inline actions, a "Do this next" hero (with inline schedule) that removes all next-action ambiguity, and a Composer that flows finish→next. **All planned phases (P-3..P-16) are now DONE, done-as-existing, or done-lean.** Canonical architecture doc §changelog updated (2026-06-17 entry). Everything merged to main and prod-verified (render + server guard). The only thing NOT exercised on prod is the mutating click-through of Approve/Schedule on real content — left for Krish, since those are real content decisions.
 
