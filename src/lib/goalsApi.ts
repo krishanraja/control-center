@@ -1,3 +1,5 @@
+import { getZone } from './civilDate'
+
 const API = import.meta.env.VITE_API_URL ?? ''
 
 // The ONE wire path for goal writes (guarded by scripts/check-goal-ladder.mts).
@@ -55,6 +57,9 @@ export async function createGoal(input: {
       job: input.job || null,
       status: 'active',
       override: input.override === true,
+      // The week an objective belongs to is the device's Monday, so the zone
+      // rides along the way every day-scoped pilot call sends it.
+      tz: getZone(),
     }),
   })
   const j = await r.json().catch(() => ({}))
@@ -73,7 +78,7 @@ export async function patchGoal(body: Record<string, unknown>): Promise<void> {
   const r = await fetch(`${API}/api/goals`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, tz: getZone() }),
   })
   const j = await r.json().catch(() => ({}))
   if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
