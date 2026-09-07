@@ -4,6 +4,10 @@ import { FeedRoom } from './FeedRoom'
 import { Eyebrow } from '../shared/Eyebrow'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { publicSeriesIdentity } from '../../lib/publicSeries'
+import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
+
+/** How many unsorted ideas the desk shows as cards before deferring to the phone. */
+const UNSORTED_CAP = 12
 
 // Everything the engine read and could seed from, behind one button.
 //
@@ -31,15 +35,20 @@ export function SupplyDrawer({ open, onClose, mine, unclassified }: {
           <FeedRoom ideas={mine} />
         </section>
         {unclassified.length > 0 && (
-          <section>
+          <section data-testid="content-unsorted">
             <h3 className="mb-2 flex items-center gap-1.5">
               <Eyebrow>Not yet sorted</Eyebrow>
               <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-micro tabular-nums">{unclassified.length}</span>
             </h3>
             <p className="mb-2 text-label text-white/45">
-              Collected while the sorter was down. These belong in {publicSeriesIdentity('built').label} or {publicSeriesIdentity('paid').label}, they just have not been sorted yet.
+              Captured without a format. Each belongs in {publicSeriesIdentity('built').label} or {publicSeriesIdentity('paid').label}; opening one sets it. The phone Queue clears this pile one card at a time.
             </p>
-            <FeedRoom ideas={unclassified} />
+            <ul className="space-y-2.5">
+              {unclassified.slice(0, UNSORTED_CAP).map(i => <li key={i.id}><ContentIdeaCardActionable idea={i} /></li>)}
+            </ul>
+            {unclassified.length > UNSORTED_CAP && (
+              <p className="mt-2 text-micro text-white/45">{unclassified.length - UNSORTED_CAP} more in the pile. Clear them from the Queue on your phone.</p>
+            )}
           </section>
         )}
       </div>
