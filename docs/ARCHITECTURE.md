@@ -8,10 +8,10 @@
 > **OS-wide architecture lives elsewhere.** For the canonical description of
 > the entire mind/make OS — agent fleet, cron topology, Supabase taxonomy,
 > N8N workflow inventory, four-tier self-healing, data flows end-to-end,
-> aspirational targets — read [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md)
-> (mirror of the VPS canonical at `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`
-> and the "Infrastructure" Google Drive folder). That doc is the source of
-> truth all AI tools align to; this doc is its repo-scoped subset.
+> aspirational targets — read [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md).
+> That file on `main` is the only copy (ruling 2026-09-07: the VPS and Google
+> Drive mirrors are deleted). It is the source of truth all AI tools align to;
+> this doc is its repo-scoped subset and points to it rather than repeating it.
 >
 > **Update protocol.** This document describes the Control Center *as it
 > exists today*. If you are tempted to describe the OS as a whole, edit
@@ -52,8 +52,8 @@ The repo does **not** own:
   here).
 - The N8N runtime (lives at `krishraja10101.app.n8n.cloud`).
 - The OpenClaw runtime on the VPS (lives at `/root/.openclaw/`).
-- The canonical OS architecture doc (lives at
-  `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`).
+- The canonical OS architecture doc (lives in this repo at
+  `docs/MINDMAKE_OS_ARCHITECTURE.md` on `main`; the VPS reads its checkout).
 - Standards (`standards_registry` in Supabase, rendered nightly to
   `hot/standards-digest.md`).
 

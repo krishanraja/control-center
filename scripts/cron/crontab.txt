@@ -3,6 +3,7 @@
 30 2 * * * python3 /root/.openclaw/workspace/scripts/regenerate-standards-digest.py >> /tmp/standards-digest.log 2>&1
 0 8 * * * /usr/local/bin/node /root/.openclaw/workspace/vera-n8n-audit.js >> /var/log/vera-audit.log 2>&1
 0 3 * * * /root/.openclaw/cron/workspace_maintenance.sh
+# 2026-09-07: sync-to-drive.py mirrors agent briefs and actions only. The architecture doc entry is removed; the doc has one surface, GitHub main (docs/MINDMAKE_OS_ARCHITECTURE.md 0c).
 0 */6 * * * cd /root/.openclaw/integrations/google && bash refresh_token.sh >> /var/log/openclaw-drive-sync.log 2>&1 && cd /root/.openclaw/workspace && python3 scripts/sync-to-drive.py >> /var/log/openclaw-drive-sync.log 2>&1
 */2 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/fire-pending-flags.py >> /var/log/openclaw-flags.log 2>&1
 */5 * * * * /root/.openclaw/workspace-ops/scripts/cc-sync-engine.sh >> /tmp/cc-sync.log 2>&1

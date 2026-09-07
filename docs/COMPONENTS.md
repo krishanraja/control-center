@@ -115,7 +115,7 @@ a context (e.g. `AgentsContext` for agent lookups).
 > decision deck (`MobileDecisionDeck`) — with the rooms as sibling segments
 > (test ids `content-room-<id>`). The v1 surface below still exists behind
 > the flag; see [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md)
-> and `MINDMAKER_OS_ARCHITECTURE.md` §5.8 for v2.
+> and `MINDMAKE_OS_ARCHITECTURE.md` §5.8 for v2.
 
 The v1 Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
 

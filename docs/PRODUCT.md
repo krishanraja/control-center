@@ -414,7 +414,7 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 > **Live shape: Content Engine v2** (`VITE_CONTENT_V2_ENABLED`, ON in prod):
 > rooms Built / Paid / Library plus the mobile-first Queue decision deck.
 > Spec: [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
-> `MINDMAKER_OS_ARCHITECTURE.md` §5.8. The v1 description below holds
+> `MINDMAKE_OS_ARCHITECTURE.md` §5.8. The v1 description below holds
 > behind the flag.
 
 ### Purpose

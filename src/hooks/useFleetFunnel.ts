@@ -5,7 +5,7 @@ import type { VentureRow } from './useVentureRegistry'
  * Single canonical reader of GET /api/fleet-funnel — the service-role rollup
  * of acquisition, revenue and emit-health per builder app. Revenue is
  * sensitive, so this never touches the anon Supabase client; see
- * docs/MINDMAKER_OS_ARCHITECTURE.md section 11.4.
+ * docs/MINDMAKE_OS_ARCHITECTURE.md section 11.4.
  *
  * One fetch for every consumer (the KPI band's funnel tile, its sheet, and
  * the Fleet funnel section), the useSpend singleton shape without a poll:

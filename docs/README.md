@@ -2,9 +2,12 @@
 
 > The dashboard slice of [mind/make OS](#what-mindmake-os-is), the
 > autonomous-organisation operating system Krish Raja runs his portfolio on.
-> This index covers the slice. The full OS architecture lives in
-> `MINDMAKE_OS_ARCHITECTURE.md` on the VPS workspace root — when this
-> repo's docs and that file disagree, that file wins.
+> This index covers the slice. The full OS architecture lives in exactly one
+> file, [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md) in this
+> folder on `main` (ruling 2026-09-07: no VPS or Drive copy exists). When this
+> repo's docs and that file disagree, that file wins. Every other document,
+> skill and workspace file points to it and carries no architecture body of
+> its own, so there is one file to keep current, and the engine helps keep it.
 
 ## Index
 

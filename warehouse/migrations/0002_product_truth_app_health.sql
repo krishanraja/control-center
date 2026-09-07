@@ -1,6 +1,6 @@
 -- 0002: OS-side fleet attribution support objects (owned by the OS repo).
 -- Applied to gojpffsrxybbpbdzzrvs 2026-05-30 during the six-app commerce wiring.
--- See docs/MINDMAKER_OS_ARCHITECTURE.md section 11.4.
+-- See docs/MINDMAKE_OS_ARCHITECTURE.md section 11.4.
 
 -- Per-app product-truth cache. Agents fetch each app's product-truth live first
 -- (PRODTRUTH-001); this table is the daily-refreshed fallback so a momentarily

@@ -176,10 +176,12 @@ vercel.json                 Vite framework, SPA rewrites, /api/* routing
 The repo is one of three things you read together to understand Mindmake
 OS:
 
-1. **`MINDMAKE_OS_ARCHITECTURE.md`** (workspace root on the VPS, not in
-   this repo) — the canonical end-to-end architecture: agent fleet,
-   Supabase schema (~60 tables), data flows, self-healing tiers, cron
-   topology, portfolio context. Read this if you want to understand the OS.
+1. **[`docs/MINDMAKE_OS_ARCHITECTURE.md`](./docs/MINDMAKE_OS_ARCHITECTURE.md)**,
+   in this repo on `main` and nowhere else (ruling 2026-09-07: the VPS and
+   Drive copies are gone; every other document points here and copies
+   nothing). The canonical end-to-end architecture: agent fleet, Supabase
+   schema, data flows, self-healing tiers, cron topology, portfolio context.
+   The engine writes its section 20 every Sunday; people write the rulings.
 2. **This repo (`control-center`)** — the dashboard implementation. Read
    `docs/ARCHITECTURE.md` and `docs/PRODUCT.md` for the slice of the OS the
    dashboard owns.
