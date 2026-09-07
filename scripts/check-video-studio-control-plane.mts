@@ -1457,4 +1457,5 @@ for (const name of [
 ]) assert.match(envExample, new RegExp(`^${name}=`, 'm'))
 assert.match(envExample, /26214400-byte object limit/)
 
+await import('./check-studio-session-gateway.mts')
 console.log('video studio control-plane invariants passed')
