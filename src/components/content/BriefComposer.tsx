@@ -502,7 +502,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
       onClose={onClose}
       eyebrow={<>Weekly brief · {week}</>}
       title={
-        <div className="text-ui font-bold text-white truncate">
+        <div className="text-ui font-bold text-white break-words">
           {brief?.title ?? <Skeleton h={13} w={180} r={4} className="my-[3px]" />}
         </div>
       }
@@ -658,8 +658,8 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 {scoped ? (
                   <div className="rounded-lg border border-sky-400/25 bg-sky-400/[0.07] px-2.5 py-2">
                     <div className="flex items-center gap-1.5 text-micro text-sky-200">
-                      <span className="flex-1 truncate" title={selection}>
-                        Adjusting just: “{selection.replace(/\s+/g, ' ').slice(0, 54)}{selection.length > 54 ? '…' : ''}”
+                      <span className="min-w-0 flex-1 break-words" title={selection}>
+                        Adjusting just: “{selection.replace(/\s+/g, ' ')}”
                       </span>
                       <button
                         onClick={() => { editor?.commands.focus(); editor?.commands.setTextSelection(editor.state.selection.to) }}
@@ -731,8 +731,8 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
             <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-1 font-semibold text-sky-200">
               Selected
             </span>
-            <span className="min-w-0 flex-1 truncate text-white/45" title={selection}>
-              {selection.replace(/\s+/g, ' ').slice(0, 120)}
+            <span className="min-w-0 flex-1 break-words text-white/45" title={selection}>
+              {selection.replace(/\s+/g, ' ')}
             </span>
             <button
               onClick={() => { editor?.commands.focus(); editor?.commands.setTextSelection(editor.state.selection.to) }}
@@ -997,7 +997,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 className="flex w-full items-baseline gap-2 mt-2.5 text-left"
               >
                 <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 flex-shrink-0">Publish as</span>
-                <span className={`text-label truncate flex-1 ${fanout.size ? 'text-white/70' : 'text-amber-200/80'}`}>
+                <span className={`min-w-0 flex-1 break-words text-label ${fanout.size ? 'text-white/70' : 'text-amber-200/80'}`}>
                   {fanoutSummary || 'nothing selected'}
                 </span>
                 <span className="text-micro font-semibold text-sky-200 flex-shrink-0">Change</span>

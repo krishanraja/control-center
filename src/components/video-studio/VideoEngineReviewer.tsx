@@ -989,7 +989,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
               </div>
               <h1 className="mt-2 text-lede font-semibold leading-tight text-white/92 [@media(max-height:760px)]:mt-1">{copy.title}</h1>
               {copy.direction ? (
-                <p className="mt-2 text-label leading-relaxed text-white/54 [@media(max-height:760px)]:mt-1 [@media(max-height:760px)]:line-clamp-2"><strong className="text-white/75">You asked:</strong> “{copy.direction}”</p>
+                <p className="mt-2 break-words text-label leading-relaxed text-white/54 [@media(max-height:760px)]:mt-1"><strong className="text-white/75">You asked:</strong> “{copy.direction}”</p>
               ) : copy.summary ? (
                 <p className="mt-2 text-label leading-relaxed text-white/54">{copy.summary}</p>
               ) : null}

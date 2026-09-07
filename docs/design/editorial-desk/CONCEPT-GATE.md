@@ -38,3 +38,27 @@ Krish rejected a separate Editorial Desk destination because it duplicated the e
 - the existing Content suggestion opens into this state, then returns to the existing composer and approval lifecycle.
 
 Borrowed elements do not replace the governing Cut Room interaction. The Proof Table contributes compact proof anatomy. The Story Railway contributes the causal trace and visible dead ends.
+
+## Approved lock
+
+Krish approved the compact Cut Room revision on 2026-09-07. The approved
+interaction and visual reference is `mock-v3/index.html`. V3 preserves the V2
+layout and removes every text clamp exposed by the mobile review.
+
+The lock carries these implementation rules:
+
+- Content is the only idea and editorial surface. There is no separate Video,
+  Carousel or Editorial Desk ideas UI.
+- One researched source record may earn a Money route, a Built route, both or
+  neither.
+- An approved route becomes the canonical developed story. Substack, LinkedIn,
+  video scripts, carousels, podcast and later outputs are adaptations of that
+  story, not competing ideas.
+- Video and carousel production begin only from an exact approved content
+  revision through `ProductionBriefV1`.
+- Control Center owns the human workflow and safe projections. The production
+  studio owns media artifacts and deterministic rendering.
+- User-facing text remains whole at every viewport. Secondary detail may move
+  behind a tap, but it is never clipped, line-clamped or ellipsised.
+- The approved ink, paper, mint and amber system, type roles and shared Control
+  Center primitives apply to every connected Content and Studio state.

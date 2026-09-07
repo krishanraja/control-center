@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "check:studio-session-gateway": "tsx scripts/check-studio-session-gateway.mts",
-    "check:editorial-radar": "tsx scripts/check-editorial-radar.mts"
+    "check:editorial-radar": "tsx scripts/check-editorial-radar.mts",
+    "check:editorial-text": "tsx scripts/check-editorial-text-integrity.mts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.8",

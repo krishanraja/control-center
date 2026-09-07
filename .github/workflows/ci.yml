@@ -205,6 +205,10 @@ jobs:
       # and shared chrome so a local purple/fake-logo fork cannot creep back in.
       - run: npx tsx scripts/check-mindmake-design.mts
       - run: npx tsx scripts/check-mindmake-gate.mts
+      # Claims, evidence, objections and decisions can change meaning when a
+      # clause is clipped. Content and Studio surfaces must wrap the full text
+      # or place it behind a deliberate disclosure, never ellipsise it.
+      - run: npm run check:editorial-text
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it

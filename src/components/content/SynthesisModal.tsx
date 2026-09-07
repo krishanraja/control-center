@@ -116,7 +116,7 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
               {selected.slice(0, 14).map((s, i) => (
                 <div key={s.id} className="flex items-start gap-2 text-label">
                   <span className="text-white/35 tabular-nums w-5 flex-shrink-0">[{i + 1}]</span>
-                  <span className="text-white/80 truncate">{s.idea}</span>
+                  <span className="min-w-0 break-words text-white/80">{s.idea}</span>
                 </div>
               ))}
               {selected.length > 14 && (
