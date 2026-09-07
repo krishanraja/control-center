@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-07
-head: 600ba77c
+head: 3554502d
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -25,7 +25,7 @@ Control Center is not sold. It is the proof asset behind everything Mindmake doe
 Angles a writer can use without asking Krish:
 
 - **The OS never pings him.** Since 6 September 2026 the OS is pull-only (ADR in `docs/MINDMAKE_OS_ARCHITECTURE.md` section 0b): every Telegram push was killed, including a fourth undocumented layer found in this repo's own API. Krish goes to the dashboard; nothing comes to him.
-- **A green run with nothing sent is a failure.** The scorecard on Home counts approaches sent, calls, paid rooms, cash, pieces published, and hours building unasked. The last one is counted against him, from his own commits, every Saturday.
+- **A green run with nothing sent is a failure.** The scorecard on Home counts approaches sent, calls, paid rooms, cash, pieces published, and hours building unasked. The last one is counted against him every Saturday from every commit in his repos, whoever the committer was, including this steward's own commits (ruling 7 September: "every repo in GITHUB_REPOS is his, so every commit in it is his build").
 - **Operational exhaust is the content.** Since 7 September the same Saturday commit read feeds the Content Engine as build signals, and the architecture doc writes its own weekly changelog entry from them.
 - **Self-healing is built in.** Four tiers of silent-failure detection surface value failures, not just exceptions. Several fixes in the last month are the OS catching itself lying: a Subscriptions tab that read as current while its ledger had been dead since July, a documentation sync that wrote to an untracked path for nine days.
 
@@ -37,12 +37,14 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 - **The one swing is the operating frame** (ADR-016, `docs/plans/one-swing/CHARTER.md`): one mission, five jobs in priority order. Jobs 1 (the Room) and 2 (the scorecard) are built and live since 5 September. Jobs 3, 4 and 5 are gated on the first paid room. Gate G1 is open; G2 to G4 are closed. Ledger and Vercel state: `docs/plans/one-swing/STATE.md`.
 - **Content Engine**: unified editorial system merged 7 September (independent Money of AI and Built with AI lenses, one content output registry, approved ideas flow straight into Studio production). Build signals from Krish's repos ingest every Saturday 05:00 UTC; the first Saturday run has not happened yet.
 - **Architecture doc**: `docs/MINDMAKE_OS_ARCHITECTURE.md` on `main` is the only OS architecture surface (ruling 7 September; VPS and Drive copies deleted). The engine writes section 20 on Sundays 13:00 UTC; its header reads "Last engine refresh: never" until the first run.
-- **Docs steward** (this file and `docs/steward/`) adopted 7 September, bootstrapped by hand, automated by `.github/workflows/docs-steward.yml` on every push to `main` and nightly.
+- **Docs steward** (this file and `docs/steward/`) adopted 7 September (PR #279), bootstrapped by hand across all eight fleet repos the same day (`docs/steward/LEDGER.md`), automated by `.github/workflows/docs-steward.yml` on every push to `main` and nightly. The first automated run failed by design within nine seconds: `CLAUDE_CODE_OAUTH_TOKEN` is not yet set.
 - **Waiting on evidence, not code**: the scorecard's "hours building unasked" reads "not measured yet" until the first Saturday GitHub read proves the token can read commits.
 - **Parked**: the hunter job-search lane is hidden behind `VITE_BRIDGES_LANE_ENABLED` and the agent row is left active by Krish's choice.
 
 ## What changed recently
 
+- 2026-09-07 **The scorecard counts every commit, not one login** (`37af6d3c`, guard `e86e31b8`). Why: a dry run showed most session commits carry the coding agent's address (36 of 38 in one repo, 18 of 34 here), so the Rule 6 tripwire "was reading roughly half the truth". `GITHUB_AUTHOR` is no longer read anywhere and the guard fails if either reader brings it back. First Saturday run: 12 September.
+- 2026-09-07 **Architecture doc: the one-surface retirement closed out** (#280, #281). The last three references to a VPS or Drive copy removed; the three weekly Documentation Refresh Routines recorded as deleted by Krish; the fleet's last reference to the trashed Drive file removed.
 - 2026-09-07 **Build signals** (`2c83ff90`, `e11f2ab5`). Why: every Saturday the scorecard counted Krish's commits against him as unasked hours, and nothing read the same stream for content, although canon asks for a solo Built with AI variant on exactly that material. One new `source_type` flows into the existing content spine; nothing new to run.
 - 2026-09-07 **One architecture surface, kept current by the engine** (`ec7f05e7`, `31fc3162`, `1be3dddb`). Why: six copies of the OS architecture doc drifted silently; the sync script had written a misspelled filename into an untracked path for nine days and nothing errored. Krish deleted the VPS and Drive copies for good. A Sunday cron now writes the weekly entry.
 - 2026-09-07 **Unified Content system** (PRs #274 to #278). Editorial radar with independent lenses, one output registry, approved ideas joined to Studio production.

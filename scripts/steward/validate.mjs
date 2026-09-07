@@ -43,7 +43,10 @@ const repoName = flag('--repo')
 
 const failures = []
 const fail = (m) => failures.push(m)
-const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' }).trim()
+// core.quotePath=false: git otherwise octal-escapes and quotes any path with a
+// non-ASCII byte, and a quoted "docs/history/x.md" fails the *.md glob. Found
+// on mm-ctrl's first run with an en dash in a filename.
+const git = (...a) => execFileSync('git', ['-c', 'core.quotePath=false', ...a], { cwd: repo, encoding: 'utf8' }).trim()
 const read = (rel) => readFileSync(join(repo, rel), 'utf8')
 const exists = (rel) => existsSync(join(repo, rel))
 

@@ -26,7 +26,7 @@ import { join, basename, dirname } from 'node:path'
 const args = process.argv.slice(2)
 const repo = args.find((a) => !a.startsWith('--')) || '.'
 const flag = (name) => { const i = args.indexOf(name); return i === -1 ? null : args[i + 1] }
-const git = (...a) => { try { return execFileSync('git', a, { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim() } catch { return '' } }
+const git = (...a) => { try { return execFileSync('git', ['-c', 'core.quotePath=false', ...a], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim() } catch { return '' } }
 const read = (rel) => readFileSync(join(repo, rel), 'utf8')
 const exists = (rel) => existsSync(join(repo, rel))
 
