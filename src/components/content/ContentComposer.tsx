@@ -1694,7 +1694,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
           <div className="mt-3 space-y-3 border-t border-[#102017]/12 pt-3">
             {selectedDefinition?.family === 'video' ? (
               <fieldset>
-                <legend className="text-micro font-bold uppercase tracking-[0.12em] text-[#476154]">Source</legend>
+                <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Source</legend>
                 <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                   {([
                     ['short_native', 'Record'],
@@ -1757,7 +1757,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
               <div className="flex flex-wrap items-center gap-2 text-label text-emerald-100/85">
                 {brief.production_kinds.includes('video') ? <Film size={14} /> : <Layers size={14} />}
                 <strong>{brief.production_kinds.join(' + ')}</strong>
-                <span className="text-micro uppercase tracking-[0.1em] text-emerald-200/55">{brief.status.replace(/_/g, ' ')}</span>
+                <span className="text-micro uppercase tracking-[0.14em] text-emerald-200/55">{brief.status.replace(/_/g, ' ')}</span>
               </div>
               <p className="mt-1 break-all text-micro leading-relaxed text-white/38">{brief.brief_id}</p>
             </div>
