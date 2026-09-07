@@ -197,9 +197,17 @@ All six are now closed:
 6. **Archived n8n workflows** - two still hold enabled Telegram nodes but
    cannot execute; archived workflows reject updates via the API.
 
-**Deliberately still able to send, because they are for other people:** the two
-`maa` reminder jobs (group `Mother-Daily`) and Lauren's `loz` briefings. Those
-run on their own bot accounts. Silencing the OS never meant silencing these.
+**Deliberately still able to send, because it is for another person:** Lauren's
+`loz` briefings, on their own bot account. Silencing the OS never meant
+silencing those.
+
+**The two `maa` reminder jobs (group `Mother-Daily`) were DISABLED 2026-09-07
+at Krish's request.** They are not a pull-only casualty: they had been exempt,
+were repaired earlier the same day, and were then switched off as his call. The
+`maa` bot still exists and still receives inbound messages; only the scheduled
+morning check-in and evening medication reminder are off. Re-enable with
+`openclaw cron enable 67a84d67-a800-46a7-97dc-ef749f5bed9b` (morning) and
+`8eabc59c-ef6c-483e-b7cf-e08f8b82ff92` (evening).
 
 ### Delivery routing is per-account and must be explicit
 
@@ -213,6 +221,8 @@ chat id.
 **Rule: any cron whose payload sends a message MUST name `channel`, `accountId`
 and `target` explicitly, and must not claim delivery unless the tool confirmed
 it.** The `loz` jobs already did this correctly and are the pattern to copy.
+(The Maa jobs were fixed to match, then disabled 2026-09-07 at Krish's request;
+the rule stands for any future message-sending cron.)
 
 ### Four silent failures found underneath, all of the same family
 
