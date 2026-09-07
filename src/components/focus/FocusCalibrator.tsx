@@ -11,6 +11,10 @@ import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { rankByIntent } from '../../lib/pilotCapacity'
 import { civilYmd } from '../../lib/civilDate'
 import { Working } from '../shared/Working'
+import { Pending } from '../shared/Pending'
+import { useElapsed, useStageWalk } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
+import { requestOk, failureMessage } from '../../lib/apiFetch'
 
 // Picker for today's 3 focuses. Renders until today's row is locked
 // (calibrated). Manual first (2026-09-08): the three slots he writes himself
@@ -122,6 +126,8 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   // Suggestions are asked for, not served: closed until he opens it.
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [suggestAttempt, setSuggestAttempt] = useState(0)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   // Marcus suggestion keys Krish has thumbs-downed this session. Dim + lock
   // the bubble so he can't accidentally pick something he just rejected.
@@ -131,6 +137,14 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   const [composingDownFor, setComposingDownFor] = useState<string | null>(null)
   const [submittingDownFor, setSubmittingDownFor] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // The lock is a write plus the n8n calibrator (a model call), so it is the
+  // longest wait in the loop. It narrates: label, stage, elapsed, and past the
+  // usual time it says so, rather than a spinner that could be a hang.
+  const lockWork = useWork('focus.lock')
+  const lockMs = useElapsed(submitting)
+  const lockStage = useStageWalk(lockWork.stages, submitting, 8_000)
+  const suggestWork = useWork('focus.suggest')
+  const suggestMs = useElapsed(suggestLoading)
   const h = useHaptics()
   const { toast } = useToast()
   const pilot = usePilotStateContext()
@@ -139,24 +153,25 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
 
   const suggestionsFetched = useRef(false)
   useEffect(() => {
-    if (!suggestOpen || suggestionsFetched.current) return
+    if (!suggestOpen) return
+    if (suggestionsFetched.current && suggestAttempt === 0) return
     suggestionsFetched.current = true
     setSuggestLoading(true)
+    setSuggestError(null)
     void (async () => {
       try {
-        const r = await fetch('/api/daily-focus/suggestions')
-        if (r.ok) {
-          const j = await r.json()
-          if (j.ok) setSuggestions({
-            os_picks: j.os_picks || [],
-            marcus_top_three: j.marcus_top_three || [],
-            marcus_alternates: j.marcus_alternates || [],
-            marcus_reasoning: typeof j.marcus_reasoning === 'string' ? j.marcus_reasoning : null,
-          })
-        }
-      } catch { /* leave empty */ } finally { setSuggestLoading(false) }
+        const j = await requestOk<Record<string, any>>('/api/daily-focus/suggestions', { timeoutMs: 40_000 })
+        setSuggestions({
+          os_picks: j.os_picks || [],
+          marcus_top_three: j.marcus_top_three || [],
+          marcus_alternates: j.marcus_alternates || [],
+          marcus_reasoning: typeof j.marcus_reasoning === 'string' ? j.marcus_reasoning : null,
+        })
+      } catch (e) {
+        setSuggestError(failureMessage(e, 'The suggestions did not come back.'))
+      } finally { setSuggestLoading(false) }
     })()
-  }, [suggestOpen])
+  }, [suggestOpen, suggestAttempt])
 
   // A draft row (the shutdown's tomorrow, or a hand edit on Home) prefills
   // the slots once, so locking is a confirmation rather than a retype.
@@ -371,20 +386,18 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         return { text, source: 'krish_added' as PickedSource, goal_id: p.goalId || null, job: p.job || null }
       })
       const body: CalibrateBody = { date: ymd(new Date()), targets }
-      const r = await fetch('/api/daily-focus/calibrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'unknown')
+      // The route awaits the calibrator webhook (up to 90s server side), so
+      // the client gives it that long before calling it hung. The row is
+      // written first, so a timeout here still leaves the 3 on Home.
+      await requestOk('/api/daily-focus/calibrate', { method: 'POST', body, timeoutMs: 100_000 })
       h.success()
       toast('Locked in. Marcus is planning today around it.', 'success')
       onLocked?.()
     } catch (e) {
       h.error()
-      toast(`Lock failed: ${(e as Error).message}`, 'error')
+      toast(failureMessage(e, 'The lock did not go through.'), 'error', {
+        action: { label: 'Retry', onClick: () => { void submit() } },
+      })
     } finally {
       setSubmitting(false)
     }
@@ -483,9 +496,18 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       </div>
 
       {suggestOpen && suggestLoading && (
-        <p className="mt-2 text-label text-white/45"><Working size={12} className="inline mr-2" />Reading the week</p>
+        <div className="mt-2">
+          <Pending label={suggestWork.label} elapsedMs={suggestMs} expectedMs={suggestWork.expectedMs} />
+          {suggestWork.sub && <p className="mt-1 text-micro text-white/35">{suggestWork.sub}</p>}
+        </div>
       )}
-      {suggestOpen && !suggestLoading && !hasAnyMarcus && (
+      {suggestOpen && !suggestLoading && suggestError && (
+        <p className="mt-2 text-label text-rose-300 flex items-center gap-2 flex-wrap">
+          <span>{suggestError}</span>
+          <button type="button" onClick={() => setSuggestAttempt(a => a + 1)} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+        </p>
+      )}
+      {suggestOpen && !suggestLoading && !suggestError && !hasAnyMarcus && (
         <p className="mt-2 text-label text-white/45">Nothing to suggest yet. Set this week's objectives first.</p>
       )}
 
@@ -520,16 +542,20 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         </div>
       )}
 
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!canLock}
-          className="inline-flex items-center gap-1.5 text-label font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting ? <Working size={12} /> : <Check size={12} />}
-          {submitting ? 'Locking…' : `Lock today's ${targetCount}`}
-        </button>
+      <div className="mt-5 flex items-center justify-end gap-3 flex-wrap">
+        {submitting ? (
+          <Pending label={lockWork.label} stage={lockStage} elapsedMs={lockMs} expectedMs={lockWork.expectedMs} />
+        ) : (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!canLock}
+            className="inline-flex items-center gap-1.5 text-label font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Check size={12} />
+            {`Lock today's ${targetCount}`}
+          </button>
+        )}
       </div>
     </section>
   )

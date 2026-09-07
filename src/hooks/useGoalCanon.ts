@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { getZone } from '../lib/civilDate'
-
-const API = import.meta.env.VITE_API_URL ?? ''
+import { requestOk, failureMessage } from '../lib/apiFetch'
 
 // The shared reader for the goal canon: one fetch of GET /api/goals/ladder,
 // one realtime channel on `goals`, module-level cache (ADR-002 singleton
@@ -64,10 +63,9 @@ async function fetchCanon(): Promise<void> {
   if (inflight) return inflight
   inflight = (async () => {
     try {
-      // The week keys come back in the zone this device is in.
-      const r = await fetch(`${API}/api/goals/ladder?tz=${encodeURIComponent(getZone())}`, { cache: 'no-cache' })
-      const j = await r.json()
-      if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+      // The week keys come back in the zone this device is in. Bounded, so a
+      // hung read becomes a line with a Retry rather than a skeleton forever.
+      const j = await requestOk<Record<string, any>>(`/api/goals/ladder?tz=${encodeURIComponent(getZone())}`, { timeoutMs: 15_000 })
       const os = (j.by_horizon?.os ?? []) as CanonGoal[]
       const weeklyAll = (j.by_horizon?.weekly ?? []) as CanonGoal[]
       const currentWeek = typeof j.current_week === 'string' ? j.current_week : ''
@@ -91,7 +89,7 @@ async function fetchCanon(): Promise<void> {
         error: null,
       }
     } catch (e) {
-      cache = { ...cache, loading: false, error: e instanceof Error ? e.message : 'Could not load goals' }
+      cache = { ...cache, loading: false, error: failureMessage(e, 'Could not reach the goals.') }
     }
     loaded = true
     notify()

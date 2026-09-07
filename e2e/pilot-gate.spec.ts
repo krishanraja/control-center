@@ -250,6 +250,56 @@ test.describe('the evening shutdown on a phone', () => {
   })
 })
 
+test.describe('a slow link', () => {
+  test('a slow boot gets words, then a door to the dashboard', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    // Real clock here: the elapsed counter reads Date.now.
+    await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+    await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
+    await page.route('**/realtime/**', (r: Route) => r.abort())
+    await page.route(CHECKIN, async (r: Route) => {
+      if (r.request().method() !== 'GET') return r.fulfill({ json: { ok: true } })
+      // Never answers inside the test: the gate must not depend on it.
+      await new Promise(res => setTimeout(res, 30_000))
+      return r.fulfill({ json: { ok: true, morning: answeredMorning, last_evening: null, evening_done_today: true, yesterday: null, timezone: 'America/New_York', today: '2026-08-12' } })
+    })
+    await page.goto('/')
+    // Under two seconds: the splash alone. Past it: a sentence naming the work.
+    await expect(page.getByText('Reading the day')).toBeVisible({ timeout: 6_000 })
+    // Past six seconds: a way through. Taking it renders the dashboard.
+    const door = page.getByRole('button', { name: 'Open the dashboard without it' })
+    await expect(door).toBeVisible({ timeout: 10_000 })
+    await door.click()
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    await ctx.close()
+  })
+
+  test('offline is said once, and a write refuses with a sentence instead of hanging', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York', viewport: { width: 1280, height: 800 } })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(new Date('2026-08-12T17:30:00Z')) // 13:30 New York, no gate, no shutdown
+    await mockPilot(page, { morning: answeredMorning, eveningDone: true })
+    await page.goto('/#/home')
+    await expect(page.getByLabel('Today', { exact: true })).toBeVisible({ timeout: 15_000 })
+
+    await ctx.setOffline(true)
+    await expect(page.getByText('Offline. Nothing saves until the connection is back.')).toBeVisible()
+
+    // A hand-written Today slot: shows at once, then the save refuses politely
+    // and the slot reverts. Nothing hangs, nothing is lost silently.
+    await page.getByRole('button', { name: 'Set target 1' }).click()
+    await page.getByRole('textbox', { name: 'Target 1' }).fill('Send the memo to counsel')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText('You are offline. This will not save until the connection is back.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
+
+    await ctx.setOffline(false)
+    await expect(page.getByText('Back online.')).toBeVisible()
+    await ctx.close()
+  })
+})
+
 test.describe('the clock follows the device', () => {
   test('sends the device zone, and a stale stored one does not stick across loads', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'Australia/Sydney' })

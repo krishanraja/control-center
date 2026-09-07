@@ -24,6 +24,10 @@ import {
   type GateVerdictWire,
 } from '../../lib/goalsApi'
 import { Working } from '../shared/Working'
+import { Pending } from '../shared/Pending'
+import { useElapsed } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
+import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { OptionChips, ServesPicker, VentureChips } from '../goals/GoalPickers'
 import { JOB_OPTIONS, jobLabel } from '../../content/jobs'
 
@@ -223,6 +227,11 @@ function WeeklyStep() {
   const [job, setJob] = useState('')
   const [gate, setGate] = useState<GateVerdictWire | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  // The gate runs a model pass on every add, and a Carry is a write. Past a
+  // few seconds a disabled button with no sentence reads as a hang.
+  const busyMs = useElapsed(busy != null)
+  const gateWork = useWork('goals.gate')
+  const carryWork = useWork('goals.carry')
 
   useEffect(() => { if (!servesId && os.length > 0) setServesId(os[0].id) }, [os, servesId])
 
@@ -239,7 +248,7 @@ function WeeklyStep() {
       if (okMsg) toast(okMsg, 'success')
     } catch (e) {
       h.error()
-      toast((e as Error).message || 'That did not save.', 'error')
+      toast(failureMessage(e), 'error', { action: { label: 'Retry', onClick: () => { void run(key, fn, okMsg) } } })
     } finally {
       setBusy(null)
     }
@@ -280,7 +289,9 @@ function WeeklyStep() {
                     <span className={`block text-body leading-snug break-words ${done ? 'text-white/55 line-through' : 'text-white/85'}`}>{g.title}</span>
                     <span className={`mt-0.5 inline-block text-micro ${done ? 'text-emerald-300/80' : outcome === 'missed' ? 'text-amber-300/80' : 'text-white/40'}`}>{outcome}</span>
                   </span>
-                  {!done && (
+                  {!done && (busy === `carry-${g.id}` ? (
+                    <Pending label={carryWork.label} elapsedMs={busyMs} expectedMs={carryWork.expectedMs} />
+                  ) : (
                     <button
                       type="button"
                       disabled={busy != null || activeCount >= 3}
@@ -290,7 +301,7 @@ function WeeklyStep() {
                     >
                       <RotateCcw size={11} /> Carry
                     </button>
-                  )}
+                  ))}
                 </li>
               )
             })}
@@ -406,14 +417,20 @@ function WeeklyStep() {
               <ServesPicker os={os} value={servesId} onChange={setServesId} disabled={busy != null} />
               <OptionChips label="Which job of the OS does this serve?" options={JOB_OPTIONS} value={job} onChange={setJob} disabled={busy != null} />
               <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={busy != null} />
-              <button
-                type="button"
-                onClick={() => add()}
-                disabled={!text.trim() || !servesId || busy != null}
-                className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
-              >
-                <Plus size={11} /> Add
-              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => add()}
+                  disabled={!text.trim() || !servesId || busy != null}
+                  aria-busy={busy === 'add'}
+                  className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
+                >
+                  <Plus size={11} /> Add
+                </button>
+                {busy === 'add' && (
+                  <Pending label={gateWork.label} elapsedMs={busyMs} expectedMs={gateWork.expectedMs} />
+                )}
+              </div>
             </div>
 
             {/* The gate held it: the form stays open with the verdict attached. */}
@@ -566,29 +583,37 @@ interface HistoryWeek {
 function GoalHistory({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [weeks, setWeeks] = useState<HistoryWeek[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const loading = open && !weeks && !error
+  const readMs = useElapsed(loading)
+  const work = useWork('goals.history')
 
   useEffect(() => {
     if (!open) return
     let alive = true
+    setError(null)
     void (async () => {
       try {
-        const r = await fetch(`/api/goals/history?weeks=8&tz=${encodeURIComponent(getZone())}`)
-        const j = await r.json()
-        if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-        if (alive) setWeeks(j.weeks as HistoryWeek[])
+        const j = await requestOk<{ ok?: boolean; error?: string; weeks: HistoryWeek[] }>(`/api/goals/history?weeks=8&tz=${encodeURIComponent(getZone())}`, { timeoutMs: 15_000 })
+        if (alive) setWeeks(j.weeks)
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : 'Could not load')
+        if (alive) setError(failureMessage(e, 'Could not read the archive.'))
       }
     })()
     return () => { alive = false }
-  }, [open])
+  }, [open, attempt])
 
   return (
     <SlideOver open={open} onClose={onClose} ariaLabel="Goal history" label="The last eight weeks">
       <div className="p-5 space-y-4">
         <h2 className="text-ui font-semibold text-white">The last eight weeks</h2>
-        {error && <p className="text-label text-rose-300">{error}</p>}
-        {!weeks && !error && <p className="text-label text-white/45"><Working size={12} className="inline mr-2" />Reading the archive</p>}
+        {error && (
+          <p className="text-label text-rose-300 flex items-center gap-2 flex-wrap">
+            <span>{error}</span>
+            <button type="button" onClick={() => setAttempt(a => a + 1)} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+          </p>
+        )}
+        {loading && <Pending variant="block" label={work.label} elapsedMs={readMs} expectedMs={work.expectedMs} />}
         {weeks && weeks.every(w => w.set === 0 && w.days_locked === 0) && (
           <p className="text-label text-white/45">Nothing recorded yet. The first closed week lands here on Saturday.</p>
         )}

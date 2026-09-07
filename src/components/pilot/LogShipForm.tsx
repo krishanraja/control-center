@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { SHIP_CHANNELS, type ShipChannel } from '../../types/pilot'
 import { logShip } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
+import { Working } from '../shared/Working'
 import { Tap, VoiceField } from './controls'
 
 // The two-field ship log. One implementation, used by both the home widget and
@@ -80,7 +81,8 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
 
       <div className="flex items-center gap-2">
         <Tap onTap={submit} disabled={!canSubmit} feel="success" className="flex items-center justify-center">
-          {saving ? 'Saving' : submitLabel}
+          {saving && <Working size={14} />}
+          {submitLabel}
         </Tap>
         {onCancel && (
           <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); onCancel() }}>

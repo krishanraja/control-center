@@ -415,6 +415,8 @@ entry per operation. Do not type a loading string into a component.
 | Elapsed / stage / stage-walk | `src/hooks/useAsyncAction.ts` |
 | Every loading string | `src/lib/loadingVoice.ts` |
 | Streaming client (SSE, JSON fallback) | `src/lib/streamText.ts` |
+| Timed, offline-aware JSON requests (every write in the daily loop) | `src/lib/apiFetch.ts` |
+| The offline line and the "back online" toast | `src/components/shared/OfflineLine.tsx`, `src/hooks/useOnline.ts` |
 | Streaming server helper | `api/_stream.ts` |
 | Sweep, rail, orbit, dials, reduced motion | `src/index.css` |
 
@@ -425,6 +427,27 @@ the `prefers-reduced-motion` block.
 
 **Never reach for `animate-spin`.** It runs on a clock no dial can reach and it
 is suppressed under reduced motion. Use `Working`.
+
+### Slow links and no link
+
+Three rules on top of the ladder, because a slow phone is the common case,
+not the edge case:
+
+1. **Every write has an end.** Requests go through `requestJson` /
+   `requestOk` in `src/lib/apiFetch.ts` with a timeout sized to the work
+   (a plain save 12s, the goal gate 25s, the calibrator lock 100s). A hung
+   request becomes a sentence and a Retry, never a disabled button forever.
+2. **Offline is said, once, and refused up front.** `OfflineLine` is one line
+   at the top while the device is offline; a write attempted offline fails
+   at once with "You are offline" rather than after the OS gives up. The
+   return of the connection is one info toast.
+3. **The boot narrates past two seconds and opens a door past six.**
+   `PilotGate` shows the splash alone under two seconds, then `Pending`
+   with the elapsed clock, then "Open the dashboard without it". The gate
+   fails open on timeout (12s) the same way it does on error.
+
+Writes in the daily loop (Today's slots, the done tick) are optimistic: the
+row changes on tap and reverts with a Retry toast on failure.
 
 ### Boot
 

@@ -257,14 +257,21 @@ export function GoalLadder({ variant = 'desktop' }: {
         disabled={saving || !title.trim()}
         className="mt-3 w-full min-h-[38px] rounded-lg btn-contrast text-label font-semibold disabled:opacity-40"
       >
-        {saving ? 'Saving…' : 'Add'}
+        {saving ? <Working size={12} /> : 'Add'}
       </button>
     </div>
   )
 
   return (
     <div className={`flex flex-col min-w-0 ${compact ? 'gap-3' : 'gap-5'}`}>
-      {(error || loadError) && <p className="text-label text-rose-300">{error || loadError}</p>}
+      {(error || loadError) && (
+        <p className="text-label text-rose-300 flex items-center gap-2 flex-wrap">
+          <span>{error || loadError}</span>
+          {loadError && !canon && (
+            <button type="button" onClick={() => { h.tap(); refresh() }} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+          )}
+        </p>
+      )}
 
       {/* ── OS: what the whole system is for ─────────────────────────────── */}
       <section aria-label="OS goals" className="min-w-0">

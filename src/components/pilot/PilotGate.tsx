@@ -5,8 +5,19 @@ import { intentByKey, type Intent } from '../../lib/pilotIntent'
 import { PilotStateProvider } from '../../contexts/PilotStateContext'
 import { civilHour } from '../../lib/civilDate'
 import { isAnxiousReading } from '../../content/focusTheory'
+import { useElapsed } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
+import { Pending } from '../shared/Pending'
 import { MorningCheckin } from './MorningCheckin'
 import { RedMode } from './RedMode'
+
+/**
+ * How long the splash alone is enough. Past this the wait gets words and,
+ * a little later, a door: on a slow link the operator should never be
+ * looking at a breathing mark wondering whether the app is broken.
+ */
+const NARRATE_AFTER_MS = 2_000
+const OFFER_EXIT_AFTER_MS = 6_000
 
 // Wraps the entire app. During the morning window nothing renders behind it
 // until today's check-in exists, and on a red day nothing renders behind it
@@ -59,6 +70,11 @@ export function PilotGate({ children, onIntent, onAnxious }: Props) {
   const [unlocked, setUnlocked] = useState(false)
   const [justChose, setJustChose] = useState<PilotMode | null>(null)
   const [routed, setRouted] = useState(false)
+  // The operator chose the dashboard over a slow boot. Fails open, the same
+  // way an error does; the check-in comes back tomorrow.
+  const [bypassed, setBypassed] = useState(false)
+  const bootMs = useElapsed(loading)
+  const boot = useWork('pilot.boot')
 
   // Read once, at mount, and hold it for the session. Re-reading live would
   // yank a half-answered check-in off the screen the moment the clock struck
@@ -105,20 +121,43 @@ export function PilotGate({ children, onIntent, onAnxious }: Props) {
   //
   // Set from an effect, so it lands AFTER the first paint of whatever renders
   // below: the splash is only removed once there is something behind it.
+  //
+  // On a slow link the splash is not enough. Past NARRATE_AFTER_MS the wait
+  // gets a sentence and, past OFFER_EXIT_AFTER_MS, a door to the dashboard,
+  // and the attribute lands so the splash (which has its own 6s safety net)
+  // gives way to that rather than to nothing.
+  const narrating = loading && bootMs >= NARRATE_AFTER_MS
   useEffect(() => {
-    if (loading) return
+    if (loading && !narrating) return
     document.documentElement.setAttribute('data-app-ready', '')
-  }, [loading])
+  }, [loading, narrating])
 
-  // Nothing paints behind a held splash, so this stays `null` rather than
-  // becoming a second loading screen. The two are one mechanism: the splash IS
-  // the boot state, and it is already the right one (a breathing mark with a
-  // particle orbiting it is the house language for "getting ready for you").
-  // Changing this to render anything means changing index.html too.
-  if (loading) return null
+  // Nothing paints behind a held splash, so under two seconds this stays
+  // `null` rather than becoming a second loading screen. The two are one
+  // mechanism: the splash IS the boot state, and it is already the right one
+  // (a breathing mark with a particle orbiting it is the house language for
+  // "getting ready for you"). Changing this to render anything means changing
+  // index.html too.
+  if (loading && !bypassed) {
+    if (!narrating) return null
+    return (
+      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center px-6 text-ink">
+        <Pending variant="block" label={boot.label} elapsedMs={bootMs} expectedMs={boot.expectedMs} />
+        {bootMs >= OFFER_EXIT_AFTER_MS && (
+          <button
+            type="button"
+            onClick={() => setBypassed(true)}
+            className="mt-2 min-h-[44px] px-4 text-body text-ink-faint hover:text-ink-muted underline underline-offset-4"
+          >
+            Open the dashboard without it
+          </button>
+        )}
+      </div>
+    )
+  }
   // Fails open: an unreachable pilot service renders the dashboard untouched,
   // with no provider, which resolves every consumer to `steady`.
-  if (error || !state) return <>{children}</>
+  if (error || !state || bypassed) return <>{children}</>
 
   // Today's civil date is the only thing that counts as answered. Skipping
   // writes a row too, so a skip closes today and nothing else: tomorrow the

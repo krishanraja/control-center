@@ -7,8 +7,8 @@ import { useToast } from '../shared/Toast'
 import { Eyebrow } from '../shared/Eyebrow'
 import { FocusedEditor } from '../shared/FocusedEditor'
 import { civilYmd } from '../../lib/civilDate'
+import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { jobLabel } from '../../content/jobs'
-import { Working } from '../shared/Working'
 
 // TODAY, the third layer of the canon. Exactly 3 slots from daily_focus.
 //
@@ -22,6 +22,13 @@ import { Working } from '../shared/Working'
 // Done toggles when a slot has text; three quiet empty slots when not (the one
 // CTA below the layer is the action; an empty layer never begs). Each pick
 // shows the weekly goal it serves when the link exists.
+//
+// Writes are optimistic (the loading ladder's rule for writes): the slot
+// shows the new text or the tick the moment it is tapped, the request goes
+// out behind it, and on failure the row reverts with a sentence saying why.
+// No spinner in the circle, no disabled row, nothing to wait for on a slow
+// link. The overlay below holds what the operator meant until the server
+// row catches up through realtime.
 
 type SlotN = 1 | 2 | 3
 
@@ -30,69 +37,81 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
   const { canon } = useGoalCanon()
   const h = useHaptics()
   const { toast } = useToast()
-  const [busyN, setBusyN] = useState<number | null>(null)
   const [editingN, setEditingN] = useState<SlotN | null>(null)
   const [draft, setDraft] = useState('')
   const [sheetN, setSheetN] = useState<SlotN | null>(null)
+  // What the operator just did, ahead of the server. Cleared when the row
+  // catches up (realtime refresh) or the write fails.
+  const [optimistic, setOptimistic] = useState<Partial<Record<SlotN, { text?: string | null; done?: boolean }>>>({})
 
   const weeklyTitle = useMemo(
     () => new Map((canon?.weekly ?? []).map(g => [g.id, g.title])),
     [canon],
   )
 
-  const slots = ([1, 2, 3] as SlotN[]).map(n => ({
-    n,
-    text: (today?.[`target_${n}_text`] as string | null) ?? null,
-    done: Boolean(today?.[`target_${n}_completed_at`]),
-    goalId: (today?.[`target_${n}_goal_id`] as string | null | undefined) ?? null,
-    job: (today?.[`target_${n}_job`] as string | null | undefined) ?? null,
-  }))
+  const slots = ([1, 2, 3] as SlotN[]).map(n => {
+    const o = optimistic[n]
+    return {
+      n,
+      text: o && 'text' in o ? (o.text ?? null) : ((today?.[`target_${n}_text`] as string | null) ?? null),
+      done: o && 'done' in o ? Boolean(o.done) : Boolean(today?.[`target_${n}_completed_at`]),
+      goalId: (today?.[`target_${n}_goal_id`] as string | null | undefined) ?? null,
+      job: (today?.[`target_${n}_job`] as string | null | undefined) ?? null,
+    }
+  })
   const anySet = slots.some(s => s.text && s.text.trim())
   const doneCount = slots.filter(s => s.done).length
 
+  const settle = (n: SlotN) => setOptimistic(prev => { const next = { ...prev }; delete next[n]; return next })
+
   const toggleComplete = async (n: SlotN) => {
-    if (!today || busyN !== null) return
-    setBusyN(n)
-    h.tap()
+    if (!today) return
+    const wasDone = slots[n - 1].done
+    if (wasDone) return // the RPC only completes; undoing a tick is not a write it offers
+    h.success()
+    setOptimistic(prev => ({ ...prev, [n]: { ...prev[n], done: true } }))
     try {
-      const r = await fetch('/api/daily-focus/complete', {
+      await requestOk('/api/daily-focus/complete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today.focus_date, target_num: n }),
+        body: { date: today.focus_date, target_num: n },
+        timeoutMs: 12_000,
       })
-      const j = await r.json().catch(() => ({}))
-      if (!j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      h.success()
       refresh()
+      settle(n)
     } catch (e) {
       h.error()
-      toast(`Could not mark complete: ${(e as Error).message}`, 'error')
-    } finally {
-      setBusyN(null)
+      settle(n)
+      toast(failureMessage(e, 'Could not mark it done.'), 'error', {
+        action: { label: 'Retry', onClick: () => { void toggleComplete(n) } },
+      })
     }
   }
 
   // The one manual write for a slot. Today's civil date, so a row the shutdown
-  // wrote for today is the one that gets edited.
+  // wrote for today is the one that gets edited. Shows at once, saves behind.
   const saveSlot = async (n: SlotN, text: string): Promise<boolean> => {
-    const r = await fetch('/api/daily-focus/slot', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: today?.focus_date ?? civilYmd(new Date()), slot: n, text }),
-    })
-    const j = await r.json().catch(() => ({}))
-    if (!r.ok || !j.ok) {
+    h.success()
+    setOptimistic(prev => ({ ...prev, [n]: { ...prev[n], text: text || null } }))
+    try {
+      await requestOk('/api/daily-focus/slot', {
+        method: 'POST',
+        body: { date: today?.focus_date ?? civilYmd(new Date()), slot: n, text },
+        timeoutMs: 12_000,
+      })
+      refresh()
+      settle(n)
+      return true
+    } catch (e) {
       h.error()
-      toast(`Could not save: ${j.error || `HTTP ${r.status}`}`, 'error')
+      settle(n)
+      toast(failureMessage(e), 'error', {
+        action: { label: 'Retry', onClick: () => { void saveSlot(n, text) } },
+      })
       return false
     }
-    h.success()
-    refresh()
-    return true
   }
 
   const startEdit = (n: SlotN) => {
-    if (busyN !== null) return
     h.select()
     if (compact) { setSheetN(n); return }
     setEditingN(n)
@@ -106,8 +125,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
     const before = (slots[n - 1].text ?? '').trim()
     setEditingN(null)
     if (text === before) return
-    setBusyN(n)
-    try { await saveSlot(n, text) } finally { setBusyN(null) }
+    await saveSlot(n, text)
   }
 
   return (
@@ -128,8 +146,8 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
               <button
                 type="button"
                 onClick={() => has && toggleComplete(t.n)}
-                disabled={busyN === t.n || !has}
-                aria-label={has ? `Mark target ${t.n} ${t.done ? 'not done' : 'done'}` : `Target ${t.n} not set`}
+                disabled={!has}
+                aria-label={has ? (t.done ? `Target ${t.n} done` : `Mark target ${t.n} done`) : `Target ${t.n} not set`}
                 className={`mt-[1px] ${compact ? 'w-[22px] h-[22px]' : 'w-[26px] h-[26px]'} rounded-full border flex-shrink-0 inline-flex items-center justify-center transition-colors ${
                   t.done
                     ? 'bg-emerald-500/40 border-emerald-400/60 text-emerald-50'
@@ -138,11 +156,9 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
                       : 'border-white/[0.12]'
                 } disabled:opacity-100`}
               >
-                {busyN === t.n
-                  ? <Working size={12} />
-                  : t.done
-                    ? <Check size={13} />
-                    : <span className={`text-micro font-bold tabular-nums font-mono ${has ? 'text-white/35' : 'text-white/25'}`}>{t.n}</span>}
+                {t.done
+                  ? <Check size={13} />
+                  : <span className={`text-micro font-bold tabular-nums font-mono ${has ? 'text-white/35' : 'text-white/25'}`}>{t.n}</span>}
               </button>
 
               {editing ? (
