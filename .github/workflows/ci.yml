@@ -42,6 +42,7 @@ jobs:
       # invariants executable on every change rather than relying on review.
       - run: npx tsx scripts/check-video-studio-control-plane.mts
       - run: npx tsx scripts/check-video-studio-command-security.mts
+      - run: npm run check:studio-session-gateway
       - name: Exercise Video Studio projection CAS and ancestry
         env:
           VIDEO_STUDIO_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
@@ -52,6 +53,8 @@ jobs:
           docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < supabase/migrations/20260905100000_video_studio_heartbeat_lease.sql
           docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < tests/fixtures/control-plane/projection-state-pre-migration.sql
           docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < supabase/migrations/20260905110000_video_studio_expected_platform_state.sql
+          docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < supabase/migrations/20260907091923_studio_session_learning_spine.sql
+          docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < tests/fixtures/control-plane/studio-session-learning-regression.sql
           docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < tests/fixtures/control-plane/projection-state-regression.sql
           docker exec -i "$VIDEO_STUDIO_POSTGRES_CONTAINER" psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 < tests/fixtures/control-plane/projection-state-concurrency-setup.sql
 

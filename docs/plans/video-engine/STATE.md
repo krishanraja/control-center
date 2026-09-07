@@ -110,11 +110,11 @@ An unrelated legacy approval route contains an exposed credential-like value and
 
 ## Current handoff
 
-- Outcome: the secure mobile reviewer, command plane, signed recovery bridge, private preview contract, and independent runner are implemented on review branches.
-- Phase: independent audit, cross-repository verification, and Control Center-wide visual alignment.
-- Current truth: the integration exists in code only. No production migration, private bucket, environment, deployment, background-task installation, Drive watcher, retention schedule, or proactive heartbeat has been activated.
+- Outcome: the secure mobile reviewer, command plane, signed recovery bridge, private preview contract, independent runner, and first client-neutral Studio session gateway are implemented on review branches.
+- Phase: independent audit, cross-repository verification, Control Center-wide visual alignment, and safe portability foundations.
+- Current truth: the integration exists in code only. The portable gateway currently supports a fail-closed bearer for local Codex and Claude Code. Consumer Claude.ai and ChatGPT OAuth, the Control Center Learning Inbox, the weekly proposal compiler, production migrations, private bucket, environment, deployment, background-task installation, Drive watcher, retention schedule, and proactive heartbeat have not been activated.
 - Locked: the approval record, interaction contract, blocking gates, runtime independence, and non-goals above.
 - Authority: GitHub `main` remains canonical; implementation is reviewable branch work only.
-- Risks: live database and Storage behaviour remain unverified; installation and credential configuration remain release-gated; the revised responsive wordmark needs visual re-review.
-- Verification: contract, auth, idempotency, recovery, visual, short-viewport, accessibility, and exclusion tests are required before a release proposal.
-- Next action: finish independent audits, verify the exact first slice against clean commits, and present a no-apply release checklist to Krish.
+- Risks: live database and Storage behaviour remain unverified; OAuth and bearer rotation need dedicated threat review; installation and credential configuration remain release-gated; the revised responsive wordmark needs visual re-review.
+- Verification: contract, auth, idempotency, privacy, migration, recovery, visual, short-viewport, accessibility, and exclusion tests are required before a release proposal.
+- Next action: verify and review the additive gateway slice, then separately mock the Learning Inbox and review the consumer OAuth release boundary before implementation.

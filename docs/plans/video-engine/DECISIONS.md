@@ -57,3 +57,17 @@ Approval evidence is the exact reaction `i like` against design commit `988dba0d
 Status: locked implementation constraint
 
 Deterministic recipes and direct manipulation operate only on engine-owned targets. Free-form instructions are compiled into schema-constrained operations before media work begins. If an instruction changes spoken meaning, claims, evidence, story structure, or another protected invariant, the runner returns `requires_editorial_route` instead of pretending to complete it. An unavailable runner or compiler produces a durable waiting state, never a fabricated After preview.
+
+## D-008: Portable session spine
+
+Status: approved on 2026-09-07
+
+Control Center, Codex, Claude, and ChatGPT use one client-neutral Studio session and feedback contract. Tool-backed actions are captured continuously with safe provenance. Whole third-party chat transcripts are never copied into the engine. A client without an authenticated tracked session is read-only and must say that learning capture is unavailable.
+
+The initial gateway bearer is limited to local Codex and Claude Code processes. Claude.ai and ChatGPT remain read-only until the dedicated OAuth connector is reviewed and released.
+
+## D-009: Governed compounding learning
+
+Status: approved on 2026-09-07
+
+Structured actions, exact relevant feedback excerpts, and exact artifact differences feed one safe append-only evidence ledger. A weekly compiler may surface proposals with scope, supporting evidence, counterexamples, and regression cases. It cannot silently activate preferences, change configuration, or merge code. Krish owns every terminal proposal decision.

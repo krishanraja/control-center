@@ -10,7 +10,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
     "preview": "vite preview",
-    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json"
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
+    "check:studio-session-gateway": "tsx scripts/check-studio-session-gateway.mts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.8",
