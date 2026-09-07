@@ -4,6 +4,14 @@ import type { ContentDecisionRow } from '../../lib/contentV2'
 import { DecisionCard } from './DecisionCard'
 import { Pending } from '../shared/Pending'
 import { useToast } from '../shared/Toast'
+import { contentEngineAttention } from '../../lib/contentEngineSchedule'
+import {
+  VIDEO_GATE_LABEL,
+  VIDEO_SERIES_LABEL,
+  rememberVideoStudioReturnFocus,
+  videoStudioListItemIsWellFormed,
+  type VideoStudioReviewListItem,
+} from '../../lib/videoStudio'
 
 // What is actually waiting on you, above the rooms rather than inside one.
 //
@@ -17,10 +25,17 @@ import { useToast } from '../shared/Toast'
 // honest line rather than an empty card, because "nothing is waiting" is real
 // information and worth saying.
 
-export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> }) {
-  const { brief, decisions, loading } = v2
+export function ObligationStrip({ v2, videoReviews = [] }: {
+  v2: ReturnType<typeof useContentV2>
+  /** Video Engine reviews waiting on a decision. Empty when the engine is off. */
+  videoReviews?: VideoStudioReviewListItem[]
+}) {
+  const { brief, decisions, loading, runs } = v2
   const [busy, setBusy] = useState<string | null>(null)
   const { toast } = useToast()
+  // A cron that stopped, or failed last time, is an obligation too: the fix
+  // is on Krish's side (a key, a mount, a machine), and nothing else says so.
+  const engine = contentEngineAttention(runs)
 
   // Say so when a ruling fails. useContentV2's fetch wrapper throws on any
   // non-OK response and this was a bare try/finally, so a 409 ("already
@@ -48,7 +63,7 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
   }
 
   const hasBrief = Boolean(brief)
-  if (decisions.length === 0 && !hasBrief) {
+  if (decisions.length === 0 && !hasBrief && videoReviews.length === 0 && engine.attention.length === 0) {
     return (
       <p className="text-label text-white/40 px-1">
         Nothing is waiting on you right now.
@@ -77,6 +92,45 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
             {brief!.title || 'This week, assembled'}
           </p>
         </button>
+      )}
+
+      {engine.attention.length > 0 && (
+        <div className="flex flex-col gap-1.5" data-testid="engine-attention">
+          {engine.attention.map(a => (
+            <p key={a.job} className={`rounded-xl border px-4 py-2.5 text-label ${a.kind === 'failed' ? 'border-rose-400/25 bg-rose-500/[0.05] text-rose-100/85' : 'border-amber-400/25 bg-amber-400/[0.05] text-amber-100/85'}`}>
+              {a.line}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* A video review is a decision like any other, so it sits in the same
+          strip on the desk. It used to be reachable only from the phone deck. */}
+      {videoReviews.length > 0 && (
+        <div className="flex flex-col gap-2" data-testid="video-review-rows">
+          {videoReviews.map(review => {
+            const ok = videoStudioListItemIsWellFormed(review)
+            return (
+              <button
+                key={review.id}
+                type="button"
+                onClick={() => {
+                  rememberVideoStudioReturnFocus(document.activeElement)
+                  window.location.hash = `#/content?video=${review.id}`
+                }}
+                className="text-left rounded-xl border border-violet-400/25 bg-violet-400/[0.05] px-4 py-3 hover:bg-violet-400/[0.08] transition-colors"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-micro font-semibold">
+                  <span className="rounded-full bg-violet-400/15 text-violet-200 px-2.5 py-1">
+                    {ok ? `Video · ${VIDEO_GATE_LABEL[review.gate]}` : 'Video review needs repair'}
+                  </span>
+                  {ok ? <span className="rounded-full bg-white/[0.06] text-white/55 px-2.5 py-1">{VIDEO_SERIES_LABEL[review.series]}</span> : null}
+                </div>
+                <p className="text-body text-white/80 mt-1.5">{ok ? review.safe_title : 'Open it to see what must be repaired before any decision.'}</p>
+              </button>
+            )
+          })}
+        </div>
       )}
 
       {decisions.length > 0 && (

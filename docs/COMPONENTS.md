@@ -93,7 +93,7 @@ Destinations either share one root across device classes (passed `narrow` /
 | Destination | Root(s) |
 |---|---|
 | Home | `DesktopHome` / `MobileHome` |
-| Content | `content-v2/ContentV2Tab` (both classes; v1 `DesktopContent` / `MobileContent` behind the flag) |
+| Content | `content-v2/ContentV2Tab` (both classes; the only Content surface since 2026-09-07) |
 | People | `people/PeopleTab` → lanes Pipeline (`DesktopLeads` / `MobileLeads`), **Network** (`network/NetworkTab`, both classes — the default lane), Visibility (`DesktopGuests` / `MobileGuests`) |
 | Growth | `growth/GrowthTab` (both classes, five sections) |
 | OS | `os/OsTab` → Queue / Org / Intel / Flows / Systems subtabs (`DesktopOrg`, `intel/BusinessIntelTab` (one tree, both shells), `DesktopFlows`, `SystemsPanel`, ... as subtab bodies) |
@@ -107,20 +107,18 @@ Tab roots should be *layout-only* — pull data from hooks, render presentationa
 do not own business logic. Hand mutations down via props or read them from
 a context (e.g. `AgentsContext` for agent lookups).
 
-### Content tab — triage deck + composer
+### Content tab: one surface, rooms and a deck
 
-> **Live path: Content Engine v2.** With `VITE_CONTENT_V2_ENABLED` (ON in
-> prod) the tab renders `content-v2/ContentV2Tab` instead: rooms **Built /
-> Paid / Library**, and on mobile a **Queue** view first — the finite
-> decision deck (`MobileDecisionDeck`) — with the rooms as sibling segments
-> (test ids `content-room-<id>`). The v1 surface below still exists behind
-> the flag; see [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md)
-> and `MINDMAKE_OS_ARCHITECTURE.md` §5.8 for v2.
+`content-v2/ContentV2Tab` is the only Content surface (2026-09-07). Rooms
+**Built / Paid / Library**; on mobile a **Queue** view first, the finite
+decision deck (`MobileDecisionDeck`), with the rooms as sibling segments
+(test ids `content-room-<id>`). See `CONTENT-ENGINE-V2-SPEC.md` §5 and
+`CONTENT-ENGINE-PARITY-LEDGER.md` for where every v1 feature went.
 
-The v1 Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
-
-- **Triage mode (> 30) —** `components/content/TriageDeck.tsx` + `TriageCard.tsx`: a one-card-at-a-time swipe deck over the whole active backlog. **Left = Drop** (undoable), **right = Advance one stage** (`seeded→researching→drafting→review`; `review`/`approved` open the Composer — human gates, never auto-crossed), **tap/↑ = open Composer**. Pointer swipe (`useCardDeck`, deferred capture so vertical scroll isn't hijacked) + on-screen buttons + arrow keys, identical on phone and desktop; only ~3 cards mount at once (the fix for the ~218-card crash). Drop is undoable (toast action + `U` key); commits are optimistic via a session committed-id set, keyed by `idea.id`.
-- **Action mode (≤ 30) —** desktop lanes (`ContentIdeaCardActionable`, **bounded** per state by `LANE_CAP`, overflow → triage); `MobileContent` shows a **Ready for you** tier + a **Drafts** tier + an **upstream count** entry; the all-clear empty state is gated on `activeCount === 0` (no more false "You're clear").
+- **Lane (`LaneRoom`)**: `NextBestActionHero` (the one action), `EditorialOpportunityList`, `InProgress` (the state board, capped per state, with the fold-drafts flow over `SynthesisModal`), an "Also here" fold (`SurfacedCards`, `ShiftsRoom`) and the `SupplyDrawer` (`ContentSeedRail`, `FeedRoom`, unsorted).
+- **Library (`LibraryRoom`)**: `LearningProposals`, `ContentCalendar`, `BackburnerSection`, settled shifts, evergreens.
+- **Queue (`MobileDecisionDeck`)**: brief, video reviews, rulings, then the upstream idea pile driven by `useContentTriage` (Write this / Open / Not for me with the `content_ideas` reason bar).
+- **Obligations (`ObligationStrip`, desktop)**: brief, decisions, video reviews, and engine attention lines from `content_engine_runs` via `contentEngineAttention`.
 
 The detail surface is a **full-screen takeover**, not a master-detail panel: `ContentComposer` (`components/content/ContentComposer.tsx`) mounts as a fixed overlay from `App.tsx` whenever `tab === 'content'` and `route.params.idea` is set (cards/deck open it by setting `#/content?idea=<id>`; Esc clears the param; the deck freezes its keyboard while the Composer is open). It owns one piece of content: a draft canvas plus a single-panel rail (Cleo chat · Refine · Materials · Research · Standards), one **Save Draft** CTA, and draft autosave via the API (never the anon client — RLS blocks anon writes to `content_ideas`). The retired `ContentEnginePanel` / `ResearchAndTransform` inline stack is gone. On `narrow`, the composer renders a **review-first** body (read mode + one-tap magic adjustments + sticky Save Draft). See `MINDMAKE_OS_ARCHITECTURE.md` §5.7.
 
@@ -547,7 +545,7 @@ Every **modal** now goes through this. The `fixed inset-0`s that remain are
 deliberate non-modals (DesktopToday's and CreativeBoard's click-away scrims)
 or full-screen takeovers carrying their own dialog role (the Focus ritual,
 the composer shells), plus a few legacy dialogs that predate the primitive
-(DesktopContent's schedule and sweep, `IdeaCaptureModal`) — migrate those
+(the Library calendar's schedule picker, `IdeaCaptureModal`); migrate those
 when you touch them; never copy them. `CaptureSpeedDial`, the old two-item
 + menu, is gone: `CreateSheet` replaced it (2026-08-21).
 

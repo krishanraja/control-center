@@ -16,7 +16,6 @@ import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
-import { contentV2Enabled } from './lib/contentV2'
 import { videoEngineEnabled } from './lib/videoStudio'
 import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
@@ -36,15 +35,12 @@ import { parseEditorialSeries } from './lib/editorialOpportunities'
  */
 const DesktopHome = lazy(() => import('./components/desktop/DesktopHome').then(m => ({ default: m.DesktopHome })))
 const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
-const DesktopContent = lazy(() => import('./components/desktop/DesktopContent').then(m => ({ default: m.DesktopContent })))
 const MobileHome = lazy(() => import('./components/mobile/MobileHome').then(m => ({ default: m.MobileHome })))
 const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
-const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
 const VideoEngineReviewer = lazy(() => import('./components/video-studio/VideoEngineReviewer').then(m => ({ default: m.VideoEngineReviewer })))
-// Content Engine v2 (docs/CONTENT-ENGINE-V2-SPEC.md): the four-room Content tab
-// + the weekly-brief editor. Both flag-gated; the legacy triage surfaces render
-// untouched when VITE_CONTENT_V2_ENABLED is off.
+// The one Content tab (docs/CONTENT-ENGINE-V2-SPEC.md): rooms on the desk,
+// a decision deck on the phone. There is no second surface behind a flag.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
 // Growth: ONE tab, five sections in the order of the weekly loop. Map (the ICP
 // touchpoint map, growth_touchpoints), Work (the Higgsfield creative board,
@@ -204,7 +200,7 @@ export default function App() {
   // (mirrors the render conditions below). While one is open we suppress the
   // BottomNav so it can't overlap the overlay's own bars on mobile.
   const fullScreenOverlayOpen = tab === 'content'
-    && Boolean(videoReviewOpen || route.params.idea || (contentV2Enabled() && route.params.brief))
+    && Boolean(videoReviewOpen || route.params.idea || route.params.brief)
 
   // Which Growth section a deep link opens on. Undefined means "leave it where
   // the user left it", so clicking a lane chip (which writes ?lane=) never
@@ -248,12 +244,10 @@ export default function App() {
                   {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                   {tab === 'growth'    && <ErrorBoundary label="Growth"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
-                  {tab === 'content'   && (contentV2Enabled()
-                    // Reserve BottomNav clearance (like every MobileShell tab) so
-                    // the deck's thumb-zone actions and the room scroll tails are
-                    // never hidden behind the fixed nav bar.
-                    ? <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
-                    : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
+                  {/* Reserve BottomNav clearance (like every MobileShell tab) so
+                      the deck's thumb-zone actions and the room scroll tails are
+                      never hidden behind the fixed nav bar. */}
+                  {tab === 'content'   && <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
                   {/* Focus is designed to fit one screen with the tools collapsed;
@@ -266,9 +260,7 @@ export default function App() {
               </div>
             ) : tab === 'content' ? (
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div></DeferredFallback>}>
-                {contentV2Enabled()
-                  ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
-                  : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
+                <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
               </Suspense>
             ) : tab === 'home' ? (
               // Home owns its own height: the canon must fit the viewport with
@@ -332,7 +324,7 @@ export default function App() {
               full-screen surface, so without the wrapper it renders at native
               size, noticeably smaller than every tab. Same zoom+--z contract
               as mobile-zoom-root; the composer's fixed containers size off --z. */}
-          {tab === 'content' && !route.params.video && (route.params.idea || (contentV2Enabled() && route.params.brief)) && (
+          {tab === 'content' && !route.params.video && (route.params.idea || route.params.brief) && (
             <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
               <ErrorBoundary label="Composer">
                 {/* A deep-linked full-screen takeover fetching its own chunk
@@ -341,7 +333,7 @@ export default function App() {
                 <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
                   <ContentComposer
                     ideaId={route.params.idea || undefined}
-                    week={contentV2Enabled() ? (route.params.brief || undefined) : undefined}
+                    week={route.params.brief || undefined}
                     editorialSeries={parseEditorialSeries(route.params.lens)}
                     narrow={narrow}
                     onClose={() => navigate('content')}

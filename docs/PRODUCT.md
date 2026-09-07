@@ -441,11 +441,11 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 
 ## Tab: Content
 
-> **Live shape: Content Engine v2** (`VITE_CONTENT_V2_ENABLED`, ON in prod):
-> rooms Built / Paid / Library plus the mobile-first Queue decision deck.
-> Spec: [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
-> `MINDMAKE_OS_ARCHITECTURE.md` §5.8. The v1 description below holds
-> behind the flag.
+> **Live shape: one Content surface** (2026-09-07, no build flag): rooms
+> Built / Paid / Library plus the mobile-first Queue decision deck. Spec:
+> [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
+> `MINDMAKE_OS_ARCHITECTURE.md` §5.8. The v1 description below is history;
+> each feature's new home is in `CONTENT-ENGINE-PARITY-LEDGER.md`.
 
 ### Purpose
 > *What content ideas have been captured, which are ready to send to a

@@ -13,6 +13,7 @@ import {
 import { SYNTHESIS_MODEL } from '../_models.js'
 import { supabase } from '../_supabase.js'
 import { buildSignalSummary, forbiddenTermsFor, buildProductFor, type BuildMeta } from '../_buildSignals.js'
+import { withContentRun } from '../_runs.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -120,7 +121,7 @@ async function runLens(series: EditorialSeries, signals: EditorialSignalV2[], vo
   return parseEditorialLensResponse(robustJson(raw), series, signals)
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardBearerExport(req, res, 'CRON_SECRET', ['GET'])) return
   const now = new Date()
   const since = new Date(now.getTime() - LOOKBACK_HOURS * 3_600_000).toISOString()
@@ -211,3 +212,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('editorial_radar', handler)
