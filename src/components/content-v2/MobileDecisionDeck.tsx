@@ -372,7 +372,10 @@ export function MobileDecisionDeck({
               ? 'none'
               : 'transform 200ms cubic-bezier(0.32,0,0.67,0), opacity 140ms ease-out',
           }}
-          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
+          // min-h-0 + overflow-y-auto: a long card scrolls inside itself. Without
+          // it the card grew past the stage, pushed the thumb-zone buttons into
+          // the nav clearance, and "Not a shift" sat under the + button.
+          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing min-h-0 overflow-y-auto ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
           {video && !videoMalformed ? (
             <VideoBrandLockup series={video.series} placement="card" className="-ml-7 mb-3" />

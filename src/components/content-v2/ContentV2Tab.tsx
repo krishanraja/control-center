@@ -91,7 +91,15 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     <div className="flex flex-col gap-4 min-h-0 h-full">
       {/* Obligations on desktop stay above the rooms, because they are
           cross-format and must not be reachable only by navigating to them. */}
-      {!mobile && <ObligationStrip v2={v2} />}
+      {/* Bounded: five shift proposals used to stack to 700px here, push the
+          room chips and "Start from research" to the bottom edge under the
+          pills, and collapse the room below to nothing. The strip scrolls
+          inside its cap instead; the rooms keep their space. */}
+      {!mobile && (
+        <div className="shrink-0 max-h-[38vh] overflow-y-auto">
+          <ObligationStrip v2={v2} />
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">

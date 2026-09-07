@@ -14,6 +14,7 @@ import {
   type CustomerRow, type CustomerProduct,
 } from '../../hooks/useCustomers'
 import { MrrTicker } from '../MrrTicker'
+import { useRevenue, formatCommittedMrr } from '../../hooks/useRevenue'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
@@ -27,6 +28,9 @@ export function MobileCustomers() {
   const h = useHaptics()
   const { toast } = useToast()
   const { customers, buckets, totals, loading, error } = useCustomers()
+  const { revenue } = useRevenue()
+  // Committed MRR as Stripe states it, shared by the header, hero and pill.
+  const mrrLabel = formatCommittedMrr(revenue)
   const [openId, setOpenId] = useState<string | null>(null)
   // Log-a-call sheet: dictation-first quick capture (the sanctioned mobile
   // composition exception). Hook lives at top level; actions only flip state.
@@ -134,15 +138,15 @@ export function MobileCustomers() {
             loading
               ? <HeaderSubtitleSkeleton w={200} />
               : totals.paid > 0
-                ? `${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo`
-                : 'No paid customers yet; sweep + Stripe webhooks not wired.'
+                ? `${totals.paid} paid · ${mrrLabel}/mo`
+                : 'No paid customers yet. Stripe syncs every morning.'
           }
         />
       }
     >
       <SubscriptionsWatchHero
         expansionPlays={expansionPlays}
-        totals={{ mrrUsd: totals.mrrUsd, paid: totals.paid }}
+        totals={{ mrrLabel, paid: totals.paid }}
         onOpen={(c) => { h.select(); setOpenId(c.id) }}
       />
 
@@ -172,7 +176,7 @@ export function MobileCustomers() {
 
       <div className="flex gap-3 flex-shrink-0">
         <StatPill label="Paid"  value={totals.paid}                                       color={totals.paid > 0 ? 'text-emerald-300' : 'text-white/45'} />
-        <StatPill label="MRR"   value={`$${Math.round(totals.mrrUsd).toLocaleString()}`}  color={totals.mrrUsd > 0 ? 'text-emerald-300' : 'text-white/45'} />
+        <StatPill label="MRR"   value={revenue ? mrrLabel : '—'}  color={revenue && revenue.committed_mrr_usd_cents > 0 ? 'text-emerald-300' : 'text-white/45'} />
         <StatPill label="Free"  value={totals.freeSignups}                                color={totals.freeSignups > 0 ? 'text-violet-300' : 'text-white/45'} />
         <StatPill label="Wait"  value={totals.waitlist}                                   color={totals.waitlist > 0 ? 'text-amber-300' : 'text-white/45'} />
       </div>
