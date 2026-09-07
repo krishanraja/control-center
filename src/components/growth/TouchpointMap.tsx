@@ -34,7 +34,7 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
   const [openOnly, setOpenOnly] = useState(false)
   const [showRetired, setShowRetired] = useState(false)
   const [adding, setAdding] = useState(false)
-  // The + create sheet's "Add a touchpoint" lands here (via GrowthTab).
+  // The + create sheet's "Add a place" lands here (via GrowthTab).
   useEffect(() => { if (composeSignal > 0) setAdding(true) }, [composeSignal])
 
   const openQuestions = useMemo(() => g.touchpoints.filter(t => t.assumption_flag), [g.touchpoints])

@@ -36,13 +36,19 @@ export function Chip({ children, tone = 'text-white/60 border-white/10' }: { chi
 }
 
 /** Section title plus the one line that says what this surface is for. */
-export function SectionHead({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
+export function SectionHead({ title, sub, action }: { title?: string; sub?: string; action?: React.ReactNode }) {
+  // On a phone the pill and the line under it already say what the section
+  // is, so a section may pass no title and no sub and keep only its action.
+  // Three explanations stacked above the content was the complaint.
+  if (!title && !sub && !action) return null
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap">
-      <div className="min-w-0">
-        <h2 className="text-ui font-semibold text-white tracking-tight">{title}</h2>
-        <p className="text-label text-white/45 mt-0.5 leading-snug">{sub}</p>
-      </div>
+      {(title || sub) && (
+        <div className="min-w-0">
+          {title && <h2 className="text-ui font-semibold text-white tracking-tight">{title}</h2>}
+          {sub && <p className="text-label text-white/45 mt-0.5 leading-snug">{sub}</p>}
+        </div>
+      )}
       {action ? <div className="flex-shrink-0">{action}</div> : null}
     </div>
   )

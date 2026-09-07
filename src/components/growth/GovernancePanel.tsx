@@ -91,8 +91,8 @@ export function GovernancePanel({
   return (
     <div className="space-y-4 pb-8">
       <SectionHead
-        title="Spend limits"
-        sub="Per product: the budget its agents may spend, how much they may do without you, and what they may say. Pick a product."
+        title={variant === 'desktop' ? 'Spend limits' : undefined}
+        sub={variant === 'desktop' ? 'Per product: the budget its agents may spend, how much they may do without you, and what they may say. Pick a product.' : 'Pick a product.'}
         action={
           <button
             type="button"

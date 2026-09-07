@@ -177,7 +177,7 @@ test('work says plainly that the board is empty', async ({ page }) => {
   await mockGrowthApis(page)
   await openSection(page, 'work')
   await expect(page.getByText('Creative board')).toBeVisible()
-  await expect(page.getByText(/No creative cards yet/)).toBeVisible()
+  await expect(page.getByText(/No clips yet/)).toBeVisible()
   await expect(page.getByText(/Nothing queued for this week/)).toBeVisible()
 })
 

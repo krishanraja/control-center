@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Plus, Inbox, MapPin, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle,
+  Plus, Inbox, MapPin, Film, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle,
   type LucideIcon,
 } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
@@ -77,7 +77,8 @@ export function CreateSheet({ tab }: { tab: string }) {
           ]
         case 'growth':
           return [
-            { id: 'touchpoint', label: 'Add a touchpoint', hint: 'A place your buyers already are', icon: MapPin, run: go(() => requestCreate('touchpoint')) },
+            { id: 'touchpoint', label: 'Add a place', hint: 'Somewhere your buyers already are', icon: MapPin, run: go(() => requestCreate('touchpoint')) },
+            { id: 'clip', label: 'Add a clip', hint: 'Something to make this week', icon: Film, run: go(() => requestCreate('clip')) },
           ]
         case 'focus':
           return [
