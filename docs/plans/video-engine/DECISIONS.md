@@ -71,3 +71,13 @@ The initial gateway bearer is limited to local Codex and Claude Code processes. 
 Status: approved on 2026-09-07
 
 Structured actions, exact relevant feedback excerpts, and exact artifact differences feed one safe append-only evidence ledger. A weekly compiler may surface proposals with scope, supporting evidence, counterexamples, and regression cases. It cannot silently activate preferences, change configuration, or merge code. Krish owns every terminal proposal decision.
+
+## D-010: Editorial discovery belongs to Control Center
+
+Status: approved on 2026-09-07
+
+mm-ctrl remains the public signal pool. Control Center owns the independent Money of AI and Built With AI editorial lenses, opportunity review, content development and approval. The Video and Carousel Studio consume an approved production brief and do not decide what Krish should record or publish.
+
+A signal has no series when gathered. It may produce a candidate for either series, both series or neither. The Money of AI requires a specific second-order commercial or labour mechanism. The event is never the story. The system does not fill a quota with weak material and must expose near misses with their actual failure reasons.
+
+Scheduled radar work writes quietly into Control Center. It never creates a chat pulse or initiates contact. Krish sees the prepared work when he opens the Content surface.

@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         horizon: 'news',
         expires_at: expiresAt,
         title_norm: titleNorm,
-        meta: { pool: { day: s.day, category: s.category, source: s.source, source_count: s.sourceCount } },
+        meta: { pool: { day: s.day, category: s.category, source: s.source, source_count: s.sourceCount, source_urls: s.sourceUrls } },
       })
     }
 

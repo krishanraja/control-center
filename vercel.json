@@ -45,6 +45,10 @@
       "schedule": "30 11 * * *"
     },
     {
+      "path": "/api/content-opportunities/refresh",
+      "schedule": "0 12 * * *"
+    },
+    {
       "path": "/api/investigations/run",
       "schedule": "0 21 * * 4"
     },
@@ -135,6 +139,9 @@
   ],
   "functions": {
     "api/spend/ingest.ts": {
+      "maxDuration": 300
+    },
+    "api/content-opportunities/refresh.ts": {
       "maxDuration": 300
     },
     "api/health/connections-sweep.ts": {

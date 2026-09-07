@@ -37,6 +37,7 @@ jobs:
       # to the api tree's NodeNext resolution (which flagged 23 non-bugs).
       - run: npm run typecheck:scripts
       - run: npx tsx scripts/check-video-studio-export.mts
+      - run: npm run check:editorial-radar
       # Video Engine commands cross an authenticated cloud-to-runner boundary.
       # Keep fail-closed auth, exact lineage, recovery and media-separation
       # invariants executable on every change rather than relying on review.

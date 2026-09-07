@@ -13,6 +13,7 @@ export interface PoolStory {
   say: string | null    // the pool's own "why it matters" line
   source: string | null
   url: string | null
+  sourceUrls: string[]
   category: string | null   // one of the nine AI-native lanes
   sourceCount: number | null
 }
@@ -27,12 +28,18 @@ function normalizeCard(day: string, card: any): PoolStory | null {
     : typeof card?.title === 'string' ? card.title.trim() : ''
   if (!headline) return null
   const category = typeof card?.category === 'string' && CATEGORIES.has(card.category) ? card.category : null
+  const representativeUrl = typeof card?.url === 'string' && /^https?:\/\//.test(card.url) ? card.url : null
+  const sourceUrls = [...new Set([
+    representativeUrl,
+    ...(Array.isArray(card?.sourceUrls) ? card.sourceUrls : []),
+  ].filter((value): value is string => typeof value === 'string' && /^https?:\/\//.test(value)))]
   return {
     day,
     headline,
     say: typeof card?.say === 'string' ? card.say : null,
     source: typeof card?.source === 'string' ? card.source : null,
-    url: typeof card?.url === 'string' && /^https?:\/\//.test(card.url) ? card.url : null,
+    url: representativeUrl,
+    sourceUrls,
     category,
     sourceCount: Number.isFinite(card?.sourceCount) ? Number(card.sourceCount) : null,
   }

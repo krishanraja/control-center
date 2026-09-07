@@ -30,7 +30,7 @@ Krish approved the rendered first surface on 2026-09-04 with the exact unanchore
 
 The Video Engine is a governed short-form production system. In the implemented first slice, an authorised operator explicitly projects a local job to Control Center, Control Center directs and reviews work, and a Windows runner performs media work. Google Drive discovery remains a later intake adapter. Codex is an optional editorial collaborator, not a runtime dependency.
 
-The system optimises for honest qualified growth. It may challenge a weak idea, block unsafe work, and request a rerecord when the material is not strong enough.
+The system optimises for honest qualified growth. It may challenge a weak idea, block unsafe work, and request a rerecord when the material is not strong enough. Control Center owns discovery and editorial development. Video and Carousel production begin only from an approved production brief.
 
 ## Source layers
 
@@ -89,7 +89,7 @@ A 390 by 844 mobile candidate review after one magic direction. The visible expe
 
 The implemented Windows runner projects explicitly selected local jobs, claims cloud commands with leases and idempotency keys, writes signed local receipts, and recovers interrupted work from durable journals and locks. It can be installed as a background task with restart-on-failure behaviour only at the release gate.
 
-It does **not** yet discover or watch a Google Drive inbox, wait for Drive file stability, deduplicate newly discovered media, or group camera split files. Those are later intake capabilities and must not be implied by the current UI or deployment documentation.
+Google Drive inbox discovery, file-stability checking, exact-hash deduplication, portable acceptance proof, sidecar binding, remount identity and DJI split-file grouping are implemented and covered by repository tests. They remain code-only until the runner installation, mount identity and production credentials pass their separate release gate.
 
 When the computer is off or Drive is unavailable, cloud decisions remain safe and visible as waiting. Local media processing resumes only when the machine and Drive are available. The interface must never imply otherwise.
 
@@ -110,11 +110,11 @@ An unrelated legacy approval route contains an exposed credential-like value and
 
 ## Current handoff
 
-- Outcome: the secure mobile reviewer, command plane, signed recovery bridge, private preview contract, independent runner, and first client-neutral Studio session gateway are implemented on review branches.
-- Phase: independent audit, cross-repository verification, Control Center-wide visual alignment, and safe portability foundations.
-- Current truth: the integration exists in code only. The portable gateway currently supports a fail-closed bearer for local Codex and Claude Code. Consumer Claude.ai and ChatGPT OAuth, the Control Center Learning Inbox, the weekly proposal compiler, production migrations, private bucket, environment, deployment, background-task installation, Drive watcher, retention schedule, and proactive heartbeat have not been activated.
+- Outcome: the secure mobile reviewer, command plane, signed recovery bridge, private preview contract, independent runner, Drive discovery and first client-neutral Studio session gateway are merged to GitHub main. Editorial Radar v2 is in review-branch implementation.
+- Phase: editorial boundary correction, Control Center opportunity-surface design, then private release verification.
+- Current truth: the production integration is not activated. The portable gateway currently supports a fail-closed bearer for local Codex and Claude Code. Consumer Claude.ai and ChatGPT OAuth, the Control Center Learning Inbox, weekly proposal compiler, production migrations, private bucket, environment, deployment, background-task installation, mounted Drive identity and retention schedule have not been activated. Chat pulse delivery has been removed by decision.
 - Locked: the approval record, interaction contract, blocking gates, runtime independence, and non-goals above.
 - Authority: GitHub `main` remains canonical; implementation is reviewable branch work only.
 - Risks: live database and Storage behaviour remain unverified; OAuth and bearer rotation need dedicated threat review; installation and credential configuration remain release-gated; the revised responsive wordmark needs visual re-review.
 - Verification: contract, auth, idempotency, privacy, migration, recovery, visual, short-viewport, accessibility, and exclusion tests are required before a release proposal.
-- Next action: verify and review the additive gateway slice, then separately mock the Learning Inbox and review the consumer OAuth release boundary before implementation.
+- Next action: finish the evidence-preserving mm-ctrl export and independent Control Center series lenses, then present the rendered Content opportunity surface for Krish's explicit approval before UI implementation.
