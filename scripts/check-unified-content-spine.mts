@@ -8,6 +8,7 @@ import {
   readEditorialOpportunity,
 } from '../src/lib/editorialOpportunities'
 import type { ContentIdeaRow } from '../src/hooks/useRealtimeContentIdeas'
+import { CONTENT_OUTPUTS, storedContentOutputs } from '../src/lib/contentOutputs'
 
 const candidate = (series: 'money_of_ai' | 'built_with_ai', status: 'eligible' | 'near_miss' = 'eligible') => ({
   schema_version: 2,
@@ -56,6 +57,16 @@ assert.match(route, /const slot = series/)
 assert.match(route, /status === 'near_miss' && overrideReason\.length < 8/)
 assert.match(route, /hard_editorial_gate_failed/)
 assert.doesNotMatch(route, /callClaude|ANTHROPIC_API_KEY|openai/i)
+
+const outputKeys = new Set(CONTENT_OUTPUTS.map(output => output.key))
+for (const required of ['substack', 'linkedin', 'instagram', 'youtube', 'podcast', 'signal_noise', 'video_15s', 'video_60s', 'carousel_linkedin', 'carousel_instagram']) {
+  assert(outputKeys.has(required), `missing output registry entry: ${required}`)
+}
+const stored = storedContentOutputs({
+  linkedin: { body: 'A LinkedIn cut' },
+  video_60s: { script: 'A spoken script', shot_notes: '0:00 Krish on camera' },
+})
+assert.deepEqual(stored.map(output => output.definition.key), ['linkedin', 'video_60s'])
 
 const contentTab = readFileSync(new URL('../src/components/content-v2/ContentV2Tab.tsx', import.meta.url), 'utf8')
 assert.match(contentTab, /lane === 'publication'/)
