@@ -11,7 +11,7 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS,
+  DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS,
   MEDIA_CHANNELS, editGroups, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 import { Working } from '../shared/Working'
@@ -22,6 +22,9 @@ import { Pending } from '../shared/Pending'
 import { BriefComposer } from './BriefComposer'
 import { ComposerShell, ComposerRail, MetaDot } from './ComposerShell'
 import { EditPalette } from './EditPalette'
+import { EditorialOpportunityGate } from './EditorialOpportunityGate'
+import type { EditorialSeries } from '../../lib/editorialOpportunities'
+import { storedContentOutputs } from '../../lib/contentOutputs'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -51,6 +54,9 @@ interface Props {
   ideaId?: string
   /** A weekly brief, by ISO week. */
   week?: string
+  /** Optional editorial lens over a neutral source. This stays inside the
+   * existing composer route instead of becoming another ideas UI. */
+  editorialSeries?: EditorialSeries | null
   narrow: boolean
   onClose: () => void
 }
@@ -66,15 +72,15 @@ interface Props {
  *
  * The two halves stay separate components because a brief and a piece really
  * are edited differently: a brief is rich text with citations, versions and a
- * fan-out, a piece is markdown with materials, channel cuts and standards.
+ * fan-out, a piece is markdown with materials, outputs and standards.
  * What they share is the frame (ComposerShell), the rail (ComposerRail) and
  * the palette inside it (EditPalette, over editGroups()) — which is the part
  * that drifted.
  */
-export function ContentComposer({ ideaId, week, narrow, onClose }: Props) {
+export function ContentComposer({ ideaId, week, editorialSeries, narrow, onClose }: Props) {
   if (week) return <BriefComposer week={week} narrow={narrow} onClose={onClose} />
   if (!ideaId) return null
-  return <IdeaComposer ideaId={ideaId} narrow={narrow} onClose={onClose} />
+  return <IdeaComposer ideaId={ideaId} editorialSeries={editorialSeries} narrow={narrow} onClose={onClose} />
 }
 
 const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
@@ -83,7 +89,7 @@ const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
   // Sits next to Refine because that is where the cuts are made. Without this
   // tab a channel cut was generated, stored and never seen again: nothing in
   // the UI read transformed_outputs.
-  { id: 'cuts', label: 'Cuts', icon: <Scissors size={14} /> },
+  { id: 'cuts', label: 'Outputs', icon: <Scissors size={14} /> },
   { id: 'materials', label: 'Materials', icon: <Paperclip size={14} /> },
   { id: 'research', label: 'Research', icon: <Search size={14} /> },
   { id: 'standards', label: 'Standards', icon: <Gauge size={14} /> },
@@ -92,7 +98,7 @@ const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
 // Hoisted: O(1) membership test for stored distribution values.
 const CHANNEL_VALUES = new Set(MEDIA_CHANNELS.map(c => c.value as string))
 
-function IdeaComposer({ ideaId, narrow, onClose }: { ideaId: string; narrow: boolean; onClose: () => void }) {
+function IdeaComposer({ ideaId, editorialSeries, narrow, onClose }: { ideaId: string; editorialSeries?: EditorialSeries | null; narrow: boolean; onClose: () => void }) {
   const { ideas } = useRealtimeContentIdeas()
   const idea = useMemo(() => ideas.find(i => i.id === ideaId) || null, [ideas, ideaId])
 
@@ -215,6 +221,10 @@ function IdeaComposer({ ideaId, narrow, onClose }: { ideaId: string; narrow: boo
   // `fallback={null}` in App.tsx, meant opening a piece went blank, spinner,
   // content. The composer's own shape is recognisable, so promise that instead.
   if (!idea) return <SkeletonDetail full />
+
+  if (editorialSeries) {
+    return <EditorialOpportunityGate idea={idea} series={editorialSeries} onClose={onClose} />
+  }
 
   const openRail = (t: RailTab) => setTab(t)
 
@@ -607,7 +617,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
       {/* Secondary actions */}
       <div className="px-3 pb-1 flex items-center gap-1.5 flex-shrink-0 text-white/60">
         <MobileTool icon={<MessageSquare size={14} />} label="Cleo" onClick={() => setSheet('cleo')} />
-        <MobileTool icon={<Scissors size={14} />} label="Cuts" onClick={() => setSheet('cuts')} />
+        <MobileTool icon={<Scissors size={14} />} label="Outputs" onClick={() => setSheet('cuts')} />
         <MobileTool icon={<Paperclip size={14} />} label="Materials" onClick={() => setSheet('materials')} />
         <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
         <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
@@ -735,13 +745,13 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
               <div className="flex items-center gap-2 text-ui font-medium text-white/90">
-                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-200" /> Cleo</> : sheet === 'cuts' ? <><Scissors size={16} className="text-teal-300" /> Channel cuts</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-200" /> Materials</> : <><Search size={16} className="text-emerald-200" /> Research</>}
+                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-200" /> Cleo</> : sheet === 'cuts' ? <><Scissors size={16} className="text-teal-300" /> Outputs</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-200" /> Materials</> : <><Search size={16} className="text-emerald-200" /> Research</>}
               </div>
               <button onClick={() => setSheet(null)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
             <div className={`flex-1 min-h-0 px-4 pb-safe ${sheet === 'cleo' ? 'flex flex-col' : 'overflow-y-auto'}`}>
               {sheet === 'cleo' && <CleoChat idea={idea} draft={draft} mobile onUseAsDraft={(t) => { onApplyDraft(t); setSheet(null) }} />}
-              {sheet === 'cuts' && <ChannelCutsPanel idea={idea} />}
+              {sheet === 'cuts' && <OutputsPanel idea={idea} />}
               {sheet === 'materials' && <MaterialsPanel idea={idea} />}
               {sheet === 'research' && <ResearchPanel idea={idea} />}
             </div>
@@ -1537,16 +1547,18 @@ function RailContent({ tab, idea, draft, onApplyDraft, selection, onClearSelecti
 }) {
   if (tab === 'cleo') return <CleoChat idea={idea} draft={draft} onUseAsDraft={onApplyDraft} />
   if (tab === 'refine') return <RefinePanel idea={idea} draft={draft} onApplyDraft={onApplyDraft} selection={selection} onClearSelection={onClearSelection} />
-  if (tab === 'cuts') return <ChannelCutsPanel idea={idea} />
+  if (tab === 'cuts') return <OutputsPanel idea={idea} />
   if (tab === 'materials') return <MaterialsPanel idea={idea} />
   if (tab === 'research') return <ResearchPanel idea={idea} />
   return <StandardsPanel idea={idea} draft={draft} />
 }
 
-// ── Channel cuts ─────────────────────────────────────────────────────────
+// ── Outputs ──────────────────────────────────────────────────────────────
 
 /**
- * The per-channel cuts stored on content_ideas.transformed_outputs.
+ * Every stored adaptation of one approved story. Channel cuts and video
+ * scripts used to be created from the same palette but only channel cuts were
+ * visible afterwards. The registry makes both projections of one lineage.
  *
  * These are read-only here on purpose. A cut is a derivative: the way to change
  * one is to fix the source draft and cut again, not to edit the cut and let it
@@ -1554,39 +1566,33 @@ function RailContent({ tab, idea, draft, onApplyDraft, selection, onClearSelecti
  * is the text to copy, the age of it, and any figure the generator could not
  * account for against the source.
  */
-function ChannelCutsPanel({ idea }: { idea: ContentIdeaRow }) {
+function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   const { toast } = useToast()
   const [open, setOpen] = useState<string | null>(null)
-  const cuts = useMemo(() => {
-    const t = (idea.transformed_outputs || {}) as Record<string, any>
-    return CHANNEL_ADAPTS
-      .map(c => ({ key: c.value, label: c.label, cut: t[c.value] }))
-      .filter(x => x.cut && typeof x.cut.body === 'string')
-  }, [idea.transformed_outputs])
+  const cuts = useMemo(() => storedContentOutputs(idea.transformed_outputs), [idea.transformed_outputs])
 
   if (!cuts.length) {
     return (
       <div className="p-4 text-label text-white/45 leading-relaxed">
-        No channel cuts yet. Open <span className="text-white/70">Refine</span> and pick one under
-        <span className="text-teal-200"> Cut for a channel</span>. Each cut is saved against this
-        piece, so the draft you are working on is left alone and one piece can hold several.
+        No outputs yet. Open <span className="text-white/70">Refine</span> and choose a channel or video length.
+        Every adaptation is saved against this story, so the approved argument stays intact and each output keeps the same lineage.
       </div>
     )
   }
 
   return (
     <div className="p-3 space-y-2">
-      {cuts.map(({ key, label, cut }) => {
-        const words = String(cut.body).trim().split(/\s+/).length
-        const bad: string[] = Array.isArray(cut.unsupported_numbers) ? cut.unsupported_numbers : []
-        const isOpen = open === key
+      {cuts.map(({ definition, artifact, body }) => {
+        const words = body.trim().split(/\s+/).length
+        const bad: string[] = Array.isArray(artifact.unsupported_numbers) ? artifact.unsupported_numbers as string[] : []
+        const isOpen = open === definition.key
         return (
-          <div key={key} className="rounded-lg border border-white/[0.08] bg-white/[0.02]">
+          <div key={definition.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02]">
             <button
-              type="button" onClick={() => setOpen(isOpen ? null : key)}
+              type="button" onClick={() => setOpen(isOpen ? null : definition.key)}
               className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
             >
-              <span className="text-label text-white/85">{label}</span>
+              <span className="min-w-0 break-words text-label text-white/85">{definition.label}</span>
               <span className="text-micro text-white/40 tabular-nums">
                 {bad.length > 0 && <span className="text-amber-200/90 mr-2">check {bad.length}</span>}
                 {words}w
@@ -1594,18 +1600,22 @@ function ChannelCutsPanel({ idea }: { idea: ContentIdeaRow }) {
             </button>
             {isOpen && (
               <div className="px-3 pb-3 space-y-2">
-                {cut.notes && (
-                  <p className="text-micro text-amber-200/80 leading-snug">{cut.notes}</p>
+                <p className="text-micro font-semibold uppercase tracking-[0.14em] text-white/35">{definition.family.replace('_', ' ')}</p>
+                {typeof artifact.notes === 'string' && artifact.notes && (
+                  <p className="text-micro text-amber-200/80 leading-snug">{artifact.notes}</p>
                 )}
-                {cut.visual_suggestion && (
-                  <p className="text-micro text-white/45 leading-snug">Visual: {cut.visual_suggestion}</p>
+                {typeof artifact.visual_suggestion === 'string' && artifact.visual_suggestion && (
+                  <p className="text-micro text-white/45 leading-snug">Visual: {artifact.visual_suggestion}</p>
                 )}
-                <RichText text={String(cut.body)} className="text-label leading-relaxed text-white/80" />
+                {typeof artifact.shot_notes === 'string' && artifact.shot_notes && (
+                  <p className="whitespace-pre-wrap text-micro leading-relaxed text-white/45">Shots: {artifact.shot_notes}</p>
+                )}
+                <RichText text={body} className="text-label leading-relaxed text-white/80" />
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard?.writeText(String(cut.body))
-                      .then(() => toast(`${label} cut copied.`, 'success'))
+                    navigator.clipboard?.writeText(body)
+                      .then(() => toast(`${definition.label} copied.`, 'success'))
                       .catch(() => toast('Could not copy.', 'error'))
                   }}
                   className="text-micro px-2 py-1 rounded-md border border-teal-500/25 text-teal-200 hover:bg-teal-500/10"

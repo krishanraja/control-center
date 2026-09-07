@@ -51,7 +51,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 
   const counts = useMemo(() => {
     const live = ideas.filter(i => !i.library_at)
-    const forLane = (lane: RoomId) => live.filter(i => laneOf(i.lane) === lane).length
+    const forLane = (lane: RoomId) => live.filter(i => laneOf(i.lane, i.lane_slot) === lane).length
     return {
       built: forLane('built'),
       paid: forLane('paid'),
@@ -145,9 +145,14 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 // laneToCorpusChannel in api/_content.ts: map legacy values, never reject them.
 // Returns null when the lane genuinely does not say, which the rooms surface as
 // unclassified rather than guessing.
-export function laneOf(lane?: string | null): RoomId | null {
+export function laneOf(lane?: string | null, slot?: string | null): RoomId | null {
   if (!lane) return null
+  if (lane === 'publication') {
+    if (slot === 'built_with_ai' || slot === 'built') return 'built'
+    if (slot === 'money_of_ai' || slot === 'paid') return 'paid'
+    return null
+  }
   if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built'
-  if (lane === 'techonomic') return 'paid'
+  if (lane === 'techonomic' || lane === 'mindmake' || lane === 'mymu' || lane === 'makeyourmindup') return 'paid'
   return null
 }

@@ -8,6 +8,7 @@ import { laneOf, type RoomId } from './ContentV2Tab'
 import { Eyebrow } from '../shared/Eyebrow'
 import { SeriesIdentity } from '../shared/MindmakeIdentity'
 import { publicSeriesIdentity } from '../../lib/publicSeries'
+import { EditorialOpportunityList } from './EditorialOpportunityList'
 
 // One format, everything about it in one column.
 //
@@ -39,8 +40,8 @@ export function LaneRoom({
   const { mine, unclassified } = useMemo(() => {
     const live = ideas.filter(i => !i.library_at)
     return {
-      mine: live.filter(i => laneOf(i.lane) === lane),
-      unclassified: live.filter(i => laneOf(i.lane) === null),
+      mine: live.filter(i => laneOf(i.lane, i.lane_slot) === lane),
+      unclassified: live.filter(i => laneOf(i.lane, i.lane_slot) === null),
     }
   }, [ideas, lane])
 
@@ -52,6 +53,8 @@ export function LaneRoom({
         </h2>
         <p className="text-label text-white/50 mt-0.5">{copy.question}</p>
       </header>
+
+      <EditorialOpportunityList ideas={ideas} seriesKey={lane} />
 
       {/* What the engine actually chose this week, above the register it chose
           from. This is the surface the whole rewrite exists to produce, and it

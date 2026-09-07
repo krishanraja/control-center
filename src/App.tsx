@@ -22,6 +22,7 @@ import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
 import { useReducedMotion } from './components/shared/motion'
+import { parseEditorialSeries } from './lib/editorialOpportunities'
 
 /**
  * Route surfaces are code-split: each tab is its own chunk, fetched on demand,
@@ -336,6 +337,7 @@ export default function App() {
                   <ContentComposer
                     ideaId={route.params.idea || undefined}
                     week={contentV2Enabled() ? (route.params.brief || undefined) : undefined}
+                    editorialSeries={parseEditorialSeries(route.params.lens)}
                     narrow={narrow}
                     onClose={() => navigate('content')}
                   />
