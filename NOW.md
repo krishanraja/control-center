@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-09-07
+as_of: 2026-09-08
 head: 7dcd0259
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
@@ -43,6 +43,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-08 **Goals canon aligned: shutdown feeds tomorrow, weeks close on Saturday, Today is manual first** (ADR-018). Why: the shutdown prompt returned on every new tab (sessionStorage), no evening row had ever been saved, `daily_focus` was empty, Home carried two weekly composers (one expanded inline on a no-scroll screen), and nothing ever closed a week. One writer for tomorrow's 3 (`api/_dailyFocus.ts`), `goals.week_start` plus a Saturday `week-close` cron and a `missed` status, editable Today slots, the ritual as the one weekly composer, and the goal spine now carries today's frame and the last four weeks into every Ask.
 - 2026-09-07 **The scorecard counts every commit, not one login** (`37af6d3c`, guard `e86e31b8`). Why: a dry run showed most session commits carry the coding agent's address (36 of 38 in one repo, 18 of 34 here), so the Rule 6 tripwire "was reading roughly half the truth". `GITHUB_AUTHOR` is no longer read anywhere and the guard fails if either reader brings it back.
 - 2026-09-07 **Architecture doc: the one-surface retirement closed out** (#280, #281). The last three references to a VPS or Drive copy removed; the three weekly Documentation Refresh Routines recorded as deleted by Krish; the fleet's last reference to the trashed Drive file removed.
 - 2026-09-07 **Build signals** (`2c83ff90`, `e11f2ab5`). Why: every Saturday the scorecard counted Krish's commits against him as unasked hours, and nothing read the same stream for content, although canon asks for a solo Built with AI variant on exactly that material. One new `source_type` flows into the existing content spine; nothing new to run.

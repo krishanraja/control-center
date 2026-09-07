@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { LogShipInput, PilotMode, PilotState, ShipSummary } from '../types/pilot'
+import type { LogShipInput, PilotMode, PilotState, ShipSummary, TomorrowSlot } from '../types/pilot'
 import { syncZoneToServer, getZone } from '../lib/civilDate'
 
 // Single reader of pilot state. Deliberately thin: no realtime channel, no
@@ -93,6 +93,9 @@ export async function saveEvening(input: {
   shipped_today?: string
   tomorrow_one: string
   tomorrow_one_url?: string
+  /** Tomorrow's 3. Slot 1 mirrors tomorrow_one; 2 and 3 are optional. The
+   *  route writes them onto tomorrow's daily_focus row. */
+  tomorrow?: TomorrowSlot[]
 }): Promise<void> {
   const res = await fetch(`${API}/api/pilot/checkin`, {
     method: 'POST',
@@ -101,6 +104,20 @@ export async function saveEvening(input: {
   })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json.ok) throw new Error(json.error || `Could not save (${res.status})`)
+}
+
+/**
+ * Close tonight's shutdown prompt without choosing. Writes a skipped evening
+ * row, so the prompt stays away until tomorrow on every device, the same way a
+ * skipped morning closes the gate. Best effort: a failed write still leaves
+ * the local day flag in place.
+ */
+export async function skipEvening(): Promise<void> {
+  await fetch(`${API}/api/pilot/checkin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: tzBody({ kind: 'evening', skipped: true }),
+  }).catch(() => {})
 }
 
 /** Records the red mode escape hatch on today's morning row. */

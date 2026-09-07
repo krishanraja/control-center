@@ -26,6 +26,10 @@ export interface CanonGoal {
   orphaned: boolean
   days_since_touch: number | null
   stale_after_days: number | null
+  /** Weekly rows: the operator-civil Monday this objective was set for. */
+  week_start?: string | null
+  closed_at?: string | null
+  carried_from?: string | null
   updated_at: string
   created_at: string
 }
@@ -36,10 +40,14 @@ export interface CanonData {
   weekly: CanonGoal[]
   /** Marcus-proposed weekly rows awaiting accept/reject. */
   weeklyProposed: CanonGoal[]
+  /** Last week's set with its outcomes (done, missed, dropped), for Monday. */
+  lastWeek: CanonGoal[]
   ventures: string[]
   stale_count: number
   orphan_count: number
   week_of: string
+  /** The operator-civil Monday of the current week, YYYY-MM-DD. */
+  currentWeek: string
 }
 
 interface State { data: CanonData | null; loading: boolean; error: string | null }
@@ -60,15 +68,22 @@ async function fetchCanon(): Promise<void> {
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       const os = (j.by_horizon?.os ?? []) as CanonGoal[]
       const weeklyAll = (j.by_horizon?.weekly ?? []) as CanonGoal[]
+      const currentWeek = typeof j.current_week === 'string' ? j.current_week : ''
+      // This week's set only. A done row from a closed week stays in the
+      // archive (last_week, history); a row with no week_start predates the
+      // cadence and counts as current.
+      const thisWeek = (g: CanonGoal) => !currentWeek || !g.week_start || g.week_start === currentWeek
       cache = {
         data: {
           os: os.filter(g => g.status !== 'proposed'),
-          weekly: weeklyAll.filter(g => g.status === 'active' || g.status === 'done'),
+          weekly: weeklyAll.filter(g => (g.status === 'active' || g.status === 'done') && thisWeek(g)),
           weeklyProposed: weeklyAll.filter(g => g.status === 'proposed'),
+          lastWeek: (j.last_week ?? []) as CanonGoal[],
           ventures: (j.ventures ?? []) as string[],
           stale_count: j.stale_count ?? 0,
           orphan_count: j.orphan_count ?? 0,
           week_of: j.week_of ?? '',
+          currentWeek,
         },
         loading: false,
         error: null,

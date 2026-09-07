@@ -106,10 +106,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       onText: chunk => send(res, 'delta', { text: chunk }),
     })).trim()
 
+    // audit_log.id has no default and `details` is text; the object goes in
+    // `changes` (jsonb) so the row actually lands. The old shape failed the
+    // insert silently on every question.
     await supabase.from('audit_log').insert({
+      id: `tab-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       event_type: 'tab_chat',
       actor: 'krish',
-      details: { tab, lane, turns: turns.length, question, reply: reply.slice(0, 1000) },
+      target: tab,
+      changes: { tab, lane, turns: turns.length, question, reply: reply.slice(0, 1000) },
+      details: question.slice(0, 200),
+      display_message: `Asked ${TAB_LABELS[tab]}: ${question.slice(0, 80)}`,
     }).then(() => {}, () => {})
 
     send(res, 'done', { reply })

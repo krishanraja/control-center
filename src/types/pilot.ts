@@ -23,9 +23,18 @@ export interface PilotCheckin {
   override_at: string | null
   checkin_date: string | null
   intent: string | null
-  /** Morning rows only. The day was closed without a reading; energy and
-   *  anxiety are null and are not a measurement of anything. */
+  /** Morning: the day was closed without a reading; energy and anxiety are
+   *  null and are not a measurement of anything. Evening: the shutdown prompt
+   *  was dismissed for the day and no ONE was chosen. */
   skipped?: boolean
+}
+
+/** One of tomorrow's 3, chosen at the shutdown. Slot 1 is the ONE. */
+export interface TomorrowSlot {
+  slot: 1 | 2 | 3
+  text: string
+  goal_id?: string | null
+  job?: string | null
 }
 
 export interface Ship {

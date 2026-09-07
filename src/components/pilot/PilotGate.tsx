@@ -130,6 +130,7 @@ export function PilotGate({ children, onIntent, onAnxious }: Props) {
     return (
       <MorningCheckin
         yesterday={state.yesterday}
+        lastEvening={state.last_evening}
         today={state.today}
         onDone={(next, intent, reading) => {
           setJustChose(next)

@@ -37,10 +37,37 @@ export interface TodayPick {
   goal_id: string | null
 }
 
+/** What today is for, from the morning check-in and last night's shutdown. */
+export interface TodayFrame {
+  /** The morning intent key (src/lib/pilotIntent.ts), e.g. 'outreach'. */
+  intent: string | null
+  venture: string | null
+  mode: 'green' | 'red' | null
+  /** True when the morning was skipped: no reading was given. */
+  skipped: boolean
+  /** Last night's ONE, when it was chosen for today. */
+  tomorrow_one: string | null
+  /** What he said shipped, at last night's shutdown. */
+  shipped_yesterday: string | null
+}
+
+/** One weekly objective from a past week, with how that week ended for it. */
+export interface WeekOutcome {
+  week_start: string
+  title: string
+  status: string
+}
+
 export interface GoalSpine {
   by_horizon: Record<Horizon, SpineGoal[]>
   /** Today's 3 from daily_focus (operator-civil date); empty when not locked. */
   today: TodayPick[]
+  /** The frame the day was opened with. Null fields when nothing was filed. */
+  frame: TodayFrame
+  /** The last four closed weeks of weekly objectives, newest first. */
+  history: WeekOutcome[]
+  /** The operator-civil Monday of the current week. */
+  current_week: string
   all: SpineGoal[]
   stale_count: number
   /** True when there is nothing to steer by, so callers can say so plainly. */
@@ -60,11 +87,15 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
   // service-role env, and goalsPrompt() is a pure renderer that must stay
   // importable without secrets.
   const { supabase } = await import('./_supabase.js')
-  const { getOperatorTz, ymdIn } = await import('./_timezone.js')
+  const { getOperatorTz, ymdIn, shiftYmd, weekOfIn } = await import('./_timezone.js')
   const tz = await getOperatorTz()
-  const todayYmd = ymdIn(new Date(), tz)
+  const now = new Date()
+  const todayYmd = ymdIn(now, tz)
+  const yesterdayYmd = shiftYmd(todayYmd, -1)
+  const currentWeek = weekOfIn(now, tz)
+  const historyFrom = shiftYmd(currentWeek, -28)
 
-  const [goalsRes, healthRes, focusRes] = await Promise.all([
+  const [goalsRes, healthRes, focusRes, morningRes, eveningRes, historyRes] = await Promise.all([
     supabase
       .from('goals')
       .select('id, title, horizon, parent_id, venture, job')
@@ -73,6 +104,23 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
       .order('created_at', { ascending: true }),
     supabase.from('goals_health').select('id, is_stale, days_since_touch'),
     supabase.from('daily_focus').select('*').eq('focus_date', todayYmd).maybeSingle(),
+    supabase.from('pilot_checkins').select('intent, venture, mode, skipped')
+      .eq('kind', 'morning').eq('checkin_date', todayYmd).maybeSingle(),
+    // Last night's shutdown is FOR today. A row dated today is red mode's
+    // morning ask, which also names today. Anything older is a past day.
+    supabase.from('pilot_checkins').select('tomorrow_one, shipped_today, checkin_date')
+      .eq('kind', 'evening').not('tomorrow_one', 'is', null)
+      .in('checkin_date', [yesterdayYmd, todayYmd])
+      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    // Closed weeks only: this week's set is already in the canon above.
+    supabase.from('goals').select('title, status, week_start')
+      .eq('horizon', 'weekly')
+      .gte('week_start', historyFrom)
+      .lt('week_start', currentWeek)
+      .in('status', ['done', 'missed', 'dropped'])
+      .order('week_start', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(12),
   ])
 
   const health = new Map(
@@ -113,9 +161,30 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
     }
   }
 
+  const morning = (morningRes.data || null) as { intent?: string | null; venture?: string | null; mode?: string | null; skipped?: boolean | null } | null
+  const evening = (eveningRes.data || null) as { tomorrow_one?: string | null; shipped_today?: string | null; checkin_date?: string | null } | null
+  const frame: TodayFrame = {
+    intent: morning?.intent ?? null,
+    venture: morning?.venture ?? null,
+    mode: morning?.mode === 'red' ? 'red' : morning?.mode === 'green' ? 'green' : null,
+    skipped: Boolean(morning?.skipped),
+    tomorrow_one: evening?.tomorrow_one ?? null,
+    // shipped_today is only "yesterday's" when the row is last night's.
+    shipped_yesterday: evening?.checkin_date === yesterdayYmd ? (evening?.shipped_today ?? null) : null,
+  }
+
+  const history: WeekOutcome[] = ((historyRes.data || []) as Array<Record<string, unknown>>).map(r => ({
+    week_start: String(r.week_start || ''),
+    title: String(r.title || ''),
+    status: String(r.status || ''),
+  }))
+
   return {
     by_horizon,
     today,
+    frame,
+    history,
+    current_week: currentWeek,
     all,
     stale_count: all.filter(g => g.is_stale).length,
     // "Empty" means no goals to steer by; an unlocked day does not make the
@@ -162,9 +231,22 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
   }
 
   if (spine.today.length > 0) {
-    lines.push(`TODAY'S 3 (locked for today; ✓ = done):`)
+    lines.push(`TODAY'S 3 (set for today; ✓ = done):`)
     for (const t of spine.today) {
       lines.push(`- ${t.done ? '✓ ' : ''}${t.text}`)
+    }
+  }
+
+  const frameLines = frameLinesFor(spine.frame)
+  if (frameLines.length > 0) {
+    lines.push(`TODAY'S FRAME (from this morning's check-in and last night's shutdown):`)
+    lines.push(...frameLines)
+  }
+
+  if (spine.history.length > 0) {
+    lines.push('LAST 4 WEEKS (each weekly objective and how its week ended):')
+    for (const h of spine.history) {
+      lines.push(`- week of ${h.week_start}: ${h.title} (${h.status})`)
     }
   }
 
@@ -180,6 +262,22 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
     )
   }
   return lines.join('\n')
+}
+
+function frameLinesFor(frame: TodayFrame | undefined): string[] {
+  if (!frame) return []
+  const out: string[] = []
+  if (frame.skipped) out.push('- morning check-in skipped: no reading today')
+  else {
+    const bits: string[] = []
+    if (frame.intent) bits.push(`today is for: ${frame.intent}`)
+    if (frame.venture) bits.push(`venture: ${frame.venture}`)
+    if (frame.mode) bits.push(frame.mode === 'red' ? 'red day: one action only' : 'green day: full dashboard')
+    if (bits.length) out.push(`- ${bits.join(', ')}`)
+  }
+  if (frame.tomorrow_one) out.push(`- the one thing that must leave the machine today: ${frame.tomorrow_one}`)
+  if (frame.shipped_yesterday) out.push(`- shipped yesterday: ${frame.shipped_yesterday}`)
+  return out
 }
 
 /** Convenience: load + render in one call, matching directionSpine(). */

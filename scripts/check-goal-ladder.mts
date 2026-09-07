@@ -16,6 +16,7 @@ let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
 
 const LADDER = 'src/components/goals/GoalLadder.tsx'
+const RITUAL = 'src/components/home/FocusRitual.tsx'
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
@@ -84,23 +85,34 @@ for (const home of ['src/components/desktop/DesktopHome.tsx', 'src/components/mo
   }
 }
 
-// ── 4. every horizon is reachable from the one editor ──────────────────────
-// The composer must be openable at both rungs, or a horizon exists that no UI
-// can enter (which is how two of the four old rungs sat empty for months).
+// ── 4. every horizon is reachable from ONE entry point ─────────────────────
+// Each rung has exactly one composer, or a horizon exists that no UI can
+// enter (which is how two of the four old rungs sat empty for months). The OS
+// goal is composed in the ladder (cold start only); weekly objectives are
+// composed in the Focus Ritual's weekly step and the ladder's "+ Add" opens
+// that step. The inline weekly composer the ladder used to carry pushed a
+// no-scroll Home off the frame and was a second editor for the same act.
 const ladder = readFileSync(LADDER, 'utf8')
-for (const hz of ['os', 'weekly']) {
-  if (!new RegExp(`openAdd\\('${hz}'\\)`).test(ladder)) {
-    bad(`horizon '${hz}' has no composer entry in the ladder, so it can never be entered`)
-  }
+const ritual = readFileSync(RITUAL, 'utf8')
+if (!/openAdd\('os'\)/.test(ladder)) {
+  bad("horizon 'os' has no composer entry in the ladder, so it can never be entered")
+}
+if (!/openAdd\('weekly'\)/.test(ladder) || !/openFocusRitual\('weekly'\)/.test(ladder)) {
+  bad("the ladder's weekly entry must open the Focus Ritual at the weekly step (openFocusRitual('weekly'))")
+}
+if (/New weekly objective/.test(ladder) || /horizon:\s*hz/.test(ladder)) {
+  bad('the ladder composes weekly goals inline again; the ritual is the one weekly composer')
+}
+if (!/horizon: 'weekly'/.test(ritual) || !/createGoal\(/.test(ritual)) {
+  bad('the Focus Ritual no longer creates weekly goals; the rung has no composer')
 }
 
-// ── 5. a non-OS rung must demand a parent ──────────────────────────────────
-// The asking UI moved from an inline "What does it serve?" select into the
-// shared <ServesPicker> (goals/GoalPickers.tsx) when dropdowns left the
-// write side; the invariant is the same — the composer renders a parent
-// chooser and save refuses without one.
-if (!/needsParent/.test(ladder) || !(/<ServesPicker\b/.test(ladder) || /What does it serve\?/.test(ladder))) {
-  bad('the ladder no longer forces a non-OS goal to name its parent; orphans will return')
+// ── 5. the weekly rung must demand a parent ────────────────────────────────
+// The asking UI is the shared <ServesPicker> (goals/GoalPickers.tsx) inside
+// the ritual's weekly step: the composer renders a parent chooser and add
+// refuses without one.
+if (!/<ServesPicker\b/.test(ritual) || !/!servesId/.test(ritual)) {
+  bad('the ritual no longer forces a weekly goal to name its parent; orphans will return')
 }
 
 // ── 6. no second DISPLAY of the OS rung ────────────────────────────────────

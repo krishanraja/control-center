@@ -19,6 +19,11 @@ of the findings below.
 | E. `VITE_HOME_V2_ENABLED` | **Closed, and it was a live bug.** The name is set nowhere; Vercel carries `VITE_UI_V2_ENABLED=true`, so a flag Krish turned on never rendered |
 | F. Hardcoded lists | **Closed.** `fleet-funnel` and `GoalLadder` read `venture_registry`; new `app_key` column binds lane slugs to short app keys |
 | G. Pinned MRR | **Closed.** `MRR_DISPLAY_OVERRIDE` removed; revenue now comes from Stripe |
+| H. Two weekly composers (2026-09-08) | **Closed.** `GoalLadder` composed weekly goals inline (expanding inside a no-scroll Home) while the Focus Ritual's weekly step composed the same rows. The ritual is the one weekly composer; the ladder's "+ Add" opens it. Guarded by `check-goal-ladder` rule 4 |
+| I. `pilot_checkins.tomorrow_one` vs `daily_focus` slot 1 (2026-09-08) | **Closed.** Two daily commitments on two clocks (the calibrator's seeding effect was a patch over it). The evening `POST /api/pilot/checkin` now writes both through `api/_dailyFocus.ts`; red mode and Home read the same save |
+| J. Weekly freshness by `updated_at` (2026-09-08) | **Closed.** `useAltitudes` guessed "this week" from a touched timestamp. `goals.week_start` (operator Monday) is the key; a Saturday cron closes the week as `missed`/done and Monday offers last week back |
+| K. `api/daily-focus/today.ts` | **Open by choice.** A server read of the same rows `useDailyFocus` reads directly; it has no callers in `src/`. Left in place for n8n or agents; delete when a caller audit says none exist |
+| L. Scorecard vs goal ladder | **Not a duplication.** Two target systems by design (ADR-016): the ladder is what Krish chooses, the scorecard is what the ledgers say happened |
 
 **What the pin was hiding.** Real revenue, all time: **$911.45 gross, $842.56
 net**, of which **76.9% was one single one-off payment** (A$1,000, no invoice,
