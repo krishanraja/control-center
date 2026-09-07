@@ -18,6 +18,11 @@ export type IdeaSourceType =
   /** A transferable move scraped from a curated creator's LinkedIn post, with
    *  Krish's differentiated take (api/discover-creator-posts.ts). */
   | 'creator_move'
+  /** One of Krish's own build weeks, read from GitHub by
+   *  api/discover-build-signals.ts and judged by the editorial radar as the
+   *  solo variant of Built with AI (and, for its pricing decisions, The Money
+   *  of AI). Flagged meta.mindmake_build. */
+  | 'build_signal'
 
 export type IdeaState =
   | 'seeded'
@@ -147,6 +152,19 @@ export interface ContentIdeaRow {
       cta_type?: string | null
     } | null
     krish_angle?: string | null
+    /** True on a build_signal source row and on the publication child routed
+     *  from it. The chip reads meta.build.public_name. */
+    mindmake_build?: boolean | null
+    build?: {
+      repo?: string | null
+      product_key?: string | null
+      public_name?: string | null
+      role?: string | null
+      mode?: 'named' | 'anonymous' | null
+      week_ending?: string | null
+      commit_count?: number | null
+      pr_count?: number | null
+    } | null
     why_it_works?: string | null
     connected_threads?: Array<{ type: 'content_idea' | 'zara_signal' | 'inspiration_doc'; id?: string; name?: string; title?: string }> | null
     falsifiable_test?: string | null

@@ -12,6 +12,7 @@ import {
 } from '../_editorialRadar.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
 import { supabase } from '../_supabase.js'
+import { buildSignalSummary, forbiddenTermsFor, buildProductFor, type BuildMeta } from '../_buildSignals.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -19,6 +20,7 @@ interface PoolIdeaRow {
   id: string
   idea: string
   thesis: string | null
+  source_type: string
   source_url: string | null
   source_captured_at: string | null
   created_at: string
@@ -29,6 +31,16 @@ interface PoolIdeaRow {
 const MAX_SIGNALS = 20
 const LOOKBACK_HOURS = 96
 const REUSE_HOURS = 20
+/** The neutral source types the radar judges. A pool headline is the news
+ *  corpus; a build signal is one of Krish's own build weeks
+ *  (api/discover-build-signals.ts). Both get the same two independent
+ *  readings; only the build carries extra rules, see api/_editorialRadar.ts. */
+const RADAR_SOURCE_TYPES = ['pool_headline', 'build_signal'] as const
+/** Build rows are few and live 21 days (SIGNAL_TTL_DAYS in
+ *  api/_buildSignals.ts), so they stay judgeable for longer than a rolling
+ *  headline: the Saturday ingest must still be in view for every refresh
+ *  until it expires. */
+const BUILD_LOOKBACK_HOURS = 24 * 21
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
@@ -46,7 +58,35 @@ function sourceUrls(row: PoolIdeaRow): string[] {
   }))]
 }
 
+function buildMetaOf(row: PoolIdeaRow): BuildMeta | null {
+  if (row.source_type !== 'build_signal') return null
+  const meta = asRecord(row.meta)
+  const build = asRecord(meta.build)
+  return typeof build.repo === 'string' && typeof build.public_name === 'string' ? build as unknown as BuildMeta : null
+}
+
 function toSignal(row: PoolIdeaRow): EditorialSignalV2 {
+  const build = buildMetaOf(row)
+  if (build) {
+    const product = buildProductFor(build.repo)
+    const urls = [row.source_url, ...build.prs.map(p => p.url)].filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u))
+    return {
+      id: row.id,
+      title: row.idea,
+      summary: buildSignalSummary(build),
+      occurred_at: row.source_captured_at || row.created_at,
+      source_urls: [...new Set(urls)],
+      corroboration: Math.max(1, build.commit_count || 0),
+      category: 'mindmake_build',
+      build: {
+        public_name: product.public_name,
+        role: product.role,
+        mode: product.mode,
+        never_reveal: product.never_reveal,
+        forbidden_terms: forbiddenTermsFor(product),
+      },
+    }
+  }
   const pool = asRecord(asRecord(row.meta).pool)
   return {
     id: row.id,
@@ -68,12 +108,13 @@ function needsRefresh(row: PoolIdeaRow, signal: EditorialSignalV2, now: Date): b
 }
 
 async function runLens(series: EditorialSeries, signals: EditorialSignalV2[], voice: string, corpus: string) {
+  const hasBuild = signals.some((signal) => Boolean(signal.build))
   const raw = await callClaude({
     agent: `editorial-radar-${series}`,
     model: SYNTHESIS_MODEL,
     maxTokens: 8000,
     think: true,
-    system: buildEditorialLensSystemPrompt(series, voice, corpusForChannel(corpus, series)),
+    system: buildEditorialLensSystemPrompt(series, voice, corpusForChannel(corpus, series), hasBuild),
     user: buildEditorialLensUserPrompt(signals),
   })
   return parseEditorialLensResponse(robustJson(raw), series, signals)
@@ -83,17 +124,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardBearerExport(req, res, 'CRON_SECRET', ['GET'])) return
   const now = new Date()
   const since = new Date(now.getTime() - LOOKBACK_HOURS * 3_600_000).toISOString()
+  const buildSince = new Date(now.getTime() - BUILD_LOOKBACK_HOURS * 3_600_000).toISOString()
   try {
-    const { data, error } = await supabase
-      .from('content_ideas')
-      .select('id,idea,thesis,source_url,source_captured_at,created_at,updated_at,meta')
-      .eq('source_type', 'pool_headline')
-      .gte('source_captured_at', since)
-      .order('source_captured_at', { ascending: false, nullsFirst: false })
-      .limit(50)
-    if (error) throw new Error(`content_opportunity_read_failed:${error.message}`)
+    // Two reads, not one: a single ordered read capped at N would let a busy
+    // news week push last Saturday's build rows past the cap.
+    const [headlines, builds] = await Promise.all([
+      supabase
+        .from('content_ideas')
+        .select('id,idea,thesis,source_type,source_url,source_captured_at,created_at,updated_at,meta')
+        .eq('source_type', RADAR_SOURCE_TYPES[0])
+        .gte('source_captured_at', since)
+        .order('source_captured_at', { ascending: false, nullsFirst: false })
+        .limit(50),
+      supabase
+        .from('content_ideas')
+        .select('id,idea,thesis,source_type,source_url,source_captured_at,created_at,updated_at,meta')
+        .eq('source_type', RADAR_SOURCE_TYPES[1])
+        .is('parent_idea_id', null)
+        .is('buried_at', null)
+        .gte('source_captured_at', buildSince)
+        .order('source_captured_at', { ascending: false, nullsFirst: false })
+        .limit(16),
+    ])
+    if (headlines.error) throw new Error(`content_opportunity_read_failed:${headlines.error.message}`)
+    if (builds.error) throw new Error(`content_opportunity_read_failed:${builds.error.message}`)
 
-    const rows = (data || []) as PoolIdeaRow[]
+    // Builds first: they are few, owned, and the reason the solo variant exists.
+    const rows = [...((builds.data || []) as PoolIdeaRow[]), ...((headlines.data || []) as PoolIdeaRow[])]
     const selected = rows
       .map((row) => ({ row, signal: toSignal(row) }))
       .filter(({ row, signal }) => needsRefresh(row, signal, now))

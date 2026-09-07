@@ -212,6 +212,10 @@ jobs:
       # One neutral source, independent series judgements, one approved child
       # lineage and no second Content UI.
       - run: npm run check:content-spine
+      # Krish's own builds as Content Engine supply: five named products,
+      # everything else anonymous, no figure in a Money of AI candidate, one
+      # source type declared in three places, the Saturday cron wired.
+      - run: npm run check:build-signals
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it

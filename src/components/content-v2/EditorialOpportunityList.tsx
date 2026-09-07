@@ -42,7 +42,13 @@ export function EditorialOpportunityList({ ideas, seriesKey }: { ideas: ContentI
               <span className={`text-micro font-semibold uppercase tracking-[0.14em] ${opportunity.status === 'eligible' ? 'text-emerald-300' : 'text-amber-200'}`}>
                 {opportunity.status === 'eligible' ? 'Ready' : 'Needs a judgement'}
               </span>
-              <span className="text-micro text-white/35">{opportunity.corroboration} source{opportunity.corroboration === 1 ? '' : 's'}</span>
+              {idea.meta?.mindmake_build ? (
+                <span className="text-micro font-semibold text-emerald-200/80">
+                  Mindmake build{idea.meta?.build?.public_name ? `, ${idea.meta.build.public_name}` : ''}
+                </span>
+              ) : (
+                <span className="text-micro text-white/35">{opportunity.corroboration} source{opportunity.corroboration === 1 ? '' : 's'}</span>
+              )}
             </div>
             <div className="mt-1 break-words text-body font-semibold leading-snug text-white/90 group-hover:text-white">
               {opportunity.title || opportunity.angle || idea.idea}

@@ -133,6 +133,10 @@
       "schedule": "0 4 * * 6"
     },
     {
+      "path": "/api/discover-build-signals",
+      "schedule": "0 5 * * 6"
+    },
+    {
       "path": "/api/scorecard/friday",
       "schedule": "30 4 * * 6"
     }
@@ -157,6 +161,9 @@
       "maxDuration": 300
     },
     "api/scorecard/github-sync.ts": {
+      "maxDuration": 120
+    },
+    "api/discover-build-signals.ts": {
       "maxDuration": 120
     },
     "api/scorecard/monday.ts": {

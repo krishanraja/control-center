@@ -9,6 +9,7 @@ import {
   WEEKS, TARGETS, COLUMNS, STOP_RULE, DAY_90,
   weekEndingFor, loadRows, weekValues, sumValues, gapTo, isMissingTable, fmtYmd,
 } from '../_scorecard.js'
+import { buildProductFor, ANONYMOUS_PUBLIC_NAME } from '../_buildSignals.js'
 
 // The Monday scorecard (job 2, keep him honest).
 //
@@ -80,6 +81,57 @@ async function draftedPiece(week: string): Promise<{ title: string | null; statu
   }
 }
 
+/** The week's builds, per the charter's "public by default" standard: every
+ *  build is shown or announced the week it exists, and the Monday note lists
+ *  them. Commit counts come from the same build_activity_weeks row the
+ *  tripwire reads; the count of offered signals comes from the build_signal
+ *  rows the Saturday ingest wrote, with where they stand in the editorial
+ *  radar. Named products are named; every other repo folds into one
+ *  anonymous line. */
+async function builtLastWeek(weekEnding: string): Promise<string[]> {
+  const lines: string[] = []
+  try {
+    const activity = await supabase.from('build_activity_weeks')
+      .select('commits, repos').eq('week_ending', weekEnding).maybeSingle()
+    if (activity.error && !isMissingTable(activity.error)) throw new Error(`build_activity_weeks: ${activity.error.message}`)
+    const repos = (activity.data as { repos?: { repo: string; commits: number }[] | null } | null)?.repos || []
+    let anonymous = 0
+    for (const r of repos) {
+      if (!r.commits) continue
+      const product = buildProductFor(r.repo)
+      if (product.mode === 'named') lines.push(`  ${product.public_name}: ${r.commits} ${r.commits === 1 ? 'commit' : 'commits'}`)
+      else anonymous += r.commits
+    }
+    if (anonymous) lines.push(`  ${ANONYMOUS_PUBLIC_NAME}s: ${anonymous} ${anonymous === 1 ? 'commit' : 'commits'}`)
+  } catch (err) {
+    if (!isMissingTable(err as { code?: string; message?: string })) throw err
+  }
+  try {
+    // source_ref is build:<repo>:<week_ending>; there is no week column.
+    const rows = await supabase.from('content_ideas')
+      .select('idea, meta')
+      .eq('source_type', 'build_signal')
+      .is('parent_idea_id', null)
+      .like('source_ref', `build:%:${weekEnding}`)
+      .limit(20)
+    if (rows.error) throw new Error(`build_signal: ${rows.error.message}`)
+    let eligible = 0
+    let judged = 0
+    for (const row of (rows.data || []) as { meta: Record<string, unknown> | null }[]) {
+      const radar = row.meta && typeof row.meta.editorial_radar === 'object' ? row.meta.editorial_radar as Record<string, unknown> : null
+      const lenses = radar && typeof radar.lenses === 'object' ? radar.lenses as Record<string, { status?: string } | undefined> : null
+      if (!lenses) continue
+      judged += 1
+      if (lenses.money_of_ai?.status === 'eligible' || lenses.built_with_ai?.status === 'eligible') eligible += 1
+    }
+    const n = (rows.data || []).length
+    if (n) lines.push(`  ${n} build ${n === 1 ? 'signal' : 'signals'} offered to the Content tab, ${judged} judged, ${eligible} with an angle ready to shape.`)
+  } catch (err) {
+    if (!isMissingTable(err as { code?: string; message?: string })) throw err
+  }
+  return lines
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardCronRoute(req, res)) return
 
@@ -120,6 +172,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ? `  ${c.label}: ${totals.unasked_hours}h to date against a target of 0`
         : `  ${c.label}: ${totals[c.key]} of ${t}, ${gap[c.key]} to go`)
     }
+    lines.push('')
+    const built = await builtLastWeek(lastWeek)
+    lines.push(built.length ? 'Built last week:' : 'Built last week: nothing recorded.')
+    lines.push(...built)
     lines.push('')
     if (drafted.count > 0) {
       lines.push(`${drafted.count} drafted ${drafted.count === 1 ? 'approach' : 'approaches'} waiting to send${drafted.names.length ? `: ${drafted.names.join(', ')}` : ''}.`)

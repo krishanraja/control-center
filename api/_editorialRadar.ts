@@ -9,6 +9,18 @@ export type EditorialSeries = typeof EDITORIAL_SERIES[number]
 
 type JsonRecord = Record<string, unknown>
 
+/** Present when the signal is one of Krish's own build weeks
+ *  (api/_buildSignals.ts). The lens reads it to know what may be named and
+ *  what may never be revealed; the parser enforces both deterministically. */
+export interface EditorialBuildContext {
+  public_name: string
+  role: string
+  mode: 'named' | 'anonymous'
+  never_reveal: string | null
+  /** Names of an anonymous repo that must not appear in a candidate. */
+  forbidden_terms: string[]
+}
+
 export interface EditorialSignalV2 {
   id: string
   title: string
@@ -17,6 +29,25 @@ export interface EditorialSignalV2 {
   source_urls: string[]
   corroboration: number
   category: string
+  build?: EditorialBuildContext | null
+}
+
+/** A disclosed amount of money. The Money of AI may read a build for the
+ *  pricing, packaging or positioning decision inside it, never for the
+ *  number: revenue, price, cash and the rate card are private (canon,
+ *  mindmake/project-documentation/01_CANON.md, Pricing). Enforced in code
+ *  because a prompt rule loses to a vivid figure every time. */
+export const MONEY_FIGURE = /(?:[$£€]\s?\d[\d,.]*[kKmM]?\b|\b\d[\d,.]*\s?(?:usd|gbp|eur|aud|dollars|pounds|euros)\b|\bMRR\b|\bARR\b|\brevenue\s+(?:of|was|is|at|hit|reached)\s+\d|\bper\s+(?:month|year|week)\s+in\s+revenue\b)/i
+
+export function namesForbiddenTerm(text: string, terms: string[]): string | null {
+  const lower = text.toLowerCase()
+  for (const t of terms) {
+    const term = t.toLowerCase().trim()
+    if (!term) continue
+    const re = new RegExp(`(^|[^a-z0-9])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`, 'i')
+    if (re.test(lower)) return t
+  }
+  return null
 }
 
 export interface EditorialOpportunityV2 {
@@ -105,7 +136,30 @@ export function editorialSignalHash(signal: EditorialSignalV2): string {
   })).digest('hex')
 }
 
-export function buildEditorialLensSystemPrompt(series: EditorialSeries, voice: string, corpus: string): string {
+/** The extra rules that apply when the batch carries one of Krish's own
+ *  builds. Appended only then, so pool headlines are judged exactly as
+ *  before and are not regenerated at cost. */
+export function buildLensBlock(series: EditorialSeries): string {
+  const shared = [
+    'MINDMAKE BUILDS',
+    'Some signals carry a "build" field. Those are Krish\'s own builds for the week: his commits, merged pull requests and build logs, so the owned artifact is real and the rights are his.',
+    'When build.mode is "named", use build.public_name and nothing else for the product. When build.mode is "anonymous", never name the repository, the product, its domain, its purpose or its users; call it a side build. Never reveal anything listed in build.never_reveal.',
+    'Never invent a number, a failure or a quotation that the commit text does not contain. Where the record is thin, say what is missing in strongest_failure rather than filling it.',
+  ]
+  const lens = series === 'built_with_ai'
+    ? [
+        'This is the solo variant of Built with AI: Krish is the builder, held to the same three-why standard as a guest. Surface why, then strategic why, then the human why. The third why is the piece.',
+        'Enter through the strange decision, the failure that forced the build, or the first imperfect version, never through the feature list. A candidate that is mostly a list of tools, files or features is no_angle.',
+        'Prefer the commit or PR body that names a wrong assumption, a silent failure or a number that surprised him. The mechanism must be one a builder can reuse.',
+      ]
+    : [
+        'The Money of AI reads a build only for the pricing, packaging, positioning, monetisation or unit-economics decision inside it: what was made private, what was made free, what the product refuses to sell, what a run costs and why, who pays.',
+        'Never state revenue, price, cash, MRR, a rate card or a target figure. Reasoning about the decision is the piece; the number is not. If the build carries no money decision, return no_angle.',
+      ]
+  return [...shared, ...lens].join('\n')
+}
+
+export function buildEditorialLensSystemPrompt(series: EditorialSeries, voice: string, corpus: string, includeBuildLens = false): string {
   const lens = series === 'money_of_ai'
     ? [
         'THE MONEY OF AI LENS',
@@ -125,6 +179,7 @@ export function buildEditorialLensSystemPrompt(series: EditorialSeries, voice: s
     'Be demanding about semantic meaning, audience value, novelty and proof. Content for content sake is a failure.',
     'Avoid generic advice, bossy language, marketing slogans, AI clichés, fake certainty and em dashes.',
     lens,
+    includeBuildLens ? buildLensBlock(series) : '',
     voice ? `KRISH VOICE\n${voice.slice(0, 5000)}` : '',
     corpus ? `CHANNEL CORPUS\n${corpus.slice(0, 6500)}` : '',
     `Reply only with JSON: {"opportunities":[{"signal_id":"id","status":"candidate|no_angle","no_angle_reason":"required when no_angle","title":"","angle":"","audience_problem":"","why_now":"","proposed_hook":"","honest_payoff":"","mechanism":"","visual_proof":"","source_mode":"extract|short_native","production_effort":"low|medium|high","strongest_failure":"","safer_version":"","ambitious_version":"","recommended_version":"","recommendation_reason":"","credible_contradiction":"or No credible contradiction found","editorial":{"truth":true,"evidence":true,"confidentiality":true,"rights":true,"series_fit":true,"meaningful_mechanism":true},"growth":{"first_beat_tension":0,"clarity":0,"surprise":0,"payoff":0,"delivery_strength":0,"visual_proof":0,"share_save_usefulness":0,"qualified_audience_fit":0,"novelty":0}}]}. Scores are 0 to 10. Include every signal exactly once.`,
@@ -140,6 +195,12 @@ export function buildEditorialLensUserPrompt(signals: EditorialSignalV2[]): stri
       occurred_at: signal.occurred_at,
       corroboration: signal.corroboration,
       category: signal.category,
+      ...(signal.build ? { build: {
+        public_name: signal.build.public_name,
+        role: signal.build.role,
+        mode: signal.build.mode,
+        never_reveal: signal.build.never_reveal,
+      } } : {}),
     })),
   })
 }
@@ -240,6 +301,16 @@ export function parseEditorialLensResponse(
     }
     if (series === 'money_of_ai' && !onTeardownBeat(`${title || ''} ${angle || ''}`, mechanism)) {
       hardBlocks.push('The Money of AI candidate does not establish a second-order commercial or labour mechanism.')
+    }
+    if (signal.build) {
+      const candidateText = [title, angle, mechanism, text(raw.proposed_hook, 240), text(raw.honest_payoff), text(raw.recommended_version), text(raw.visual_proof)].filter(Boolean).join(' ')
+      if (series === 'money_of_ai' && MONEY_FIGURE.test(candidateText)) {
+        hardBlocks.push('A revenue or price figure appears. The Money of AI reads a build for its pricing decision, never its numbers.')
+      }
+      if (signal.build.mode === 'anonymous') {
+        const named = namesForbiddenTerm(candidateText, signal.build.forbidden_terms)
+        if (named) hardBlocks.push(`The candidate names an anonymous build ("${named}"). Side builds are never named.`)
+      }
     }
 
     const softBlocks: string[] = []

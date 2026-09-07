@@ -43,6 +43,31 @@ output. The existing architecture is the foundation, not something to replace.
 Exactly one next action: verify P-18 in the authenticated Vercel preview, then
 merge it or repair the exact failing state before beginning P-19.
 
+### 2026-09-07 addition: build signals (Krish's own builds as supply)
+
+Krish asked for what he builds, and why, to feed the Content Engine under
+Built with AI, flagged as a Mindmake build. Shipped on branch
+`claude/content-engine-mindmake-builds-tlvsu6` as one new `source_type`
+inside the spine above, not a new pipeline. Spec
+`docs/CONTENT-ENGINE-BUILD-SIGNALS.md`; first week's packet and per-repo doc
+audit `docs/audits/2026-09-07-build-signals-week-37.md`.
+
+- `api/discover-build-signals.ts` (Sat 05:00 UTC, after the scorecard's
+  github-sync) writes one `content_ideas` row per repo-week, `source_type`
+  `build_signal`, `meta.mindmake_build = true`, expiring after 21 days if
+  undecided. Same token and repo list as the Rule 6 tripwire.
+- `api/content-opportunities/refresh.ts` reads `build_signal` beside
+  `pool_headline`; `api/_editorialRadar.ts` appends a build block to the lens
+  only when the batch carries one (solo variant, three whys on Krish, no
+  figures in The Money of AI, side builds never named) and enforces the last
+  two in code.
+- Registry in `api/_buildSignals.ts`: five nameable products, everything else
+  "a side build". Guard: `scripts/check-build-signals.mts` (CI).
+- The routed publication child keeps the flag; the chip reads "Mindmake
+  build, <public name>". The Monday note lists the week's builds.
+- Migration `20260907160000_build_signals.sql`: the CHECK and a live
+  source_ref unique index. Not yet applied to production.
+
 The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest state machine, advance=develop (not relabel), server guard against zombie review cards, one count source with honest labels, state-aware inline actions, a "Do this next" hero (with inline schedule) that removes all next-action ambiguity, and a Composer that flows finish→next. **All planned phases (P-3..P-16) are now DONE, done-as-existing, or done-lean.** Canonical architecture doc §changelog updated (2026-06-17 entry). Everything merged to main and prod-verified (render + server guard). The only thing NOT exercised on prod is the mutating click-through of Approve/Schedule on real content — left for Krish, since those are real content decisions.
 
 ---

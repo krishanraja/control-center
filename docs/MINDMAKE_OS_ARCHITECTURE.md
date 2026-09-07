@@ -2305,6 +2305,19 @@ docs/audits/                                                 # Closure architect
 
 ## 20. Recent architectural changes - rolling changelog
 
+### 2026-09-07: build signals, Krish's own builds as Content Engine supply
+
+**The ask (Krish).** What he builds, and why, should feed the Content Engine under Built with AI, flagged as a Mindmake build; the five named products may be named, everything else is usable but never named; The Money of AI may carry pricing, positioning and monetisation decisions but no revenue.
+
+**What shipped** (branch `claude/content-engine-mindmake-builds-tlvsu6`; spec `docs/CONTENT-ENGINE-BUILD-SIGNALS.md`; first packet `docs/audits/2026-09-07-build-signals-week-37.md`).
+- **`api/discover-build-signals.ts`**, Vercel cron Sat 05:00 UTC, one hour after `api/scorecard/github-sync.ts` has counted the same commits as unasked hours. Same `GITHUB_TOKEN` and `GITHUB_REPOS`. Writes ONE `content_ideas` row per repo-week: `source_type='build_signal'`, `meta.mindmake_build=true`, `meta.build` carrying PRs, commit subjects, the commit and PR bodies over 200 chars, diffstat and a README or build-log excerpt; `expires_at` 21 days out so an undecided week purges like any seed. Governor at 12 undecided rows, cap 8 per run, `source_ref` refresh on re-run, `checkDuplicate`, and the partial unique index `content_ideas_build_signal_ref_live_uq`. Unconfigured, it says `github_not_configured` and writes nothing.
+- **The registry** (`api/_buildSignals.ts`): exactly five nameable products with their public names (Control Center; the Mindmake site; CTRL; contentarchives; video-studio). Every other repo is "a side build" with a never-reveal note; the job-search tool and the narration product carry extra notes. `scripts/check-build-signals.mts` (CI) fails on a sixth name or a renamed one.
+- **The radar** (`api/content-opportunities/refresh.ts`, `api/_editorialRadar.ts`): reads `build_signal` beside `pool_headline` in two queries so a busy news week cannot push last Saturday's rows past the cap; appends a build block to the lens prompt only when the batch carries a build (the solo variant of Built with AI held to the three-why standard on Krish; The Money of AI reads a build for its pricing decision, never a figure). Two deterministic hard blocks: `MONEY_FIGURE` rejects a disclosed amount in a Money candidate; `namesForbiddenTerm` rejects a candidate that names an anonymous repo.
+- **Plumbing**: migration `20260907160000_build_signals.sql` (CHECK plus index, not yet applied), `ALLOWED_SOURCE`, `IdeaSourceType`, `LeadSourcePill` ("Mindmake build"), the opportunity card chip, and the editorial route copying `meta.mindmake_build` and `meta.build` onto the publication child.
+- **The Monday note** gains "Built last week" per the charter's public-by-default standard: commits per named product, one anonymous line, and how many signals were offered, judged and found an angle.
+
+**Why one signal per repo-week.** The target is one published piece a week; one Built and one Money candidate per repo per week is the right supply, and the highlights carry every long body so the writer can dig. Counterpoint recorded: this branch's own commits register on the tripwire.
+
 ### 2026-09-02: favorite creators become a scraped, gated inspiration lane (the creator scout)
 
 **The ask (Krish).** The LinkedIn writers he rates (Andreas Horn and Alex Lieberman first) should feed the content engine's proactive suggestions. His calls: auto-scrape weekly AND keep the manual Drive-screenshot lane; deliver as pushed idea cards, not rail candidates; manage the list in the database with no UI yet.

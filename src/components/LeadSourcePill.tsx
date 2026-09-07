@@ -37,6 +37,7 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   synthesis:            { label: 'Synthesis',            icon: GitMerge, tone: 'text-violet-200 bg-violet-500/15 border-violet-400/30' },
   lane_sourcing:        { label: 'Lane sourcing',        icon: Wand2,    tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
   creator_move:         { label: 'Creator move',         icon: Users,    tone: 'text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20' },
+  build_signal:         { label: 'Mindmake build',       icon: GitMerge, tone: 'text-emerald-200 bg-emerald-500/10 border-emerald-500/20' },
 }
 
 interface Props {

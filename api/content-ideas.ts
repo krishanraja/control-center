@@ -49,6 +49,7 @@ const ALLOWED_SOURCE = new Set([
   'lens_radar',
   'manual',
   'creator_move',
+  'build_signal',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
