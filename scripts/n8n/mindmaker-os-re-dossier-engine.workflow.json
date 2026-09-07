@@ -1,0 +1,549 @@
+{
+  "name": "Mindmaker OS | RE Dossier Engine",
+  "active": true,
+  "nodes": [
+    {
+      "id": "85da9a33-634d-49f6-8068-0ee954b41de7",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        400
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "53c5e660-d277-4142-854e-b01180272a1a",
+      "name": "Fetch Hot Contacts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacts?select=id,full_name,first_name,last_name,email,linkedin_url,company,title,origin_venture,origin_campaign,consent_tier,heat_score,fit_scores,primary_venture,primary_play_type&and=(triage_status.eq.triaged)&or=(enrichment_status.eq.queued,consent_tier.in.(warm,customer))&dossier=is.null&order=heat_score.desc&limit=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "8340c8ae-0459-45bd-a279-2c618dcac365",
+      "name": "Heartbeat workflow_runs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: $workflow.id, workflow_name: $workflow.name, agent_id: 'agatha', outcome: 'success', status: 'success', cost_estimate_usd: 0.06, api_calls_count: 6 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "fc980130-7158-4a6e-acc0-cb49ed4cfb76",
+      "name": "Pass 1 - Brave Resolve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent(($json.full_name || '') + ' ' + ($json.company || '') + ' ' + ($json.title || '') + ' LinkedIn role') }}&count=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iZ4rGHcvsTUEPmy6",
+          "name": "Brave Search API"
+        }
+      }
+    },
+    {
+      "id": "be1e3474-7903-479f-8aac-90b4e4eeb539",
+      "name": "Pass 2 - Perplexity Public Voice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1200,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'sonar-pro', max_tokens: 900, messages: [{ role: 'system', content: 'You research a person\\'s recent public voice. Return 4-7 tight bullet points: their recent posts, talks, interviews, or news from the last ~12 months, and the themes they care about right now. Be specific and factual. If you cannot find them, say so plainly.' }, { role: 'user', content: 'Person: ' + ($('Loop Each Contact').item.json.full_name || '') + '. Company: ' + ($('Loop Each Contact').item.json.company || '') + '. Title: ' + ($('Loop Each Contact').item.json.title || '') + '. LinkedIn: ' + ($('Loop Each Contact').item.json.linkedin_url || 'unknown') + '. What are their current themes and what do they care about now?' }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "perplexityApi": {
+          "id": "RtaqJmoj4e469ZMx",
+          "name": "Perplexity account 2026-05-27b"
+        }
+      }
+    },
+    {
+      "id": "bcb48d6d-c257-4645-837c-256c3454c3b6",
+      "name": "Pass 3 - Gmail Private Graph",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        400
+      ],
+      "parameters": {
+        "resource": "thread",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 8,
+        "filters": {
+          "q": "={{ ($('Loop Each Contact').item.json.email && $('Loop Each Contact').item.json.email.length > 3) ? $('Loop Each Contact').item.json.email : ($('Loop Each Contact').item.json.full_name || 'zzzznoresultzzzz') }}"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lHiqteKckU5IUxQ6",
+          "name": "Gmail account"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "webhookId": "e01c9355-eaef-4ce1-aea2-08b54fdae087"
+    },
+    {
+      "id": "4e12b4ef-3a31-4fa8-90a2-aeb2de6b088f",
+      "name": "Assemble Research Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const contact = $('Loop Each Contact').first().json;\n\nlet brave = [];\ntry { const b = $('Pass 1 - Brave Resolve').first().json; brave = (b && b.web && Array.isArray(b.web.results)) ? b.web.results.slice(0, 5).map(r => ({ title: r.title, url: r.url, description: r.description })) : []; } catch (e) { brave = []; }\n\nlet publicVoice = '';\ntry { const p = $('Pass 2 - Perplexity Public Voice').first().json; publicVoice = (p && p.choices && p.choices[0] && p.choices[0].message) ? (p.choices[0].message.content || '') : ''; } catch (e) { publicVoice = ''; }\n\nlet threads = [];\ntry { threads = $('Pass 3 - Gmail Private Graph').all().map(i => ({ id: i.json.id, snippet: i.json.snippet })).filter(t => t && t.snippet); } catch (e) { threads = []; }\nconst hasEmail = !!(contact.email && String(contact.email).length > 3);\n\nreturn [{ json: {\n  contact,\n  research: {\n    brave_results: brave,\n    public_voice: publicVoice,\n    email_threads: hasEmail ? threads : [],\n    private_graph_skipped: !hasEmail,\n    calendar_skipped: true\n  }\n} }];"
+      }
+    },
+    {
+      "id": "c635480b-980d-44fd-8c22-dbadacf1be5a",
+      "name": "Pass 4 - Sonnet Cross-Venture",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1920,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1400, system: 'You are the Mindmaker OS Relationship Engine. Synthesize how each of Krish Raja\\'s ventures connects to this specific person, using their fit_scores and the venture context. Krish\\'s ventures: Mindmaker (AI advisory + the CTRL product for AI-fluent executives), plus adjacent plays implied by primary_venture / primary_play_type. Return ONLY a JSON object: { per_venture_angle: [ { venture: string, why_this_person: string (1-2 sentences, specific), opening_wedge: string } ], strongest_venture: string }. Ground every angle in the research provided. No prose outside the JSON.', messages: [{ role: 'user', content: 'CONTACT: ' + JSON.stringify($json.contact) + '\\n\\nFIT_SCORES: ' + JSON.stringify($json.contact.fit_scores || {}) + '\\n\\nRESEARCH: ' + JSON.stringify($json.research) }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eoursuitt7vHBbP6",
+          "name": "Anthropic Header"
+        }
+      }
+    },
+    {
+      "id": "24da32a6-6165-403b-8113-3c6d442fcee8",
+      "name": "Parse Cross-Venture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst blocks = (item.json && item.json.content) || [];\nconst text = Array.isArray(blocks) ? blocks.map(b => b.text || '').join('\\n').trim() : '';\nlet cross = null;\ntry { const a = text.indexOf('{'); const b = text.lastIndexOf('}'); if (a >= 0 && b > a) cross = JSON.parse(text.slice(a, b + 1)); } catch (e) { cross = null; }\nconst ctx = $('Assemble Research Context').first().json;\nreturn [{ json: { contact: ctx.contact, research: ctx.research, cross_venture: cross || { per_venture_angle: [], strongest_venture: null, parse_failed: true } } }];"
+      }
+    },
+    {
+      "id": "745e0cac-15aa-4895-bbde-6cd368969613",
+      "name": "Pass 5 - Sonnet Meeting Weapon",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2400,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1600, system: 'You write the final pre-meeting brief that makes Krish Raja look epic walking into a room with this person. Use ALL prior research and the cross-venture synthesis. Return ONLY a JSON object with EXACTLY these keys: { who_they_are: string, what_they_care_about_now: string, shared_history: string, per_venture_angle: array (carry forward / refine the cross-venture angles), the_one_move: string (the single highest-leverage thing Krish can do or say that makes him look epic), suggested_opener: string (a specific, natural opening line Krish can actually say) }. Be concrete and specific. If shared_history is empty, say there is no prior contact. No prose outside the JSON.', messages: [{ role: 'user', content: 'CONTACT: ' + JSON.stringify($json.contact) + '\\n\\nRESEARCH: ' + JSON.stringify($json.research) + '\\n\\nCROSS_VENTURE: ' + JSON.stringify($json.cross_venture) }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eoursuitt7vHBbP6",
+          "name": "Anthropic Header"
+        }
+      }
+    },
+    {
+      "id": "659482ed-fa86-49b0-91b3-28eea687c6d6",
+      "name": "Assemble Dossier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst blocks = (item.json && item.json.content) || [];\nconst text = Array.isArray(blocks) ? blocks.map(b => b.text || '').join('\\n').trim() : '';\nlet weapon = null;\ntry { const a = text.indexOf('{'); const b = text.lastIndexOf('}'); if (a >= 0 && b > a) weapon = JSON.parse(text.slice(a, b + 1)); } catch (e) { weapon = null; }\nconst prev = $('Parse Cross-Venture').first().json;\nconst contact = prev.contact;\nconst dossier = {\n  generated_at: new Date().toISOString(),\n  engine: 'RE Dossier Engine v1',\n  model: 'claude-sonnet-4-6',\n  pass1_resolve: prev.research.brave_results || [],\n  pass2_public_voice: prev.research.public_voice || '',\n  pass3_private_graph: { email_threads: prev.research.email_threads || [], skipped: !!prev.research.private_graph_skipped, calendar_skipped: !!prev.research.calendar_skipped },\n  pass4_cross_venture: prev.cross_venture || {},\n  pass5_meeting_weapon: weapon || { parse_failed: true }\n};\nreturn [{ json: { id: contact.id, full_name: contact.full_name || '', dossier, meeting_weapon: weapon || {} } }];"
+      }
+    },
+    {
+      "id": "8d23a751-3235-4338-9619-abeab04bab9a",
+      "name": "Write Dossier Back",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2880,
+        400
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacts?id=eq.{{ $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dossier: $json.dossier, enrichment_status: 'enriched', deep_enriched_at: new Date().toISOString() }) }}"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "cffdac11-c5f0-4690-b529-a5c4fed164ec",
+      "name": "Loop Each Contact",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        720,
+        400
+      ],
+      "parameters": {
+        "batchSize": 1
+      }
+    }
+  ],
+  "connections": {
+    "Fetch Hot Contacts": {
+      "main": [
+        [
+          {
+            "node": "Loop Each Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass 1 - Brave Resolve": {
+      "main": [
+        [
+          {
+            "node": "Pass 2 - Perplexity Public Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass 2 - Perplexity Public Voice": {
+      "main": [
+        [
+          {
+            "node": "Pass 3 - Gmail Private Graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass 3 - Gmail Private Graph": {
+      "main": [
+        [
+          {
+            "node": "Assemble Research Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Research Context": {
+      "main": [
+        [
+          {
+            "node": "Pass 4 - Sonnet Cross-Venture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass 4 - Sonnet Cross-Venture": {
+      "main": [
+        [
+          {
+            "node": "Parse Cross-Venture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Cross-Venture": {
+      "main": [
+        [
+          {
+            "node": "Pass 5 - Sonnet Meeting Weapon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass 5 - Sonnet Meeting Weapon": {
+      "main": [
+        [
+          {
+            "node": "Assemble Dossier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Dossier": {
+      "main": [
+        [
+          {
+            "node": "Write Dossier Back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Dossier Back": {
+      "main": [
+        [
+          {
+            "node": "Loop Each Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Each Contact": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat workflow_runs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pass 1 - Brave Resolve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Hot Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Every 2 Hours": {
+      "recurrenceRules": [
+        14
+      ]
+    },
+    "node:Every 6 Hours": {
+      "recurrenceRules": [
+        6
+      ],
+      "recurrenceRuleSignatures": [
+        "hours:6"
+      ]
+    }
+  }
+}

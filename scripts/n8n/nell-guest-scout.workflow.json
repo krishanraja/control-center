@@ -1,0 +1,2055 @@
+{
+  "name": "Nell | Mindmaker OS | Guest Scout",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# OS - Nell Guest Scout\\n\\n**Purpose:** Find podcast guests, score, draft pitches, create Gmail drafts\\n\\n**Signal & Noise:** Media/tech execs with sharp AI transformation viewpoints\\n**Built:** Solo builders outsizing their headcount with AI\\n\\n**Schedule:** Mon 13:00 UTC, Wed/Fri 14:00 UTC (9-11am ET)\\n\\n**Layers:**\\n- L1: Ingestion (PH, HN, RSS x3)\\n- L2: Dedup + Score + Store\\n- L3: Apollo enrich + Sonnet pitch + Gmail drafts (ACTIVE)\\n- L4: contacted_persons dedup + cost heartbeat (ACTIVE)",
+        "height": 220,
+        "width": 500,
+        "color": 6
+      },
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        144,
+        64
+      ],
+      "id": "fad60379-a95d-4ebc-ba3d-4eb2eaffcada"
+    },
+    {
+      "parameters": {
+        "content": "**Built Sources**\\n- Product Hunt top daily launches (small teams)\\n- Hacker News Show HN (points > 50)\\n\\nFuture: Twitter/X via Apify, Indie Hackers",
+        "height": 120,
+        "width": 420,
+        "color": 4
+      },
+      "name": "BE Sources",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        128
+      ],
+      "id": "98448df4-cf5b-4d71-9b2e-d346bb7ed2fe"
+    },
+    {
+      "parameters": {
+        "content": "**Signal & Noise Sources**\\n- RSS: Digiday, The Rebooting, NiemanLab\\n- AI extraction of notable people from articles\\n\\nFuture: ListenNotes (pending), conference speakers via Apify",
+        "height": 120,
+        "width": 420,
+        "color": 5
+      },
+      "name": "S&N Sources",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        128
+      ],
+      "id": "be22462c-04b2-442f-91d7-47f3b8e01668"
+    },
+    {
+      "parameters": {
+        "content": "**Dedup + Score + Store**\\n- Check against nell_candidates table\\n- Anthropic scores fit (1-10) and attainability (1-10)\\n- Filter to 7+ on both axes\\n- Store qualified in Supabase",
+        "height": 120,
+        "width": 400,
+        "color": 3
+      },
+      "name": "Layer 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2608,
+        128
+      ],
+      "id": "170445fb-89fd-4938-81ba-c981143d8d79"
+    },
+    {
+      "parameters": {
+        "content": "**LAYER 3: Enrichment + Pitch Drafting + Gmail Drafts (ACTIVE)**\\n\\nApollo enrichment -> Sonnet drafts pitches -> Gmail creates drafts -> contacted_persons logged for 7d dedup.\\n\\nSchedule: Mon/Wed/Fri",
+        "height": 180,
+        "width": 500,
+        "color": 2
+      },
+      "name": "Layer 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3808,
+        544
+      ],
+      "id": "cfb8a8e0-85ef-47d8-92ec-5797182569f0"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * 1"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * 3"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * 5"
+            }
+          ]
+        }
+      },
+      "name": "Mon/Wed/Fri 9-11 ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        304
+      ],
+      "id": "5d676925-efd9-4026-8f6f-26a689bf811e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.producthunt.com/v2/api/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"query\": \"{ posts(order: RANKING, first: 20) { edges { node { name tagline votesCount url website makers { name headline twitterUsername websiteUrl } } } } }\"} }}",
+        "options": {}
+      },
+      "name": "PH: Top Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FI76zjowoXV6sLAv",
+          "name": "ProductHunt"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "93f8b5ea-9b76-4d07-a78e-594505dcf526"
+    },
+    {
+      "parameters": {
+        "url": "http://hn.algolia.com/api/v1/search?tags=show_hn&numericFilters=points>50&hitsPerPage=20",
+        "options": {}
+      },
+      "name": "HN: Show HN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        304
+      ],
+      "onError": "continueRegularOutput",
+      "id": "b8d27d32-b013-4da7-849b-0e51a74e2eca"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Parse Product Hunt + Hacker News into normalized candidates\nconst candidates = [];\nconst errors = [];\n\n// --- Product Hunt ---\ntry {\n  const phRaw = $('PH: Top Posts').first().json;\n  const edges = phRaw?.data?.posts?.edges || [];\n  for (const edge of edges) {\n    const post = edge.node;\n    const makers = post.makers || [];\n    // Only consider posts with 1-3 makers (small teams / solo builders)\n    if (makers.length > 0 && makers.length <= 3) {\n      for (const maker of makers) {\n        candidates.push({\n          name: maker.name || 'Unknown',\n          twitter_handle: maker.twitterUsername || null,\n          personal_url: maker.websiteUrl || null,\n          signal_type: 'product-hunt-launch',\n          signal_description: `Launched \"${post.name}\" on Product Hunt: ${post.tagline}. ${post.votesCount} upvotes. Team size: ${makers.length}.`,\n          source: 'product-hunt',\n          source_url: post.url || post.website || null,\n          podcast_target: 'builder-economy',\n          raw_data: { ph_post: post.name, votes: post.votesCount, headline: maker.headline }\n        });\n      }\n    }\n  }\n} catch(e) {\n  errors.push('Product Hunt parse error: ' + e.message);\n}\n\n// --- Hacker News ---\ntry {\n  const hnRaw = $('HN: Show HN').first().json;\n  const hits = hnRaw?.hits || [];\n  for (const hit of hits) {\n    if (hit.points >= 50) {\n      candidates.push({\n        name: hit.author || 'Unknown',\n        twitter_handle: null,\n        personal_url: hit.url || null,\n        signal_type: 'show-hn-launch',\n        signal_description: `Show HN: \"${hit.title}\". ${hit.points} points, ${hit.num_comments} comments.`,\n        source: 'hacker-news',\n        source_url: `https://news.ycombinator.com/item?id=${hit.objectID}`,\n        podcast_target: 'builder-economy',\n        raw_data: { hn_title: hit.title, points: hit.points, comments: hit.num_comments }\n      });\n    }\n  }\n} catch(e) {\n  errors.push('Hacker News parse error: ' + e.message);\n}\n\nreturn [{ json: { be_candidates: candidates, be_count: candidates.length, be_errors: errors } }];\n"
+      },
+      "name": "Parse BE Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        304
+      ],
+      "id": "eed4fb43-4bb3-44a3-887d-a253dadeb34a"
+    },
+    {
+      "parameters": {
+        "url": "https://digiday.com/feed/",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "RSS: Digiday",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        304
+      ],
+      "onError": "continueRegularOutput",
+      "id": "9096b30b-37f7-436c-9f3e-7f0ebc8eb49f"
+    },
+    {
+      "parameters": {
+        "url": "https://www.therebooting.com/feed",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "RSS: Rebooting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1504,
+        304
+      ],
+      "onError": "continueRegularOutput",
+      "id": "4b2f5ed4-00c1-43fd-b2a6-873d3c3a996c"
+    },
+    {
+      "parameters": {
+        "url": "https://www.niemanlab.org/feed/",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "RSS: NiemanLab",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1728,
+        304
+      ],
+      "onError": "continueRegularOutput",
+      "id": "0ec9c5b8-1dbf-49c4-a074-1bf0f0104b03"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- injected AI body enrichment ---\nconst __origResult = (function(){\n\n// Parse RSS XML from all three feeds, extract articles for AI extraction\nconst articles = [];\nconst feeds = [\n  { name: 'Digiday', data: $('RSS: Digiday').first().json },\n  { name: 'The Rebooting', data: $('RSS: Rebooting').first().json },\n  { name: 'NiemanLab', data: $('RSS: NiemanLab').first().json },\n];\n\nfunction parseRSS(xml, sourceName) {\n  if (typeof xml !== 'string') {\n    // If response came as JSON (some N8N configs), try to get the text\n    xml = xml?.data || xml?.body || JSON.stringify(xml);\n  }\n  const items = [];\n  const itemRegex = /<item>([\\s\\S]*?)<\\/item>/gi;\n  let match;\n  while ((match = itemRegex.exec(xml)) !== null) {\n    const block = match[1];\n    const title = (block.match(/<title>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/title>/) || [])[1] || '';\n    const link = (block.match(/<link>([\\s\\S]*?)<\\/link>/) || [])[1] || '';\n    const desc = (block.match(/<description>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/description>/) || [])[1] || '';\n    const creator = (block.match(/<dc:creator>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/dc:creator>/) || [])[1] || '';\n    if (title.trim()) {\n      items.push({\n        title: title.trim().replace(/<[^>]*>/g, ''),\n        link: link.trim(),\n        description: desc.replace(/<[^>]*>/g, '').trim().slice(0, 300),\n        creator: creator.trim().replace(/<[^>]*>/g, ''),\n        source: sourceName\n      });\n    }\n  }\n  return items.slice(0, 10); // Top 10 per feed\n}\n\nfor (const feed of feeds) {\n  try {\n    const feedData = typeof feed.data === 'string' ? feed.data : (feed.data?.data || '');\n    const parsed = parseRSS(feedData, feed.name);\n    articles.push(...parsed);\n  } catch(e) {\n    articles.push({ title: `Error parsing ${feed.name}: ${e.message}`, source: feed.name });\n  }\n}\n\n// Get BE candidates from upstream\nconst be = $('Parse BE Sources').first().json;\n\n// Build AI extraction prompt\nconst articleSummary = articles\n  .filter(a => a.title && a.link)\n  .map((a, i) => `${i+1}. [${a.source}] \"${a.title}\" by ${a.creator || 'unknown'}: ${a.description || 'no description'}`)\n  .join('\\n');\n\nconst aiPrompt = `You are Nell, a podcast guest sourcing agent. Analyze these recent media/tech articles and extract any notable PERSON (executive, journalist, thought leader, analyst) who demonstrates a sharp viewpoint on AI transformation in media, publishing, or broadcasting.\n\nArticles from today:\n${articleSummary || 'No articles found today.'}\n\nFor each person you identify, return:\n- name: their full name\n- signal_description: why they would be a great guest (reference the specific article/viewpoint)\n- source_url: the article URL\n- twitter_handle: if inferrable from the byline or content, otherwise null\n\nReturn ONLY a JSON object: { \"candidates\": [ { \"name\": \"...\", \"signal_description\": \"...\", \"source_url\": \"...\", \"twitter_handle\": null } ] }\n\nIf no strong candidates are found, return { \"candidates\": [] }. Only include people who would have a genuinely interesting, non-obvious take. No generic executives.`;\n\nreturn [{ json: {\n  be_candidates: be.be_candidates,\n  be_count: be.be_count,\n  be_errors: be.be_errors,\n  rss_article_count: articles.length,\n  ai_prompt: aiPrompt\n}}];\n\n})();\nconst __enriched = (__origResult || []).map(item => {\n  const j = item.json || {};\n  const promptText = j.ai_prompt || '';\n  const aBody = {\n    model: 'claude-haiku-4-5',\n    max_tokens: 2048,\n    messages: [{ role: 'user', content: promptText }]\n  };\n  const gBody = {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: 2048, responseMimeType: 'application/json' }\n  };\n  return { json: { ...j, anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody) } };\n});\nreturn __enriched;\n"
+      },
+      "name": "Parse RSS + Prep AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        304
+      ],
+      "id": "a080e479-d42d-4d98-8ef2-a1c1694362a2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic: Extract People",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        304
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "6a9e2302-5975-4fed-a24a-d333f96def7c"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Parse AI extraction response and merge with BE candidates\nconst upstream = $('Parse RSS + Prep AI').first().json;\nconst aiRaw = $('Merge AI: Anthropic: Extract People').first().json;\nconst allCandidates = [...upstream.be_candidates];\n\n// Parse AI response\ntry {\n  const text = aiRaw?.content?.[0]?.text || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    const snCandidates = (parsed.candidates || []).map(c => ({\n      name: c.name,\n      twitter_handle: c.twitter_handle || null,\n      personal_url: null,\n      signal_type: 'rss-ai-extraction',\n      signal_description: c.signal_description,\n      source: 'rss-ai-extraction',\n      source_url: c.source_url || null,\n      podcast_target: 'signal-and-noise',\n      raw_data: { extracted_from: 'rss_feeds' }\n    }));\n    allCandidates.push(...snCandidates);\n  }\n} catch(e) {\n  // AI extraction failed, continue with BE candidates only\n}\n\nreturn [{ json: {\n  all_candidates: allCandidates,\n  total_count: allCandidates.length,\n  be_count: upstream.be_count,\n  sn_count: allCandidates.length - upstream.be_count,\n  errors: upstream.be_errors || []\n}}];\n"
+      },
+      "name": "Merge All Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        304
+      ],
+      "id": "0521a065-ce95-422c-b15f-0b583538ff93"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dedup: remove candidates already known in the `guests` table for the same\n// show, across ALL statuses (incl. published/recorded past guests). Identity\n// based (normalized name + email), source agnostic. Fixes the long-standing bug\n// where this queried the dropped `nell_candidates` table and deduped vs nothing.\nconst upstream = $('Merge All Candidates').first().json;\nfunction norm(s){\n  return (s||'').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'')\n    .replace(/[^a-z0-9]+/g,' ').trim();\n}\nlet existing = [];\ntry {\n  for (const item of $('Supabase: Get Existing').all()) {\n    const d = item.json;\n    if (Array.isArray(d)) existing.push(...d);\n    else if (d && d.name) existing.push(d);\n  }\n} catch (e) {}\nconst nameTargets = new Map();\nconst emailSet = new Set();\nfor (const e of existing) {\n  const nm = norm(e.name);\n  if (nm) { if (!nameTargets.has(nm)) nameTargets.set(nm, new Set()); nameTargets.get(nm).add(e.podcast_target || null); }\n  if (e.email) emailSet.add(String(e.email).toLowerCase().trim());\n}\nconst seenThisRun = new Set();\nconst newCandidates = (upstream.all_candidates || []).filter(c => {\n  const nm = norm(c.name);\n  const tgt = c.podcast_target || null;\n  const email = (c.email || '').toLowerCase().trim();\n  const known = (nameTargets.has(nm) && (nameTargets.get(nm).has(tgt) || nameTargets.get(nm).has(null)))\n             || (email && emailSet.has(email));\n  if (known) return false;\n  const runKey = nm + '|' + tgt;\n  if (seenThisRun.has(runKey)) return false;\n  seenThisRun.add(runKey);\n  return true;\n});\nreturn [{ json: {\n  new_candidates: newCandidates,\n  new_count: newCandidates.length,\n  filtered_count: (upstream.all_candidates || []).length - newCandidates.length,\n  total_scanned: upstream.total_count,\n  be_count: upstream.be_count,\n  sn_count: upstream.sn_count,\n  existing_in_db: existing.length,\n  errors: upstream.errors\n}}];"
+      },
+      "name": "Dedup Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        304
+      ],
+      "id": "99664da5-336a-4a58-b76e-7856aeb1ff4e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-count",
+              "leftValue": "={{ $json.new_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Any New?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3312,
+        304
+      ],
+      "id": "103d9069-5e2a-4939-b511-613b90402b6b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- injected AI body enrichment ---\nconst __origResult = (function(){\n\n// Build scoring prompt for all new candidates — NEW editorial bar:\n// emits target_type + skip_reason so the router can fan out into\n// guests / visibility_targets / nell_rejected.\n\nconst upstream = $('Dedup Candidates').first().json;\nconst candidates = upstream.new_candidates;\n\nif (!candidates || candidates.length === 0) {\n  return [{ json: { scored: [], qualified: [], digest: 'No new candidates to score.' } }];\n}\n\nconst candidateList = candidates.map((c, i) =>\n  `${i+1}. Name: ${c.name} | Podcast: ${c.podcast_target} | Source: ${c.source} | Signal: ${c.signal_description}`\n).join('\\n');\n\nconst prompt = `You are Nell, a podcast guest sourcing agent for Krish Raja. Apply a strict editorial bar.\n\nKrish runs two podcasts:\n- The Built (thebuildereconomy.com): founders, CTOs, Heads of AI, operators shipping AI infrastructure or AI-native products with traction, distribution, or a documented strategic POV.\n- Signal & Noise (signalandnoise.ai): operators, founders, executives in media, publishing, broadcast, adtech, AI-for-media infra. Decision-makers with a public POV.\n\nPress targets are different. Reporters, correspondents, columnists, editors, anchors at named outlets (Digiday, WSJ, BBC, NYT, Bloomberg, Axios, Reuters, The Atlantic, The Guardian, Vox, The Verge, Wired, TechCrunch, Forbes, FT, The Economist, NiemanLab, Wirecutter, The Information). These should be visibility_targets press_relationships, not guests.\n\nDual is rare: someone who could realistically appear on the show AND feature Krish in their channel.\n\nFor each candidate, return STRICT JSON:\n{\n  \"scores\": [\n    {\n      \"index\": 1,\n      \"name\": \"...\",\n      \"target_type\": \"podcast_guest\" | \"press_target\" | \"dual\",\n      \"podcast_target\": \"built\" | \"signal_noise\" | null,\n      \"press_publication\": \"string | null\",\n      \"fit_score\": 1-10,\n      \"attainability_score\": 1-10,\n      \"quality_signals\": [\"one signal\", \"another\"],\n      \"contact_method\": \"email\" | \"linkedin\" | \"twitter\" | \"none\",\n      \"suggested_channel\": \"email | linkedin | twitter | contact-form\",\n      \"reasoning\": \"one sentence why\",\n      \"skip_reason\": \"string | null\"\n    }\n  ]\n}\n\nSkip rules — set skip_reason and the row will be silently logged, not surfaced:\n- Name looks like an HN username (lowercase alphanumeric, no real first/last name resolvable): skip_reason = \"hn-username-no-real-name\"\n- contact_method = \"none\" AND target_type = \"podcast_guest\": skip_reason = \"no-verifiable-contact\"\n- target_type = \"podcast_guest\" AND podcast_target = \"built\" AND fit_score < 6: skip_reason = \"below-builder-economy-fit-bar\"\n- target_type = \"podcast_guest\" AND podcast_target = \"signal_noise\" AND fit_score < 7: skip_reason = \"below-signal-noise-fit-bar\"\n- One Show HN post alone is not qualification for built. The bar is durable building, not a viral post. If the only evidence is a Show HN ranking: skip_reason = \"hn-post-only-not-durable-builder\"\n\nCandidates:\n${candidateList}\n\nReturn ONLY JSON. No prose.`;\n\nreturn [{ json: {\n  candidates: candidates,\n  scoring_prompt: prompt,\n  metadata: { new_count: upstream.new_count, filtered_count: upstream.filtered_count, total_scanned: upstream.total_scanned }\n}}];\n\n\n})();\nconst __enriched = (__origResult || []).map(item => {\n  const j = item.json || {};\n  const promptText = j.scoring_prompt || '';\n  const aBody = {\n    model: 'claude-haiku-4-5',\n    max_tokens: 4096,\n    messages: [{ role: 'user', content: promptText }]\n  };\n  const gBody = {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: 4096, responseMimeType: 'application/json' }\n  };\n  return { json: { ...j, anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody) } };\n});\nreturn __enriched;\n"
+      },
+      "name": "Prep Scoring Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        304
+      ],
+      "id": "1fc81ccb-9596-41a5-8a16-0ebda6a112ce"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic: Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3824,
+        304
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "a21fef06-7271-4884-b332-4852b8f8f03c"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse scores from the new editorial-bar prompt, bucket into:\n//   qualified_guests  -> guests table (podcast_guest, dual; fit/attain >= bar)\n//   qualified_press   -> visibility_targets table (press_target, dual)\n//   rejected          -> nell_rejected table (any skip_reason set, or below bar)\n\nconst upstream = $('Prep Scoring Prompt').first().json;\nconst aiRaw = $('Merge AI: Anthropic: Score').first().json;\nconst candidates = upstream.candidates;\nconst metadata = upstream.metadata;\n\nlet scores = [];\ntry {\n  const text = aiRaw?.content?.[0]?.text || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    scores = JSON.parse(jsonMatch[0]).scores || [];\n  }\n} catch(e) {\n  return [{ json: { qualified_guests: [], qualified_press: [], rejected: [], error: 'Score parse failed: ' + e.message, metadata } }];\n}\n\nconst qualified_guests = [];\nconst qualified_press = [];\nconst rejected = [];\n\nfor (const score of scores) {\n  const idx = (score.index || 1) - 1;\n  const candidate = candidates[idx];\n  if (!candidate) continue;\n\n  const target_type = score.target_type || 'podcast_guest';\n  const podcast_target = score.podcast_target || candidate.podcast_target;\n  const fit_score = Number(score.fit_score) || 0;\n  const attainability_score = Number(score.attainability_score) || 0;\n  const contact_method = score.contact_method || 'none';\n  const skip_reason = score.skip_reason || null;\n\n  const merged = {\n    ...candidate,\n    target_type,\n    podcast_target,\n    press_publication: score.press_publication || null,\n    fit_score,\n    attainability_score,\n    contact_method,\n    best_channel: score.suggested_channel || 'linkedin',\n    notes: score.reasoning || '',\n    quality_signals: score.quality_signals || [],\n    skip_reason\n  };\n\n  if (skip_reason) {\n    rejected.push(merged);\n    continue;\n  }\n\n  if (target_type === 'press_target') {\n    qualified_press.push(merged);\n  } else if (target_type === 'dual') {\n    qualified_press.push(merged);\n    if (fit_score >= 6 && attainability_score >= 6) qualified_guests.push(merged);\n  } else {\n    // podcast_guest path\n    const bar = podcast_target === 'signal_noise' ? 7 : 6;\n    if (fit_score >= bar && attainability_score >= 6 && contact_method !== 'none') {\n      qualified_guests.push(merged);\n    } else {\n      merged.skip_reason = 'below-bar-or-no-contact';\n      rejected.push(merged);\n    }\n  }\n}\n\nreturn [{ json: {\n  qualified_guests,\n  qualified_press,\n  rejected,\n  qualified_guests_count: qualified_guests.length,\n  qualified_press_count: qualified_press.length,\n  rejected_count: rejected.length,\n  // Legacy keys preserved so downstream Build Digest / Split Candidates keep working:\n  qualified: qualified_guests,\n  qualified_count: qualified_guests.length,\n  disqualified: rejected,\n  disqualified_count: rejected.length,\n  metadata\n}}];\n"
+      },
+      "name": "Parse Scores + Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        304
+      ],
+      "id": "0fbb0a50-4edf-4f93-a703-e089be5dfeea"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Insert router: writes qualified_guests -> guests, qualified_press -> visibility_targets,\n// rejected -> nell_rejected. Uses this.helpers.httpRequest (n8n's HTTP helper) — the\n// previous global fetch() is not defined in this runtime, so every run with new\n// candidates errored before inserting (inbound never replenished). Downstream HTTP\n// nodes are left in place but receive insert_body='[]' so they no-op.\n//\n// guests.status must be 'scouted' (was 'new', which violates guests_status_check) and\n// guests.source must be one of manual/sheet_import/nell_outbound/referral/migration\n// (guests_source_check) — so qualified guests use 'nell_outbound'.\n\nconst upstream = $('Parse Scores + Filter').first().json;\nconst guests = upstream.qualified_guests || [];\nconst press  = upstream.qualified_press  || [];\nconst rej    = upstream.rejected         || [];\n\nconst SUPA = \"https://gojpffsrxybbpbdzzrvs.supabase.co\";\nconst KEY  = \"{{SUPABASE_SERVICE_ROLE_KEY}}\";\n\nconst httpRequest = this.helpers.httpRequest.bind(this.helpers);\n\nasync function insertMany(path, rows) {\n  if (!rows || !rows.length) return { ok: true, status: 200, body: '[]' };\n  try {\n    const resp = await httpRequest({\n      method: 'POST',\n      url: `${SUPA}/rest/v1/${path}`,\n      headers: {\n        apikey: KEY,\n        Authorization: `Bearer ${KEY}`,\n        'Content-Type': 'application/json',\n        Prefer: 'return=minimal'\n      },\n      body: rows,\n      json: true,\n      returnFullResponse: true,\n      ignoreHttpStatusErrors: true,\n      timeout: 20000\n    });\n    return { ok: resp.statusCode >= 200 && resp.statusCode < 300, status: resp.statusCode, body: (typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body || '')).slice(0, 400) };\n  } catch (e) {\n    return { ok: false, status: e.statusCode || e.httpCode || 0, body: String(e.message || e).slice(0, 400) };\n  }\n}\n\nconst guestRows = guests.map(c => ({\n  name: c.name,\n  email: c.email || null,\n  linkedin_url: c.linkedin_url || null,\n  twitter_handle: c.twitter_handle || null,\n  personal_url: c.personal_url || null,\n  podcast_target: c.podcast_target,\n  target_type: c.target_type,\n  one_liner: c.signal_description || null,\n  why_fit: c.notes || null,\n  best_channel: c.best_channel,\n  fit_score: c.fit_score,\n  attainability_score: c.attainability_score,\n  quality_score: (c.fit_score >= 8 && c.attainability_score >= 8) ? 'green'\n    : (c.fit_score >= 6 && c.attainability_score >= 6) ? 'amber' : 'red',\n  status: 'scouted',\n  source: 'nell_outbound',\n  raw_data: JSON.stringify({ ...(typeof c.raw_data === 'string' ? JSON.parse(c.raw_data || '{}') : (c.raw_data || {})), upstream_source: c.source })\n}));\n\nconst pressRows = press.map(c => ({\n  title: c.press_publication\n    ? `${c.name} — ${c.press_publication}`\n    : c.name,\n  type: 'press_relationship',\n  source_url: c.source_url || c.linkedin_url || c.personal_url || null,\n  why_relevant: c.notes || c.signal_description || null,\n  status: 'queued',\n  source: 'nell-scout',\n  quality_score: (c.fit_score >= 8) ? 'green' : (c.fit_score >= 6) ? 'amber' : 'red',\n  relevance_score: c.fit_score || null,\n  raw_data: { person: c.name, source: c.source, signals: c.quality_signals || [], notes: c.notes }\n}));\n\nconst rejRows = rej.map(c => ({\n  name: c.name,\n  source_url: c.source_url || null,\n  source: 'nell_outbound',\n  upstream_source: c.source,\n  reason: c.skip_reason || 'unspecified',\n  raw_data: { signals: c.quality_signals || [], notes: c.notes, target_type: c.target_type, fit_score: c.fit_score }\n}));\n\nconst [gRes, pRes, rRes] = await Promise.all([\n  insertMany('guests', guestRows),\n  insertMany('visibility_targets', pressRows),\n  insertMany('nell_rejected', rejRows)\n]);\n\nreturn [{ json: {\n  // legacy key so downstream Build Digest keeps working with an empty no-op insert body:\n  insert_body: '[]',\n  // qualified_rows carries the real guest rows downstream. insert_body is a\n  // deliberate no-op for the legacy HTTP node, so Filter vs Contacted must NOT\n  // reconstruct from it or the pitch last-mile silently receives zero.\n  qualified_rows: guests,\n  qualified_count: guestRows.length,\n  qualified_press_count: pressRows.length,\n  rejected_count: rejRows.length,\n  qualified_summary: guests.map(c => ({\n    name: c.name, target_type: c.target_type, podcast: c.podcast_target,\n    fit: c.fit_score, attain: c.attainability_score, channel: c.best_channel\n  })),\n  press_summary: press.map(c => ({ name: c.name, outlet: c.press_publication, fit: c.fit_score })),\n  rejected_summary: rej.map(c => ({ name: c.name, reason: c.skip_reason })),\n  insert_status: { guests: gRes, press: pRes, rejected: rRes },\n  metadata: upstream.metadata\n}}];"
+      },
+      "name": "Prep Supabase Insert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4368,
+        304
+      ],
+      "id": "dd7eba2a-18f8-41d8-b496-9755d55e4939"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "[]",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Store Qualified",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4624,
+        304
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "id": "9c8a7bcd-7e4d-47ee-aaab-761088bef26e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Build Telegram digest (reads filtered qualified list)\nconst upstream = $('Filter vs Contacted').first().json;\nconst meta = upstream.metadata || {};\nconst summary = upstream.qualified_summary || [];\nconst qCount = upstream.qualified_count || 0;\nconst dCount = upstream.disqualified_count || 0;\nconst skipped = meta.skipped_already_contacted || 0;\nconst now = new Date().toISOString().split('T')[0];\n\nconst beSummary = summary.filter(s => s.podcast === 'builder-economy');\nconst snSummary = summary.filter(s => s.podcast === 'signal-and-noise');\n\nlet lines = [];\nlines.push('🎯 <b>Nell Guest Scout</b>');\nlines.push('');\nlines.push('📅 ' + now);\nlines.push('🔍 ' + (meta.total_scanned || 0) + ' scanned • ' + (meta.filtered_count || 0) + ' dupes skipped');\nlines.push('✅ ' + qCount + ' qualified • ❌ ' + dCount + ' below threshold');\nif (skipped > 0) lines.push('⏭️ ' + skipped + ' skipped (contacted in last 7d)');\n\nif (beSummary.length > 0) {\n  lines.push('');\n  lines.push('🛠️ <b>Built</b> (' + beSummary.length + ')');\n  lines.push('');\n  for (const s of beSummary) {\n    lines.push('▶ <b>' + s.name + '</b>  [' + s.fit + '/' + s.attain + ']  via ' + s.channel);\n    if (s.signal) lines.push('  <i>' + s.signal + '</i>');\n  }\n}\n\nif (snSummary.length > 0) {\n  lines.push('');\n  lines.push('📡 <b>Signal & Noise</b> (' + snSummary.length + ')');\n  lines.push('');\n  for (const s of snSummary) {\n    lines.push('▶ <b>' + s.name + '</b>  [' + s.fit + '/' + s.attain + ']  via ' + s.channel);\n    if (s.signal) lines.push('  <i>' + s.signal + '</i>');\n  }\n}\n\nif (qCount === 0) {\n  lines.push('');\n  lines.push('No new candidates to pitch today.');\n}\n\nlines.push('');\nlines.push('────────────────────────');\nlines.push('📧 Drafts created in Gmail • DB: <code>nell_candidates</code>');\n\nreturn [{ json: {\n  telegram_text: lines.join('\\n'),\n  qualified_count: qCount,\n  disqualified_count: dCount,\n  skipped_contacted: skipped,\n  total_scanned: meta.total_scanned || 0\n} }];\n"
+      },
+      "name": "Build Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5152,
+        304
+      ],
+      "id": "88f10c62-58f9-44bc-a45c-b0989fd1b7c4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"chat_id\": \"6773796504\", \"parse_mode\": \"\", \"text\": $json.telegram_text} }}",
+        "options": {}
+      },
+      "name": "Telegram: Daily Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5408,
+        304
+      ],
+      "executeOnce": true,
+      "id": "d0a10589-4cd9-412b-965f-6ede1fe48a8d",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst upstream = $('Dedup Candidates').first().json;\nconst now = new Date().toISOString().split('T')[0];\n\nlet lines = [];\nlines.push('🎯 <b>Nell Daily Guest Scout</b>');\nlines.push('');\nlines.push(`📅 ${now}`);\nlines.push(`🔍 ${upstream.total_scanned || 0} scanned`);\nlines.push('');\nlines.push('All candidates already in database.');\nlines.push('No new entries to score today.');\n\nreturn [{ json: { telegram_text: lines.join('\\n') } }];\n"
+      },
+      "name": "No New Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        512
+      ],
+      "id": "5461941d-bb63-48f1-907c-26b62bfbaffc"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"chat_id\": \"6773796504\", \"parse_mode\": \"Markdown\", \"text\": $json.telegram_text} }}",
+        "options": {}
+      },
+      "name": "Telegram: No New",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4112,
+        512
+      ],
+      "id": "6cc28b97-af13-4257-a4d9-545fdec2494f",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "qualified",
+        "options": {}
+      },
+      "name": "Split Candidates",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        5152,
+        512
+      ],
+      "id": "4f419e91-c57c-4701-950f-cf393857c582"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/api/v1/people/match",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"name\": $json.name, \"linkedin_url\": $json.linkedin_url || undefined, \"twitter_url\": $json.twitter_handle ? \"https://twitter.com/\" + $json.twitter_handle : undefined} }}",
+        "options": {}
+      },
+      "name": "Apollo: Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5408,
+        512
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bIpgw4efk6vHrFEG",
+          "name": "Apollo"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "a3459b4b-7eef-48f3-8eeb-6a37fc22f451"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "name": "Wait 1s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5664,
+        512
+      ],
+      "webhookId": "f79c74ca-e2cf-4bb6-b902-379b564e3835",
+      "id": "b9870895-48c3-46e1-adc8-32254c523681"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse Apollo enrichment results. Runs once for ALL items.\n// Apollo: Enrich emits one item per candidate. Its key can be dead (401), and\n// onError=continueRegularOutput turns that into an {error:...} item rather than\n// a throw, so enrichment MUST degrade gracefully instead of breaking the pitch\n// chain. A failed enrichment keeps status 'scouted' so we never claim a contact\n// was enriched when it was not.\nconst inputs = $input.all();\nlet apolloItems = [];\ntry { apolloItems = $('Apollo: Enrich').all(); } catch (e) { apolloItems = []; }\n\nreturn inputs.map((item, i) => {\n  const base = item.json || {};\n  const raw = apolloItems[i]?.json || {};\n  const failed = !!raw.error;\n  const person = (!failed && (raw.person || raw.data)) || {};\n  const email = person.email || base.email || null;\n  const linkedin = person.linkedin_url || base.linkedin_url || null;\n  return { json: {\n    ...base,\n    email,\n    linkedin_url: linkedin,\n    enriched_at: new Date().toISOString(),\n    enrichment_ok: !failed,\n    enrichment_error: failed ? String(raw.error.message || raw.error).slice(0, 200) : null,\n    status: failed ? 'scouted' : 'enriched',\n    best_channel: email ? 'email'\n      : (linkedin ? 'linkedin'\n      : (base.twitter_handle ? 'twitter' : 'contact-form'))\n  }};\n});"
+      },
+      "name": "Parse Apollo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5920,
+        512
+      ],
+      "id": "58e4715c-24fa-4bb5-9fa5-61b8c223e477"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Identity Prepend ---\nlet identity_prepend = '';\ntry { identity_prepend = $('Build Identity Prepend').first().json.identity_prepend || ''; } catch(e) {}\n// --- End Identity Prepend ---\n\n// --- injected AI body enrichment ---\nconst __origResult = (function(){\n\n// Aggregate enriched candidates and build pitch prompt\nconst items = $input.all().map(i => i.json);\n\nconst candidateList = items.map((c, i) =>\n  `${i+1}. ${c.name} | Podcast: ${c.podcast_target} | Signal: ${c.signal_description} | Channel: ${c.best_channel} | Email: ${c.email || 'none'}`\n).join('\\n');\n\nconst prompt = identity_prepend + `You are Nell, drafting podcast guest outreach for Krish Raja.\n\nKrish hosts two podcasts:\n1. Signal & Noise (signalandnoise.ai) - media/tech executives discussing AI transformation in publishing and broadcasting\n2. Built (thebuildereconomy.com) - builders who are outsizing their returns by building things they previously could not have built alone, thanks to AI\n\nFor each candidate below, draft a personalized outreach message (max 100 words). Rules:\n- Open with the SPECIFIC thing they did or said (the signal that surfaced them)\n- Name which podcast and why they fit\n- Be direct, confident, no sycophantic opener\n- No em dashes anywhere\n- End with a clear CTA: offer to send show details or book a 15-min call\n- Adapt tone to channel (email = slightly more formal, twitter/linkedin = conversational)\n\nKrish bio for context: 16 years scaling tech businesses across London, Sydney, and NYC. 30 Under 30, built 8 live AI products, spoken at Sydney Opera House.\nCalendly: https://calendly.com/krish-mindmaker\n\nCandidates:\n${candidateList}\n\nReturn JSON: { \"pitches\": [ { \"index\": 1, \"name\": \"...\", \"channel\": \"email|linkedin|twitter\", \"subject\": \"email subject if email channel\", \"pitch\": \"the outreach message\" } ] }`;\n\nreturn [{ json: { enriched_candidates: items, pitch_prompt: prompt } }];\n\n})();\nconst __enriched = (__origResult || []).map(item => {\n  const j = item.json || {};\n  const promptText = j.pitch_prompt || '';\n  const aBody = {\n    model: 'claude-sonnet-4-6',\n    max_tokens: 4096,\n    messages: [{ role: 'user', content: promptText }]\n  };\n  const gBody = {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: 4096, responseMimeType: 'application/json' }\n  };\n  return { json: { ...j, anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody) } };\n});\nreturn __enriched;\n"
+      },
+      "name": "Prep Pitch Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6192,
+        512
+      ],
+      "id": "82e5e42c-23db-4e8d-b327-2fc71089961b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic: Draft Pitches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6448,
+        512
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "0c265d25-d544-4967-9d1c-80b2911a0b5c"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Parse pitch drafts and emit ONE ITEM PER CANDIDATE for per-item Gmail drafting.\nconst upstream = $('Prep Pitch Prompt').first().json;\nconst aiRaw = $('Merge AI: Anthropic: Draft Pitches').first().json;\nconst candidates = upstream.enriched_candidates;\n\nlet pitches = [];\ntry {\n  const text = aiRaw?.content?.[0]?.text || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) pitches = JSON.parse(jsonMatch[0]).pitches || [];\n} catch(e) {}\n\nconst results = candidates.map((c, i) => {\n  const pitch = pitches.find(p => p.index === i + 1) || {};\n  const podcastLabel = c.podcast_target === 'signal-and-noise' ? 'Signal & Noise' : 'Built';\n  return {\n    json: {\n      name: c.name,\n      email: c.email || '',\n      linkedin_url: c.linkedin_url || '',\n      twitter_handle: c.twitter_handle || '',\n      podcast_target: c.podcast_target,\n      signal_description: c.signal_description,\n      pitch_draft: pitch.pitch || '',\n      subject: pitch.subject || ('Guest pitch from Krish Raja - ' + podcastLabel),\n      best_channel: pitch.channel || c.best_channel,\n      status: pitch.pitch ? 'qualified' : 'enriched',\n      has_email: !!(c.email && pitch.pitch),\n      pitched_at: null\n    }\n  };\n});\n\nreturn results.length > 0 ? results : [{ json: { no_candidates: true, has_email: false, email: '', name: '', podcast_target: '' } }];\n"
+      },
+      "name": "Parse Pitches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6704,
+        512
+      ],
+      "id": "c32bf46a-195d-4a09-8b7b-3f953a5ed469"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8000,
+        512
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "id": "7aceeaf9-5d2d-4638-ac27-268361c8d6f4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests?select=name,email,podcast_target,status&limit=2000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Supabase: Get Existing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2784,
+        304
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "b112a5f1-d32c-4f72-a6f7-92f7927230d8",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const startedAt = Date.now();\nreturn [{ json: { run_started_at: startedAt, run_started_iso: new Date(startedAt).toISOString() } }];"
+      },
+      "name": "Run Start",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        304
+      ],
+      "id": "8b2f143e-a7a3-4324-a4de-2b4d427b8550"
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?select=person_email,person_name&contacted_at=gte.\" + encodeURIComponent(new Date(Date.now() - 7*24*60*60*1000).toISOString()) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Contacted (7d)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4880,
+        304
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "5ed22613-96f2-4c09-ad9d-759f93084bc1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Filter qualified candidates against contacted_persons (last 7 days)\nconst upstream = $('Prep Supabase Insert').first().json;\n// Reconstruct \"qualified\" list from the insert_body JSON that was sent to Supabase\nlet qualified = [];\nif (Array.isArray(upstream.qualified_rows) && upstream.qualified_rows.length) {\n  qualified = upstream.qualified_rows;\n} else {\n  // legacy fallback only; insert_body is intentionally '[]' since the insert\n  // moved inside Prep Supabase Insert.\n  try { qualified = JSON.parse(upstream.insert_body || '[]'); } catch(e) {}\n}\n\nlet contactedList = [];\ntry {\n  const items = $('Fetch Contacted (7d)').all();\n  for (const item of items) {\n    const data = item.json;\n    if (Array.isArray(data)) contactedList.push(...data);\n    else if (data && data.person_email) contactedList.push(data);\n  }\n} catch(e) {}\n\nconst contactedEmails = new Set(contactedList.map(c => (c.person_email || '').toLowerCase()).filter(Boolean));\nconst contactedNames = new Set(contactedList.map(c => (c.person_name || '').toLowerCase()).filter(Boolean));\n\nconst toProcess = qualified.filter(c => {\n  const email = (c.email || '').toLowerCase();\n  const name = (c.name || '').toLowerCase();\n  if (email && contactedEmails.has(email)) return false;\n  if (name && contactedNames.has(name)) return false;\n  return true;\n});\n\nconst skipped = qualified.length - toProcess.length;\n\nreturn [{ json: {\n  qualified: toProcess,\n  qualified_count: toProcess.length,\n  qualified_summary: (upstream.qualified_summary || []),\n  disqualified_count: upstream.disqualified_count || 0,\n  metadata: { ...(upstream.metadata || {}), skipped_already_contacted: skipped },\n  contacted_7d_count: contactedList.length\n}}];\n"
+      },
+      "name": "Filter vs Contacted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5152,
+        304
+      ],
+      "id": "e14f6623-781c-405f-a882-e349a78f5727"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ ($json.pitch_draft || '').replace(/\\n/g, '<br>') + '<br><br>-- Krish Raja<br>Host, Signal & Noise | Built<br>krishraja.com' }}",
+        "options": {
+          "sendTo": "={{ $json.email }}"
+        }
+      },
+      "name": "Gmail: Create Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        6960,
+        512
+      ],
+      "alwaysOutputData": true,
+      "webhookId": "ff3fd21b-f048-4b44-8727-9dd4337e5783",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AFgF8OOuBhYHbiyo",
+          "name": "Gmail"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "9f6c943d-cfa1-45ad-ad61-7c4dfe2d8e6e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?on_conflict=person_email,agent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { person_email: $json.email || null, person_name: $json.name, company: $json.podcast_target === \"signal-and-noise\" ? \"Signal & Noise podcast\" : \"Built podcast\", agent: \"nell\", context: \"podcast guest pitch\", contacted_at: new Date().toISOString() } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write contacted_persons",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7232,
+        512
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "4c4f193c-4f2f-4e04-b39d-56d6d979dca7",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Heartbeat with cost estimate - fires once via executeOnce on the HTTP write node\nconst startIso = $('Run Start').first().json.run_started_iso;\nconst startMs = $('Run Start').first().json.run_started_at;\nconst endMs = Date.now();\nconst durationMs = endMs - startMs;\n\nconst digest = $('Build Digest').first().json;\nconst q = digest.qualified_count || 0;\nconst dq = digest.disqualified_count || 0;\nconst scanned = digest.total_scanned || 0;\nconst skipped = digest.skipped_contacted || 0;\n\n// Cost estimate:\n//   Anthropic Haiku extract: ~$0.001\n//   Anthropic Haiku score:   ~$0.002\n//   Anthropic Sonnet pitch:  ~$0.01 (only if q>0)\n//   Apollo enrich: $0.10 per qualified candidate\nconst anthropicCalls = 2 + (q > 0 ? 1 : 0);\nconst apolloCalls = q;\nconst rssCalls = 3;\nconst httpCalls = 3 + apolloCalls + q;  // supabase reads/writes + gmail drafts\nconst anthropicCost = 0.003 + (q > 0 ? 0.01 : 0);\nconst apolloCost = apolloCalls * 0.10;\nconst costUsd = Number((anthropicCost + apolloCost).toFixed(4));\nconst apiCallsCount = anthropicCalls + apolloCalls + rssCalls + httpCalls;\n\nreturn [{ json: {\n  heartbeat_body: JSON.stringify({\n    workflow_id: '8DlMfyTYsbnQGYR2',\n    workflow_name: 'Nell Guest Scout',\n    agent_id: 'nell',\n    run_at: startIso,\n    duration_ms: durationMs,\n    outcome: 'success',\n    status: scanned + ' scanned, ' + q + ' qualified, ' + dq + ' disqualified, ' + skipped + ' skipped',\n    cost_estimate_usd: costUsd,\n    api_calls_count: apiCallsCount\n  })\n}}];\n"
+      },
+      "name": "Build Heartbeat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7488,
+        512
+      ],
+      "executeOnce": true,
+      "id": "a55e538a-b079-4c59-8388-ec0b2b6aa987"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={{ $json.heartbeat_body }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7744,
+        512
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "id": "23de627e-b32e-4a28-abe1-c6a7a40cc1ca",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst startIso = $('Run Start').first().json.run_started_iso;\nconst startMs = $('Run Start').first().json.run_started_at;\nconst endMs = Date.now();\nconst durationMs = endMs - startMs;\nconst upstream = $('Dedup Candidates').first().json;\n\nreturn [{ json: {\n  heartbeat_body: JSON.stringify({\n    workflow_id: '8DlMfyTYsbnQGYR2',\n    workflow_name: 'Nell Guest Scout',\n    agent_id: 'nell',\n    run_at: startIso,\n    duration_ms: durationMs,\n    outcome: 'success',\n    status: (upstream.total_scanned || 0) + ' scanned, 0 new (all dupes)',\n    cost_estimate_usd: 0.001,\n    api_calls_count: 7\n  })\n}}];\n"
+      },
+      "name": "Build Heartbeat (zero)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4368,
+        560
+      ],
+      "id": "1399fc14-f88d-4963-b82c-77ae095a5a94"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={{ $json.heartbeat_body }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Heartbeat (zero)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4624,
+        560
+      ],
+      "onError": "continueRegularOutput",
+      "id": "8a7c2351-ca29-42c3-bc91-27f9197feb3b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "email-present",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6880,
+        512
+      ],
+      "id": "05be87b0-be98-4fef-becd-457006b2cf63"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Parse RSS + Prep AI').first().json.geminiBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Gemini Fallback: Anthropic: Extract People",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2512,
+        480
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "31f1048f-cb8f-4427-9c20-89c75a2a4042"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini response adapter — detects error bodies.\n// On error (e.g. quota exceeded), emits {content: [{text: ''}], _llm_failed: true, _error_source: 'gemini', _error_message: '...'}\n// On success, emits {content: [{text: ...}], _source: 'gemini'}\nconst r = $input.first().json || {};\nif (r && r.error && typeof r.error === 'object') {\n  const msg = r.error.message || JSON.stringify(r.error).slice(0, 200);\n  const code = r.error.code || 'unknown';\n  return [{ json: { content: [{ text: '' }], _llm_failed: true, _error_source: 'gemini', _error_message: 'Gemini ' + code + ': ' + msg, _source: 'gemini' } }];\n}\nconst text = r?.candidates?.[0]?.content?.parts?.[0]?.text || '';\nif (!text) {\n  return [{ json: { content: [{ text: '' }], _llm_failed: true, _error_source: 'gemini', _error_message: 'Gemini returned empty content', _source: 'gemini' } }];\n}\nreturn [{ json: { content: [{ text }], _source: 'gemini' } }];\n"
+      },
+      "name": "Adapt Gemini: Anthropic: Extract People",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        480
+      ],
+      "id": "ec1fa1de-8b83-4777-b339-e8bfc610baca"
+    },
+    {
+      "parameters": {},
+      "name": "Merge AI: Anthropic: Extract People",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        3024,
+        384
+      ],
+      "id": "9192a7ec-4f9d-4d85-83f7-4c3e4c23cdc2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Prep Scoring Prompt').first().json.geminiBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Gemini Fallback: Anthropic: Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4080,
+        480
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "3638536b-edec-4544-aa5b-0118eafb08bb"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini response adapter — detects error bodies.\n// On error (e.g. quota exceeded), emits {content: [{text: ''}], _llm_failed: true, _error_source: 'gemini', _error_message: '...'}\n// On success, emits {content: [{text: ...}], _source: 'gemini'}\nconst r = $input.first().json || {};\nif (r && r.error && typeof r.error === 'object') {\n  const msg = r.error.message || JSON.stringify(r.error).slice(0, 200);\n  const code = r.error.code || 'unknown';\n  return [{ json: { content: [{ text: '' }], _llm_failed: true, _error_source: 'gemini', _error_message: 'Gemini ' + code + ': ' + msg, _source: 'gemini' } }];\n}\nconst text = r?.candidates?.[0]?.content?.parts?.[0]?.text || '';\nif (!text) {\n  return [{ json: { content: [{ text: '' }], _llm_failed: true, _error_source: 'gemini', _error_message: 'Gemini returned empty content', _source: 'gemini' } }];\n}\nreturn [{ json: { content: [{ text }], _source: 'gemini' } }];\n"
+      },
+      "name": "Adapt Gemini: Anthropic: Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4352,
+        480
+      ],
+      "id": "06b7efd9-c2c2-4a83-ba27-09f09f322696"
+    },
+    {
+      "parameters": {},
+      "name": "Merge AI: Anthropic: Score",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        4608,
+        384
+      ],
+      "id": "6a0205b2-8e21-45d8-8164-592d1f8abec7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Prep Pitch Prompt').first().json.geminiBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Gemini Fallback: Anthropic: Draft Pitches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6704,
+        688
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "3126febc-be11-4898-ac95-387899d1a2e7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini response adapter — detects error bodies.\n// On error (e.g. quota exceeded), emits {content: [{text: ''}], _llm_failed: true, _error_source: 'gemini', _error_message: '...'}\n// On success, emits {content: [{text: ...}], _source: 'gemini'}\nconst r = $input.first().json || {};\nif (r && r.error && typeof r.error === 'object') {\n  const msg = r.error.message || JSON.stringify(r.error).slice(0, 200);\n  const code = r.error.code || 'unknown';\n  return [{ json: { content: [{ text: '' }], _llm_failed: true, _error_source: 'gemini', _error_message: 'Gemini ' + code + ': ' + msg, _source: 'gemini' } }];\n}\nconst text = r?.candidates?.[0]?.content?.parts?.[0]?.text || '';\nif (!text) {\n  return [{ json: { content: [{ text: '' }], _llm_failed: true, _error_source: 'gemini', _error_message: 'Gemini returned empty content', _source: 'gemini' } }];\n}\nreturn [{ json: { content: [{ text }], _source: 'gemini' } }];\n"
+      },
+      "name": "Adapt Gemini: Anthropic: Draft Pitches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6960,
+        688
+      ],
+      "id": "080ea16f-74af-4e39-ae11-74b104265a72"
+    },
+    {
+      "parameters": {},
+      "name": "Merge AI: Anthropic: Draft Pitches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        7232,
+        592
+      ],
+      "id": "5054509f-93c8-46b4-9bc7-96362a31e61b"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.nell&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        208
+      ],
+      "name": "Load Agent Brief",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "cbfb4b17-b859-4851-8ada-a8df2d0f0b47"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        400
+      ],
+      "name": "Load Voice Rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "0f955e97-a9fb-42a9-b07a-98ac4b5a25d7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('Load Agent Brief').first().json;\nconst voiceRaw = $('Load Voice Rules').first().json;\nconst planRaw  = $('Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        304
+      ],
+      "name": "Build Identity Prepend",
+      "id": "1d588a4a-7b65-492a-8520-82ba0a965180"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        504
+      ],
+      "id": "61ddcaa9-5c5a-43db-921f-c2199e770536"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Audit payload for Nell guest scout\nconst d = $input.first().json;\nconst found = d.guests_found || d.guests || 0;\nconst drafts = d.drafts_created || d.outreach_drafts || 0;\n\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'nell',\n      event_type: 'guest-scout-complete',\n      display_message: `Nell guest scout: ${found} guests scouted, ${drafts} outreach drafts prepared.`,\n      details: JSON.stringify({ guests_found: found, drafts_created: drafts })\n    }\n  }\n}];"
+      },
+      "name": "Build Audit (nell Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7800,
+        512
+      ],
+      "id": "bffba770-a11c-47cc-b6ab-9bdfe8e741e4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for extract-people\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>extract-people</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        384
+      ],
+      "name": "LLM Health Check: extract-people",
+      "id": "aadcbe4b-eda7-40e0-8231-bef8ecb51d34",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for score\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>score</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4768,
+        384
+      ],
+      "name": "LLM Health Check: score",
+      "id": "152280bd-ebeb-4af5-8a5d-9fc2b53401d5",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for draft-pitches\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>draft-pitches</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7392,
+        592
+      ],
+      "name": "LLM Health Check: draft-pitches",
+      "id": "d4c34ded-f724-48a4-a2d8-318b17b67530",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.nell&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        400
+      ],
+      "name": "Load Agent Plan",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "14fb51b0-3af9-495e-ab0c-39b6b3f40ee0"
+    }
+  ],
+  "connections": {
+    "PH: Top Posts": {
+      "main": [
+        [
+          {
+            "node": "HN: Show HN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HN: Show HN": {
+      "main": [
+        [
+          {
+            "node": "Parse BE Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse BE Sources": {
+      "main": [
+        [
+          {
+            "node": "RSS: Digiday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS: Digiday": {
+      "main": [
+        [
+          {
+            "node": "RSS: Rebooting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS: Rebooting": {
+      "main": [
+        [
+          {
+            "node": "RSS: NiemanLab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS: NiemanLab": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS + Prep AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse RSS + Prep AI": {
+      "main": [
+        [
+          {
+            "node": "Anthropic: Extract People",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Extract People": {
+      "main": [
+        [
+          {
+            "node": "Merge AI: Anthropic: Extract People",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Anthropic: Extract People",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Candidates": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Existing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Candidates": {
+      "main": [
+        [
+          {
+            "node": "Any New?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any New?": {
+      "main": [
+        [
+          {
+            "node": "Prep Scoring Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Scoring Prompt": {
+      "main": [
+        [
+          {
+            "node": "Anthropic: Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Score": {
+      "main": [
+        [
+          {
+            "node": "Merge AI: Anthropic: Score",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Anthropic: Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Scores + Filter": {
+      "main": [
+        [
+          {
+            "node": "Prep Supabase Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Supabase Insert": {
+      "main": [
+        [
+          {
+            "node": "Store Qualified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No New Candidates": {
+      "main": [
+        [
+          {
+            "node": "Telegram: No New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Candidates": {
+      "main": [
+        [
+          {
+            "node": "Apollo: Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo: Enrich": {
+      "main": [
+        [
+          {
+            "node": "Wait 1s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1s": {
+      "main": [
+        [
+          {
+            "node": "Parse Apollo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Apollo": {
+      "main": [
+        [
+          {
+            "node": "Prep Pitch Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Pitch Prompt": {
+      "main": [
+        [
+          {
+            "node": "Anthropic: Draft Pitches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Draft Pitches": {
+      "main": [
+        [
+          {
+            "node": "Merge AI: Anthropic: Draft Pitches",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Anthropic: Draft Pitches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Existing": {
+      "main": [
+        [
+          {
+            "node": "Dedup Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mon/Wed/Fri 9-11 ET": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Start": {
+      "main": [
+        [
+          {
+            "node": "PH: Top Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Qualified": {
+      "main": [
+        [
+          {
+            "node": "Fetch Contacted (7d)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Contacted (7d)": {
+      "main": [
+        [
+          {
+            "node": "Filter vs Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter vs Contacted": {
+      "main": [
+        [
+          {
+            "node": "Build Digest",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Digest": {
+      "main": [
+        [
+          {
+            "node": "Build Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Pitches": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Create Draft": {
+      "main": [
+        [
+          {
+            "node": "Write contacted_persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write contacted_persons": {
+      "main": [
+        [
+          {
+            "node": "Build Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Build Audit (nell Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: No New": {
+      "main": [
+        [
+          {
+            "node": "Build Heartbeat (zero)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Heartbeat (zero)": {
+      "main": [
+        [
+          {
+            "node": "Write Heartbeat (zero)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Create Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Anthropic: Extract People": {
+      "main": [
+        [
+          {
+            "node": "Adapt Gemini: Anthropic: Extract People",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic: Extract People": {
+      "main": [
+        [
+          {
+            "node": "Merge AI: Anthropic: Extract People",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI: Anthropic: Extract People": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: extract-people",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Anthropic: Score": {
+      "main": [
+        [
+          {
+            "node": "Adapt Gemini: Anthropic: Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic: Score": {
+      "main": [
+        [
+          {
+            "node": "Merge AI: Anthropic: Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI: Anthropic: Score": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Anthropic: Draft Pitches": {
+      "main": [
+        [
+          {
+            "node": "Adapt Gemini: Anthropic: Draft Pitches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic: Draft Pitches": {
+      "main": [
+        [
+          {
+            "node": "Merge AI: Anthropic: Draft Pitches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI: Anthropic: Draft Pitches": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: draft-pitches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Load Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Run Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (nell Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: extract-people": {
+      "main": [
+        [
+          {
+            "node": "Merge All Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: score": {
+      "main": [
+        [
+          {
+            "node": "Parse Scores + Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: draft-pitches": {
+      "main": [
+        [
+          {
+            "node": "Parse Pitches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Every Monday 9AM": {
+      "recurrenceRules": []
+    },
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "node:Daily 07:00 UTC": {
+      "recurrenceRules": []
+    },
+    "node:Mon/Wed/Fri 9-11 ET": {
+      "recurrenceRules": [
+        null,
+        null,
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null,
+        null,
+        null
+      ]
+    }
+  }
+}

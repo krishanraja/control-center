@@ -1,0 +1,373 @@
+{
+  "name": "System | Mindmaker OS | Competitor Health Scan",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Daily 9AM UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "8ef85093-7e66-4f98-95c4-ef8e2e53d0d0"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Static competitor URL list keyed to Krish's live B2C product portfolio\n// gutted, merciless, onalert retired from OS control plane 2026-07-06 (directive) — entries removed\n// Same list as Maya's old Comp Prep, plus a few additions\nconst targets = [\n  // Fractionl Circle competitors (CRM / network tools)\n  { url: 'https://getdex.com', product: 'circle', name: 'Dex' },\n  { url: 'https://clay.com', product: 'circle', name: 'Clay' },\n  { url: 'https://folk.app', product: 'circle', name: 'Folk' },\n  // TODO: add Plinth (typed product-data API+MCP for agents) competitor set here once a real,\n  // verified competitor list is researched. Do not invent URLs/names.\n  // TODO: add Full Time (daily AI football recap) competitor set here once a real,\n  // verified competitor list is researched. Do not invent URLs/names.\n];\nreturn targets.map(t => ({ json: t }));\n"
+      },
+      "name": "Build Target List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        400
+      ],
+      "id": "71a37f44-9abc-497b-914d-934f64330bf7"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text",
+              "fullResponse": true
+            }
+          },
+          "timeout": 20000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "name": "Fetch Competitor URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        400
+      ],
+      "onError": "continueErrorOutput",
+      "id": "a9d9e624-bc8f-4db9-a375-fd2dbadf615e"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Compute content hash + extract metadata + prep row for insert\nconst crypto = require('crypto');\nconst out = [];\nconst responses = $input.all();\nconst targets = $('Build Target List').all();\n\nfor (let i = 0; i < responses.length; i++) {\n  const r = responses[i].json || {};\n  const target = targets[i]?.json || {};\n  const body = r.body || '';\n  const status = r.statusCode || 0;\n  const bodyStr = typeof body === 'string' ? body : JSON.stringify(body || '');\n  \n  // Strip common dynamic content that would falsely trigger changes: timestamps, CSRF tokens, random nonces\n  let normalized = bodyStr\n    .replace(/<meta[^>]+(?:csrf|nonce|timestamp)[^>]*>/gi, '')\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')  // strip all scripts\n    .replace(/\"[a-f0-9]{32,}\"/gi, '')  // strip long hex strings (hashes/tokens)\n    .replace(/\\d{10,}/g, '');  // strip unix timestamps\n  \n  const hash = crypto.createHash('sha256').update(normalized).digest('hex');\n  \n  // Extract title + meta description for human-readable diff\n  const titleMatch = bodyStr.match(/<title[^>]*>([^<]+)<\\/title>/i);\n  const metaMatch = bodyStr.match(/<meta[^>]+name=[\"']description[\"'][^>]+content=[\"']([^\"']+)[\"']/i);\n  \n  out.push({\n    json: {\n      competitor_url: target.url,\n      competitor_name: target.name || null,\n      product: target.product || null,\n      http_status: status,\n      response_time_ms: null,\n      content_hash: hash,\n      content_length: bodyStr.length,\n      title: titleMatch ? titleMatch[1].slice(0, 300) : null,\n      meta_description: metaMatch ? metaMatch[1].slice(0, 500) : null,\n      change_detected: false,  // fill in next step\n      change_summary: null,\n      checked_at: new Date().toISOString()\n    }\n  });\n}\nreturn out;\n"
+      },
+      "name": "Hash + Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        400
+      ],
+      "id": "01a63dcd-8e94-4de9-b36c-38d24f853e92"
+    },
+    {
+      "parameters": {
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/competitor_health",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "competitor_url",
+              "value": "=eq.{{ $json.competitor_url }}"
+            },
+            {
+              "name": "select",
+              "value": "content_hash,title,meta_description,checked_at"
+            },
+            {
+              "name": "order",
+              "value": "checked_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Last Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "3e590091-55a1-41b1-a9e6-a80b6370389c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// For each new row, compare hash to prior row. Set change_detected + summary.\nconst currents = $('Hash + Metadata').all();\nconst priors = $input.all();\nconst out = [];\n\nfor (let i = 0; i < currents.length; i++) {\n  const cur = currents[i].json;\n  const priorRows = Array.isArray(priors[i]?.json) ? priors[i].json : [];\n  const prior = priorRows[0];\n  \n  let changed = false;\n  let summary = null;\n  \n  if (!prior) {\n    summary = 'first check';\n  } else if (prior.content_hash !== cur.content_hash) {\n    changed = true;\n    const bits = [];\n    if (prior.title !== cur.title) bits.push('title changed');\n    if (prior.meta_description !== cur.meta_description) bits.push('description changed');\n    if (bits.length === 0) bits.push('content changed');\n    summary = bits.join('; ');\n  } else {\n    summary = 'no change';\n  }\n  \n  out.push({ json: { ...cur, change_detected: changed, change_summary: summary } });\n}\nreturn out;\n"
+      },
+      "name": "Detect Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        400
+      ],
+      "id": "9f61785e-b3ff-4880-8261-bf8ecc1aef9c"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/competitor_health",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Insert Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        400
+      ],
+      "id": "972163d8-dd1c-4758-93df-943a92f9fa9f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const changes = $('Detect Changes').all().filter(i => i.json.change_detected).length;\n  const total = $('Detect Changes').all().length;\n  return JSON.stringify({\n    actor: 'competitor-scan',\n    event_type: 'competitor-health-scan',\n    display_message: 'Competitor scan: ' + changes + ' changes detected across ' + total + ' sites',\n    details: JSON.stringify({ total, changes })\n  });\n})() }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1750,
+        400
+      ],
+      "id": "6fa28df6-0d4a-4c37-ac90-3fbe57a7395d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  workflow_id: $workflow.id,\n  workflow_name: 'Competitor Health Scan',\n  agent_id: 'system',\n  outcome: 'success',\n  status: 'success',\n  cost_estimate_usd: 0.0,\n  api_calls_count: ($('Detect Changes').all().length * 2) + 2\n}) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        400
+      ],
+      "id": "daf9d515-4bcf-424e-91cc-92ead74ef462",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 9AM UTC": {
+      "main": [
+        [
+          {
+            "node": "Build Target List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Target List": {
+      "main": [
+        [
+          {
+            "node": "Fetch Competitor URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Competitor URL": {
+      "main": [
+        [
+          {
+            "node": "Hash + Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hash + Metadata": {
+      "main": [
+        [
+          {
+            "node": "Fetch Last Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Last Check": {
+      "main": [
+        [
+          {
+            "node": "Detect Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Changes": {
+      "main": [
+        [
+          {
+            "node": "Insert Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Row": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Daily 9AM UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

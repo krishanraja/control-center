@@ -1,0 +1,264 @@
+{
+  "name": "System | Mindmaker OS | Workflow Monitor",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ],
+      "id": "c7a85fc3-aa49-4bbc-b763-068a50a9cd4d"
+    },
+    {
+      "name": "Fetch Executing Proposals",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "// patched: getCredentials -> httpRequestWithAuthentication\nconst SUPABASE_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\n\nlet resp;\ntry {\n  resp = await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/workflow_proposals?status=eq.executing&select=*`,\n    json: true,\n    timeout: 10000,\n  });\n} catch (e) {\n  return [{ json: { skip: true, message: `Supabase fetch failed: ${e.message}` } }];\n}\nconst proposals = typeof resp === 'string' ? JSON.parse(resp) : resp;\nif (!proposals || proposals.length === 0) {\n  return [{ json: { skip: true, message: 'No executing proposals to monitor' } }];\n}\nreturn proposals.map(p => ({ json: p }));\n"
+      },
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        },
+        "httpHeaderAuth": {
+          "id": "NDsyW3cibL80Ucog",
+          "name": "n8nApi"
+        }
+      },
+      "id": "04fcbf95-c5aa-4a39-bf70-b561c10a078b"
+    },
+    {
+      "name": "Check Quality Scores",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "// patched: getCredentials -> httpRequestWithAuthentication\nconst SUPABASE_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\n\nconst proposal = $input.first().json;\nif (proposal.skip) {\n  return [{ json: { skip: true, message: proposal.message, alerts: [] } }];\n}\n\nconst result = {\n  proposalId: proposal.id,\n  title: proposal.title,\n  workflowId: proposal.current_workflow_id,\n  rollbackId: proposal.rollback_workflow_id,\n  action: 'monitor',\n  alerts: [],\n};\n\ntry {\n  if (!proposal.current_workflow_id) {\n    result.action = 'skip';\n    result.reason = 'No workflow to monitor (new workflow proposal)';\n    return [{ json: result }];\n  }\n  const runsUrl = `${SUPABASE_URL}/rest/v1/workflow_runs?workflow_id=eq.${proposal.current_workflow_id}&order=run_at.desc&limit=20&select=*`;\n  const runsResp = await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n    url: runsUrl,\n    json: true,\n    timeout: 10000,\n  });\n  const runs = typeof runsResp === 'string' ? JSON.parse(runsResp) : (runsResp || []);\n  const successCount = runs.filter(r => r.outcome === 'success' || r.status === 'success').length;\n  const totalCount = runs.length;\n  const successRate = totalCount > 0 ? (successCount / totalCount) * 100 : null;\n  result.successRate = successRate;\n  result.runCount = totalCount;\n\n  if (totalCount >= 5 && successRate !== null && successRate < 60) {\n    result.action = 'rollback';\n    result.reason = `Success rate ${successRate.toFixed(1)}% below 60% threshold over ${totalCount} runs`;\n    result.alerts.push(`ROLLBACK: ${proposal.title} - ${result.reason}`);\n  } else if (totalCount >= 5 && successRate !== null && successRate >= 95) {\n    result.action = 'complete';\n    result.reason = `Success rate ${successRate.toFixed(1)}% over ${totalCount} runs - promote to completed`;\n  } else {\n    result.action = 'monitor';\n    result.reason = `Insufficient data or healthy (${totalCount} runs, ${successRate === null ? 'n/a' : successRate.toFixed(1)+'%'} success)`;\n  }\n} catch (err) {\n  result.action = 'error';\n  result.reason = `Check failed: ${err.message}`;\n  result.alerts.push(`Quality check error for ${proposal.title}: ${err.message}`);\n}\nreturn [{ json: result }];\n"
+      },
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        },
+        "httpHeaderAuth": {
+          "id": "NDsyW3cibL80Ucog",
+          "name": "n8nApi"
+        }
+      },
+      "id": "7959a0f0-f25a-4a4a-8937-333cf37b0ef3"
+    },
+    {
+      "name": "Auto-Rollback",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "// patched: getCredentials -> httpRequestWithAuthentication\nconst SUPABASE_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst N8N_URL = 'https://krishraja10101.app.n8n.cloud/api/v1';\nconst HTTP_TIMEOUT = 10000;\n\nconst data = $input.first().json;\nif (data.skip || (data.action !== 'rollback' && data.action !== 'complete')) {\n  return [{ json: data }];\n}\n\nconst now = new Date().toISOString();\n\ntry {\n  if (data.action === 'rollback' && data.rollbackId && data.workflowId) {\n    const backup = await this.helpers.httpRequestWithAuthentication.call(this, 'httpHeaderAuth', {\n      method: 'GET',\n      url: `${N8N_URL}/workflows/${data.rollbackId}`,\n      json: true, timeout: HTTP_TIMEOUT,\n    });\n    if (backup && backup.nodes) {\n      const orig = await this.helpers.httpRequestWithAuthentication.call(this, 'httpHeaderAuth', {\n        method: 'GET',\n        url: `${N8N_URL}/workflows/${data.workflowId}`,\n        json: true, timeout: HTTP_TIMEOUT,\n      });\n      const restorePayload = {\n        name: (orig && orig.name) || backup.name,\n        nodes: backup.nodes,\n        connections: backup.connections,\n        settings: backup.settings || {},\n      };\n      await this.helpers.httpRequestWithAuthentication.call(this, 'httpHeaderAuth', {\n        method: 'PUT',\n        url: `${N8N_URL}/workflows/${data.workflowId}`,\n        headers: { 'Content-Type': 'application/json' },\n        body: restorePayload, json: true, timeout: HTTP_TIMEOUT,\n      });\n      data.rollbackPerformed = true;\n      data.rollbackAt = now;\n      await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n        method: 'PATCH',\n        url: `${SUPABASE_URL}/rest/v1/workflow_proposals?id=eq.${data.proposalId}`,\n        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },\n        body: { status: 'rolled_back', updated_at: now, rollback_reason: data.reason },\n        json: true, timeout: HTTP_TIMEOUT,\n      });\n    } else {\n      data.rollbackPerformed = false;\n      data.rollbackError = 'Backup workflow not found or empty';\n    }\n  } else if (data.action === 'complete') {\n    await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n      method: 'PATCH',\n      url: `${SUPABASE_URL}/rest/v1/workflow_proposals?id=eq.${data.proposalId}`,\n      headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },\n      body: { status: 'completed', updated_at: now, completion_reason: data.reason },\n      json: true, timeout: HTTP_TIMEOUT,\n    });\n    data.markedComplete = true;\n  }\n} catch (err) {\n  data.rollbackError = err.message;\n  (data.alerts = data.alerts || []).push(`Auto-Rollback error on ${data.proposalId}: ${err.message}`);\n}\nreturn [{ json: data }];\n"
+      },
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        },
+        "httpHeaderAuth": {
+          "id": "NDsyW3cibL80Ucog",
+          "name": "n8nApi"
+        }
+      },
+      "id": "2bf40e7c-dfd0-417d-8814-3043c59f451c"
+    },
+    {
+      "name": "Budget Guardian",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "// patched: getCredentials -> httpRequestWithAuthentication\nconst SUPABASE_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst N8N_URL = 'https://krishraja10101.app.n8n.cloud/api/v1';\nconst HTTP_TIMEOUT = 8000;\n\nconst prevData = $input.first().json;\nconst alerts = prevData.alerts || [];\nconst budgetActions = [];\n\ntry {\n  const agentsResp = await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n    url: `${SUPABASE_URL}/rest/v1/agent_capabilities?select=*&monthly_budget_usd=gt.0`,\n    json: true, timeout: HTTP_TIMEOUT,\n  });\n  const agents = typeof agentsResp === 'string' ? JSON.parse(agentsResp) : (agentsResp || []);\n  if (agents.length === 0) {\n    return [{ json: { ...prevData, alerts, budgetActions, budgetMessage: 'No agents with budgets found' } }];\n  }\n  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();\n  const ids = agents.map(a => a.agent_id).filter(Boolean);\n  let runs = [];\n  if (ids.length > 0) {\n    const inFilter = ids.map(id => `\"${id}\"`).join(',');\n    const runsResp = await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n      url: `${SUPABASE_URL}/rest/v1/workflow_runs?agent_id=in.(${encodeURIComponent(inFilter)})&run_at=gte.${monthStart}&select=agent_id,cost_usd`,\n      json: true, timeout: HTTP_TIMEOUT,\n    });\n    runs = typeof runsResp === 'string' ? JSON.parse(runsResp) : (runsResp || []);\n  }\n  const costByAgent = {};\n  for (const r of runs) {\n    const aid = r.agent_id || 'unknown';\n    costByAgent[aid] = (costByAgent[aid] || 0) + parseFloat(r.cost_usd || 0);\n  }\n  for (const agent of agents) {\n    const budget = parseFloat(agent.monthly_budget_usd || 0);\n    if (!budget) continue;\n    const currentSpend = parseFloat(agent.monthly_spend_usd || 0);\n    const totalRunCost = costByAgent[agent.agent_id] || 0;\n    const totalSpend = Math.max(currentSpend, totalRunCost);\n    const usagePercent = (totalSpend / budget) * 100;\n    if (usagePercent > 100) {\n      alerts.push(`BUDGET KILL: ${agent.agent_id} at ${usagePercent.toFixed(1)}% of $${budget} budget`);\n      budgetActions.push({ agent: agent.agent_id, action: 'deactivate', usage: usagePercent });\n      if (agent.current_workflow_id) {\n        try {\n          await this.helpers.httpRequestWithAuthentication.call(this, 'httpHeaderAuth', {\n            method: 'POST',\n            url: `${N8N_URL}/workflows/${agent.current_workflow_id}/deactivate`,\n            json: true, timeout: HTTP_TIMEOUT,\n          });\n          alerts.push(`Deactivated workflow ${agent.current_workflow_id} for ${agent.agent_id}`);\n        } catch (e) {\n          alerts.push(`Failed to deactivate ${agent.current_workflow_id}: ${e.message}`);\n        }\n      }\n      try {\n        await this.helpers.httpRequestWithAuthentication.call(this, 'supabaseApi', {\n          url: `${SUPABASE_URL}/rest/v1/agent_capabilities?agent_id=eq.${agent.agent_id}`,\n          method: 'PATCH', json: true,\n          headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },\n          body: { active: false, updated_at: new Date().toISOString() },\n          timeout: HTTP_TIMEOUT,\n        });\n      } catch (e) {\n        alerts.push(`Failed to flag inactive ${agent.agent_id}: ${e.message}`);\n      }\n    } else if (usagePercent > 90) {\n      alerts.push(`BUDGET WARNING: ${agent.agent_id} at ${usagePercent.toFixed(1)}% of $${budget} budget`);\n      budgetActions.push({ agent: agent.agent_id, action: 'warn', usage: usagePercent });\n    } else if (usagePercent > 80) {\n      alerts.push(`Budget notice: ${agent.agent_id} at ${usagePercent.toFixed(1)}% of $${budget} budget`);\n      budgetActions.push({ agent: agent.agent_id, action: 'notice', usage: usagePercent });\n    }\n  }\n} catch (err) {\n  alerts.push(`Budget check error: ${err.message}`);\n}\nreturn [{ json: { ...prevData, alerts, budgetActions } }];\n"
+      },
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        },
+        "httpHeaderAuth": {
+          "id": "NDsyW3cibL80Ucog",
+          "name": "n8nApi"
+        }
+      },
+      "id": "656ee09b-b8e7-45d5-8ccc-f4d368ebd1bc"
+    },
+    {
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: (() => { const d = $json; if (d.skip && (!d.alerts || d.alerts.length === 0)) return 'Workflow Monitor: All clear, no issues detected.'; let msg = 'Workflow Monitor Report\\n\\n'; if (d.action === 'rollback') msg += `ROLLBACK: ${d.title}\\nReason: ${d.reason}\\n\\n`; if (d.action === 'complete') msg += `COMPLETED: ${d.title}\\nReason: ${d.reason}\\n\\n`; if (d.alerts && d.alerts.length > 0) msg += 'Alerts:\\n' + d.alerts.join('\\n'); if (d.budgetActions && d.budgetActions.length > 0) msg += '\\n\\nBudget Actions: ' + d.budgetActions.map(b => `${b.agent}: ${b.action} (${b.usage.toFixed(1)}%)`).join(', '); return msg || 'Monitor check complete - no issues.'; })(), parse_mode: 'Markdown' }) }}",
+        "options": {}
+      },
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        300
+      ],
+      "id": "6f0a0b98-146e-4707-a80b-a86756ad040f",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: $workflow.id, workflow_name: $workflow.name, agent_id: 'monitor', status: 'success', outcome: 'success', run_at: new Date().toISOString(), cost_estimate_usd: 0, api_calls_count: 1 }) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Execution to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        300
+      ],
+      "id": "027e3aff-b52b-4945-92f7-8835b9d2ca1c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Fetch Executing Proposals": {
+      "main": [
+        [
+          {
+            "node": "Check Quality Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Quality Scores": {
+      "main": [
+        [
+          {
+            "node": "Auto-Rollback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Rollback": {
+      "main": [
+        [
+          {
+            "node": "Budget Guardian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget Guardian": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Execution to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Executing Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Every 4 Hours": {
+      "recurrenceRules": [
+        12
+      ]
+    },
+    "node:Every 6 Hours": {
+      "recurrenceRules": [
+        6
+      ],
+      "recurrenceRuleSignatures": [
+        "hours:6"
+      ]
+    }
+  }
+}

@@ -1,0 +1,621 @@
+{
+  "name": "Nell | Mindmaker OS | Draft Outbound Messages",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bd-draft-contacts",
+        "options": {}
+      },
+      "id": "wh",
+      "name": "Receive Contact Batch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        208,
+        400
+      ],
+      "webhookId": "bd-draft-contacts"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.contacts",
+        "options": {}
+      },
+      "id": "split",
+      "name": "Split Into Contacts",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        448,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Split Into Contacts').item.json;\nconst _NL = String.fromCharCode(10);\nconst exaRes = (($('Exa Enrich Lead').item.json || {}).results) || [];\nconst findings = exaRes.slice(0,3).map(function(r){return '- ' + (r.title||'') + ': ' + ((r.text||'').slice(0,220));}).join(_NL);\nconst prompt = 'Write a LinkedIn DM from Krish Raja to this recipient. Krish is an operator (Mindmaker AI OS), reaching out peer-to-peer, never as a vendor. Open with ONE specific reference to their actual work below; no fawning, no buzzwords, no em dashes; under 90 words; end with a low-friction yes/no or two-option question.' + _NL + _NL\n  + 'RECIPIENT: ' + (c.name||'') + ' - ' + (c.title||'') + ' at ' + (c.company||'') + _NL\n  + 'WHY NOW: ' + (c.why_now||'') + _NL\n  + 'ADDITIONAL CONTEXT: ' + (c.context||'') + _NL + _NL\n  + 'REAL FINDINGS (live web search, use for the specific reference):' + _NL + (findings || '(none found, lean on why_now)') + _NL + _NL\n  + 'If the findings have real substance, a generic message is a failure. Return ONLY the message text, no JSON, no preamble.';\nconst claudeBody = JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 300, system: ($('Build Identity Prepend').item.json.fullSystem)||'', messages: [{ role: 'user', content: prompt }] });\nreturn [{ json: { prompt: prompt, claudeBody: claudeBody } }];"
+      },
+      "id": "prep",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "meta_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "meta_title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "meta_company",
+              "value": "={{ $json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "meta_linkedin",
+              "value": "={{ $json.linkedin_url }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "meta_score",
+              "value": "={{ $json.score }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "keep-meta",
+      "name": "Keep Contact Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge",
+      "name": "Merge Prompt + Metadata",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        928,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Build Prompt').item.json.claudeBody }}",
+        "options": {}
+      },
+      "id": "claude",
+      "name": "Draft with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1168,
+        400
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst message = ($json.content && $json.content[0]) ? $json.content[0].text.trim() : '';\nconst contact = $('Keep Contact Metadata').item.json;\nreturn [{json: {\n  name: contact.meta_name || '?',\n  title: contact.meta_title || '',\n  company: contact.meta_company || '?',\n  linkedin_url: contact.meta_linkedin || '',\n  score: contact.meta_score || 0,\n  draft_message: message,\n  word_count: message.split(/\\s+/).filter(Boolean).length,\n  confidence: 8\n}}];\n"
+      },
+      "id": "parse",
+      "name": "Parse Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "items",
+        "options": {}
+      },
+      "id": "agg",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst drafts = $json.items || [];\nlet msg = \"\\uD83D\\uDCCA *BD Agent \\u2014 Drafts Ready*\\n\\n\";\nmsg += drafts.length + \" draft\" + (drafts.length !== 1 ? \"s\" : \"\") + \" \\u2014 nothing sent, Agatha review required.\\n\\n\";\ndrafts.forEach(function(d, i) {\n  const clean = (d.draft_message||'').replace(/[_*[\\]()~`>#+\\-=|{}.!]/g, '\\\\$&');\n  msg += \"*[\" + (i+1) + \"] \" + (d.name||'?') + \"*\\n\";\n  msg += (d.title||'') + \" \\u2014 \" + (d.company||'?') + \"\\n\";\n  msg += \"Score: \" + (d.score||'?') + \" | Words: \" + (d.word_count||'?') + \"\\n\\n\";\n  msg += clean.substring(0, 700) + \"\\n\\n\\u2500\\u2500\\u2500\\n\";\n});\nmsg += \"Tell Agatha: \\u2018approve 1\\u2019, \\u2018approve 2\\u2019 etc.\";\nreturn [{json: {text: msg}}];\n"
+      },
+      "id": "fmt",
+      "name": "Format for Agatha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: (($json.text||'') + '').substring(0,4000) }) }}",
+        "options": {}
+      },
+      "id": "tg",
+      "name": "Send to Agatha",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2128,
+        400
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];"
+      },
+      "id": "log-supabase-Uz8qzh6kuXkN2bc8",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "id": "builder-gemini-Draft-with-Claude",
+      "name": "Build Gemini Body for Draft with Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "gemini-fb-Draft-with-Claude",
+      "name": "Gemini Fallback for Draft with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1424,
+        624
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.nell&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "node-load-brief-nell-draft-a3",
+      "name": "Load Agent Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        560
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Agent Plan\nconst briefRaw = $('Load Agent Brief').first().json;\nconst planRaw  = $('Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  '';\n\nconst _body = $('Receive Contact Batch').first().json.body || {};\nconst _gv = $('Load Guidelines').first().json;\nconst _guide = (Array.isArray(_gv) && _gv[0] ? _gv[0].value : '') || '';\nconst fullSystem = (identity_prepend||'') + _guide;\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, body: _body, identity_prepend, plan_stale, fullSystem }\n}));\n"
+      },
+      "id": "node-build-prepend-nell-draft-a3",
+      "name": "Build Identity Prepend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.nell&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "9974f9d1-c77b-489c-898a-dca2c94c20b5",
+      "name": "Load Agent Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        752
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.exa.ai/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: (($('Split Into Contacts').item.json.name||'') + ' ' + ($('Split Into Contacts').item.json.title||'') + ' ' + ($('Split Into Contacts').item.json.company||'')).trim().slice(0,180), type:'auto', numResults:3, contents:{ text:{ maxCharacters:400 } } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        580
+      ],
+      "name": "Exa Enrich Lead",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pC89kmtU97Hf7Y13",
+          "name": "Exa API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "dd592c7f-dc8e-41d9-ad77-2740ebc03abf"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.outbound_guidelines&select=value",
+        "authentication": "predefinedCredentialType",
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        480
+      ],
+      "name": "Load Guidelines",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "f61ab093-14b2-4225-9a33-abdb1812d4bc"
+    }
+  ],
+  "connections": {
+    "Receive Contact Batch": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Contacts": {
+      "main": [
+        [
+          {
+            "node": "Exa Enrich Lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Keep Contact Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge Prompt + Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Contact Metadata": {
+      "main": [
+        [
+          {
+            "node": "Merge Prompt + Metadata",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Prompt + Metadata": {
+      "main": [
+        [
+          {
+            "node": "Draft with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft with Claude": {
+      "main": [
+        [
+          {
+            "node": "Parse Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Draft with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Draft": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Format for Agatha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Agatha": {
+      "main": [
+        [
+          {
+            "node": "Send to Agatha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Agatha": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Draft with Claude": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Draft with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Draft with Claude": {
+      "main": [
+        [
+          {
+            "node": "Parse Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Split Into Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "Load Guidelines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exa Enrich Lead": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Guidelines": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": null
+}

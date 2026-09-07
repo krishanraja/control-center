@@ -1,0 +1,148 @@
+{
+  "name": "Stripe | Revenue Intake",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Webhook mmctrl",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mmctrl-stripe-revenue",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "31133cc1-118e-44c3-b57a-8d34dee9691c",
+      "webhookId": "1a3bc84e-cf08-44ac-a176-28b5859fb9aa"
+    },
+    {
+      "name": "Process mmctrl",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// mm-ctrl Stripe events. Verifies stripe-signature when a signing secret exists in\n// system_config.stripe_webhook_signing_secrets (key 'mmctrl'); processes unverified\n// (flagged) until Krish supplies the secret. Consolidates the retired per-product clones.\nconst SB = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SBH = { apikey: '{{SUPABASE_SERVICE_ROLE_KEY}}', Authorization: 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}', 'Content-Type': 'application/json' };\nconst item = $input.first();\nconst hdrs = (item.json && item.json.headers) || {};\n\n// raw body (webhook rawBody option stores it as binary)\nlet raw = null;\ntry { const b = item.binary && item.binary.data && item.binary.data.data; if (b) raw = Buffer.from(b, 'base64').toString('utf8'); } catch (e) {}\nlet evt = null;\ntry { evt = raw ? JSON.parse(raw) : (item.json.body || null); } catch (e) { evt = item.json.body || null; }\nif (!evt) return [{ json: { rejected: true, reason: 'unparseable_body', product: 'mm_ctrl' } }];\n\n// signature verification (arms when secret + crypto available)\nlet verified = 'no_secret';\nfunction q(params){ const p=[]; for (const k of Object.keys(params)) p.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); return p.join('&'); }\ntry {\n  const cfg = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/system_config?' + q({ key: 'eq.stripe_webhook_signing_secrets', select: 'value' }), headers: SBH, json: true });\n  const row = Array.isArray(cfg) ? cfg[0] : cfg;\n  let secrets = row && row.value;\n  if (typeof secrets === 'string') { try { secrets = JSON.parse(secrets); } catch (e) { secrets = null; } }\n  const secret = secrets && secrets['mmctrl'];\n  if (secret && raw) {\n    let crypto = null;\n    try { crypto = require('crypto'); } catch (e) {}\n    if (!crypto) { verified = 'crypto_unavailable'; }\n    else {\n      const sig = String(hdrs['stripe-signature'] || '');\n      const t = (sig.match(/t=(\\d+)/) || [])[1];\n      const v1s = [...sig.matchAll(/v1=([a-f0-9]+)/g)].map(m => m[1]);\n      if (!t || v1s.length === 0) {\n        await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/audit_log', headers: SBH, body: [{ actor: 'system', event_type: 'stripe-signature-invalid', display_message: 'Stripe Revenue Intake (mm-ctrl): missing/malformed stripe-signature header; event REJECTED.', details: JSON.stringify({ product: 'mm_ctrl' }) }], json: true });\n        return [{ json: { rejected: true, reason: 'missing_signature', product: 'mm_ctrl' } }];\n      }\n      const expected = crypto.createHmac('sha256', secret).update(t + '.' + raw, 'utf8').digest('hex');\n      if (!v1s.includes(expected)) {\n        await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/audit_log', headers: SBH, body: [{ actor: 'system', event_type: 'stripe-signature-invalid', display_message: 'Stripe Revenue Intake (mm-ctrl): signature mismatch; event REJECTED.', details: JSON.stringify({ product: 'mm_ctrl', type: evt.type || null }) }], json: true });\n        return [{ json: { rejected: true, reason: 'bad_signature', product: 'mm_ctrl' } }];\n      }\n      verified = 'verified';\n    }\n  }\n} catch (e) { verified = 'verify_error:' + String(e.message || e).slice(0, 60); }\n\nconst t = String(evt.type || '').toLowerCase();\nconst obj = (evt.data && evt.data.object) || {};\nconst isPaid = ['checkout.session.completed', 'invoice.payment_succeeded', 'customer.subscription.created', 'customer.subscription.updated'].includes(t);\nconst isChurned = t === 'customer.subscription.deleted';\nconst customerId = obj.customer || obj.id || null;\nconst email = obj.customer_email || (obj.customer_details && obj.customer_details.email) || obj.receipt_email || null;\n\n// Telegram alert (fleet ops chat)\ntry { await this.helpers.httpRequest({ method: 'POST', url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage', body: { chat_id: '6773796504', text: '💰 mm-ctrl: ' + (evt.type || 'event') + ' - ' + (email || customerId || 'unknown') + (verified === 'verified' ? ' [signed]' : '') }, json: true }); } catch (e) {}\n\n// attribution lookup (same logic the per-product clones used)\nlet lead = null;\ntry {\n  const found = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/leads?' + q({ select: 'id,promoted_task_id,assignee_agent', email: 'ilike.' + (email || '__none__'), order: 'created_at.desc', limit: '1' }), headers: SBH, json: true });\n  if (Array.isArray(found) && found[0]) lead = found[0];\n} catch (e) {}\nconst utm = (obj.metadata && (obj.metadata.utm_source || obj.metadata.attribution_channel)) || null;\n\n// customer upsert (idempotent)\nlet upserted = false;\nif (customerId) {\n  const now = new Date().toISOString();\n  const price = obj.plan || (obj.items && obj.items.data && obj.items.data[0] && obj.items.data[0].price) || null;\n  const mrr = (obj.plan && obj.plan.amount != null) ? obj.plan.amount / 100 : (obj.amount_total != null ? obj.amount_total / 100 : (obj.amount_paid != null ? obj.amount_paid / 100 : null));\n  try {\n    await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/customers?on_conflict=product,stripe_customer_id', headers: { ...SBH, Prefer: 'resolution=merge-duplicates,return=minimal' }, body: [{\n      product: 'mm_ctrl', kind: isChurned ? 'churned' : 'paid', email,\n      full_name: (obj.customer_details && obj.customer_details.name) || (obj.metadata && obj.metadata.full_name) || null,\n      stripe_customer_id: customerId, stripe_subscription_id: obj.subscription || obj.id || null,\n      plan: (price && (price.nickname || price.id)) || (obj.metadata && obj.metadata.plan) || null, mrr_usd: mrr,\n      became_paid_at: isPaid && !isChurned ? now : null, churned_at: isChurned ? now : null,\n      source: utm, raw: evt,\n      attribution_lead_id: lead ? lead.id : null, attribution_task_id: lead ? (lead.promoted_task_id || null) : null,\n      attribution_channel: lead ? (utm || ('agent:' + (lead.assignee_agent || 'unknown'))) : (utm || null),\n      attribution_confidence: lead ? 'exact_email' : (utm ? 'utm' : 'unattributed'),\n    }], json: true });\n    upserted = true;\n  } catch (e) {}\n}\n\n// heartbeat\ntry { await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/workflow_runs', headers: SBH, body: [{ workflow_id: 'stripe-revenue-intake', workflow_name: 'Stripe | Revenue Intake', agent_id: 'system', status: 'success', outcome: 'mmctrl:' + (evt.type || 'event') + ':' + verified + (upserted ? ':upserted' : ''), outcome_count: upserted ? 1 : 0, cost_estimate_usd: 0.0001, api_calls_count: 5 }], json: true }); } catch (e) {}\nreturn [{ json: { ok: true, product: 'mm_ctrl', type: evt.type || null, verified, upserted } }];\n"
+      },
+      "id": "8aa74af1-2f53-481d-a4ad-43e7c311131f",
+      "disabled": true
+    },
+    {
+      "name": "Webhook fractionl",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        460
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fractionl-stripe-revenue",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "7c19608b-026c-4912-80bf-dffcad6ec5b4",
+      "webhookId": "9fbc76ae-23ba-4f53-8d68-dc3aae63d636"
+    },
+    {
+      "name": "Process fractionl",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Fractionl Stripe events. Verifies stripe-signature when a signing secret exists in\n// system_config.stripe_webhook_signing_secrets (key 'fractionl'); processes unverified\n// (flagged) until Krish supplies the secret. Consolidates the retired per-product clones.\nconst SB = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SBH = { apikey: '{{SUPABASE_SERVICE_ROLE_KEY}}', Authorization: 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}', 'Content-Type': 'application/json' };\nconst item = $input.first();\nconst hdrs = (item.json && item.json.headers) || {};\n\n// raw body (webhook rawBody option stores it as binary)\nlet raw = null;\ntry { const b = item.binary && item.binary.data && item.binary.data.data; if (b) raw = Buffer.from(b, 'base64').toString('utf8'); } catch (e) {}\nlet evt = null;\ntry { evt = raw ? JSON.parse(raw) : (item.json.body || null); } catch (e) { evt = item.json.body || null; }\nif (!evt) return [{ json: { rejected: true, reason: 'unparseable_body', product: 'fractionl_circle' } }];\n\n// signature verification (arms when secret + crypto available)\nlet verified = 'no_secret';\nfunction q(params){ const p=[]; for (const k of Object.keys(params)) p.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); return p.join('&'); }\ntry {\n  const cfg = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/system_config?' + q({ key: 'eq.stripe_webhook_signing_secrets', select: 'value' }), headers: SBH, json: true });\n  const row = Array.isArray(cfg) ? cfg[0] : cfg;\n  let secrets = row && row.value;\n  if (typeof secrets === 'string') { try { secrets = JSON.parse(secrets); } catch (e) { secrets = null; } }\n  const secret = secrets && secrets['fractionl'];\n  if (secret && raw) {\n    let crypto = null;\n    try { crypto = require('crypto'); } catch (e) {}\n    if (!crypto) { verified = 'crypto_unavailable'; }\n    else {\n      const sig = String(hdrs['stripe-signature'] || '');\n      const t = (sig.match(/t=(\\d+)/) || [])[1];\n      const v1s = [...sig.matchAll(/v1=([a-f0-9]+)/g)].map(m => m[1]);\n      if (!t || v1s.length === 0) {\n        await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/audit_log', headers: SBH, body: [{ actor: 'system', event_type: 'stripe-signature-invalid', display_message: 'Stripe Revenue Intake (Fractionl): missing/malformed stripe-signature header; event REJECTED.', details: JSON.stringify({ product: 'fractionl_circle' }) }], json: true });\n        return [{ json: { rejected: true, reason: 'missing_signature', product: 'fractionl_circle' } }];\n      }\n      const expected = crypto.createHmac('sha256', secret).update(t + '.' + raw, 'utf8').digest('hex');\n      if (!v1s.includes(expected)) {\n        await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/audit_log', headers: SBH, body: [{ actor: 'system', event_type: 'stripe-signature-invalid', display_message: 'Stripe Revenue Intake (Fractionl): signature mismatch; event REJECTED.', details: JSON.stringify({ product: 'fractionl_circle', type: evt.type || null }) }], json: true });\n        return [{ json: { rejected: true, reason: 'bad_signature', product: 'fractionl_circle' } }];\n      }\n      verified = 'verified';\n    }\n  }\n} catch (e) { verified = 'verify_error:' + String(e.message || e).slice(0, 60); }\n\nconst t = String(evt.type || '').toLowerCase();\nconst obj = (evt.data && evt.data.object) || {};\nconst isPaid = ['checkout.session.completed', 'invoice.payment_succeeded', 'customer.subscription.created', 'customer.subscription.updated'].includes(t);\nconst isChurned = t === 'customer.subscription.deleted';\nconst customerId = obj.customer || obj.id || null;\nconst email = obj.customer_email || (obj.customer_details && obj.customer_details.email) || obj.receipt_email || null;\n\n// Telegram alert (fleet ops chat)\ntry { await this.helpers.httpRequest({ method: 'POST', url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage', body: { chat_id: '6773796504', text: '💰 Fractionl: ' + (evt.type || 'event') + ' - ' + (email || customerId || 'unknown') + (verified === 'verified' ? ' [signed]' : '') }, json: true }); } catch (e) {}\n\n// attribution lookup (same logic the per-product clones used)\nlet lead = null;\ntry {\n  const found = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/leads?' + q({ select: 'id,promoted_task_id,assignee_agent', email: 'ilike.' + (email || '__none__'), order: 'created_at.desc', limit: '1' }), headers: SBH, json: true });\n  if (Array.isArray(found) && found[0]) lead = found[0];\n} catch (e) {}\nconst utm = (obj.metadata && (obj.metadata.utm_source || obj.metadata.attribution_channel)) || null;\n\n// customer upsert (idempotent)\nlet upserted = false;\nif (customerId) {\n  const now = new Date().toISOString();\n  const price = obj.plan || (obj.items && obj.items.data && obj.items.data[0] && obj.items.data[0].price) || null;\n  const mrr = (obj.plan && obj.plan.amount != null) ? obj.plan.amount / 100 : (obj.amount_total != null ? obj.amount_total / 100 : (obj.amount_paid != null ? obj.amount_paid / 100 : null));\n  try {\n    await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/customers?on_conflict=product,stripe_customer_id', headers: { ...SBH, Prefer: 'resolution=merge-duplicates,return=minimal' }, body: [{\n      product: 'fractionl_circle', kind: isChurned ? 'churned' : 'paid', email,\n      full_name: (obj.customer_details && obj.customer_details.name) || (obj.metadata && obj.metadata.full_name) || null,\n      stripe_customer_id: customerId, stripe_subscription_id: obj.subscription || obj.id || null,\n      plan: (price && (price.nickname || price.id)) || (obj.metadata && obj.metadata.plan) || null, mrr_usd: mrr,\n      became_paid_at: isPaid && !isChurned ? now : null, churned_at: isChurned ? now : null,\n      source: utm, raw: evt,\n      attribution_lead_id: lead ? lead.id : null, attribution_task_id: lead ? (lead.promoted_task_id || null) : null,\n      attribution_channel: lead ? (utm || ('agent:' + (lead.assignee_agent || 'unknown'))) : (utm || null),\n      attribution_confidence: lead ? 'exact_email' : (utm ? 'utm' : 'unattributed'),\n    }], json: true });\n    upserted = true;\n  } catch (e) {}\n}\n\n// heartbeat\ntry { await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/workflow_runs', headers: SBH, body: [{ workflow_id: 'stripe-revenue-intake', workflow_name: 'Stripe | Revenue Intake', agent_id: 'system', status: 'success', outcome: 'fractionl:' + (evt.type || 'event') + ':' + verified + (upserted ? ':upserted' : ''), outcome_count: upserted ? 1 : 0, cost_estimate_usd: 0.0001, api_calls_count: 5 }], json: true }); } catch (e) {}\nreturn [{ json: { ok: true, product: 'fractionl_circle', type: evt.type || null, verified, upserted } }];\n"
+      },
+      "id": "0971dc3b-4055-407b-b50d-6b362ea2d9ba",
+      "disabled": true
+    },
+    {
+      "name": "Webhook fulltime",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        980
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fulltime-stripe-revenue",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "b470c441-fa65-48b8-8268-68bf874a4515",
+      "webhookId": "79728888-df54-41da-ad4e-d04da44c5894"
+    },
+    {
+      "name": "Process fulltime",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        980
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// full-time Stripe events. Verifies stripe-signature when a signing secret exists in\n// system_config.stripe_webhook_signing_secrets (key 'fulltime'); processes unverified\n// (flagged) until Krish supplies the secret. Consolidates the retired per-product clones.\nconst SB = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SBH = { apikey: '{{SUPABASE_SERVICE_ROLE_KEY}}', Authorization: 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}', 'Content-Type': 'application/json' };\nconst item = $input.first();\nconst hdrs = (item.json && item.json.headers) || {};\n\n// raw body (webhook rawBody option stores it as binary)\nlet raw = null;\ntry { const b = item.binary && item.binary.data && item.binary.data.data; if (b) raw = Buffer.from(b, 'base64').toString('utf8'); } catch (e) {}\nlet evt = null;\ntry { evt = raw ? JSON.parse(raw) : (item.json.body || null); } catch (e) { evt = item.json.body || null; }\nif (!evt) return [{ json: { rejected: true, reason: 'unparseable_body', product: 'full_time' } }];\n\n// signature verification (arms when secret + crypto available)\nlet verified = 'no_secret';\nfunction q(params){ const p=[]; for (const k of Object.keys(params)) p.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); return p.join('&'); }\ntry {\n  const cfg = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/system_config?' + q({ key: 'eq.stripe_webhook_signing_secrets', select: 'value' }), headers: SBH, json: true });\n  const row = Array.isArray(cfg) ? cfg[0] : cfg;\n  let secrets = row && row.value;\n  if (typeof secrets === 'string') { try { secrets = JSON.parse(secrets); } catch (e) { secrets = null; } }\n  const secret = secrets && secrets['fulltime'];\n  if (secret && raw) {\n    let crypto = null;\n    try { crypto = require('crypto'); } catch (e) {}\n    if (!crypto) { verified = 'crypto_unavailable'; }\n    else {\n      const sig = String(hdrs['stripe-signature'] || '');\n      const t = (sig.match(/t=(\\d+)/) || [])[1];\n      const v1s = [...sig.matchAll(/v1=([a-f0-9]+)/g)].map(m => m[1]);\n      if (!t || v1s.length === 0) {\n        await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/audit_log', headers: SBH, body: [{ actor: 'system', event_type: 'stripe-signature-invalid', display_message: 'Stripe Revenue Intake (full-time): missing/malformed stripe-signature header; event REJECTED.', details: JSON.stringify({ product: 'full_time' }) }], json: true });\n        return [{ json: { rejected: true, reason: 'missing_signature', product: 'full_time' } }];\n      }\n      const expected = crypto.createHmac('sha256', secret).update(t + '.' + raw, 'utf8').digest('hex');\n      if (!v1s.includes(expected)) {\n        await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/audit_log', headers: SBH, body: [{ actor: 'system', event_type: 'stripe-signature-invalid', display_message: 'Stripe Revenue Intake (full-time): signature mismatch; event REJECTED.', details: JSON.stringify({ product: 'full_time', type: evt.type || null }) }], json: true });\n        return [{ json: { rejected: true, reason: 'bad_signature', product: 'full_time' } }];\n      }\n      verified = 'verified';\n    }\n  }\n} catch (e) { verified = 'verify_error:' + String(e.message || e).slice(0, 60); }\n\nconst t = String(evt.type || '').toLowerCase();\nconst obj = (evt.data && evt.data.object) || {};\nconst isPaid = ['checkout.session.completed', 'invoice.payment_succeeded', 'customer.subscription.created', 'customer.subscription.updated'].includes(t);\nconst isChurned = t === 'customer.subscription.deleted';\nconst customerId = obj.customer || obj.id || null;\nconst email = obj.customer_email || (obj.customer_details && obj.customer_details.email) || obj.receipt_email || null;\n\n// Telegram alert (fleet ops chat)\ntry { await this.helpers.httpRequest({ method: 'POST', url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage', body: { chat_id: '6773796504', text: '💰 full-time: ' + (evt.type || 'event') + ' - ' + (email || customerId || 'unknown') + (verified === 'verified' ? ' [signed]' : '') }, json: true }); } catch (e) {}\n\n// attribution lookup (same logic the per-product clones used)\nlet lead = null;\ntry {\n  const found = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/leads?' + q({ select: 'id,promoted_task_id,assignee_agent', email: 'ilike.' + (email || '__none__'), order: 'created_at.desc', limit: '1' }), headers: SBH, json: true });\n  if (Array.isArray(found) && found[0]) lead = found[0];\n} catch (e) {}\nconst utm = (obj.metadata && (obj.metadata.utm_source || obj.metadata.attribution_channel)) || null;\n\n// customer upsert (idempotent)\nlet upserted = false;\nif (customerId) {\n  const now = new Date().toISOString();\n  const price = obj.plan || (obj.items && obj.items.data && obj.items.data[0] && obj.items.data[0].price) || null;\n  const mrr = (obj.plan && obj.plan.amount != null) ? obj.plan.amount / 100 : (obj.amount_total != null ? obj.amount_total / 100 : (obj.amount_paid != null ? obj.amount_paid / 100 : null));\n  try {\n    await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/customers?on_conflict=product,stripe_customer_id', headers: { ...SBH, Prefer: 'resolution=merge-duplicates,return=minimal' }, body: [{\n      product: 'full_time', kind: isChurned ? 'churned' : 'paid', email,\n      full_name: (obj.customer_details && obj.customer_details.name) || (obj.metadata && obj.metadata.full_name) || null,\n      stripe_customer_id: customerId, stripe_subscription_id: obj.subscription || obj.id || null,\n      plan: (price && (price.nickname || price.id)) || (obj.metadata && obj.metadata.plan) || null, mrr_usd: mrr,\n      became_paid_at: isPaid && !isChurned ? now : null, churned_at: isChurned ? now : null,\n      source: utm, raw: evt,\n      attribution_lead_id: lead ? lead.id : null, attribution_task_id: lead ? (lead.promoted_task_id || null) : null,\n      attribution_channel: lead ? (utm || ('agent:' + (lead.assignee_agent || 'unknown'))) : (utm || null),\n      attribution_confidence: lead ? 'exact_email' : (utm ? 'utm' : 'unattributed'),\n    }], json: true });\n    upserted = true;\n  } catch (e) {}\n}\n\n// heartbeat\ntry { await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/workflow_runs', headers: SBH, body: [{ workflow_id: 'stripe-revenue-intake', workflow_name: 'Stripe | Revenue Intake', agent_id: 'system', status: 'success', outcome: 'fulltime:' + (evt.type || 'event') + ':' + verified + (upserted ? ':upserted' : ''), outcome_count: upserted ? 1 : 0, cost_estimate_usd: 0.0001, api_calls_count: 5 }], json: true }); } catch (e) {}\nreturn [{ json: { ok: true, product: 'full_time', type: evt.type || null, verified, upserted } }];\n"
+      },
+      "id": "14c5a8f2-c167-41df-828a-827f4b8bdf53",
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Webhook mmctrl": {
+      "main": [
+        [
+          {
+            "node": "Process mmctrl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook fractionl": {
+      "main": [
+        [
+          {
+            "node": "Process fractionl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook fulltime": {
+      "main": [
+        [
+          {
+            "node": "Process fulltime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120
+  },
+  "staticData": null
+}

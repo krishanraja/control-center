@@ -1,0 +1,119 @@
+{
+  "name": "UTIL - Engagement Sheet Tidy",
+  "active": false,
+  "nodes": [
+    {
+      "id": "f0e4a380-ac4b-433e-b405-da827e1b7a76",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "97fa82c9-875b-4b09-bf78-cba45c96e64c",
+      "name": "Get Sheet Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "b71f4268-3133-4ab4-9e14-ed0b8049060f",
+      "name": "Build Tidy Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\nconst requests = [];\n\n// Hide anything whose title starts with these prefixes (handles renamed tabs)\nconst hidePrefixes = ['Post-4pm','Actions','Scenario','Archive','Namaste'];\nsheets.forEach(s => {\n  const t = s.properties.title;\n  if (hidePrefixes.some(p => t.startsWith(p))) {\n    requests.push({updateSheetProperties:{properties:{sheetId:s.properties.sheetId,hidden:true},fields:'hidden'}});\n  }\n});\n\n// Order visible tabs, matching by prefix so renames do not break it\nconst order = ['Dashboard','War Plan','Guest List','Fun & Immersive','Anna - Confirmed','Costings'];\norder.forEach((prefix,i) => {\n  const s = sheets.find(x => x.properties.title.startsWith(prefix));\n  if (s) requests.push({updateSheetProperties:{properties:{sheetId:s.properties.sheetId,index:i},fields:'index'}});\n});\n\nreturn [{json:{requests, hiding: requests.length}}];"
+      }
+    },
+    {
+      "id": "818795fd-f230-4ae5-88f3-7b8f980c54ca",
+      "name": "Apply Tidy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dOaQWWDxNTWGbNsFFJs-4f7xzc4WYIxE2cQrtt5NQy0:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8cymBIB03tRss7cS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Sheet Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sheet Metadata": {
+      "main": [
+        [
+          {
+            "node": "Build Tidy Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Tidy Request": {
+      "main": [
+        [
+          {
+            "node": "Apply Tidy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

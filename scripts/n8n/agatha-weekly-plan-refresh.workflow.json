@@ -1,5 +1,6 @@
 {
-  "name": "Agatha | mind/make OS | Weekly Plan Refresh",
+  "name": "Agatha | Mindmaker OS | Weekly Plan Refresh",
+  "active": true,
   "nodes": [
     {
       "id": "55ba518b-5cb8-43e5-9c23-6d24afd1b7cd",
@@ -31,9 +32,9 @@
         304
       ],
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase service role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       },
       "parameters": {
@@ -55,7 +56,9 @@
               "value": "application/json"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       }
     },
     {
@@ -91,7 +94,9 @@
         "chatId": "6773796504",
         "additionalFields": {},
         "text": "=Plan refresh complete\nOn track: {{ $('Parse').first().json.on_track }}/{{ $('Parse').first().json.total }} agents\nBlocked: {{ $('Parse').first().json.blocked.length }}\n\n{{ $('Parse').first().json.blocked.length === 0 ? '' : $('Parse').first().json.blocked.map(a => '- ' + a.agent_id + ': ' + a.silent_failures_7d + ' silent failures, ' + a.failed_runs_7d + ' failed runs (7d)').join('\\n') }}\n\nOpen Plans tab: https://control-center-mindmaker.vercel.app/plans"
-      }
+      },
+      "webhookId": "7f8074cd-c52a-4ce5-a35a-2ff7d70ee7ed",
+      "disabled": true
     }
   ],
   "connections": {
@@ -131,6 +136,17 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveDataErrorExecution": "all"
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Schedule (Mon 09:00 UTC)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }

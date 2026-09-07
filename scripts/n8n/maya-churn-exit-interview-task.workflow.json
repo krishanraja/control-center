@@ -1,0 +1,172 @@
+{
+  "name": "Maya | Mindmaker OS | Churn → Exit Interview Task",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 30,
+              "unit": "minutes"
+            }
+          ]
+        }
+      },
+      "name": "Every 30 minutes",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        240,
+        288
+      ],
+      "id": "faabaac8-3bd9-4e20-bf8f-381f85f50cd3"
+    },
+    {
+      "parameters": {
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?kind=eq.churned&churned_at=gte.{{ $now.minus({ days: 7 }).toISO() }}&select=id,full_name,email,product,churned_at,plan,mrr_usd",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "name": "Fetch recent churns",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        512,
+        288
+      ],
+      "id": "848f2876-af9c-47d6-95c8-a899ba4c0d6d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// For each churned customer, check if an exit_interview contact OR an\n// existing maya 'Exit interview' task exists. If neither — emit the row\n// so the next nodes create the task.\nconst rows = $input.first().json;\nconst out = [];\nfor (const c of (Array.isArray(rows) ? rows : [])) {\n  // Check existing exit_interview contact.\n  const cRes = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customer_contacts?customer_id=eq.${c.id}&reason=eq.exit_interview&select=id&limit=1`,\n    headers: { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` },\n    json: true,\n  });\n  if (Array.isArray(cRes) && cRes.length > 0) continue;\n  // Check existing task.\n  const tRes = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?agent=eq.maya&title=ilike.${encodeURIComponent('Exit interview:%' + (c.full_name || c.email || '') + '%')}&status=neq.done&select=id&limit=1`,\n    headers: { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` },\n    json: true,\n  });\n  if (Array.isArray(tRes) && tRes.length > 0) continue;\n  out.push({ json: c });\n}\nreturn out;"
+      },
+      "name": "Per churn — already tasked?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        288
+      ],
+      "id": "ee24f489-1f50-4b8a-ba5d-b268addbf501"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: 'Exit interview: ' + ($json.full_name || $json.email || 'churned customer'), description: 'Customer churned ' + $json.churned_at + ' from ' + $json.product + ' (' + ($json.plan || 'unknown plan') + ', $' + ($json.mrr_usd || 0) + '/mo). Find the actual reason — pattern match is more valuable than the save.', status: 'waiting', workstream: 'customer_success', group_label: 'Customers', agent: 'maya', owner: 'krish', due_date: new Date(Date.now() + 7*86400000).toISOString(), updated_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "name": "Create exit task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1024,
+        288
+      ],
+      "id": "eed55016-e61b-4a0f-9eff-579a8c221c66",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '8831854841', text: '⚠️ Churn: ' + ($('Per churn — already tasked?').item.json.full_name || $('Per churn — already tasked?').item.json.email || 'customer') + ' — Maya task created. Exit interview within 7d.' }) }}",
+        "options": {}
+      },
+      "name": "Telegram alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1280,
+        288
+      ],
+      "id": "1351d436-87d0-4b30-aacd-f43f0d6c7dd7",
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Every 30 minutes": {
+      "main": [
+        [
+          {
+            "node": "Fetch recent churns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch recent churns": {
+      "main": [
+        [
+          {
+            "node": "Per churn — already tasked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Per churn — already tasked?": {
+      "main": [
+        [
+          {
+            "node": "Create exit task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create exit task": {
+      "main": [
+        [
+          {
+            "node": "Telegram alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

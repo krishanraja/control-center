@@ -1,0 +1,150 @@
+{
+  "name": "System | Mindmaker OS | Krish Feedback Receiver",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Feedback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "path": "krish-feedback",
+        "responseMode": "responseNode",
+        "httpMethod": "POST"
+      },
+      "webhookId": "krish-feedback-001",
+      "id": "6cf0b158-ed95-4dab-b539-3827527d41eb"
+    },
+    {
+      "name": "Notify via Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "6773796504"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            },
+            {
+              "name": "text",
+              "value": "=📋 *Task Feedback Received*\n\n*Task:* {{ $json.body.taskId }}\n*Status:* {{ $json.body.status }}\n*Agent:* {{ $json.body.agent || 'unknown' }}\n{{ $json.body.feedback ? '*Feedback:* ' + $json.body.feedback : '' }}\n\n_Added to Agatha\\'s queue._"
+            }
+          ]
+        }
+      },
+      "id": "a968889d-71df-47ef-b72b-5aa4f7c1bbd7",
+      "disabled": true
+    },
+    {
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": true, \"message\": \"Feedback received\"}"
+      },
+      "id": "835cb899-ebf5-4840-ba90-36ab092424b2"
+    },
+    {
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"7pzP0Xjto31rplTK\", \"workflow_name\": \"Krish Feedback Receiver\", \"agent_id\": \"system\", \"outcome\": \"success\", \"status\": \"success\", \"cost_estimate_usd\": 0, \"api_calls_count\": 1}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "01321a6f-bec9-45af-9f3d-c1e680f6359d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Feedback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Notify via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond OK": {
+      "main": [
+        [
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

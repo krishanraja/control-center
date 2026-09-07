@@ -1,0 +1,2366 @@
+{
+  "name": "Cleo | Mindmaker OS | Omnichannel Content Factory",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Omnichannel Content Factory v2\n**Diligence & Assembly Engine**\n\nTriggered by Cleo via POST webhook after brainstorming.\n\n**Payload:** hook, target_audience, contrarian_angle, target_channel, format\n\n**Channels:** mindmaker_live, signal_noise, linkedin, built, vertical_video, dynamic\n\n**Teardowns:** Mindmaker Live carries live builds, fresh news AND Teardowns. A piece takes the deep Teardown branch (Perplexity investigation, Commercial Mechanics Matrix, radar chart, evidence table) only when target_channel is mindmaker_live AND format contains \"teardown\". Every other mindmaker_live piece takes the standard branch. Payloads still carrying the old retired channel tag route to Teardowns for backwards compatibility.",
+        "height": 380,
+        "width": 260,
+        "color": 3
+      },
+      "name": "Sticky Note d483032e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        400
+      ],
+      "id": "2a6db146-1e8e-44be-be91-ef273b7232e2"
+    },
+    {
+      "parameters": {
+        "content": "## Folder IDs (live)\n\nmindmaker_live teardowns: 1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh\nsignal_noise: 18ORaqxSbTIFQoPt0dwdSAlrY1NHXPCNK\nmindmaker_live: 1kR_T-hNihvGCQXdIjLIxwEJiWMyanoFD\nlinkedin: 1zbPHNuOAJAjvhJAQgW9omCgjnT4H_TX9\nbuilt: 1cUTChNnsSmOj0RuwJZfDY2xJBMP10UJi\nvertical_video: 1I6JNoc4HRZaNSCyYIskXkBo_mHJyoilK\ndynamic: falls back to the teardowns folder",
+        "height": 320,
+        "width": 280,
+        "color": 5
+      },
+      "name": "Sticky Note c76e84e0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        608
+      ],
+      "id": "a5db4a30-55ea-4333-8341-10ba05733db5"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-factory",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Cleo Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        608
+      ],
+      "webhookId": "94399767-4a65-44ec-a2e5-25aa576ca89d",
+      "id": "a562deed-93ee-4ca1-b16a-98ff8a15b354"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ [\"paid\", \"techonomic\", \"investigation\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'paid' : 'nomatch' }}",
+                    "rightValue": "paid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b3119f95-ea8d-4412-b3d7-69b8555e35c7"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Cleo Webhook').first().json.body.target_channel }}",
+                    "rightValue": "signal_noise",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6ed8565f-46de-429a-a4af-dce847abde76"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ [\"makeyourmindup\", \"mindmaker_live\", \"mymu\", \"mymu_weekly\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'house' : 'nomatch' }}",
+                    "rightValue": "house",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "79dc5fc9-365d-4275-ae93-2d49b7aa8acb"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Cleo Webhook').first().json.body.target_channel }}",
+                    "rightValue": "linkedin",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f27d6ae6-b734-493d-bce9-9093f0961e07"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ [\"built\", \"builder_economy\", \"builder_economy_ig\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'built' : 'nomatch' }}",
+                    "rightValue": "built",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3c1a2d6c-d2a2-4be7-a1e6-009bb5b6b1fd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Cleo Webhook').first().json.body.target_channel }}",
+                    "rightValue": "vertical_video",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b1d778c5-ee3e-4adb-be94-c078b4d0202a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "name": "Route by Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        608
+      ],
+      "id": "99714d2b-a148-4637-92e6-f96ec52656c7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"sonar-pro\",\n  \"max_tokens\": 3000,\n  \"search_recency_filter\": \"month\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are an investigative research analyst for Mindmaker Live Teardowns, the investigative format covering the commercial mechanics of the open internet in the AI era. Your job is to produce deep, evidence-anchored commercial intelligence on the following topic.\\n\\nTOPIC: \\\" + $('Cleo Webhook').item.json.body.hook + \\\"\\n\\nRESEARCH TASKS:\\n1. Find real commercial evidence: earnings call quotes, LinkedIn posts from operators, case studies, regulatory filings, or product announcements from the last 180 days that reveal actual business impact.\\n2. Identify 3-5 distinct players, models, or approaches relevant to this topic.\\n3. Score each player on the COMMERCIAL MECHANICS MATRIX - five fixed dimensions defined below.\\n\\nTHE FIVE DIMENSIONS (fixed, always use exactly these):\\n\\n1. REVENUE LEVERAGE: Does revenue scale faster or slower than cost as usage grows? Score 9-10 = documented revenue growing faster than COGS at scale. Score 5-6 = roughly linear relationship. Score 1-2 = COGS outpacing revenue. Evidence must cite specific financials, earnings data, or documented unit economics.\\n\\n2. DATA MOAT DEPTH: How much does the product get smarter, stickier, or more defensible the longer a customer uses it? Score 9-10 = proprietary data accumulation creates compounding defensibility (e.g. first-party identity graphs, trained models). Score 5-6 = some switching cost but data is portable. Score 1-2 = commodity, no data accumulation. Evidence must describe the specific mechanism.\\n\\n3. SWITCHING COST ARCHITECTURE: Is lock-in structural (data formats, integrations, workflow dependency) or merely contractual? Score 9-10 = deeply structural, migration requires rebuilding workflows or losing proprietary data. Score 5-6 = moderate integration depth. Score 1-2 = contractual only, easily swapped. Evidence must describe what specifically traps or frees the customer.\\n\\n4. MARGIN TRAJECTORY: Is gross margin expanding or contracting as the product scales? Critical under AI where inference costs are volatile. Score 9-10 = documented expanding margins with scale (software economics). Score 5-6 = stable but infrastructure-dependent. Score 1-2 = margin compression documented or structurally inevitable. Evidence must cite specific cost dynamics.\\n\\n5. PRINCIPAL ALIGNMENT: Do vendor incentives structurally align with customer success, or are they in tension? Score 9-10 = vendor only wins when customer wins (outcome-based, pure revenue share). Score 5-6 = partially aligned (usage-based with some misalignment). Score 1-2 = structural misalignment (vendor benefits from customer confusion or over-consumption). Evidence must describe the specific incentive mechanism.\\n\\nSCORING RUBRIC:\\n- Only assign scores 8-10 if you have direct evidence (named company, specific metric, dated source)\\n- Assign 5-7 for reasonable inference from industry patterns with named examples\\n- Assign 1-4 for documented negative evidence or structural arguments with citations\\n- Do NOT assign round numbers (avoid 5, 7, 9) unless the evidence precisely fits - use 4, 6, 8 to signal inference vs certainty\\n\\nOUTPUT FORMAT (valid JSON, no markdown wrapper):\\n{\\n  \\\"research\\\": \\\"[Investigative findings as structured prose with source URLs. 3-5 paragraphs of commercial intelligence.]\\\",\\n  \\\"matrix_detected\\\": true,\\n  \\\"matrix_title\\\": \\\"[Topic-specific title for the comparison]\\\",\\n  \\\"matrix_dimensions\\\": [\\\"Revenue Leverage\\\", \\\"Data Moat Depth\\\", \\\"Switching Cost Architecture\\\", \\\"Margin Trajectory\\\", \\\"Principal Alignment\\\"],\\n  \\\"matrix_players\\\": [{\\\"name\\\": \\\"Player A\\\", \\\"Revenue Leverage\\\": \\\"description\\\", \\\"Data Moat Depth\\\": \\\"description\\\", \\\"Switching Cost Architecture\\\": \\\"description\\\", \\\"Margin Trajectory\\\": \\\"description\\\", \\\"Principal Alignment\\\": \\\"description\\\"}],\\n  \\\"matrix_markdown\\\": \\\"[Full markdown table with all 5 dimensions as columns]\\\",\\n  \\\"matrix_scores\\\": [\\n    {\\n      \\\"name\\\": \\\"Player A\\\",\\n      \\\"Revenue Leverage\\\": 7,\\n      \\\"Data Moat Depth\\\": 8,\\n      \\\"Switching Cost Architecture\\\": 6,\\n      \\\"Margin Trajectory\\\": 5,\\n      \\\"Principal Alignment\\\": 4,\\n      \\\"evidence\\\": {\\n        \\\"Revenue Leverage\\\": {\\\"score\\\": 7, \\\"source\\\": \\\"Specific quote or data point with date and attribution\\\", \\\"rationale\\\": \\\"One sentence explaining why this score follows from the evidence\\\"},\\n        \\\"Data Moat Depth\\\": {\\\"score\\\": 8, \\\"source\\\": \\\"Specific quote or data point\\\", \\\"rationale\\\": \\\"One sentence\\\"},\\n        \\\"Switching Cost Architecture\\\": {\\\"score\\\": 6, \\\"source\\\": \\\"Specific quote or data point\\\", \\\"rationale\\\": \\\"One sentence\\\"},\\n        \\\"Margin Trajectory\\\": {\\\"score\\\": 5, \\\"source\\\": \\\"Specific quote or data point\\\", \\\"rationale\\\": \\\"One sentence\\\"},\\n        \\\"Principal Alignment\\\": {\\\"score\\\": 4, \\\"source\\\": \\\"Specific quote or data point\\\", \\\"rationale\\\": \\\"One sentence\\\"}\\n      }\\n    }\\n  ],\\n  \\\"matrix_rationale\\\": \\\"One sentence explaining why this comparison is commercially meaningful for Mindmaker Live readers.\\\"\\n}\\n\\nCRITICAL: matrix_scores MUST include an \\\"evidence\\\" object for every player with source and rationale for each of the 5 dimensions.\"\n    }\n  ]\n} }}",
+        "options": {}
+      },
+      "name": "Perplexity: Techonomic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        304
+      ],
+      "credentials": {
+        "perplexityApi": {
+          "id": "RtaqJmoj4e469ZMx",
+          "name": "Perplexity account 2026-05-27b"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "32de34dc-0547-437a-86e1-34fb453963b8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nt1",
+              "name": "diligence",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "nt2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "nt3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "nt4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "nt5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "nt6",
+              "name": "drive_folder_id",
+              "value": "1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize: Techonomic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        368
+      ],
+      "id": "0e0ddd8d-cb1f-44f0-a8cd-a021143624d3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ft1",
+              "name": "diligence",
+              "value": "Perplexity unavailable. No live data points retrieved.",
+              "type": "string"
+            },
+            {
+              "id": "ft2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "ft3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "ft4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "ft5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "ft6",
+              "name": "drive_folder_id",
+              "value": "1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fallback: Techonomic Research",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        192
+      ],
+      "id": "64b7d4ad-915d-4811-83d9-60b4d8b78c55"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: \"sonar-pro\", messages: [{ role: \"user\", content: \"Find 3 recent live data points, statistics or case studies from the last 90 days that directly support this claim: \" + $(\"Cleo Webhook\").item.json.body.hook + \". Return as a numbered list with source URLs.\" }], max_tokens: 800, search_recency_filter: \"month\" } }}",
+        "options": {}
+      },
+      "name": "Perplexity: Signal Noise",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        528
+      ],
+      "credentials": {
+        "perplexityApi": {
+          "id": "RtaqJmoj4e469ZMx",
+          "name": "Perplexity account 2026-05-27b"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "46bf6dad-8786-4178-b883-26ad10fc0f64"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nsn1",
+              "name": "diligence",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "nsn2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "nsn3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "nsn4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "nsn5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "nsn6",
+              "name": "drive_folder_id",
+              "value": "18ORaqxSbTIFQoPt0dwdSAlrY1NHXPCNK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize: Signal Noise",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        592
+      ],
+      "id": "c56a7b56-75c8-4813-8010-eea91f7ff9ad"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fsn1",
+              "name": "diligence",
+              "value": "Perplexity unavailable. No live data points retrieved.",
+              "type": "string"
+            },
+            {
+              "id": "fsn2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "fsn3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "fsn4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "fsn5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "fsn6",
+              "name": "drive_folder_id",
+              "value": "18ORaqxSbTIFQoPt0dwdSAlrY1NHXPCNK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fallback: Signal Noise Research",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        464
+      ],
+      "id": "f58a6291-0527-4e40-b339-9ff9fa7ba798"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "memory",
+        "limit": 5,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "channel",
+              "condition": "eq",
+              "keyValue": "mindmaker_live"
+            }
+          ]
+        }
+      },
+      "name": "Supabase: Mindmaker Context",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        848,
+        752
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "5177c920-79ce-4a45-9b69-7424c92c0a50"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nmm1",
+              "name": "diligence",
+              "value": "={{ $input.all().map(i => i.json.content).filter(Boolean).join(\" | \") }}",
+              "type": "string"
+            },
+            {
+              "id": "nmm2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "nmm3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "nmm4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "nmm5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "nmm6",
+              "name": "drive_folder_id",
+              "value": "1kR_T-hNihvGCQXdIjLIxwEJiWMyanoFD",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize: Mindmaker",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        832
+      ],
+      "executeOnce": true,
+      "id": "805904dd-f684-43ba-a80f-0082a4b4bcf0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fmm1",
+              "name": "diligence",
+              "value": "No internal Mindmaker context found. Use general AI literacy positioning.",
+              "type": "string"
+            },
+            {
+              "id": "fmm2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "fmm3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "fmm4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "fmm5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "fmm6",
+              "name": "drive_folder_id",
+              "value": "1kR_T-hNihvGCQXdIjLIxwEJiWMyanoFD",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fallback: Mindmaker Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        704
+      ],
+      "id": "94423073-ad2b-49f0-989d-ffdb61185188"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "memory",
+        "limit": 5,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "channel",
+              "condition": "eq",
+              "keyValue": "linkedin"
+            }
+          ]
+        }
+      },
+      "name": "Supabase: LinkedIn Context",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        848,
+        992
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "424f55af-0566-47c6-b62a-bd53054280a9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nli1",
+              "name": "diligence",
+              "value": "={{ $input.all().map(i => i.json.content).filter(Boolean).join(\" | \") }}",
+              "type": "string"
+            },
+            {
+              "id": "nli2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "nli3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "nli4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "nli5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "nli6",
+              "name": "drive_folder_id",
+              "value": "1zbPHNuOAJAjvhJAQgW9omCgjnT4H_TX9",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize: LinkedIn",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        1072
+      ],
+      "executeOnce": true,
+      "id": "9c5b107f-c802-46df-b907-4cdc22d29597"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fli1",
+              "name": "diligence",
+              "value": "No internal LinkedIn context found. Use general professional positioning.",
+              "type": "string"
+            },
+            {
+              "id": "fli2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "fli3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "fli4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "fli5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "fli6",
+              "name": "drive_folder_id",
+              "value": "1zbPHNuOAJAjvhJAQgW9omCgjnT4H_TX9",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fallback: LinkedIn Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        944
+      ],
+      "id": "2486dc90-9a5b-41b7-a196-c8a71ffe7c93"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pbe1",
+              "name": "diligence",
+              "value": "No external research needed. Focus on visual/audio pacing, punchy hooks, and accessible framing.",
+              "type": "string"
+            },
+            {
+              "id": "pbe2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "pbe3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "pbe4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "pbe5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "pbe6",
+              "name": "drive_folder_id",
+              "value": "1cUTChNnsSmOj0RuwJZfDY2xJBMP10UJi",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Packaging: Builder Economy",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        1200
+      ],
+      "id": "5ca6e853-34cc-4411-83f4-6ca4fa781ded"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pvv1",
+              "name": "diligence",
+              "value": "No external research needed. Focus on hook in first 3 seconds, visual cues, and strong CTA.",
+              "type": "string"
+            },
+            {
+              "id": "pvv2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "pvv3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "pvv4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "pvv5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "pvv6",
+              "name": "drive_folder_id",
+              "value": "1I6JNoc4HRZaNSCyYIskXkBo_mHJyoilK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Packaging: Vertical Video",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        1392
+      ],
+      "id": "7097889f-a07d-4a7d-97db-71843ab37a50"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dyn1",
+              "name": "diligence",
+              "value": "Dynamic mode. Raw instructions passed through. No predefined diligence applied.",
+              "type": "string"
+            },
+            {
+              "id": "dyn2",
+              "name": "hook",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "dyn3",
+              "name": "target_audience",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "dyn4",
+              "name": "contrarian_angle",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "dyn5",
+              "name": "target_channel",
+              "value": "={{ $(\"Cleo Webhook\").item.json.body.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "dyn6",
+              "name": "drive_folder_id",
+              "value": "1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Dynamic Passthrough",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        1568
+      ],
+      "id": "ae23abc7-940f-421e-8e42-94aa18b9283c"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// --- Identity Prepend ---\nlet identity_prepend = '';\ntry { identity_prepend = $('Build Identity Prepend').first().json.identity_prepend || ''; } catch(e) {}\n// --- End Identity Prepend ---\n\n\nconst d = $input.item.json;\n\nconst research = d.research || d.diligence || '';\n\n// Teardown vs standard. Mindmaker Live carries live builds and fresh news as well as\n// Teardowns, so only pieces flagged as a teardown (or carrying a Commercial Mechanics\n// Matrix / evidence table) get the teardown treatment. Legacy retired channel tag kept.\nconst isTeardown = !!(d.matrix_markdown || d.evidence_table)\n  || String(d.target_channel || '').toLowerCase() === 'paid'\n  || String(d.content_format || d.format || '').toLowerCase().indexOf('teardown') !== -1;\nconst content_format = isTeardown ? 'teardown' : 'standard';\nconst matrix = d.matrix_markdown ? '\\n\\nCOMPETITIVE MATRIX:\\n' + d.matrix_markdown : '';\nconst chart = (d.chart_url && d.chart_url.includes('radar'))\n  ? '\\n\\n[View Competitive Chart](' + d.chart_url + ')'\n  : '';\n\nconst prompt = identity_prepend + `You are the assembly engine for the Omnichannel Content Factory. Your job is to produce a full, polished draft for the specified channel.\n\nINPUT:\nHook: ${d.hook}\nTarget Audience: ${d.target_audience}\nContrarian Angle: ${d.contrarian_angle}\nTarget Channel: ${d.target_channel}\nFormat: ${content_format}\nDiligence / Research Context:\n${research}${matrix}${chart}\n\nCHANNEL FORMATTING RULES:\n- mindmaker_live with Format teardown: You are an investigative operator writing a commercial teardown for Mindmaker Live, the investigative format on how the open internet actually makes money in an AI world. 800-1200 words. Structure: open with a hard commercial provocation (never context-setting), build the argument using the real case studies and operator evidence from the diligence data, if a Markdown table or competitive matrix was provided in the diligence embed it naturally at the most relevant point in the argument, if a chart URL was provided embed it as a Markdown hyperlink using [View Competitive Chart](url) syntax - do NOT use image syntax. After the chart link, add a note: \"Scores are based on the Mindmaker Live Commercial Mechanics Matrix. See evidence table below for sources and rationale.\" Write as a 16-year founder/operator who has seen the mechanics up close. Short punchy sentences, uneven rhythm, no corporate jargon, zero em-dashes, no summary at the end. Every abstract claim must be grounded in a tangible commercial mechanic.\n- signal_noise: Podcast show notes + talking points structure, conversational, 3-5 key segments with timestamps\n- mindmaker_live with Format standard: Executive education format, 600-900 words, framework-led, practical takeaways section. This is the default for Mindmaker Live and covers live builds and fresh news as well as frameworks. Do not turn it into a teardown.\n- linkedin: 250-400 words, no em dashes, hook in first line, 3-5 punchy paragraphs, ends with a question or provocation\n- built: Podcast/IG hybrid, punchy narrative, 400-600 words, audio-first pacing\n- vertical_video: Script format, hook in first 3 seconds, 60-90 second total length, visual cue callouts in brackets\n- dynamic: Follow any embedded instructions in the hook field\n\nWrite the full draft now. Do not include preamble or meta-commentary. Output the content only.`;\n\n// Return as object - n8n will serialize it correctly\nconst assembly_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 4000,\n  messages: [{ role: 'user', content: prompt }]\n};\n\nreturn {\n  json: {\n    ...d,\n    assembly_body\n  }\n};\n"
+      },
+      "name": "Build Assembly Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        800
+      ],
+      "id": "cdebd3e8-a0eb-4798-aaca-79fae1bdf9a1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.assembly_body }}",
+        "options": {}
+      },
+      "name": "Anthropic Assembly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1648,
+        800
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "ea4fb08f-2018-43bb-9682-b3b18b1e0e1d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: \"gpt-4o\", max_tokens: 4000, messages: [{ role: \"user\", content: \"HOOK: \" + $(\"Merge All Branches\").item.json.hook + \"\\nAUDIENCE: \" + $(\"Merge All Branches\").item.json.target_audience + \"\\nANGLE: \" + $(\"Merge All Branches\").item.json.contrarian_angle + \"\\nCHANNEL: \" + $(\"Merge All Branches\").item.json.target_channel + \"\\nDILIGENCE: \" + $(\"Merge All Branches\").item.json.diligence + \"\\n\\nWrite a full draft for this channel following appropriate formatting. Output the content only.\" }] } }}",
+        "options": {}
+      },
+      "name": "OpenAI Fallback Assembly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1648,
+        1008
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "gToTpSTxDLOhr3EK",
+          "name": "Instantly"
+        },
+        "openAiApi": {
+          "id": "hHjEG4Lz57JxBiOs",
+          "name": "OpenAI account"
+        }
+      },
+      "id": "d4be0430-60f4-4d81-a7f3-5960b35bc7cc"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fail-loud Normalize v2.\n// Never throws. Emits ONE item with either:\n//   { is_error: false, generated_content, doc_title, drive_folder_id, _provider, _word_count }\n// OR:\n//   { is_error: true, error_message, error_source, error_detail, failure_hook, failure_channel, failure_provider }\n//\n// Downstream \"If: Is Error?\" node splits the two paths.\n\nconst items = $input.all();\nif (!items || items.length === 0) {\n  return [{ json: { is_error: true, error_message: 'No input items', error_source: 'normalize', error_detail: 'Normalize received no items from any LLM branch' } }];\n}\n\nconst item = items[0];\nconst raw = item.json || {};\n\n// Load context for error messages\nlet hook = 'unknown';\nlet channel = 'unknown';\nlet driveFolderId = '';\ntry {\n  const noopItems = $('No Operation, do nothing').all();\n  if (noopItems && noopItems.length > 0) {\n    const noop = noopItems[0].json || {};\n    hook = noop.hook || 'unknown';\n    channel = noop.target_channel || 'unknown';\n    driveFolderId = noop.drive_folder_id || '';\n  }\n} catch (e) {}\n\nfunction err(msg, source, detail) {\n  return [{ json: {\n    is_error: true,\n    error_message: String(msg).slice(0, 300),\n    error_source: source,\n    error_detail: String(detail || '').slice(0, 600),\n    failure_hook: hook,\n    failure_channel: channel,\n    failure_provider: source,\n  } }];\n}\n\n// 1. Wrapped error responses (Gemini neverError=true returns 200 with error body)\nif (raw && raw.error && typeof raw.error === 'object' && 'code' in raw.error) {\n  const code = raw.error.code || 'unknown';\n  return err(`Provider returned error code ${code}`, 'gemini-or-openai', raw.error.message || JSON.stringify(raw.error));\n}\n\n// 2. n8n node-error passthrough (Anthropic onError=continueErrorOutput emits error object)\nif (raw && raw.error && typeof raw.error === 'object' && (raw.error.name === 'NodeApiError' || raw.error.description)) {\n  const desc = raw.error.description || raw.error.message || 'no detail';\n  return err('Anthropic API error', 'anthropic', desc);\n}\n\n// 3. Parse successful response shapes\nlet text = '';\nlet provider = 'unknown';\n\nif (Array.isArray(raw.content) && raw.content.length > 0 && raw.content[0].text) {\n  text = raw.content[0].text;\n  provider = 'anthropic';\n} else if (Array.isArray(raw.choices) && raw.choices.length > 0 && raw.choices[0].message && raw.choices[0].message.content) {\n  text = raw.choices[0].message.content;\n  provider = 'openai';\n} else if (Array.isArray(raw.candidates) && raw.candidates.length > 0 &&\n           raw.candidates[0].content && Array.isArray(raw.candidates[0].content.parts) &&\n           raw.candidates[0].content.parts[0] && raw.candidates[0].content.parts[0].text) {\n  text = raw.candidates[0].content.parts[0].text;\n  provider = 'gemini';\n}\n\nconst trimmed = (text || '').trim();\nif (!trimmed) {\n  return err('No usable content in LLM response', 'no-content', `Response keys: ${Object.keys(raw).join(',').slice(0, 200)}`);\n}\n\nconst wordCount = trimmed.split(/\\s+/).filter(w => w.length > 0).length;\nif (wordCount < 50) {\n  return err(`LLM content too thin (${wordCount} words)`, provider, `Content preview: ${trimmed.slice(0, 200)}`);\n}\n\nconst cleaned = trimmed.replace(/\\u2014/g, ' - ');\nconst docTitle = '[' + String(channel).toUpperCase() + '] ' + String(hook).slice(0, 60) + ' - ' + new Date().toISOString().slice(0, 10);\n\nreturn [{\n  json: {\n    is_error: false,\n    generated_content: cleaned,\n    doc_title: docTitle,\n    drive_folder_id: driveFolderId,\n    _provider: provider,\n    _word_count: wordCount,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        912
+      ],
+      "name": "Normalize Assembly Output",
+      "id": "7715811d-7dd3-466f-956c-b0ac3067d031"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", parse_mode: \"HTML\", text: \"âœ… <b>New draft ready</b>\\n\\n<i>\" + $(\"Normalize Assembly Output\").item.json.doc_title + \"</i>\\n\\nChannel: <code>\" + $(\"No Operation, do nothing\").item.json.target_channel + \"</code>\\n\\n<a href=\\\"\" + $json.webViewLink + \"\\\">Open in Google Docs</a>\", disable_web_page_preview: false } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2624,
+        912
+      ],
+      "name": "Telegram: Notify Krish",
+      "id": "07945515-80a2-4ad8-a356-87a9bca32652",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "name": "No Operation, do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        912
+      ],
+      "id": "0e3154eb-202f-4f30-9300-b727c1980408"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst raw = $input.item.json.choices?.[0]?.message?.content || $input.item.json.diligence || '';\n\nconst FIXED_DIMENSIONS = ['Revenue Leverage', 'Data Moat Depth', 'Switching Cost Architecture', 'Margin Trajectory', 'Principal Alignment'];\n\nlet parsed = {\n  research: raw,\n  matrix_detected: false,\n  matrix_rationale: 'Could not parse Perplexity response',\n  matrix_title: null,\n  matrix_dimensions: FIXED_DIMENSIONS,\n  matrix_players: [],\n  matrix_markdown: null,\n  matrix_scores: [],\n  evidence_table: null,\n  hook: $('Cleo Webhook').item.json.body.hook,\n  target_audience: $('Cleo Webhook').item.json.body.target_audience,\n  contrarian_angle: $('Cleo Webhook').item.json.body.contrarian_angle,\n  target_channel: $('Cleo Webhook').item.json.body.target_channel,\n  drive_folder_id: '1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh'\n};\n\nfunction tryParseJson(str) {\n  // Attempt 1: direct parse\n  try { return JSON.parse(str); } catch(e) {}\n  \n  // Attempt 2: strip common issues - trailing commas before } or ]\n  try {\n    const cleaned = str\n      .replace(/,\\s*([}\\]])/g, '$1')  // trailing commas\n      .replace(/[\\x00-\\x1F\\x7F]/g, ' '); // control chars except \\n\n    return JSON.parse(cleaned);\n  } catch(e) {}\n  \n  // Attempt 3: extract just the outer object, truncating at first parse error\n  // by progressively truncating from the end\n  const match = str.match(/^\\s*\\{/);\n  if (match) {\n    for (let len = str.length; len > 100; len = Math.floor(len * 0.9)) {\n      const chunk = str.slice(0, len);\n      // Find last complete field boundary\n      const lastComma = chunk.lastIndexOf(',');\n      const lastBrace = chunk.lastIndexOf('}');\n      const truncAt = Math.max(lastComma, lastBrace);\n      if (truncAt < 10) continue;\n      try {\n        // Try to close the object\n        const attempt = chunk.slice(0, truncAt) + '\\n}';\n        const obj = JSON.parse(attempt);\n        return obj;\n      } catch(e) {}\n    }\n  }\n  \n  return null;\n}\n\ntry {\n  // Find JSON block in response\n  const jsonMatch = raw.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const obj = tryParseJson(jsonMatch[0]);\n    if (obj) {\n      parsed.research = obj.research || raw;\n      parsed.matrix_detected = obj.matrix_detected === true;\n      parsed.matrix_rationale = obj.matrix_rationale || '';\n      parsed.matrix_title = obj.matrix_title || null;\n      parsed.matrix_dimensions = FIXED_DIMENSIONS;\n      parsed.matrix_players = obj.matrix_players || [];\n      // Sanitize matrix_markdown to remove any characters that break string injection\n      parsed.matrix_markdown = obj.matrix_markdown || null;\n      parsed.matrix_scores = obj.matrix_scores || [];\n      \n      // If parse partially succeeded but matrix_detected not found, check raw\n      if (!parsed.matrix_detected) {\n        const mdMatch = raw.match(/\"matrix_detected\"\\s*:\\s*true/i);\n        if (mdMatch) {\n          parsed.matrix_detected = true;\n          // Try to get scores from regex if JSON parse was partial\n          if (!parsed.matrix_scores.length) {\n            const titleMatch = raw.match(/\"matrix_title\"\\s*:\\s*\"([^\"]+)\"/);\n            if (titleMatch) parsed.matrix_title = titleMatch[1];\n          }\n        }\n      }\n      \n      // Build evidence table\n      if (parsed.matrix_scores && parsed.matrix_scores.length > 0) {\n        let evidenceRows = [];\n        parsed.matrix_scores.forEach(player => {\n          if (player.evidence) {\n            FIXED_DIMENSIONS.forEach(dim => {\n              const ev = player.evidence[dim];\n              if (ev) {\n                evidenceRows.push({\n                  player: player.name,\n                  dimension: dim,\n                  score: ev.score || player[dim],\n                  // Sanitize source/rationale - strip pipe chars that break markdown tables\n                  source: (ev.source || 'No source provided').replace(/\\|/g, '/'),\n                  rationale: (ev.rationale || '').replace(/\\|/g, '/')\n                });\n              }\n            });\n          }\n        });\n        \n        if (evidenceRows.length > 0) {\n          let table = '| Player | Dimension | Score | Evidence | Rationale |\\n';\n          table += '|--------|-----------|-------|----------|-----------|\\n';\n          evidenceRows.forEach(row => {\n            table += `| ${row.player} | ${row.dimension} | ${row.score} | ${row.source} | ${row.rationale} |\\n`;\n          });\n          parsed.evidence_table = table;\n        }\n      }\n    }\n  }\n  \n  // Fallback: if still no matrix_detected, check raw text\n  if (!parsed.matrix_detected) {\n    const mdMatch = raw.match(/\"matrix_detected\"\\s*:\\s*true/i);\n    if (mdMatch) parsed.matrix_detected = true;\n  }\n  \n} catch(e) {\n  parsed.research = raw;\n  parsed.matrix_detected = false;\n}\n\nreturn { json: parsed };\n"
+      },
+      "name": "Code: Parse Techonomic Research",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        192
+      ],
+      "id": "5a1e92f2-7c0f-4b2a-886c-926179314c0f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.matrix_detected }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF: Matrix Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        192
+      ],
+      "id": "3dfd3493-f6e8-42f8-a32e-0cbdb5a3cc0b"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://quickchart.io/chart?w=800&h=500&c=' + encodeURIComponent(JSON.stringify({ type: 'radar', data: { labels: $json.matrix_dimensions, datasets: $json.matrix_players.map((p, i) => ({ label: p.name, data: $json.matrix_dimensions.map(d => { const v = p[d]; if (typeof v === 'number') return v; if (typeof v === 'string') { if (v.toLowerCase().includes('high') || v.toLowerCase().includes('fast') || v.toLowerCase().includes('low cost')) return 8; if (v.toLowerCase().includes('med') || v.toLowerCase().includes('moderate')) return 5; return 3; } return 3; }), fill: true, backgroundColor: ['rgba(255,99,132,0.2)', 'rgba(54,162,235,0.2)', 'rgba(255,206,86,0.2)', 'rgba(75,192,192,0.2)', 'rgba(153,102,255,0.2)'][i % 5], borderColor: ['rgb(255,99,132)', 'rgb(54,162,235)', 'rgb(255,206,86)', 'rgb(75,192,192)', 'rgb(153,102,255)'][i % 5] })) }, options: { title: { display: true, text: $json.matrix_title } } })) }}",
+        "options": {}
+      },
+      "name": "HTTP: Generate Quickchart",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1824,
+        112
+      ],
+      "id": "a334b317-7590-4cf3-a581-a000d6ce77d1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sc1",
+              "name": "research",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.research }}",
+              "type": "string"
+            },
+            {
+              "id": "sc2",
+              "name": "matrix_markdown",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.matrix_markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "sc3",
+              "name": "chart_url",
+              "value": "={{ 'https://quickchart.io/chart?w=800&h=500&c=' + encodeURIComponent(JSON.stringify({ type: 'radar', data: { labels: $('Code: Parse Techonomic Research').item.json.matrix_dimensions, datasets: $('Code: Parse Techonomic Research').item.json.matrix_scores.map((p, i) => ({ label: p.name, data: Object.values(p).filter(v => typeof v === 'number'), fill: true, backgroundColor: ['rgba(255,99,132,0.2)', 'rgba(54,162,235,0.2)', 'rgba(255,206,86,0.2)', 'rgba(75,192,192,0.2)', 'rgba(153,102,255,0.2)'][i % 5], borderColor: ['rgb(255,99,132)', 'rgb(54,162,235)', 'rgb(255,206,86)', 'rgb(75,192,192)', 'rgb(153,102,255)'][i % 5] })) }, options: { title: { display: true, text: $('Code: Parse Techonomic Research').item.json.matrix_title } } })) }}",
+              "type": "string"
+            },
+            {
+              "id": "sc4",
+              "name": "hook",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "sc5",
+              "name": "target_audience",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "sc6",
+              "name": "contrarian_angle",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "sc7",
+              "name": "target_channel",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "sc8",
+              "name": "drive_folder_id",
+              "value": "1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh",
+              "type": "string"
+            },
+            {
+              "id": "sc9",
+              "name": "evidence_table",
+              "value": "={{ $('Code: Parse Techonomic Research').item.json.evidence_table }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set: Package Chart URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2064,
+        112
+      ],
+      "id": "f71da3f1-9b8e-405a-be28-19c3cfad475b"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nc1",
+              "name": "research",
+              "value": "={{ $json.research }}",
+              "type": "string"
+            },
+            {
+              "id": "nc2",
+              "name": "matrix_markdown",
+              "value": "={{ $json.matrix_markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "nc3",
+              "name": "chart_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "nc4",
+              "name": "hook",
+              "value": "={{ $json.hook }}",
+              "type": "string"
+            },
+            {
+              "id": "nc5",
+              "name": "target_audience",
+              "value": "={{ $json.target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "nc6",
+              "name": "contrarian_angle",
+              "value": "={{ $json.contrarian_angle }}",
+              "type": "string"
+            },
+            {
+              "id": "nc7",
+              "name": "target_channel",
+              "value": "={{ $json.target_channel }}",
+              "type": "string"
+            },
+            {
+              "id": "nc8",
+              "name": "drive_folder_id",
+              "value": "1Rb4PZPGLmoczM2uxmjeVN5uilqm0_qTh",
+              "type": "string"
+            },
+            {
+              "id": "nc9",
+              "name": "evidence_table",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set: No Chart Passthrough",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1824,
+        304
+      ],
+      "id": "521e16ad-32f6-47a0-95b8-53c48410a9c3"
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.generated_content }}",
+        "options": {
+          "openLinksInNewWindow": true,
+          "simplifiedAutoLink": true
+        }
+      },
+      "name": "Markdown to HTML",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        800
+      ],
+      "id": "d573256f-3841-4642-9727-0482aa1e47a4"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Get raw markdown from generated_content (NOT the HTML output of Markdown to HTML node)\nconst md = $input.item.json.generated_content || '';\nconst title = $input.item.json.doc_title;\nconst folderId = $input.item.json.drive_folder_id;\n\n// Convert markdown to clean HTML suitable for Google Docs\nfunction mdToHtml(text) {\n  const lines = text.split('\\n');\n  const out = [];\n  let i = 0;\n  \n  while (i < lines.length) {\n    const line = lines[i];\n    \n    // Check for table block - consecutive lines with pipes\n    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {\n      const tableLines = [];\n      while (i < lines.length && lines[i].trim().startsWith('|')) {\n        tableLines.push(lines[i]);\n        i++;\n      }\n      out.push(buildTable(tableLines));\n      continue;\n    }\n    \n    // Headings\n    if (/^#{1,6}\\s/.test(line)) {\n      const level = line.match(/^(#+)/)[1].length;\n      const content = line.replace(/^#+\\s+/, '');\n      out.push(`<h${level}>${inlineFormat(content)}</h${level}>`);\n      i++;\n      continue;\n    }\n    \n    // Empty line = paragraph break\n    if (line.trim() === '') {\n      i++;\n      continue;\n    }\n    \n    // Regular paragraph\n    out.push(`<p style=\"margin-bottom:10pt\">${inlineFormat(line.trim())}</p>`);\n    i++;\n  }\n  \n  return out.join('\\n');\n}\n\nfunction buildTable(lines) {\n  // Filter out separator rows (lines with only dashes, pipes, colons, spaces)\n  const dataLines = lines.filter(l => !/^\\|[\\s\\-\\|:]+\\|$/.test(l.trim()));\n  if (dataLines.length === 0) return '';\n  \n  const parseRow = (line) => {\n    return line.trim()\n      .replace(/^\\|/, '').replace(/\\|$/, '')\n      .split('|')\n      .map(c => c.trim());\n  };\n  \n  const header = parseRow(dataLines[0]);\n  const rows = dataLines.slice(1).map(parseRow);\n  \n  let html = '<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;width:100%\">';\n  html += '<thead><tr>';\n  header.forEach(h => {\n    html += `<th style=\"background:#f0f0f0;font-weight:bold;padding:6px\">${inlineFormat(h)}</th>`;\n  });\n  html += '</tr></thead><tbody>';\n  rows.forEach(row => {\n    html += '<tr>';\n    row.forEach(c => {\n      html += `<td style=\"padding:6px\">${inlineFormat(c)}</td>`;\n    });\n    html += '</tr>';\n  });\n  html += '</tbody></table>';\n  return html;\n}\n\nfunction inlineFormat(text) {\n  // Bold\n  text = text.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');\n  text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');\n  // Italic\n  text = text.replace(/\\*(.+?)\\*/g, '<em>$1</em>');\n  text = text.replace(/_(.+?)_/g, '<em>$1</em>');\n  // Links [text](url) - must handle URLs with literal parens like rgba(255,99,132,0.2)\n  // Strategy: find each [text]( marker, then scan forward tracking paren depth to find real closing )\n  let result = '';\n  let i = 0;\n  while (i < text.length) {\n    const bracketStart = text.indexOf('[', i);\n    if (bracketStart === -1) { result += text.slice(i); break; }\n    const bracketEnd = text.indexOf('](', bracketStart);\n    if (bracketEnd === -1) { result += text.slice(i); break; }\n    const linkText = text.slice(bracketStart + 1, bracketEnd);\n    // Scan from after ]( tracking paren depth\n    let depth = 1;\n    let j = bracketEnd + 2;\n    while (j < text.length && depth > 0) {\n      if (text[j] === '(') depth++;\n      else if (text[j] === ')') depth--;\n      j++;\n    }\n    if (depth !== 0) { result += text.slice(i, bracketEnd + 1); i = bracketEnd + 1; continue; }\n    const url = text.slice(bracketEnd + 2, j - 1);\n    result += text.slice(i, bracketStart);\n    result += '<a href=\"' + url + '\">' + linkText + '</a>';\n    i = j;\n  }\n  text = result;\n  // Inline code\n  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');\n  return text;\n}\n\n// Build evidence table HTML if present\nlet evidenceTableHtml = '';\nconst evidenceTableMd = $input.item.json.evidence_table;\nif (evidenceTableMd) {\n  const evLines = evidenceTableMd.trim().split('\\n');\n  const evDataLines = evLines.filter(l => !/^\\|[-| :]+\\|$/.test(l.trim()));\n  if (evDataLines.length > 1) {\n    const parseRow = (line) => line.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map(c => c.trim());\n    const evHeader = parseRow(evDataLines[0]);\n    const evRows = evDataLines.slice(1).map(parseRow);\n    evidenceTableHtml = '<h2>Scoring Evidence</h2>';\n    evidenceTableHtml += '<p style=\"margin-bottom:8pt;font-size:9pt;color:#666\">Scores are based on the Mindmaker Live Commercial Mechanics Matrix. Each score derives from a specific piece of public evidence.</p>';\n    evidenceTableHtml += '<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\" style=\"border-collapse:collapse;width:100%;font-size:9pt\">';\n    evidenceTableHtml += '<thead><tr>' + evHeader.map(h => '<th style=\"background:#e8f0fe;font-weight:bold;padding:5px\">' + h + '</th>').join('') + '</tr></thead><tbody>';\n    evRows.forEach(row => {\n      evidenceTableHtml += '<tr>' + row.map(c => '<td style=\"padding:5px;vertical-align:top\">' + c + '</td>').join('') + '</tr>';\n    });\n    evidenceTableHtml += '</tbody></table>';\n  }\n}\n\nlet bodyHtml = mdToHtml(md) + evidenceTableHtml;\nlet html = `<html><head><style>\n  body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; }\n  h1 { font-size: 18pt; margin-bottom: 12pt; }\n  h2 { font-size: 14pt; margin-top: 16pt; margin-bottom: 8pt; }\n  h3 { font-size: 12pt; margin-top: 14pt; margin-bottom: 6pt; }\n  p { margin-top: 0; margin-bottom: 10pt; }\n  table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }\n  th { background: #f0f0f0; font-weight: bold; padding: 6pt; border: 1px solid #ccc; }\n  td { padding: 6pt; border: 1px solid #ccc; }\n  a { color: #1155CC; }\n</style></head><body>\n<h1>${title}</h1>\n` + bodyHtml + `</body></html>`;\n\nconst boundary = 'gcf_boundary_n8n_fixed_abc';\n\nconst metadata = JSON.stringify({\n  name: title,\n  mimeType: 'application/vnd.google-apps.document',\n  parents: [folderId]\n});\n\nconst body = [\n  '--' + boundary,\n  'Content-Type: application/json; charset=UTF-8',\n  '',\n  metadata,\n  '--' + boundary,\n  'Content-Type: text/html; charset=UTF-8',\n  '',\n  html,\n  '--' + boundary + '--'\n].join('\\r\\n');\n\nreturn {\n  json: {\n    ...$input.item.json,\n    multipart_body: body,\n    multipart_boundary: boundary\n  }\n};\n"
+      },
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        912
+      ],
+      "id": "c8472245-e285-446f-8208-af8c5b6afca3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "={{ 'multipart/related; boundary=' + $json.multipart_boundary }}",
+        "body": "={{ $json.multipart_body }}",
+        "options": {}
+      },
+      "name": "Upload to Google Drive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2384,
+        912
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "330d520e-3dc1-4c99-9bc5-d64c74d31a34"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "condition-approved",
+              "leftValue": "={{ $json.body.krish_approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Check Krish Approved",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        400,
+        608
+      ],
+      "id": "d755e3d5-de2c-4981-9e14-328d7b6c32a7"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.cleo&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        512
+      ],
+      "name": "Load Agent Brief",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "297e1f2a-992f-4a6d-8b5f-7208b1ddf29c"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        720
+      ],
+      "name": "Load Voice Rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "bc209063-295c-4cf7-9bd0-cd17494e77d9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('Load Agent Brief').first().json;\nconst voiceRaw = $('Load Voice Rules').first().json;\nconst planRaw  = $('Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        608
+      ],
+      "name": "Build Identity Prepend",
+      "id": "cd3d49ef-c033-4ca1-a861-15241107017a"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"AnhkJrJBvmohfqjJ\", \"workflow_name\": \"Cleo Content Factory\", \"agent_id\": \"cleo\", \"status\": \"success\", \"cost_estimate_usd\": 0, \"api_calls_count\": 0}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3040,
+        208
+      ],
+      "name": "Heartbeat: cleo",
+      "id": "976564c9-aa6a-47f0-9c94-67383d6b2e15",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Anthropic Assembly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        1024
+      ],
+      "id": "b184fddc-94b8-41f8-88ea-07e6b52e1866"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Anthropic Assembly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        1024
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "136605f0-ff18-42bc-b5ff-2d38efce9455"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        808
+      ],
+      "id": "9dab55de-41c1-4bc6-8e4e-f993fe2fa346"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Telegram alert from the structured error emitted by Normalize.\nconst items = $input.all();\nconst d = (items && items.length > 0) ? (items[0].json || {}) : {};\n\nconst errMsg = d.error_message || 'unknown';\nconst errSource = d.error_source || 'unknown';\nconst errDetail = d.error_detail || '';\nconst hook = d.failure_hook || 'unknown';\nconst channel = d.failure_channel || 'unknown';\n\nconst ts = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n\nconst text = [\n  'ðŸš¨ *Cleo content generation failed*',\n  '',\n  '*Channel:* `' + channel + '`',\n  '*Hook:* ' + String(hook).slice(0, 120),\n  '*Provider:* `' + errSource + '`',\n  '',\n  '*Error:* ' + String(errMsg).slice(0, 300).replace(/`/g, \"'\"),\n  '',\n  '*Detail:*',\n  '`' + String(errDetail).slice(0, 500).replace(/`/g, \"'\") + '`',\n  '',\n  '_' + ts + '_',\n  '_No draft was uploaded to Drive._'\n].join('\\n');\n\nreturn [{ json: { telegram_payload: { chat_id: '6773796504', parse_mode: 'Markdown', text: text } } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        1152
+      ],
+      "name": "Alert: Content Generation Failed",
+      "id": "1a484855-38f9-47dd-8289-703dc5507a68"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.telegram_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        1152
+      ],
+      "name": "Send Failure Alert to Telegram",
+      "onError": "continueRegularOutput",
+      "id": "f28b05a9-a08c-48af-b398-4329f33f5b14",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"AnhkJrJBvmohfqjJ\", \"workflow_name\": \"Cleo Content Factory\", \"agent_id\": \"cleo\", \"status\": \"error\", \"outcome\": \"failed\", \"cost_estimate_usd\": 0.001, \"api_calls_count\": 1}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2416,
+        1152
+      ],
+      "name": "Heartbeat: cleo (failed)",
+      "onError": "continueRegularOutput",
+      "id": "b3d4c2aa-58fb-46ba-be79-9005756ffb5c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "is-error-check",
+              "leftValue": "={{ $json.is_error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2032,
+        912
+      ],
+      "name": "If: Is Error?",
+      "id": "4f69740e-3bed-443b-8bca-fca267e57ce6"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.cleo&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        704
+      ],
+      "name": "Load Agent Plan",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "6b722660-2e61-4d7d-b0e5-98f2ac3c6db7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"cleo\",\n  \"target\": \"Omnichannel Content Factory\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Run to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        658
+      ],
+      "id": "d3af8000-e9c5-48d6-808d-a6cf991316fd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Log Content Performance (fire-and-forget)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3040,
+        416
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://krishraja10101.app.n8n.cloud/webhook/content-log-performance",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-request-start",
+              "value": "={{ Date.now() }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  agent_id: 'cleo',\n  source_workflow: $workflow.name,\n  source_workflow_id: $workflow.id,\n  doc_title: $('Normalize Assembly Output').first().json.doc_title || 'untitled',\n  target_channel: $('No Operation, do nothing').first().json.target_channel || 'unknown',\n  doc_url: $json.webViewLink || null,\n  outcome: 'content_produced',\n  result_count: 1,\n  total_cost: 0,\n  api_call_count: 0,\n  produced_at: new Date().toISOString()\n} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "823daa78-5a22-4e53-99b6-72c10489633b"
+    }
+  ],
+  "connections": {
+    "Cleo Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check Krish Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Channel": {
+      "main": [
+        [
+          {
+            "node": "Perplexity: Techonomic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity: Signal Noise",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase: Mindmaker Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase: LinkedIn Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Packaging: Builder Economy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Packaging: Vertical Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dynamic Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity: Techonomic": {
+      "main": [
+        [
+          {
+            "node": "Normalize: Techonomic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Fallback: Techonomic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize: Techonomic": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Techonomic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback: Techonomic Research": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity: Signal Noise": {
+      "main": [
+        [
+          {
+            "node": "Normalize: Signal Noise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Fallback: Signal Noise Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize: Signal Noise": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback: Signal Noise Research": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Mindmaker Context": {
+      "main": [
+        [
+          {
+            "node": "Normalize: Mindmaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Fallback: Mindmaker Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize: Mindmaker": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback: Mindmaker Context": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: LinkedIn Context": {
+      "main": [
+        [
+          {
+            "node": "Normalize: LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Fallback: LinkedIn Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize: LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback: LinkedIn Context": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Packaging: Builder Economy": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Packaging: Vertical Video": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamic Passthrough": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Build Assembly Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Assembly": {
+      "main": [
+        [
+          {
+            "node": "Normalize Assembly Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Anthropic Assembly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "OpenAI Fallback Assembly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Fallback Assembly": {
+      "main": [
+        [
+          {
+            "node": "Normalize Assembly Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Assembly Output": {
+      "main": [
+        [
+          {
+            "node": "If: Is Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Techonomic Research": {
+      "main": [
+        [
+          {
+            "node": "IF: Matrix Detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Matrix Detected?": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Generate Quickchart",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set: No Chart Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Generate Quickchart": {
+      "main": [
+        [
+          {
+            "node": "Set: Package Chart URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Package Chart URL": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: No Chart Passthrough": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown to HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Notify Krish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Assembly Body": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Assembly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Krish Approved": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Telegram: Notify Krish": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat: cleo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Content Performance (fire-and-forget)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Load Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Route by Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Anthropic Assembly": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Anthropic Assembly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Anthropic Assembly": {
+      "main": [
+        [
+          {
+            "node": "Normalize Assembly Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat: cleo": {
+      "main": [
+        []
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Krish Approved",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Run to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert: Content Generation Failed": {
+      "main": [
+        [
+          {
+            "node": "Send Failure Alert to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Failure Alert to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat: cleo (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Is Error?": {
+      "main": [
+        [
+          {
+            "node": "Alert: Content Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markdown to HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": null
+}

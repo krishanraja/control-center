@@ -1,0 +1,394 @@
+{
+  "name": "System | Mindmaker OS | Apify Registry Keeper",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Monday 7AM UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "ee06098f-f4d3-42d5-8e60-95a118fb730d"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/apify_actor_registry",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,actor_slug,task_category,pricing_model,is_primary,is_fallback,killed"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        250,
+        400
+      ],
+      "id": "a3d33c4a-2475-4db6-9f77-c09b2f3da5cc",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "name": "Split Registry Rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        500,
+        400
+      ],
+      "id": "7d76ab3d-1457-408d-94ab-ed85d22cb24c"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/acts/{{ $json.actor_slug.replace('/', '~') }}",
+        "sendHeaders": false,
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch Actor Detail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        750,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "4a666dc4-16f5-45ff-8ca2-a7ed3a9fe604"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Compare Apify pricing vs stored, build update + alert list\nconst actors = $input.all();\nconst registry = $('Split Registry Rows').all();\n\nconst updates = [];\nconst alerts = [];\nconst MAP = {'PAY_PER_EVENT':'pay_per_event','PAY_PER_RESULT':'pay_per_result','PRICE_PER_DATASET_ITEM':'pay_per_event','FLAT_PRICE_PER_MONTH':'flat_monthly','FREE':'compute_only'};\n\nfor (let i = 0; i < actors.length; i++) {\n  const a = actors[i]?.json?.data;\n  const r = registry[i]?.json;\n  if (!r || !r.actor_slug) continue;\n  \n  if (!a) {\n    // Actor fetch failed - possible deprecation or deletion\n    alerts.push({\n      severity: 'warn',\n      slug: r.actor_slug,\n      category: r.task_category,\n      reason: 'actor_fetch_failed',\n      action_required: 'Verify actor still exists in Apify Store'\n    });\n    continue;\n  }\n  \n  const pi = (a.pricingInfos || []).sort((x,y) => (y.startedAt || '').localeCompare(x.startedAt || ''))[0] || {};\n  const apifyPricing = pi.pricingModel || null;\n  const stored = r.pricing_model;\n  const mapped = apifyPricing ? MAP[apifyPricing] : 'compute_only';\n  \n  const row = {\n    id: r.id,\n    last_evaluated_at: new Date().toISOString()\n  };\n  \n  // Pricing flip detection\n  if (mapped !== stored) {\n    row.pricing_model = mapped;\n    if (mapped === 'flat_monthly' && !r.killed) {\n      // Critical: actor converted to rental. Auto-kill + alert.\n      row.killed = true;\n      row.quality_notes = (r.quality_notes || '') + ' | AUTO-KILLED ' + new Date().toISOString().slice(0,10) + ': pricing flipped to FLAT_PRICE_PER_MONTH ($' + (pi.pricePerUnitUsd || '?') + '/mo)';\n      alerts.push({\n        severity: 'critical',\n        slug: r.actor_slug,\n        category: r.task_category,\n        reason: 'pricing_flipped_to_rental',\n        price: pi.pricePerUnitUsd,\n        was_primary: r.is_primary,\n        action_required: r.is_primary ? 'Promote a fallback to primary immediately' : 'Review and remove references'\n      });\n    } else {\n      alerts.push({\n        severity: 'info',\n        slug: r.actor_slug,\n        category: r.task_category,\n        reason: 'pricing_model_changed',\n        from: stored,\n        to: mapped\n      });\n    }\n  }\n  \n  // Deprecation check\n  if (a.isDeprecated) {\n    row.killed = true;\n    alerts.push({\n      severity: 'warn',\n      slug: r.actor_slug,\n      category: r.task_category,\n      reason: 'actor_deprecated',\n      action_required: r.is_primary ? 'Promote fallback, find replacement' : 'Remove references'\n    });\n  }\n  \n  if (Object.keys(row).length > 2) updates.push(row);  // > {id, last_evaluated_at}\n}\n\nreturn [{ json: { updates, alerts, summary: { actors_checked: actors.length, updates: updates.length, alerts: alerts.length, critical: alerts.filter(a => a.severity === 'critical').length } } }];\n"
+      },
+      "name": "Analyze Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "1c7df9ec-c7b1-438a-91bd-8ba434446ebe"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "updates",
+        "options": {}
+      },
+      "name": "Split Updates",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        400
+      ],
+      "id": "836bde9c-253e-4574-8b52-f1ca6ed26fbd"
+    },
+    {
+      "parameters": {
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/apify_actor_registry?id=eq.{{ $json.id }}",
+        "method": "PATCH",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "PATCH Registry Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        400
+      ],
+      "id": "0343e232-9251-4938-a425-5c366aefebee",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "chatId": "6773796504",
+        "text": "=🛡️ *Apify Registry Keeper — Weekly Check*\n\nChecked: {{ $('Analyze Changes').item.json.summary.actors_checked }} actors\nUpdates applied: {{ $('Analyze Changes').item.json.summary.updates }}\nAlerts: {{ $('Analyze Changes').item.json.summary.alerts }}\n*Critical*: {{ $('Analyze Changes').item.json.summary.critical }}\n\n{{ JSON.stringify($('Analyze Changes').item.json.alerts.filter(a => a.severity === 'critical' || a.severity === 'warn'), null, 2) }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1750,
+        400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "webhookId": "10842de4-54a2-4538-b652-27fd09067288",
+      "id": "733267ca-5402-4c79-9d98-8429c47e9a8e",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  workflow_id: $workflow.id,\n  workflow_name: 'Apify Registry Keeper',\n  agent_id: 'system',\n  outcome: 'success',\n  status: 'success',\n  cost_estimate_usd: 0.001,\n  api_calls_count: ($('Analyze Changes').item.json.summary.actors_checked || 0) + 1\n}) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        400
+      ],
+      "id": "f4c9c7f7-4c79-4158-bf69-d617cb9d9417",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const s = $('Analyze Changes').item.json.summary || {};\n  return JSON.stringify({\n    actor: 'registry-keeper',\n    event_type: 'registry-keeper-scan',\n    display_message: 'Registry Keeper: ' + s.actors_checked + ' actors checked, ' + s.updates + ' updates, ' + s.critical + ' critical',\n    details: JSON.stringify(s)\n  });\n})() }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1875,
+        400
+      ],
+      "id": "8ca4c36d-ae14-4640-b472-37eb94ca69ae",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Monday 7AM UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Registry": {
+      "main": [
+        [
+          {
+            "node": "Split Registry Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Registry Rows": {
+      "main": [
+        [
+          {
+            "node": "Fetch Actor Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Actor Detail": {
+      "main": [
+        [
+          {
+            "node": "Analyze Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Changes": {
+      "main": [
+        [
+          {
+            "node": "Split Updates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Updates": {
+      "main": [
+        [
+          {
+            "node": "PATCH Registry Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH Registry Row": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Monday 7AM UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

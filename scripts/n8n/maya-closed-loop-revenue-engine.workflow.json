@@ -1,0 +1,3123 @@
+{
+  "name": "Maya | Mindmaker OS | Closed-Loop Revenue Engine",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Daily 10am UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        608
+      ],
+      "id": "f003e7e1-c80c-472a-9cee-64b9e7e77cbe"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/maya_budget_state?id=eq.current&select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Budget",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        608
+      ],
+      "id": "d2be2a75-c04c-41d6-949f-786a6abe7fa9",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pattern A: registry aggregation + budget state merge\nconst registryRows = $input.all().map(i => i.json).filter(r => r && r.actor_slug);\nconst apifyRegistry = {};\nconst apifyInputShapes = {};\nfor (const r of registryRows) {\n  apifyRegistry[r.task_category] = r.actor_slug;\n  if (r.required_input_shape) apifyInputShapes[r.task_category] = r.required_input_shape;\n}\n\nconst budgetRaw = $('Fetch Budget').first().json;\nconst rows = Array.isArray(budgetRaw) ? budgetRaw : [budgetRaw];\nconst state = rows[0] || { monthly_limit_usd: 200, month_spend_usd: 0, today_spend_usd: 0, kill_switches: {} };\nconst ks = typeof state.kill_switches === 'string' ? JSON.parse(state.kill_switches) : (state.kill_switches || {});\nconst limit = state.monthly_limit_usd || 200;\nconst budgetOk = (state.today_spend_usd || 0) <= limit / 28;\n\nreturn [{ json: { \n  monthlyLimit: limit,\n  monthSpend: state.month_spend_usd || 0,\n  todaySpend: state.today_spend_usd || 0,\n  killSwitches: ks,\n  budgetOk,\n  apifyRegistry,\n  apifyInputShapes\n} }];\n"
+      },
+      "name": "Budget Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        608
+      ],
+      "id": "244c8163-f36d-415a-a217-f0fa8c2025d2"
+    },
+    {
+      "parameters": {
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log?actor=eq.maya&event_type=eq.maya-optimization-rules&order=created_at.desc&limit=1&created_at=gte.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Opt Rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        608
+      ],
+      "id": "3ff169c6-2cb6-45bd-8a38-eb8dd7f8a993",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Agent Plan (CURRENT PLAN block) ===\nlet plan = {};\nlet plan_stale = false;\ntry {\n  const planRaw = $('Fetch Maya Plan').first().json;\n  const planArr = Array.isArray(planRaw) ? planRaw : (planRaw.data ? (typeof planRaw.data === 'string' ? JSON.parse(planRaw.data) : planRaw.data) : [planRaw]);\n  plan = (Array.isArray(planArr) ? planArr[0] : planArr) || {};\n} catch(e) { plan = {}; }\nconst STALE_HOURS = 72;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst ks = $('Budget Guard').first().json.killSwitches;\nconst budgetOk = $('Budget Guard').first().json.budgetOk;\n\nlet brief = '';\ntry {\n  const r = $('Fetch Maya Brief').first().json;\n  const rows = Array.isArray(r) ? r : (r.data ? JSON.parse(r.data) : []);\n  if (rows[0] && rows[0].brief_content) brief = rows[0].brief_content;\n} catch(e) {}\n\nlet voiceRules = '';\ntry {\n  const r = $('Fetch Voice Rules').first().json;\n  const rows = Array.isArray(r) ? r : (r.data ? JSON.parse(r.data) : []);\n  if (rows[0] && rows[0].value) voiceRules = rows[0].value;\n} catch(e) {}\n\nlet rules = [];\ntry {\n  const raw = $('Fetch Opt Rules').first().json;\n  const rows = Array.isArray(raw) ? raw : (raw.data ? JSON.parse(raw.data) : [raw]);\n  if (Array.isArray(rows) && rows[0] && rows[0].details) {\n    const d = typeof rows[0].details === 'string' ? JSON.parse(rows[0].details) : rows[0].details;\n    rules = d.rules || [];\n  }\n} catch(e) {}\nconst rulesText = rules.length > 0 ? rules.map(r => '- ' + r.rule).join('\\n') : 'No optimization rules yet.';\n\n// Parse product_health data\nlet productHealth = {};\ntry {\n  const ph = $('Read Product Health').first().json;\n  const phRows = Array.isArray(ph) ? ph : [ph];\n  for (const row of phRows) {\n    if (row && row.app_name) {\n      productHealth[row.app_name] = {\n        http_status: row.http_status,\n        response_time_ms: row.response_time_ms,\n        system_status: row.system_status,\n        days_since_last_commit: row.days_since_last_commit,\n        open_issues: row.open_issues,\n        checked_at: row.checked_at\n      };\n    }\n  }\n} catch(e) {}\n\nlet identityPrefix = '';\nif (brief) identityPrefix += '# You Are Maya\\n' + brief + '\\n\\n';\nif (planBlock) identityPrefix += planBlock;\nif (voiceRules) identityPrefix += '# Voice Rules (Krish)\\n' + voiceRules + '\\n\\n';\n\nreturn [{ json: { optimizationRules: rulesText, killSwitches: ks, budgetOk, identityPrefix, productHealth, plan_stale } }];"
+      },
+      "name": "Parse Rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        608
+      ],
+      "id": "4221fc00-91b3-4d6c-9c6e-8946dc2c004d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $input.first().json;\nconst ks = prev.killSwitches || {};\nconst ph = prev.productHealth || {};\nconst day = new Date().getDay();\n// Retired 2026-07-06 (Krish directive): gutted, merciless, onalert removed from the rotation.\n// Added: plinth (b2b) and full-time (b2c). NOTE: neither plinth nor full-time exposes a\n// product-truth/health endpoint yet, so productHealth lookups for them will read as empty\n// (never 'down') until that is wired up. Day 6 has no replacement product assigned;\n// leave as a no-op ('skip' type -> falls to the unused routeIndex 3 / Day Router fallback\n// output) until Krish assigns a sixth live product to that slot.\n// Days 3 and 4 are ALSO skip slots for now: full-time (b2c) needs real subreddit/audience\n// targeting wired into B2C Prep, and plinth (b2b) has not been verified against B2B Prep's\n// per-product config. Wire those configs first, then restore full-time/plinth here.\nconst schedule = { 1: { product: 'mm-ctrl', type: 'b2b' }, 2: { product: 'fractionl-circle', type: 'b2b' }, 3: { product: 'none', type: 'skip' }, 4: { product: 'none', type: 'skip' }, 5: { product: 'mindmaker', type: 'b2b' }, 6: { product: 'none', type: 'skip' }, 0: { product: 'none', type: 'sunday' } };\nconst entry = schedule[day] || schedule[0];\n\n// Check if today's product is down\nconst health = ph[entry.product] || {};\nconst productDown = (health.http_status >= 500) || (health.system_status === 'down');\n\nlet idx = 3;\nif (entry.type === 'b2b') idx = 0;\nelse if (entry.type === 'b2c') idx = 1;\nelse if (entry.type === 'sunday') idx = 2;\nreturn [{ json: { product: entry.product, routeType: entry.type, routeIndex: idx, day, optimizationRules: prev.optimizationRules, killSwitches: ks, budgetOk: prev.budgetOk, identityPrefix: prev.identityPrefix || '', productHealth: ph, productDown } }];"
+      },
+      "name": "Product Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        608
+      ],
+      "id": "689a51a1-8d14-4607-a3fc-a741bfb44793"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routeIndex }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routeIndex }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routeIndex }}",
+                    "rightValue": 2,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "name": "Day Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1808,
+        608
+      ],
+      "id": "275d6cb4-a442-4c13-b200-4d789b2a143d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst ks = d.killSwitches || {};\nif (d.productDown) return [{ json: { skipped: true, msg: '\\ud83d\\udeab <b>Maya B2B</b> [<code>' + d.product + '</code>]\\n\\nSkipped: product health check shows service down/5xx' } }];\nif (ks.apollo || ks.instantly) return [{ json: { skipped: true, msg: '\\ud83d\\udeab <b>Maya B2B</b> [<code>' + d.product + '</code>]\\n\\nSkipped: kill switch active for Apollo/Instantly' } }];\nconst icps = { 'mm-ctrl': { t: ['Founder','CEO'], l: 'CTRL' }, 'fractionl-circle': { t: ['Fractional CMO','Fractional CFO','Fractional CTO'], l: 'Circle' }, 'mindmaker': { t: ['Chief Strategy','Head of AI','Chief AI Officer'], l: 'Mindmaker' } };\nconst icp = icps[d.product] || icps.mindmaker;\nconst wk = Math.ceil((new Date() - new Date(new Date().getFullYear(),0,1)) / 604800000);\nconst utm = d.product + '_' + new Date().getFullYear() + '-W' + String(wk).padStart(2,'0');\nreturn [{ json: { skipped: false, product: d.product, icp, utm, rules: d.optimizationRules, identityPrefix: d.identityPrefix || '', apolloBody: JSON.stringify({ person_titles: icp.t, person_seniority: ['c_suite','vp','director'], per_page: 25, page: 1 }) } }];"
+      },
+      "name": "B2B Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        208
+      ],
+      "id": "1f8bb987-e5ae-4c56-a3af-8721b67cae26"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/v1/mixed_people/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.apolloBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Apollo Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2144,
+        208
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bIpgw4efk6vHrFEG",
+          "name": "Apollo"
+        }
+      },
+      "id": "1463521e-05fb-4825-9a8e-766b366040e9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('B2B Prep').first().json;\nif (p.skipped) return [{ json: { skipped: true, msg: p.msg, audit: JSON.stringify({ actor: 'maya', event_type: 'b2b-acquisition-run', display_message: (p.msg || ('Maya B2B [' + p.product + ']: skipped')), details: JSON.stringify({ product: p.product, skipped: true }) }), anthropicBody: '{}', geminiBody: '{}' } }];\nconst people = raw.people || [];\nif (!people.length) return [{ json: { skipped: true, msg: 'Maya B2B [' + p.product + ']: 0 leads (check Apollo key)', audit: JSON.stringify({ actor: 'maya', event_type: 'b2b-acquisition-run', display_message: ('Maya B2B [' + p.product + ']: 0 leads found (check Apollo key)'), details: JSON.stringify({ product: p.product, found: 0 }) }), anthropicBody: '{}', geminiBody: '{}' } }];\nconst leads = people.slice(0,25).map(x => ({ name: x.name, title: x.title, company: x.organization_name, email: x.email }));\nconst userPrompt = 'Score 1-10 for ' + p.icp.l + '. ICP: ' + p.icp.t.join(', ') + '.\\nRules:\\n' + p.rules + '\\nLeads:\\n' + JSON.stringify(leads) + '\\nReturn JSON: {\"scored_leads\": [{\"name\":\"\",\"email\":\"\",\"score\":N,\"reason\":\"\"}]}';\nconst system = (p.identityPrefix || '').trim();\nconst aBody = { model: 'claude-haiku-4-5', max_tokens: 2048, messages: [{ role: 'user', content: userPrompt }] };\nif (system) aBody.system = system;\nconst gBody = { contents: [{ parts: [{ text: userPrompt }] }], generationConfig: { maxOutputTokens: 2048, responseMimeType: 'application/json' } };\nif (system) gBody.system_instruction = { parts: [{ text: system }] };\nreturn [{ json: { skipped: false, anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody), product: p.product, utm: p.utm, total: people.length } }];"
+      },
+      "name": "B2B Score + Anthropic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        208
+      ],
+      "id": "49e8a1f8-9472-4991-84f8-e15d0b04a6b7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic Score B2B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2672,
+        208
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "43c61fae-dbcd-4cf8-a7ac-41b58d20dabb"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('B2B Score + Anthropic').first().json;\nif (p.skipped) { const a = p.audit ? JSON.parse(p.audit) : { actor: 'maya', event_type: 'b2b-acquisition-skipped', details: '{}' }; a.display_message = p.msg; return [{ json: { msg: p.msg, audit: JSON.stringify(a) } }]; }\nlet scored = [];\ntry { const t = raw?.content?.[0]?.text || ''; const m = t.match(/\\{[\\s\\S]*\\}/); if (m) scored = JSON.parse(m[0]).scored_leads || []; } catch(e) {}\nconst q = scored.filter(l => l.score >= 7);\nconst src = raw?._source === 'gemini' ? ' (gemini)' : '';\nreturn [{ json: { msg: 'Maya B2B [' + p.product + ']: ' + q.length + '/' + p.total + ' leads scored 7+' + src + '. UTM: ' + p.utm, audit: JSON.stringify({ actor: 'maya', event_type: 'b2b-acquisition-run', display_message: 'Maya B2B [' + p.product + ']: ' + q.length + '/' + p.total + ' leads scored 7+' + src + '. UTM: ' + p.utm, details: JSON.stringify({ product: p.product, found: p.total, qualified: q.length, campaign: p.utm, llm_source: raw?._source || 'anthropic' }) }) } }];"
+      },
+      "name": "B2B Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        64
+      ],
+      "id": "841248d6-8442-4735-a56a-3ffcae323d6b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log B2B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3184,
+        208
+      ],
+      "id": "6ec2fd59-cd6e-4d18-90d9-9241ceb9cdf4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"B2B Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG B2B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3440,
+        208
+      ],
+      "id": "ef541dde-0184-42bb-b332-42ade28bb14c",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst ks = d.killSwitches || {};\nif (d.productDown) return [{ json: { skipped: true, msg: '🚫 <b>Maya B2C</b> [<code>' + d.product + '</code>]\\n\\nSkipped: product health check shows service down/5xx' } }];\nif (ks.apify || ks['reddit-post']) return [{ json: { skipped: true, msg: '🚫 <b>Maya B2C</b> [<code>' + d.product + '</code>]\\n\\nSkipped: kill switch active for Apify/Reddit' } }];\n// Retired 2026-07-06 (Krish directive): onalert, merciless, gutted subreddit targeting removed.\n// TODO: full-time needs real subreddit/audience targeting config defined by Krish before this\n// B2C lane can run live for it. Do NOT invent subreddits here - add a verified entry once\n// Krish specifies real targets, then remove this comment.\nconst subs = {};\nconst s = subs[d.product];\nif (!s) return [{ json: { skipped: true, msg: '🚫 <b>Maya B2C</b> [<code>' + d.product + '</code>]\\n\\nSkipped: no B2C targeting config defined for this product yet' } }];\nreturn [{ json: { skipped: false, product: d.product, rules: d.optimizationRules, identityPrefix: d.identityPrefix || '', apifyBody: JSON.stringify({ startUrls: s.map(x => ({ url: 'https://www.reddit.com/' + x + '/new/' })), maxItems: 30, sort: 'new', proxy: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] }, skipComments: true, skipUserPosts: true, skipCommunity: true }) } }];"
+      },
+      "name": "B2C Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        512
+      ],
+      "id": "b11e0275-6afd-4e3c-ac45-9a91bd97fce5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Budget Guard').item.json.apifyRegistry.reddit_scrape.replace('/','~') }}/run-sync-get-dataset-items?timeout=240",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.apifyBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 260000
+        }
+      },
+      "name": "Apify Reddit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2144,
+        512
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "eba73aa8-0814-4a30-ac3f-8059fe2810bb"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('B2C Prep').first().json;\nif (p.skipped) return [{ json: { skipped: true, msg: p.msg, audit: JSON.stringify({ actor: 'maya', event_type: 'b2c-interception-run', display_message: (p.msg || ('Maya B2C [' + p.product + ']: skipped')), details: JSON.stringify({ product: p.product, skipped: true }) }), anthropicBody: '{}', geminiBody: '{}' } }];\n// Apify run-sync-get-dataset-items returns an array of posts.\n// n8n emits one input item per array element, so $input.all() IS the posts.\n// Handle legacy shapes too for safety across actor swaps.\nconst all = $input.all().map(i => i.json).filter(x => x && typeof x === 'object');\nlet items = [];\nif (all.length === 1 && (all[0].data?.items || all[0].items)) {\n  items = all[0].data?.items || all[0].items || [];\n} else if (all.length === 1 && Array.isArray(all[0])) {\n  items = all[0];\n} else {\n  items = all;\n}\nif (!items.length) return [{ json: { skipped: true, msg: 'Maya B2C [' + p.product + ']: 0 posts (check Apify)', audit: JSON.stringify({ actor: 'maya', event_type: 'b2c-interception-run', display_message: ('Maya B2C [' + p.product + ']: 0 posts scraped (check Apify)'), details: JSON.stringify({ product: p.product, scraped: 0 }) }), anthropicBody: '{}', geminiBody: '{}' } }];\nconst userPrompt = 'Score Reddit posts for ' + p.product + ' interception. 7+ intent, 6+ safety. Draft replies: 80% helpful, 20% pitch.\\nRules:\\n' + p.rules + '\\nPosts:\\n' + JSON.stringify(items.slice(0,15)) + '\\nReturn JSON: {\"replies\": [{\"post_url\":\"\",\"intent_score\":0,\"safety_score\":0,\"reply_text\":\"\",\"type\":\"helpful\"}]}';\nconst system = (p.identityPrefix || '').trim();\nconst aBody = { model: 'claude-haiku-4-5', max_tokens: 4096, messages: [{ role: 'user', content: userPrompt }] };\nif (system) aBody.system = system;\nconst gBody = { contents: [{ parts: [{ text: userPrompt }] }], generationConfig: { maxOutputTokens: 4096, responseMimeType: 'application/json' } };\nif (system) gBody.system_instruction = { parts: [{ text: system }] };\nreturn [{ json: { skipped: false, anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody), product: p.product, scraped: items.length } }];"
+      },
+      "name": "B2C Score + Anthropic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        512
+      ],
+      "id": "a007c100-dba8-4400-8e94-eb81d73e151d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic Draft B2C",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2672,
+        512
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "9e896309-2ac0-4e12-967f-026fc46b4d18"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('B2C Score + Anthropic').first().json;\nif (p.skipped) { const a = p.audit ? JSON.parse(p.audit) : { actor: 'maya', event_type: 'b2c-interception-skipped', details: '{}' }; a.display_message = p.msg; return [{ json: { msg: p.msg, audit: JSON.stringify(a) } }]; }\nlet replies = [];\ntry { const t = raw?.content?.[0]?.text || ''; const m = t.match(/\\{[\\s\\S]*\\}/); if (m) replies = JSON.parse(m[0]).replies || []; } catch(e) {}\nconst h = replies.filter(r => r.type === 'helpful').length;\nconst pi = replies.filter(r => r.type === 'pitch').length;\nconst src = raw?._source === 'gemini' ? ' (gemini)' : '';\nreturn [{ json: { msg: 'Maya B2C [' + p.product + ']: ' + replies.length + ' replies (' + h + ' helpful, ' + pi + ' pitch)' + src + '. Scraped: ' + p.scraped, audit: JSON.stringify({ actor: 'maya', event_type: 'b2c-interception-run', display_message: 'Maya B2C [' + p.product + ']: ' + replies.length + ' replies (' + h + ' helpful, ' + pi + ' pitch)' + src + '. Scraped: ' + p.scraped, details: JSON.stringify({ product: p.product, scraped: p.scraped, replies: replies.length, llm_source: raw?._source || 'anthropic' }) }) } }];"
+      },
+      "name": "B2C Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2928,
+        592
+      ],
+      "id": "54957f64-1098-4924-87f4-8c75bf325143"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log B2C",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3184,
+        512
+      ],
+      "id": "7ff02b72-090e-46bc-8728-0ea9b64a8f7b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"B2C Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG B2C",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3440,
+        512
+      ],
+      "id": "8782c66f-26d8-4cda-843a-bb94df0b86ad",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: { weekOf: new Date().toISOString().split('T')[0], rules: d.optimizationRules, identityPrefix: d.identityPrefix || '', q: 'actor=eq.maya&order=created_at.desc&limit=100&created_at=gte.' + new Date(Date.now() - 7*24*60*60*1000).toISOString() } }];"
+      },
+      "name": "Sunday Gather",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        800
+      ],
+      "id": "6d3ab000-ee07-44eb-a57e-f8d75943168e"
+    },
+    {
+      "parameters": {
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log?{{ $json.q }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Week Audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2144,
+        800
+      ],
+      "id": "8686bea1-afb9-4ba6-a245-9c104a7c7767",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('Sunday Gather').first().json;\nlet entries = [];\ntry { entries = Array.isArray(raw) ? raw : JSON.parse(typeof raw.data === 'string' ? raw.data : '[]'); if (!Array.isArray(entries)) entries = []; } catch(e) { entries = []; }\nconst s = { week: p.weekOf, b2b: entries.filter(e => e.event_type === 'b2b-acquisition-run').length, b2c: entries.filter(e => e.event_type === 'b2c-interception-run').length, comp: entries.filter(e => e.event_type === 'competitive-change-detected').length, total: entries.length };\nconst userPrompt = 'Maya weekly:\\n' + JSON.stringify(s) + '\\nAudit:\\n' + JSON.stringify(entries.slice(0,20)) + '\\nWrite 5-7 rules + report. JSON: {\"rules\": [{\"rule\":\"\",\"evidence\":\"\",\"confidence\":0.0}], \"report\": \"markdown\"}';\nconst system = (p.identityPrefix || '').trim();\nconst aBody = { model: 'claude-sonnet-4-6', max_tokens: 4096, messages: [{ role: 'user', content: userPrompt }] };\nif (system) aBody.system = system;\nconst gBody = { contents: [{ parts: [{ text: userPrompt }] }], generationConfig: { maxOutputTokens: 4096, responseMimeType: 'application/json' } };\nif (system) gBody.system_instruction = { parts: [{ text: system }] };\nreturn [{ json: { anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody), body: JSON.stringify(aBody), weekOf: p.weekOf, summary: s } }];"
+      },
+      "name": "Sunday Synthesis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        800
+      ],
+      "id": "ab226c77-0366-4042-8211-0df25e1f7280"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic Sunday",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2672,
+        800
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "bb5abb47-e4e7-4131-b381-edd326e0ca1b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('Sunday Synthesis').first().json;\nlet rules = []; let report = 'No report.';\ntry { const t = raw?.content?.[0]?.text || ''; const m = t.match(/\\{[\\s\\S]*\\}/); if (m) { const x = JSON.parse(m[0]); rules = x.rules || []; report = x.report || 'No report.'; } } catch(e) {}\nconst s = p.summary;\nconst rulesList = rules.slice(0,3).map(r => '  \\u2022 ' + r.rule).join('\\n');\nconst src = raw?._source === 'gemini' ? ' (gemini)' : '';\nconst msg = '\\ud83d\\udcca <b>Maya Weekly Report</b>' + src + '\\n<i>' + p.weekOf + '</i>\\n\\n' + '<b>This Week</b>\\n' + '  \\u2022 Total events: ' + (s.total||0) + '\\n' + '  \\u2022 B2B runs: ' + (s.b2b||0) + '\\n' + '  \\u2022 B2C runs: ' + (s.b2c||0) + '\\n' + '  \\u2022 Competitive alerts: ' + (s.comp||0) + '\\n\\n' + '<b>Optimization Rules</b>: ' + rules.length + ' generated\\n' + (rules.length > 0 ? rulesList + '\\n' : '') + '\\nFull report archived in audit_log.';\nreturn [{ json: { rulesAudit: JSON.stringify({ actor: 'maya', event_type: 'maya-optimization-rules', display_message: 'Maya weekly optimization: ' + rules.length + ' rules generated from last 7 days of activity.', details: JSON.stringify({ rules, llm_source: raw?._source || 'anthropic' }) }), reportAudit: JSON.stringify({ actor: 'maya', event_type: 'maya-weekly-report', display_message: 'Maya weekly report (' + p.weekOf + '): ' + (s.total||0) + ' events total, ' + (s.b2b||0) + ' B2B runs, ' + (s.b2c||0) + ' B2C runs, ' + (s.comp||0) + ' comp alerts.', details: JSON.stringify({ week_of: p.weekOf, report, summary: s, llm_source: raw?._source || 'anthropic' }) }), msg } }];"
+      },
+      "name": "Sunday Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2928,
+        800
+      ],
+      "id": "30708bb7-0334-43d7-bae7-ae2a82aa2226"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rulesAudit }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3184,
+        752
+      ],
+      "id": "a4ed888a-f311-41b5-9b7a-4786316366be",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $(\"Sunday Finalize\").first().json.reportAudit }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3184,
+        880
+      ],
+      "id": "129c2001-68b9-4510-8d52-915248ea2fe9",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Sunday Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG Sunday",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3440,
+        800
+      ],
+      "id": "1da29721-18a7-44a6-bcbd-8cdff73d2c44",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: \"\\u23ed\\ufe0f *Maya Daily*\\n\\nOutreach skipped today (product in skip list).\\nCompetitive intel + earned media still running.\", parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG Skip",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        1056
+      ],
+      "id": "1b045b45-00a6-4226-bb7b-bd77abec57a2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read competitor changes from Supabase competitor_health\n// Emits an Apify-shaped payload so Comp Finalize downstream works unchanged\nconst d = $input.first().json;\nif (d.productDown) return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: product health check shows service down/5xx', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-skipped', display_message: 'Maya Competitive: skipped, product health check failing', details: '{\"reason\":\"product_down\"}' }) } }];\n\nconst ks = d.killSwitches || {};\nif (ks['comp-scan']) return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: comp-scan kill switch active', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-skipped', display_message: 'Maya Competitive: skipped, comp-scan kill switch active', details: '{}' }) } }];\n\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/competitor_health';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\n// Pull today's changes only (last 36h window to cover scheduling drift)\nconst since = new Date(Date.now() - 36*60*60*1000).toISOString();\nfunction buildQuery(params) {\n  const parts = [];\n  for (const k of Object.keys(params)) {\n    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));\n  }\n  return parts.join('&');\n}\nconst qp = buildQuery({\n  select: 'competitor_url,competitor_name,product,title,meta_description,change_summary,checked_at',\n  change_detected: 'eq.true',\n  checked_at: 'gte.' + since,\n  order: 'checked_at.desc',\n  limit: '50'\n});\n\nlet items = [];\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: SUPA_URL + '?' + qp,\n    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },\n    json: true\n  });\n  items = Array.isArray(resp) ? resp : [];\n} catch (e) {\n  return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: competitor_health fetch failed: ' + (e.message || 'unknown'), audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-error', display_message: 'Maya Competitive: competitor_health fetch failed', details: JSON.stringify({ error: String(e.message || e) }) }) } }];\n}\n\n// Emit Apify-shaped payload so Comp Finalize works without change\nreturn [{ json: { data: { items }, items } }];\n"
+      },
+      "name": "Comp Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        1264
+      ],
+      "id": "04464e91-0980-4696-8dc4-4fc7a831312b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('Comp Prep').first().json;\nif (p.msg) { const a = p.audit ? JSON.parse(p.audit) : { actor: 'maya', event_type: 'competitive-intel-skipped', details: '{}' }; a.display_message = p.msg; return [{ json: { msg: p.msg, audit: JSON.stringify(a) } }]; }\nconst changes = raw?.data?.items || raw?.items || [];\nconst hasError = raw?.error || raw?.data?.error;\nif (hasError) return [{ json: { msg: 'Maya Comp: Apify error (check actor)', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-error', display_message: 'Maya Comp: Apify error (check actor)', details: JSON.stringify({ error: String(hasError.message || hasError) }) }) } }];\nreturn [{ json: { msg: 'Maya Comp: ' + changes.length + ' changes detected', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-change-detected', display_message: 'Maya Comp: ' + changes.length + ' competitor changes detected.', details: JSON.stringify({ changes: changes.length }) }) } }];"
+      },
+      "name": "Comp Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        1264
+      ],
+      "id": "061a96cd-550c-41d7-ba45-81ee7ae7a0a0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Comp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2672,
+        1264
+      ],
+      "id": "14b4de6c-e277-4c06-b45e-3df5d32f077c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Comp Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG Comp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2928,
+        1264
+      ],
+      "id": "bb48a91e-9e4a-4651-85c2-35637719ee56",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch unprocessed HARO queries from Supabase (3-day window, status=new)\nconst d = $input.first().json;\nif (d.productDown) return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: product health check shows service down/5xx', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-skipped', display_message: 'Maya Earned Media: skipped, product health check failing', details: '{\"reason\":\"product_down\"}' }) } }];\n\nconst ks = d.killSwitches || {};\nif (ks.haro) return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: HARO kill switch active', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-skipped', display_message: 'Maya Earned Media: skipped, HARO kill switch active', details: '{}' }) } }];\n\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/haro_queries';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\n// Fetch new queries from last 3 days\nconst threeDaysAgo = new Date(Date.now() - 3*24*60*60*1000).toISOString();\nfunction buildQuery(params) {\n  const parts = [];\n  for (const k of Object.keys(params)) {\n    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));\n  }\n  return parts.join('&');\n}\nconst qp = buildQuery({\n  select: 'id,journalist_name,outlet,category,query_text,deadline,requirements,email_to_pitch,received_at',\n  status: 'eq.new',\n  received_at: 'gte.' + threeDaysAgo,\n  order: 'received_at.desc',\n  limit: '50'\n});\n\nlet items = [];\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: SUPA_URL + '?' + qp,\n    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },\n    json: true\n  });\n  items = Array.isArray(resp) ? resp : [];\n} catch (e) {\n  return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: HARO query fetch failed: ' + (e.message || 'unknown'), audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-error', display_message: 'Maya Earned Media: haro_queries fetch failed', details: JSON.stringify({ error: String(e.message || e) }) }) } }];\n}\n\n// Emit Apify-shaped payload so Earned Finalize works without change\nreturn [{ json: { data: { items }, items } }];\n"
+      },
+      "name": "Earned Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        1504
+      ],
+      "id": "bc75c6ab-6ae6-443f-9aba-a93a640b3e30"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('Earned Prep').first().json;\nif (p.msg) { const a = p.audit ? JSON.parse(p.audit) : { actor: 'maya', event_type: 'earned-media-skipped', details: '{}' }; a.display_message = p.msg; return [{ json: { msg: p.msg, audit: JSON.stringify(a) } }]; }\nconst opps = raw?.data?.items || raw?.items || [];\nconst hasError = raw?.error || raw?.data?.error;\nif (hasError) return [{ json: { msg: 'Maya Earned: Apify error (check actor)', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-error', display_message: 'Maya Earned: Apify error (check actor)', details: JSON.stringify({ error: String(hasError.message || hasError) }) }) } }];\nreturn [{ json: { msg: 'Maya Earned: ' + opps.length + ' HARO opportunities', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-scan', display_message: 'Maya Earned: ' + opps.length + ' HARO opportunities found.', details: JSON.stringify({ count: opps.length }) }) } }];"
+      },
+      "name": "Earned Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        1504
+      ],
+      "id": "23eeb1ab-e9c5-4645-80f2-6d00a9bb0d18"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Earned",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2672,
+        1504
+      ],
+      "id": "09fe6659-f508-4e0a-be0a-6756da737d62",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Earned Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG Earned",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2928,
+        1504
+      ],
+      "id": "abe07af1-44ab-493f-8ba5-c1f76fea5841",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Atomize 6pm UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1808
+      ],
+      "id": "37ff04be-68a6-42fa-b75e-e0faa62a5ed5"
+    },
+    {
+      "parameters": {
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log?actor=eq.cleo&event_type=eq.cleo-published&order=created_at.desc&limit=5&created_at=gte.{{ new Date(Date.now() - 24*60*60*1000).toISOString() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Cleo Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        1808
+      ],
+      "id": "fbbcf529-0d0a-4d68-9923-40c89935367e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Agent Plan (CURRENT PLAN block) ===\nlet plan = {};\nlet plan_stale = false;\ntry {\n  const planRaw = $('Atom Fetch Plan').first().json;\n  const planArr = Array.isArray(planRaw) ? planRaw : (planRaw.data ? (typeof planRaw.data === 'string' ? JSON.parse(planRaw.data) : planRaw.data) : [planRaw]);\n  plan = (Array.isArray(planArr) ? planArr[0] : planArr) || {};\n} catch(e) { plan = {}; }\nconst STALE_HOURS = 72;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst raw = $('Fetch Cleo Content').first().json;\nlet pub = [];\ntry { pub = Array.isArray(raw) ? raw : JSON.parse(typeof raw.data === 'string' ? raw.data : '[]'); if (!Array.isArray(pub)) pub = []; } catch(e) { pub = []; }\n\nlet brief = '';\ntry {\n  const r = $('Atom Fetch Brief').first().json;\n  const rows = Array.isArray(r) ? r : (r.data ? JSON.parse(r.data) : []);\n  if (rows[0] && rows[0].brief_content) brief = rows[0].brief_content;\n} catch(e) {}\n\nlet voiceRules = '';\ntry {\n  const r = $('Atom Fetch Voice').first().json;\n  const rows = Array.isArray(r) ? r : (r.data ? JSON.parse(r.data) : []);\n  if (rows[0] && rows[0].value) voiceRules = rows[0].value;\n} catch(e) {}\n\nlet identityPrefix = '';\nif (brief) identityPrefix += '# You Are Maya\\n' + brief + '\\n\\n';\nif (planBlock) identityPrefix += planBlock;\nif (voiceRules) identityPrefix += '# Voice Rules (Krish)\\n' + voiceRules + '\\n\\n';\n\nif (!pub.length) return [{ json: { skipped: true, msg: 'Maya Atomize: No new Cleo content.', anthropicBody: '{}', geminiBody: '{}', body: '{}', plan_stale } }];\nconst titles = pub.map(p => { try { const d = typeof p.details === 'string' ? JSON.parse(p.details) : p.details; return d.title || 'Untitled'; } catch(e) { return 'Untitled'; } }).join(', ');\nconst userPrompt = 'Atomize: ' + titles + '\\nGenerate: 1) LinkedIn post 2) 5 tweets 3) Reddit post 4) YouTube short 5) Newsletter blurb\\nReturn JSON: {\"atomized\": [{\"source_title\":\"\",\"linkedin\":\"\",\"tweets\":[\"\"],\"reddit\":\"\",\"youtube\":\"\",\"newsletter\":\"\"}]}';\nconst system = identityPrefix.trim();\nconst aBody = { model: 'claude-sonnet-4-6', max_tokens: 4096, messages: [{ role: 'user', content: userPrompt }] };\nif (system) aBody.system = system;\nconst gBody = { contents: [{ parts: [{ text: userPrompt }] }], generationConfig: { maxOutputTokens: 4096, responseMimeType: 'application/json' } };\nif (system) gBody.system_instruction = { parts: [{ text: system }] };\nreturn [{ json: { skipped: false, anthropicBody: JSON.stringify(aBody), geminiBody: JSON.stringify(gBody), body: JSON.stringify(aBody), count: pub.length, titles, plan_stale } }];"
+      },
+      "name": "Atomize Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        1808
+      ],
+      "id": "980221e5-f24a-4e03-8f86-5f59753fc70f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Anthropic Atomize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        1600
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "f0db57a5-f519-4e4f-bfde-14db1f1e29e6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst p = $('Atomize Prep').first().json;\nif (p.skipped) return [{ json: { msg: p.msg, task: '{}' } }];\nlet a = [];\ntry { const t = raw?.content?.[0]?.text || ''; const m = t.match(/\\{[\\s\\S]*\\}/); if (m) a = JSON.parse(m[0]).atomized || []; } catch(e) {}\nconst tot = a.reduce((s, x) => s + 1 + (x.tweets?.length || 0) + 3, 0);\nconst src = raw?._source === 'gemini' ? ' (gemini)' : '';\nreturn [{ json: { msg: 'Maya Atomize: ' + p.count + ' article(s) into ' + tot + ' pieces' + src, task: JSON.stringify({ owner: 'cleo', venture: 'all', workstream: 'content-atomization', title: 'Atomized: ' + p.titles, description: JSON.stringify(a), status: 'waiting', priority: 'pri-2' }) } }];"
+      },
+      "name": "Atomize Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        1808
+      ],
+      "id": "9b6a1d4d-9f6f-4352-b6b3-62a89c4af46b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.task }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Create Atom Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1312,
+        1808
+      ],
+      "id": "3e48d0a4-a841-42c6-a5d6-264919157ae6",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Atomize Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "TG Atomize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        1808
+      ],
+      "id": "8fdb2b2e-fe25-4fd4-b4f8-8de9ebda85c0",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.maya&select=brief_content",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Maya Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        480
+      ],
+      "id": "bb13f896-f697-4156-b710-73a70238aafa",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Voice Rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        288
+      ],
+      "id": "5e32e864-5c24-41c6-9092-1138ef6713d5",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {},
+        "numberInputs": 5
+      },
+      "name": "Identity Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1040,
+        608
+      ],
+      "id": "7db8ea6d-378a-44df-a459-61710a614279"
+    },
+    {
+      "parameters": {},
+      "name": "Merge B2B LLM",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3184,
+        288
+      ],
+      "id": "ea3c88a6-15e1-465c-bb95-a8390391b4c7"
+    },
+    {
+      "parameters": {},
+      "name": "Merge B2C LLM",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3184,
+        592
+      ],
+      "id": "49d0e61f-0970-46b8-a83b-e98d056c2645"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Sunday LLM",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3184,
+        880
+      ],
+      "id": "ef582059-d926-4c56-8112-c725077cacd1"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Atom LLM",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1296,
+        1888
+      ],
+      "id": "3d929753-b038-49f7-a398-f82fc46496b1"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.maya&select=brief_content",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Atom Fetch Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        1680
+      ],
+      "id": "6afd2749-452a-4413-a7d1-1f796710f35a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Atom Fetch Voice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        1936
+      ],
+      "id": "9f262c53-3705-4c1b-bcf0-85163c760a97",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {},
+        "numberInputs": 4
+      },
+      "name": "Atom Identity Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        528,
+        1808
+      ],
+      "id": "bcf0e765-6793-42b5-bf44-01f63ab6aaa0"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_health?order=checked_at.desc&limit=14",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Product Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        752
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "16cc2d05-f4e2-42d8-8b2f-88ed0e12c5df"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"workflow_id\": \"JtyxjXRQLPKB37DD\", \"workflow_name\": \"Maya V3 Revenue Engine\", \"agent_id\": \"maya\", \"outcome\": \"success\", \"status\": \"success\", \"cost_estimate_usd\": 0.02, \"api_calls_count\": 1}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat Daily",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3696,
+        608
+      ],
+      "id": "f7f63e1b-fec1-4802-b4c4-4c06841a2ed8",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"workflow_id\": \"JtyxjXRQLPKB37DD\", \"workflow_name\": \"Maya V3 Revenue Engine\", \"agent_id\": \"maya\", \"outcome\": \"success\", \"status\": \"success\", \"cost_estimate_usd\": 0.02, \"api_calls_count\": 1}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat Atomize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1824,
+        1808
+      ],
+      "id": "905c9377-b5b6-4072-b9d4-dcaa8ae1958d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Anthropic Score B2B",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        432
+      ],
+      "id": "2759d971-7de1-4770-b322-d7f9a5f80646"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Anthropic Score B2B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2928,
+        432
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "053d7ece-c5c8-485d-980b-410002b7e4d5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Anthropic Draft B2C",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        736
+      ],
+      "id": "f0d270ce-a595-4e9f-ab54-2d6e5032fc69"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Anthropic Draft B2C",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2928,
+        736
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "63df84b2-97eb-404c-95d2-550f9ea5dd6e"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Anthropic Sunday",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        1024
+      ],
+      "id": "fee94584-ce71-45ed-b5a1-fdefb1e5a409"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Anthropic Sunday",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2928,
+        1024
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "301233be-d2d9-4bfd-870c-b3c40730bc55"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+      },
+      "name": "Build Gemini Body for Anthropic Atomize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        2032
+      ],
+      "id": "e7cdc8fa-6913-42d9-809a-bed5ac3b4240"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Fallback for Anthropic Atomize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        2032
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "5e85b295-dd1f-4e9f-88b0-7559d5d345bd"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        2016
+      ],
+      "id": "52b477d7-a295-4271-a675-535c24cf2d4e"
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for Maya b2b-score\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>b2b-score</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3344,
+        288
+      ],
+      "name": "LLM Health Check: b2b-score",
+      "id": "461a6d54-2cdb-44b4-84f5-b9d1f70a78bc",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for Maya b2c-draft\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>b2c-draft</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3344,
+        592
+      ],
+      "name": "LLM Health Check: b2c-draft",
+      "id": "2119e42f-e2bc-4cb3-bb5e-c00b823d656f",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for Maya sunday\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>sunday</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3344,
+        880
+      ],
+      "name": "LLM Health Check: sunday",
+      "id": "c63ff0d2-2ecc-440e-8356-b4ed9cbc8ad6",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// LLM Health Check for Maya atomize\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>atomize</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        1888
+      ],
+      "name": "LLM Health Check: atomize",
+      "id": "e7030d3d-91a4-4334-b651-775a8fc610fc",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/goals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "eq.active"
+            },
+            {
+              "name": "select",
+              "value": "id,title,current"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Weekly Goals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1110,
+        1930
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "54af1c71-574b-42db-bd55-3db14042f7eb",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Maya-specific: parse the task JSON string, tag weekly_goal_id via heuristic match, re-serialize.\nconst goalsRaw = $('Read Weekly Goals').first().json;\nconst goalsArr = Array.isArray(goalsRaw) ? goalsRaw : (goalsRaw.data || [goalsRaw]);\nconst goals = goalsArr.filter(g => g && g.id);\n\nfunction pickGoalId(text) {\n  if (!text || !goals.length) return null;\n  const hay = String(text).toLowerCase();\n  let best = null, bestLen = 0;\n  for (const g of goals) {\n    for (const c of [g.title, g.current].filter(Boolean)) {\n      for (const tok of String(c).toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 4)) {\n        if (hay.includes(tok) && tok.length > bestLen) { best = g.id; bestLen = tok.length; }\n      }\n    }\n  }\n  return best;\n}\n\nreturn $input.all().map(item => {\n  const j = item.json || {};\n  let taskObj = null;\n  try {\n    if (typeof j.task === 'string') taskObj = JSON.parse(j.task);\n    else if (j.task && typeof j.task === 'object') taskObj = j.task;\n  } catch(e) {}\n  if (!taskObj) return { json: j };\n  const gid = pickGoalId((taskObj.title || '') + ' ' + (taskObj.description || ''));\n  taskObj.weekly_goal_id = gid;\n  return { json: { ...j, task: JSON.stringify(taskObj), weekly_goal_id: gid } };\n});\n"
+      },
+      "name": "Map Task to Goal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        1808
+      ],
+      "id": "921c1d50-9551-4074-872a-d9dca61ff9e7"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/apify_actor_registry",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "task_category,actor_slug,required_input_shape"
+            },
+            {
+              "name": "is_primary",
+              "value": "eq.true"
+            },
+            {
+              "name": "killed",
+              "value": "eq.false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Apify Registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        608
+      ],
+      "id": "3842ab36-4807-4461-a7cf-11f14955ed9d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b2b-skip-gate-cond",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "B2B Skip Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2536,
+        208
+      ],
+      "id": "612ecff4-b566-409b-b707-5ab307513785"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b2c-skip-gate-cond",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "B2C Skip Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2536,
+        512
+      ],
+      "id": "6992b0ad-bc23-44a0-b88f-bc432722ba4f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "atomize-skip-gate-cond",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Atomize Skip Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        1808
+      ],
+      "id": "5c9c97b0-3cc4-48e6-8aaf-f30eacf18996"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.maya&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Maya Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        288
+      ],
+      "id": "d074f89c-fadf-4a8d-851a-c91f7d74846a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.maya&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Atom Fetch Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        1936
+      ],
+      "id": "438b2c41-e8b0-46dd-8758-1268582be99c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 10am UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Budget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Budget": {
+      "main": [
+        [
+          {
+            "node": "Fetch Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget Guard": {
+      "main": [
+        [
+          {
+            "node": "Fetch Maya Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Voice Rules",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Opt Rules",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Product Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Opt Rules": {
+      "main": [
+        [
+          {
+            "node": "Identity Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Parse Rules": {
+      "main": [
+        [
+          {
+            "node": "Product Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Router": {
+      "main": [
+        [
+          {
+            "node": "Day Router",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Comp Prep",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Earned Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Day Router": {
+      "main": [
+        [
+          {
+            "node": "B2B Prep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "B2C Prep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sunday Gather",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TG Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2B Prep": {
+      "main": [
+        [
+          {
+            "node": "Apollo Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo Search": {
+      "main": [
+        [
+          {
+            "node": "B2B Score + Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2B Score + Anthropic": {
+      "main": [
+        [
+          {
+            "node": "B2B Skip Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Score B2B": {
+      "main": [
+        [
+          {
+            "node": "Merge B2B LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Anthropic Score B2B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2B Finalize": {
+      "main": [
+        [
+          {
+            "node": "Log B2B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log B2B": {
+      "main": [
+        [
+          {
+            "node": "TG B2B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2C Prep": {
+      "main": [
+        [
+          {
+            "node": "Apify Reddit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Reddit": {
+      "main": [
+        [
+          {
+            "node": "B2C Score + Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2C Score + Anthropic": {
+      "main": [
+        [
+          {
+            "node": "B2C Skip Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Draft B2C": {
+      "main": [
+        [
+          {
+            "node": "Merge B2C LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Anthropic Draft B2C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2C Finalize": {
+      "main": [
+        [
+          {
+            "node": "Log B2C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log B2C": {
+      "main": [
+        [
+          {
+            "node": "TG B2C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday Gather": {
+      "main": [
+        [
+          {
+            "node": "Fetch Week Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Week Audit": {
+      "main": [
+        [
+          {
+            "node": "Sunday Synthesis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday Synthesis": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Sunday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Sunday": {
+      "main": [
+        [
+          {
+            "node": "Merge Sunday LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Anthropic Sunday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday Finalize": {
+      "main": [
+        [
+          {
+            "node": "Log Rules",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Rules": {
+      "main": [
+        [
+          {
+            "node": "TG Sunday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comp Prep": {
+      "main": [
+        [
+          {
+            "node": "Comp Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comp Finalize": {
+      "main": [
+        [
+          {
+            "node": "Log Comp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Comp": {
+      "main": [
+        [
+          {
+            "node": "TG Comp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Earned Prep": {
+      "main": [
+        [
+          {
+            "node": "Earned Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Earned Finalize": {
+      "main": [
+        [
+          {
+            "node": "Log Earned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Earned": {
+      "main": [
+        [
+          {
+            "node": "TG Earned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atomize 6pm UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Cleo Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atom Fetch Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atom Fetch Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Cleo Content": {
+      "main": [
+        [
+          {
+            "node": "Atom Identity Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atomize Prep": {
+      "main": [
+        [
+          {
+            "node": "Atomize Skip Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Atomize": {
+      "main": [
+        [
+          {
+            "node": "Merge Atom LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body for Anthropic Atomize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atomize Finalize": {
+      "main": [
+        [
+          {
+            "node": "Read Weekly Goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Atom Task": {
+      "main": [
+        [
+          {
+            "node": "TG Atomize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Maya Brief": {
+      "main": [
+        [
+          {
+            "node": "Identity Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "Identity Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Identity Merge": {
+      "main": [
+        [
+          {
+            "node": "Parse Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge B2B LLM": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: b2b-score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge B2C LLM": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: b2c-draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Sunday LLM": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: sunday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Atom LLM": {
+      "main": [
+        [
+          {
+            "node": "LLM Health Check: atomize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atom Fetch Brief": {
+      "main": [
+        [
+          {
+            "node": "Atom Identity Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Atom Fetch Voice": {
+      "main": [
+        [
+          {
+            "node": "Atom Identity Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Atom Identity Merge": {
+      "main": [
+        [
+          {
+            "node": "Atomize Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Product Health": {
+      "main": [
+        [
+          {
+            "node": "Identity Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "TG B2B": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG B2C": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG Sunday": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG Skip": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG Comp": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG Earned": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Report": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG Atomize": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Atomize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Anthropic Score B2B": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Anthropic Score B2B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Anthropic Score B2B": {
+      "main": [
+        [
+          {
+            "node": "Merge B2B LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Anthropic Draft B2C": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Anthropic Draft B2C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Anthropic Draft B2C": {
+      "main": [
+        [
+          {
+            "node": "Merge B2C LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Anthropic Sunday": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Anthropic Sunday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Anthropic Sunday": {
+      "main": [
+        [
+          {
+            "node": "Merge Sunday LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body for Anthropic Atomize": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback for Anthropic Atomize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback for Anthropic Atomize": {
+      "main": [
+        [
+          {
+            "node": "Merge Atom LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Budget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: b2b-score": {
+      "main": [
+        [
+          {
+            "node": "B2B Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: b2c-draft": {
+      "main": [
+        [
+          {
+            "node": "B2C Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: sunday": {
+      "main": [
+        [
+          {
+            "node": "Sunday Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Health Check: atomize": {
+      "main": [
+        [
+          {
+            "node": "Atomize Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Task to Goal": {
+      "main": [
+        [
+          {
+            "node": "Create Atom Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Apify Registry": {
+      "main": [
+        [
+          {
+            "node": "Budget Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Weekly Goals": {
+      "main": [
+        [
+          {
+            "node": "Map Task to Goal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2B Skip Gate": {
+      "main": [
+        [
+          {
+            "node": "B2B Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Anthropic Score B2B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2C Skip Gate": {
+      "main": [
+        [
+          {
+            "node": "B2C Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Anthropic Draft B2C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atomize Skip Gate": {
+      "main": [
+        [
+          {
+            "node": "Atomize Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Anthropic Atomize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Maya Plan": {
+      "main": [
+        [
+          {
+            "node": "Identity Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Atom Fetch Plan": {
+      "main": [
+        [
+          {
+            "node": "Atom Identity Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Daily 10am UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Atomize 6pm UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

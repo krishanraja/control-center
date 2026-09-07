@@ -1,0 +1,161 @@
+{
+  "name": "System | Mindmaker OS | Control Center Live Sync",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tasks-sync",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook (Push Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "webhookId": "tasks-sync",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "id": "86b29e5a-4082-4e05-ad64-d2b1f76d647b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://controlcenter.krishraja.com/api/sync",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "POST /api/sync",
+      "type": "n8n-nodes-base.httpRequest",
+      "onError": "continueErrorOutput",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "72692ed2-2835-4af7-8c7d-f8518b7e9d9b"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { success: false, note: \"POST to /api/sync failed or returned error\", task_count: 0 } }];"
+      },
+      "name": "Log failure (graceful)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        440
+      ],
+      "id": "af0753bd-8335-46e8-8643-c153f78de7ab"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\":true}"
+      },
+      "name": "Respond to webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ],
+      "id": "a1665436-e86a-440e-8238-68c8c92a1c85"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safe workflow run logger - no $('Webhook') dependency\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method, url, headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst inputData = $input.first()?.json || {};\nconst duration = 0; // No webhook header timing available\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: inputData.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: inputData.api_call_count || 0,\n  cost_usd: inputData.total_cost || 0,\n  outcome: inputData.outcome || 'completed',\n  outcome_count: inputData.result_count || 0,\n  quality_score: inputData.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "onError": "continueErrorOutput",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "49757c54-c324-4765-b346-ab5ab40ca328"
+    }
+  ],
+  "connections": {
+    "Webhook (Push Trigger)": {
+      "main": [
+        [
+          {
+            "node": "POST /api/sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /api/sync": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log failure (graceful)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log failure (graceful)": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Respond to webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to webhook": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "errorWorkflow": "SVr96xVfOCupWpK7",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

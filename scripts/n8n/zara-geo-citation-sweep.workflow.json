@@ -1,91 +1,239 @@
 {
   "name": "Zara | GEO Citation Sweep",
-  "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true
-  },
+  "active": true,
   "nodes": [
     {
       "name": "Weekly Mon 15:30 UTC",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [240, 300],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ],
       "parameters": {
-        "triggerTimes": { "item": [{ "mode": "everyWeek", "weekday": 1, "hour": 15, "minute": 30 }] }
-      }
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 15,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "df42339f-a937-4beb-860d-6a6afc9272c8"
     },
     {
       "name": "Product query matrix",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 300],
+      "position": [
+        440,
+        300
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// One probe per (product, query). Zero personal-brand queries by design —\n// this measures PRODUCT visibility in AI answers.\nconst probes = [\n  { venture: 'mm_ctrl',   product: 'CTRL',   query: 'best AI news decision tools for executives 2026' },\n  { venture: 'mm_ctrl',   product: 'CTRL',   query: 'AI tool to cut through AI news noise' },\n  { venture: 'legibility', product: 'Legibility', query: 'typed product data API for AI agents MCP' },\n  { venture: 'legibility', product: 'Legibility', query: 'best MCP servers for product data' },\n  { venture: 'fractionl_pulse', product: 'Fractionl', query: 'fractional executive tools platforms 2026' },\n  { venture: 'full_time', product: 'Full Time', query: 'AI football recap podcast predictions' },\n];\nreturn probes.map(p => ({ json: p }));"
-      }
+        "jsCode": "\nconst probes = [\n  { venture: 'mm_ctrl', product: 'CTRL', query: 'best AI news decision tools for executives 2026' },\n  { venture: 'mm_ctrl', product: 'CTRL', query: 'AI tool to cut through AI news noise' },\n  { venture: 'legibility', product: 'Legibility', query: 'typed product data API for AI agents MCP' },\n  { venture: 'legibility', product: 'Legibility', query: 'best MCP servers for product data' },\n  { venture: 'fractionl_pulse', product: 'Fractionl', query: 'fractional executive tools platforms 2026' },\n  { venture: 'full_time', product: 'Full Time', query: 'AI football recap podcast predictions' },\n];\nreturn probes.map(p => ({ json: p }));\n"
+      },
+      "id": "41f1e927-fa60-45b6-879f-22134435a343"
     },
     {
       "name": "Ask Perplexity",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [740, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.perplexity.ai/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{PERPLEXITY_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'sonar-pro', messages: [{ role: 'user', content: $json.query }], max_tokens: 500 }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth"
+        "jsonBody": "={{ JSON.stringify({ model: 'sonar-pro', messages: [{ role: 'user', content: $json.query }], max_tokens: 500 }) }}"
       },
-      "credentials": { "httpHeaderAuth": { "name": "Perplexity API" } },
-      "continueOnFail": true,
-      "notes": "Credential 'Perplexity API' (httpHeaderAuth): 'Authorization: Bearer <pplx key>'. ~24 calls/month ≈ $1."
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "6b74251f-7806-4307-83b0-8041db71e9fe"
     },
     {
       "name": "Score citation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1000, 300],
+      "position": [
+        920,
+        300
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Deterministic string check — no LLM judging an LLM (false-positive guard).\nconst probes = $('Product query matrix').all().map(i => i.json);\nconst answers = $('Ask Perplexity').all();\nconst out = [];\nanswers.forEach((a, idx) => {\n  const p = probes[idx] || {};\n  const text = String(a.json?.choices?.[0]?.message?.content || '');\n  const cited = text.toLowerCase().includes(String(p.product || '').toLowerCase());\n  out.push({ json: {\n    signal_type: 'geo-citation',\n    venture: p.venture,\n    description: `GEO probe: \"${p.query}\" — ${p.product} ${cited ? 'IS cited' : 'not cited'}`,\n    summary: text.slice(0, 400),\n    signal_score: cited ? 8 : 2,\n    status: 'new',\n    raw_data: { cited, surface: 'perplexity_sonar_pro', query: p.query, product: p.product },\n  }});\n});\nreturn out;"
-      }
+        "jsCode": "\n// Deterministic string check - no LLM judging an LLM.\nconst probes = $('Product query matrix').all().map(i => i.json);\nconst answers = $('Ask Perplexity').all();\nreturn answers.map((a, idx) => {\n  const p = probes[idx] || {};\n  const text = String((a.json && a.json.choices && a.json.choices[0] && a.json.choices[0].message && a.json.choices[0].message.content) || '');\n  const cited = text.toLowerCase().indexOf(String(p.product || '').toLowerCase()) >= 0;\n  return { json: {\n    signal_type: 'geo-citation', venture: p.venture,\n    description: 'GEO probe: \"' + p.query + '\" - ' + p.product + (cited ? ' IS cited' : ' not cited'),\n    summary: text.slice(0, 400), signal_score: cited ? 8 : 2, status: 'new',\n    raw_data: { cited: cited, surface: 'perplexity_sonar_pro', query: p.query, product: p.product },\n  }};\n});\n"
+      },
+      "id": "64109c73-3264-45a1-87cd-aef7ca1edbdf"
     },
     {
       "name": "Write zara_signals",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1260, 300],
+      "position": [
+        1160,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify([$json]) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "onError": "continueRegularOutput",
+      "id": "405aace1-e136-4930-bd83-8c08d6c7e1d7"
+    },
+    {
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1400,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ workflow_id: 'zara-geo-citation-sweep', workflow_name: 'Zara | GEO Citation Sweep', agent_id: 'zara', status: 'success', outcome: 'probes:' + $items().length, outcome_count: $items().length, cost_estimate_usd: 0.15, api_calls_count: 8 }]) }}"
+      },
+      "onError": "continueRegularOutput",
+      "id": "35d548ba-1ddb-4fd7-a8de-4c36d61ad506"
     }
   ],
   "connections": {
-    "Weekly Mon 15:30 UTC":  { "main": [[{ "node": "Product query matrix", "type": "main", "index": 0 }]] },
-    "Product query matrix":  { "main": [[{ "node": "Ask Perplexity", "type": "main", "index": 0 }]] },
-    "Ask Perplexity":        { "main": [[{ "node": "Score citation", "type": "main", "index": 0 }]] },
-    "Score citation":        { "main": [[{ "node": "Write zara_signals", "type": "main", "index": 0 }]] }
+    "Weekly Mon 15:30 UTC": {
+      "main": [
+        [
+          {
+            "node": "Product query matrix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product query matrix": {
+      "main": [
+        [
+          {
+            "node": "Ask Perplexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Perplexity": {
+      "main": [
+        [
+          {
+            "node": "Score citation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score citation": {
+      "main": [
+        [
+          {
+            "node": "Write zara_signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write zara_signals": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120
+  },
+  "staticData": {
+    "node:Weekly Mon 15:30 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
   }
 }

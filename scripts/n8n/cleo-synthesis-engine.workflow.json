@@ -1,0 +1,1170 @@
+{
+  "name": "Cleo | Mindmaker OS | Synthesis Engine",
+  "active": true,
+  "nodes": [
+    {
+      "id": "a654fe1a-378a-4084-a93a-e7d2a30da155",
+      "name": "Wed + Sun 12:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * 0,3"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2e2f1fe2-4b2e-458d-b108-899999704179",
+      "name": "Record Start",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rs1",
+              "name": "run_start_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "rs2",
+              "name": "run_start_ms",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cb61eb9f-81e7-4b06-8b9c-a5868e235ea6",
+      "name": "Load Recent Ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,idea,thesis,pillar_id,source_type,source_url,source_snippet,state,brand_fit_score,meta,created_at"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ \"gte.\" + $now.minus({ days: 14 }).toISO() }}"
+            },
+            {
+              "name": "state",
+              "value": "in.(seeded,researching,drafting,review)"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "60"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "025e34cb-93a8-4b8d-b395-d1e7b1d4a059",
+      "name": "Load Recent Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,title,summary,source,source_url,created_at"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ \"gte.\" + $now.minus({ days: 14 }).toISO() }}"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "60"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "852429da-e030-4632-adc6-a9fdbb4283dd",
+      "name": "Load Folder Id Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        384
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "eq.cleo_inspiration_folder_id"
+            },
+            {
+              "name": "select",
+              "value": "value"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "e3924076-b755-4710-af8b-7a2b87f6c904",
+      "name": "Normalize Folder Id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        384
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet folder_id = '';\ntry {\n  const first = items[0] && items[0].json;\n  if (Array.isArray(first) && first.length > 0) folder_id = first[0].value || '';\n  else if (first && typeof first === 'object') folder_id = first.value || '';\n} catch (e) {}\nconst ok = folder_id && !/YOUR_|PLACEHOLDER|HERE/i.test(folder_id) && folder_id.length >= 12;\nreturn [{ json: { folder_id: ok ? folder_id : '' } }];"
+      }
+    },
+    {
+      "id": "cc4c6a5e-1c0e-42e9-85c5-97332e9725f0",
+      "name": "Has Folder Id",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        384
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fid",
+              "leftValue": "={{ $json.folder_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "b7494ce9-0123-4b9c-8d15-02782c50405d",
+      "name": "Drive List Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        288
+      ],
+      "parameters": {
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ \"'\" + $json.folder_id + \"' in parents and trashed=false and modifiedTime > '\" + $now.minus({ days: 14 }).toISO() + \"'\" }}"
+            },
+            {
+              "name": "orderBy",
+              "value": "modifiedTime desc"
+            },
+            {
+              "name": "pageSize",
+              "value": "15"
+            },
+            {
+              "name": "fields",
+              "value": "files(id,name,mimeType,modifiedTime)"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "217c9155-21d9-4987-a21d-263d18aaf1a9",
+      "name": "Drive Filter Readable",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        288
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst first = (items[0] && items[0].json) || {};\nconst READABLE = new Set(['application/vnd.google-apps.document','text/plain','text/markdown','application/vnd.google-apps.spreadsheet']);\nconst files = (first.files || []).filter(f => READABLE.has(f.mimeType));\nif (files.length === 0) return [{ json: { _empty: true } }];\nreturn files.map(f => ({ json: { id: f.id, name: f.name, mimeType: f.mimeType, modifiedTime: f.modifiedTime } }));"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "92c271d3-494f-49a7-bb67-7606143f3c5b",
+      "name": "Drive Fetch Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        288
+      ],
+      "parameters": {
+        "url": "={{ $json.mimeType === \"application/vnd.google-apps.document\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/plain\" : $json.mimeType === \"application/vnd.google-apps.spreadsheet\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/csv\" : \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"?alt=media\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "id": "60c23dde-d4c7-4d24-8010-a32589a25b25",
+      "name": "Drive Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        288
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst list = $('Drive Filter Readable').all().map(i => i.json);\nconst docs = [];\nfor (let i = 0; i < items.length; i++) {\n  const meta = list[i] || {};\n  const body = String((items[i] && items[i].json && (items[i].json.data || items[i].json.body || JSON.stringify(items[i].json))) || '').slice(0, 8000);\n  if (!body || body.length < 80) continue;\n  docs.push({ id: meta.id, name: meta.name, mime_type: meta.mimeType, modified: meta.modifiedTime, body, url: meta.mimeType === 'application/vnd.google-apps.document' ? 'https://docs.google.com/document/d/' + meta.id + '/edit' : meta.mimeType === 'application/vnd.google-apps.spreadsheet' ? 'https://docs.google.com/spreadsheets/d/' + meta.id + '/edit' : 'https://drive.google.com/file/d/' + meta.id + '/view' });\n}\nreturn [{ json: { drive_docs: docs, drive_count: docs.length } }];"
+      }
+    },
+    {
+      "id": "72b3fffe-f464-4845-9b8c-20d92fa3185a",
+      "name": "Load Pillars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2016,
+        384
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_pillars",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "active",
+              "value": "eq.true"
+            },
+            {
+              "name": "select",
+              "value": "id,name,description,good_looks_like,anti_patterns,evidence_required"
+            },
+            {
+              "name": "order",
+              "value": "id.asc"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "6dd94df7-9589-4531-b7db-1c5f3c241c7a",
+      "name": "Drive Skip Empty",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        480
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ds1",
+              "name": "drive_docs",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "ds2",
+              "name": "drive_count",
+              "value": 0,
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a7faaed5-6cec-4454-8139-b7398f5f3279",
+      "name": "Load Cleo Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2240,
+        384
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.cleo"
+            },
+            {
+              "name": "select",
+              "value": "brief_content"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "2de1d03a-87dd-4ea6-9bee-06e800832323",
+      "name": "Load Synthesis Thresholds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2464,
+        384
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "in.(cleo_synthesis_min_confidence,cleo_synthesis_min_threads,cleo_synthesis_min_named_entities)"
+            },
+            {
+              "name": "select",
+              "value": "key,value"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "6549dcfa-1664-488a-a67b-727b4fc4a611",
+      "name": "Build Synthesis Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        384
+      ],
+      "parameters": {
+        "jsCode": "const ideasRaw = $('Load Recent Ideas').all().map(i => i.json);\nconst ideas = Array.isArray(ideasRaw[0]) ? ideasRaw[0] : ideasRaw;\nconst signalsRaw = $('Load Recent Signals').all().map(i => i.json);\nconst signals = Array.isArray(signalsRaw[0]) ? signalsRaw[0] : (signalsRaw && signalsRaw[0] && !signalsRaw[0].error ? signalsRaw : []);\nlet drive_docs = [];\ntry { const a = $('Drive Aggregate').first(); if (a && a.json && Array.isArray(a.json.drive_docs)) drive_docs = a.json.drive_docs; } catch (e) {}\nif (drive_docs.length === 0) { try { const s = $('Drive Skip Empty').first(); if (s && s.json && Array.isArray(s.json.drive_docs)) drive_docs = s.json.drive_docs; } catch (e) {} }\nconst pillarsRaw = $('Load Pillars').all().map(i => i.json);\nconst pillars = Array.isArray(pillarsRaw[0]) ? pillarsRaw[0] : pillarsRaw;\nconst briefRaw = $('Load Cleo Brief').all().map(i => i.json);\nconst briefArr = Array.isArray(briefRaw[0]) ? briefRaw[0] : briefRaw;\nconst brief = (briefArr[0] && briefArr[0].brief_content) || '';\nconst cfgRaw = $('Load Synthesis Thresholds').all().map(i => i.json);\nconst cfgArr = Array.isArray(cfgRaw[0]) ? cfgRaw[0] : cfgRaw;\nconst cfg = {};\nfor (const row of cfgArr) cfg[row.key] = row.value;\nconst minConf = parseFloat(cfg.cleo_synthesis_min_confidence || '0.85');\nconst minThreads = parseInt(cfg.cleo_synthesis_min_threads || '3', 10);\nconst minEntities = parseInt(cfg.cleo_synthesis_min_named_entities || '3', 10);\n\nconst pillarsBlock = pillars.map(p => {\n  const gl = p.good_looks_like || {};\n  const ap = (p.anti_patterns || []).map(x => '  - ' + x).join('\\n');\n  const er = (p.evidence_required || []).map(x => '  - ' + x).join('\\n');\n  return '### ' + p.name + ' (id: ' + p.id + ')\\n' +\n         '**Description:** ' + p.description + '\\n' +\n         '**Voice:** ' + (gl.voice || '') + '\\n' +\n         '**Anti-patterns:**\\n' + ap + '\\n' +\n         '**Evidence required:**\\n' + er;\n}).join('\\n\\n');\n\nconst ideasBlock = ideas.length === 0\n  ? '(no recent ideas)'\n  : ideas.map(i => '- [' + i.id + '] (' + (i.pillar_id || 'no-pillar') + ', ' + (i.state || 'unknown') + ') ' + i.idea + (i.thesis ? '\\n    THESIS: ' + i.thesis : '') + (i.source_url ? '\\n    SOURCE: ' + i.source_url : '')).join('\\n');\n\nconst signalsBlock = signals.length === 0\n  ? '(no recent signals)'\n  : signals.map(s => '- [' + s.id + '] ' + (s.title || '') + ' (' + (s.source || 'unknown') + ')' + (s.summary ? '\\n    ' + s.summary : '') + (s.source_url ? '\\n    URL: ' + s.source_url : '')).join('\\n');\n\nconst driveBlock = drive_docs.length === 0\n  ? '(no inspiration docs)'\n  : drive_docs.map(d => '--- DOC: ' + d.name + ' ---\\nURL: ' + (d.url || '') + '\\nBODY:\\n' + d.body).join('\\n\\n');\n\nconst systemPrompt =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n---\\n\\n' : '') +\n  'Weekly cross-thread synthesis for Krish. Hypothesize 0 to 3 non-obvious angles connecting 3+ of the threads below into a single sharp take that NO source states directly.\\n\\n' +\n  '## THE BAR (highest in the system)\\n\\n' +\n  '1. CONNECTS ' + minThreads + '+ THREADS. Identify content_ideas IDs, zara_signals IDs, drive doc names that feed each hypothesis.\\n' +\n  '2. NON-OBVIOUS. The angle must not be stated directly by any source. If you can quote one source making the same claim, drop it.\\n' +\n  '3. FALSIFIABLE. The hypothesis must make a claim provably wrong by a specific observation in the next 90 days. \"AI is important\" is not falsifiable.\\n' +\n  '4. PILLAR-LINKED. Maps to exactly one pillar.\\n' +\n  '5. CONFIDENCE >= ' + minConf + '. If you would not bet reputation on it, do not include it.\\n' +\n  '6. EVIDENCE-DENSE. At least ' + minEntities + ' named entities (publisher, deal, tool, number, date) cited across the source threads.\\n\\n' +\n  'If no hypothesis meets all six, return []. Zero is a valid output.\\n\\n' +\n  '## KRISH PILLARS\\n\\n' + pillarsBlock + '\\n\\n' +\n  '## KRISH VOICE RULES\\n' +\n  '- Declarative and specific. No hedging.\\n' +\n  '- NO em dashes. Use commas, colons, parentheses, line breaks.\\n' +\n  '- Banned phrases: leveraging, unlocking, delve into, fast-paced world, navigating, robust, synergies.\\n\\n' +\n  '## OUTPUT\\n' +\n  'Strict JSON array. No preamble, no markdown fence.\\n' +\n  '[\\n' +\n  '  {\\n' +\n  '    \"hypothesis\": \"one-sentence angle in Krish voice\",\\n' +\n  '    \"thesis\": \"2-3 sentences. The claim, the why, the falsifiable test.\",\\n' +\n  '    \"pillar_id\": \"pillar:open_web_econ\",\\n' +\n  '    \"connected_threads\": [\\n' +\n  '      {\"type\": \"content_idea\", \"id\": \"uuid\", \"title\": \"...\"},\\n' +\n  '      {\"type\": \"zara_signal\", \"id\": \"uuid\", \"title\": \"...\"},\\n' +\n  '      {\"type\": \"inspiration_doc\", \"name\": \"filename\"}\\n' +\n  '    ],\\n' +\n  '    \"falsifiable_test\": \"what observation in the next 90 days would prove this wrong\",\\n' +\n  '    \"confidence\": 0.9,\\n' +\n  '    \"named_entities\": [\"publisher: Vox\", \"deal: Publicis-LiveRamp\", \"figure: $2.2B\"],\\n' +\n  '    \"why_non_obvious\": \"1-2 sentences explaining why no single source states this\",\\n' +\n  '    \"distribution\": [\"linkedin\", \"newsletter\"]\\n' +\n  '  }\\n' +\n  ']';\n\nconst userPrompt =\n  '=== RECENT CONTENT IDEAS (last 14 days, ' + ideas.length + ' items) ===\\n' + ideasBlock + '\\n\\n' +\n  '=== RECENT ZARA SIGNALS (last 14 days, ' + signals.length + ' items) ===\\n' + signalsBlock + '\\n\\n' +\n  '=== INSPIRATION FOLDER (last 14 days, ' + drive_docs.length + ' docs) ===\\n' + driveBlock + '\\n\\n' +\n  'Synthesize now. Strict JSON array only.';\n\nconst anthropic_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 4000,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userPrompt }],\n};\nreturn [{ json: { anthropic_body, ideas_count: ideas.length, signals_count: signals.length, docs_count: drive_docs.length, min_confidence: minConf, min_threads: minThreads, min_entities: minEntities, pillar_ids: pillars.map(p => p.id) } }];"
+      }
+    },
+    {
+      "id": "e598589d-2466-4878-a727-b4ba619f0e00",
+      "name": "Opus Synthesize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2912,
+        384
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "id": "be1e6bbb-02c0-4001-a5c5-3cba415d7593",
+      "name": "Build Gemini Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        464
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst src = (items[0] && items[0].json) || {};\nconst body = src.anthropic_body || {};\nconst msgs = body.messages || [];\nlet promptText = (body.system || '') + '\\n\\n';\nfor (const m of msgs) {\n  const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? c : '[assistant]: ' + c) + '\\n\\n';\n}\nconst gemini_body = {\n  contents: [{ parts: [{ text: promptText.trim() }] }],\n  generationConfig: { maxOutputTokens: body.max_tokens || 4000, temperature: body.temperature || 0.4 },\n};\nreturn [{ json: { gemini_body } }];"
+      }
+    },
+    {
+      "id": "2785f1ca-b086-4e1e-990b-1b06a50f22c5",
+      "name": "Gemini Fallback Synth",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3360,
+        464
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 180000
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "id": "142f26e7-b216-40c5-b6d1-5196c8a20018",
+      "name": "Parse + Hard Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3584,
+        384
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst d = (items[0] && items[0].json) || {};\nlet raw = '';\nlet model_used = 'claude-sonnet-4-6';\nif (d.content && d.content[0] && d.content[0].text) { raw = d.content[0].text; }\nelse if (d.candidates && d.candidates[0]) { raw = ((d.candidates[0].content || {}).parts || [{}])[0].text || ''; model_used = 'gemini-2.5-pro-fallback'; }\nconst usage = d.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst cost_usd = (inputTokens / 1000000) * 15.0 + (outputTokens / 1000000) * 75.0;\nconst ctx = $('Build Synthesis Prompt').first().json;\nconst minConf = parseFloat(ctx.min_confidence || 0.85);\nconst minThreads = parseInt(ctx.min_threads || 3, 10);\nconst minEntities = parseInt(ctx.min_entities || 3, 10);\nconst validPillars = new Set(ctx.pillar_ids || []);\nlet arr = [];\ntry {\n  const m = raw.match(/\\[[\\s\\S]*\\]/);\n  if (m) arr = JSON.parse(m[0]);\n} catch (e) { arr = []; }\nif (!Array.isArray(arr)) arr = [];\nconst rejected_reasons = {};\nfunction bump(k) { rejected_reasons[k] = (rejected_reasons[k] || 0) + 1; }\nconst VAGUE = [/time will tell/i, /^we will see/i, /^future will/i, /^eventually /i];\nconst survivors = [];\nfor (const h of arr) {\n  if (!h || typeof h !== 'object') { bump('not_object'); continue; }\n  if (!h.hypothesis || String(h.hypothesis).trim().length < 12) { bump('hypothesis_too_short'); continue; }\n  if (!Array.isArray(h.connected_threads) || h.connected_threads.length < minThreads) { bump('below_min_threads'); continue; }\n  if (typeof h.confidence !== 'number' || h.confidence < minConf) { bump('below_min_confidence'); continue; }\n  if (!Array.isArray(h.named_entities) || h.named_entities.length < minEntities) { bump('below_min_entities'); continue; }\n  if (!h.falsifiable_test || String(h.falsifiable_test).trim().length < 12 || VAGUE.some(rx => rx.test(h.falsifiable_test))) { bump('vague_falsifiable_test'); continue; }\n  if (!h.pillar_id || !validPillars.has(h.pillar_id)) { bump('invalid_pillar'); continue; }\n  survivors.push(h);\n}\nreturn [{ json: { survivors, survivors_count: survivors.length, rejected_count: arr.length - survivors.length, rejected_reasons, raw_count: arr.length, model_used, cost_usd: Math.round(cost_usd * 100000) / 100000 } }];"
+      }
+    },
+    {
+      "id": "3743e523-f291-4f3e-afe6-480636e901b4",
+      "name": "Has Survivors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3808,
+        384
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sc",
+              "leftValue": "={{ $json.survivors_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "e003d2fd-1fd2-43f0-a356-87cb66604ec1",
+      "name": "Fan Hypotheses",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4032,
+        288
+      ],
+      "parameters": {
+        "jsCode": "const d = ($input.first() && $input.first().json) || {};\nconst survivors = d.survivors || [];\nreturn survivors.map(s => ({ json: s }));"
+      }
+    },
+    {
+      "id": "0a8b0baf-6da8-46e7-8530-e5b04f8e2a90",
+      "name": "Heartbeat Done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4480,
+        144
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Synthesis Engine\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, api_calls_count: 6 + $(\"Parse + Hard Filter\").item.json.survivors_count, metadata: { survivors_count: $(\"Parse + Hard Filter\").item.json.survivors_count, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, model_used: $(\"Parse + Hard Filter\").item.json.model_used } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "6b1f000a-add0-4a1a-85b1-56c1d002839a",
+      "name": "Audit Log Done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4704,
+        144
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Synthesis Engine\", details: { survivors_count: $(\"Parse + Hard Filter\").item.json.survivors_count, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, rejected_reasons: $(\"Parse + Hard Filter\").item.json.rejected_reasons, raw_count: $(\"Parse + Hard Filter\").item.json.raw_count, model_used: $(\"Parse + Hard Filter\").item.json.model_used } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "70a575bf-17fe-4319-aac7-c2d26bf41d24",
+      "name": "Insert Synthesis Hypothesis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4480,
+        336
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { idea: $json.hypothesis, thesis: $json.thesis, distribution: $json.distribution || [\"linkedin\",\"newsletter\"], confidence: $json.confidence, quality_score: \"green\", brand_fit_score: 10, source_type: \"synthesis_hypothesis\", source_ref: \"synthesis-engine-\" + $now.toFormat(\"yyyy-LL-dd\"), source_url: \"https://controlcenter.krishraja.com/?tab=intel\", source_snippet: ($json.thesis || \"\").slice(0, 280), source_captured_at: $now.toISO(), state: \"researching\", assigned_to: \"cleo\", pillar_id: $json.pillar_id, meta: { connected_threads: $json.connected_threads, falsifiable_test: $json.falsifiable_test, named_entities: $json.named_entities, why_non_obvious: $json.why_non_obvious, synthesis_run_at: $now.toISO() } } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "96d28c50-72bb-4ce2-8923-aeb78b87673b",
+      "name": "Loop Hypotheses",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4256,
+        288
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "844b5038-6772-4327-8853-be29e9f16986",
+      "name": "Heartbeat Zero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4032,
+        480
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Synthesis Engine\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, api_calls_count: 6, metadata: { survivors_count: 0, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, rejected_reasons: $(\"Parse + Hard Filter\").item.json.rejected_reasons, note: \"bar not met this week\" } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "8ef26930-d2e4-4a54-a8f9-051b3b3a391c",
+      "name": "Audit Log Zero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4256,
+        480
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Synthesis Engine\", details: { survivors_count: 0, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, rejected_reasons: $(\"Parse + Hard Filter\").item.json.rejected_reasons, raw_count: $(\"Parse + Hard Filter\").item.json.raw_count, model_used: $(\"Parse + Hard Filter\").item.json.model_used, note: \"bar not met this week\" } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Wed + Sun 12:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Record Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Start": {
+      "main": [
+        [
+          {
+            "node": "Load Recent Ideas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Recent Signals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Folder Id Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Folder Id Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize Folder Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Folder Id": {
+      "main": [
+        [
+          {
+            "node": "Has Folder Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Folder Id": {
+      "main": [
+        [
+          {
+            "node": "Drive List Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drive Skip Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive List Files": {
+      "main": [
+        [
+          {
+            "node": "Drive Filter Readable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Filter Readable": {
+      "main": [
+        [
+          {
+            "node": "Drive Fetch Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Fetch Content": {
+      "main": [
+        [
+          {
+            "node": "Drive Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Load Pillars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Pillars": {
+      "main": [
+        [
+          {
+            "node": "Load Cleo Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Skip Empty": {
+      "main": [
+        [
+          {
+            "node": "Load Pillars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Cleo Brief": {
+      "main": [
+        [
+          {
+            "node": "Load Synthesis Thresholds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Synthesis Thresholds": {
+      "main": [
+        [
+          {
+            "node": "Build Synthesis Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Synthesis Prompt": {
+      "main": [
+        [
+          {
+            "node": "Opus Synthesize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Opus Synthesize": {
+      "main": [
+        [
+          {
+            "node": "Parse + Hard Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback Synth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback Synth": {
+      "main": [
+        [
+          {
+            "node": "Parse + Hard Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Hard Filter": {
+      "main": [
+        [
+          {
+            "node": "Has Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Survivors": {
+      "main": [
+        [
+          {
+            "node": "Fan Hypotheses",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Heartbeat Zero",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan Hypotheses": {
+      "main": [
+        [
+          {
+            "node": "Loop Hypotheses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat Done": {
+      "main": [
+        [
+          {
+            "node": "Audit Log Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Synthesis Hypothesis": {
+      "main": [
+        [
+          {
+            "node": "Loop Hypotheses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Hypotheses": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Synthesis Hypothesis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat Zero": {
+      "main": [
+        [
+          {
+            "node": "Audit Log Zero",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Wed + Sun 12:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

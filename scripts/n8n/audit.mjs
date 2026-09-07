@@ -92,7 +92,9 @@ async function listCloudWorkflows() {
     const qs = new URLSearchParams({ limit: '100' })
     if (cursor) qs.set('cursor', cursor)
     const page = await n8n(`/workflows?${qs.toString()}`)
-    all.push(...(page.data || []))
+    // Archived workflows cannot execute and are not source-of-truth. Including
+    // them made every retired workflow report as cloud_only drift forever.
+    all.push(...(page.data || []).filter(w => !w.isArchived))
     cursor = page.nextCursor || null
   } while (cursor)
   return all

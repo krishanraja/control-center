@@ -1,149 +1,348 @@
 {
   "name": "Acquisition | Reply Intake",
-  "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true
-  },
+  "active": true,
   "nodes": [
     {
       "name": "Resend Inbound Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        200,
+        300
+      ],
       "parameters": {
         "path": "acquisition-reply-inbound",
         "httpMethod": "POST",
         "responseMode": "onReceived"
       },
-      "notes": "Point Resend's inbound routing (ctrl@ / pulse@ / etc.) at this webhook. Payload: {from, to, subject, text/html}."
+      "notes": "Resend email.received webhooks (both domains) point here. A reply ALWAYS halts the sequence.",
+      "id": "bab8e3ec-e99d-4d65-8e98-56c73aa8602f",
+      "webhookId": "66ea780c-a115-4de6-9705-a18363572890"
     },
     {
-      "name": "Match lead + last send",
+      "name": "Match lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [500, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?email=eq.{{ encodeURIComponent($json.body?.from?.address || $json.from || '') }}&select=id,primary_venture,email&limit=1",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?email=eq.{{ encodeURIComponent((String(($json.body && $json.body.data && $json.body.data.from) || '').match(/<([^>]+)>/) || [null, String(($json.body && $json.body.data && $json.body.data.from) || '')])[1].trim().toLowerCase()) }}&select=id,primary_venture,email&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "alwaysOutputData": true,
+      "id": "b0c49aab-3bda-4eca-8ab0-4e5914e9dd57"
     },
     {
-      "name": "Classify (Claude Haiku)",
+      "name": "Classify (Haiku)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [760, 300],
+      "position": [
+        720,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "{{ANTHROPIC_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 60, messages: [{ role: 'user', content: 'Classify this reply to a product nurture email as exactly one of: positive_intent, unsubscribe, question, auto_reply. Reply with the single label only.\\n\\n' + (($json.body?.text) || $json.text || '').slice(0, 1500) }] }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth"
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 60, messages: [{ role: 'user', content: 'Classify this reply to a product nurture email as exactly one of: positive_intent, unsubscribe, question, auto_reply. Reply with the single label only.\\n\\n' + String(($('Resend Inbound Webhook').first().json.body && $('Resend Inbound Webhook').first().json.body.data && $('Resend Inbound Webhook').first().json.body.data.text) || '').slice(0, 1500) }] }) }}"
       },
-      "credentials": { "httpHeaderAuth": { "name": "Anthropic API" } },
-      "notes": "Credential 'Anthropic API' (httpHeaderAuth): header 'x-api-key: <anthropic key>'. ~$0.0001/reply."
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "bec7fb5d-e5db-426e-b2e9-2482cf5cfa89"
     },
     {
       "name": "Build reply row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, 300],
+      "position": [
+        980,
+        300
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const hook = $('Resend Inbound Webhook').first().json;\nconst payload = hook.body || hook;\nconst lead = ($('Match lead + last send').first().json || [])[0] || null;\nconst raw = $('Classify (Claude Haiku)').first().json;\nconst label = String(raw?.content?.[0]?.text || 'unclassified').trim().toLowerCase();\nconst valid = ['positive_intent','unsubscribe','question','auto_reply'];\nreturn [{ json: {\n  lead_id: lead?.id || null,\n  lane: lead?.primary_venture || null,\n  from_email: payload?.from?.address || payload?.from || null,\n  subject: payload?.subject || null,\n  body: String(payload?.text || payload?.html || '').slice(0, 8000),\n  classification: valid.includes(label) ? label : 'unclassified',\n}}];"
-      }
+        "jsCode": "\n// Resend email.received event shape: { type, created_at, data: { email_id,\n// from, to, subject, text, html } }. from can be 'Name <addr@x>' or bare.\nconst hook = $('Resend Inbound Webhook').first().json;\nconst body = hook.body || hook;\nconst data = body.data || {};\nconst rawFrom = String(data.from || '');\nconst m = rawFrom.match(/<([^>]+)>/);\nconst fromEmail = (m ? m[1] : rawFrom).trim().toLowerCase();\nconst lead = ($('Match lead').first().json || [])[0] || null;\nconst raw = $('Classify (Haiku)').first().json || {};\nconst label = String((raw.content && raw.content[0] && raw.content[0].text) || 'unclassified').trim().toLowerCase();\nconst valid = ['positive_intent', 'unsubscribe', 'question', 'auto_reply'];\nreturn [{ json: {\n  lead_id: lead ? lead.id : null,\n  lane: lead ? lead.primary_venture : null,\n  from_email: fromEmail || null,\n  subject: data.subject || null,\n  body: String(data.text || data.html || '').slice(0, 8000),\n  classification: valid.indexOf(label) >= 0 ? label : 'unclassified',\n}}];\n"
+      },
+      "id": "e7e44c0d-0a7c-4384-a73e-67bac917f76d"
     },
     {
-      "name": "Insert acquisition_replies",
+      "name": "Insert reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1280, 300],
+      "position": [
+        1240,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_replies",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify([$json]) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "onError": "continueRegularOutput",
+      "id": "21d74f7a-c171-416e-8cd9-44038cc60be4"
     },
     {
       "name": "Suppress pending sends",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1540, 300],
+      "position": [
+        1500,
+        300
+      ],
       "parameters": {
         "method": "PATCH",
-        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?lead_id=eq.{{ $json.lead_id }}&status=in.(queued,approved)",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?lead_id=eq.{{ $('Build reply row').first().json.lead_id }}&status=in.(queued,approved)",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'suppressed', error: 'reply received — sequence halted' }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify({ status: 'suppressed', error: 'reply received - sequence halted' }) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
-      "notes": "A reply ALWAYS halts the sequence. positive_intent leads also flip to status='conversation' below."
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "c887b91d-7334-4cfd-a743-50198917416c"
     },
     {
-      "name": "Positive intent → conversation",
+      "name": "Positive intent to conversation",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1800, 300],
+      "position": [
+        1760,
+        300
+      ],
       "parameters": {
         "method": "PATCH",
-        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.lead_id }}&{{ $json.classification === 'positive_intent' ? '' : 'id=eq.00000000-0000-0000-0000-000000000000' }}",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $('Build reply row').first().json.classification === 'positive_intent' ? $('Build reply row').first().json.lead_id : '00000000-0000-0000-0000-000000000000' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'conversation' }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi"
+        "jsonBody": "={{ JSON.stringify({ status: 'conversation' }) }}"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
-      "notes": "The impossible-uuid filter no-ops the PATCH for non-positive classifications (single linear path, no IF node needed)."
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Impossible-uuid filter no-ops non-positive classifications; single linear path.",
+      "id": "973ff6bc-e1e4-4f0d-b1c7-0c9e15beaa65"
+    },
+    {
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2020,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ workflow_id: 'acquisition-reply-intake', workflow_name: 'Acquisition | Reply Intake', agent_id: 'maya', status: 'success', outcome: 'reply:' + ($('Build reply row').first().json.classification || 'unclassified'), outcome_count: 1, cost_estimate_usd: 0.0002, api_calls_count: 4 }]) }}"
+      },
+      "onError": "continueRegularOutput",
+      "id": "e9381aec-4ee5-436b-96cd-34edb3fc1df2"
     }
   ],
   "connections": {
-    "Resend Inbound Webhook":  { "main": [[{ "node": "Match lead + last send", "type": "main", "index": 0 }]] },
-    "Match lead + last send":  { "main": [[{ "node": "Classify (Claude Haiku)", "type": "main", "index": 0 }]] },
-    "Classify (Claude Haiku)": { "main": [[{ "node": "Build reply row", "type": "main", "index": 0 }]] },
-    "Build reply row":         { "main": [[{ "node": "Insert acquisition_replies", "type": "main", "index": 0 }]] },
-    "Insert acquisition_replies": { "main": [[{ "node": "Suppress pending sends", "type": "main", "index": 0 }]] },
-    "Suppress pending sends":  { "main": [[{ "node": "Positive intent → conversation", "type": "main", "index": 0 }]] }
-  }
+    "Resend Inbound Webhook": {
+      "main": [
+        [
+          {
+            "node": "Match lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match lead": {
+      "main": [
+        [
+          {
+            "node": "Classify (Haiku)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify (Haiku)": {
+      "main": [
+        [
+          {
+            "node": "Build reply row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build reply row": {
+      "main": [
+        [
+          {
+            "node": "Insert reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert reply": {
+      "main": [
+        [
+          {
+            "node": "Suppress pending sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suppress pending sends": {
+      "main": [
+        [
+          {
+            "node": "Positive intent to conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Positive intent to conversation": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120
+  },
+  "staticData": null
 }

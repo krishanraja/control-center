@@ -27,7 +27,39 @@ via PR. `audit.sh` will fail CI until parity is restored.
 
 ## Commands
 
-All commands need `N8N_API_KEY` in the environment. Default base URL is
+All commands need `N8N_API_KEY` in the environment.
+
+**Placeholder env vars.** The mirror files carry `{{PLACEHOLDER}}` tokens where
+credentials sit in cloud, so no secret is ever committed. `sync` swaps placeholder
+-> real value before the PUT; `audit` swaps real value -> placeholder on the cloud
+copy before diffing. Set these or the audit reports drift it cannot resolve:
+
+```
+SUPABASE_SERVICE_ROLE_KEY   SUPABASE_ANON_KEY        N8N_API_JWT
+TELEGRAM_BOT_TOKEN          TELEGRAM_BOT_TOKEN_OPS   # two DIFFERENT bots
+GITHUB_TOKEN                GITHUB_TOKEN_2           # two DIFFERENT tokens
+RESEND_API_KEY              RESEND_API_KEY_2         RESEND_API_KEY_3
+STRIPE_RESTRICTED_KEY       ANTHROPIC_API_KEY
+PERPLEXITY_API_KEY          APIFY_API_TOKEN
+```
+
+Nine of these were added 2026-09-07: a faithful export of all 109 live workflows
+failed `check-no-secrets`, and then GitHub's push protection rejected the result
+twice more on classes this repo's own checker did not know: GitHub PATs, a
+Stripe restricted LIVE key, Resend, Perplexity and Apify. Rules for all of them
+were added to `scripts/check-no-secrets.mts`; a guard weaker than the remote's
+teaches false confidence.
+
+Where two secrets of the same kind exist they get separate slots (two Telegram
+bots, two GitHub tokens, three Resend keys). Sharing a slot would make a
+`--apply` swap one for the other.
+
+All of these are still inline in the CLOUD workflows. Placeholders keep them out
+of git; moving them to n8n credentials is the real fix, and each needs rotating.
+
+**Archived workflows are excluded** from both sides. They cannot execute and are
+not source of truth; including them made every retired workflow report as
+permanent `cloud_only` drift. Default base URL is
 `https://krishraja10101.app.n8n.cloud`; override with `N8N_BASE_URL`.
 
 ```bash

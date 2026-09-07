@@ -1,0 +1,2777 @@
+{
+  "name": "Zara | mind/make OS | Signal Sweep (Mon-Fri 10AM EST)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1-5"
+            }
+          ]
+        }
+      },
+      "name": "Zara Schedule Mon-Fri 10AM EST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        304
+      ],
+      "id": "b1a04698-3c8d-44f7-8de6-539322041a47"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "signal_type,venture,company_name,description,signal_score,krish_rating,rating_notes"
+            },
+            {
+              "name": "krish_rating",
+              "value": "not.is.null"
+            },
+            {
+              "name": "order",
+              "value": "surfaced_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "30"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Calibration History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        496,
+        304
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "934ff99f-43b0-4511-b6f6-b62bee5ac646",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst calibrationHistory = items\n  .filter(i => i.json && i.json.krish_rating !== undefined && i.json.krish_rating !== null)\n  .map(i => i.json);\nreturn [{ json: { calibrationHistory: calibrationHistory } }];"
+      },
+      "name": "Guarantee Calibration Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        304
+      ],
+      "id": "ccd63f0a-8a47-473a-86d5-772c24f943d8"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "eq.zara_named_accounts"
+            },
+            {
+              "name": "select",
+              "value": "value"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Named Accounts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        304
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "1b8ed16c-8041-4632-b821-5c7e9e69824c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nlet weeklyGoals = [];\ntry {\n  const goalsItem = $('Read Weekly Goals').first();\n  if (goalsItem && goalsItem.json && Array.isArray(goalsItem.json)) {\n    weeklyGoals = goalsItem.json;\n  } else if (goalsItem && goalsItem.json && goalsItem.json.data) {\n    weeklyGoals = goalsItem.json.data;\n  } else if (goalsItem && Array.isArray(goalsItem.json)) {\n    weeklyGoals = goalsItem.json;\n  }\n} catch (e) {}\nconst items = $input.all();\nlet na = [];\nlet calibrationContext = '';\ntry {\n  const naRow = items.find(i => i.json.value && Array.isArray(i.json.value));\n  if (naRow) na = naRow.json.value;\n} catch(e) {}\ntry {\n  const calItem = $('Guarantee Calibration Item').first();\n  const rated = calItem ? (calItem.json.calibrationHistory || []) : [];\n  if (rated.length > 0) {\n    calibrationContext = 'Previous signals Krish rated useful: ' + JSON.stringify(rated.filter(i => i.krish_rating >= 4).map(i => ({ company: i.company_name, type: i.signal_type, note: i.rating_notes })).slice(0, 10)) + ' Previously rated poor: ' + JSON.stringify(rated.filter(i => i.krish_rating <= 2).map(i => ({ company: i.company_name, type: i.signal_type, note: i.rating_notes })).slice(0, 5));\n  }\n} catch(e) {}\nreturn [{ json: {\n  active_goals: weeklyGoals,\n  namedAccounts: na,\n  calibrationContext: calibrationContext,\n  hasCalibration: calibrationContext.length > 0,\n  osContext: {\n    mindmaker: { icp: 'Enterprise/mid-market C-suite at legacy businesses (finance, healthcare, logistics, insurance, media), 500-5000+ employees', triggerTitles: ['Chief AI Officer','Head of AI Transformation','Chief Digital Officer','CTO','VP Engineering'], triggerEvents: ['new CAIO/CDO/CTO hire','board AI mandate','AI task force formed','stalled AI implementation','budget allocated for AI enablement'] },\n    personalBrand: { windows: ['major AI framework release','adtech identity shift','tier-1 conference call for speakers (Cannes Lions, DMEXCO, Programmatic I/O, AI Summit NY)','publisher ad revenue decline story','open podcast guest submissions for AI/media/GTM shows'] }\n  },\n  sweep_started: new Date().toISOString(),\n  ready: true,\n  identity_prepend: $('Build Identity Prepend').first().json.identity_prepend\n} }];"
+      },
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        304
+      ],
+      "id": "1444965a-0b8e-4347-9169-6aaccb5b9e84"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.news_aggregation.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "queries": [
+            "(\"Chief AI Officer\" OR \"Head of AI\" OR \"SVP of AI\") AND (appointed OR hired OR joins) AND (bank OR media OR telecom OR insurance OR logistics) 2026"
+          ],
+          "maxArticles": 20,
+          "language": "en",
+          "country": "US"
+        }
+      },
+      "name": "MM News Run 1 - CAIO Appointed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "c7497162-5686-4a20-b1d9-92935cd6e79a"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{runId:String(i.json.data&&i.json.data.id?i.json.data.id:''),datasetId:String(i.json.data&&i.json.data.defaultDatasetId?i.json.data.defaultDatasetId:''),venture:'mindmaker',signal_type_candidate:'buyer-signal',pollAttempt:0}}));"
+      },
+      "name": "Collect MM Run IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        64
+      ],
+      "id": "7d196726-69a1-4a79-bcdc-f9fa1fab4bc6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.news_aggregation.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "queries": [
+            "(\"Chief Digital Officer\" OR \"Chief Data Officer\") hired AND (\"Series B\" OR \"Series C\" OR \"Enterprise\") 2026"
+          ],
+          "maxArticles": 20,
+          "language": "en",
+          "country": "US"
+        }
+      },
+      "name": "MM News Run 2 - CDO Hired VC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        144
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "192fcb2d-1f85-4a23-9aab-9be1749eecf0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.news_aggregation.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "queries": [
+            "\"AI strategy\" \"board directive\" OR \"board mandated\" 2026"
+          ],
+          "maxArticles": 20,
+          "language": "en",
+          "country": "US"
+        }
+      },
+      "name": "MM News Run 3 - Board AI Mandate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        224
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "a997fea7-ea3b-490d-8188-3802aa716eba"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.news_aggregation.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "queries": [
+            "VC \"AI mandate\" OR \"AI playbook\" portfolio 2026"
+          ],
+          "maxArticles": 20,
+          "language": "en",
+          "country": "US"
+        }
+      },
+      "name": "MM News Run 4 - VC AI Mandate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "0470ecf6-4d0d-49c5-b813-b07a32d1d043"
+    },
+    {
+      "parameters": {
+        "jsCode": "const v=String($('MM Poll Decision').first()?$('MM Poll Decision').first().json.venture||'mindmaker':'mindmaker');const s=String($('MM Poll Decision').first()?$('MM Poll Decision').first().json.signal_type_candidate||'buyer-signal':'buyer-signal');const r=[];for(const i of $input.all()){const rows=Array.isArray(i.json)?i.json:[i.json];for(const row of rows){if(!row||!row.url)continue;r.push({json:{title:String(row.title||''),url:String(row.url),publishedAt:row.publishedAt||row.date||null,snippet:String(row.snippet||row.description||''),source:'google-news',venture:v,signal_type_candidate:s,company_name:null}});}}return r.length>0?r:[{json:{_empty:true,venture:v}}];"
+      },
+      "name": "Normalize MM Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3328,
+        32
+      ],
+      "id": "2225f5ac-bf45-44d0-b8ea-ebc3c3c708e9"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "name": "Wait MM 15s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2128,
+        64
+      ],
+      "webhookId": "675c5ef2-c920-4232-9eda-12693709e5d4",
+      "id": "b9086ac1-938e-469d-800f-3bd3ad596810"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.runId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Check MM Run Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2368,
+        64
+      ],
+      "id": "3cb14a4f-6623-4068-be22-143a087d0339"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all();const raw=items[0]?items[0].json:null;if(!raw)return [{json:{runId:'',datasetId:'',venture:'mindmaker',signal_type_candidate:'buyer-signal',pollAttempt:99,status:'NO_INPUT',shouldFetch:false,shouldFail:true}}];const loopItem=$('Poll MM Runs Loop').item?$('Poll MM Runs Loop').item.json:{};const v=String(loopItem.venture||'mindmaker');const stc=String(loopItem.signal_type_candidate||'buyer-signal');if(raw.error||!raw.data)return [{json:{runId:String(loopItem.runId||''),datasetId:String(loopItem.datasetId||''),venture:v,signal_type_candidate:stc,pollAttempt:99,status:'ERROR',shouldFetch:false,shouldFail:true}}];const s=String(raw.data.status||'UNKNOWN');const p=Number(loopItem.pollAttempt||0)+1;const ds=String(loopItem.datasetId||raw.data.defaultDatasetId||'');return [{json:{runId:String(loopItem.runId||raw.data.id||''),datasetId:ds,venture:v,signal_type_candidate:stc,pollAttempt:p,status:s,shouldFetch:s==='SUCCEEDED',shouldFail:s==='FAILED'||s==='TIMED-OUT'||s==='ABORTED'||p>=20}}];"
+      },
+      "name": "MM Poll Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        64
+      ],
+      "id": "387181a7-83ff-4d6f-bae9-7488b7446bfe"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.shouldFetch }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "MM Route Fetch or Fail",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        64
+      ],
+      "id": "3854a19f-04dc-44c9-8823-84e1368e7f4f"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Poll MM Runs Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        64
+      ],
+      "id": "e4dc9ee1-20be-4fcd-abc4-8ec46978f31e"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.datasetId }}/items?clean=true&format=json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch MM Dataset Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3088,
+        32
+      ],
+      "id": "3fcf3172-98f8-4a5a-82fc-bc1fec6fd4c9"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{_empty:true,venture:'mindmaker'}}];"
+      },
+      "name": "MM Branch Failover",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3088,
+        112
+      ],
+      "id": "9a82debf-de20-4594-bbed-8c40b3ce226f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.news_aggregation.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "queries": [
+            "(DMEXCO OR \"Cannes Lions\" OR \"Programmatic I/O\" OR \"AI Summit\" OR \"Gartner Data\" OR \"Money20/20\") AND (\"call for speakers\" OR \"call for papers\" OR \"speaker application\") 2026"
+          ],
+          "maxArticles": 20,
+          "language": "en",
+          "country": "US"
+        }
+      },
+      "name": "Brand News Run 1 - Conference Speaker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        864
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "f302755e-5fb1-4b6f-91c3-18759124d53f"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i=>({json:{runId:String(i.json.data&&i.json.data.id?i.json.data.id:''),datasetId:String(i.json.data&&i.json.data.defaultDatasetId?i.json.data.defaultDatasetId:''),venture:'personal-brand',signal_type_candidate:'content-window',pollAttempt:0}}));"
+      },
+      "name": "Collect Brand Run IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        864
+      ],
+      "id": "3f695ba4-161b-4181-93aa-89afa6fb0d2e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.news_aggregation.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "queries": [
+            "\"AI\" AND (fail OR funny OR bizarre OR inspiring OR breakthrough) AND (enterprise OR startup OR \"use case\") 2026"
+          ],
+          "maxArticles": 20,
+          "language": "en",
+          "country": "US"
+        }
+      },
+      "name": "Brand News Run 2 - AI Culture Anomalies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        944
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "976881eb-1fec-454b-8133-b35f031dd055"
+    },
+    {
+      "parameters": {
+        "jsCode": "const v=String($('Brand Poll Decision').first()?$('Brand Poll Decision').first().json.venture||'personal-brand':'personal-brand');const s=String($('Brand Poll Decision').first()?$('Brand Poll Decision').first().json.signal_type_candidate||'content-window':'content-window');const r=[];for(const i of $input.all()){const rows=Array.isArray(i.json)?i.json:[i.json];for(const row of rows){if(!row||!row.url)continue;r.push({json:{title:String(row.title||''),url:String(row.url),publishedAt:row.publishedAt||row.date||null,snippet:String(row.snippet||row.description||''),source:'google-news',venture:v,signal_type_candidate:s,company_name:null}});}}return r.length>0?r:[{json:{_empty:true,venture:v}}];"
+      },
+      "name": "Normalize Brand Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3328,
+        832
+      ],
+      "id": "fa39d89f-19cc-4d12-89b7-ae6dd05c0d00"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "name": "Wait Brand 15s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2128,
+        864
+      ],
+      "webhookId": "798d1550-f25c-4a46-a5ac-fa7bb31f6d60",
+      "id": "938da91a-321a-42af-a827-0683b9364e18"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.runId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Check Brand Run Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2368,
+        864
+      ],
+      "id": "431d464d-f9c3-438a-8d2b-48671794494a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all();const raw=items[0]?items[0].json:null;if(!raw)return [{json:{runId:'',datasetId:'',venture:'personal-brand',signal_type_candidate:'content-window',pollAttempt:99,status:'NO_INPUT',shouldFetch:false,shouldFail:true}}];const loopItem=$('Poll Brand Runs Loop').item?$('Poll Brand Runs Loop').item.json:{};const v=String(loopItem.venture||'personal-brand');const stc=String(loopItem.signal_type_candidate||'content-window');if(raw.error||!raw.data)return [{json:{runId:String(loopItem.runId||''),datasetId:String(loopItem.datasetId||''),venture:v,signal_type_candidate:stc,pollAttempt:99,status:'ERROR',shouldFetch:false,shouldFail:true}}];const s=String(raw.data.status||'UNKNOWN');const p=Number(loopItem.pollAttempt||0)+1;const ds=String(loopItem.datasetId||raw.data.defaultDatasetId||'');return [{json:{runId:String(loopItem.runId||raw.data.id||''),datasetId:ds,venture:v,signal_type_candidate:stc,pollAttempt:p,status:s,shouldFetch:s==='SUCCEEDED',shouldFail:s==='FAILED'||s==='TIMED-OUT'||s==='ABORTED'||p>=20}}];"
+      },
+      "name": "Brand Poll Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        864
+      ],
+      "id": "bdcd7c3b-cccc-45b5-be31-cb5951228fc1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.shouldFetch }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Brand Route Fetch or Fail",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        864
+      ],
+      "id": "a78ed6a3-3869-4605-a2c7-7ef54adebe38"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Poll Brand Runs Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        864
+      ],
+      "id": "98664689-cd47-4f56-b165-d60e34d2b629"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.datasetId }}/items?clean=true&format=json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch Brand Dataset Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3088,
+        832
+      ],
+      "id": "bf73a1a7-0262-44ee-9831-bd92ae403fcc"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{_empty:true,venture:'personal-brand'}}];"
+      },
+      "name": "Brand Branch Failover",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3088,
+        912
+      ],
+      "id": "31d5266d-fa84-48d8-9d5a-53bf32eb6944"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Aggregate Apify Registry').first().json.apifyRegistry.linkedin_jobs.replace('/','~') }}/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "urls": [
+            "https://www.linkedin.com/jobs/search/?keywords=Chief+AI+Officer&location=United+States&f_TPR=r604800&sortBy=DD",
+            "https://www.linkedin.com/jobs/search/?keywords=Head+of+AI+Transformation&location=United+States&f_TPR=r604800&sortBy=DD",
+            "https://www.linkedin.com/jobs/search/?keywords=Chief+Digital+Officer&location=United+States&f_TPR=r604800&sortBy=DD"
+          ],
+          "count": 50,
+          "scrapeCompany": true
+        }
+      },
+      "name": "LI Mindmaker Run - CAIO CDO Roles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        1072
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "6a4acf21-e590-4e43-9731-24f03e44675d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first()?$input.first().json:{};return [{json:{runId:String(i.data&&i.data.id?i.data.id:''),datasetId:String(i.data&&i.data.defaultDatasetId?i.data.defaultDatasetId:''),venture:'mindmaker',signal_type_candidate:'buyer-signal',pollAttempt:0}}];"
+      },
+      "name": "Init LI MM Poll State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        1072
+      ],
+      "id": "e6df4ec4-db50-488f-be4f-50206cc5a057"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=[];for(const i of $input.all()){const rows=Array.isArray(i.json)?i.json:[i.json];for(const row of rows){if(!row||(!row.jobUrl&&!row.url))continue;const co=String(row.companyName||row.company||'');r.push({json:{title:String(co?row.title+' at '+co:row.title||''),url:String(row.jobUrl||row.url),publishedAt:row.publishedAt||null,snippet:String(row.description||''),source:'linkedin-jobs',company_name:co||null,venture:'mindmaker',signal_type_candidate:'buyer-signal'}});}}return r.length>0?r:[{json:{_empty:true,venture:'mindmaker'}}];"
+      },
+      "name": "Normalize LI MM Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3328,
+        1040
+      ],
+      "id": "9cc423f3-9967-4d21-be8c-5f6c5e023de6"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "name": "Wait LI MM 15s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2128,
+        1072
+      ],
+      "webhookId": "f0733554-9291-4517-9a73-f44936af2b13",
+      "id": "be797962-a167-49ae-8ec5-b80e1dfce499"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.runId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Check LI MM Run Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2368,
+        1072
+      ],
+      "id": "3282aefe-6e1a-4f8b-9866-b077d79bc5f8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all();const raw=items[0]?items[0].json:null;if(!raw)return [{json:{runId:'',datasetId:'',venture:'mindmaker',signal_type_candidate:'buyer-signal',pollAttempt:99,status:'NO_INPUT',shouldFetch:false,shouldFail:true}}];const loopItem=$('Poll LI MM Loop').item?$('Poll LI MM Loop').item.json:{};const v=String(loopItem.venture||'mindmaker');const stc=String(loopItem.signal_type_candidate||'buyer-signal');if(raw.error||!raw.data)return [{json:{runId:String(loopItem.runId||''),datasetId:String(loopItem.datasetId||''),venture:v,signal_type_candidate:stc,pollAttempt:99,status:'ERROR',shouldFetch:false,shouldFail:true}}];const s=String(raw.data.status||'UNKNOWN');const p=Number(loopItem.pollAttempt||0)+1;const ds=String(loopItem.datasetId||raw.data.defaultDatasetId||'');return [{json:{runId:String(loopItem.runId||raw.data.id||''),datasetId:ds,venture:v,signal_type_candidate:stc,pollAttempt:p,status:s,shouldFetch:s==='SUCCEEDED',shouldFail:s==='FAILED'||s==='TIMED-OUT'||s==='ABORTED'||p>=20}}];"
+      },
+      "name": "LI MM Poll Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        1072
+      ],
+      "id": "8c606ac5-99cf-4d9d-b1ec-2a71b0be775b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.shouldFetch }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "LI MM Route Fetch or Fail",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        1072
+      ],
+      "id": "e4f237bb-10fa-4d2a-ade4-6bb56c699600"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Poll LI MM Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        1072
+      ],
+      "id": "3ea7e827-342f-41fd-bd56-89711f6d6ed8"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.datasetId }}/items?clean=true&format=json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch LI MM Dataset",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3088,
+        1040
+      ],
+      "id": "3e652f20-ab46-420e-9b6a-cb34c10cff9c"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{_empty:true,venture:'mindmaker'}}];"
+      },
+      "name": "LI MM Branch Failover",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3088,
+        1120
+      ],
+      "id": "d472a363-9e00-42d4-b810-2852f172e4ab"
+    },
+    {
+      "parameters": {
+        "url": "https://api.search.brave.com/res/v1/web/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "(\"call for speakers\" OR \"call for papers\" OR \"speaker application\") AND \"AI\" AND (enterprise OR revenue OR marketing) 2026"
+            },
+            {
+              "name": "count",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Brave Search - Conference Speaker Apps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        1456
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jK8Bb2XP9sG4Zynp",
+          "name": "Brave"
+        }
+      },
+      "id": "3cc93a31-e0aa-49fe-9e08-3931b6edf19f"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "name": "Wait Brave 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1648,
+        1456
+      ],
+      "webhookId": "66602451-c67a-4e9e-944b-f705d1707351",
+      "id": "3fe7e23d-4fa0-486c-8df1-bd9277a7bca6"
+    },
+    {
+      "parameters": {
+        "url": "https://api.search.brave.com/res/v1/web/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "\"guest application\" AND (\"B2B SaaS\" OR \"revenue operations\" OR \"RevOps\" OR \"AI founders\") AND podcast 2026"
+            },
+            {
+              "name": "count",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Brave Search - Podcast Guest Submissions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1888,
+        1456
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jK8Bb2XP9sG4Zynp",
+          "name": "Brave"
+        }
+      },
+      "id": "07079f5c-7a79-46fe-964c-ca0116642b6d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=[];for(const i of $input.all()){for(const row of (i.json&&i.json.web&&i.json.web.results?i.json.web.results:[])){if(!row.url)continue;r.push({json:{title:String(row.title||''),url:String(row.url),publishedAt:row.age||null,snippet:String(row.description||''),source:'brave-search',venture:'personal-brand',signal_type_candidate:'visibility-window',company_name:null}});}}return r.length>0?r:[{json:{_empty:true,venture:'personal-brand',signal_type_candidate:'visibility-window'}}];"
+      },
+      "name": "Normalize Brave Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        1456
+      ],
+      "id": "26d2c7e8-99af-4d00-b789-3d0ea47debed"
+    },
+    {
+      "parameters": {
+        "numberInputs": 7
+      },
+      "name": "Merge All 7 Branches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3600,
+        800
+      ],
+      "id": "ff602c43-b740-4d36-82ad-51a1639969c7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json._empty }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Filter Empty Items",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        3840,
+        800
+      ],
+      "id": "51f589bd-5fa1-4084-a66b-4be44428164b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all();\nlet na=[];\ntry{const pc=$('Prepare Context').first();na=pc?(pc.json.namedAccounts||[]).map(function(a){return String(a).toLowerCase();}):[];}catch(e){}\n// 2026-07-10 portfolio overhaul: advisory sales retired (Felix inactive).\n// buyer/adtech/transformation signals are now MARKET INTEL routed to marcus\n// (they feed the content engine's shifts register), never a leads write.\n// AdFixus + Meliora ventures are retired: their items are marked non-signals\n// so they die at the confirmed-signal gates without touching the topology.\nconst rm={'buyer-signal':'marcus','adtech-signal':'marcus','transformation-signal':'marcus','content-window':'cleo','visibility-window':'nova','guest-signal':'nell','market-intel':'marcus'};\nconst deadVentures=['adfixus','meliora'];\nreturn items.map(function(item){\n  const d=item.json;\n  const co=String(d.company_name||'').trim();\n  const sd=String(d.specific_decision||d.summary||'').toLowerCase();\n  const conf=String(d.confidence||'low').toLowerCase();\n  // Base score: trust the parser's confidence-derived signal_score; else derive.\n  let s=Number(d.signal_score)||0;\n  if(!s){s=conf==='high'?8:conf==='medium'?5:2;}\n  if(co&&na.indexOf(co.toLowerCase())!==-1)s+=2;       // named-account bonus\n  if(!co)s-=4;                                          // require a company\n  // Recency: a BONUS only, never an age cliff (the old cliff nuked every real\n  // signal to -10 when publishedAt was missing). Accept either field name.\n  const pub=d.publishedAt||d.source_published_at||null;\n  let ah=null; if(pub){try{ah=(Date.now()-new Date(pub).getTime())/3600000;}catch(e){}}\n  if(ah!==null&&ah<=72)s+=1;\n  s=Math.max(0,Math.min(10,s));\n  const st=String(d.signal_type||d.signal_type_candidate||'market-intel');\n  const venture=String(d.venture||'').toLowerCase();\n  const retired=deadVentures.indexOf(venture)!==-1;\n  // description is NOT NULL in zara_signals -> guarantee a non-empty value.\n  const why=String(d.why_it_matters||d.specific_decision||d.summary||(co?co+' AI leadership signal':'market signal')).trim();\n  return {json:{\n    title:String(d.title||d.source_title||''),\n    url:String(d.url||d.source_url||''),\n    venture:String(d.venture||''),\n    company_name:co||null,\n    specific_decision:d.specific_decision||null,\n    why_it_matters:why,\n    summary:String(d.summary||why),\n    publishedAt:pub,\n    source:String(d.source||''),\n    confidence:conf,\n    is_signal:d.is_signal===true&&!retired,\n    signal_score:retired?0:s,\n    signal_type:st,\n    routed_to:String(rm[st]||'marcus'),\n  }};\n});"
+      },
+      "name": "Score Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5520,
+        800
+      ],
+      "id": "04e901e8-d414-4359-87d0-b974e0e4112d"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst prepCtx = $('Prepare Context').first() ? $('Prepare Context').first().json : {};\nconst activeGoals = prepCtx.active_goals || [];\nconst identityPrepend = prepCtx.identity_prepend || '';\nconst goalsText = activeGoals.length > 0 ? \"Krish's ACTIVE WEEKLY GOALS (CRITICAL - prioritize signals that serve these!): \" + JSON.stringify(activeGoals) : \"No active goals this week.\";\nconst prev=$('Perplexity Signal Filter Loop').item.json;const venture=String(prev.venture||'');const stc=String(prev.signal_type_candidate||'');const ventureContext={mindmaker:{accept:'A named enterprise (500+ employees, legacy sector: finance, healthcare, logistics, insurance, media) making a specific C-suite AI leadership move, OR a highly anomalous/strange/funny AI failure at a major company.',reject:'Reject if: startup under $10M funding, junior AI engineering hire, generic we-use-AI PR, consumer AI app launch, government/policy news, unless it is bizarre or hilarious.'},'personal-brand':{accept:'EITHER (A) A specific named conference or podcast with an open call for speakers OR (B) A funny, strange, inspiring, or unexpectedly positive AI story/mistake that can be used for content.',reject:'Reject if: dry technical update, boring B2B press release, obvious \"AI is changing the world\" fluff.'}};const ctx=ventureContext[venture]||ventureContext['personal-brand'];const userMsg= identityPrepend + '\\n' + goalsText + '\\n\\nTitle: '+String(prev.title||'')+'\\nSnippet: '+String(prev.snippet||'')+'\\nURL: '+String(prev.url||'')+'\\nVenture context: '+venture+'\\n\\nAccept criteria: '+ctx.accept+'\\n\\nReject criteria: '+ctx.reject+'\\n\\nRespond in this exact JSON format only, no markdown:\\n{\"is_signal\":true,\"company_name\":\"string or null\",\"specific_decision\":\"string or null\",\"why_it_matters\":\"string or null\",\"confidence\":\"high|medium|low\",\"goal_id\":\"string matching a goal id or null\"}\\n\\nIf is_signal is false, all other fields must be null.';return [{json:{userMsg:userMsg,venture:venture,title:prev.title,url:prev.url,snippet:prev.snippet,source:prev.source,publishedAt:prev.publishedAt,signal_type_candidate:stc,company_name:prev.company_name||null}}];"
+      },
+      "name": "Build Perplexity Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4320,
+        800
+      ],
+      "id": "1f06c2f2-4f5f-4ef5-ab53-7d8e5712745e"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "name": "Wait Perplexity 3s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4560,
+        800
+      ],
+      "webhookId": "1356549a-64d5-4af3-bfcf-3fca7e2ba2e2",
+      "id": "4c5d2cd3-d4fb-49df-8a98-297cdfeb699e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "model": "sonar",
+          "max_tokens": 400,
+          "temperature": 0,
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a signal quality filter. Answer ONLY in valid JSON with no markdown, no backticks."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.userMsg }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Call Perplexity Signal Filter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4800,
+        800
+      ],
+      "credentials": {
+        "perplexityApi": {
+          "id": "RtaqJmoj4e469ZMx",
+          "name": "Perplexity account 2026-05-27b"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "e71317e1-0e89-4677-92c4-1be5fefea139"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Perplexity Signal Filter Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4080,
+        800
+      ],
+      "id": "c184d711-e5ea-47db-b8b0-1aa68b5fd44d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\n// Pull the ORIGINAL candidate context for this loop iteration. The Perplexity\n// HTTP response carries only { choices }, so url / venture / title / type are\n// lost at the HTTP node — reach back to the node that fed the prompt.\nfunction ctxFor() {\n  try { const c = $('Perplexity Signal Filter Loop').item; if (c && c.json) return c.json; } catch (e) {}\n  try { const c = $('Build Perplexity Prompt').item; if (c && c.json) return c.json; } catch (e) {}\n  return {};\n}\n\nfor (const item of items) {\n  let parsed = {\n    is_signal: false,\n    company_name: null,\n    contact_name: null,\n    signal_type: null,\n    specific_decision: null,\n    why_it_matters: null,\n    confidence: 'low',\n    summary: null,\n    signal_score: 0,\n    error: null,\n  };\n\n  const ctx = ctxFor();\n  const choices = item.json && item.json.choices;\n  const content = choices && choices[0] && choices[0].message ? choices[0].message.content : null;\n\n  if (!content) {\n    parsed.error = 'no_content_from_perplexity';\n  } else {\n    try {\n      const cleaned = content.replace(/```json\\s*|\\s*```/g, '').trim();\n      const obj = JSON.parse(cleaned);\n      parsed = Object.assign({}, parsed, obj);\n\n      // Perplexity returns specific_decision + why_it_matters + confidence — NOT\n      // summary / signal_score / signal_type. Derive the fields the validity\n      // filter, the >=3 score gate, and the zara_signals insert all require.\n      // Bug fix 2026-06-11: the old parser left summary/signal_score unset, so\n      // the validity check force-failed EVERY real signal -> 0 inserts since Apr.\n      if (parsed.is_signal === true) {\n        const co = (parsed.company_name || ctx.company_name || '').trim();\n        const decision = (parsed.specific_decision || '').trim();\n        const why = (parsed.why_it_matters || '').trim();\n        parsed.company_name = co || parsed.company_name;\n        parsed.summary = [co, decision].filter(Boolean).join(' — ').trim();\n        if (parsed.summary.length < 40 && why) {\n          parsed.summary = (parsed.summary ? parsed.summary + ' — ' : '') + why;\n        }\n        const conf = String(parsed.confidence || 'low').toLowerCase();\n        parsed.signal_score = conf === 'high' ? 8 : conf === 'medium' ? 5 : 2;\n        parsed.signal_type = ctx.signal_type_candidate || parsed.signal_type || 'market-signal';\n      }\n\n      // Re-validate AFTER deriving (the old order nuked everything up front).\n      if (!parsed.company_name || !parsed.summary || (parsed.summary || '').length < 20 || (parsed.signal_score || 0) < 1) {\n        parsed.is_signal = false;\n      }\n    } catch (e) {\n      parsed.error = 'parse_error: ' + e.message;\n      parsed.is_signal = false;\n    }\n  }\n\n  const calCtx = ($('Prepare Context').first() && $('Prepare Context').first().json && $('Prepare Context').first().json.calibrationContext) || '';\n\n  results.push({\n    json: Object.assign({}, parsed, {\n      venture: ctx.venture || null,\n      url: ctx.url || ctx.source_url || null,\n      source_url: ctx.url || ctx.source_url || null,\n      source_title: ctx.title || null,\n      source_published_at: ctx.publishedAt || ctx.published_at || ctx.date || null,\n      raw_perplexity_content: content,\n      calibration_context: calCtx,\n    }),\n  });\n}\n\nreturn results;"
+      },
+      "name": "Parse Perplexity Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        800
+      ],
+      "id": "d9af1ab4-f7d6-4620-a3e9-292b3a78df41"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_signal }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "leftValue": "={{ $json.signal_score }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "leftValue": "={{ $json.company_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ ($json.summary || '').length }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "leftValue": "={{ ($json.description || '').toLowerCase() }}",
+              "rightValue": "-error",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Filter Valid Signals Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        5280,
+        800
+      ],
+      "id": "5724a248-a041-48ff-818e-6b9d9430e212"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.signal_score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              },
+              "rightValue": 3
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Filter Signal Score GTE 3",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        5760,
+        800
+      ],
+      "id": "e8e83dca-3571-401d-9e8d-f2acf07811b6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all();return [{json:{signals_logged:items.filter(function(i){return !i.json.skipped;}).length,tasks_created:items.filter(function(i){return !i.json.skipped&&!i.json.skipped_task;}).length,sweep_date:new Date().toISOString()}}];"
+      },
+      "name": "Count Sweep Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7440,
+        800
+      ],
+      "id": "28874cbc-356b-414f-b3f0-a2da8bc8ab37"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "source_url",
+              "value": "=eq.{{ $json.url }}"
+            },
+            {
+              "name": "select",
+              "value": "id"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Check Duplicate Source URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6240,
+        800
+      ],
+      "alwaysOutputData": true,
+      "id": "896dab27-b257-4626-9781-00feb1f80e5a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id ? false : true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Is New Signal",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6480,
+        800
+      ],
+      "id": "37588cf0-83cf-462a-ba34-a93ea616695e"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Dedup and Write Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        6000,
+        800
+      ],
+      "id": "595f9e61-35b5-4f91-9d99-a0ccbcfc982b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "signal_type": "={{ $(\"Dedup and Write Loop\").item.json.signal_type }}",
+          "venture": "={{ $(\"Dedup and Write Loop\").item.json.venture }}",
+          "company_name": "={{ $(\"Dedup and Write Loop\").item.json.company_name }}",
+          "description": "={{ $(\"Dedup and Write Loop\").item.json.why_it_matters }}",
+          "source_url": "={{ $(\"Dedup and Write Loop\").item.json.url }}",
+          "signal_score": "={{ $(\"Dedup and Write Loop\").item.json.signal_score }}",
+          "routed_to": "={{ $(\"Dedup and Write Loop\").item.json.routed_to }}"
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Signal to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6720,
+        768
+      ],
+      "id": "35841f1f-39bc-4ac4-a236-47c1081dc296",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Dedup and Write Loop\").item.json.signal_score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              },
+              "rightValue": 5
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Route High Score to Tasks",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6960,
+        800
+      ],
+      "id": "957a610f-6ca0-4d42-a955-e27895db157e"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{skipped:true,url:String($('Dedup and Write Loop').item.json.url||'')}}];"
+      },
+      "name": "Skip Duplicate Signal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6720,
+        848
+      ],
+      "id": "685cc7e7-a8b9-43ae-97d7-0d921a455099"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $(\"Dedup and Write Loop\").item.json; return JSON.stringify({ id: 'zara-signal-' + d.venture + '-' + Date.now(), title: 'Signal: ' + d.company_name + ' - ' + d.signal_type, description: d.why_it_matters + ' | Source: ' + d.url, status: 'waiting', priority: d.signal_score >= 7 ? 'pri-1' : 'pri-2', agent: d.routed_to, owner: 'zara', venture: d.venture, weekly_goal_id: d.goal_id || null }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Task to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        7200,
+        768
+      ],
+      "id": "9cae051d-274a-47b3-847d-bd914f018532",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{skipped_task:true}}];"
+      },
+      "name": "Skip Low Score Task",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7200,
+        848
+      ],
+      "id": "25184757-bca0-4140-a1a3-bb2a21c7984f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "agent": "zara",
+          "event": "signal-sweep-complete",
+          "details": "={{ JSON.stringify({ signals_logged: $json.signals_logged, tasks_created: $json.tasks_created, sweep_date: $json.sweep_date }) }}"
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        7680,
+        800
+      ],
+      "id": "6aaecc1d-e68b-480f-8604-05b0430edf8f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6773796504",
+        "text": "=Zara Signal Sweep Complete\n\nDate: {{ $(\"Count Sweep Results\").first().json.sweep_date }}\nSignals logged: {{ $(\"Count Sweep Results\").first().json.signals_logged }}\nTasks created: {{ $(\"Count Sweep Results\").first().json.tasks_created }}\n\nLanes scanned:\n- Mindmaker: Google News x4 (3d) + LinkedIn Jobs\n- Personal brand: Google News x2 + Brave Search x2\n\nNext sweep: Tomorrow 10AM EST",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        },
+        "resource": "message",
+        "operation": "sendMessage"
+      },
+      "name": "Send Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        7920,
+        800
+      ],
+      "webhookId": "e09a1c03-0abd-46c5-b9b8-92bb3f684363",
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "id": "aff7255f-df88-4b8b-b078-61df14262256",
+      "onError": "continueRegularOutput",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zara-sweep-trigger",
+        "options": {}
+      },
+      "name": "Webhook Trigger (Test)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        512
+      ],
+      "webhookId": "93db2503-2a5a-4304-be27-b143324d2a54",
+      "id": "cc6e75c6-9b74-4568-9015-ecf7c6bcb569"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.url }}",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "typeValidation": "loose"
+          }
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "Filter Has URL",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        4080,
+        800
+      ],
+      "id": "2556d3de-6bc3-43bc-965f-dac38d487047"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_signal }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Filter Confirmed Signals",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        4800,
+        800
+      ],
+      "id": "ba072b34-c825-4a4d-b068-33fb5eebcfa7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_signal }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Guard Write is_signal",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        6480,
+        768
+      ],
+      "id": "c55782f0-92b2-465e-a456-f43cc88205b2"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/goals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "eq.active"
+            },
+            {
+              "name": "select",
+              "value": "current,title"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Weekly Goals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        750,
+        304
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "3420cfa4-e6b4-443a-ac51-9c370a9c5f8a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.zara&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Load Agent Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        750,
+        450
+      ],
+      "id": "45438e07-1879-4d99-857b-2945a9c5b1a4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst briefRaw = $('Load Agent Brief').first().json;\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst brief = briefArr[0]?.brief_content || '';\nconst identity_prepend = brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '';\n\nreturn $input.all().map(item => ({\n  json: { ...item.json, identity_prepend }\n}));\n"
+      },
+      "name": "Build Identity Prepend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        950,
+        450
+      ],
+      "id": "7c5fea40-3f07-4237-9b52-f62f78d9b893"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/apify_actor_registry",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "task_category,actor_slug,required_input_shape"
+            },
+            {
+              "name": "is_primary",
+              "value": "eq.true"
+            },
+            {
+              "name": "killed",
+              "value": "eq.false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Fetch Apify Registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        830,
+        650
+      ],
+      "id": "52323068-c01f-4b51-96e9-f761b2c5aafa",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Aggregate registry rows into lookup maps; passthrough enrichment for downstream\nconst rows = $input.all().map(i => i.json).filter(r => r && r.actor_slug);\nconst apifyRegistry = {};\nconst apifyInputShapes = {};\nfor (const r of rows) {\n  apifyRegistry[r.task_category] = r.actor_slug;\n  if (r.required_input_shape) apifyInputShapes[r.task_category] = r.required_input_shape;\n}\nreturn [{ json: { apifyRegistry, apifyInputShapes } }];\n",
+        "notice": ""
+      },
+      "name": "Aggregate Apify Registry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        650
+      ],
+      "id": "03f482b0-5c19-44e7-b615-a8c5c1cafb77"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "log-perplexity-error-if",
+      "name": "Log Perplexity Error IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5260,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'zara_perplexity_parse_error', actor: 'zara-signal-sweep-workflow', target: ($json.source_url || 'unknown'), details: JSON.stringify({ error: $json.error, content_preview: ($json.raw_perplexity_content || '').slice(0, 200) }) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "log-perplexity-error-http",
+      "name": "Log Perplexity Error HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5480,
+        680
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Zara Schedule Mon-Fri 10AM EST": {
+      "main": [
+        [
+          {
+            "node": "Fetch Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Calibration History": {
+      "main": [
+        [
+          {
+            "node": "Guarantee Calibration Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guarantee Calibration Item": {
+      "main": [
+        [
+          {
+            "node": "Read Weekly Goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Named Accounts": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context": {
+      "main": [
+        [
+          {
+            "node": "MM News Run 1 - CAIO Appointed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MM News Run 2 - CDO Hired VC",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MM News Run 3 - Board AI Mandate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MM News Run 4 - VC AI Mandate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Brand News Run 1 - Conference Speaker",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Brand News Run 2 - AI Culture Anomalies",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LI Mindmaker Run - CAIO CDO Roles",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Brave Search - Conference Speaker Apps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM News Run 1 - CAIO Appointed": {
+      "main": [
+        [
+          {
+            "node": "Collect MM Run IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect MM Run IDs": {
+      "main": [
+        [
+          {
+            "node": "Poll MM Runs Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM News Run 2 - CDO Hired VC": {
+      "main": [
+        [
+          {
+            "node": "Collect MM Run IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM News Run 3 - Board AI Mandate": {
+      "main": [
+        [
+          {
+            "node": "Collect MM Run IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM News Run 4 - VC AI Mandate": {
+      "main": [
+        [
+          {
+            "node": "Collect MM Run IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize MM Items": {
+      "main": [
+        [
+          {
+            "node": "Merge All 7 Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait MM 15s": {
+      "main": [
+        [
+          {
+            "node": "Check MM Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check MM Run Status": {
+      "main": [
+        [
+          {
+            "node": "MM Poll Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM Poll Decision": {
+      "main": [
+        [
+          {
+            "node": "MM Route Fetch or Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM Route Fetch or Fail": {
+      "main": [
+        [
+          {
+            "node": "Fetch MM Dataset Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MM Branch Failover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll MM Runs Loop": {
+      "main": [
+        [
+          {
+            "node": "Normalize MM Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait MM 15s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch MM Dataset Items": {
+      "main": [
+        [
+          {
+            "node": "Normalize MM Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MM Branch Failover": {
+      "main": [
+        [
+          {
+            "node": "Normalize MM Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brand News Run 1 - Conference Speaker": {
+      "main": [
+        [
+          {
+            "node": "Collect Brand Run IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Brand Run IDs": {
+      "main": [
+        [
+          {
+            "node": "Poll Brand Runs Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Brand Items": {
+      "main": [
+        [
+          {
+            "node": "Merge All 7 Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Brand 15s": {
+      "main": [
+        [
+          {
+            "node": "Check Brand Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Brand Run Status": {
+      "main": [
+        [
+          {
+            "node": "Brand Poll Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brand Poll Decision": {
+      "main": [
+        [
+          {
+            "node": "Brand Route Fetch or Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brand Route Fetch or Fail": {
+      "main": [
+        [
+          {
+            "node": "Fetch Brand Dataset Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Brand Branch Failover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Brand Runs Loop": {
+      "main": [
+        [
+          {
+            "node": "Normalize Brand Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Brand 15s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Brand Dataset Items": {
+      "main": [
+        [
+          {
+            "node": "Normalize Brand Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brand Branch Failover": {
+      "main": [
+        [
+          {
+            "node": "Normalize Brand Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LI Mindmaker Run - CAIO CDO Roles": {
+      "main": [
+        [
+          {
+            "node": "Init LI MM Poll State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init LI MM Poll State": {
+      "main": [
+        [
+          {
+            "node": "Poll LI MM Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize LI MM Items": {
+      "main": [
+        [
+          {
+            "node": "Merge All 7 Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait LI MM 15s": {
+      "main": [
+        [
+          {
+            "node": "Check LI MM Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check LI MM Run Status": {
+      "main": [
+        [
+          {
+            "node": "LI MM Poll Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LI MM Poll Decision": {
+      "main": [
+        [
+          {
+            "node": "LI MM Route Fetch or Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LI MM Route Fetch or Fail": {
+      "main": [
+        [
+          {
+            "node": "Fetch LI MM Dataset",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LI MM Branch Failover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll LI MM Loop": {
+      "main": [
+        [
+          {
+            "node": "Normalize LI MM Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait LI MM 15s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch LI MM Dataset": {
+      "main": [
+        [
+          {
+            "node": "Normalize LI MM Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LI MM Branch Failover": {
+      "main": [
+        [
+          {
+            "node": "Normalize LI MM Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Search - Conference Speaker Apps": {
+      "main": [
+        [
+          {
+            "node": "Wait Brave 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Brave 2s": {
+      "main": [
+        [
+          {
+            "node": "Brave Search - Podcast Guest Submissions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Search - Podcast Guest Submissions": {
+      "main": [
+        [
+          {
+            "node": "Normalize Brave Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Brave Results": {
+      "main": [
+        [
+          {
+            "node": "Merge All 7 Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All 7 Branches": {
+      "main": [
+        [
+          {
+            "node": "Filter Empty Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Empty Items": {
+      "main": [
+        [
+          {
+            "node": "Filter Has URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Signals": {
+      "main": [
+        [
+          {
+            "node": "Filter Signal Score GTE 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Perplexity Prompt": {
+      "main": [
+        [
+          {
+            "node": "Wait Perplexity 3s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Perplexity 3s": {
+      "main": [
+        [
+          {
+            "node": "Call Perplexity Signal Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Perplexity Signal Filter": {
+      "main": [
+        [
+          {
+            "node": "Parse Perplexity Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Signal Filter Loop": {
+      "main": [
+        [
+          {
+            "node": "Filter Confirmed Signals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Perplexity Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Perplexity Response": {
+      "main": [
+        [
+          {
+            "node": "Log Perplexity Error IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Valid Signals Only": {
+      "main": [
+        [
+          {
+            "node": "Perplexity Signal Filter Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Sweep Results": {
+      "main": [
+        [
+          {
+            "node": "Write Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Source URL": {
+      "main": [
+        [
+          {
+            "node": "Is New Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup and Write Loop": {
+      "main": [
+        [
+          {
+            "node": "Count Sweep Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Duplicate Source URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Signal to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Route High Score to Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route High Score to Tasks": {
+      "main": [
+        [
+          {
+            "node": "Write Task to Supabase",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Skip Low Score Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Duplicate Signal": {
+      "main": [
+        [
+          {
+            "node": "Dedup and Write Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Task to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Dedup and Write Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Low Score Task": {
+      "main": [
+        [
+          {
+            "node": "Dedup and Write Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger (Test)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Has URL": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Perplexity Signal Filter Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Weekly Goals": {
+      "main": [
+        [
+          {
+            "node": "Read Named Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brand News Run 2 - AI Culture Anomalies": {
+      "main": [
+        [
+          {
+            "node": "Collect Brand Run IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Apify Registry": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Apify Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Apify Registry": {
+      "main": [
+        [
+          {
+            "node": "Read Calibration History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Perplexity Error IF": {
+      "main": [
+        [
+          {
+            "node": "Log Perplexity Error HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filter Valid Signals Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Perplexity Error HTTP": {
+      "main": [
+        [
+          {
+            "node": "Filter Valid Signals Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Confirmed Signals": {
+      "main": [
+        [
+          {
+            "node": "Score Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Signal Score GTE 3": {
+      "main": [
+        [
+          {
+            "node": "Dedup and Write Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Signal": {
+      "main": [
+        [
+          {
+            "node": "Write Signal to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedMode": "fixed",
+    "executionTimeout": 900,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": {
+    "node:Zara Schedule Mon-Fri 10AM EST": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

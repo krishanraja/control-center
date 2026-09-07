@@ -1,0 +1,281 @@
+{
+  "name": "Nova | Mindmaker OS | Podchaser → Visibility (Outbound)",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Weekly Mon 12:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 12
+            }
+          ]
+        }
+      },
+      "id": "73b4b211-2549-41c4-b8a5-caa9b1a452c3"
+    },
+    {
+      "name": "PC: Mint Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.podchaser.com/graphql",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\": \"mutation {requestAccessToken(input:{grant_type: CLIENT_CREDENTIALS, client_id: \\\"a19744b0-8514-46a7-8e53-394d0698a39f\\\", client_secret: \\\"gQNXHndZ32jC3grvUWKFHmQVTpJ755yNAwK4DO4v\\\"}) {access_token expires_in}}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "941173b6-8aa4-49f2-97c1-269870174083"
+    },
+    {
+      "name": "PC: Search Podcasts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.podchaser.com/graphql",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\": \"query($t:String!,$n:Int!){podcasts(searchTerm:$t,first:$n){data{id title author{name} webUrl numberOfEpisodes latestEpisodeDate description}}}\", \"variables\": {\"t\": \"AI for business executives leaders\", \"n\": 20}}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('PC: Mint Token').first().json.data.requestAccessToken.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c93b8225-173b-4525-9523-d15b501ea9bf"
+    },
+    {
+      "name": "Build Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const resp=$json||{};\nif(resp.errors&&resp.errors.length){throw new Error('Podchaser error: '+JSON.stringify(resp.errors).slice(0,200));}\nconst pods=(((resp.data||{}).podcasts||{}).data)||[];\nconst cands=pods.filter(p=>p&&p.id).map(p=>({title:p.title,url:p.webUrl,episodes:p.numberOfEpisodes,latest:(p.latestEpisodeDate||'').slice(0,10),desc:(p.description||'').slice(0,240)}));\nconst sys=\"Podcast booking strategist for Krish Raja (Mindmaker AI advisory for non-technical execs; host of Signal & Noise). KEEP only shows whose audience is business leaders/executives/founders/operators (NOT engineers), active (episode in last ~6 months), that interview outside guests. Return ONLY a JSON array of {title,url,why_relevant,suggested_talk_title,tier}. tier A or B. Skip defunct/solo/technical shows.\";\nreturn [{json:{candidate_count:cands.length,anthropic_payload:{model:\"claude-sonnet-4-6\",max_tokens:2500,temperature:0.2,system:sys,messages:[{role:\"user\",content:\"Candidates:\\n\"+JSON.stringify(cands)}]}}}];"
+      },
+      "id": "158b80b2-b8af-48d0-a029-c1d3e910faa3"
+    },
+    {
+      "name": "Sonnet: Filter Exec Shows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_payload }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "{{ANTHROPIC_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "706c451d-8bdd-4554-b304-2f680bc07fe0"
+    },
+    {
+      "name": "Map Visibility Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const txt=(($json.content||[])[0]||{}).text||'[]';\nlet arr=[];try{let t=txt.trim();if(t.startsWith('```'))t=t.split('```')[1].replace(/^json/,'').trim();arr=JSON.parse(t);}catch(e){}\nfunction slug(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');}\nconst rows=arr.filter(k=>k&&k.url).map(k=>({title:k.title,type:'podcast',status:'queued',source:'nova_podchaser_weekly',event_url:k.url,source_url:k.url,why_relevant:k.why_relevant,suggested_talk_title:k.suggested_talk_title,quality_score:(k.tier==='A'?'green':'amber'),audience_seniority:'business_leaders',concept_id:'concept:vis:'+slug(k.title)}));\nreturn [{json:{row_count:rows.length,upsert_rows:rows}}];"
+      },
+      "id": "f895c2a6-4aaf-4eb2-aec8-29ad3003221a"
+    },
+    {
+      "name": "Supabase: Upsert Podcasts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?on_conflict=concept_id",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.upsert_rows }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "a8a9bf76-4dee-4b2e-b9ec-fc1d55104e9f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Weekly Mon 12:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "PC: Mint Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PC: Mint Token": {
+      "main": [
+        [
+          {
+            "node": "PC: Search Podcasts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PC: Search Podcasts": {
+      "main": [
+        [
+          {
+            "node": "Build Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Candidates": {
+      "main": [
+        [
+          {
+            "node": "Sonnet: Filter Exec Shows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet: Filter Exec Shows": {
+      "main": [
+        [
+          {
+            "node": "Map Visibility Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Visibility Rows": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Upsert Podcasts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Weekly Mon 12:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

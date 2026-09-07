@@ -1,0 +1,247 @@
+{
+  "name": "Stripe | Mindmaker OS | Payment Alert",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mindmaker-stripe-revenue",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      },
+      "webhookId": "f7f078e0-c9b9-4058-8d38-c67d2ed5fbfb",
+      "id": "5f5da293-abec-4388-a793-f6194a857b67"
+    },
+    {
+      "name": "Payment Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.type }}",
+              "rightValue": "payment_intent.succeeded",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "ab2f5144-f98f-4da7-a7b6-36c56dd55f39"
+    },
+    {
+      "name": "Format Payment Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        200
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pay-msg",
+              "name": "msg",
+              "type": "string",
+              "value": "=💰 Payment Received\n\nAmount: ${{ Math.round($json.body.data.object.amount / 100) }}\nCustomer: {{ $json.body.data.object.metadata.customer_email || 'unknown' }}\nTime: {{ $now.toISO() }}\n\nRunning total this month - check weekly report."
+            }
+          ]
+        }
+      },
+      "id": "5aabeea1-1832-4c06-a209-6e5fd45a8185"
+    },
+    {
+      "name": "Telegram Payment Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: $json.msg || 'Stripe event received' }) }}"
+      },
+      "id": "f8541cf7-6036-4ec3-b416-13a11b885d32",
+      "disabled": true
+    },
+    {
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: \"eB5Si7OAIFO8QZ8J\", workflow_name: \"OS - Revenue: Stripe Payment Alert\", agent_id: \"system\", outcome: \"success\", outcome_count: 1, status: \"success\", cost_estimate_usd: 0, api_calls_count: 1, metadata: JSON.stringify({ amount_cents: $(\"Stripe Webhook\").item.json.body.data.object.amount, customer_email: $(\"Stripe Webhook\").item.json.body.data.object.metadata.customer_email || \"unknown\", product: \"mindmaker\" }) } }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "f19d926d-c4a7-48a9-8aa9-1bd86e935494",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"eB5Si7OAIFO8QZ8J\", \"workflow_name\": \"Stripe | Mindmaker OS | Payment Alert\", \"agent_id\": \"stripe\", \"duration_ms\": 0, \"api_calls\": 1, \"cost_usd\": 0.0001, \"outcome\": \"webhook_received\", \"outcome_count\": 1, \"status\": \"success\", \"metadata\": \"{\\\"source\\\": \\\"stripe_webhook_heartbeat\\\"}\"}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "heartbeat-eB5Si7OA",
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        540
+      ],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "node": "Payment Event?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment Event?": {
+      "main": [
+        [
+          {
+            "node": "Format Payment Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Payment Alert": {
+      "main": [
+        [
+          {
+            "node": "Telegram Payment Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Payment Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

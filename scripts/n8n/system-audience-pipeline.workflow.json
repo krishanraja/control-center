@@ -1,0 +1,172 @@
+{
+  "name": "System | Mindmaker OS | Audience Pipeline",
+  "active": true,
+  "nodes": [
+    {
+      "id": "7a2d30aa-5953-4f9c-919d-41a54475b741",
+      "name": "Sync every 15m",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6307e507-f0ec-4e1b-8811-63913331f2bf",
+      "name": "Tick: sync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/functions/v1/audience-tick?action=sync",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tick-secret",
+              "value": "026a4b1a3b6e43d4d7b60b66867f0c54624de447a95f6e91"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "08f028ce-3a2e-4387-8b59-fc4429ebdc5c",
+      "name": "Reconcile daily 07:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        224
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 7,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8f537519-3d02-487e-a77c-5985f2fa0d50",
+      "name": "Tick: reconcile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        224
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/functions/v1/audience-tick?action=reconcile",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tick-secret",
+              "value": "026a4b1a3b6e43d4d7b60b66867f0c54624de447a95f6e91"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Reconcile daily 07:30": {
+      "main": [
+        [
+          {
+            "node": "Tick: reconcile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync every 15m": {
+      "main": [
+        [
+          {
+            "node": "Tick: sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Sync every 15 min": {
+      "recurrenceRules": []
+    },
+    "node:Reconcile daily 07:30": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Sync every 3h": {
+      "recurrenceRules": [
+        3
+      ]
+    },
+    "node:Sync every 15m": {
+      "recurrenceRules": [
+        10
+      ],
+      "recurrenceRuleSignatures": [
+        "hours:2"
+      ]
+    }
+  }
+}

@@ -1,0 +1,563 @@
+{
+  "name": "Vera | Mindmaker OS | Success Induction Sweep",
+  "active": true,
+  "nodes": [
+    {
+      "id": "42650014-1002-483c-9ce4-24f4425d5c6b",
+      "name": "Sunday 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "1f0a7e1f-ed0f-4712-bc98-d56e48886a82",
+      "name": "Bump Skill Usage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/bump_skill_usage",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "73b30320-17b1-4c1b-8173-313c3bcbac84",
+      "name": "Flag Decayed Skills",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/flag_decayed_skills",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "5a91d329-07ba-459d-b949-61841241c8cb",
+      "name": "Detect Skill Candidates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/induct_skill_candidates",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "6cbb4abd-1286-43af-9746-149c5ec1e247",
+      "name": "Shape Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "let rows = [];\nconst items = $input.all();\nif (items.length === 1 && Array.isArray(items[0].json)) { rows = items[0].json; } else { rows = items.map(i => i.json); }\nrows = rows.filter(r => r && r.pattern_key);\nconst run_id = 'vera_skill_' + Date.now().toString(36);\nconst system = [\n 'You are Vera, the Mindmaker OS reflection layer.',\n 'You read clusters of an agents SUCCESSFUL work (wins) and draft ONE reusable skill per cluster that crystallizes what made it work, so the agent repeats it.',\n 'Return ONLY JSON, no prose, no code fences.',\n 'Shape: { \"skills\": [ { \"pattern_key\": string, \"target_agent_id\": string, \"skill_slug\": string, \"skill_title\": string, \"skill_body\": string, \"confidence\": \"low\"|\"medium\"|\"high\" } ] }.',\n 'skill_body is a concise reusable play in Krish voice: direct, no fluff, phrased as a positive rule grounded in the evidence titles.',\n 'Skip clusters too generic to crystallize.',\n 'No em dashes anywhere. Use commas, colons, parentheses, or line breaks.'\n].join(' ');\nconst anthropic_body = { model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0.2, system, messages: [ { role: 'user', content: 'Candidate win-clusters (each has pattern_key, agent_id, task_type, win_count, thumbsup_count, sample_titles):\\n' + JSON.stringify(rows) + '\\n\\nDraft one induced skill per cluster. target_agent_id is the cluster agent_id.' } ] };\nreturn [{ json: { count: rows.length, candidates: rows, run_id, anthropic_body } }];"
+      }
+    },
+    {
+      "id": "e4dc14fa-fd44-422c-9dd2-81656f0b17eb",
+      "name": "Has Candidates?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "c9d2c3b1-ff02-4d31-aa35-cb3e145809bf",
+      "name": "Draft Skills (Sonnet)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_body) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eoursuitt7vHBbP6",
+          "name": "Anthropic Header"
+        }
+      }
+    },
+    {
+      "id": "db79ab71-9e10-48c8-9e8d-41947b45ae1c",
+      "name": "Parse + Validate Skills",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const cands = $('Shape Candidates').first().json.candidates || [];\nconst byKey = {};\nfor (const c of cands) { byKey[c.pattern_key] = c; }\nconst item = $input.first().json;\nlet text = (item.content && item.content[0] && item.content[0].text) || item.text || '';\ntext = String(text).trim().replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\nlet parsed;\ntry { parsed = JSON.parse(text); } catch (e) { return []; }\nconst skills = Array.isArray(parsed.skills) ? parsed.skills : [];\nconst clean = (x) => String(x == null ? '' : x).replace(/\\u2014/g, ', ').replace(/ -- /g, ', ');\nconst out = [];\nfor (const s of skills) {\n  if (!s || !s.pattern_key || !s.skill_body || !s.target_agent_id) continue;\n  const c = byKey[s.pattern_key];\n  if (!c) continue;\n  const tu = c.thumbsup_count || 0;\n  const conf = tu >= 2 ? 'high' : (tu >= 1 ? 'medium' : 'low');\n  out.push({ json: {\n    proposed_by: 'vera', scope: 'agent', target_agent_id: String(s.target_agent_id),\n    skill_slug: String(s.skill_slug || s.pattern_key).slice(0, 80),\n    skill_title: clean(s.skill_title || 'Induced skill').slice(0, 200),\n    skill_body: clean(s.skill_body).slice(0, 4000),\n    pattern_key: s.pattern_key,\n    evidence_refs: c.evidence_refs || [],\n    evidence_count: c.win_count || (c.evidence_refs || []).length,\n    confidence: conf, status: 'proposed'\n  }});\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "5b99b676-e0ad-49f8-a146-f8a833fc5a3c",
+      "name": "Write Skill Proposals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1344,
+        96
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/skill_proposals",
+        "authentication": "predefinedCredentialType",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "60239dc9-84ef-4132-9314-8fa331ddb32f",
+      "name": "Telegram Krish",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1568,
+        96
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "6773796504",
+        "text": "=Vera skill induction sweep\n{{ $('Shape Candidates').first().json.count }} new skill proposal(s) drafted from clustered wins, pending your approval in the Org tab.\n\nReview: https://controlcenter.krishraja.com/org",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "executeOnce": true,
+      "webhookId": "a4cd35cf-3aa0-44e3-8db3-9f7be0ac30d6",
+      "disabled": true
+    },
+    {
+      "id": "bac5b76c-8bab-4989-a9ac-60af326759e2",
+      "name": "Audit Log (drafted)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1792,
+        96
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"event_type\":\"vera_skill_induction\",\"actor\":\"vera\",\"target\":\"skill_proposals\",\"details\":\"{{ JSON.stringify({run_id: $('Shape Candidates').first().json.run_id, candidates: $('Shape Candidates').first().json.count}) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "id": "912fc792-83e8-4db5-90ad-915074c32212",
+      "name": "Audit Log (no candidates)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        896,
+        288
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"event_type\":\"vera_skill_induction\",\"actor\":\"vera\",\"target\":\"skill_proposals\",\"details\":\"no_candidates run {{ $('Shape Candidates').first().json.run_id }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Sunday 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Bump Skill Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Detect Skill Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bump Skill Usage": {
+      "main": [
+        [
+          {
+            "node": "Flag Decayed Skills",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Skill Candidates": {
+      "main": [
+        [
+          {
+            "node": "Shape Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Candidates": {
+      "main": [
+        [
+          {
+            "node": "Has Candidates?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Candidates?": {
+      "main": [
+        [
+          {
+            "node": "Draft Skills (Sonnet)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Audit Log (no candidates)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Skills (Sonnet)": {
+      "main": [
+        [
+          {
+            "node": "Parse + Validate Skills",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate Skills": {
+      "main": [
+        [
+          {
+            "node": "Write Skill Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Skill Proposals": {
+      "main": [
+        [
+          {
+            "node": "Telegram Krish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Krish": {
+      "main": [
+        [
+          {
+            "node": "Audit Log (drafted)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": {
+    "node:Sunday 08:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 {
-  "name": "Nell | mind/make OS | Guest Confirmed Cascade",
+  "name": "Nell | Mindmaker OS | Guest Confirmed Cascade",
+  "active": true,
   "nodes": [
     {
       "id": "Webhook",
@@ -67,12 +68,7 @@
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $credentials.value }}"
-            }
-          ]
+          "parameters": []
         },
         "sendQuery": true,
         "queryParameters": {
@@ -83,19 +79,21 @@
             },
             {
               "name": "id",
-              "value": "eq.{{ $json.guest_id }}"
+              "value": "=eq.{{ $json.guest_id }}"
             },
             {
               "name": "limit",
               "value": "1"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -110,7 +108,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nif (!guest) throw new Error('guest not found');\n\nconst now = new Date();\nconst scheduledAt = guest.scheduled_at ? new Date(guest.scheduled_at) : new Date(now.getTime() + 14 * 24 * 3600 * 1000);\nconst prepAt = new Date(scheduledAt.getTime() - 7 * 24 * 3600 * 1000);\nconst followupAt = new Date(scheduledAt.getTime() + 3 * 24 * 3600 * 1000);\n\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'built' ? 'Built with AI'\n              : 'podcast';\n\nconst rid = () => 'task_g_' + guest.id.slice(0,8) + '_' + Math.random().toString(36).slice(2,8);\n\nreturn [\n  { json: {\n      id: rid(),\n      title: `Prep brief: ${guest.name} (${target})`,\n      description: `Research questions, recent work, hot takes. Why fit: ${guest.why_fit || 'see guest record'}.`,\n      status: 'todo',\n      priority: 'P1',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: prepAt.toISOString(),\n      group: 'podcast_prep',\n      group_label: target,\n      link_primary: guest.linkedin_url || guest.personal_url || null,\n      next_step: 'Draft 8-10 question outline.',\n  }},\n  { json: {\n      id: rid(),\n      title: `Record: ${guest.name} (${target})`,\n      description: `Recording session with ${guest.name}. Confirm tech setup 30 min prior.`,\n      status: 'todo',\n      priority: 'P0',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: scheduledAt.toISOString(),\n      group: 'podcast_recording',\n      group_label: target,\n      link_primary: guest.linkedin_url || guest.personal_url || null,\n      next_step: 'Show up, hit record.',\n  }},\n  { json: {\n      id: rid(),\n      title: `Follow-up: thank ${guest.name} + share clip`,\n      description: '72h post-recording: send thank-you, share preview clip, ask about preferred promo angles.',\n      status: 'todo',\n      priority: 'P2',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: followupAt.toISOString(),\n      group: 'podcast_followup',\n      group_label: target,\n      next_step: 'Draft 4-line thank-you, attach clip url.',\n  }},\n];\n"
+        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nif (!guest) throw new Error('guest not found');\n\nconst now = new Date();\nconst scheduledAt = guest.scheduled_at ? new Date(guest.scheduled_at) : new Date(now.getTime() + 14 * 24 * 3600 * 1000);\nconst prepAt = new Date(scheduledAt.getTime() - 7 * 24 * 3600 * 1000);\nconst followupAt = new Date(scheduledAt.getTime() + 3 * 24 * 3600 * 1000);\n\n// 'built' is the stored enum value; 'Built with AI' is the live channel name.\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'built' ? 'Built with AI'\n              : 'podcast';\n\nconst rid = () => 'task_g_' + guest.id.slice(0,8) + '_' + Math.random().toString(36).slice(2,8);\n\nreturn [\n  { json: {\n      id: rid(),\n      title: `Prep brief: ${guest.name} (${target})`,\n      description: `Research questions, recent work, hot takes. Why fit: ${guest.why_fit || 'see guest record'}.`,\n      status: 'todo',\n      priority: 'P1',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: prepAt.toISOString(),\n      group: 'podcast_prep',\n      group_label: target,\n      link_primary: guest.linkedin_url || guest.personal_url || null,\n      next_step: 'Draft 8-10 question outline.',\n  }},\n  { json: {\n      id: rid(),\n      title: `Record: ${guest.name} (${target})`,\n      description: `Recording session with ${guest.name}. Confirm tech setup 30 min prior.`,\n      status: 'todo',\n      priority: 'P0',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: scheduledAt.toISOString(),\n      group: 'podcast_recording',\n      group_label: target,\n      link_primary: guest.linkedin_url || guest.personal_url || null,\n      next_step: 'Show up, hit record.',\n  }},\n  { json: {\n      id: rid(),\n      title: `Follow-up: thank ${guest.name} + share clip`,\n      description: '72h post-recording: send thank-you, share preview clip, ask about preferred promo angles.',\n      status: 'todo',\n      priority: 'P2',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: followupAt.toISOString(),\n      group: 'podcast_followup',\n      group_label: target,\n      next_step: 'Draft 4-line thank-you, attach clip url.',\n  }},\n];\n"
       }
     },
     {
@@ -136,10 +134,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $credentials.value }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -148,12 +142,14 @@
               "value": "return=minimal"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -174,7 +170,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 2000, \"temperature\": 0.5, \"system\": \"You draft 3 promo posts for a confirmed podcast recording, in Krish Raja's voice. Krish hosts Signal & Noise (deep tech and culture) and Built (operators and founders). Return ONLY a JSON array of 3 objects. Each: {channel, body, suggested_send_at_offset_days}. channel: linkedin, twitter, or email_teaser. linkedin: 2-4 sentences, punchy, real angle on what we will discuss, no humble brag. twitter: under 240 chars, one strong line, can include 1 hashtag max. email_teaser: 4-6 sentence newsletter blurb teasing the conversation. Voice rules: concrete, opinionated, no corporate filler, no em dashes (use commas, colons, parentheses), no exclamation marks, no emoji.\", \"messages\": [{\"role\": \"user\", \"content\": \"Guest confirmed for {{ $('Fetch Guest').first().json[0].podcast_target }}: {{ $('Fetch Guest').first().json[0].name }}. One-liner: {{ $('Fetch Guest').first().json[0].one_liner }}. Why fit: {{ $('Fetch Guest').first().json[0].why_fit }}. Draft the 3 promo posts.\"}]}",
+        "jsonBody": "={\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 2000, \"temperature\": 0.5, \"system\": \"You draft 3 promo posts for a confirmed podcast recording, in Krish Raja's voice. Krish publishes Built with AI, a channel of the Mindmake publication about people using AI to move from creator or operator to builder, and co-hosts Signal & Noise, a podcast on how AI is reshaping content and media. Built with AI reaches the human reason under the build, never a tool stack tour. Return ONLY a JSON array of 3 objects. Each: {channel, body, suggested_send_at_offset_days}. channel: linkedin, twitter, or email_teaser. linkedin: 2-4 sentences, punchy, real angle on what we will discuss, no humble brag. twitter: under 240 chars, one strong line, can include 1 hashtag max. email_teaser: 4-6 sentence newsletter blurb teasing the conversation. Voice rules: British English, concrete, opinionated, no corporate filler, no em dashes (use commas, colons, parentheses), no exclamation marks, no emoji. Never use the words AI literacy, AI transformation, unlock, leverage or game-changer.\", \"messages\": [{\"role\": \"user\", \"content\": \"Guest confirmed for {{ $('Fetch Guest').first().json[0].podcast_target }}: {{ $('Fetch Guest').first().json[0].name }}. One-liner: {{ $('Fetch Guest').first().json[0].one_liner }}. Why fit: {{ $('Fetch Guest').first().json[0].why_fit }}. Draft the 3 promo posts.\"}]}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -208,7 +204,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nlet text = $input.first().json.content?.[0]?.text || '';\ntext = text.trim();\nif (text.startsWith('```')) text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\nlet rows;\ntry { rows = JSON.parse(text); } catch { rows = []; }\nif (!Array.isArray(rows)) rows = [];\n\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'built' ? 'Built with AI' : 'podcast';\n\nreturn rows.slice(0, 3).map(r => ({ json: {\n  idea: `${r.channel} promo for ${guest.name} (${target})`,\n  thesis: r.body || '(no body)',\n  distribution: r.channel,\n  status: 'draft',\n  source: 'guest_confirmed_cascade',\n  confidence: 0.7,\n  quality_score: 'amber',\n  raw_data: { guest_id: guest.id, channel: r.channel, suggested_offset_days: r.suggested_send_at_offset_days },\n}}));\n"
+        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nlet text = $input.first().json.content?.[0]?.text || '';\ntext = text.trim();\nif (text.startsWith('```')) text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\nlet rows;\ntry { rows = JSON.parse(text); } catch { rows = []; }\nif (!Array.isArray(rows)) rows = [];\n\n// 'built' is the stored enum value; 'Built with AI' is the live channel name.\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'built' ? 'Built with AI' : 'podcast';\n\nreturn rows.slice(0, 3).map(r => ({ json: {\n  idea: `${r.channel} promo for ${guest.name} (${target})`,\n  thesis: r.body || '(no body)',\n  distribution: r.channel,\n  status: 'draft',\n  source: 'guest_confirmed_cascade',\n  confidence: 0.7,\n  quality_score: 'amber',\n  raw_data: { guest_id: guest.id, channel: r.channel, suggested_offset_days: r.suggested_send_at_offset_days },\n}}));\n"
       }
     },
     {
@@ -234,10 +230,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $credentials.value }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -246,12 +238,14 @@
               "value": "return=minimal"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -266,7 +260,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'built' ? 'Built with AI' : 'the podcast';\nconst scheduledAt = guest.scheduled_at ? new Date(guest.scheduled_at) : null;\nconst scheduledStr = scheduledAt ? scheduledAt.toUTCString() : 'a time we will confirm shortly';\n\nconst subject = `Confirmed: ${target} recording`;\nconst body = [\n  `Hi ${guest.name.split(' ')[0]},`,\n  '',\n  `Locking us in for ${scheduledStr}.`,\n  '',\n  'Will send the recording link 48 hours before. If anything changes on your end, just reply here.',\n  '',\n  'Topics I am most excited to dig into come straight from your work, will send a question outline a few days before.',\n  '',\n  'Thanks,',\n  'Krish',\n].join('\\n');\n\nreturn [{ json: { to: guest.email, subject, body, has_email: !!guest.email }}];\n"
+        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\n// 'built' is the stored enum value; 'Built with AI' is the live channel name and\n// this one reaches the guest, so it must never say the retired format name.\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'built' ? 'Built with AI' : 'the podcast';\nconst scheduledAt = guest.scheduled_at ? new Date(guest.scheduled_at) : null;\nconst scheduledStr = scheduledAt ? scheduledAt.toUTCString() : 'a time we will confirm shortly';\n\nconst subject = `Confirmed: ${target} recording`;\nconst body = [\n  `Hi ${guest.name.split(' ')[0]},`,\n  '',\n  `Locking us in for ${scheduledStr}.`,\n  '',\n  'Will send the recording link 48 hours before. If anything changes on your end, just reply here.',\n  '',\n  'Topics I am most excited to dig into come straight from your work, will send a question outline a few days before.',\n  '',\n  'Thanks,',\n  'Krish',\n].join('\\n');\n\nreturn [{ json: { to: guest.email, subject, body, has_email: !!guest.email }}];\n"
       }
     },
     {
@@ -326,7 +320,8 @@
           "id": "lHiqteKckU5IUxQ6",
           "name": "Gmail account"
         }
-      }
+      },
+      "webhookId": "b5737957-e696-48fa-825c-db9dad40b723"
     },
     {
       "id": "Insert_contacted_persons",
@@ -351,10 +346,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $credentials.value }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -363,12 +354,14 @@
               "value": "return=minimal"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -395,10 +388,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $credentials.value }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -413,15 +402,17 @@
           "parameters": [
             {
               "name": "id",
-              "value": "eq.{{ $('Validate').first().json.guest_id }}"
+              "value": "=eq.{{ $('Validate').first().json.guest_id }}"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -448,10 +439,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $credentials.value }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -460,12 +447,14 @@
               "value": "return=minimal"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     }
@@ -605,6 +594,8 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveDataErrorExecution": "all"
-  }
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
+  },
+  "staticData": null
 }

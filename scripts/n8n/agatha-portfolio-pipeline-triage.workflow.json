@@ -1,0 +1,396 @@
+{
+  "name": "Agatha | Mindmaker OS | Portfolio Pipeline Triage",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Inbound Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "path": "pipeline-inbound",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "e8cc84b8-9049-4b7a-b741-006a20744ed6",
+      "id": "d4eedafa-b93b-42ec-b982-6c061ebde6d2"
+    },
+    {
+      "name": "ICP Score and Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Webhook output nests request body under .body, so unwrap first\nconst raw = $input.item.json;\nconst d = raw.body && typeof raw.body === 'object' ? raw.body : raw;\n\nconst title = (d.title || '').toLowerCase();\nconst notes = (d.notes || '').toLowerCase();\nconst employees = parseInt(d.employees || d.company_size || 0);\nconst industry = (d.industry || '').toLowerCase();\n\nlet score = 0;\n\n// Title scoring\nif (/\\b(ceo|coo|cfo|cto|chief|founder|president)\\b/.test(title)) score += 30;\nelse if (/\\b(vp|vice president|senior director|head of)\\b/.test(title)) score += 20;\nelse if (/\\b(director|manager)\\b/.test(title)) score += 5;\n\n// Company size\nif (employees >= 50 && employees <= 5000) score += 20;\nelse if (employees >= 20 && employees < 50) score += 5;\n\n// Priority industry\nconst priorityIndustries = ['media','publishing','saas','software','fintech',\n  'financial','consulting','professional services','healthcare','ecommerce',\n  'retail','education','biotech','legal','manufacturing'];\nif (priorityIndustries.some(i => industry.includes(i))) score += 15;\n\n// Already uses AI\nif (/chatgpt|claude|gemini|openai|anthropic/.test(notes)) score += 15;\n\n// Buying trigger\nif (/generic|frustrated|context|switch|re-explain|competitor|board|investor|decision/.test(notes)) score += 20;\n\n// Disqualifiers\nconst isJunk = [\n  employees > 0 && employees < 20,\n  /\\b(ml engineer|data scientist|researcher|phd|student|intern)\\b/.test(title),\n  /implementation|build for us|develop for/.test(notes),\n  /\\b(slack integration|email integration|calendar sync)\\b/.test(notes)\n].some(Boolean);\n\nif (isJunk) score = 0;\n\nconst tier = score >= 80 ? 1 : score >= 50 ? 2 : 3;\n\n// Track routing\nlet track = 'advisory_sales';\nlet venture_id = 'mindmaker';\nlet workstream = 'advisory_sales';\nlet group_label = 'Mindmaker';\n\nconst source_type = (d.source_type || '').toLowerCase();\nif (source_type === 'podcast') {\n  track = 'podcast_booking';\n  venture_id = 'media';\n  workstream = 'podcast_booking';\n  group_label = 'Media';\n} else if (source_type === 'content' && score < 85) {\n  track = 'nurture';\n  venture_id = 'audience';\n  workstream = 'nurture';\n  group_label = 'Audience';\n} else if (d.wants_beta) {\n  track = 'beta_cohort';\n  venture_id = 'ctrl';\n  workstream = 'beta_cohort';\n  group_label = 'CTRL Beta';\n}\n\n// Identify primary tension\nlet primary_tension = 'none';\nif (/decision|direction|committing|board|strategy/.test(notes)) primary_tension = 'decision_speed';\nelse if (/voice|tone|generic|sounds like everyone/.test(notes)) primary_tension = 'voice_drift';\nelse if (/roi|return|value|results|worth it/.test(notes)) primary_tension = 'ai_roi';\nelse if (/overwhelm|too much|information|noise/.test(notes)) primary_tension = 'information_overload';\n\n// Spread d to top level so downstream nodes can read $json.first_name etc directly\nreturn {\n  ...d,\n  icp_score: score,\n  tier,\n  track,\n  venture_id,\n  workstream,\n  group_label,\n  primary_tension\n};\n"
+      },
+      "id": "a35ac9ab-402c-4965-8b82-429860715c81"
+    },
+    {
+      "name": "Route by Tier",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "tier3-rule",
+                    "leftValue": "={{ $json.tier }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tier3"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "review"
+        }
+      },
+      "id": "2e1de61f-2cad-4590-b392-a73cdf96923e"
+    },
+    {
+      "name": "Log to Signals (Tier 3)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/zara_signals",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ signal_type: 'pipeline_tier3', venture: $json.venture_id || 'mindmaker', company_name: $json.company || '', contact_name: ($json.first_name || '') + ' ' + ($json.last_name || ''), description: 'Pipeline Tier 3 auto-archive: ' + ($json.first_name || '') + ' ' + ($json.last_name || '') + ' (' + ($json.title || 'no title') + ', ' + ($json.company || 'no company') + ')', source_url: $json.source || 'pipeline-inbound', signal_score: $json.icp_score || 0, summary: 'ICP Score: ' + ($json.icp_score || 0) + '/100. Tier 3 auto-archive. Notes: ' + ($json.notes || 'none'), routed_to: 'archive', status: 'auto_archived' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "919912d8-0d9c-4411-8522-2004c8c39841",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Generate Draft via Anthropic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        750,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  model: 'claude-haiku-4-5',\n  max_tokens: 800,\n  messages: [{\n    role: 'user',\n    content: 'You are Agatha, chief of staff to Krish Raja (Mindmaker). Draft the correct pipeline artifact for this inbound contact.\\n\\nCONTACT: ' + $json.first_name + ' ' + $json.last_name + ', ' + $json.title + ' at ' + $json.company + '.\\nSOURCE: ' + $json.source + ' (' + $json.source_type + ')\\nTRACK: ' + $json.track + '\\nPRIMARY TENSION: ' + $json.primary_tension + '\\nNOTES: ' + ($json.notes || 'none') + '\\n\\nRULES:\\n- If track=podcast_booking: write a guest brief (name, company, episode angle, 3 questions, why now). Do NOT write an email.\\n- If track=beta_cohort: write a short personal invite to try ctrl.themindmaker.ai. 3-4 sentences. One ask for structured feedback.\\n- If track=advisory_sales: write a direct follow-up email in Krish voice anchored to the SOURCE and PRIMARY TENSION. Subject 3-5 words. Body 3-5 sentences. No pitch in email 1. No generic openers.\\n\\nKrish voice rules (HARD):\\n- ZERO em dashes anywhere. Use commas, semicolons, periods, or rephrase. The character — is BANNED.\\n- Direct, casual, zero fluff.\\n- BANNED phrases: touch base, synergy, hope this finds you well, reaching out, leveraging, circle back, level up, deep dive, unpack.\\n- BANNED openers: I hope, I wanted to, I am writing to, I came across.\\n- Start with concrete context (e.g. Great meeting you at [Source] or Saw your point on [topic]).\\n- British-Australian spelling preferred (organisation, optimise) when in doubt.\\n\\nReturn JSON only: { subject: string, body: string, type: \\'email\\'|\\'guest_brief\\' }'\n  }]\n}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "anthropicApi"
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "b13ab5ba-48db-4055-900c-6af297592207"
+    },
+    {
+      "name": "Parse Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        500
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst resp = $input.item.json;\nlet draft = { subject: '', body: '', type: 'email' };\ntry {\n  const content = resp.content?.[0]?.text || resp.choices?.[0]?.message?.content || '';\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) draft = JSON.parse(jsonMatch[0]);\n} catch(e) {\n  draft.body = 'Draft generation failed. Please write manually.';\n}\n\n// Retrieve upstream scored data from the ICP node\nconst scored = $('ICP Score and Route').item.json;\n\nconst evidence = draft.type === 'guest_brief'\n  ? draft.body\n  : `Subject: ${draft.subject}\\n\\n${draft.body}`;\n\nreturn {\n  ...scored,\n  draft_subject: draft.subject,\n  draft_body: draft.body,\n  evidence,\n  task_title: `Review ${scored.group_label} for ${scored.first_name} ${scored.last_name} (${scored.title}, ${scored.company})`\n};\n"
+      },
+      "id": "28827abc-a8ed-4724-ae4a-e9afccbd6181"
+    },
+    {
+      "name": "Create Supabase Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1250,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ title: $json.task_title, status: 'waiting', owner: 'krish', agent: 'agatha', venture: $json.venture_id, workstream: $json.workstream, group_label: $json.group_label, krish_notes: 'ICP Score: ' + $json.icp_score + '/100. Tier: ' + $json.tier + '. Tension: ' + $json.primary_tension + '. Source: ' + $json.source + '.', evidence: $json.evidence, krish_reviewed: false, priority: $json.tier === 1 ? 'high' : 'medium', contact_email: $json.email || null, contact_first_name: $json.first_name || null, contact_last_name: $json.last_name || null, contact_company: $json.company || null, contact_title: $json.title || null, icp_score: $json.icp_score, tier: $json.tier, primary_tension: $json.primary_tension, draft_subject: $json.draft_subject || null, draft_hook: $json.draft_body || null }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "fd1e97e4-3c6c-4dfa-8aac-f1576bad809d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Write Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1500,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ actor: 'agatha', event_type: 'pipeline_lead_triaged', target: $('Parse Draft').item.json.first_name + ' ' + $('Parse Draft').item.json.last_name, display_message: 'Pipeline: ' + $('Parse Draft').item.json.first_name + ' ' + $('Parse Draft').item.json.last_name + ' (' + $('Parse Draft').item.json.company + ') triaged as Tier ' + $('Parse Draft').item.json.tier + ' to ' + $('Parse Draft').item.json.group_label, details: JSON.stringify({ track: $('Parse Draft').item.json.track, icp_score: $('Parse Draft').item.json.icp_score, tier: $('Parse Draft').item.json.tier, source_type: $('Parse Draft').item.json.source_type, venture: $('Parse Draft').item.json.venture_id }) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "1405d819-5b2a-4bbd-9910-546b53030c64",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1750,
+        400
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'triaged', tier: $json.tier, track: $json.track, venture_id: $json.venture_id }) }}"
+      },
+      "id": "44c3d8ec-93c9-408f-98dc-133f6da12957"
+    }
+  ],
+  "connections": {
+    "Inbound Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "ICP Score and Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ICP Score and Route": {
+      "main": [
+        [
+          {
+            "node": "Route by Tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Tier": {
+      "main": [
+        [
+          {
+            "node": "Log to Signals (Tier 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Draft via Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Draft via Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Parse Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Draft": {
+      "main": [
+        [
+          {
+            "node": "Create Supabase Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Supabase Task": {
+      "main": [
+        [
+          {
+            "node": "Write Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Signals (Tier 3)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 300,
+    "availableInMCP": true
+  },
+  "staticData": null
+}

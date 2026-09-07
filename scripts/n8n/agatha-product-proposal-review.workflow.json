@@ -1,0 +1,510 @@
+{
+  "name": "Agatha | Mindmaker OS | Product Proposal Review",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "product-proposal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "product-proposal-v1",
+      "id": "48d816cb-ea69-4652-8486-f96b211e7cae"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = $('Webhook').first().json.body || $('Webhook').first().json;\nconst identity_prepend = $('Build Identity Prepend').first().json.identity_prepend || '';\nconst plan_stale = $('Build Identity Prepend').first().json.plan_stale || false;\nconst proposals = data.proposals || [];\nconst product = data.product || '';\nconst week_of = data.week_of || '';\n\nconst prompt = identity_prepend + `You are Agatha, COO of Mindmaker OS. Review product improvement proposals from the Product Agent.\n\n<context>\nProduct: ${product}\nWeek of: ${week_of}\n</context>\n\n<proposals>\n${JSON.stringify(proposals, null, 2)}\n</proposals>\n\n<criteria>\nApprove: Clear evidence, specific improvement, effort/impact ratio justified\nReject: Vague, no data backing, or effort outweighs impact\nDefer: Good idea, wrong timing or dependencies not ready\n</criteria>\n\nReturn a JSON object with this exact structure and no other text:\n{\"approved\": [{\"id\": \"...\", \"title\": \"...\", \"description\": \"...\", \"evidence\": \"...\", \"effort\": \"...\", \"impact\": \"...\", \"type\": \"...\", \"rationale\": \"brief reason why approved\"}], \"rejected\": [{\"id\": \"...\", \"reason\": \"...\"}], \"deferred\": [{\"id\": \"...\", \"reason\": \"...\"}]}`;\n\nconst anthropicBody = ({\n  model: \"claude-sonnet-4-6\",\n  max_tokens: 1500,\n  messages: [{role: \"user\", content: prompt}]\n});\n\nreturn [{json: {anthropicBody, product, week_of, total: proposals.length, plan_stale}}];\n"
+      },
+      "name": "Prepare Claude Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "id": "be3e4501-37de-4a8d-a642-d622fbe74233"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "jsonBody": "={{ $json.anthropicBody }}"
+      },
+      "name": "Claude — Agatha Filter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        304
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "b4968618-ea0d-4649-8389-e3697f97a41e"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst claudeResponse = items[0].json;\nconst webhookData = $('Webhook').first().json;\n\nlet approved = [];\ntry {\n  const text = claudeResponse.content[0].text;\n  const parsed = JSON.parse(text);\n  approved = parsed.approved || [];\n} catch(e) {\n  approved = [];\n}\n\nreturn [{json: {\n  approved: approved,\n  approved_count: approved.length,\n  total: (webhookData.proposals || []).length,\n  product: webhookData.product,\n  week_of: webhookData.week_of\n}}];\n"
+      },
+      "name": "Parse Approved Proposals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "id": "376f2051-47a2-404d-b0f8-7669a1c9ac3a"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-approved",
+              "leftValue": "={{ $json.approved_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has Approved Proposals?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        304
+      ],
+      "id": "f2ea6908-a8b4-4efe-a5d7-55a6ce5c1ab8"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = items[0].json;\nconst { approved, product, week_of, total } = data;\nconst n = approved.length;\n\nlet proposalLines = '';\napproved.forEach((p, i) => {\n  proposalLines += `\\n*${i+1}. ${p.title}* (${p.type || 'feature'} | ${p.effort} effort \\u2192 ${p.impact} impact)\\n${p.description}\\nEvidence: ${p.evidence}\\nAgatha: ${p.rationale}\\n`;\n});\n\nconst message = `\\ud83d\\udd27 *Product Proposals - ${product} - Week of ${week_of}*\\n\\nAgatha approved ${n} of ${total} proposals for your review:${proposalLines}\\nReply APPROVE ALL, APPROVE [numbers], or SKIP to defer all.`;\n\nreturn [{json: {\n  message,\n  approved_count: n,\n  total,\n  product,\n  week_of,\n  tgBody: JSON.stringify({chat_id: 6773796504, text: message, parse_mode: 'Markdown'})\n}}];\n"
+      },
+      "name": "Format Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        160
+      ],
+      "id": "9d60c29e-48ff-4260-a7b5-b1e770314a3c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ $json.tgBody }}",
+        "options": {}
+      },
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        160
+      ],
+      "id": "6cbacf13-5d41-47c3-8f4b-49976b7bedc0",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({status: \"sent_for_approval\", approved: $(\"Format Telegram Message\").first().json.approved_count, total: $(\"Format Telegram Message\").first().json.total}) }}",
+        "options": {}
+      },
+      "name": "Respond — Sent for Approval",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        160
+      ],
+      "id": "8b68118c-82e2-4170-b697-57e20b3fddad"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"no_approved_proposals\"}",
+        "options": {}
+      },
+      "name": "Respond — No Proposals",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        448
+      ],
+      "id": "f956b5c3-b33b-457e-8fd0-efa6d047298c"
+    },
+    {
+      "parameters": {
+        "jsCode": "// audit-fix 2026-05-19: pull Supabase service_role from bound credential\nconst __supa = await this.getCredentials('supabaseApi');\nconst __SUPABASE_KEY = (__supa && __supa.serviceRole) || '';\nif (!__SUPABASE_KEY) throw new Error('Supabase service_role credential not bound');\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': __SUPABASE_KEY,\n    'Authorization': `Bearer ${__SUPABASE_KEY}`,\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];"
+      },
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        272
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        }
+      },
+      "id": "e0d9134e-8e6e-45f8-898f-338195ac84ab"
+    },
+    {
+      "name": "Load Agatha Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        460,
+        112
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.agatha&select=brief_content",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $credentials['Supabase OS'].serviceRoleKey }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "id": "64ff1d77-2b3a-4e59-8a25-d50b3f929b45"
+    },
+    {
+      "name": "Load Voice Rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        460,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials['Supabase Service Role'].value }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $credentials['Supabase Service Role'].value }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "03545d52-f5a6-473e-a228-7850e7367136"
+    },
+    {
+      "name": "Load Agatha Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        460,
+        496
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.agatha&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials['Supabase Service Role'].value }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $credentials['Supabase Service Role'].value }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "700dc893-c3a6-4a4a-b4a1-f37982c77b25"
+    },
+    {
+      "name": "Build Identity Prepend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        304
+      ],
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('Load Agatha Brief').first().json;\nconst voiceRaw = $('Load Voice Rules').first().json;\nconst planRaw  = $('Load Agatha Plan').first().json;\n\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "id": "ad3ffa73-3c01-41e5-8054-77b9e787bfa9"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Load Agatha Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Voice Rules",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Agatha Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Claude Request": {
+      "main": [
+        [
+          {
+            "node": "Claude — Agatha Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude — Agatha Filter": {
+      "main": [
+        [
+          {
+            "node": "Parse Approved Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Approved Proposals": {
+      "main": [
+        [
+          {
+            "node": "Has Approved Proposals?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Approved Proposals?": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond — No Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond — Sent for Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond — Sent for Approval": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agatha Brief": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agatha Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Prepare Claude Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": null
+}

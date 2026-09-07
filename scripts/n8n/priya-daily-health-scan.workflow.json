@@ -1,0 +1,821 @@
+{
+  "name": "Priya | Mindmaker OS | Daily Health Scan",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule 2x Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        304
+      ],
+      "id": "7a19b7e9-8101-482c-8c97-ba1eb2025350"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Health-check registry. gutted, merciless, onalert retired from the OS control plane 2026-07-06 (Krish directive).\n// plinth + full-time onboarded with verified repo/Vercel/live-URL facts (2026-07-06). [RETIRED 2026-08-11: Plinth was renamed Legibility 2026-08-07 and then retired; it has zero customers and no live Stripe path.]\nreturn [\n  { json: { app_name: 'mm-ctrl', repo: 'mm-ctrl', live_url: 'https://mindmaker-for-leaders.vercel.app', venture: 'mindmaker', vercel_project: 'mindmaker-for-leaders', routes: ['/', '/dashboard', '/booking', '/today'] } },\n  { json: { app_name: 'fractionl-circle', repo: 'fractionl-circle', live_url: 'https://fractionl-circle.vercel.app', venture: 'fractionl', vercel_project: 'fractionl-circle', routes: ['/', '/share-contact'] } },\n  { json: { app_name: 'fractionl-pulse', repo: 'fractionl-pulse', live_url: 'https://fractionl-pulse.vercel.app', venture: 'fractionl', vercel_project: 'fractionl-pulse', routes: ['/', '/login'] } },\n  { json: { app_name: 'mindmaker', repo: 'mindmaker', live_url: 'https://mindmaker-dusky.vercel.app', venture: 'mindmaker', vercel_project: 'mindmaker-dusky', routes: ['/', '/sprints', '/builder-economy', '/blog'] } },\n  { json: { app_name: 'plinth', repo: 'plinth', live_url: 'https://plinth-tan.vercel.app', venture: 'plinth', vercel_project: 'plinth', routes: ['/', '/docs', '/dashboard'] } },\n  { json: { app_name: 'full-time', repo: 'full-time', live_url: 'https://full-time-alpha.vercel.app', venture: 'full-time', vercel_project: 'full-time', routes: ['/'] } }\n];"
+      },
+      "name": "App Registry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "id": "5d889fff-74bd-4266-863e-c2d15a7c3ad4"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.live_url }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "name": "Check Live URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        304
+      ],
+      "id": "04c3eff9-0492-43a3-8eb8-810808942494"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/krishanraja/{{ $('App Registry').item.json.repo }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{GITHUB_TOKEN_2}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch GitHub Repo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        912,
+        304
+      ],
+      "id": "47019d49-efec-4e90-8b3b-83f5036ba96a"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/krishanraja/{{ $('App Registry').item.json.repo }}/pulls?state=open&per_page=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{GITHUB_TOKEN_2}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Fetch Open PRs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        304
+      ],
+      "id": "b26eafc3-7f11-4409-b80b-35460dd8d3e0"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const config = $('App Registry').item.json;\nconst urlResp = $('Check Live URL').item.json;\nconst ghResp = $('Fetch GitHub Repo').item.json;\nconst prResp = $('Fetch Open PRs').item.json;\n\n// Vercel deployment data\nlet vercelStatus = 'unknown';\nlet vercelError = '';\ntry {\n  const vResp = $('Check Vercel Deploy').item.json;\n  const vBody = vResp.body || vResp || {};\n  const deploys = vBody.deployments || [];\n  if (deploys.length > 0) {\n    const latest = deploys[0];\n    vercelStatus = latest.readyState || latest.state || 'unknown';\n    if (vercelStatus === 'ERROR' || vercelStatus === 'CANCELED') {\n      vercelError = 'Vercel deploy ' + vercelStatus + (latest.inspectorUrl ? ' // ' + latest.inspectorUrl : '');\n    }\n  }\n} catch(e) {\n  vercelStatus = 'api-error';\n}\n\n// HTTP status from fullResponse\nconst httpStatus = urlResp.statusCode || 0;\n\n// HTML body analysis (Layer 2)\nconst htmlBody = (urlResp.data || urlResp.body || '').toString().toLowerCase();\nconst htmlLength = htmlBody.length;\nlet htmlErrors = [];\n\nif (htmlLength < 100 && httpStatus === 200) {\n  htmlErrors.push('Blank/empty page (' + htmlLength + ' chars)');\n}\nif (htmlBody.includes('application error')) {\n  htmlErrors.push('Vercel \"Application error\" detected');\n}\nif (htmlBody.includes('internal server error')) {\n  htmlErrors.push('Internal Server Error in page');\n}\nif (htmlBody.includes('this page could not be found') || htmlBody.includes('next_not_found')) {\n  htmlErrors.push('404 page detected');\n}\nif (htmlBody.includes('module not found') || htmlBody.includes('cannot find module')) {\n  htmlErrors.push('Module not found error');\n}\nif (htmlBody.includes('unhandled runtime error') || htmlBody.includes('uncaught error')) {\n  htmlErrors.push('Runtime error in page');\n}\nif (htmlBody.includes('hydration failed') || htmlBody.includes('hydration mismatch')) {\n  htmlErrors.push('React hydration error');\n}\nif (htmlBody.includes('build error') || htmlBody.includes('failed to compile')) {\n  htmlErrors.push('Build/compile error');\n}\n\n// GitHub metrics\nconst ghBody = ghResp.body || ghResp || {};\nconst openIssues = ghBody.open_issues_count || 0;\nconst pushedAt = ghBody.pushed_at || null;\nconst daysSinceCommit = pushedAt\n  ? Math.floor((Date.now() - new Date(pushedAt).getTime()) / (1000 * 60 * 60 * 24))\n  : -1;\n\n// PR count\nconst prBody = prResp.body || prResp || [];\nconst openPrs = Array.isArray(prBody) ? prBody.length : 0;\n\n// Stale PRs (>48h)\nlet stalePrCount = 0;\nif (Array.isArray(prBody)) {\n  const now = Date.now();\n  for (const pr of prBody) {\n    if ((now - new Date(pr.created_at).getTime()) > 48 * 60 * 60 * 1000) stalePrCount++;\n  }\n}\n\n// Determine system status\nlet systemStatus = 'healthy';\nlet notes = [];\n\nif (httpStatus === 0 || httpStatus >= 500) {\n  systemStatus = 'down';\n  notes.push('HTTP ' + httpStatus);\n} else if (vercelStatus === 'ERROR' || vercelStatus === 'CANCELED') {\n  systemStatus = 'deploy-failed';\n  notes.push(vercelError);\n} else if (httpStatus >= 400) {\n  systemStatus = 'error';\n  notes.push('HTTP ' + httpStatus);\n} else if (htmlErrors.length > 0) {\n  systemStatus = 'broken';\n  notes = notes.concat(htmlErrors);\n} else if (daysSinceCommit > 14) {\n  systemStatus = 'stale';\n  notes.push('No commits in ' + daysSinceCommit + ' days');\n} else if (openPrs > 3 || stalePrCount > 0) {\n  systemStatus = 'attention';\n  if (stalePrCount > 0) notes.push(stalePrCount + ' stale PRs (>48h)');\n  if (openPrs > 3) notes.push(openPrs + ' open PRs');\n}\n\nif (daysSinceCommit > 7 && systemStatus === 'healthy') {\n  notes.push('Last commit ' + daysSinceCommit + ' days ago');\n}\n\nconst visualStatus = htmlErrors.length > 0 ? 'html-errors-detected' : 'pending';\n\nreturn {\n  json: {\n    app_name: config.app_name,\n    repo: config.repo,\n    live_url: config.live_url,\n    venture: config.venture,\n    http_status: httpStatus,\n    response_time_ms: 0,\n    system_status: systemStatus,\n    days_since_last_commit: daysSinceCommit,\n    open_issues: openIssues,\n    open_prs: openPrs,\n    visual_test_status: visualStatus,\n    notes: notes.length > 0 ? notes.join('; ') : 'OK',\n    vercel_status: vercelStatus,\n    routes_checked: config.routes || ['/']\n  }\n};"
+      },
+      "name": "Calculate Health Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        304
+      ],
+      "id": "e938a3b6-e515-44b2-a3b1-e23416848ba0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_health",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { app_name: $json.app_name, repo: $json.repo, live_url: $json.live_url, http_status: $json.http_status, response_time_ms: $json.response_time_ms, system_status: $json.system_status, days_since_last_commit: $json.days_since_last_commit, open_issues: $json.open_issues, open_prs: $json.open_prs, visual_test_status: $json.visual_test_status, notes: $json.notes } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Health Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        208
+      ],
+      "id": "b4acd4bb-7146-4edb-b2be-c737fc2f11db",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $('Calculate Health Metrics').all();\nconst today = new Date().toISOString().split('T')[0];\n\nlet broken = [];\nlet stale = [];\nlet attention = [];\nlet healthy = 0;\n\nfor (const item of items) {\n  const d = item.json;\n  if (['down','error','broken','deploy-failed'].includes(d.system_status)) {\n    broken.push(d.app_name + ' (' + d.notes + ')');\n  } else if (d.system_status === 'stale') {\n    stale.push(d.app_name + ' (' + d.days_since_last_commit + 'd)');\n  } else if (d.system_status === 'attention') {\n    attention.push(d.app_name + ' (' + d.notes + ')');\n  } else {\n    healthy++;\n  }\n}\n\nlet alertText = '';\nlet hasCritical = false;\n\nif (broken.length > 0) {\n  alertText += 'DOWN/BROKEN: ' + broken.join(', ') + '\\n';\n  hasCritical = true;\n}\nif (stale.length > 0) {\n  alertText += 'STALE: ' + stale.join(', ') + '\\n';\n}\nif (attention.length > 0) {\n  alertText += 'ATTENTION: ' + attention.join(', ') + '\\n';\n}\nalertText += healthy + '/' + items.length + ' apps healthy';\n\nconst telegramText = 'Priya Health Scan // ' + today + '\\n\\n' + alertText;\n\nreturn [{ json: {\n  has_critical: hasCritical,\n  has_alerts: broken.length > 0 || stale.length > 0 || attention.length > 0,\n  broken_count: broken.length,\n  stale_count: stale.length,\n  attention_count: attention.length,\n  healthy_count: healthy,\n  total_apps: items.length,\n  alert_text: alertText,\n  telegram_text: telegramText,\n  today: today,\n  bug_reports: items.filter(i => ['down','error','broken','deploy-failed'].includes(i.json.system_status)).map(i => i.json)\n}}];"
+      },
+      "name": "Build Alert Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        432
+      ],
+      "id": "8da3f986-874d-4d8e-98a3-333689255757"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.has_alerts }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Any Issues?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        432
+      ],
+      "id": "df926ff1-144e-4a5e-80a6-e4fc2a79fda6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '6773796504', text: $json.telegram_text, parse_mode: 'Markdown' } }}",
+        "options": {}
+      },
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        352
+      ],
+      "id": "c21b3ea8-eb25-4804-a967-2da2f0942be6",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { id: 'priya-health-alert-' + $('Build Alert Summary').item.json.today, agent: 'priya', venture: 'ops', group: 'product-health', group_label: 'Product Health', title: 'Health alert: ' + $('Build Alert Summary').item.json.broken_count + ' down, ' + $('Build Alert Summary').item.json.stale_count + ' stale // ' + $('Build Alert Summary').item.json.today, description: $('Build Alert Summary').item.json.alert_text, status: 'waiting', priority: $('Build Alert Summary').item.json.has_critical ? 'pri-1' : 'pri-2', owner: 'priya', weekly_goal_id: $('Map Task to Goal').item.json.weekly_goal_id || null, created: new Date().toISOString() } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Create Alert Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2224,
+        352
+      ],
+      "id": "c014ca8f-6bf5-4290-b32e-260ae79e677a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2224,
+        528
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "id": "b2a4d6dd-bb4f-45dd-b6cf-cc49f56a1ca4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Build Alert Summary').first().json;\nconst allApps = $('Calculate Health Metrics').all();\nconst today = data.today;\nconst broken = allApps.filter(i => ['down','error','broken'].includes(i.json.system_status));\n\nif (broken.length === 0) {\n  return [{ json: { has_docs: false } }];\n}\n\nlet docTitle = 'Priya Bug Report // ' + today + ' // ' + broken.length + ' issues';\nlet docBody = 'PRIYA AUTOMATED BUG REPORT\\n';\ndocBody += 'Generated: ' + new Date().toISOString() + '\\n';\ndocBody += 'Issues found: ' + broken.length + '\\n\\n';\ndocBody += '='.repeat(50) + '\\n\\n';\n\nfor (const item of broken) {\n  const app = item.json;\n  docBody += 'APP: ' + app.app_name + '\\n';\n  docBody += 'Repo: krishanraja/' + app.repo + '\\n';\n  docBody += 'URL: ' + app.live_url + '\\n';\n  docBody += 'Status: ' + app.system_status + ' (HTTP ' + app.http_status + ')\\n';\n  docBody += 'Issue: ' + app.notes + '\\n';\n  docBody += 'Days since commit: ' + app.days_since_last_commit + '\\n\\n';\n  \n  // Claude Code CLI prompt\n  docBody += 'CLAUDE CODE FIX PROMPT:\\n';\n  docBody += '-'.repeat(40) + '\\n';\n  docBody += 'cd ~/repos/' + app.repo + ' && claude code \"Fix: ' + app.notes.replace(/\"/g, \"'\") + '. ';\n  docBody += 'The app at ' + app.live_url + ' is returning HTTP ' + app.http_status + '. ';\n  \n  if (app.system_status === 'broken') {\n    docBody += 'The page HTML contains error indicators. Check for build errors, missing environment variables, or broken imports. ';\n  } else if (app.system_status === 'down') {\n    docBody += 'The site is completely down. Check Vercel deployment logs, serverless function errors, and any recent commits that may have broken the build. ';\n  }\n  \n  docBody += 'Review the docs/ folder for project context. Check the last 5 commits for what changed. Propose a fix and explain what caused the issue.\"\\n';\n  docBody += '-'.repeat(40) + '\\n\\n';\n  docBody += '='.repeat(50) + '\\n\\n';\n}\n\nreturn [{ json: { \n  has_docs: true, \n  doc_title: docTitle, \n  doc_body: docBody,\n  broken_count: broken.length,\n  today: today\n}}];"
+      },
+      "name": "Generate Bug Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        240
+      ],
+      "id": "3d557247-d1fb-4dfb-a8ca-da3e1bb54451"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://docs.googleapis.com/v1/documents",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { title: $json.doc_title } }}",
+        "options": {}
+      },
+      "name": "Create Google Doc",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2672,
+        240
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "cvVKYhczLDU45Re4",
+          "name": "Google Docs account"
+        }
+      },
+      "id": "e4eed744-9a3f-4844-8cd7-248ab33acc88"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $json.documentId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [{ insertText: { location: { index: 1 }, text: $('Generate Bug Report').first().json.doc_body || 'No bug report content generated for this run.' } }] }) }}",
+        "options": {}
+      },
+      "name": "Add Bug Report Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        240
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "cvVKYhczLDU45Re4",
+          "name": "Google Docs account"
+        }
+      },
+      "id": "11175d84-8161-438f-beb2-87aae971881b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '6773796504', text: 'Priya Bug Doc created: ' + $('Generate Bug Report').first().json.broken_count + ' issues documented.\\nDoc: https://docs.google.com/document/d/' + $('Create Google Doc').first().json.documentId + '/edit\\n\\nClaude Code fix prompts included for each issue.' } }}",
+        "options": {}
+      },
+      "name": "Send Doc Link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3104,
+        240
+      ],
+      "id": "7e67ee48-ceb6-4fb9-9f35-d29fcd168f2e",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "=https://api.vercel.com/v6/deployments?app={{ $('App Registry').item.json.vercel_project }}&limit=1&target=production",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Check Vercel Deploy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        480
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "id": "fb235b93-0831-48ac-ba57-e45aee2f9d69"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: 'dm2CccS71EVO8kJY', workflow_name: 'Priya // Daily Health Scan new', agent_id: 'priya', outcome: 'success', status: 'success', cost_estimate_usd: 0.001, api_calls_count: 6 } }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2448,
+        528
+      ],
+      "id": "743b680b-5839-43d6-84d5-d45e3b6b4690",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        504
+      ],
+      "id": "ec61dd16-9b39-416e-a5fb-c4086c3a7e67"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Audit payload for Priya daily health scan\nconst d = $input.first().json;\nconst checked = d.products_checked || d.products || 0;\nconst issues = d.issues_found || d.issues || 0;\nconst brief = d.issues_brief || d.brief || '';\n\nconst suffix = brief ? `: ${brief}` : '';\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'priya',\n      event_type: 'health-scan-daily',\n      display_message: `Priya daily health scan: ${checked} products checked, ${issues} issues${suffix}.`,\n      details: JSON.stringify({ products_checked: checked, issues_found: issues, brief })\n    }\n  }\n}];"
+      },
+      "name": "Build Audit (priya_daily Write Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2024,
+        528
+      ],
+      "id": "718e8b6f-641b-4d5d-9f0d-25d0297eea6c"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/goals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "eq.active"
+            },
+            {
+              "name": "select",
+              "value": "id,title,current"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Read Weekly Goals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        200,
+        700
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "f901b4d2-1818-454d-855c-40a04ab89c8e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// CLO-001 guard: skip task creation when no broken+stale issues.\n// Telegram alert (upstream of this node) still fires. Attention-only\n// scans no longer generate a queued health-alert task per day.\n{\n  const _bas = $('Build Alert Summary').first().json || {};\n  if ((_bas.broken_count || 0) === 0 && (_bas.stale_count || 0) === 0) {\n    return [];\n  }\n}\n\n\n// Priya Daily: map weekly_goal_id based on alert summary.\nconst goalsRaw = $('Read Weekly Goals').first().json;\nconst goalsArr = Array.isArray(goalsRaw) ? goalsRaw : (goalsRaw.data || [goalsRaw]);\nconst goals = goalsArr.filter(g => g && g.id);\nconst bas = $('Build Alert Summary').first().json || {};\n\nfunction pickGoalId(text) {\n  if (!text || !goals.length) return null;\n  const hay = String(text).toLowerCase();\n  let best = null, bestLen = 0;\n  for (const g of goals) {\n    for (const c of [g.title, g.current].filter(Boolean)) {\n      for (const tok of String(c).toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 4)) {\n        if (hay.includes(tok) && tok.length > bestLen) { best = g.id; bestLen = tok.length; }\n      }\n    }\n  }\n  return best;\n}\n\nconst text = (bas.alert_text || '') + ' health alert product ops';\nconst weekly_goal_id = pickGoalId(text);\nreturn $input.all().map(item => ({ json: { ...(item.json||{}), weekly_goal_id } }));\n"
+      },
+      "name": "Map Task to Goal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        352
+      ],
+      "id": "840794a0-61ee-4adb-93bd-429a52259746"
+    }
+  ],
+  "connections": {
+    "Schedule 2x Daily": {
+      "main": [
+        [
+          {
+            "node": "Read Weekly Goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "App Registry": {
+      "main": [
+        [
+          {
+            "node": "Check Live URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Live URL": {
+      "main": [
+        [
+          {
+            "node": "Fetch GitHub Repo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch GitHub Repo": {
+      "main": [
+        [
+          {
+            "node": "Fetch Open PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Open PRs": {
+      "main": [
+        [
+          {
+            "node": "Check Vercel Deploy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Health Metrics": {
+      "main": [
+        [
+          {
+            "node": "Write Health Record",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Alert Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert Summary": {
+      "main": [
+        [
+          {
+            "node": "Any Issues?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Issues?": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Audit (priya_daily Write Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Map Task to Goal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Alert Task": {
+      "main": [
+        [
+          {
+            "node": "Generate Bug Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Audit (priya_daily Write Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Bug Report": {
+      "main": [
+        [
+          {
+            "node": "Create Google Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Google Doc": {
+      "main": [
+        [
+          {
+            "node": "Add Bug Report Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Bug Report Content": {
+      "main": [
+        [
+          {
+            "node": "Send Doc Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Vercel Deploy": {
+      "main": [
+        [
+          {
+            "node": "Calculate Health Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Weekly Goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (priya_daily Write Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Write Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Task to Goal": {
+      "main": [
+        [
+          {
+            "node": "Create Alert Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Weekly Goals": {
+      "main": [
+        [
+          {
+            "node": "App Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Schedule 2x Daily": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

@@ -1,0 +1,607 @@
+{
+  "name": "System | Mindmaker OS | Krish Approval Callback",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "krish-approval-callback",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "name": "Telegram Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "95a75650-e4ac-48b3-907c-dd04a1da34ab",
+      "id": "974df25e-bb56-4e88-b907-e204ad4a2b68"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst callback = body.callback_query;\nif (!callback) {\n  return [{ json: { error: 'no_callback_query', body: body } }];\n}\nconst data = callback.data || '';\nconst parts = data.split('|');\nconst action = parts[0];\nconst draftId = parts[1];\nconst messageId = callback.message && callback.message.message_id;\nconst chatId = callback.message && callback.message.chat && callback.message.chat.id;\nconst callbackQueryId = callback.id;\nreturn [{\n  json: {\n    action: action,\n    draft_id: draftId,\n    message_id: messageId,\n    chat_id: chatId,\n    callback_query_id: callbackQueryId\n  }\n}];"
+      },
+      "name": "Parse Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        304
+      ],
+      "id": "6e0de502-2889-4c04-a50b-52b5961a7d1b"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/approvals?draft_id=eq.{{ $json.draft_id }}&status=eq.pending&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Load Approval Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        304
+      ],
+      "id": "75d30f5d-5ebe-4076-af6d-d660777ab58b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const decision = $('Parse Callback').first().json;\nconst raw = $input.first().json;\nlet approval = null;\nif (raw && raw.id && raw.draft_id) {\n  approval = raw;\n} else if (Array.isArray(raw) && raw.length > 0) {\n  approval = raw[0];\n} else if (raw && Array.isArray(raw.data) && raw.data.length > 0) {\n  approval = raw.data[0];\n}\nif (!approval || !approval.id) {\n  return [{ json: { error: 'no_pending_approval', draft_id: decision.draft_id, decision: decision, raw_shape: typeof raw } }];\n}\nconst newStatus = decision.action === 'approve' ? 'approved' : 'rejected';\nreturn [{\n  json: {\n    action: decision.action,\n    draft_id: decision.draft_id,\n    message_id: decision.message_id,\n    chat_id: decision.chat_id,\n    callback_query_id: decision.callback_query_id,\n    approval_id: approval.id,\n    status: newStatus,\n    payload: approval.payload,\n    target_webhook_url: approval.target_webhook_url,\n    title: approval.title,\n    source_workflow: approval.source_workflow,\n    agent_name: approval.agent_name\n  }\n}];"
+      },
+      "name": "Process Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        304
+      ],
+      "id": "8d7ead6d-5bdb-4b33-b33d-eacc98e10208"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/approvals?id=eq.{{ $json.approval_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $json.status, decided_at: new Date().toISOString() }) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Update Approval Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1072,
+        304
+      ],
+      "id": "beda792b-dd2c-40fb-bb10-648cf36dfa05",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "approve-check",
+              "leftValue": "={{ $('Process Decision').first().json.status }}",
+              "rightValue": "approved",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Approve or Reject",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        304
+      ],
+      "id": "00024e14-873b-4db2-b941-e3ac85390bcf"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Process Decision').first().json.target_webhook_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-agatha-secret",
+              "value": "5fa357ecd8df1b30e508523b7c31d2870731ced4d01187e7"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Process Decision').first().json.payload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Forward to Target Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1488,
+        192
+      ],
+      "id": "712e11b3-b7c7-4b4b-89da-b63d4e5d504c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/answerCallbackQuery",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('Parse Callback').first().json.callback_query_id, text: 'Approved. Distributing to LinkedIn.' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Acknowledge Approve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1696,
+        192
+      ],
+      "id": "1478dae4-7c74-425d-93cd-1d9eaa329e0f",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/editMessageReplyMarkup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Parse Callback').first().json.chat_id, message_id: $('Parse Callback').first().json.message_id, reply_markup: { inline_keyboard: [[{ text: '✅ Approved — distributing…', callback_data: 'noop' }]] } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Edit Telegram (Approved)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1904,
+        192
+      ],
+      "id": "ae8918ec-0e48-46ae-82b3-340b92995ca2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'krish_rejected', actor: 'krish', target: $('Process Decision').first().json.draft_id, details: JSON.stringify({ action: 'reject', source: $('Process Decision').first().json.source_workflow, title: $('Process Decision').first().json.title, approval_id: $('Process Decision').first().json.approval_id }), display_message: 'Krish rejected: ' + ($('Process Decision').first().json.title || $('Process Decision').first().json.draft_id) }) }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Rejection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1488,
+        416
+      ],
+      "id": "fec0ebf8-f684-4159-a3a6-fb005d91e6f4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/answerCallbackQuery",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('Parse Callback').first().json.callback_query_id, text: 'Rejected. Logged.' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Acknowledge Reject",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1696,
+        416
+      ],
+      "id": "a6b9bf21-c7d7-469d-8958-d53ae908ed7f",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/editMessageReplyMarkup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Parse Callback').first().json.chat_id, message_id: $('Parse Callback').first().json.message_id, reply_markup: { inline_keyboard: [[{ text: '❌ Rejected', callback_data: 'noop' }]] } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Edit Telegram (Rejected)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1904,
+        416
+      ],
+      "id": "7fb7a912-2d70-4ef7-8767-b451905967cc",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: 'RSp6gWLMOlTXMmhG', workflow_name: 'System | Mindmaker OS | Krish Approval Callback', agent_id: 'system', outcome: 'success', status: 'success' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2112,
+        304
+      ],
+      "id": "23523e4a-5de2-488c-b5ee-7407cffbedfb",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'krish_approved', actor: 'krish', target: $('Process Decision').first().json.draft_id, details: JSON.stringify({ action: 'approve', source: $('Process Decision').first().json.source_workflow, title: $('Process Decision').first().json.title, approval_id: $('Process Decision').first().json.approval_id, target_webhook_url: $('Process Decision').first().json.target_webhook_url }), display_message: 'Krish approved: ' + ($('Process Decision').first().json.title || $('Process Decision').first().json.draft_id) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1592,
+        144
+      ],
+      "id": "1f95ebf7-6cde-4299-a998-9d9612b5a0b5",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Callback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Callback": {
+      "main": [
+        [
+          {
+            "node": "Load Approval Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Approval Row": {
+      "main": [
+        [
+          {
+            "node": "Process Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Decision": {
+      "main": [
+        [
+          {
+            "node": "Update Approval Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Approval Row": {
+      "main": [
+        [
+          {
+            "node": "Approve or Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve or Reject": {
+      "main": [
+        [
+          {
+            "node": "Forward to Target Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to Target Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acknowledge Approve": {
+      "main": [
+        [
+          {
+            "node": "Edit Telegram (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Telegram (Approved)": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Rejection": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acknowledge Reject": {
+      "main": [
+        [
+          {
+            "node": "Edit Telegram (Rejected)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Telegram (Rejected)": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Approval": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge Approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

@@ -1,0 +1,1058 @@
+{
+  "name": "Nell | Mindmaker OS | Guest Speaker Briefing",
+  "active": true,
+  "nodes": [
+    {
+      "id": "e8a02815-689d-4e07-b00e-cab8e2965358",
+      "name": "Briefing Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guest-speaker-briefing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "bb1e4d30-12a4-4c3b-922d-577e84ab776a"
+    },
+    {
+      "id": "e608e34c-e7da-4d69-bf9d-2b369b91d2a3",
+      "name": "Respond Briefing Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        260,
+        220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, guest_id: ($json.body && $json.body.guest_id) || $json.guest_id || null, status: \"briefing_started\" }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "fd0cf6df-ed73-4bb2-9124-7ae234efe25c",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        540
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || item;\nconst guest_id = body.guest_id;\nif (!guest_id) { throw new Error('guest_id is required'); }\nreturn [{ json: { guest_id, force: !!body.force, startMs: Date.now() } }];"
+      }
+    },
+    {
+      "id": "dce0965c-4c2b-40d4-9b89-f43a2e513975",
+      "name": "Fetch Guest",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        520,
+        540
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "tableId": "guests",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.guest_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "1dc35f03-463c-4c9c-a001-138293b9eaf6",
+      "name": "Build Research Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        540
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const g = $input.first().json;\nconst meta = $('Validate Input').first().json;\nconst guest_id = meta.guest_id;\nconst name = g.name || '';\nconst one_liner = g.one_liner || '';\nconst why_fit = g.why_fit || '';\nconst rd = g.raw_data || {};\nfunction deriveCompany() {\n  if (rd && typeof rd === 'object') {\n    const c = rd.company || rd.organization || rd.employer || (rd.headline && String(rd.headline));\n    if (c) return String(c);\n  }\n  const text = (one_liner + ' ' + why_fit);\n  const m = text.match(/(?:at|@|of|,)\\s+([A-Z][A-Za-z0-9&.\\- ]{1,40})/);\n  if (m && m[1]) return m[1].trim().replace(/[.,;:]+$/, '');\n  return '';\n}\nconst company = deriveCompany();\nlet domain = '';\nif (g.personal_url) { try { domain = new URL(g.personal_url).hostname.replace(/^www\\./,''); } catch (e) {} }\nconst q_person = ['\"' + name + '\"', company ? ('\"' + company + '\"') : '', 'interview OR podcast OR quote'].filter(Boolean).join(' ');\nconst q_company = company ? ('\"' + company + '\" (strategy OR controversy OR announcement OR criticism)') : ('\"' + name + '\" company');\nconst q_self = domain ? ('site:' + domain + ' OR \"' + name + '\"') : ('\"' + name + '\" (essay OR blog OR \\'I think\\' OR \\'we built\\')');\nreturn [{ json: { guest_id, company, name, one_liner, why_fit, notes: g.notes || '', podcast_target: g.podcast_target || 'signal_noise', q_person, q_company, q_self } }];"
+      }
+    },
+    {
+      "id": "a28116c6-d792-4d64-a057-e5e55c3b4909",
+      "name": "Brave Person",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        320
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.search.brave.com/res/v1/web/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "specifyQuery": "keypair",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.q_person }}"
+            },
+            {
+              "name": "count",
+              "value": "8"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Z0C5gLxjyf7T02j3",
+          "name": "Brave API 2026-05-25"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d4d8d3fe-0da4-4c01-ab4f-b89214f6456e",
+      "name": "Merge Research Arms",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1320,
+        540
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {
+          "includeUnpaired": true
+        }
+      }
+    },
+    {
+      "id": "a8b936e7-70bd-45b3-9e0a-bdb00467def4",
+      "name": "Brave Company",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        540
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.search.brave.com/res/v1/web/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "specifyQuery": "keypair",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.q_company }}"
+            },
+            {
+              "name": "count",
+              "value": "8"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Z0C5gLxjyf7T02j3",
+          "name": "Brave API 2026-05-25"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c6613e9d-5526-46ac-a530-8256d7559fa2",
+      "name": "Perplexity Quote Mine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        760
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"sonar-pro\", temperature: 0, messages: [ { role: \"system\", content: \"Return ONLY verbatim, directly citable quotes attributable to a named speaker, with the source URL. Never paraphrase. Never invent a quote, number, date, or title. If you cannot verify a verbatim quote, return none.\" }, { role: \"user\", content: \"Find verbatim citable public quotes by or about \" + ($json.name || \"the guest\") + ($json.company ? (\" of \" + $json.company) : \"\") + \". Prefer the guests own words. For each quote give the exact text, the speaker, their role, and the source URL.\" } ] }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "perplexityApi": {
+          "id": "RtaqJmoj4e469ZMx",
+          "name": "Perplexity account 2026-05-27b"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ac547d26-2a83-460f-86e3-b4c3bd5b6bfa",
+      "name": "Assemble Evidence (Gate 1)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        540
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const q = $('Build Research Queries').first().json;\nconst guest = $('Fetch Guest').first().json;\nconst bravePersonRows = ($('Brave Person').all() || []).flatMap(i => (((i.json||{}).web||{}).results)||[]);\nconst braveCompanyRows = ($('Brave Company').all() || []).flatMap(i => (((i.json||{}).web||{}).results)||[]);\nconst pplxItems = ($('Perplexity Quote Mine').all() || []).map(i => i.json || {});\nfunction normQuote(s){ return String(s||'').toLowerCase().replace(/[\\u2018\\u2019\\u201c\\u201d\"\\']/g,'').replace(/[.,;:!?\\-\\u2014\\u2013()]/g,' ').replace(/\\.{2,}|\\u2026/g,' ').replace(/\\s+/g,' ').trim(); }\nfunction pubOf(url){ try { return new URL(url).hostname.replace(/^www\\./,''); } catch(e){ return ''; } }\nconst rows = [];\nfor (const r of bravePersonRows) { if (r && r.url) rows.push({ source_url: r.url, title: r.title || '', snippet: r.description || '', publisher: pubOf(r.url), arm: 'brave_person' }); }\nfor (const r of braveCompanyRows) { if (r && r.url) rows.push({ source_url: r.url, title: r.title || '', snippet: r.description || '', publisher: pubOf(r.url), arm: 'brave_company' }); }\nfor (const p of pplxItems) {\n  const cites = Array.isArray(p.citations) ? p.citations : [];\n  const content = (((p.choices||[])[0]||{}).message||{}).content || '';\n  const quoteMatches = String(content).match(/[\\u201c\"]([^\\u201d\"]{8,400})[\\u201d\"]/g) || [];\n  if (cites.length) {\n    for (let ci=0; ci<cites.length; ci++) {\n      const url = cites[ci];\n      if (!url) continue;\n      const qtext = quoteMatches[ci] ? quoteMatches[ci].replace(/^[\\u201c\"]|[\\u201d\"]$/g,'') : '';\n      rows.push({ source_url: url, title: '', snippet: content.slice(0,400), quote: qtext, publisher: pubOf(url), arm: 'perplexity' });\n    }\n  }\n}\nconst evidence = rows.filter(r => /^https?:\\/\\//.test(r.source_url || ''));\nconst dropped_count = rows.length - evidence.length;\nconst allowlist = Array.from(new Set(evidence.map(r => r.source_url)));\nconst quote_map = {};\nfor (const r of evidence) { if (r.quote) { quote_map[normQuote(r.quote)] = r.source_url; } }\nconst sources = allowlist.map((url, i) => { const row = evidence.find(e => e.source_url === url) || {}; return { id: i, url, title: row.title || '', publisher: row.publisher || '' }; });\nif (evidence.length === 0) {\n  return [{ json: { guest_id: q.guest_id, guest, podcast_target: q.podcast_target, company: q.company, name: q.name, one_liner: q.one_liner, why_fit: q.why_fit, notes: q.notes, abort: true, reason: 'no_sourced_evidence', evidence: [], allowlist: [], quote_map: {}, sources: [], dropped_count } }];\n}\nreturn [{ json: { guest_id: q.guest_id, guest, podcast_target: q.podcast_target, company: q.company, name: q.name, one_liner: q.one_liner, why_fit: q.why_fit, notes: q.notes, evidence, allowlist, quote_map, sources, dropped_count, abort: false } }];"
+      }
+    },
+    {
+      "id": "b8934e55-0937-44e4-b60c-493f52971c28",
+      "name": "Sonnet Synthesise Briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1820,
+        540
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-4-6\", max_tokens: 16000, temperature: 0.3, system: \"CORPUS SNAPSHOT (frozen excerpt, corpus_version snapshot-2026-06-15; the canonical krish-voice and content-corpus SKILL files are NOT loaded here, this is a version-stamped snapshot).\\nKILL-LIST (never use): excited, thrilled, unlock, seamless, empower, journey, landscape, leverage, delve, robust, game-changer, revolutionary, cutting-edge, paradigm, synergy, holistic, deep dive, unpack, moreover, furthermore. No AI-tell openers. No rule-of-three padding. ZERO em dashes and ZERO en dashes anywhere in prose.\\nCHANNEL MANDATES: built = warm and inspiring, the why beneath the why (surface why, then strategic why, then human why); antagonist is the gate or the problem, never the guest. signal_noise = dialogic devil's-advocate / what-if; stress-test the conventional wisdom the guest embodies; Spiky and Controversial rungs carry more weight; combative toward ideas, warm toward the person.\\n\\nYou are Nell, building a 10/10 internal Speaker Briefing for a podcast guest of Krish Raja.\\nThis is an INTERNAL prep doc like an email draft. It is generate-only and never published, so the publishing gate (PUB-001/PUB-005) does not apply. Still generate even if research is thin; flag thinness, never refuse.\\n\\nABSOLUTE MECHANICS (any failure rejects the output):\\n- ZERO em dashes and ZERO en dashes anywhere. Use commas, periods, parentheses.\\n- Active voice. Dropped-subject register where natural.\\n- No banned words (see kill-list). No AI-tell openers, no rule-of-three padding.\\n- NEVER invent a number, outcome, quote, date, or title. Fabrication is the worst failure.\\n\\nSOURCING (CLO-006 analog, every claim):\\n- Every factual claim in career_arc, strategic_context, narrative_spine, fast_facts, and the angle ladder must trace to a source in the EVIDENCE block. Attach source_refs (indices into sources[]).\\n- A claim with no source is DROPPED. If load-bearing and kept, wrap it in [UNVERIFIED] and add 'UNVERIFIED_CLAIM_KEPT' to flags.\\n- QUOTES: only if the exact text appears in EVIDENCE with its source_url. Each: {text, speaker, role, is_subject, source_url, confidence}. confidence=verified only when verbatim. is_subject=true only for the guest's own words. Paraphrase is never a quote. Fewer than 2 verified -> add INSUFFICIENT_VERIFIED_QUOTES, do not fabricate.\\n\\nFIT SCORE (1-10) against THIS channel ICP: five criteria A-E each 0/1/2, summed.\\nA audience relevance; B tape-worthiness (real contradiction?); C earned authority; D distinctiveness; E reach multiplier. FLOOR: if B==0, cap total at 5. fit_rationale names the driving criterion plus one sourced fact.\\n\\nANGLE LADDER (each rung sourced): HOOK warm true opener; SPIKY sharp arguable Not X but Y; CONTROVERSIAL the question they would refuse publicly, exposing a role/company-vs-truth contradiction, with why_theyd_refuse.\\nPOSITION RULE: exactly one controversial question at position 'mid', never open/close. Open and close on hooks.\\n\\nFIVE STANDARDS (advisory, not a gate): self-assess unique/researched/thoughtful/kind/helpful as pass|weak|fail with a one-line why. Kind = warm to the guest as a person; spike ideas, never the human. A fail does not stop you; it is a flag.\\n\\nCHANNEL VOICE: load ONLY the mandate block matching the CHANNEL in the user message.\\n\\nOUTPUT: return ONLY the briefing JSON object matching the contract keys exactly: meta_table, thirty_second_read, career_arc, why_matters, strategic_context, narrative_spine, verified_quotes, run_of_show, landmines, fast_facts, sources, five_standards, flags. No prose outside the JSON.\", messages: [ { role: \"user\", content: \"CHANNEL: \" + $json.podcast_target + \"\\nGUEST: \" + $json.name + \" | derived company: \" + ($json.company||\"\") + \" | host note (why_fit): \" + ($json.why_fit||\"\") + \" | one_liner: \" + ($json.one_liner||\"\") + \"\\nEVIDENCE (the only facts you may use; cite by index into sources[]):\\n\" + JSON.stringify($json.evidence) + \"\\nSOURCES (indices for source_refs):\\n\" + JSON.stringify($json.sources) + \"\\nEXISTING SIGNAL (may be empty): pitch/angle notes: \" + ($json.notes||\"\") + \"\\nProduce the 11-section briefing JSON now.\" } ] }) }}",
+        "options": {
+          "timeout": 300000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "9ac7e0b1-082f-4fce-87c7-35d4a482633e",
+      "name": "Validate Briefing (Gate 2)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        540
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ev = $('Assemble Evidence (Gate 1)').first().json;\nconst guest = ev.guest || {};\nconst guest_id = ev.guest_id;\nconst startMs = $('Validate Input').first().json.startMs;\nconst resp = $input.first().json;\nfunction normQuote(s){ return String(s||'').toLowerCase().replace(/[‘’“”\"\\']/g,'').replace(/[.,;:!?\\-—–()]/g,' ').replace(/\\.{2,}|…/g,' ').replace(/\\s+/g,' ').trim(); }\nfunction stripFences(t){ return String(t||'').replace(/^```(?:json)?\\s*/i,'').replace(/\\s*```\\s*$/,'').trim(); }\nfunction dashKill(s){ return typeof s === 'string' ? s.replace(/[—–]/g, ', ') : s; }\nlet rawText = '';\ntry { rawText = (resp && resp.content && resp.content[0] && resp.content[0].text) || ''; } catch(e) { rawText = ''; }\n// robust extract: tolerate ```json fences and stray prose, parse FIRST { to LAST }\nlet b = null; let parseFailed = false;\nconst _t = String(rawText);\nconst _s = _t.indexOf('{');\nconst _e = _t.lastIndexOf('}');\ntry {\n  if (_s === -1 || _e === -1 || _e < _s) throw new Error('no_json_object');\n  b = JSON.parse(_t.slice(_s, _e + 1));\n} catch (e) { parseFailed = true; }\nconst dropped_count = ev.dropped_count || 0;\nif (parseFailed || !b || typeof b !== 'object') {\n  const merged_raw_data = Object.assign({}, guest.raw_data || {}, { briefing: { version: 1, generated_at: new Date().toISOString(), generated_by: 'nell-guest-briefing', model: 'claude-sonnet-4-6', podcast_target: ev.podcast_target, corpus_version: 'snapshot-2026-06-15', flags: ['THIN_RESEARCH','PARSE_FAILED'], verification: { verified_quote_count: 0, dropped_count, sources_used: 0 }, sources: ev.sources || [] } });\n  return [{ json: { guest_id, merged_raw_data, fit_score: (guest.fit_score || 0), renderable: false, verified_quote_count: 0, dropped_count, podcast_target: ev.podcast_target, company: ev.company, name: ev.name, error: false, parse_failed: true, startMs } }];\n}\nconst allow = new Set(ev.allowlist || []);\nconst qmap = ev.quote_map || {};\nfunction matchByContains(text){ const n = normQuote(text); if(!n) return null; for (const k of Object.keys(qmap)) { if (k && (k.indexOf(n) !== -1 || n.indexOf(k) !== -1)) return qmap[k]; } return null; }\nb.verified_quotes = (b.verified_quotes||[]).filter(qq => qmap[normQuote(qq.text)] || matchByContains(qq.text) || allow.has(qq.source_url));\nb.sources = (b.sources||[]).filter(s => allow.has(s.url));\nb.thirty_second_read = dashKill(b.thirty_second_read);\nif (b.career_arc) b.career_arc.prose = dashKill(b.career_arc.prose);\nif (b.strategic_context) b.strategic_context.prose = dashKill(b.strategic_context.prose);\nif (b.narrative_spine) b.narrative_spine.contradiction = dashKill(b.narrative_spine.contradiction);\nb.landmines = (b.landmines||[]).map(dashKill);\nb.fast_facts = (b.fast_facts||[]).map(f => ({ ...f, fact: dashKill(f.fact) }));\nif (b.run_of_show && b.run_of_show.angle_ladder) { ['hook','spiky','controversial'].forEach(t => { if (b.run_of_show.angle_ladder[t]) b.run_of_show.angle_ladder[t].text = dashKill(b.run_of_show.angle_ladder[t].text); }); }\nif (b.run_of_show && Array.isArray(b.run_of_show.questions)) { b.run_of_show.questions = b.run_of_show.questions.map(x => ({ ...x, q: dashKill(x.q) })); }\nconst verified_quote_count = (b.verified_quotes||[]).filter(qq => qq.confidence === 'verified').length;\nconst hasContradiction = ((b.narrative_spine && b.narrative_spine.source_refs) || []).length >= 1;\nconst renderable = verified_quote_count >= 1 || hasContradiction;\nb.flags = b.flags || [];\nif (verified_quote_count < 2) b.flags.push('INSUFFICIENT_VERIFIED_QUOTES');\nif (!renderable) b.flags.push('THIN_RESEARCH');\nb.verification = { verified_quote_count, dropped_count, sources_used: (b.sources||[]).length };\nb.version = b.version || 1;\nb.generated_at = new Date().toISOString();\nb.generated_by = 'nell-guest-briefing';\nb.model = 'claude-sonnet-4-6';\nb.research_provider = ['brave','perplexity'];\nb.podcast_target = ev.podcast_target;\nb.corpus_version = 'snapshot-2026-06-15';\nconst fit_score = (b.why_matters && typeof b.why_matters.fit_score === 'number') ? b.why_matters.fit_score : (guest.fit_score || 0);\nconst merged_raw_data = Object.assign({}, guest.raw_data || {}, { briefing: b });\nreturn [{ json: { guest_id, merged_raw_data, fit_score, renderable, verified_quote_count, dropped_count, podcast_target: ev.podcast_target, company: ev.company, name: ev.name, error: false, parse_failed: false, startMs } }];"
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 2500
+    },
+    {
+      "id": "534ad6a4-090c-486e-b0ce-f6e7fafff0e0",
+      "name": "Write Briefing To Guest",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        540
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "tableId": "guests",
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.guest_id }}"
+            }
+          ]
+        },
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "raw_data",
+              "fieldValue": "={{ JSON.stringify($json.merged_raw_data) }}"
+            },
+            {
+              "fieldId": "fit_score",
+              "fieldValue": "={{ $json.fit_score }}"
+            },
+            {
+              "fieldId": "briefing_generated_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 2500
+    },
+    {
+      "id": "3a03a624-470c-4c7e-89c1-afd7c5175a53",
+      "name": "Has Renderable Briefing?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2600,
+        540
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.renderable }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "146189ea-e627-4bc1-ae73-952b39fd01c0",
+      "name": "Render Briefing Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        380
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const v = $input.first().json;\nconst b = (v.merged_raw_data && v.merged_raw_data.briefing) || {};\nfunction dashKill(s){ return typeof s === 'string' ? s.replace(/[—–]/g, ', ') : (s==null?'':String(s)); }\nfunction raw(s){ return s==null?'':String(s); }\nconst showLabel = v.podcast_target === 'signal_noise' ? 'Signal & Noise' : 'Built';\nconst name = v.name || 'Guest';\nconst doc_title = '[BRIEFING] ' + name + ' (' + (v.podcast_target || 'signal_noise') + ')';\nlet md = '';\nmd += '# Speaker Briefing: ' + name + (v.company ? (' (' + v.company + ')') : '') + '\\n';\nmd += '\\n';\nmd += 'INTERNAL PREP, not for publication. Channel: ' + showLabel + '. Generated by Nell, model claude-sonnet-4-6, corpus ' + (b.corpus_version||'snapshot-2026-06-15') + '.\\n';\nmd += '\\n';\nif (Array.isArray(b.meta_table) && b.meta_table.length) {\n  md += '| Field | Value |\\n';\n  md += '| --- | --- |\\n';\n  for (const r of b.meta_table) { md += '| ' + dashKill(r.k) + ' | ' + dashKill(r.v) + ' |\\n'; }\n  md += '\\n';\n}\nif (b.thirty_second_read) { md += '## 30 Second Read\\n' + dashKill(b.thirty_second_read) + '\\n\\n'; }\nif (b.career_arc) { md += '## Career Arc\\n' + dashKill(b.career_arc.prose) + '\\n\\n'; }\nif (b.why_matters) { md += '## Why They Matter\\n' + 'Fit score: ' + (b.why_matters.fit_score!=null?b.why_matters.fit_score:'n/a') + '/10\\n'; if (b.why_matters.fit_rationale) md += dashKill(b.why_matters.fit_rationale) + '\\n'; if (b.why_matters.channel_icp_hit) md += 'ICP: ' + dashKill(b.why_matters.channel_icp_hit) + '\\n'; md += '\\n'; }\nif (b.strategic_context) { md += '## Strategic Context\\n' + dashKill(b.strategic_context.prose) + '\\n\\n'; }\nif (b.narrative_spine) { md += '## Narrative Spine\\n' + dashKill(b.narrative_spine.contradiction) + '\\n\\n'; }\nconst vq = Array.isArray(b.verified_quotes) ? b.verified_quotes : [];\nif (vq.length) {\n  md += '## Verified Quotes\\n';\n  const own = vq.filter(qq => qq.is_subject === true);\n  const others = vq.filter(qq => qq.is_subject !== true);\n  if (own.length) {\n    md += '### In their words\\n';\n    for (const qq of own) { md += '> ' + raw(qq.text) + '\\n' + 'from ' + raw(qq.speaker) + (qq.role?(', '+raw(qq.role)):'') + (qq.source_url?(' ['+raw(qq.source_url)+']'):'') + '\\n\\n'; }\n  }\n  if (others.length) {\n    md += '### What others say\\n';\n    for (const qq of others) { md += '> ' + raw(qq.text) + '\\n' + 'from ' + raw(qq.speaker) + (qq.role?(', '+raw(qq.role)):'') + (qq.source_url?(' ['+raw(qq.source_url)+']'):'') + '\\n\\n'; }\n  }\n}\nif (b.run_of_show) {\n  md += '## Run Of Show\\n';\n  if (b.run_of_show.angle_ladder) {\n    const al = b.run_of_show.angle_ladder;\n    md += 'Hook -> Spiky -> Controversial\\n\\n';\n    md += '1. Hook: ' + dashKill((al.hook||{}).text) + '\\n';\n    md += '2. Spiky: ' + dashKill((al.spiky||{}).text) + '\\n';\n    md += '3. Controversial (mid-show only): ' + dashKill((al.controversial||{}).text) + ((al.controversial&&al.controversial.why_theyd_refuse)?(' (why they would refuse: '+dashKill(al.controversial.why_theyd_refuse)+')'):'') + '\\n';\n  }\n  if (Array.isArray(b.run_of_show.questions)) {\n    md += '\\nQuestions:\\n';\n    for (const x of b.run_of_show.questions) { md += '- [' + dashKill(x.tier) + '/' + dashKill(x.position) + '] ' + dashKill(x.q) + '\\n'; }\n  }\n  md += '\\n';\n}\nif (Array.isArray(b.landmines) && b.landmines.length) { md += '## Landmines\\n'; for (const l of b.landmines) md += '- ' + dashKill(l) + '\\n'; md += '\\n'; }\nif (Array.isArray(b.fast_facts) && b.fast_facts.length) { md += '## Fast Facts\\n'; for (const f of b.fast_facts) md += '- ' + dashKill(f.fact) + '\\n'; md += '\\n'; }\nif (Array.isArray(b.sources) && b.sources.length) { md += '## Sources\\n'; b.sources.forEach((s,i) => { md += (i+1) + '. ' + raw(s.title||s.url) + ' - ' + raw(s.url) + '\\n'; }); md += '\\n'; }\nif (Array.isArray(b.flags) && b.flags.length) { md += '## Flags\\n' + b.flags.join(', ') + '\\n\\n'; }\nconst briefing_md = md;\nreturn [{ json: Object.assign({}, v, { briefing_md, doc_title }) }];"
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 2500
+    },
+    {
+      "id": "964d81fc-4330-4594-9210-7869d38eddc4",
+      "name": "Convert Briefing to HTML File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        380
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const v = $input.first().json;\nconst md = v.briefing_md || '';\nconst title = v.doc_title;\nconst folderId = '1AQ84HCrPx_KVUky-TM-J7-RyvFWEauwg';\nfunction inlineFormat(text) {\n  text = text.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');\n  text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');\n  text = text.replace(/\\*(.+?)\\*/g, '<em>$1</em>');\n  text = text.replace(/_(.+?)_/g, '<em>$1</em>');\n  let result = '';\n  let i = 0;\n  while (i < text.length) {\n    const bracketStart = text.indexOf('[', i);\n    if (bracketStart === -1) { result += text.slice(i); break; }\n    const bracketEnd = text.indexOf('](', bracketStart);\n    if (bracketEnd === -1) { result += text.slice(i); break; }\n    const linkText = text.slice(bracketStart + 1, bracketEnd);\n    let depth = 1;\n    let j = bracketEnd + 2;\n    while (j < text.length && depth > 0) {\n      if (text[j] === '(') depth++;\n      else if (text[j] === ')') depth--;\n      j++;\n    }\n    if (depth !== 0) { result += text.slice(i, bracketEnd + 1); i = bracketEnd + 1; continue; }\n    const url = text.slice(bracketEnd + 2, j - 1);\n    result += text.slice(i, bracketStart);\n    result += '<a href=\"' + url + '\">' + linkText + '</a>';\n    i = j;\n  }\n  text = result;\n  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');\n  return text;\n}\nfunction buildTable(lines) {\n  const dataLines = lines.filter(l => !/^\\|[\\s\\-\\|:]+\\|$/.test(l.trim()));\n  if (dataLines.length === 0) return '';\n  const parseRow = (line) => line.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map(c => c.trim());\n  const header = parseRow(dataLines[0]);\n  const rows = dataLines.slice(1).map(parseRow);\n  let html = '<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;width:100%\">';\n  html += '<thead><tr>';\n  header.forEach(h => { html += '<th style=\"background:#f0f0f0;font-weight:bold;padding:6px\">' + inlineFormat(h) + '</th>'; });\n  html += '</tr></thead><tbody>';\n  rows.forEach(row => {\n    html += '<tr>';\n    row.forEach(c => { html += '<td style=\"padding:6px\">' + inlineFormat(c) + '</td>'; });\n    html += '</tr>';\n  });\n  html += '</tbody></table>';\n  return html;\n}\nfunction mdToHtml(text) {\n  const lines = text.split('\\n');\n  const out = [];\n  let i = 0;\n  while (i < lines.length) {\n    const line = lines[i];\n    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {\n      const tableLines = [];\n      while (i < lines.length && lines[i].trim().startsWith('|')) { tableLines.push(lines[i]); i++; }\n      out.push(buildTable(tableLines));\n      continue;\n    }\n    if (/^#{1,6}\\s/.test(line)) {\n      const level = line.match(/^(#+)/)[1].length;\n      const content = line.replace(/^#+\\s+/, '');\n      out.push('<h' + level + '>' + inlineFormat(content) + '</h' + level + '>');\n      i++;\n      continue;\n    }\n    if (line.trim().startsWith('> ')) {\n      out.push('<blockquote style=\"margin:8pt 0;padding-left:10pt;border-left:3px solid #ccc;color:#333\">' + inlineFormat(line.trim().replace(/^>\\s?/, '')) + '</blockquote>');\n      i++;\n      continue;\n    }\n    if (line.trim().startsWith('- ')) {\n      const items = [];\n      while (i < lines.length && lines[i].trim().startsWith('- ')) { items.push('<li>' + inlineFormat(lines[i].trim().replace(/^-\\s+/, '')) + '</li>'); i++; }\n      out.push('<ul style=\"margin-bottom:10pt\">' + items.join('') + '</ul>');\n      continue;\n    }\n    if (line.trim() === '') { i++; continue; }\n    out.push('<p style=\"margin-bottom:10pt\">' + inlineFormat(line.trim()) + '</p>');\n    i++;\n  }\n  return out.join('\\n');\n}\nconst bodyHtml = mdToHtml(md);\nconst html = '<html><head><style>\\n' +\n  '  body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; }\\n' +\n  '  h1 { font-size: 18pt; margin-bottom: 12pt; }\\n' +\n  '  h2 { font-size: 14pt; margin-top: 16pt; margin-bottom: 8pt; }\\n' +\n  '  h3 { font-size: 12pt; margin-top: 14pt; margin-bottom: 6pt; }\\n' +\n  '  p { margin-top: 0; margin-bottom: 10pt; }\\n' +\n  '  table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }\\n' +\n  '  th { background: #f0f0f0; font-weight: bold; padding: 6pt; border: 1px solid #ccc; }\\n' +\n  '  td { padding: 6pt; border: 1px solid #ccc; }\\n' +\n  '  a { color: #1155CC; }\\n' +\n  '</style></head><body>\\n' + bodyHtml + '</body></html>';\nconst boundary = 'nell_briefing_boundary_n8n_abc';\nconst metadata = JSON.stringify({ name: title, mimeType: 'application/vnd.google-apps.document', parents: [folderId] });\nconst multipart_body = [\n  '--' + boundary,\n  'Content-Type: application/json; charset=UTF-8',\n  '',\n  metadata,\n  '--' + boundary,\n  'Content-Type: text/html; charset=UTF-8',\n  '',\n  html,\n  '--' + boundary + '--'\n].join('\\r\\n');\nreturn [{ json: Object.assign({}, v, { multipart_body, multipart_boundary: boundary }) }];"
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 2500
+    },
+    {
+      "id": "7e1f8a06-0551-45d6-9ea5-35932fd07516",
+      "name": "Upload Briefing to Google Drive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3380,
+        380
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "={{ \"multipart/related; boundary=\" + $json.multipart_boundary }}",
+        "body": "={{ $json.multipart_body }}",
+        "options": {
+          "timeout": 60000
+        },
+        "specifyBody": "string"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 2500
+    },
+    {
+      "id": "55db79f2-4d5d-405e-b09c-ccbf2ca76853",
+      "name": "Stamp Doc URL",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3640,
+        380
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "tableId": "guests",
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.guest_id }}"
+            }
+          ]
+        },
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "briefing_doc_url",
+              "fieldValue": "={{ $json.webViewLink }}"
+            },
+            {
+              "fieldId": "briefing_doc_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "briefing_status",
+              "fieldValue": "ready"
+            },
+            {
+              "fieldId": "briefing_generated_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 2500
+    },
+    {
+      "id": "0d9d702e-1b47-4113-85c8-987c6babbf94",
+      "name": "Telegram Success",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3900,
+        380
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "6773796504",
+        "text": "={{ \"Speaker briefing ready for \" + ($(\"Validate Briefing (Gate 2)\").item.json.name||\"guest\") + \": \" + ($(\"Upload Briefing to Google Drive\").item.json.webViewLink||\"\") }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "webhookId": "93bf8489-7690-4102-a5b8-f71b8538e8e5",
+      "onError": "continueRegularOutput",
+      "disabled": true
+    },
+    {
+      "id": "bbff7db9-f012-4eba-8885-ace08573a396",
+      "name": "Workflow Runs Heartbeat",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3900,
+        540
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableId": "workflow_runs",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "workflow_id",
+              "fieldValue": "guest-speaker-briefing"
+            },
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "Nell | Mindmaker OS | Guest Speaker Briefing"
+            },
+            {
+              "fieldId": "agent_id",
+              "fieldValue": "nell"
+            },
+            {
+              "fieldId": "outcome",
+              "fieldValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.renderable ? \"ready\" : \"thin\" }}"
+            },
+            {
+              "fieldId": "outcome_count",
+              "fieldValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.verified_quote_count }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.renderable ? \"success\" : \"partial\" }}"
+            },
+            {
+              "fieldId": "duration_ms",
+              "fieldValue": "={{ Date.now() - $(\"Validate Briefing (Gate 2)\").item.json.startMs }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify({ guest_id: $(\"Validate Briefing (Gate 2)\").item.json.guest_id, dropped_count: $(\"Validate Briefing (Gate 2)\").item.json.dropped_count, fit_score: $(\"Validate Briefing (Gate 2)\").item.json.fit_score, parse_failed: $(\"Validate Briefing (Gate 2)\").item.json.parse_failed }) }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "038a995a-e64c-4c66-b149-63df946eafbd",
+      "name": "Stamp Thin Status",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3120,
+        700
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "tableId": "guests",
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.guest_id }}"
+            }
+          ]
+        },
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "briefing_status",
+              "fieldValue": "ready"
+            },
+            {
+              "fieldId": "briefing_generated_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "12e17881-c790-4b14-afd7-d8b833d9dbb4",
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        540
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableId": "audit_log",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "event_type",
+              "fieldValue": "nell_guest_speaker_briefing"
+            },
+            {
+              "fieldId": "actor",
+              "fieldValue": "nell"
+            },
+            {
+              "fieldId": "target",
+              "fieldValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.guest_id }}"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ JSON.stringify({ renderable: $(\"Validate Briefing (Gate 2)\").item.json.renderable, verified_quote_count: $(\"Validate Briefing (Gate 2)\").item.json.verified_quote_count, fit_score: $(\"Validate Briefing (Gate 2)\").item.json.fit_score, podcast_target: $(\"Validate Briefing (Gate 2)\").item.json.podcast_target }) }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "8448cbec-6957-49cf-a68b-2582e1216b2f",
+      "name": "Needs Warn?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4420,
+        540
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Validate Briefing (Gate 2)\").item.json.renderable }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "0d537e31-6190-496d-84e7-2a9d8a2d1c45",
+      "name": "Telegram Warn",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4680,
+        540
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "6773796504",
+        "text": "={{ \"Nell briefing THIN/FAILED for \" + ($(\"Validate Briefing (Gate 2)\").item.json.name||\"guest\") + \" (\" + ($(\"Validate Briefing (Gate 2)\").item.json.company||\"\") + \"). Verified quotes: \" + $(\"Validate Briefing (Gate 2)\").item.json.verified_quote_count + \". Flags: \" + (($(\"Validate Briefing (Gate 2)\").item.json.briefing||{}).flags||[]).join(\", \") }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "webhookId": "d8dd6bb0-5387-4218-a7e0-67fd6294e10d",
+      "onError": "continueRegularOutput",
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Briefing Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond Briefing Started",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Guest": {
+      "main": [
+        [
+          {
+            "node": "Build Research Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Research Queries": {
+      "main": [
+        [
+          {
+            "node": "Brave Person",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Brave Company",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Perplexity Quote Mine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Person": {
+      "main": [
+        [
+          {
+            "node": "Merge Research Arms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Research Arms": {
+      "main": [
+        [
+          {
+            "node": "Assemble Evidence (Gate 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Company": {
+      "main": [
+        [
+          {
+            "node": "Merge Research Arms",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Perplexity Quote Mine": {
+      "main": [
+        [
+          {
+            "node": "Merge Research Arms",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Assemble Evidence (Gate 1)": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Synthesise Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Synthesise Briefing": {
+      "main": [
+        [
+          {
+            "node": "Validate Briefing (Gate 2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Briefing (Gate 2)": {
+      "main": [
+        [
+          {
+            "node": "Write Briefing To Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Briefing To Guest": {
+      "main": [
+        [
+          {
+            "node": "Has Renderable Briefing?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Renderable Briefing?": {
+      "main": [
+        [
+          {
+            "node": "Render Briefing Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stamp Thin Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Briefing Markdown": {
+      "main": [
+        [
+          {
+            "node": "Convert Briefing to HTML File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Briefing to HTML File": {
+      "main": [
+        [
+          {
+            "node": "Upload Briefing to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Briefing to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Stamp Doc URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stamp Doc URL": {
+      "main": [
+        [
+          {
+            "node": "Telegram Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Success": {
+      "main": [
+        [
+          {
+            "node": "Workflow Runs Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Runs Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stamp Thin Status": {
+      "main": [
+        [
+          {
+            "node": "Workflow Runs Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Needs Warn?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Warn?": {
+      "main": [
+        [
+          {
+            "node": "Telegram Warn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

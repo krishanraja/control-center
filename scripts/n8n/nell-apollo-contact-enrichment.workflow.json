@@ -1,0 +1,178 @@
+{
+  "name": "Nell | Mindmaker OS | Apollo Contact Enrichment",
+  "active": false,
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "path": "apollo-enrich",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "webhookId": "cddf3440-d23d-4c15-92af-d80968a7dfa4"
+    },
+    {
+      "id": "node-apollo",
+      "name": "Apollo People Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/v1/people/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "lZmXwvOzSpH64-yKg2Qvxw"
+            }
+          ]
+        },
+        "sendBody": true,
+        "onError": "continueErrorOutput",
+        "specifyBody": "json",
+        "jsonBody": "={{ { q_organization_domains: $json.body.domain, page: 1, per_page: 1, person_titles: [] } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-extract",
+      "name": "Extract Contact Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        180
+      ],
+      "parameters": {
+        "jsCode": "// CLO-019 (audit 2026-05-26): Apollo enrichment is opt-in.\n// Short-circuit unless either (a) caller passed manual_trigger=true, OR\n// (b) system_config.lead_auto_enrich_enabled='true'.\nconst SR = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst __body = ($input.first() && $input.first().json) || {};\nconst __manual = __body.manual_trigger === true || __body.manual_trigger === 'true';\nlet __auto = false;\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.lead_auto_enrich_enabled&select=value',\n    headers: { 'apikey': SR, 'Authorization': 'Bearer ' + SR, 'Accept': 'application/json' },\n    json: true,\n    timeout: 5000,\n  });\n  const arr = Array.isArray(resp) ? resp : (resp && resp.data ? resp.data : []);\n  __auto = arr[0] && (arr[0].value === 'true' || arr[0].value === true);\n} catch (e) { __auto = false; }\nif (!__manual && !__auto) {\n  return [{ json: { skipped: true, reason: 'CLO-019: Apollo enrichment is opt-in (lead_auto_enrich_enabled=false and manual_trigger not set)' } }];\n}\n\nconst people = $input.item.json.people || [];\nconst person = people[0] || {};\nconst org = person.organization || {};\nreturn [{ json: { email: person.email || null, linkedin: person.linkedin_url || null, title: person.title || null, seniority: person.seniority || null, company_size: org.estimated_num_employees || null, industry: org.industry || null } }];"
+      }
+    },
+    {
+      "id": "node-respond-ok",
+      "name": "Respond with Enriched Data",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        960,
+        180
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ email: $json.email, linkedin: $json.linkedin, title: $json.title, seniority: $json.seniority, company_size: $json.company_size, industry: $json.industry }) }}"
+      }
+    },
+    {
+      "id": "node-respond-err",
+      "name": "Respond with Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: 'not found', name: $('Webhook').item.json.body.name || 'unknown' }) }}"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $input.first()?.json?.api_call_count || 0,\n  cost_usd: $input.first()?.json?.total_cost || 0,\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: $input.first()?.json?.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "log-supabase-ZovvjMxZvkrBuMON",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Apollo People Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo People Search": {
+      "main": [
+        [
+          {
+            "node": "Extract Contact Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Contact Data": {
+      "main": [
+        [
+          {
+            "node": "Respond with Enriched Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond with Enriched Data": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}

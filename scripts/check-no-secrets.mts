@@ -60,6 +60,24 @@ const RULES: Rule[] = [
     why: 'an Anthropic API key. Move it to the environment.',
   },
   {
+    // Added 2026-09-07: GitHub's own push protection rejected the n8n parity
+    // commit on these three while this checker passed it. A guard that is
+    // weaker than the remote's is a guard that teaches false confidence.
+    name: 'github-token',
+    re: /gh[pousr]_[A-Za-z0-9]{30,}/g,
+    why: 'a GitHub token. Move it to the environment and rotate it.',
+  },
+  {
+    name: 'stripe-key',
+    re: /(?:sk|rk)_live_[A-Za-z0-9]{20,}/g,
+    why: 'a LIVE Stripe key. Move it to the environment and rotate it.',
+  },
+  {
+    name: 'resend-key',
+    re: /re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{20,}/g,
+    why: 'a Resend API key. Move it to the environment and rotate it.',
+  },
+  {
     name: 'google-key',
     re: /\bAIza[A-Za-z0-9_-]{30,}/g,
     why: 'a Google API key. Move it to the environment.',

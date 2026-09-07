@@ -1,0 +1,647 @@
+{
+  "name": "Leo | Mindmaker OS | Revenue Weekly Report",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * 5"
+            }
+          ]
+        }
+      },
+      "id": "97bf1e2b-62e8-414d-ab49-ae68b74948cf"
+    },
+    {
+      "name": "Read Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "actor,event_type,created_at"
+            },
+            {
+              "name": "created_at",
+              "value": "=gte.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "137ae668-9286-4754-8632-625c18fac3e3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "owner,agent,status,venture,workstream,group,created,completed_at"
+            },
+            {
+              "name": "created",
+              "value": "=gte.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}"
+            },
+            {
+              "name": "order",
+              "value": "created.desc"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "id": "801c4175-c7bd-479a-9904-5b3c013be658",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Business Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/business_metrics",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,label,value,target,status,unit,updated_at"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "id": "40abb732-5083-4e66-b13e-702fb88b90fc",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Weekly Costs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "cost_estimate_usd,agent_id"
+            },
+            {
+              "name": "run_at",
+              "value": "=gte.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "id": "f185dad8-88d7-4a13-99c6-9d86ce5298d7",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Read Stripe Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "metadata,run_at,workflow_name"
+            },
+            {
+              "name": "workflow_name",
+              "value": "like.*Stripe*"
+            },
+            {
+              "name": "run_at",
+              "value": "=gte.{{ new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() }}"
+            },
+            {
+              "name": "order",
+              "value": "run_at.desc"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "id": "9857471e-6b4f-432c-a957-55ab41fb9bf0",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Build Revenue Pulse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// All HTTP Request nodes return fullResponse with .body as array\nfunction getBody(nodeName) {\n  try {\n    const d = $node[nodeName].json;\n    if (d && d.body && Array.isArray(d.body)) return d.body;\n    // fallback: maybe body is the top level\n    const first = $node[nodeName].json;\n    return Array.isArray(first) ? first : [];\n  } catch(e) { return []; }\n}\n\nconst logs = getBody('Read Audit Log');\nconst tasks = getBody('Read Tasks');\nconst metrics = getBody('Read Business Metrics');\nconst costs = getBody('Read Weekly Costs');\nconst stripeRuns = getBody('Read Stripe Events');\nconst funnel = getBody('Read Capture To Paid');\n\nconst week_of = new Date().toISOString().split('T')[0];\nconst allAgents = ['maya', 'hunter', 'priya', 'cleo', 'felix', 'leo', 'nell', 'zara', 'arlo', 'marcus', 'nova', 'vera', 'kai', 'agatha'];\n\nlet completed_tasks = 0;\nfor (const t of tasks) {\n  if (t.status === 'done' || t.status === 'completed') completed_tasks++;\n}\n\nlet activeAgentsSet = new Set();\nfor (const l of logs) { if (l.actor) activeAgentsSet.add(l.actor); }\nfor (const t of tasks) {\n  if (t.owner) activeAgentsSet.add(t.owner);\n  if (t.agent) activeAgentsSet.add(t.agent);\n}\nconst agents_active = Array.from(activeAgentsSet).filter(a => allAgents.includes(a));\nconst agents_silent = allAgents.filter(a => !activeAgentsSet.has(a));\n\nconst total = tasks.length;\nconst pct = total > 0 ? Math.round((completed_tasks / total) * 100) : 0;\n\nlet pulse = 'stalled';\nif (pct >= 60) pulse = 'strong';\nelse if (pct >= 30) pulse = 'moving';\nelse if (completed_tasks > 0) pulse = 'slow';\n\nconst activeStr = agents_active.length > 0 ? agents_active.join(', ') : 'none';\nlet silentStr = 'none';\nif (agents_silent.length > 0 && agents_silent.length <= 3) {\n  silentStr = agents_silent.join(', ');\n} else if (agents_silent.length > 3) {\n  silentStr = agents_silent.slice(0, 3).join(', ') + ' +' + (agents_silent.length - 3) + ' more';\n}\n\nconst revMetric = metrics.find(m => m.id === 'monthly-revenue');\nconst prodMetric = metrics.find(m => m.id === 'active-products');\nconst monthlyRevenue = revMetric ? revMetric.value + ' (target: ' + (revMetric.target || 'n/a') + ', ' + (revMetric.status || 'unknown') + ')' : 'not tracking';\nconst activeProducts = prodMetric ? prodMetric.value + '/' + (prodMetric.target || '?') : 'not tracking';\n\nlet totalCostUsd = 0;\nfor (const c of costs) {\n  const cost = parseFloat(c.cost_estimate_usd);\n  if (!isNaN(cost)) totalCostUsd += cost;\n}\nconst costStr = totalCostUsd > 0 ? '$' + totalCostUsd.toFixed(4) : '$0 (no data yet)';\n\nlet stripeTotal = 0;\nlet stripeCount = 0;\nfor (const s of stripeRuns) {\n  try {\n    const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : s.metadata;\n    if (meta && meta.amount_cents) {\n      stripeTotal += parseInt(meta.amount_cents);\n      stripeCount++;\n    }\n  } catch(e) {}\n}\nconst stripeStr = stripeCount > 0\n  ? '$' + (stripeTotal / 100).toFixed(2) + ' (' + stripeCount + ' payments)'\n  : 'no data (logging may be broken)';\n\nlet funnelLines = [];\nfor (const f of funnel) {\n  funnelLines.push(String(f.lane).replace(/_/g, '-') + ' wk ' + f.week + ': ' + f.captures + ' captured, ' + f.paid_added + ' paid' + (f.capture_to_paid_pct != null ? ' (' + f.capture_to_paid_pct + '%)' : ''));\n}\nconst funnelStr = funnelLines.length > 0 ? funnelLines.slice(0, 6).join('\\n') : 'no capture data yet (lanes arming)';\n\nconst lines = [\n  '\\ud83d\\udcca <b>Leo Friday Pulse</b> // ' + week_of,\n  '',\n  '<b>Tasks:</b> ' + completed_tasks + '/' + total + ' done (' + pct + '%)',\n  '<b>Pulse:</b> ' + pulse,\n  '',\n  '\\ud83d\\udcb0 <b>Revenue</b>',\n  'Monthly: ' + monthlyRevenue,\n  'Stripe MTD: ' + stripeStr,\n  '',\n  '\\ud83c\\udfaf <b>Acquisition funnel (recent weeks)</b>',\n  funnelStr,\n  '',\n  '\\ud83d\\udcbb <b>OS Cost</b>',\n  'This week: ' + costStr,\n  'Active products: ' + activeProducts,\n  '',\n  '\\u2705 Active: ' + activeStr,\n  '\\u26a0\\ufe0f Silent: ' + silentStr,\n  '',\n  'Dive deeper: controlcenter.krishraja.com'\n];\nconst telegramText = lines.join('\\n');\n\nreturn [{ json: {\n  total_tasks: total, completed_tasks, pct, pulse,\n  agents_active: activeStr, agents_silent: silentStr,\n  monthly_revenue: monthlyRevenue, stripe_mtd: stripeStr,\n  os_cost_weekly: costStr, acquisition_funnel: funnelStr, active_products: activeProducts,\n  week_of, telegramText\n}}];"
+      },
+      "id": "3168f20d-14b7-4676-b991-3d26a28f032e"
+    },
+    {
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "6773796504"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.telegramText }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8a460e58-14a3-4bca-b0bd-87eedb0c4e14",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.audit_payload }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Write Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "id": "7d19470f-d6c4-42a7-b93a-9ca164a2b542",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"pyr9wurcs1M9utW3\", \"workflow_name\": \"Leo Weekly Revenue Pulse\", \"agent_id\": \"leo\", \"outcome\": \"success\", \"status\": \"success\", \"cost_estimate_usd\": 0.0005, \"api_calls_count\": 6}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "8e34f3e3-9a3f-465a-a128-6dceadd32613",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        500
+      ],
+      "id": "635817d9-4a7b-47b6-b55a-fdd08e05692c"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Audit payload for Leo weekly revenue report\nconst d = $input.first().json;\nconst mrr = d.mrr_formatted || (d.mrr != null ? `$${d.mrr}` : 'unknown');\nconst products = d.products_active || 0;\nconst pipeline = d.pipeline_count || 0;\n\nreturn [{\n  json: {\n    audit_payload: {\n      actor: 'leo',\n      event_type: 'revenue-weekly-report',\n      display_message: `Leo weekly revenue pulse: MRR ${mrr}, ${products} active products, ${pipeline} pipeline opportunities.`,\n      details: JSON.stringify({ mrr_formatted: mrr, products_active: products, pipeline_count: pipeline })\n    }\n  }\n}];"
+      },
+      "name": "Build Audit (leo Write Audit Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        300
+      ],
+      "id": "359c5df8-36e2-4f28-9526-60d021b197a5"
+    },
+    {
+      "name": "Read Capture To Paid",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        420
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_capture_to_paid?select=*&order=week.desc&limit=20",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "id": "read-capture-to-paid-w2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Read Business Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Business Metrics": {
+      "main": [
+        [
+          {
+            "node": "Read Weekly Costs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Weekly Costs": {
+      "main": [
+        [
+          {
+            "node": "Read Stripe Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Stripe Events": {
+      "main": [
+        [
+          {
+            "node": "Read Capture To Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Revenue Pulse": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Build Audit (leo Write Audit Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit (leo Write Audit Log)": {
+      "main": [
+        [
+          {
+            "node": "Write Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Capture To Paid": {
+      "main": [
+        [
+          {
+            "node": "Build Revenue Pulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Every Monday 9AM": {
+      "recurrenceRules": []
+    },
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

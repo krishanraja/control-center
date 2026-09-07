@@ -1,0 +1,3612 @@
+{
+  "name": "Nova | Mindmaker OS | Closed-Loop PR Engine",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        400
+      ],
+      "name": "Weekday 14:00 UTC",
+      "id": "ac111b28-8359-4bb9-9d26-96ddad00b240"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dayOfWeek = new Date().getDay();\nlet pipeline = \"unknown\";\nif (dayOfWeek === 1 || dayOfWeek === 3) pipeline = \"podcast\";\nelse if (dayOfWeek === 2 || dayOfWeek === 4) pipeline = \"event\";\nelse if (dayOfWeek === 5) pipeline = \"followup\";\nreturn [{ json: { pipeline, dayOfWeek } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        400
+      ],
+      "name": "Day Router",
+      "id": "f78991c9-829b-4d08-98fc-da20e4e5c6fb"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pipeline }}",
+                    "rightValue": "podcast",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Podcast"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pipeline }}",
+                    "rightValue": "event",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Event"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pipeline }}",
+                    "rightValue": "followup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Follow-Up"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        400
+      ],
+      "name": "Route Pipeline",
+      "id": "3f5a3f1a-d373-4555-84b0-92fede01773b"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.nova&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        0
+      ],
+      "name": "P1: Fetch Nova Brief",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "cbd27c63-4e4d-4593-a4ea-827cf5ce7029"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        128
+      ],
+      "name": "P1: Fetch Voice Rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "1f7e95cd-3303-4e9d-896e-e4b4166efe89"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('P1: Fetch Nova Brief').first().json;\nconst voiceRaw = $('P1: Fetch Voice Rules').first().json;\nconst planRaw  = $('P1: Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        64
+      ],
+      "name": "P1: Build Identity Prepend",
+      "id": "757a61ea-92a9-4776-b46e-7e3eabb23163"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.podchaser.com/graphql",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Podchaser: Mint Token').first().json.data.requestAccessToken.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { query: \"query NovaSearch($term: String!, $first: Int!) {\\n  podcasts(searchTerm: $term, first: $first) {\\n    data {\\n      id\\n      title\\n      description\\n      author { name }\\n      webUrl\\n      numberOfEpisodes\\n      latestEpisodeDate\\n    }\\n  }\\n}\", variables: { term: \"AI for business executives leaders\", first: 10 } } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1360,
+        64
+      ],
+      "name": "Podchaser: Search Podcasts",
+      "onError": "continueErrorOutput",
+      "id": "da1825a3-fb69-4a68-956e-0f73bf0d5ad9"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        64
+      ],
+      "name": "Split Podcast Results",
+      "id": "b8711214-288b-4466-a72b-89afb3bbe02f"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        64
+      ],
+      "name": "Top 5 Podcasts",
+      "id": "b7cb1757-d6e2-46ff-b3de-103efcc334aa"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"claude-haiku-4-5\",\"max_tokens\":1024,\"system\": $('P1: Build Identity Prepend').first().json.identity_prepend + \"You are a podcast booking strategist for Krish Raja. Evaluate the podcast and return JSON: {relevant: true/false, reason: string, tier: A/B/C}. Tier A = established exec audience. Tier B = growing, good fit. Tier C = skip.\",\"messages\":[{\"role\":\"user\",\"content\":\"Podcast: \"+$json.title_original+\" by \"+$json.publisher_original+\". URL: \"+($json.listennotes_url||\"\")+\". Should Krish pitch to be a guest?\"}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2080,
+        64
+      ],
+      "name": "Haiku: Filter Podcast Quality",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "d1f7db84-f9c5-4c9a-a6cd-1e7630f3107d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {contents: [{parts: [{text: 'Podcast: ' + $json.title_original + ' by ' + $json.publisher_original}]}], system_instruction: {parts: [{text: $('P1: Build Identity Prepend').first().json.identity_prepend + 'You are a podcast booking strategist for Krish Raja. Return JSON only: {relevant, reason, tier (A/B/C)}.'}]}, generationConfig: {maxOutputTokens: 2048, responseMimeType: 'application/json'}} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2080,
+        240
+      ],
+      "name": "Gemini Fallback: Filter Podcast",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "224abd92-a8c3-4767-977d-e02a8990d3f0"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(it => {\n  const text = it.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  return { json: { ...it.json, content: [{ text }], _source: 'gemini' } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        240
+      ],
+      "name": "Normalize Gemini Filter Response",
+      "id": "b90c2cca-fbd8-4064-acc9-c73af0bab3f3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2560,
+        144
+      ],
+      "name": "Merge Filter Results",
+      "id": "0bfb6011-0240-495d-a9f6-da5e9417d38c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.content[0].text }}",
+              "rightValue": "\"tier\": \"C\"",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2800,
+        144
+      ],
+      "name": "Keep Tier A/B Only",
+      "id": "8caa1d88-1227-406a-8d85-ecac40e2a16f"
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        144
+      ],
+      "name": "Top 3 Targets",
+      "id": "2d162190-f003-4678-ad5e-0b8b0cb2bf14"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.podchaser.com/graphql",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Podchaser: Mint Token').first().json.data.requestAccessToken.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { query: \"query NovaEpisode($pid: String!) {\\n  podcast(identifier: { id: $pid, type: PODCHASER }) {\\n    id\\n        title\\n    author { name }\\n    webUrl\\n    episodes(first: 1, sort: { sortBy: AIR_DATE, direction: DESCENDING }) {\\n      data {\\n        id\\n        title\\n        description\\n        airDate\\n      }\\n    }\\n  }\\n}\", variables: { pid: String($json.id) } } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3280,
+        144
+      ],
+      "name": "Podchaser: Latest Episode",
+      "onError": "continueErrorOutput",
+      "id": "610a1539-0ad5-4ecd-8df5-1471416a14dd"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/api/v1/people/match",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"name\":$json.publisher,\"organization_name\":$json.title,\"reveal_personal_emails\":true} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3520,
+        144
+      ],
+      "name": "Apollo: Enrich Host Email",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bIpgw4efk6vHrFEG",
+          "name": "Apollo"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "f3e6af74-283a-4161-88e9-0342d23bfb9e"
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?\" + \"person_email=eq.\" + encodeURIComponent(($json.person && $json.person.email) || $json.email || 'none') + \"&contacted_at=gte.\" + encodeURIComponent(new Date(Date.now() - 7*24*60*60*1000).toISOString()) + \"&select=id\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3760,
+        144
+      ],
+      "name": "P1: Check Contacted Persons",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "79cf89e9-2c15-43e8-8f0e-59b6eee387f8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dedupResp = $input.all();\nconst apolloItems = $('Apollo: Enrich Host Email').all();\nconst out = [];\nfor (let i = 0; i < dedupResp.length; i++) {\n  const already = Array.isArray(dedupResp[i].json) && dedupResp[i].json.length > 0;\n  if (!already && apolloItems[i]) {\n    out.push({ json: apolloItems[i].json });\n  }\n}\nreturn out.length ? out : [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        144
+      ],
+      "name": "P1: Filter Fresh Contacts",
+      "id": "fd6b083b-5ffd-4f5b-ae8d-4419bcfde8b6"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4240,
+        144
+      ],
+      "name": "Prepare Pitch Context",
+      "id": "6430f790-1450-4a6d-aa6c-017c4fe69222"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"claude-sonnet-4-6\",\"max_tokens\":1024,\"system\": $('P1: Build Identity Prepend').first().json.identity_prepend + \"Draft a podcast guest pitch for Krish Raja. Short, punchy. MUST reference a specific point from the latest episode and offer a contrarian or complementary take. No fluff. No generic intros. Include subject line.\",\"messages\":[{\"role\":\"user\",\"content\":\"Draft a pitch to \"+($json.host_name||'the host')+\" for \"+($json.podcast_title||'the podcast')+\". Latest ep: \"+($json.latest_episode_title||'')+\". Desc: \"+($json.latest_episode_desc||'')}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4480,
+        144
+      ],
+      "name": "Sonnet: Draft Podcast Pitch",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "9cb5ad22-c638-48e1-af54-3b1db81210d7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {contents: [{parts: [{text: 'Host: ' + ($json.host_name||'') + '. Show: ' + ($json.podcast_title||'') + '. Latest ep: ' + ($json.latest_episode_title||'')}]}], system_instruction: {parts: [{text: $('P1: Build Identity Prepend').first().json.identity_prepend + 'Draft a podcast guest pitch. Short, punchy. Include subject line. No fluff.'}]}, generationConfig: {maxOutputTokens: 2048, responseMimeType: 'application/json'}} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4480,
+        320
+      ],
+      "name": "Gemini Fallback: Draft Pitch",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "eed3c0de-05a3-40fa-9a1d-7c86e7ada829"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(it => {\n  const text = it.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  return { json: { ...it.json, content: [{ text }], _source: 'gemini' } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4720,
+        320
+      ],
+      "name": "Normalize Gemini Pitch",
+      "id": "f16bb074-90c2-4cb5-90bc-08aeb4754f14"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4960,
+        224
+      ],
+      "name": "Merge Pitch Results",
+      "id": "e04bdd3d-8de7-4305-95f9-f04ad1e63525"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ (($json.content?.[0]?.text || '').match(/Subject:\\s*(.+)/i) || [null, 'Podcast Guest Pitch — Krish Raja'])[1] }}",
+        "emailType": "html",
+        "message": "={{ ($json.content?.[0]?.text || '').replace(/Subject:.*\\n+/i, '').replace(/\\n/g, '<br>') }}",
+        "options": {
+          "sendTo": "={{ $('P1: Filter Fresh Contacts').item.json.email || $('P1: Filter Fresh Contacts').item.json.person?.email || 'no-email-found@example.com' }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        5200,
+        224
+      ],
+      "name": "Gmail: Draft Podcast Pitch",
+      "webhookId": "8ae8886c-2ea6-453b-8782-1238327c177b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AFgF8OOuBhYHbiyo",
+          "name": "Gmail"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "a48cca50-603a-4925-b2a2-eceabb55936a"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {person_email: $('P1: Filter Fresh Contacts').item.json.email || $('P1: Filter Fresh Contacts').item.json.person?.email || 'unknown',person_name: $('P1: Filter Fresh Contacts').item.json.host_name || $('P1: Filter Fresh Contacts').item.json.person?.name || 'unknown',company: $('P1: Filter Fresh Contacts').item.json.podcast_title || $('P1: Filter Fresh Contacts').item.json.title || '',agent: 'nova',context: 'visibility pitch',contacted_at: new Date().toISOString()} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5440,
+        224
+      ],
+      "name": "P1: Log Contacted",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "de42d31b-c80e-4fa0-932b-711c48f646cd"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {workflow_id: 'hCbvRXoGWaqG1Znx',workflow_name: 'Nova PR Engine',agent_id: 'nova',run_at: new Date().toISOString(),outcome: 'success',status: 'P1: podcast prospecting',cost_estimate_usd: 0.15,api_calls_count: 6} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5680,
+        224
+      ],
+      "name": "P1: Heartbeat",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "9d89437b-ab93-4243-ab2d-f52e992ab48a"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.nova&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        608
+      ],
+      "name": "P2: Fetch Nova Brief",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "0f3fcecb-e15c-4670-a5c6-300355c91a77"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        736
+      ],
+      "name": "P2: Fetch Voice Rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "0d8f62a3-b5b2-421a-aca4-ff6c6ff6e6c1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('P2: Fetch Nova Brief').first().json;\nconst voiceRaw = $('P2: Fetch Voice Rules').first().json;\nconst planRaw  = $('P2: Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        672
+      ],
+      "name": "P2: Build Identity Prepend",
+      "id": "e1ef2756-d8f3-4d87-862a-4587927a58a0"
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        672
+      ],
+      "name": "Top 10 Speakers",
+      "id": "4172b4a7-cf73-4446-ae1c-436587e41e7c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"claude-haiku-4-5\",\"max_tokens\":512,\"system\": $('P2: Build Identity Prepend').first().json.identity_prepend + \"You evaluate conference speakers for networking value. Return JSON: {high_value: true/false, reason: string}. High value = exec in Tech/Media/AI or running AI strategy at scale.\",\"messages\":[{\"role\":\"user\",\"content\":\"Speaker: \"+($json.name||\"\")+\", Title: \"+($json.title||\"\")+\", Topic: \"+($json.topic||\"\")}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2080,
+        672
+      ],
+      "name": "Haiku: Filter Speaker Quality",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "bdf8b4d4-a039-451d-8923-abf16a2de768"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {contents: [{parts: [{text: 'Speaker: ' + ($json.name||'') + ', Title: ' + ($json.title||'')}]}], system_instruction: {parts: [{text: $('P2: Build Identity Prepend').first().json.identity_prepend + 'Evaluate conference speaker networking value. Return JSON only: {high_value (boolean), reason}.'}]}, generationConfig: {maxOutputTokens: 2048, responseMimeType: 'application/json'}} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2080,
+        848
+      ],
+      "name": "Gemini Fallback: Filter Speaker",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "9bd4fb47-b957-4548-a184-0973800af477"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(it => {\n  const text = it.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  return { json: { ...it.json, content: [{ text }], _source: 'gemini' } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        848
+      ],
+      "name": "Normalize Gemini Speaker",
+      "id": "38875628-e452-4ce0-96bc-156d84561c70"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2560,
+        752
+      ],
+      "name": "Merge Speaker Filter",
+      "id": "1bef5c24-6d9b-43fd-a201-651b41d3483f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.content[0].text }}",
+              "rightValue": "\"high_value\": true",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2800,
+        752
+      ],
+      "name": "Keep High Value Only",
+      "id": "6c82f3b8-9f29-4265-b5c8-e23dba9e1cc4"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        752
+      ],
+      "name": "Top 5 Speaker Targets",
+      "id": "22f59116-8891-40e6-bf96-d6faf26e8267"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/api/v1/people/match",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"name\":$json.name,\"organization_name\":($json.title||\"\").split(\" at \").pop(),\"reveal_personal_emails\":false} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3280,
+        752
+      ],
+      "name": "Apollo: Enrich Speaker",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bIpgw4efk6vHrFEG",
+          "name": "Apollo"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "225da31e-324f-42f1-8fc9-759c3377d79c"
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?\" + \"person_email=eq.\" + encodeURIComponent(($json.person && $json.person.email) || $json.email || 'none') + \"&contacted_at=gte.\" + encodeURIComponent(new Date(Date.now() - 7*24*60*60*1000).toISOString()) + \"&select=id\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3520,
+        752
+      ],
+      "name": "P2: Check Contacted Persons",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "7d5cd6d4-c0cf-48a8-8934-703effd9ad19"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dedupResp = $input.all();\nconst apolloItems = $('Apollo: Enrich Speaker').all();\nconst out = [];\nfor (let i = 0; i < dedupResp.length; i++) {\n  const already = Array.isArray(dedupResp[i].json) && dedupResp[i].json.length > 0;\n  if (!already && apolloItems[i]) {\n    out.push({ json: apolloItems[i].json });\n  }\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        752
+      ],
+      "name": "P2: Filter Fresh Contacts",
+      "id": "dafd4a7a-732b-4a02-85e3-bf4290aed76b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"claude-sonnet-4-6\",\"max_tokens\":512,\"system\": $('P2: Build Identity Prepend').first().json.identity_prepend + \"Draft a short networking message from Krish to a conference speaker. Conversational, specific to their talk, suggest a coffee or chat at the event. Max 4 sentences. No fluff.\",\"messages\":[{\"role\":\"user\",\"content\":\"Draft a message to \"+($json.person?.name||$json.name||'this speaker')+\" speaking on \"+($json.topic||'AI/tech')+\". Role: \"+($json.title||'executive')}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4000,
+        752
+      ],
+      "name": "Sonnet: Draft Networking Message",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "92784e82-9a39-44bb-92cb-f495fd062a8c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {contents: [{parts: [{text: 'Speaker: ' + ($json.person?.name || $json.name || '') + ' on ' + ($json.topic||'')}]}], system_instruction: {parts: [{text: $('P2: Build Identity Prepend').first().json.identity_prepend + 'Draft a short networking message. Max 4 sentences. Suggest a coffee or chat at the event.'}]}, generationConfig: {maxOutputTokens: 2048, responseMimeType: 'application/json'}} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4000,
+        928
+      ],
+      "name": "Gemini Fallback: Networking",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "018eaa84-4999-4b7a-aa83-922a9df4f5f5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(it => {\n  const text = it.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  return { json: { ...it.json, content: [{ text }], _source: 'gemini' } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        928
+      ],
+      "name": "Normalize Gemini Networking",
+      "id": "9a57a1af-4685-4833-a6ad-6ff191a49af1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4480,
+        832
+      ],
+      "name": "Merge Networking Results",
+      "id": "75db4045-b39a-4f6c-b003-4dd6e0693578"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ 'Quick chat at the event? — Krish Raja' }}",
+        "emailType": "html",
+        "message": "={{ ($json.content?.[0]?.text || '').replace(/\\n/g, '<br>') }}",
+        "options": {
+          "sendTo": "={{ $('P2: Filter Fresh Contacts').item.json.person?.email || $('P2: Filter Fresh Contacts').item.json.email || 'no-email-found@example.com' }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4720,
+        832
+      ],
+      "name": "Gmail: Draft Networking Message",
+      "webhookId": "286b5b32-41f7-44ac-86f5-34d1a38104a4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AFgF8OOuBhYHbiyo",
+          "name": "Gmail"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "d166e3cf-5282-4eed-aec7-cc1854fb6fe3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {id: 'nova-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),venture: 'krish',agent: 'nova',workstream: 'personal-brand',group: 'networking',priority: 'pri-1',status: 'pending',title: 'Event Networking Pitch: ' + ($('P2: Filter Fresh Contacts').item.json.person?.name || $('P2: Filter Fresh Contacts').item.json.name || 'Speaker'),description: ($json.content ? $json.content[0].text : 'No draft generated') + ' LinkedIn: ' + ($('P2: Filter Fresh Contacts').item.json.person?.linkedin_url || $('P2: Filter Fresh Contacts').item.json.linkedin || 'N/A')} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4960,
+        832
+      ],
+      "name": "Supabase: Create Networking Task",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "6c62f755-69da-42f0-8bcd-07215c251b34"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {person_email: $('P2: Filter Fresh Contacts').item.json.person?.email || $('P2: Filter Fresh Contacts').item.json.email || 'unknown',person_name: $('P2: Filter Fresh Contacts').item.json.person?.name || $('P2: Filter Fresh Contacts').item.json.name || 'unknown',company: $('P2: Filter Fresh Contacts').item.json.company_name || ($('P2: Filter Fresh Contacts').item.json.title || '').split(' at ').pop() || '',agent: 'nova',context: 'networking message',contacted_at: new Date().toISOString()} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5200,
+        832
+      ],
+      "name": "P2: Log Contacted",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "8dcc5e29-4d83-431f-b9c1-4d52290f8818"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {workflow_id: 'hCbvRXoGWaqG1Znx',workflow_name: 'Nova PR Engine',agent_id: 'nova',run_at: new Date().toISOString(),outcome: 'success',status: 'P2: event interception',cost_estimate_usd: 0.52,api_calls_count: 8} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5440,
+        832
+      ],
+      "name": "P2: Heartbeat",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "4dd873c6-119f-4583-9f32-2af1011fcded"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.nova&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        1200
+      ],
+      "name": "P3: Fetch Nova Brief",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "37653739-120a-408a-bf59-fc30edf0a5c8"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        1328
+      ],
+      "name": "P3: Fetch Voice Rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "e1ba70d1-6669-4ad6-bd76-6a08791a3808"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('P3: Fetch Nova Brief').first().json;\nconst voiceRaw = $('P3: Fetch Voice Rules').first().json;\nconst planRaw  = $('P3: Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1264
+      ],
+      "name": "P3: Build Identity Prepend",
+      "id": "423f28b7-ff61-45da-b058-c216c7eaa2ff"
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?\" + \"agent=eq.nova\" + \"&contacted_at=gte.\" + encodeURIComponent(new Date(Date.now() - 5*24*60*60*1000).toISOString()) + \"&contacted_at=lte.\" + encodeURIComponent(new Date(Date.now() - 3.5*24*60*60*1000).toISOString()) + \"&select=person_email,person_name,company,context,contacted_at\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1360,
+        1264
+      ],
+      "name": "Supabase: Fetch Nova Contacts 3-5d",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "fca91bd1-ef58-45f3-935e-ca1526571490"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first()?.json;\nconst rows = Array.isArray(resp) ? resp : [];\nif (rows.length === 0) return [{ json: { action: 'no_action', message: 'No Nova contacts in 3.5-5d window' } }];\nreturn rows.map(r => ({ json: { ...r, action: 'needs_bump' } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        1264
+      ],
+      "name": "Normalize Contact Rows",
+      "id": "a213d3fe-ea99-464e-824d-d1c312d0ad76"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "needs_bump",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Needs Bump"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        1264
+      ],
+      "name": "Route: Bump or Skip",
+      "id": "998f946c-118d-4d13-adf3-713319cd3dd0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"claude-haiku-4-5\",\"max_tokens\":256,\"system\": $('P3: Build Identity Prepend').first().json.identity_prepend + \"Write a very short follow-up bump email (2-3 sentences max). Casual, not pushy. Bumping to top of inbox and asking if they are open to chatting. Include subject line.\",\"messages\":[{\"role\":\"user\",\"content\":\"Follow up with \"+($json.person_name||$json.person_email)+\" who was pitched 4 days ago. Original context: \"+($json.context||'pitch')}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2080,
+        1200
+      ],
+      "name": "Haiku: Draft Bump Email",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "48cf1499-d2bc-4bc6-8cfd-5658854813e9"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {contents: [{parts: [{text: 'Follow up with: ' + ($json.person_name || $json.person_email || '')}]}], system_instruction: {parts: [{text: $('P3: Build Identity Prepend').first().json.identity_prepend + 'Write a 2-3 sentence bump email. Include subject line. Casual, not pushy.'}]}, generationConfig: {maxOutputTokens: 2048, responseMimeType: 'application/json'}} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2080,
+        1408
+      ],
+      "name": "Gemini Fallback: Bump",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "f4ce788d-d1b2-46fd-ae10-089459c6cb3d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(it => {\n  const text = it.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  return { json: { ...it.json, content: [{ text }], _source: 'gemini' } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        1408
+      ],
+      "name": "Normalize Gemini Bump",
+      "id": "95972028-82b9-41f7-b55c-73ab56eb0dba"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2560,
+        1312
+      ],
+      "name": "Merge Bump Results",
+      "id": "8f36844f-c339-4fdc-95bd-02f53c063fef"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ (($json.content?.[0]?.text || '').match(/Subject:\\s*(.+)/i) || [null, 'Quick follow-up'])[1] }}",
+        "emailType": "html",
+        "message": "={{ ($json.content?.[0]?.text || '').replace(/Subject:.*\\n+/i, '').replace(/\\n/g, '<br>') }}",
+        "options": {
+          "sendTo": "={{ $('Normalize Contact Rows').itemMatching($itemIndex)?.json?.person_email || 'no-email@example.com' }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2800,
+        1312
+      ],
+      "name": "Gmail: Draft Bump Email",
+      "webhookId": "10e44f86-2b27-4c72-8581-b09622524aee",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AFgF8OOuBhYHbiyo",
+          "name": "Gmail"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "2226560d-f06a-48f7-a8fe-4780573e43e1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {workflow_id: 'hCbvRXoGWaqG1Znx',workflow_name: 'Nova PR Engine',agent_id: 'nova',run_at: new Date().toISOString(),outcome: 'success',status: 'P3: follow-up bumps',cost_estimate_usd: 0.02,api_calls_count: 4} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3040,
+        1312
+      ],
+      "name": "P3: Heartbeat",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "e2fee8be-a71d-4e19-ab75-e25fee2ad72b"
+    },
+    {
+      "parameters": {
+        "content": "## Nova - Closed-Loop PR Engine (v2)\nThree pipelines on a weekday schedule:\n- Mon/Wed: Podcast Booking (ListenNotes > Apollo > Sonnet > Gmail Draft)\n- Tue/Thu: Event Speaker Interception (Apify > Apollo > Sonnet > Gmail Draft)\n- Fri: Follow-Up on contacted_persons (3.5-5d window) > Gmail Draft\n\nHARD RULES:\n- Nova NEVER touches Instantly (Felix owns Instantly).\n- All outputs are Gmail Drafts for Krish to review and send.\n- All contacts written to contacted_persons with agent='nova'.\n- Every run writes a heartbeat to workflow_runs.",
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -208
+      ],
+      "name": "Overview",
+      "id": "016161f8-89c9-4f6c-9d43-f2f5bc9d11d7"
+    },
+    {
+      "parameters": {
+        "content": "## Credentials\n- Gmail OAuth: AFgF8OOuBhYHbiyo\n- Supabase: GG97LVY7cTl2zFMn\n- Anthropic: anthropicApi (n8n creds)\n- Apollo: httpHeaderAuth\n- ListenNotes: httpHeaderAuth\n- OpenAI: predefined credential\n- Telegram chat: 6773796504\n\n## Placeholders (fill in UI)\n- REPLACE_ACTOR_ID / REPLACE_APIFY_TOKEN (P2)\n- REPLACE_CONFERENCE_SPEAKER_PAGE (P2)",
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "name": "Setup Guide",
+      "id": "04fe12ad-31f8-4802-88ca-a05d6bd45afb"
+    },
+    {
+      "parameters": {
+        "content": "## P1: Podcast Booking (Mon/Wed)\nIdentity fetch > ListenNotes > Haiku filter (OpenAI fallback) > Top 3 > Apollo enrich > contacted_persons dedup > Sonnet pitch (OpenAI fallback) > Gmail Draft > Log contact > Heartbeat",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -96
+      ],
+      "name": "P1 Note",
+      "id": "18f618b8-7ee6-482c-bdc0-e3e8fca66e86"
+    },
+    {
+      "parameters": {
+        "content": "## P2: Event Speaker Interception (Tue/Thu)\nIdentity fetch > Apify scrape > Haiku filter (OpenAI fallback) > Top 5 > Apollo enrich > contacted_persons dedup > Sonnet networking msg (OpenAI fallback) > Gmail Draft > Supabase Task > Log contact > Heartbeat",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        512
+      ],
+      "name": "P2 Note",
+      "id": "c48c3d9e-309d-45a8-a89f-e636e97b2581"
+    },
+    {
+      "parameters": {
+        "content": "## P3: Follow-Up (Fri) - NO INSTANTLY\nIdentity fetch > Read contacted_persons (Nova, 3.5-5d old) > Route > Haiku bump (OpenAI fallback) > Gmail Draft > Heartbeat\n\nNOTE: Reply detection is simplified - assumes no reply in window = needs bump.\nProper Gmail reply-thread check can be added later.",
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        1104
+      ],
+      "name": "P3 Note",
+      "id": "7dd47d24-54e9-422d-921f-c0ed75b07283"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"chat_id\": \"6773796504\", \"text\": \"[Nova] Run complete. Check workflow_runs for details.\", \"parse_mode\": \"HTML\"}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5888,
+        208
+      ],
+      "name": "Telegram: Nova",
+      "id": "8c0eb347-1d9b-4b4c-881e-72572f02ccb8",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map Podchaser GraphQL response to ListenNotes-compatible shape\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const resp = item.json || {};\n  // Handle GraphQL errors cleanly\n  if (resp.errors && resp.errors.length > 0) {\n    throw new Error('Podchaser GraphQL error: ' + JSON.stringify(resp.errors).slice(0, 300));\n  }\n  const podcasts = ((resp.data || {}).podcasts || {}).data || [];\n  for (const p of podcasts) {\n    out.push({ json: {\n      id: String(p.id),\n      title: p.title || '',\n      title_original: p.title || '',\n      publisher: (p.author && p.author.name) || '',\n      publisher_original: (p.author && p.author.name) || '',\n      description_original: p.description || '',\n      listennotes_url: p.webUrl || '',\n      rating: p.ratingAverage || null,\n      total_episodes: p.numberOfEpisodes || 0,\n      latest_pub_date_ms: p.latestEpisodeDate ? new Date(p.latestEpisodeDate).getTime() : null\n    }});\n  }\n}\nreturn out;\n"
+      },
+      "name": "Map Podchaser Search",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -144
+      ],
+      "id": "df7525b2-5132-4b54-98cc-8539343b8091"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map Podchaser episode response into same shape as ListenNotes Latest Episode had.\n// Preserve any prior fields on the item (podcast metadata from upstream).\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const resp = item.json || {};\n  if (resp.errors && resp.errors.length > 0) {\n    throw new Error('Podchaser GraphQL error: ' + JSON.stringify(resp.errors).slice(0, 300));\n  }\n  const podcast = (resp.data || {}).podcast || {};\n  const episodes = ((podcast.episodes || {}).data) || [];\n  const ep = episodes[0] || {};\n  // Pass through with new fields merged\n  out.push({ json: {\n    id: String(podcast.id || ''),\n    podcast_title: podcast.title || '',\n    title: podcast.title || '',\n    publisher: (podcast.author && podcast.author.name) || '',\n    latest_episode_title: ep.title || '',\n    latest_episode_desc: ep.description || '',\n    latest_episode_date: ep.airDate || null,\n    listennotes_url: podcast.webUrl || ''\n  }});\n}\nreturn out;\n"
+      },
+      "name": "Map Podchaser Episode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3504,
+        144
+      ],
+      "id": "b333461c-f2cb-4747-bfba-44455ff8dbb3"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        608
+      ],
+      "id": "cd5f6537-7fd0-47d5-8404-4db5e1f304b5"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/nova_target_conferences",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "name,speaker_page_url,url,category"
+            },
+            {
+              "name": "active",
+              "value": "eq.true"
+            },
+            {
+              "name": "speaker_page_url",
+              "value": "not.is.null"
+            }
+          ]
+        },
+        "sendHeaders": false,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "P2: Fetch Nova Conferences",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        }
+      },
+      "id": "c1edaad8-e777-452a-90a0-ab3d4c1d26ec"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Build website-content-crawler body from conference rows\nconst rows = $input.all().map(i => i.json).filter(r => r && r.speaker_page_url);\nif (rows.length === 0) return [{ json: { skipped: true, reason: 'no active nova_target_conferences with speaker_page_url' } }];\n\n// apify/website-content-crawler input\nconst body = {\n  startUrls: rows.map(r => ({ url: r.speaker_page_url, userData: { name: r.name, category: r.category } })),\n  crawlerType: 'cheerio',  // fast static HTML scraping\n  maxCrawlDepth: 0,  // only the pages we list, no follow\n  maxCrawlPages: rows.length,\n  proxyConfiguration: { useApifyProxy: true },\n  saveMarkdown: true,\n  saveHtml: false,\n  htmlTransformer: 'readableText'\n};\nreturn [{ json: { apifyBody: body, confs: rows } }];\n"
+      },
+      "name": "P2: Build Crawl Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        400
+      ],
+      "id": "4baf32c6-f508-4fe1-ab5d-a8223139a11e"
+    },
+    {
+      "parameters": {
+        "url": "https://api.apify.com/v2/acts/apify~website-content-crawler/runs?waitForFinish=300",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.apifyBody) }}",
+        "options": {}
+      },
+      "name": "P2: Apify Crawl Conference Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2500,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "60cc135d-7afc-4d72-9b53-8e28a0917987"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items?clean=true&format=json",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "name": "P2: Apify Fetch Crawl Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2750,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GZxj5JDIWOwd12jv",
+          "name": "Apify"
+        }
+      },
+      "id": "72d8b99f-9986-4bd7-bb82-4f4db0f1675c"
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-haiku-4-5',\n  max_tokens: 4000,\n  system: 'You extract speaker data from conference speaker pages. Return only a JSON array, no prose, no markdown fences.',\n  messages: [{\n    role: 'user',\n    content: 'From this conference speaker page, extract every named speaker. For each return: name, title, company, session_title (null if not visible), bio_snippet (1 sentence if present else null). Return strictly JSON array like [{name, title, company, session_title, bio_snippet}]. Conference: ' + ($json.userData?.name || 'unknown') + '. Markdown content:\\n' + ($json.markdown || $json.text || '').slice(0, 30000)\n  }]\n}) }}",
+        "options": {}
+      },
+      "name": "P2: Haiku Extract Speakers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        400
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "38bcaccf-c3d4-4718-9870-35ac8d522d5d"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Haiku runs once per conference; flatten nested speaker arrays into one item per speaker\nconst items = $input.all();\nconst confs = $('P2: Apify Fetch Crawl Items').all();\nconst out = [];\nfor (let i = 0; i < items.length; i++) {\n  let speakers = [];\n  try {\n    const text = items[i].json?.content?.[0]?.text || '';\n    const cleaned = text.replace(/^```json\\s*|\\s*```$/g, '').trim();\n    speakers = JSON.parse(cleaned);\n    if (!Array.isArray(speakers)) speakers = [];\n  } catch (e) {\n    console.log('haiku parse err:', e.message);\n    speakers = [];\n  }\n  const conf = confs[i]?.json?.userData || {};\n  for (const s of speakers) {\n    if (!s.name) continue;\n    out.push({ json: {\n      name: s.name,\n      title: s.title || null,\n      company: s.company || null,\n      session_title: s.session_title || null,\n      bio_snippet: s.bio_snippet || null,\n      conference_name: conf.name || null,\n      conference_category: conf.category || null\n    } });\n  }\n}\nreturn out.length > 0 ? out : [{ json: { skipped: true, reason: 'no speakers extracted' } }];\n"
+      },
+      "name": "P2: Flatten Speakers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3250,
+        400
+      ],
+      "id": "078a0d0d-36a7-487c-80f7-1fde6638fb11"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.nova&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        192
+      ],
+      "name": "P1: Load Agent Plan",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "f14d828b-2654-4e7f-8e24-bb47a6056843"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.nova&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        800
+      ],
+      "name": "P2: Load Agent Plan",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "4cf7f371-2f25-43c6-a5cc-5a98a922be72"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.nova&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        1392
+      ],
+      "name": "P3: Load Agent Plan",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "c7a4dad5-d6fe-4c3e-8ec5-f32d32952b22"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"nova\",\n  \"target\": \"Closed-Loop PR Engine\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Run to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        250
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        }
+      },
+      "id": "502ee82e-b87c-40ef-9912-a8e16ff34d89"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.podchaser.com/graphql",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\":\"mutation { requestAccessToken(input:{grant_type: CLIENT_CREDENTIALS, client_id: \\\"a19744b0-8514-46a7-8e53-394d0698a39f\\\", client_secret: \\\"gQNXHndZ32jC3grvUWKFHmQVTpJ755yNAwK4DO4v\\\"}) { access_token } }\"}",
+        "options": {}
+      },
+      "id": "7e8d23be-5d34-4157-b750-2ef4c0390210",
+      "name": "Podchaser: Mint Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1180,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 15 * * 1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        1808
+      ],
+      "name": "Weekly Mon 15:00 UTC (Product PR)",
+      "id": "e09a0cb8-0fc2-455f-ba24-fe657ec2831c"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.nova&select=brief_content",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        490,
+        1808
+      ],
+      "name": "P4: Fetch Nova Brief",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "c603e35e-c04e-4f03-a4fe-8df2dd4db86d"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        740,
+        1808
+      ],
+      "name": "P4: Fetch Voice Rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "91f274fc-8650-41c3-ad89-ad8773dcdbf4"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.nova&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        990,
+        1808
+      ],
+      "name": "P4: Load Agent Plan",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "ab8fb96d-c007-4058-af1b-220b819fe16b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('P4: Fetch Nova Brief').first().json;\nconst voiceRaw = $('P4: Fetch Voice Rules').first().json;\nconst planRaw  = $('P4: Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        1808
+      ],
+      "name": "P4: Build Identity Prepend",
+      "id": "37d3d079-8549-4a4c-9e0d-25e1bfc7ad8b"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?pitch_type=eq.product_data&status=eq.queued&select=*&order=quality_score.desc,relevance_score.desc&limit=3",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1490,
+        1808
+      ],
+      "name": "P4: Fetch Product Data Targets",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "4e4c8e07-3463-41c7-a5da-5c2294488346"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const body = item.json;\n  const rows = Array.isArray(body) ? body : (Array.isArray(body && body.data) ? body.data : []);\n  for (const row of rows) {\n    if (row && row.id) out.push({ json: row });\n  }\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        1808
+      ],
+      "name": "P4: Explode Product Data Targets",
+      "id": "de65b144-ce02-418e-8827-d6708970bc58"
+    },
+    {
+      "parameters": {
+        "url": "={{ ( ($json.contact_email || $json.email) ? (\"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?person_email=eq.\" + encodeURIComponent($json.contact_email || $json.email) + \"&contacted_at=gte.\" + encodeURIComponent(new Date(Date.now() - 7*24*60*60*1000).toISOString()) + \"&select=id\") : (\"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons?person_name=eq.\" + encodeURIComponent($json.title || 'unknown') + \"&contacted_at=gte.\" + encodeURIComponent(new Date(Date.now() - 7*24*60*60*1000).toISOString()) + \"&select=id\") ) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1990,
+        1808
+      ],
+      "name": "P4: Check Contacted Persons",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "c9aabf12-24d4-4433-b369-5ba3fe124d33"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dedupResp = $input.all();\nconst sourceItems = $('P4: Explode Product Data Targets').all();\nconst out = [];\nfor (let i = 0; i < dedupResp.length; i++) {\n  const already = Array.isArray(dedupResp[i].json) && dedupResp[i].json.length > 0;\n  if (!already && sourceItems[i]) {\n    out.push({ json: sourceItems[i].json });\n  }\n}\nreturn out.length ? out : [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        1808
+      ],
+      "name": "P4: Filter Fresh Contacts",
+      "id": "a0e5ed09-e2e4-4f3c-9c8e-2a34d147acea"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"model\":\"claude-sonnet-4-6\",\"max_tokens\":1024,\"system\": $('P4: Build Identity Prepend').first().json.identity_prepend + \"Draft a short pitch email to a newsletter or trade press editor, pitching a REAL data point already published by \" + ($json.product_slug === 'fractionl_pulse' ? 'Fractionl Pulse (the Freelance Wage Index)' : 'CTRL') + \" for use in their coverage. HARD RULE: only reference the exact stat and source url given to you below -- never state a number, quote, or capability that is not in the provided data. If the provided why_relevant field does not contain a specific citable number, do not draft the pitch -- instead return {skip: true, reason: 'no verifiable stat'}. Short, factual, no hype. Include subject line.\",\"messages\":[{\"role\":\"user\",\"content\":\"Pitch title: \"+($json.title||'')+\". Why relevant (must include the real stat + source url): \"+($json.why_relevant||'')+\". Reference URL: \"+($json.event_url||'')+\". Proposed angle: \"+($json.suggested_talk_title||'')}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2490,
+        1808
+      ],
+      "name": "P4: Draft Product Data Pitch",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "852d4678-2c92-44c1-92fa-3bf770bf8de4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {contents: [{parts: [{text: 'Pitch title: ' + ($json.title||'') + '. Why relevant: ' + ($json.why_relevant||'') + '. Reference URL: ' + ($json.event_url||'') + '. Proposed angle: ' + ($json.suggested_talk_title||'')}]}], system_instruction: {parts: [{text: $('P4: Build Identity Prepend').first().json.identity_prepend + \"Draft a short pitch email to a newsletter or trade press editor, pitching a REAL data point already published by \" + ($json.product_slug === 'fractionl_pulse' ? 'Fractionl Pulse (the Freelance Wage Index)' : 'CTRL') + \" for use in their coverage. HARD RULE: only reference the exact stat and source url given to you below -- never state a number, quote, or capability that is not in the provided data. If the provided why_relevant field does not contain a specific citable number, do not draft the pitch -- instead return {\\\"skip\\\": true, \\\"reason\\\": \\\"no verifiable stat\\\"}. Short, factual, no hype. Include subject line.\"}]}, generationConfig: {maxOutputTokens: 2048, responseMimeType: 'application/json'}} }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2490,
+        2008
+      ],
+      "name": "Gemini Fallback: Draft Product Pitch",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "d83b34b1-72e1-43f8-a2da-a761adebd8da"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(it => {\n  const text = it.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  return { json: { ...it.json, content: [{ text }], _source: 'gemini' } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2740,
+        2008
+      ],
+      "name": "Normalize Gemini Product Pitch",
+      "id": "74b4eb30-1f08-4425-9a14-ec41dfed4e54"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2740,
+        1808
+      ],
+      "name": "Merge Product Pitch Results",
+      "id": "5ac86e9a-d78b-4650-b74b-ec31bfefe9cf"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || '';\nlet trimmed = (text || '').trim();\nlet fenced = trimmed;\nif (fenced.startsWith('```')) {\n  fenced = fenced.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\nlet parsed = null;\ntry {\n  const maybe = JSON.parse(fenced);\n  if (maybe && typeof maybe === 'object' && maybe.skip === true) {\n    parsed = maybe;\n  }\n} catch (e) {\n  parsed = null;\n}\nif (parsed) {\n  return [{ json: { skip: true, reason: parsed.reason || 'no verifiable stat', raw_text: text.slice(0, 1000) } }];\n}\nreturn [{ json: { skip: false, content: [{ text }] } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2990,
+        1808
+      ],
+      "name": "P4: Parse Pitch Response",
+      "id": "3d3821ec-1ad8-4211-93f1-c823bea6dc02"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "skip",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3240,
+        1808
+      ],
+      "name": "P4: Gate on Skip",
+      "id": "6c6104ab-eeda-4fd8-9ac8-3a4e5438c25d"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ (($json.content?.[0]?.text || '').match(/Subject:\\s*(.+)/i) || [null, 'Product Data Pitch - Krish Raja'])[1] }}",
+        "emailType": "html",
+        "message": "={{ ($json.content?.[0]?.text || '').replace(/Subject:.*\\n+/i, '').replace(/\\n/g, '<br>') }}",
+        "options": {
+          "sendTo": "={{ $('P4: Filter Fresh Contacts').item.json.contact_email || $('P4: Filter Fresh Contacts').item.json.email || 'no-email-found@example.com' }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3490,
+        1808
+      ],
+      "name": "Gmail: Draft Product Data Pitch",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AFgF8OOuBhYHbiyo",
+          "name": "Gmail"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "10ead5a2-13c7-401f-9f70-91ad54a3a7e7",
+      "webhookId": "5e5a63b2-9eec-4163-85f0-7cefde7efd78"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {person_email: $('P4: Filter Fresh Contacts').item.json.contact_email || $('P4: Filter Fresh Contacts').item.json.email || 'unknown',person_name: $('P4: Filter Fresh Contacts').item.json.title || 'unknown',company: $('P4: Filter Fresh Contacts').item.json.title || '',agent: 'nova',context: 'product data pitch',contacted_at: new Date().toISOString()} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3740,
+        1808
+      ],
+      "name": "P4: Log Contacted",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "0a84403c-9c85-4df1-b39e-ba583d002514"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ \"https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?id=eq.\" + $('P4: Filter Fresh Contacts').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"status\": \"applied\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3990,
+        1808
+      ],
+      "name": "P4: Mark Target Contacted",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "5acef28a-48f1-4b71-abe5-9da238d3a30d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {workflow_id: 'hCbvRXoGWaqG1Znx',workflow_name: 'Nova PR Engine',agent_id: 'nova',run_at: new Date().toISOString(),outcome: 'success',status: 'P4: product data PR',cost_estimate_usd: 0.10,api_calls_count: 9} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4240,
+        1808
+      ],
+      "name": "P4: Heartbeat",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "eeddb110-62c9-4233-8cef-808ab68faeab"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"nova_product_pitch_skip\", \"actor\": \"nova\", \"target\": \"visibility_targets\", \"details\": \"={{ JSON.stringify({ reason: $json.reason, target_id: $('P4: Filter Fresh Contacts').item.json.id, title: $('P4: Filter Fresh Contacts').item.json.title }) }}\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3240,
+        2008
+      ],
+      "name": "P4: Log Skip",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "be19787a-fca9-41dc-8afc-1a8c49cfc163"
+    }
+  ],
+  "connections": {
+    "Weekday 14:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Day Router",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Run to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Day Router": {
+      "main": [
+        [
+          {
+            "node": "Route Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Pipeline": {
+      "main": [
+        [
+          {
+            "node": "P1: Fetch Nova Brief",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "P2: Fetch Nova Brief",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "P3: Fetch Nova Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Fetch Nova Brief": {
+      "main": [
+        [
+          {
+            "node": "P1: Fetch Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Fetch Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "P1: Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Podchaser: Mint Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Podcast Results": {
+      "main": [
+        [
+          {
+            "node": "Top 5 Podcasts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 5 Podcasts": {
+      "main": [
+        [
+          {
+            "node": "Haiku: Filter Podcast Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku: Filter Podcast Quality": {
+      "main": [
+        [
+          {
+            "node": "Merge Filter Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Filter Podcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Filter Podcast": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Filter Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Filter Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Filter Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Filter Results": {
+      "main": [
+        [
+          {
+            "node": "Keep Tier A/B Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Tier A/B Only": {
+      "main": [
+        [
+          {
+            "node": "Top 3 Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 3 Targets": {
+      "main": [
+        [
+          {
+            "node": "Podchaser: Latest Episode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo: Enrich Host Email": {
+      "main": [
+        [
+          {
+            "node": "P1: Check Contacted Persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Check Contacted Persons": {
+      "main": [
+        [
+          {
+            "node": "P1: Filter Fresh Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Filter Fresh Contacts": {
+      "main": [
+        [
+          {
+            "node": "Prepare Pitch Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Pitch Context": {
+      "main": [
+        [
+          {
+            "node": "Sonnet: Draft Podcast Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet: Draft Podcast Pitch": {
+      "main": [
+        [
+          {
+            "node": "Merge Pitch Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Draft Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Draft Pitch": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Pitch": {
+      "main": [
+        [
+          {
+            "node": "Merge Pitch Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Pitch Results": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Draft Podcast Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Draft Podcast Pitch": {
+      "main": [
+        [
+          {
+            "node": "P1: Log Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Log Contacted": {
+      "main": [
+        [
+          {
+            "node": "P1: Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Fetch Nova Brief": {
+      "main": [
+        [
+          {
+            "node": "P2: Fetch Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Fetch Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "P2: Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "P2: Fetch Nova Conferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 10 Speakers": {
+      "main": [
+        [
+          {
+            "node": "Haiku: Filter Speaker Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku: Filter Speaker Quality": {
+      "main": [
+        [
+          {
+            "node": "Merge Speaker Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Filter Speaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Filter Speaker": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Speaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Speaker": {
+      "main": [
+        [
+          {
+            "node": "Merge Speaker Filter",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Speaker Filter": {
+      "main": [
+        [
+          {
+            "node": "Keep High Value Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep High Value Only": {
+      "main": [
+        [
+          {
+            "node": "Top 5 Speaker Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 5 Speaker Targets": {
+      "main": [
+        [
+          {
+            "node": "Apollo: Enrich Speaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo: Enrich Speaker": {
+      "main": [
+        [
+          {
+            "node": "P2: Check Contacted Persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Check Contacted Persons": {
+      "main": [
+        [
+          {
+            "node": "P2: Filter Fresh Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Filter Fresh Contacts": {
+      "main": [
+        [
+          {
+            "node": "Sonnet: Draft Networking Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet: Draft Networking Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Networking Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Networking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Networking": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Networking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Networking": {
+      "main": [
+        [
+          {
+            "node": "Merge Networking Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Networking Results": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Draft Networking Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Draft Networking Message": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Create Networking Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Create Networking Task": {
+      "main": [
+        [
+          {
+            "node": "P2: Log Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Log Contacted": {
+      "main": [
+        [
+          {
+            "node": "P2: Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P3: Fetch Nova Brief": {
+      "main": [
+        [
+          {
+            "node": "P3: Fetch Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P3: Fetch Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "P3: Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P3: Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Fetch Nova Contacts 3-5d",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Fetch Nova Contacts 3-5d": {
+      "main": [
+        [
+          {
+            "node": "Normalize Contact Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Contact Rows": {
+      "main": [
+        [
+          {
+            "node": "Route: Bump or Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Bump or Skip": {
+      "main": [
+        [
+          {
+            "node": "Haiku: Draft Bump Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku: Draft Bump Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Bump Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Bump",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Bump": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Bump",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Bump": {
+      "main": [
+        [
+          {
+            "node": "Merge Bump Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Bump Results": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Draft Bump Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Draft Bump Email": {
+      "main": [
+        [
+          {
+            "node": "P3: Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P3: Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Nova",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podchaser: Search Podcasts": {
+      "main": [
+        [
+          {
+            "node": "Map Podchaser Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podchaser: Latest Episode": {
+      "main": [
+        [
+          {
+            "node": "Map Podchaser Episode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Podchaser Search": {
+      "main": [
+        [
+          {
+            "node": "Split Podcast Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Podchaser Episode": {
+      "main": [
+        [
+          {
+            "node": "Apollo: Enrich Host Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Day Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Fetch Nova Conferences": {
+      "main": [
+        [
+          {
+            "node": "P2: Build Crawl Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Build Crawl Body": {
+      "main": [
+        [
+          {
+            "node": "P2: Apify Crawl Conference Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Apify Crawl Conference Pages": {
+      "main": [
+        [
+          {
+            "node": "P2: Apify Fetch Crawl Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Apify Fetch Crawl Items": {
+      "main": [
+        [
+          {
+            "node": "P2: Haiku Extract Speakers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Haiku Extract Speakers": {
+      "main": [
+        [
+          {
+            "node": "P2: Flatten Speakers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Flatten Speakers": {
+      "main": [
+        [
+          {
+            "node": "Top 10 Speakers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1: Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "P1: Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P2: Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "P2: Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P3: Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "P3: Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podchaser: Mint Token": {
+      "main": [
+        [
+          {
+            "node": "Podchaser: Search Podcasts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Mon 15:00 UTC (Product PR)": {
+      "main": [
+        [
+          {
+            "node": "P4: Fetch Nova Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Fetch Nova Brief": {
+      "main": [
+        [
+          {
+            "node": "P4: Fetch Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Fetch Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "P4: Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "P4: Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "P4: Fetch Product Data Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Fetch Product Data Targets": {
+      "main": [
+        [
+          {
+            "node": "P4: Explode Product Data Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Explode Product Data Targets": {
+      "main": [
+        [
+          {
+            "node": "P4: Check Contacted Persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Check Contacted Persons": {
+      "main": [
+        [
+          {
+            "node": "P4: Filter Fresh Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Filter Fresh Contacts": {
+      "main": [
+        [
+          {
+            "node": "P4: Draft Product Data Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Draft Product Data Pitch": {
+      "main": [
+        [
+          {
+            "node": "Merge Product Pitch Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Fallback: Draft Product Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback: Draft Product Pitch": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Product Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Product Pitch": {
+      "main": [
+        [
+          {
+            "node": "Merge Product Pitch Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Product Pitch Results": {
+      "main": [
+        [
+          {
+            "node": "P4: Parse Pitch Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Parse Pitch Response": {
+      "main": [
+        [
+          {
+            "node": "P4: Gate on Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Gate on Skip": {
+      "main": [
+        [
+          {
+            "node": "P4: Log Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail: Draft Product Data Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Draft Product Data Pitch": {
+      "main": [
+        [
+          {
+            "node": "P4: Log Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Log Contacted": {
+      "main": [
+        [
+          {
+            "node": "P4: Mark Target Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P4: Mark Target Contacted": {
+      "main": [
+        [
+          {
+            "node": "P4: Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveExecutionProgress": true
+  },
+  "staticData": {
+    "node:Weekday 14:00 UTC": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Weekly Mon 15:00 UTC (Product PR)": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

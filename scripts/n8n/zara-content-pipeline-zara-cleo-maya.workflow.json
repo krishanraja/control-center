@@ -1,0 +1,356 @@
+{
+  "name": "Zara | Mindmaker OS | Content Pipeline (Zara Cleo Maya)",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "97554625-5737-4c55-80b1-f38b2a47372a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simplified HTTP call — removed nested fetch wrapper that caused stack overflow\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\nconst res = await this.helpers.httpRequest({\n  method: 'GET',\n  url: SB_URL + '/rest/v1/tasks?agent=eq.zara&status=eq.done&order=updated_at.desc&limit=5',\n  headers: {\n    'apikey': SB_KEY,\n    'Authorization': 'Bearer ' + SB_KEY\n  },\n  json: true,\n  returnFullResponse: false\n});\n\nconst signals = Array.isArray(res) ? res : [];\nif (signals.length === 0) {\n  return [{ json: { signals: [], hasSignals: false } }];\n}\nreturn [{ json: { signals, hasSignals: true } }];\n"
+      },
+      "name": "Zara: Fetch Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "52061f5c-842b-461f-bd2c-1722064242b7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-signals",
+              "leftValue": "={{ $json.hasSignals }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Zara: Check for New Insights",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "2d104f8e-1477-457c-9c4f-e2b4b40ceb38"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZICpbmlXil11qMjs",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZICpbmlXil11qMjs",
+          "cachedResultName": "Cleo | Mindmaker OS | Newsletter Sweep"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "name": "Cleo Newsletter Sweep",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -64
+      ],
+      "id": "97810a2e-a8eb-40f3-bbc4-ed5d96c3238b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return { json: async () => res, ok: true, status: 200 };\n};\n\nconst zaraData = $('Zara: Fetch Signals').first().json;\nconst enrichment = $input.first().json || {};\nconst signals = zaraData.signals || [];\nconst newsletterThemes = Array.isArray(enrichment.newsletter_themes) ? enrichment.newsletter_themes : [];\nconst inspirationNotes = Array.isArray(enrichment.inspiration_notes) ? enrichment.inspiration_notes : [];\n\nconst zaraTopics = signals.map(s => s.title || s.description || '').filter(Boolean);\nconst zaraKeywords = signals.flatMap(s => {\n  const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata || '{}') : (s.metadata || {});\n  return meta.keywords || [];\n});\n\nconst allTopics = zaraTopics.concat(newsletterThemes);\n\nconst brief = {\n  title: 'Content Brief - ' + new Date().toISOString().split('T')[0],\n  trending_topics: zaraTopics,\n  newsletter_themes: newsletterThemes,\n  inspiration_notes: inspirationNotes,\n  keywords: [...new Set(zaraKeywords)],\n  competitor_gaps: signals.filter(s => {\n    const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata || '{}') : (s.metadata || {});\n    return meta.type === 'competitor_gap';\n  }).map(s => s.title || s.description),\n  source_signal_ids: signals.map(s => s.id),\n  enrichment_cost_usd: enrichment.cost_usd || 0,\n  enrichment_api_calls: enrichment.api_calls || 0,\n  generated_at: new Date().toISOString()\n};\n\nconst resp = await fetch('https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks', {\n  method: 'POST',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: JSON.stringify({\n    agent: 'cleo',\n    title: brief.title,\n    description: 'Content brief from ' + signals.length + ' Zara signals + ' + newsletterThemes.length + ' newsletter themes',\n    status: 'done',\n    type: 'content_brief',\n    metadata: JSON.stringify(brief)\n  })\n});\nconst result = await resp.json();\nreturn [{ json: { brief, task: result, newsletter_worthy: allTopics.length >= 2 } }];\n"
+      },
+      "name": "Cleo: Generate Content Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -64
+      ],
+      "id": "232f7384-3e11-4009-88af-207e6a975c41"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return { json: async () => res, ok: true, status: 200 };\n};\nconst brief = $input.first().json.brief;\nconst posts = brief.trending_topics.slice(0, 3).map((topic, i) => {\n  const hashtags = brief.keywords.slice(0, 3).map(k => '#' + k.replace(/\\s+/g, '')).join(' ');\n  return {\n    agent: 'maya',\n    title: 'Social Post: ' + topic.substring(0, 60),\n    description: 'Draft social post about: ' + topic,\n    status: 'pending',\n    type: 'social_post',\n    metadata: JSON.stringify({\n      copy_suggestion: 'New insight from our research: ' + topic + '. ' + hashtags,\n      platform: i === 0 ? 'twitter' : i === 1 ? 'linkedin' : 'instagram',\n      source_brief: brief.title,\n      keywords: brief.keywords.slice(0, 5),\n      scheduled_for: new Date(Date.now() + (i + 1) * 3600000).toISOString()\n    })\n  };\n});\nif (posts.length > 0) {\n  const resp = await fetch('https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks', {\n    method: 'POST',\n    headers: {\n      'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n      'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n      'Content-Type': 'application/json',\n      'Prefer': 'return=representation'\n    },\n    body: JSON.stringify(posts)\n  });\n  const result = await resp.json();\n  return [{ json: { posts_created: posts.length, result, brief_title: brief.title, newsletter_worthy: $input.first().json.newsletter_worthy } }];\n}\nreturn [{ json: { posts_created: 0, brief_title: brief.title, newsletter_worthy: $input.first().json.newsletter_worthy } }];\n"
+      },
+      "name": "Maya: Schedule Social Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -64
+      ],
+      "id": "f8948fec-172a-42d6-9ecb-323c0375d4f2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst fetch = async (url, options = {}) => {\n  const opts = {\n    method: options.method || 'GET',\n    url: url,\n    headers: options.headers || {},\n    json: true,\n    ignoreHttpStatusErrors: true\n  };\n  if (options.body) {\n    opts.body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;\n  }\n  const res = await __httpRequest(opts);\n  return { json: async () => res, ok: true, status: 200 };\n};\nconst data = $input.first().json;\nif (data.newsletter_worthy) {\n  const resp = await fetch('https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks', {\n    method: 'POST',\n    headers: {\n      'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n      'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n      'Content-Type': 'application/json',\n      'Prefer': 'return=representation'\n    },\n    body: JSON.stringify({\n      agent: 'felix',\n      title: 'Newsletter Candidate: ' + data.brief_title,\n      description: 'Content pipeline produced ' + data.posts_created + ' social posts. Review for newsletter inclusion.',\n      status: 'pending',\n      type: 'newsletter_candidate',\n      metadata: JSON.stringify({\n        source: 'content_pipeline',\n        posts_created: data.posts_created,\n        brief_title: data.brief_title,\n        tagged: 'newsletter_candidate'\n      })\n    })\n  });\n  const result = await resp.json();\n  return [{ json: { felix_queued: true, result, posts_created: data.posts_created, brief_title: data.brief_title } }];\n}\nreturn [{ json: { felix_queued: false, posts_created: data.posts_created, brief_title: data.brief_title } }];\n"
+      },
+      "name": "Felix: Queue Newsletter Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        -64
+      ],
+      "id": "10eb09ca-14ab-416c-84c4-69999e5d595b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_id",
+              "value": "={{ $workflow.id }}"
+            },
+            {
+              "name": "workflow_name",
+              "value": "={{ $workflow.name }}"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ JSON.stringify({source: \"n8n_auto_log\", timestamp: new Date().toISOString()}) }}"
+            }
+          ]
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Execution to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1552,
+        -64
+      ],
+      "id": "f2c42ec1-e9ce-4e8d-953c-cba8bb944cf5",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "name": "No New Signals",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        672,
+        128
+      ],
+      "id": "a75fabe4-4411-4fed-b8e7-04f6a29e05d5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"cleo\",\n  \"target\": \"Content Pipeline (Zara Cleo Maya)\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Log Run to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        -150
+      ],
+      "id": "9734eb50-db8b-49b4-82e1-96776daa168e",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Zara: Fetch Signals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Run to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zara: Fetch Signals": {
+      "main": [
+        [
+          {
+            "node": "Zara: Check for New Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zara: Check for New Insights": {
+      "main": [
+        [
+          {
+            "node": "Cleo Newsletter Sweep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleo Newsletter Sweep": {
+      "main": [
+        [
+          {
+            "node": "Cleo: Generate Content Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleo: Generate Content Brief": {
+      "main": [
+        [
+          {
+            "node": "Maya: Schedule Social Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Maya: Schedule Social Posts": {
+      "main": [
+        [
+          {
+            "node": "Felix: Queue Newsletter Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Felix: Queue Newsletter Item": {
+      "main": [
+        [
+          {
+            "node": "Log Execution to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  }
+}

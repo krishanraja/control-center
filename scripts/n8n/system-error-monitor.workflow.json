@@ -1,0 +1,159 @@
+{
+  "name": "System | Mindmaker OS | Error Monitor",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Any Workflow Fails",
+      "type": "n8n-nodes-base.errorTrigger",
+      "parameters": {},
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "id": "a8974da0-f13a-4a4b-b333-1a8f022dc152"
+    },
+    {
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg-field",
+              "name": "msg",
+              "type": "string",
+              "value": "=🚨 Error Monitor: {{ $json.workflow && $json.workflow.name ? $json.workflow.name : 'unknown workflow' }} failed\nError: {{ $json.execution && $json.execution.error && $json.execution.error.message ? $json.execution.error.message : '(no message)' }}\nTime: {{ $now.toISO() }}\n{{ $json.execution && $json.execution.url ? 'Trace: ' + $json.execution.url : 'Dive deeper: https://krishraja10101.app.n8n.cloud' }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ],
+      "id": "f2d4a77c-366b-48f8-8065-4392bec2e2ae"
+    },
+    {
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"chat_id\":\"6773796504\",\"text\":{{ JSON.stringify($json.msg) }}}"
+      },
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "id": "a878b337-3bf8-483b-99ac-61e2b3dc84e8",
+      "disabled": true
+    },
+    {
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $('Any Workflow Fails').first().json.workflow && $('Any Workflow Fails').first().json.workflow.id ? $('Any Workflow Fails').first().json.workflow.id : 'unknown', workflow_name: $('Any Workflow Fails').first().json.workflow && $('Any Workflow Fails').first().json.workflow.name ? $('Any Workflow Fails').first().json.workflow.name : 'unknown', agent_id: 'error_monitor', duration_ms: 0, api_calls: 0, cost_usd: 0, outcome: 'error', outcome_count: 0, quality_score: null, status: 'error', metadata: JSON.stringify({ source: 'error_monitor', execution_id: $('Any Workflow Fails').first().json.execution && $('Any Workflow Fails').first().json.execution.id ? $('Any Workflow Fails').first().json.execution.id : null, execution_url: $('Any Workflow Fails').first().json.execution && $('Any Workflow Fails').first().json.execution.url ? $('Any Workflow Fails').first().json.execution.url : null, error_message: $('Any Workflow Fails').first().json.execution && $('Any Workflow Fails').first().json.execution.error && $('Any Workflow Fails').first().json.execution.error.message ? $('Any Workflow Fails').first().json.execution.error.message : ''}) } }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "2fc19af5-0491-4f21-acfe-168639faa230",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Any Workflow Fails": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null
+}
