@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { getOperatorTz, shiftYmd } from '../_timezone.js'
+import { resolveTz, shiftYmd } from '../_timezone.js'
 import { weekStartIn } from '../_week.js'
 
 // GET /api/goals/history?weeks=8
@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const weeks = Number.isFinite(weeksRaw) ? Math.min(26, Math.max(1, Math.round(weeksRaw))) : 8
 
   try {
-    const tz = await getOperatorTz()
+    const tz = await resolveTz(req)
     const currentWeek = weekStartIn(new Date(), tz)
     const firstWeek = shiftYmd(currentWeek, -7 * (weeks - 1))
 

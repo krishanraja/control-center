@@ -17,7 +17,7 @@ import { ContextHeader } from '../focus/ContextHeader'
 import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { FocusCalibrator } from '../focus/FocusCalibrator'
 import { useFocusRitualOpen, closeFocusRitual } from '../../lib/focusRitual'
-import { isWeekend } from '../../lib/civilDate'
+import { isWeekend, getZone } from '../../lib/civilDate'
 import { SlideOver } from '../shared/SlideOver'
 import {
   createGoal, patchGoal, acceptProposed, rejectProposed,
@@ -572,7 +572,7 @@ function GoalHistory({ open, onClose }: { open: boolean; onClose: () => void }) 
     let alive = true
     void (async () => {
       try {
-        const r = await fetch('/api/goals/history?weeks=8')
+        const r = await fetch(`/api/goals/history?weeks=8&tz=${encodeURIComponent(getZone())}`)
         const j = await r.json()
         if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
         if (alive) setWeeks(j.weeks as HistoryWeek[])

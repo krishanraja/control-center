@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { weekOfLabel, weekStartIn } from '../_week.js'
-import { getOperatorTz, shiftYmd } from '../_timezone.js'
+import { resolveTz, shiftYmd } from '../_timezone.js'
 
 // GET /api/goals/ladder
 //
@@ -48,8 +48,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const err = goalsRes.error || healthRes.error || cfgRes.error
   if (err) return res.status(500).json({ ok: false, error: err.message })
 
-  // The week keys, on the operator's own Monday. week_of below stays a label.
-  const tz = await getOperatorTz()
+  // The week keys, on the operator's own Monday: the zone the browser sent,
+  // or the stored setting for callers with no opinion. week_of stays a label.
+  const tz = await resolveTz(req)
   const now = new Date()
   const currentWeek = weekStartIn(now, tz)
   const previousWeek = shiftYmd(currentWeek, -7)

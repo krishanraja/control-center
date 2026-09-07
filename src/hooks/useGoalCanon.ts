@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { getZone } from '../lib/civilDate'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -63,7 +64,8 @@ async function fetchCanon(): Promise<void> {
   if (inflight) return inflight
   inflight = (async () => {
     try {
-      const r = await fetch(`${API}/api/goals/ladder`, { cache: 'no-cache' })
+      // The week keys come back in the zone this device is in.
+      const r = await fetch(`${API}/api/goals/ladder?tz=${encodeURIComponent(getZone())}`, { cache: 'no-cache' })
       const j = await r.json()
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       const os = (j.by_horizon?.os ?? []) as CanonGoal[]

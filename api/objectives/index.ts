@@ -4,7 +4,7 @@ import { syncNorthStar } from '../_northStar.js'
 import { gateGoal, type Horizon } from '../_goalGate.js'
 import { logGoalChange } from '../_goals.js'
 import { isJob } from '../_mission.js'
-import { getOperatorTz } from '../_timezone.js'
+import { resolveTz } from '../_timezone.js'
 import { targetWeekStartIn } from '../_week.js'
 
 // Objective Layer, Phase 4.
@@ -121,7 +121,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // the objective belongs to the one that starts on Monday. This column is
     // what "is this week set" reads, replacing the touched-this-week guess.
     if (row.horizon === 'weekly') {
-      row.week_start = targetWeekStartIn(new Date(), await getOperatorTz())
+      // The request's zone wins (the browser sends it), the stored setting
+      // is the fallback, the same rule as api/pilot/checkin.ts.
+      row.week_start = targetWeekStartIn(new Date(), await resolveTz(req))
     }
 
     // The gate runs HERE, not only in the editor. /api/goals/gate is a preview

@@ -3,7 +3,7 @@ import { weekOfLabel, targetWeekStartIn } from './_week.js'
 import { supabase } from './_supabase.js'
 import { syncNorthStar } from './_northStar.js'
 import { isJob } from './_mission.js'
-import { getOperatorTz } from './_timezone.js'
+import { resolveTz } from './_timezone.js'
 import { logGoalChange } from './_goals.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // takes its place in this week, linked back through carried_from, so the
       // history shows the same objective set twice and how each week ended.
       if (existing && existing.horizon === 'weekly' && existing.status === 'missed' && body.status === 'active') {
-        const tz = await getOperatorTz()
+        const tz = await resolveTz(req)
         const week = targetWeekStartIn(new Date(), tz)
         const newId = `${String(body.goalId).replace(/@\d{4}-\d{2}-\d{2}$/, '')}@${week}`
         const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : existing.title
