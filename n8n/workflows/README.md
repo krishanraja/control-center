@@ -1,5 +1,13 @@
 # N8N workflow snapshots
 
+> **Historical snapshots (2026-05-25).** The sentence below that names the n8n
+> cloud editor as the canonical state was superseded by
+> [`scripts/n8n/README.md`](../../scripts/n8n/README.md): git is the source of
+> truth, `scripts/n8n/*.workflow.json` are the canonical definitions, and
+> `scripts/n8n/audit.mjs` measures drift. These files stay for diff review,
+> recovery and the record. Banner added 2026-09-07 by the docs steward;
+> see `docs/history/LOG.md`.
+
 Point-in-time exports of n8n workflows the control-center frontend depends on, captured directly from the live n8n instance. The canonical state lives at https://krishraja10101.app.n8n.cloud — these files exist for diff review, recovery, and historical record. They are **not** auto-synced.
 
 Each file is the result of `GET /api/v1/workflows/:id` with the response narrowed to `id, name, active, nodes, connections, settings, triggerCount`. Credential secrets are never included (n8n redacts them).

@@ -3,6 +3,9 @@
 > **Scope.** Single source of truth for terms used across the codebase,
 > the UI, and the documentation. Where a term is defined in detail in
 > another doc, that doc is linked — the entry here is the short form.
+> OS-wide terms (fleet, schema, workflows) also appear in
+> [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md) section 18;
+> where the two disagree, that file wins and this one is stale.
 
 ---
 

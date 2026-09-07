@@ -182,8 +182,53 @@ const LONG_BODY_CHARS = 200
 const MAX_LONG_BODIES = 8
 const MAX_DOC_EXCERPT = 1200
 /** Docs a repo may carry that read as a build log. First present wins, and
- *  only when a commit in the window touched it. */
-export const BUILD_LOG_CANDIDATES = ['docs/LEARNINGS.md', 'docs/BUILD-LOG.md', 'docs/BUILD_LOG.md', 'CHANGELOG.md', 'docs/BUILD-CHRONICLE.md'] as const
+ *  only when a commit in the window touched it. docs/history/LOG.md is the
+ *  docs steward's chronological log (control-center docs/steward/SCHEMA.md):
+ *  NOW.md's dated change bullets roll into it after 30 days. */
+export const BUILD_LOG_CANDIDATES = ['docs/LEARNINGS.md', 'docs/BUILD-LOG.md', 'docs/BUILD_LOG.md', 'docs/history/LOG.md', 'CHANGELOG.md', 'docs/BUILD-CHRONICLE.md'] as const
+
+/** The docs steward's router file at every fleet repo's root. When it exists
+ *  it replaces the README opening as the lens's context: its three sections
+ *  below were written for exactly this reader, and its frontmatter may carry
+ *  a never_publish list the repo knows better than the registry. */
+export const NOW_FILE = 'NOW.md'
+export const NOW_SECTIONS = ['What it is', 'Who it is for and why it matters for Mindmake', 'What changed recently'] as const
+
+export interface NowExcerpt { text: string; never_publish: string[] }
+
+/** Pull the lens-facing sections and the never_publish list out of a NOW.md
+ *  body. Pure, so the guard can exercise it. Unknown shapes degrade to an
+ *  empty excerpt rather than a throw: a malformed NOW.md must not cost the
+ *  repo its week. */
+export function nowExcerpt(text: string): NowExcerpt {
+  const never: string[] = []
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
+  const body = fm ? text.slice(fm[0].length) : text
+  const line = fm ? fm[1].split(/\r?\n/).find(l => /^never_publish:/.test(l.trim())) : undefined
+  if (line) {
+    const inner = line.slice(line.indexOf(':') + 1).trim().replace(/^\[|\]$/g, '')
+    for (const item of inner.split(',')) {
+      const v = item.trim().replace(/^["']|["']$/g, '')
+      if (v) never.push(v)
+    }
+  }
+  const parts: string[] = []
+  for (const chunk of body.split(/\r?\n(?=## )/)) {
+    const heading = (chunk.match(/^## (.+)$/m) || [])[1]?.trim()
+    if (!heading) continue
+    if (NOW_SECTIONS.some(s => heading === s || heading.startsWith(`${s} (`))) parts.push(chunk.trim())
+  }
+  const joined = parts.join('\n\n')
+  return { text: joined.length > MAX_DOC_EXCERPT * 2 ? `${joined.slice(0, MAX_DOC_EXCERPT * 2)}\n...` : joined, never_publish: never }
+}
+
+/** The registry's note plus whatever the repo's NOW.md says must never be
+ *  published. The repo knows its own secrets better than a central list. */
+export function withNeverPublish(product: BuildProduct, extra: string[]): BuildProduct {
+  const items = extra.map(s => s.trim()).filter(Boolean)
+  if (!items.length) return product
+  return { ...product, never_reveal: [product.never_reveal, ...items].filter(Boolean).join('; ') }
+}
 
 function headers(token: string): Record<string, string> {
   return {
@@ -329,13 +374,17 @@ async function fetchFileText(repo: string, token: string, path: string, ref: str
   }
 }
 
-/** README opening plus the first build-log candidate a commit in the window
- *  touched. The README tells the lens what the thing is; the log carries the
- *  dated reasons a writer needs. */
-export async function fetchDocExcerpts(repo: string, token: string, head: string, touchedPaths: string[]): Promise<{ path: string; text: string }[]> {
+/** NOW.md's lens-facing sections when the repo carries one, else the README
+ *  opening; plus the first build-log candidate a commit in the window touched.
+ *  The first tells the lens what the thing is and why Mindmake's buyer should
+ *  care; the log carries the dated reasons a writer needs. */
+export async function fetchDocExcerpts(repo: string, token: string, head: string, touchedPaths: string[], now: NowExcerpt | null = null): Promise<{ path: string; text: string }[]> {
   const out: { path: string; text: string }[] = []
-  const readme = await fetchFileText(repo, token, 'README.md', head).catch(() => null)
-  if (readme) out.push({ path: 'README.md', text: readme.slice(0, 600) })
+  if (now && now.text) out.push({ path: NOW_FILE, text: now.text })
+  else {
+    const readme = await fetchFileText(repo, token, 'README.md', head).catch(() => null)
+    if (readme) out.push({ path: 'README.md', text: readme.slice(0, 600) })
+  }
   const touched = new Set(touchedPaths)
   const log = BUILD_LOG_CANDIDATES.find(p => touched.has(p))
   if (log) {
@@ -362,10 +411,12 @@ export async function fetchRepoWeek(repo: string, author: string, token: string,
   } else if (head) {
     compareUrl = `https://github.com/${key}/commit/${head}`
   }
-  const docs = head ? await fetchDocExcerpts(key, token, head, compare.paths).catch(() => []) : []
+  const nowText = head ? await fetchFileText(key, token, NOW_FILE, head).catch(() => null) : null
+  const now = nowText ? nowExcerpt(nowText) : null
+  const docs = head ? await fetchDocExcerpts(key, token, head, compare.paths, now).catch(() => []) : []
   return {
     repo: key,
-    product: buildProductFor(key),
+    product: withNeverPublish(buildProductFor(key), now?.never_publish ?? []),
     week_ending: weekEnding,
     since,
     until,
