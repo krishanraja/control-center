@@ -8,6 +8,8 @@ dist/
 public/data/_archived/
 .claude/
 test-results/
+# The docs steward's sparse checkout of control-center inside a fleet repo
+.steward/
 
 # Supabase CLI scratch state, never committed
 supabase/.temp/

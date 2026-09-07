@@ -264,6 +264,7 @@ CI (`.github/workflows/ci.yml`) runs `npm ci` + `npm run lint` +
 - [ ] If this changed a tab, PRODUCT.md is updated
 - [ ] If this changed schema, DATABASE.md is updated
 - [ ] If this added a "waiting on Krish" surface, decisions_waiting has a new UNION branch
+- [ ] If this changed what the product is, where it is, or what is live, NOW.md is updated (or leave it to the docs steward, which runs on merge to main and checks NOW.md against the diff)
 ```
 
 ## Testing

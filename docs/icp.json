@@ -1,7 +1,8 @@
 {
-  "version": "v2",
-  "updated": "2026-06-20",
+  "version": "v3",
+  "updated": "2026-09-07",
   "purpose": "Shareable ICP for the mind/make OS fleet. Source/score/route/draft against these lanes. Human doc: docs/ICP.md. Executable: api/_icpScore.ts.",
+  "decision": "ADR-016 (2026-09-06): room_face is the first lane and the door this quarter. Lanes marked parked are still scored for the record but never the best lane and never earn a tag. Weights mirror api/_icpScore.ts; when they disagree, the code is right and this file is stale.",
   "insert_gate": 70,
   "tiers": { "A": 80, "B": 60, "C": 40 },
   "global_guards": {
@@ -19,6 +20,15 @@
   ],
   "lanes": [
     {
+      "tag": "room_face",
+      "primary_venture": "mindmake",
+      "serves": "The room: job 1 of the one swing (docs/plans/one-swing/CHARTER.md)",
+      "who": "A senior leader (CEO, founder, MD, CCO, CRO, GM or equivalent) at a PE or VC backed media, adtech, publishing or data business Krish already knows, quietly behind on what is coming and unable to say so inside their organisation",
+      "who_not": "Anyone whose employer sells AI tools; anyone with no warm path to Krish",
+      "weights": { "seniority_fit": 0.30, "sector_fit": 0.25, "backed_by_pe_vc": 0.15, "warm_path": 0.20, "exposure_to_what_is_coming": 0.10 },
+      "sourcing": "Not an Apollo pull. Candidates come from network tiers 1 and 2 (room_targets, api/room), each with a cited live trigger; the OS drafts, Krish sends."
+    },
+    {
       "tag": "mindmake_buyer",
       "primary_venture": "mindmake",
       "serves": "O-2 consulting revenue",
@@ -35,6 +45,7 @@
     },
     {
       "tag": "fractional_network",
+      "parked": true,
       "primary_venture": "mindmake",
       "serves": "Referral + co-delivery + buyers",
       "who": "Fractional execs / independent advisors who deliver AI work; boutique AI consultancies",
@@ -82,6 +93,7 @@
     },
     {
       "tag": "mm_ctrl_buyer",
+      "parked": true,
       "primary_venture": "mindmake",
       "serves": "CTRL decision-clarity product",
       "who": "Leaders at NON-AI operating companies in decision-heavy traditional industries (manufacturing, construction, healthcare, logistics, distribution, multi-site retail)",
@@ -98,6 +110,7 @@
     },
     {
       "tag": "ecosystem_partner",
+      "parked": true,
       "primary_venture": "mindmake",
       "serves": "Channel / referrals",
       "who": "Startup accelerators, VC platform leads, operator communities who channel many buyers or guests",

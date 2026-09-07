@@ -1,0 +1,158 @@
+# Docs steward: keeps a repo's documentation current and agent-readable.
+#
+# Why this exists: every repo in the fleet had, the day this was built, at
+# least one document that claimed to be current and was not. Three "Current"
+# docs in full-time disagreed on whether the product was launched; mm-ctrl
+# carried sixty unlabelled files from one upload; Pulse's docs were frozen
+# four weeks behind its pipeline. Nothing errored, because nothing read the
+# docs against the code. This workflow does, after every push to main and
+# once a night as a safety net.
+#
+# The procedure is NOT in this file. It is docs/steward/RUNBOOK.md in
+# krishanraja/control-center, versioned and reviewed like code; this workflow
+# only fetches it, runs the deterministic digest before and the deterministic
+# validator after, and lets Claude Code do the reading and writing in between.
+# Change the runbook to change what the steward does.
+#
+# Two ways in:
+#   1. Every other fleet repo calls this as a reusable workflow
+#      (docs/steward/caller-workflow.yml is the template).
+#   2. control-center runs it on itself via the push/schedule/dispatch
+#      triggers below.
+#
+# Loop guard: the steward's push uses the default GITHUB_TOKEN, which GitHub
+# never uses to start another workflow run, and callers also skip any push
+# whose head commit message starts with "docs(steward):".
+
+name: Docs steward
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: "Digest and validate only; Claude does not run and nothing is pushed"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+  push:
+    branches: [main]
+  schedule:
+    # 06:00 Brisbane (AEST, no daylight saving), the nightly safety net for
+    # control-center itself. Callers pick their own minute so eight repos do
+    # not hit the subscription at once.
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Digest and validate only; Claude does not run and nothing is pushed"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: docs-steward-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  steward:
+    # Belt and braces for the self-trigger case; callers carry the same test.
+    if: ${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'docs(steward):') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Require the subscription token
+        # Fail loudly, never silently green. A missing secret is the most
+        # likely first-run failure on a newly enrolled repo.
+        env:
+          HAS_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN is not set. Run 'claude setup-token' locally and add it to this repository's Actions secrets (Settings, Secrets and variables, Actions)."
+            exit 1
+          fi
+
+      - name: Check out this repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out the steward (runbook, schema, fleet, scripts)
+        uses: actions/checkout@v4
+        with:
+          repository: krishanraja/control-center
+          ref: main
+          path: .steward
+          sparse-checkout: |
+            docs/steward
+            scripts/steward
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Record the head before the run
+        id: before
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Digest what changed since the last reconciliation
+        id: digest
+        # Dependency-free node. Reads head from NOW.md, else the fleet's
+        # bootstrap_head, else 30 days. Output goes to the file Claude reads
+        # and to the job summary so a person can read it too.
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          echo "name=$REPO_NAME" >> "$GITHUB_OUTPUT"
+          node .steward/scripts/steward/digest.mjs . --fleet .steward/docs/steward/fleet.json --repo "$REPO_NAME" > .steward/digest.md
+          cat .steward/digest.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate the current state before Claude touches anything
+        # Informational on the way in: a failing validator here is one of the
+        # reasons the steward has work to do. Recorded, never fatal.
+        continue-on-error: true
+        run: node .steward/scripts/steward/validate.mjs . --strict --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+
+      - name: Run the steward
+        if: ${{ !inputs.dry_run }}
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The default token: its pushes never start another workflow run,
+          # which is the loop guard, and no GitHub App needs installing.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            You are the docs steward for the repository checked out in the working directory (${{ github.repository }}).
+            Read .steward/docs/steward/RUNBOOK.md and follow it exactly. It is the authoritative procedure; nothing in this prompt overrides it.
+            Your fleet entry is the object named "${{ steps.digest.outputs.name }}" in .steward/docs/steward/fleet.json. The schema for NOW.md and the history log is .steward/docs/steward/SCHEMA.md.
+            The change digest is already written at .steward/digest.md. The head before this run is ${{ steps.before.outputs.sha }}; pass it as --since to the validator.
+            Nobody is watching this session. Do not ask questions. If a guard fails, use the fallback in the runbook (branch steward/YYYY-MM-DD plus a pull request) and say why in the job summary.
+            Write your report to the file named in the GITHUB_STEP_SUMMARY environment variable, in the shape the runbook's Step 8 gives.
+            Never commit or print a secret. Never touch a file outside the fleet entry's write_allowlist. Never delete a file. Never write an em dash.
+          claude_args: |
+            --max-turns 80
+            --allowedTools "Bash(git:*),Bash(node:*),Bash(npm:*),Bash(pnpm:*),Bash(python3:*),Bash(cat:*),Bash(ls:*),Bash(wc:*),Bash(date:*),Bash(gh:*),Read,Write,Edit,Glob,Grep"
+
+      - name: Validate what is now on main
+        # The hard gate. If Claude pushed something the schema rejects, this
+        # fails the job and GitHub emails the owner. Nothing here rewrites
+        # what was pushed; the next run (or a person) does that.
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git fetch origin main
+          git checkout -q origin/main
+          node .steward/scripts/steward/validate.mjs . --strict --since ${{ steps.before.outputs.sha }} --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+
+      - name: Fail the job if Claude's run failed
+        if: ${{ !inputs.dry_run && steps.claude.outputs.conclusion == 'failure' }}
+        run: |
+          echo "::error::The steward run ended in failure. Read the step log above."
+          exit 1
