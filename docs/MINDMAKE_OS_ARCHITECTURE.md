@@ -25,15 +25,15 @@
 >
 > **A seventh surface exists and has no automated sync: Claude *browser* skills.** After an update Krish copies the skill body there by hand. It is not counted in the six because nothing can verify it. If it is no longer used, delete it rather than leaving an unverifiable copy.
 >
-> **Last reconciled against live state.** **2026-09-06: the OS was made PULL-ONLY and four silent failures were fixed - see section 0b, which supersedes anything below it about notifying Krish.** Telegram push was removed across all six layers that could reach him (57 n8n workflows, the openclaw cron registry, 12 agent templates, Control Center's own API, the VPS root crontab, plus two unreachable archived workflows). The alerts were never stale workflows: n8n ran 2,355 executions in fourteen days and nearly all succeeded, over commercial data frozen since June. Three workflows were retired, six retired-brand workflows archived, and Guest Scout's pitch chain, Agatha's State of Union and Kai's credential-health writer were repaired. **Known constraint: git and n8n cloud are NOT in parity (43 vs 123 workflows, 154 drift items); do not run sync.sh --apply.**
+> **Last reconciled against live state.** **2026-09-07: the OS is PULL-ONLY, Kai is retired, and n8n git/cloud parity is rebuilt - see section 0b, which supersedes anything below it about notifying Krish or about Kai.** Telegram push was removed across all six layers that could reach him (57 n8n workflows, the openclaw cron registry, 12 agent templates, Control Center's own API, the VPS root crontab, and two unreachable archived workflows); 14 cron runs overnight confirmed zero pings, with the only message going to Lauren as intended. The alerts were never stale workflows: n8n ran 2,355 executions in fourteen days and nearly all succeeded, over commercial data frozen since June. **Kai retired**: both its jobs are done by `/api/health/fleet-reconcile` and `/api/health/connections-sweep`, Vercel crons that exist because Kai's approach failed, and nothing read `kai_workflow_snapshots`. **Parity rebuilt**: 154 drift items to 0, `sync.sh --apply` safe again. **107 lost audience contacts recovered** (leads 274 -> 282). Five silent failures fixed, four workflows retired, six retired-brand workflows archived, and Guest Scout's pitch chain, Agatha's State of Union and the credential-health writer repaired.
 >
-> *Prior:* **2026-08-12 (second pass): the fleet is aligned to the live model.** Ten n8n fields carried `{{ }}` without n8n's leading `=` expression marker, so they transmitted template text verbatim. Two hard-errored (`Nell | Guest Confirmed Cascade` sending `eq.{{ $json.guest_id }}` as a literal PostgREST filter); **five failed silently, which is worse** — model calls in Vera, Nova and Nell whose prompts reached the model containing literal `{{ $json.x }}`, producing plausible answers about nothing and never appearing in any failure count. Seven fixed; two live in an archived workflow n8n refuses to update; one (`Maya | Churn`) was fixed earlier the same day. **Warning for the next sweep: a naive search for `{{` without a leading `=` is ~50% false positives**, because n8n JSON bodies legitimately carry the marker on inner values (`"={{ $json.x }}"`) rather than on the outer field. Also removed: Plinth's live revenue paths (`Fetch Stripe Plinth` in the nightly reconciliation, `Webhook plinth` / `Process plinth` in Revenue Intake), verified safe first because Plinth has **zero customers**. Four stale comments asserting Plinth is a live product were annotated. **Content tab restructured** to Built / Paid / Library — see §5.8.
+> *Prior:* **2026-08-12 (second pass): the fleet is aligned to the live model.** Ten n8n fields carried `{{ }}` without n8n's leading `=` expression marker, so they transmitted template text verbatim. Two hard-errored (`Nell | Guest Confirmed Cascade` sending `eq.{{ $json.guest_id }}` as a literal PostgREST filter); **five failed silently, which is worse** - model calls in Vera, Nova and Nell whose prompts reached the model containing literal `{{ $json.x }}`, producing plausible answers about nothing and never appearing in any failure count. Seven fixed; two live in an archived workflow n8n refuses to update; one (`Maya | Churn`) was fixed earlier the same day. **Warning for the next sweep: a naive search for `{{` without a leading `=` is ~50% false positives**, because n8n JSON bodies legitimately carry the marker on inner values (`"={{ $json.x }}"`) rather than on the outer field. Also removed: Plinth's live revenue paths (`Fetch Stripe Plinth` in the nightly reconciliation, `Webhook plinth` / `Process plinth` in Revenue Intake), verified safe first because Plinth has **zero customers**. Four stale comments asserting Plinth is a live product were annotated. **Content tab restructured** to Built / Paid / Library - see §5.8.
 >
 > *Same day, first pass:* **2026-08-12: the fleet was dark for sixteen days and the OS could not see it.** Reconciled directly against the live n8n instance via the public API. The fleet was **10 active of 121 workflows**, not the ~85 this doc claimed; it is now **98 active**. The cause was NOT the execution governor tripping (see §3.4.1) but a heartbeat contract break, and the reason it went unnoticed for sixteen days is that the workflow which WRITES failures was the one failing. Fleet-health signals derived from `workflow_runs` were therefore reporting silence as health. Cadence was retuned before reactivation: four pollers on 15/30-minute intervals projected **12,780 execs/mo against the 10,000 cap**, which would have tripped the governor for real; now ~5,580. Also corrected: the Merciless / OnAlert / Gutted Stripe alerts documented as deactivated on 2026-07-06 were found **active** and have been switched off again, and an archived duplicate (`ZZ ARCHIVED Agatha | Visibility Deep Enrich`) was holding the webhook path its canonical Nova counterpart needed.**
 >
 > *Prior:* **2026-08-11: the portfolio refocus onto Mindmake's publication** (one content venture, two formats Paid + Built; MYMU became the CTRL lead magnet; Builder Economy fully retired; Signal & Noise demoted to a distribution channel). See section 20 for the full entry. The snapshot that follows is from 2026-07-10 and its counts are older than that: treat any number in it as needing a live check.
 >
-> *Prior reconciliation:* 2026-07-10 (portfolio overhaul + Content Engine v2 + coherence waves, PRs #179-#183; prior: n8n workflows + execution budget reconciled against the live instance 2026-07-01; n8n schedules right-sized 2026-06-19; CTRL descriptor 2026-06-17). Snapshot: 12 active production agents (14 tracked; Felix + Hunter retired 2026-07-10) across the executive / growth / ops pods, plus 4 personal-life agents; ~100 n8n workflows (~85 active after the 2026-07-10 unpublishings, steady state slightly below the prior ~7,411 scheduled execs/mo against a **10,000/mo** plan cap - see §3.4.1); n8n→Supabase auth consolidated to one service_role credential + infra/API-usage monitoring rebuilt after a SEV-0 key-leak audit (§3.4.2–3.4.3); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine v2 live on the Content tab (§5.8): as of 2026-08-12 three rooms (Built / Paid / Library) with obligations in an always-visible strip above them; This Week is RETIRED — it promised a weekly horizon the data never kept, and an obligation behind a click is one you can forget. Shifts and the feed now live INSIDE a format so the detector has a thesis to measure against. Previously four rooms (This Week / Shifts / Feed / Library), a weekly brief + 37-shift provenance-labeled register replacing idea-at-a-time triage for news; new tables `weekly_briefs`, `shifts`, `shift_evidence`, `content_decisions`; gated behind `VITE_CONTENT_V2_ENABLED` (ON in prod).** The v2 corpus includes a READ-ONLY cross-project read of mm-ctrl's corroborated `live_headlines_cache` pool (`CTRL_SUPABASE_URL` / `CTRL_SUPABASE_SERVICE_KEY`, project `bkyuxvschuwngtcdhsyg`); the OS never writes to the product DB. **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
+> *Prior reconciliation:* 2026-07-10 (portfolio overhaul + Content Engine v2 + coherence waves, PRs #179-#183; prior: n8n workflows + execution budget reconciled against the live instance 2026-07-01; n8n schedules right-sized 2026-06-19; CTRL descriptor 2026-06-17). Snapshot: 12 active production agents (14 tracked; Felix + Hunter retired 2026-07-10) across the executive / growth / ops pods, plus 4 personal-life agents; ~100 n8n workflows (~85 active after the 2026-07-10 unpublishings, steady state slightly below the prior ~7,411 scheduled execs/mo against a **10,000/mo** plan cap - see §3.4.1); n8n→Supabase auth consolidated to one service_role credential + infra/API-usage monitoring rebuilt after a SEV-0 key-leak audit (§3.4.2–3.4.3); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine v2 live on the Content tab (§5.8): as of 2026-08-12 three rooms (Built / Paid / Library) with obligations in an always-visible strip above them; This Week is RETIRED - it promised a weekly horizon the data never kept, and an obligation behind a click is one you can forget. Shifts and the feed now live INSIDE a format so the detector has a thesis to measure against. Previously four rooms (This Week / Shifts / Feed / Library), a weekly brief + 37-shift provenance-labeled register replacing idea-at-a-time triage for news; new tables `weekly_briefs`, `shifts`, `shift_evidence`, `content_decisions`; gated behind `VITE_CONTENT_V2_ENABLED` (ON in prod).** The v2 corpus includes a READ-ONLY cross-project read of mm-ctrl's corroborated `live_headlines_cache` pool (`CTRL_SUPABASE_URL` / `CTRL_SUPABASE_SERVICE_KEY`, project `bkyuxvschuwngtcdhsyg`); the OS never writes to the product DB. **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
 
 ---
 
@@ -42,7 +42,7 @@
 1. **mind/make OS is a fleet of AI agents that runs Krish Raja's business portfolio** - content + products: Mindmake as missionary vehicle, content channel, and build-lab; builder products (Fractionl, CTRL, Legibility, Full Time); and content brands (Built, Signal & Noise) - so Krish spends his hours on decisions, not admin.
 2. **Supabase is the single source of truth.** Every piece of state - agent identity, sprint plans, tasks, leads, guests, customers, bets, standards, audit log, completeness contracts, silent failures, email drafts, **concept decisions** - lives in one Postgres database (~68 tables). Local JSON for state is banned.
 3. **Agents come in two shapes.** *Claude Code agents* (7 - Agatha, Cleo, Arlo, plus four personal-life agents) run inside OpenClaw on a VPS with workspace files, Telegram bots, and full conversational capability. *N8N workflow agents* (~100 workflows, ~85 active, across 12 active production roles + a Krish-inbox/objective group) run on cron or webhook, do one thing, and write the result back to Supabase.
-4. **The Control Center (`controlcenter.krishraja.com`) is the single pane of glass.** It reads Supabase via Postgres Realtime; Krish's clicks (approve, reject, promote, deep enrich, schedule, kill, **draft email**, **close concept**) write back to Supabase and fire webhooks to the Orchestrator, which routes them to the right agent. The Home tab is the canon — OS goals → this week's objectives → today's 3 on one no-scroll screen (recomposed 2026-08-20) — and the unified `decisions_waiting` view that surfaces every kind of thing currently waiting on Krish anchors **OS → Queue**, with Home carrying only the count.
+4. **The Control Center (`controlcenter.krishraja.com`) is the single pane of glass.** It reads Supabase via Postgres Realtime; Krish's clicks (approve, reject, promote, deep enrich, schedule, kill, **draft email**, **close concept**) write back to Supabase and fire webhooks to the Orchestrator, which routes them to the right agent. The Home tab is the canon - OS goals → this week's objectives → today's 3 on one no-scroll screen (recomposed 2026-08-20) - and the unified `decisions_waiting` view that surfaces every kind of thing currently waiting on Krish anchors **OS → Queue**, with Home carrying only the count.
 5. **The OS learns, self-heals, and remembers its own closures.** Krish's rejections go to `feedback_queue`; Vera groups them into `corrections`; Agatha turns those into edits on `agents.brief_content` or `standards_registry`. The four-tier silent-failure system (completeness contracts → Silent Success Detector → Critical Infrastructure Monitor → Failure Pattern Sweep) catches workflows that fail without errors. **The closure architecture (`concept_decisions` + `concept_id` cascading via `close_concept`) makes Krish's "we're done with this" decisions durable at the *concept* level instead of the row level, so the same closed concept stops resurfacing across rows, generators, and synthesis surfaces.** Same mistake doesn't survive four occurrences; same silent failure doesn't survive a week; **same concept doesn't get closed twice.** The loop also runs forward: Vera clusters repeated wins into proposed skills that, once Krish approves, append to the agent brief, so a good pattern gets crystallized, not only a bad one corrected.
 
 If a section below contradicts this five-sentence model, the model is right and the section is stale. File an issue.
@@ -219,7 +219,8 @@ it.** The `loz` jobs already did this correctly and are the pattern to copy.
 Each ran green for months while doing nothing. They are recorded because the
 *shape* recurs, not because the individual bugs matter.
 
-1. **A PostgREST upsert whose conflict target cannot be inferred.** Kai's
+1. **A PostgREST upsert whose conflict target cannot be inferred.** (Kai was
+   retired 2026-09-07; the bug is recorded because the SHAPE recurs.) Kai's
    `Write Credential Health` had `Prefer: resolution=merge-duplicates` but no
    `on_conflict` query parameter, and the unique constraint was not the primary
    key. Every write returned a duplicate-key error for **fifteen weeks** while
@@ -268,30 +269,51 @@ destination actually moved.
   unauthorised Telegram node. Disabling that node under the pull-only rule
   fixed the workflow as a side effect.
 
-### Standing constraint: git and n8n cloud are NOT in parity
+### git and n8n cloud parity: REBUILT 2026-09-07
 
-`scripts/n8n/` holds **43** workflow snapshots. n8n Cloud has **123**
-workflows, and `audit.mjs` reports **154 drift items**. The README's claim that
-git is the source of truth is currently false in the direction that matters:
-git is not a superset of cloud. **Do not run `sync.sh --apply`** until parity is
-rebuilt; it would overwrite live definitions with stale or missing ones. Every
-n8n change described in this section was therefore made against cloud via the
-REST API.
+Was 43 snapshots against 123 cloud workflows with **154 drift items**, which
+made `sync.sh --apply` a loaded gun. **Now 108 local, 108 live cloud, 0 drift,
+and `--apply` is safe again.**
+
+Most of the drift was never missing workflows. **The audit matches by NAME**,
+and the snapshots had been renamed to "mind/make OS" during the rebrand while
+cloud still said "Mindmaker OS": 29 of the 31 local-only files were that rename.
+Archived workflows are now excluded from both sides, since they cannot execute
+and otherwise reported as permanent `cloud_only` drift forever.
+
+**Every secret anyone ever pasted into a node surfaces in a full export.** The
+placeholder map in `scripts/n8n/secrets.mjs` now carries 14 slots, and
+`check-no-secrets.mts` gained rules for the classes GitHub's push protection
+caught while our own guard passed them: GitHub PATs, a Stripe **restricted
+live** key, Resend, Perplexity, Apify. **A local guard weaker than the remote's
+teaches false confidence.** Distinct secrets get distinct placeholders, or a
+`--apply` swaps one bot or token for another. The real values remain inline in
+the CLOUD workflows; moving them to n8n credentials is the actual fix.
 
 ### Open, and owned by Krish
 
-- **107 audience contacts are wrongly stamped** in the CTRL product DB and need
-  `synced_to_os_at` cleared to replay into `leads`. The OS connection there is
-  read-only by design, which is correct and was not worked around.
-- **Kai marks credentials healthy without live-testing them**, so the table is
-  fresh but still not truthful. It checks that a credential exists, not that it
-  works.
+- ~~107 audience contacts wrongly stamped~~ **RECOVERED 2026-09-07.** The
+  watermark was cleared under a management key and the repaired sync replayed
+  all 107 (`{leads: 107, invalid: 0, retained_for_retry: 0}`). `leads` went
+  274 -> 282: eight leads that had been permanently destroyed now exist, and the
+  newest lead moved from 22 June to current.
+- ~~Kai marks credentials healthy without live-testing them~~ **KAI RETIRED
+  2026-09-07.** Credential truth now comes from
+  `/api/health/connections-sweep`, which sends the cheapest request that proves
+  a key can still be served. **Note the boundary:** it probes the keys VERCEL
+  holds. n8n holds its own credentials separately, and n8n-side rot is caught by
+  `/api/health/fleet-reconcile` instead. Apollo can read `ok` in
+  `service_registry` while n8n gets a 401 from it; both are true.
 - **The Apollo key is dead** (401), and **the Full Time `sk_live_` Stripe key is
   expired**, which is why `System | Stripe Reconciliation | Nightly` fails every
   night. Revenue truth is stale until it is rotated.
-- **Secrets exposed in a session transcript on 2026-09-06 need rotating:** four
-  Telegram bot tokens, a bot token embedded in a Kai node URL, and a
-  `service_role` key hardcoded in the Guest Scout `Prep Supabase Insert` node.
+- **Rotation list, expanded 2026-09-07.** Exporting the fleet to git surfaced
+  every credential ever pasted into a node. All of these are live and inline in
+  cloud: Supabase service-role and anon keys, an n8n API JWT, two Telegram bot
+  tokens, **two GitHub PATs**, a **Stripe restricted LIVE key**, three Resend
+  keys, Anthropic, Perplexity and Apify. Add the Supabase management key and the
+  GitHub PAT found in two local clone `.git/config` files. The Full Time
+  `sk_live_` is **expired**, which is why nightly revenue reconciliation fails.
 
 
 ## 1. Outcomes - what the OS is for
@@ -358,7 +380,7 @@ When a section of this doc describes a workflow, table, or surface, it should be
 | Brave Search | Web search - used by every research-leaning agent and `Agatha | Lead Deep Enrich` |
 | Podchaser | Podcast discovery for guest booking |
 | Perplexity, Exa, PhantomBuster, BuiltWith, NewsAPI, Tranco | Research helpers. NewsAPI also serves Content Engine v2 shift detection; the CTRL `live_headlines_cache` pool (§2.1) is the primary content corpus |
-| Telegram | Per-agent bots (8 distinct accounts) for chat + push |
+| Telegram | Per-agent bots (8 distinct accounts). **Inbound chat only where Krish is concerned** - the OS never pushes to him (§0b). Still sends OUTBOUND for other people: Maa's reminders (`maa` bot) and Lauren's briefings (`loz` bot). |
 | Discord | Open group chat surface for Agatha |
 | Gmail (OAuth) | **Email drafts** - every Draft email action across leads/customers/guests creates a draft in Krish's mailbox via the `Cleo | Email Draft` workflow. **Nothing auto-sends. Krish sends manually.** |
 
@@ -408,7 +430,7 @@ These are the agents the OS itself tracks via `agents.brief_content` (identity) 
 | Agent | Role | Trigger | KPI focus |
 |---|---|---|---|
 | **Arlo** | Technical Ops & Infrastructure | scheduled | System uptime, sync lag, deploy health |
-| **Kai** | Technical Architecture / Integrations | scheduled (6×/day) | Credential health, workflow health, dependency map currency |
+| ~~**Kai**~~ | ~~Technical Architecture / Integrations~~ | **RETIRED 2026-09-07** | Superseded by `/api/health/fleet-reconcile` (workflow health) and `/api/health/connections-sweep` (credential health), both Vercel crons every 6h. Kai was an n8n workflow monitoring n8n, which shares the blind spot it existed to close. |
 | **Leo** | Chief Revenue Officer | scheduled (weekly) | Revenue MTD, runway clarity, 3-venture funnel maps |
 | **Priya** | Product Strategy | scheduled (1×/day) | Per-product health score, weekly rollup |
 | **Vera** | Chief of Staff & Quality | scheduled (2×/day + Fri deep + Sun feedback + Sun failure-pattern + Sun success-induction sweep) | Standards compliance, drift detection, audit closure, skills induced from wins |
@@ -445,7 +467,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Zara** | 3 | Content Pipeline (Zara→Cleo→Maya; interval set to daily 08:00 on 2026-07-01), Layer 1 Signal Inbox, OS - Zara Signal Sweep (Mon–Fri 10:00 EST) |
 | **Maya** | 2 | Closed-Loop Revenue Engine, Customer Acquisition Sweeper. (Churn → Exit Interview **disabled 2026-07-01** - broken; §3.4.1) |
 | **Priya** | 2 | Daily Health Scan, Weekly Product Rollup |
-| **Kai** | 2 | Kai Helper - Slim Workflows Fetch (sub-workflow); Dependency Mapper + Credential Health (`fBgBwoAg0YdkabtU`, every 4h - **re-enabled 2026-07-01**, on probation, no prior execution history) |
+| ~~**Kai**~~ | 0 | **RETIRED AND ARCHIVED 2026-09-07.** Both `Dependency Mapper + Credential Health` (`fBgBwoAg0YdkabtU`) and its `Slim Workflows Fetch` helper are archived. It had returned `issues_detected` 83 consecutive times into a void, and nothing read `kai_workflow_snapshots` (29,320 rows, zero consumers). |
 | **Acquisition** | 3 | **NEW 2026-07-07**: CTRL Capture Intake (webhook `/webhook/ctrl-capture`), CTRL Nurture Scheduler (daily 14:00 UTC; L1 approvals via `send-<id>` tasks), CTRL Unsubscribe (webhook `/webhook/ctrl-unsub`). See §11.5 |
 | **Fleet** | 1 | **NEW** - Attribution & Product-Truth Health (daily 06:15 UTC) |
 | **mind/make OS** | 1 | **NEW** - RE Dossier Engine (Relationship Engine, every 6h) |
@@ -469,11 +491,11 @@ The n8n Cloud plan cap is **10,000 executions/month** (empirically confirmed 202
 Because ~99% of executions are cron/schedule-driven (webhooks measured at ~1%), the monthly total is deterministic from trigger config. Current steady state after the 2026-07-01 reconciliation: **~7,411 scheduled execs/mo** (before the 2026-07-10 unpublishings; steady state now slightly lower) (see the per-workflow budget in the audit workspace). Two layers keep it there:
 
 1. **Budget-by-construction.** The single biggest lever is not adding high-frequency schedules and killing broken high-frequency ones. On 2026-07-01, `Maya | Churn → Exit Interview` (every 30m, 1,440/mo, 100% error - literal `{{ }}` sent to Supabase + `$credentials` in a Code node) and `Sonnet | Task Lever Rater` (every 2h, 360/mo, 100% error - `$credentials` in a Code node) were **disabled** (fix-specs retained), reclaiming ~1,800/mo. The two largest legitimate consumers are `Krish | Inbox Return Detector` (2,880/mo) and `System | Audience Pipeline` (2,910/mo).
-> **2026-08-12 incident, recorded because the wrong conclusion is the easy one.** When the fleet went silent from 27 July, the governor described below was the obvious suspect: the symptom (most workflows inactive, a handful of critical ones still running) is exactly its trip signature. It was not the cause. Toggling `active` stamps `updatedAt`, and exactly ONE workflow was modified on 2026-07-27 — a governor trip would have stamped all of them. The real faults were (a) the `Status Update Receiver` rejecting 100% of traffic because the CLO-002 guard treated agent heartbeats, which legitimately carry no `workflow_id`, as anonymous; and (b) the Orchestrator failing 83% of dispatches with "Workflow is not active and cannot be executed" against sub-workflows that were already off. **The lesson worth keeping: a trip signature and a trip are not the same evidence.** Check `updatedAt` before blaming the governor.
+> **2026-08-12 incident, recorded because the wrong conclusion is the easy one.** When the fleet went silent from 27 July, the governor described below was the obvious suspect: the symptom (most workflows inactive, a handful of critical ones still running) is exactly its trip signature. It was not the cause. Toggling `active` stamps `updatedAt`, and exactly ONE workflow was modified on 2026-07-27 - a governor trip would have stamped all of them. The real faults were (a) the `Status Update Receiver` rejecting 100% of traffic because the CLO-002 guard treated agent heartbeats, which legitimately carry no `workflow_id`, as anonymous; and (b) the Orchestrator failing 83% of dispatches with "Workflow is not active and cannot be executed" against sub-workflows that were already off. **The lesson worth keeping: a trip signature and a trip are not the same evidence.** Check `updatedAt` before blaming the governor.
 >
-> The deeper lesson is about monitoring. `workflow_runs` is the primary fleet-health signal (§4), `silent_failures` is derived from it, and BOTH are written by the fleet. A fleet that stops writing therefore produces a clean board rather than an alarm — a 23% error rate (58 of 250 executions) recorded as perfect silence. `useFleetLiveness` now computes staleness from the ABSENCE of rows, so it survives the recorder dying; a monitor sharing a dependency with the thing it monitors is not a monitor.
+> The deeper lesson is about monitoring. `workflow_runs` is the primary fleet-health signal (§4), `silent_failures` is derived from it, and BOTH are written by the fleet. A fleet that stops writing therefore produces a clean board rather than an alarm - a 23% error rate (58 of 250 executions) recorded as perfect silence. `useFleetLiveness` now computes staleness from the ABSENCE of rows, so it survives the recorder dying; a monitor sharing a dependency with the thing it monitors is not a monitor.
 
-2. **External VPS governor (hard backstop).** A cron on the OpenClaw VPS (`/root/.openclaw/workspace/scripts/n8n-exec-governor.py`, hourly) - outside n8n's own budget so it cannot be starved as the cap approaches - maintains a cumulative per-cycle execution counter (robust to n8n's history-retention pruning) and: **warns** the ops Telegram at 7,000/cycle (or projected ≥ 9,500), and **trips** at 8,000/cycle by deactivating every active workflow *not* in a critical whitelist (Stripe/Approval/Error-Monitor/Orchestrator/Control-Center-Sync/Status-Receiver/Critical-Infra-Monitor). Re-arms on cycle rollover.
+2. **External VPS governor (hard backstop).** A cron on the OpenClaw VPS (`/root/.openclaw/workspace/scripts/n8n-exec-governor.py`, hourly) - outside n8n's own budget so it cannot be starved as the cap approaches - maintains a cumulative per-cycle execution counter (robust to n8n's history-retention pruning) and: **warns** into `/var/log/os-pull-only-alerts.log` at 7,000/cycle (or projected ≥ 9,500; it warned the ops Telegram until 2026-09-06), and **trips** at 8,000/cycle by deactivating every active workflow *not* in a critical whitelist (Stripe/Approval/Error-Monitor/Orchestrator/Control-Center-Sync/Status-Receiver/Critical-Infra-Monitor). Re-arms on cycle rollover.
 
 **Monitor migration (the "permanent fix").** The zero-AI `Critical Infrastructure Monitor` (POST Supabase RPC `audit_critical_infra` → Telegram on failures) is ported to a free VPS cron (`critical-infra-monitor.py`, `*/5`), giving real 5-minute coverage at zero n8n cost. **Deployed + the n8n copy retired 2026-07-01.** Both governor and monitor live under `/root/.openclaw/workspace/scripts/` and are wired into the root crontab (governor hourly, monitor `*/5`).
 
@@ -699,7 +721,7 @@ Every Mindmake property feeds one audience list, and that list flows into the Co
 |---|---|---|
 | **Home** | The canon, one no-scroll screen (2026-08-20 recompose): CriticalAlertBanner → **VitalsLine** (MRR · ships + Log · waiting count → OS Queue) → DueTestsCard → **GoalLadder** (the one goal editor, two rungs: OS goals → this week's objectives; writes via `src/lib/goalsApi.ts`) → **TodayList** (today's 3 from `daily_focus`, done toggles) → **CanonCta** (the ONE contextual ask → Focus Ritual, two steps: weekly → daily). Everything else moved: ruling queue to OS → Queue, growth scoreboard to Growth → Signals, retro to Growth → Council, bets to OS → Intel; the ambient fold retired. | `goals`, `daily_focus`, `ships`, `worries`, `silent_failures`, `decisions_waiting` (count only), Stripe revenue |
 | **Today** (retired) | Folded away 2026-08-20: the typed ruling queue (Approve / Send back / Defer via `/api/tasks/update`, stale + backburner folds) lives whole on **OS → Queue**; `#/today` ruling deep links alias there, a bare `#/today` aliases to Home. | `tasks` (via `decisions_waiting`) |
-| **Content** | **Content Engine v2 (§5.8), behind `VITE_CONTENT_V2_ENABLED` (ON in prod):** rooms **Built / Paid / Library** (each lane room composes its brief queue, shifts register and feed; evolved 2026-08 from the spec's This Week / Shifts / Feed / Library set — current-shape note in `CONTENT-ENGINE-V2-SPEC.md` §5), plus on mobile a leading **Queue** view: the finite decision deck. The Composer/BriefEditor opens both ideas and the week's brief. The v1 mode-switched triage-deck/lane surface (§5.7) is superseded for news content; the Composer, Five Standards, and voice guardrails it describes still power the brief editor rail and non-news idea work. | `weekly_briefs`, `shifts`, `shift_evidence`, `content_decisions`, `content_ideas` |
+| **Content** | **Content Engine v2 (§5.8), behind `VITE_CONTENT_V2_ENABLED` (ON in prod):** rooms **Built / Paid / Library** (each lane room composes its brief queue, shifts register and feed; evolved 2026-08 from the spec's This Week / Shifts / Feed / Library set - current-shape note in `CONTENT-ENGINE-V2-SPEC.md` §5), plus on mobile a leading **Queue** view: the finite decision deck. The Composer/BriefEditor opens both ideas and the week's brief. The v1 mode-switched triage-deck/lane surface (§5.7) is superseded for news content; the Composer, Five Standards, and voice guardrails it describes still power the brief editor rail and non-news idea work. | `weekly_briefs`, `shifts`, `shift_evidence`, `content_decisions`, `content_ideas` |
 | **Growth** | ONE tab, five sections in the order of the weekly loop (merged 2026-08-04 from the old `acquisition` deck + `growth` map pair; `#/acquisition` still resolves here, landing on Governance). **Map** the spine: per product, inline-editable `coverage_status` + `cost_efficiency_score`, add/retire, `assumption_flag` rendered as an answerable open question, plus a channel-accounts strip. **Work** the Higgsfield kanban: brief / script / producing / produced / posted, drag or arrow moves, script + shot notes + asset/posted URLs on the card, weekly 3 to 5 batch cap counted from `batch_week`. **Signals** one measurement surface: GEO probe results grouped by product with the citation rate as the headline number, plus Maya's SEO rank sweep underneath it (cross-lane, priority then volume, each row labelled with its lane). **Council** weekly reviews newest first with findings / kill list / double down, Krish records `krish_decision`. **Governance** the per-lane control plane behind one lane selector: profit governor (cost stack vs attributed MRR, CAC/LTV, burn bar, pause/resume, budget editor), autonomy ladder (L1/L2/L3 with the mechanical 422 criteria checklist), direction studio (author, preview, lock, roll back), tool registry with cost and gating; churn win-backs appear only when the queue is non-empty. Every section shows an honest empty state; `growth_creative_queue` is empty today and Work says so. | `growth_touchpoints`, `growth_creative_queue`, `growth_council_reviews`, `growth_geo_probes`, `growth_social_accounts`, `maya_striking_distance`, plus the service-role control plane (`venture_registry`, `lane_economics`, `lane_autonomy_stats`, `lane_directions`, `growth_integrations`) via `/api/acquisition/*` |
 | **Leads (Services)** | Per-venture lanes (mindmake / signal_noise / builder_economy) with LeadCards: Promote / Reassign / Schedule follow-up / Deep enrich / **Draft email** / **Close concept**. Renders audience leads with an Audience source pill, capture-source chips, and a Churned badge (see §4.11). "Draft email" opens an outreach sheet (angle / venture / tone). Lands in the bounded triage deck when a queue waits (wave 2). | `leads`, `venture_registry` |
 | **Network** | Relationship engine over `contacts` (predictive score + venture segmentation); lands in the bounded triage deck when a queue waits (wave 2), each card carrying a suggestedMove chip; power-mode bulk actions. | `contacts` |
@@ -792,7 +814,7 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 
 ### 5.6 The Focus System - one spine from objective to today
 
-**Strategic intent.** Before this, "what should I do?" was answered by five overlapping Home surfaces, and the daily `top_three` always elevated atomic tasks, so multi-week objectives never won daily airtime. The Focus System makes one spine run from the canon down to the work on every tab — and since the 2026-08-20 recompose that spine is exactly three layers: **OS GOAL → WEEKLY OBJECTIVE (≤3, each serving an OS goal) → TODAY'S 3** → every tab's list. One sitting a week sets the weekly objectives (directly — the milestone/slate machinery is retired); one commitment a day picks the 3; everything else reorganizes behind those two choices. The whole canon (all three layers) rides `api/_goals.ts` into every reasoning path. It is engineered around behavioral psychology (fresh-start effect, peak-end, implementation intentions, commitment-and-consistency, goal-gradient, Zeigarnik, Hick's law, loss aversion) and information retention.
+**Strategic intent.** Before this, "what should I do?" was answered by five overlapping Home surfaces, and the daily `top_three` always elevated atomic tasks, so multi-week objectives never won daily airtime. The Focus System makes one spine run from the canon down to the work on every tab - and since the 2026-08-20 recompose that spine is exactly three layers: **OS GOAL → WEEKLY OBJECTIVE (≤3, each serving an OS goal) → TODAY'S 3** → every tab's list. One sitting a week sets the weekly objectives (directly - the milestone/slate machinery is retired); one commitment a day picks the 3; everything else reorganizes behind those two choices. The whole canon (all three layers) rides `api/_goals.ts` into every reasoning path. It is engineered around behavioral psychology (fresh-start effect, peak-end, implementation intentions, commitment-and-consistency, goal-gradient, Zeigarnik, Hick's law, loss aversion) and information retention.
 
 **Surface 1: the daily spine (`DailyDriver`, `src/components/focus/`).** One orchestrator that derives a phase from `daily_focus.status` and renders exactly one thing at a time, replacing NextActionStrip + FocusBar + FocusCalibrator + TopThreeCards + the brief banner:
 - `context` (no row): `ContextHeader` shows a three-line frame from the brief (one_bet / one_customer / one_anti_action) to prime the pick.
@@ -939,14 +961,14 @@ Every Claude Code agent session follows the same wake protocol (`/root/.openclaw
 
 ### 7.1 Session wake, step by step
 
-**Step 0 - Identity resolution.** Determine `MY_AGENT_ID` from `$AGENT_ID` env or `.agent-id` in workspace root. **Hard fail** + Telegram-Krish if neither resolves.
+**Step 0 - Identity resolution.** Determine `MY_AGENT_ID` from `$AGENT_ID` env or `.agent-id` in workspace root. **Hard fail** and write the failure to the agent-reports file if neither resolves. (Was "the agent-reports file"; the OS is pull-only since 2026-09-06.)
 
 **Step 1 - Load Identity (static).**
 1. `IDENTITY.md`
 2. `ORG.md`
 3. `/root/.openclaw/skills/agent-${MY_AGENT_ID}/SKILL.md` (rendered from `agents.brief_content`)
 
-Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `render-identity.py`".
+Hard fail if SKILL.md missing → record in agent-reports: "brief not rendered, run `render-identity.py`". (Was a Telegram push; pull-only since 2026-09-06.)
 
 **Step 2 - Load Standards.**
 4. `hot/standards-digest.md` (rendered nightly from `standards_registry`)
@@ -955,7 +977,7 @@ Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `rend
 5. Supabase `agent_plans` row for `MY_AGENT_ID` (via `supabase-tools.py`)
 6. `active/${MY_AGENT_ID}-action.md` (rendered from the agent's Action Doc)
 
-**Graduated stale handling.** If `agent_plans.last_rendered_at > 72h`, enter READ-ONLY mode - reads/research OK, sends/commits/Supabase-writes blocked. Telegram-Krish: "off-sprint, plan render stale ({age})". The `Agatha Weekly Plan Refresh` workflow (Mon 09:00 UTC) keeps every plan inside the 72h window in normal operation.
+**Graduated stale handling.** If `agent_plans.last_rendered_at > 72h`, enter READ-ONLY mode - reads/research OK, sends/commits/Supabase-writes blocked. the agent-reports file: "off-sprint, plan render stale ({age})". The `Agatha Weekly Plan Refresh` workflow (Mon 09:00 UTC) keeps every plan inside the 72h window in normal operation.
 
 **Step 3b: Load Krish's portfolio objective.** If `agent_plans.weekly_goal_id` is non-null, load the corresponding `goals` row (the parent portfolio objective) plus any `goal_agent_contributions` rows where `agent_id = MY_AGENT_ID`. Present them in the loaded context as "Krish's portfolio objective you serve: {title} (venture, status, priority, target_horizon). Your contribution: {note}". The agent's own `agent_plans.objective` (from Step 3) is the slice of work the agent contributes to the visible portfolio objective. If `weekly_goal_id` is null, the agent has no portfolio parent yet and acts on its `agent_plans.objective` alone; clusters of unparented tasks should be surfaced to Marcus for objective nomination.
 
@@ -1189,7 +1211,7 @@ Stripe fires an event (checkout.session.completed, invoice.payment_succeeded, ..
           system_config.stripe_webhook_signing_secrets carries the product's whsec;
           forged events are REJECTED with an audit_log stripe-signature-invalid entry;
           until secrets land, events process flagged unverified)
-            ├─ Telegram alert
+            ├─ record to agent-reports (Telegram removed 2026-09-06)
             ├─ Log to workflow_runs (outcome carries path:type:verified-state)
             ├─ Lookup Attribution (recent leads by email)
             └─ Supabase: Upsert Customer → customers table
@@ -1250,7 +1272,7 @@ Zara | Signal Sweep  →  zara_signals + warm/zara-signals/latest.json
     → Zara | Content Pipeline picks top signal
         → Cleo | Omnichannel Content Factory produces drafts
             OR Cleo | Content Idea Capture (Cmd+I from Control Center)
-            → Agatha | Content Angle Approval → Telegram to Krish
+            → Agatha | Content Angle Approval → decisions_waiting (no push)
                 → Krish approves
                     → Krish Approval Callback
                         → Cleo | LinkedIn Distribution
@@ -1266,7 +1288,7 @@ Content Composer (Content tab - full-screen, one piece; §5.7)
     → review · refine · Cleo chat · attach materials (meta.materials)
         → Save Draft  →  /api/content-ideas/:id/save-draft
             → Omnichannel Content Factory (krish_approved gate)
-                → Google Doc in channel Drive folder + Telegram (@krish_approvals_bot)
+                → Google Doc in channel Drive folder (Telegram removed 2026-09-06)
                     → content_ideas.state = review   (Krish stays the publish gate)
 ```
 
@@ -1399,7 +1421,7 @@ Lock today's 3 → POST /api/daily-focus/calibrate { date, targets[3] }
             → Sonnet 4.6 via /api/internal/sonnet-proxy assigns
               <table:id> → { target: 1|2|3|null, score: 0.0-1.0 }
             → PATCH daily_focus.relevance_index, status='calibrated', calibrated_at
-            → workflow_runs heartbeat + Telegram lane sizes
+            → workflow_runs heartbeat + lane sizes (no push)
     → client gets { ok, row_id, webhook_ok }
 
 useFocusFiltered(rows, table) → lane-tags any list
@@ -1426,7 +1448,7 @@ Drop a task → POST /api/tasks-inbox { raw_text, source }
               { task_type, primary_agent, target_table, first_action,
                 expected_completion_state, needs_clarification[],
                 suggested_concept_id, confidence }
-            → status='needs_clarification' → Telegram-Krish questions
+            → status='needs_clarification' → decisions_waiting (no push)
             → status='routing' → fire /webhook/idea-route
                 → Krish | mind/make OS | Inbox Router (GVnJkvJm9vmLG4Jp)
                     → INSERT into one of tasks / leads /
@@ -1449,7 +1471,7 @@ VPS crontab 08:00 UTC daily → /root/.openclaw/cron/inbox-decay.sh
           captured > 14d ago, archive_reason='auto_decay_14d'
 
 Krish | mind/make OS | Inbox Digest (tDkmZl2oLU43BHkm)
-    Sun 17:00 UTC → GET /api/tasks-inbox/digest → Telegram-Krish
+    Sun 17:00 UTC → GET /api/tasks-inbox/digest → read in Control Center (no push)
 ```
 
 Carrier files: `supabase/migrations/20260527200000_tasks_inbox_phase2.sql` (table + decay RPC + decisions_waiting 7-branch extension), `api/tasks-inbox/*` (5 routes), `scripts/n8n/krish-inbox-{classifier,router,return-detector,digest}.workflow.json`, `src/components/inbox/{IdeaCaptureModal,IdeaCaptureFAB}.tsx`, `/root/.openclaw/cron/inbox-decay.sh`.
@@ -1471,7 +1493,7 @@ TIER 1 (real-time, per-workflow):
        OR missing expected_columns
        OR freshness_window violated
        → insert silent_failures row with tier=1, severity, evidence
-       → Telegram-Krish if severity='critical'
+       → decisions_waiting + CriticalAlertBanner if severity='critical' (no push)
 
 TIER 2 (4-hour cadence):
     Silent Success Detector (system workflow)
@@ -1570,7 +1592,7 @@ The four-tier system above watches *workflow outputs*. A complementary determini
 - **Evidence.** Writes `audits/os-diagnostics/latest.{md,json}` every run; `status` ∈ `OK` / `ATTENTION` / `URGENT`.
 - **Escalation, not silent repair.** A heavyweight cross-system `CRITICAL` writes an **Urgent Claude Code CLI Repair Alert** to `hot/urgent-claude-code-repair-alerts/` carrying a full Claude-CLI prompt, evidence, constraints, and validation gates. Resolved alerts move to that folder's `resolved/` subdir with a resolution banner. A *stale* diagnostic snapshot is not truth - every finding must be re-verified against live state before any action.
 - **Sentinels.** Root crontab runs `--mode quick` every 30 min (`>> /var/log/os-autonomous-diagnostics.log`, suffixed `|| true` so a diagnostic fault can never wedge cron). OpenClaw job **Arlo Autonomous OS Diagnostics Sentinel** (`3cd5afa9-13cd-4a59-8383-cff50195cc0a`) runs every 6h, silent unless an urgent alert is generated.
-- **Ownership.** Arlo owns mechanical liveness (paths/crons/process/git/sync evidence); Kai owns integration viability (credentials, webhook reachability, N8N/Supabase/Vercel); Vera owns semantic correctness and silent-success detection.
+- **Ownership.** Arlo owns mechanical liveness (paths/crons/process/git/sync evidence); **integration viability is no longer an agent** - `/api/health/connections-sweep` live-probes every keyed vendor and `/api/health/fleet-reconcile` asks n8n what actually happened, both Vercel crons every 6h (Kai retired 2026-09-07); Vera owns semantic correctness and silent-success detection.
 
 ### 8.8.7 Vera gap closure loop (detection → owned task → escalation)
 
@@ -1621,7 +1643,7 @@ Cron (Mon 11:55 ET / Wed+Fri 07:00 ET / Sun 11:55 ET deep)
            - Deterministic fetch of customer_contacts (7d) → customer_voice
            - Upsert home_intelligence (id='current')
            - If deep mode: also write marcus_synthesis row
-           - Always: Telegram Notify + Log Run to Supabase
+           - Always: Log Run to Supabase (Telegram Notify removed 2026-09-06)
 
 Marcus | Daily Brief 06:30 (weekdays)
     → home_intelligence.daily_brief + daily_brief_at
@@ -1707,7 +1729,7 @@ These spawn isolated Claude Code agent sessions. They cost real LLM tokens. Used
 | Cadence | Job | What it does |
 |---|---|---|
 | `30 11 * * 1-5 ET` | oauth-refresh | Google OAuth token rotation |
-| `0 9 * * 1-5 ET` | agatha-state-of-union | Daily SOTU into Telegram |
+| `0 9 * * 1-5 ET` | agatha-state-of-union | Daily SOTU written for Control Center (Telegram delivery removed 2026-09-06) |
 | `0 9,13,17 * * 1-5 ET` | gmail-monitor | Inbox triage |
 | `0 14 * * * ET` | system-health | Infrastructure health pulse |
 | `0 3 * * * ET` | context-archiver, workspace_maintenance | Nightly cleanup |
@@ -1743,7 +1765,7 @@ These run shell scripts and Python that never call an LLM. Cheapest possible cad
 
 ### 9.3 N8N cron (inside each workflow)
 
-N8N workflows carry their own `cron` / `schedule` nodes. **Live count as of 2026-08-12: 121 workflows, 98 active** (verified against the n8n public API, not inferred). Projected steady state is **~5,580 scheduled executions/month** against the 10,000 cap, after the 2026-08-12 cadence retune: `Inbox Return Detector` 15m→1h, `Audience Pipeline` 15m→2h, `Send Dispatcher` 15m→30m (kept responsive because it paces real outbound), `HARO Ingestion` 30m→2h. Left as-is, those four alone were 10,080/mo, i.e. the entire budget for four workflows. See `workflow_runs` for the live cadence and §3.4.1 for execution-budget governance; Kai's Dependency Mapper rolls it up.
+N8N workflows carry their own `cron` / `schedule` nodes. **Live count as of 2026-09-07: 123 workflows total, 108 live and 87 active, 15 archived** (verified against the n8n public API, not inferred). Projected steady state is **~5,580 scheduled executions/month** against the 10,000 cap, after the 2026-08-12 cadence retune: `Inbox Return Detector` 15m→1h, `Audience Pipeline` 15m→2h, `Send Dispatcher` 15m→30m (kept responsive because it paces real outbound), `HARO Ingestion` 30m→2h. Left as-is, those four alone were 10,080/mo, i.e. the entire budget for four workflows. See `workflow_runs` for the live cadence and §3.4.1 for execution-budget governance; Kai's Dependency Mapper rolls it up.
 
 Notable scheduled workflows:
 
@@ -1888,7 +1910,7 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 
 **Standards:** **ATTR-001** (every fleet app link carries `utm_source/medium/campaign/content/term` + `agent` + `campaign_id`) and **PRODTRUTH-001** (fetch product-truth at runtime; honor capability + voice guardrails). Both active in `standards_registry`.
 
-**Monitoring:** `Fleet | Attribution & Product-Truth Health` (n8n `Zz0nvhXNELQH0zFy`, daily 06:15 UTC) probes the three live product-truth surfaces (Circle, Pulse, CTRL) and Telegram-alerts ops if any goes down; Legibility and Full Time join the probe list when they publish product-truth endpoints. `attribution_app_health` surfaces per-app emit freshness.
+**Monitoring:** `Fleet | Attribution & Product-Truth Health` (n8n `Zz0nvhXNELQH0zFy`, daily 06:15 UTC) probes the three live product-truth surfaces (Circle, Pulse, CTRL) and records a failure if any goes down (its Telegram node was disabled 2026-09-06; the OS is pull-only); Legibility and Full Time join the probe list when they publish product-truth endpoints. `attribution_app_health` surfaces per-app emit freshness.
 
 **Outcome trace.** Moves O-2 (revenue - now attributed per app/campaign), O-3 (one person running 15-30), O-7 (decision lag - Maya/Leo act on attributed signal, not guesswork).
 
@@ -1900,7 +1922,7 @@ The autonomous customer-acquisition layer. Doctrine is canonical in `acquisition
 
 - **One engine, five lanes.** Pipeline `SENSE → QUALIFY → ENRICH → ENGAGE → CONVERT → LEARN` as a Supabase state machine over the existing `leads` / `customers` / `venture_registry` tables. Lanes = the `venture_registry` rows `mm_ctrl` (B2C launch lane), `fractionl_pulse` (B2B lane, gated on a demand test: 3+ qualified meetings in 4 weeks or Gate 1 kill/reposition), `legibility` (dev-first, agent-first: waitlist + llms.txt/MCP discovery, no outbound engine), `full_time` (employers are the buyers; Agatha's existing pipeline is the reference implementation), `fractionl_circle` (parked).
 - **v1.1 rulings (Krish, Gate 1, 2026-07-06):** no cold email in v1 and no new motion may require Krish's personal brand; product brands sell (product-brand senders, product-data PR, product surfaces); Krish's personal earned media (podcasts via Nova, his content voice) keeps running unchanged as a bonus channel, never a dependency. Everything is additive: no current functionality retires except products Krish explicitly kills. Instantly senders stay paused by design. Paid tests: $500/month total cap (Gate 4), 2-week cells with kill rules, and spend starts only after revenue is flowing through owned/earned channels.
-- **Four gates, one surface.** Strategy / Voice / Named-accounts+warm-network / Money+public-surface approvals all route through `decisions_waiting` (+ Telegram bridge). **SHIPPED 2026-07-16:** the two acquisition kinds are live in view v4 - `sequence_approval` (typed ruling over `acquisition_sequences`, amendable in the Growth tab's Sequence Review sheet before approval) and `send_sample` (queue kind over queued `acquisition_sends`, batch-approved in the Send Approval Deck); the legacy `send-{id}` task rows are view-excluded while their send is queued so nothing double-surfaces.
+- **Four gates, one surface.** Strategy / Voice / Named-accounts+warm-network / Money+public-surface approvals all route through `decisions_waiting` (the Telegram bridge was removed 2026-09-06; Krish reads the queue). **SHIPPED 2026-07-16:** the two acquisition kinds are live in view v4 - `sequence_approval` (typed ruling over `acquisition_sequences`, amendable in the Growth tab's Sequence Review sheet before approval) and `send_sample` (queue kind over queued `acquisition_sends`, batch-approved in the Send Approval Deck); the legacy `send-{id}` task rows are view-excluded while their send is queued so nothing double-surfaces.
 - **Autonomy ladder.** Per-lane L1 (every send approved) → L2 (1-in-10 sampled) → L3 (exception-only), graduation mechanical on rejection rates, Vera's weekly audit owns demotion. All lanes start L1. **SHIPPED 2026-07-16:** the cockpit is live on the Growth tab - `lane_autonomy_stats` view computes the windows; promote runs mechanical gates server-side (L1→L2: ≥20 approved/30d + <5% rejection; L2→L3: ≥50 + <2% + 14d tenure) returning a 422 criteria checklist; `force` overrides volume gates only; **the profit gate (contribution margin > $0, `lane_economics`) can never be overridden**; demote is always one tap.
 - **Profit Governor (2026-07-16).** Per-lane P&L (`lane_economics`: workflow_runs cost via `acquisition_lane_workflows` map + lane-tagged `api_call_log` + `lane_costs` amortization + ad spend vs attributed MRR; unclaimed cost surfaced in `acquisition_unattributed_costs`, never hidden). Budgets in `system_config.acquisition_budgets`; a 6h Vercel cron warns at 80% burn (task) and at 100% trips the breaker - deactivates the lane's mapped n8n workflows (never the Unsubscribe workflow, never the exec-governor whitelist), records `acquisition_paused_lanes`, and resume is Krish-only. Paid budgets require attributed revenue first (Gate 4) and cap at $500/mo across all lanes.
 - **Per-lane voice (2026-07-16).** `venture_registry.voice_profile` ({sender, mailbox, voice, icp, strategy, channels, never_say}) seeded for all 5 lanes and read by every copy-producing path (reply drafts, win-backs, sequence proposals, scheduler personalization per the sampling patch). Standing rule hardened: **no motion may require Krish's personal brand in public** - all senders are product mailboxes, every lane's never_say includes personal-brand references.
@@ -1943,7 +1965,7 @@ Traces to O-2 (revenue), O-3 (one person running 15-30), O-6 (nothing external w
 
 | Symptom | First place to look | Healer |
 |---|---|---|
-| Workflow silently stops firing | `workflow_runs` (per-workflow last entry) | Workflow Monitor (6h) + Kai (4h) |
+| Workflow silently stops firing | `workflow_runs` (per-workflow last entry) | Workflow Monitor (6h) + `/api/health/fleet-reconcile` (6h, Vercel) |
 | Workflow runs but produces no output | `silent_failures` (tier 1 or 2) | Tier 1 completeness gate + Silent Success Detector (8h) |
 | Credential expired / RLS denying writes | `silent_failures` (tier 3), `credential_health` | Critical Infrastructure Monitor (3h) → CriticalAlertBanner |
 | Control Center build broken | Vercel project deployments | Arlo Vercel Build Health Check |
@@ -2067,7 +2089,7 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 
 **Before Krish wakes:**
 
-- Agatha's State of Union lands in Telegram (9AM EST weekdays).
+- Agatha's State of Union lands as a Google Doc in the `Agatha` Drive folder and is read from Control Center (9AM EST weekdays). It does not push.
 - Marcus Daily Brief lands in `home_intelligence.daily_brief` (06:30 UTC, weekdays).
 - Loz sends Lauren her daily Publish Press briefing (7AM EST).
 - Overnight cron has completed; results in Supabase.
@@ -2092,7 +2114,7 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 - Zara sweeps signals.
 - Maya runs SEO intel + nightly customer sweep.
 - Priya monitors product health.
-- Kai checks every credential + workflow every 4 hours.
+- `/api/health/connections-sweep` live-probes every keyed vendor and `/api/health/fleet-reconcile` reconciles every workflow against the n8n API, both every 6 hours on Vercel cron. Neither is an n8n workflow, deliberately.
 - Arlo syncs Control Center every 5 minutes.
 - Vera audits standards compliance daily, deep audit Fridays, feedback aggregation and success induction Sundays.
 - Marcus refreshes Home Intelligence Mon/Wed/Fri + Sunday deep + Daily Brief weekdays. Marcus pulls leads with `status IN ('ready','contacted','conversation')`, so closed leads never resurface.
@@ -2363,9 +2385,9 @@ Krish dropped three LinkedIn screenshots in the Drive inspiration folder and ask
 - **The Drive lane now has a ledger.** New `inspiration_drive_files`, keyed on `file_id:modifiedTime` so a file is read once and an *edited* file legitimately re-enters. `register_inspiration_drive_files` is called only after a file has actually reached the extractor, so a mid-run failure retries instead of marking material read. Without this, three phone screenshots totalling 3.5MB would have been re-sent as 4.7MB of base64 every day for the full fourteen-day window.
 - **And a request budget.** `cleo_inspiration_max_image_bytes` (4.5MB raw, ~6MB base64) and `cleo_inspiration_max_images_per_run` (6). Newest-first, so the freshest drop always wins; anything cut is counted in `drive_deferred_over_budget` and deliberately left *out* of the ledger so the next pass takes it. Simulated against the real folder: 3 screenshots + 1 doc selected on the first pass, 0 re-read on the second, and 15 screenshots correctly clamp to 3 (4.8MB) with 12 deferred instead of building a ~24MB request no model call survives.
 - **Dead config keys made live.** `cleo_inspiration_drive_lookback_days` and `cleo_inspiration_max_docs_per_run` existed in `system_config` but the lookback and page size were hardcoded in the nodes, so editing them changed nothing. Both are read now.
-- **Three smaller defects fixed.** `Drive Filter Readable` returned a `{ _empty: true }` sentinel that flowed into `Drive Fetch Content` and requested `/files/undefined?alt=media` on every quiet day, masked by `onError: continueRegularOutput` — so a real Drive failure looked exactly like an empty folder; there is no sentinel now. `Heartbeat Done` / `Audit Log Done` lacked `executeOnce`, and the `splitInBatches` done-branch emits one item per survivor, so the 2026-08-19 execution wrote five identical `workflow_runs` rows and five identical `audit_log` rows — cost and run counts inflated ~5x. `upsert_inspiration_seed` dropped `poster_handle`, which the extraction prompt has always asked the model to fill: screenshot attribution was lossy by design. It now persists `poster_handle` and `drive_file_id`.
+- **Three smaller defects fixed.** `Drive Filter Readable` returned a `{ _empty: true }` sentinel that flowed into `Drive Fetch Content` and requested `/files/undefined?alt=media` on every quiet day, masked by `onError: continueRegularOutput` - so a real Drive failure looked exactly like an empty folder; there is no sentinel now. `Heartbeat Done` / `Audit Log Done` lacked `executeOnce`, and the `splitInBatches` done-branch emits one item per survivor, so the 2026-08-19 execution wrote five identical `workflow_runs` rows and five identical `audit_log` rows - cost and run counts inflated ~5x. `upsert_inspiration_seed` dropped `poster_handle`, which the extraction prompt has always asked the model to fill: screenshot attribution was lossy by design. It now persists `poster_handle` and `drive_file_id`.
 - **Timeliness.** A single 06:00 ET trigger meant material dropped during the working day waited up to 24h. Added `Intraday 18:00 UTC` as a second pass into the same graph; both lanes are ledger-backed, so the second pass re-reads nothing and costs only what is genuinely new.
-- **`inspiration_lane_health`** is a new view giving per-lane liveness in one query — what arrived, what converted, and whether a lane is `input_starved` (Krish's call) or `not_converting` (a bug). The Drive lane sat in `not_converting` for two months with nothing to say so.
+- **`inspiration_lane_health`** is a new view giving per-lane liveness in one query - what arrived, what converted, and whether a lane is `input_starved` (Krish's call) or `not_converting` (a bug). The Drive lane sat in `not_converting` for two months with nothing to say so.
 - **Separately surfaced, not fixed here (Krish's call).** `zara_signals` has had no new row since 2026-07-24, 26 days. Its completeness contract has `min_rows_per_run = 0`, so zero rows reads as legitimate and nothing fires. That is the same shape of blind spot, on a different lane.
 
 ### 2026-08-11: the portfolio refocuses on Mindmake's publication, and MYMU becomes the CTRL door
@@ -2578,7 +2600,7 @@ Post-billing-reset pass on `krishraja10101.app.n8n.cloud`. **The plan cap is 10,
 - **Broken workflows disabled** (100% error post-reset; reclaims ~1,800/mo): `Maya | Churn → Exit Interview` (`Wi360t9fBPjlo0t1`, every 30m - literal `{{ }}` sent to Supabase because the URL field wasn't an expression, + `$credentials` in a Code node) and `Sonnet | Task Lever Rater` (`9nEfCXvTHJQ3OFqQ`, every 2h - `$credentials` in a Code node). Fix-specs retained; both are cleanly repairable in the UI (move the credentialed HTTP out of the Code nodes; prefix the URL with `=`).
 - **Schedules restored (budget-aware).** `System | Audience Pipeline` sync 3h → **15m** (node renamed "Sync every 15m"); `Nova | Visibility Sweeper` retry sub-trigger 12h → **6h** (weekly Mon 11:00 sweep unchanged). `Critical Infrastructure Monitor` **retired** from n8n (its 5-min coverage now runs off-budget on the VPS). Net steady state **~7,411 scheduled execs/mo** (~99% cron), under the 8k target and 10k cap.
 - **Execution-budget governance deployed (§3.4.1).** External VPS governor (`n8n-exec-governor.py`, hourly, off n8n's budget) warns at 7k / trips at 8k by deactivating non-critical workflows - live in the root crontab, cumulative counter seeded (95 execs cycle-to-date, projected ~6.9k/mo). Plus a `*/5` VPS port of the zero-AI Critical Infra Monitor (the "permanent fix") - live and verified healthy. The n8n monitor is kept active as a redundant 3h backup (retirement is a one-toggle follow-up; an automated guardrail blocked auto-retiring it).
-- **Coverage risks fixed:** re-enabled `Kai | Dependency Mapper + Credential Health` (`fBgBwoAg0YdkabtU`, on probation - no prior execution history, watch its first 4h run); set `Zara | Content Pipeline` (`DQVPdupeKAhocqdP`) schedule to explicit **daily 08:00** (was an interval-less `{triggerAtHour:8}`).
+- **Coverage risks fixed:** re-enabled `Kai | Dependency Mapper + Credential Health` **(RETIRED AND ARCHIVED 2026-09-07 - historical entry, see §0b)** (`fBgBwoAg0YdkabtU`, on probation - no prior execution history, watch its first 4h run); set `Zara | Content Pipeline` (`DQVPdupeKAhocqdP`) schedule to explicit **daily 08:00** (was an interval-less `{triggerAtHour:8}`).
 
 ### 2026-06-18 - All-tabs consistency rebuild: secondary tabs (Today / Intel / Org / Subscriptions) join the shared spine (LIVE)
 
@@ -2696,11 +2718,11 @@ A ~$900 Gemini + ~$900 Anthropic bill spike was traced to one mechanism. The Ope
 * Rerouted **every** gateway fallback ladder Gemini -> DeepSeek (`deepseek-v4-flash`); removed all `google/*` fallbacks. Primary stays `deepseek-v4-pro`. (`agents.defaults.model.fallbacks` + per-agent `agents.list[*].model.fallbacks`.)
 * n8n: deactivated `Sonnet | Task Lever Rater` (was wrongly bound to the `Apollo` credential and ran every 5 min), then rewrote it + `Nell | Lead Document Ingest` to **DeepSeek** (cred `DeepSeek account` = `UnCSUB5l0zz2BYa0`, type `deepSeekApi`; OpenAI-format body; parse `choices[0].message.content`); Task Lever Rater cadence 5min -> 2h.
 * Fixed MT-003 violation: `Cleo | Synthesis Engine` Opus 4.7 -> Sonnet 4.6.
-* Added a deterministic **daily spend alert**: `/root/.openclaw/workspace-ops/scripts/token-spend-alert.sh` (VPS crontab `0 14 * * *`) runs `openclaw gateway usage-cost`, posts a digest to Krish's Telegram, and prefixes a ⚠️ if the latest day exceeds $75. Zero LLM cost.
+* Added a deterministic **daily spend alert**: `/root/.openclaw/workspace-ops/scripts/token-spend-alert.sh` (VPS crontab `0 14 * * *`) runs `openclaw gateway usage-cost` and appends the digest to `/var/log/os-pull-only-alerts.log`, prefixing a ⚠️ if the latest day exceeds $75. (Posted to Telegram until 2026-09-06; the sender was neutralised when the OS went pull-only.) Zero LLM cost.
 
 **Runbook - if LLM costs spike again (any tool reading this: do these in order):**
 
-1. `openclaw gateway usage-cost` - authoritative OpenClaw spend by day (the daily Telegram alert surfaces this).
+1. `openclaw gateway usage-cost` - authoritative OpenClaw spend by day (the daily digest writes this to `/var/log/os-pull-only-alerts.log`; it no longer pushes).
 2. Rank cron spend: aggregate `/root/.openclaw/cron/runs/*.jsonl` (`action:finished` lines carry `model`/`provider`/`usage`) grouped by job. Catches broken crons that re-run forever for nothing.
 3. n8n: `GET /api/v1/executions` -> find high-count or all-error workflows; pull one execution with `includeData=true` to see the failing node and whether an LLM node billed *before* the error (an error after a successful LLM call still costs money; a 401 before it does not).
 4. Validate keys cheaply (0-token GET probes): `GET https://api.anthropic.com/v1/models` (x-api-key header) and `GET https://generativelanguage.googleapis.com/v1beta/models?key=...`. A dead Anthropic key is the classic trigger for a Gemini-fallback storm.
