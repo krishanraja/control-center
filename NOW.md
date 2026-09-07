@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-07
-head: 3554502d
+head: 7dcd0259
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -35,15 +35,15 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 - **Live** at `controlcenter.krishraja.com`, auto-deployed from `main` on Vercel, Supabase behind it. CI runs lint, three typechecks and thirty structural guards on every push (`.github/workflows/ci.yml`).
 - **The one swing is the operating frame** (ADR-016, `docs/plans/one-swing/CHARTER.md`): one mission, five jobs in priority order. Jobs 1 (the Room) and 2 (the scorecard) are built and live since 5 September. Jobs 3, 4 and 5 are gated on the first paid room. Gate G1 is open; G2 to G4 are closed. Ledger and Vercel state: `docs/plans/one-swing/STATE.md`.
-- **Content Engine**: unified editorial system merged 7 September (independent Money of AI and Built with AI lenses, one content output registry, approved ideas flow straight into Studio production). Build signals from Krish's repos ingest every Saturday 05:00 UTC; the first Saturday run has not happened yet.
-- **Architecture doc**: `docs/MINDMAKE_OS_ARCHITECTURE.md` on `main` is the only OS architecture surface (ruling 7 September; VPS and Drive copies deleted). The engine writes section 20 on Sundays 13:00 UTC; its header reads "Last engine refresh: never" until the first run.
-- **Docs steward** (this file and `docs/steward/`) adopted 7 September (PR #279), bootstrapped by hand across all eight fleet repos the same day (`docs/steward/LEDGER.md`), automated by `.github/workflows/docs-steward.yml` on every push to `main` and nightly. The first automated run failed by design within nine seconds: `CLAUDE_CODE_OAUTH_TOKEN` is not yet set.
-- **Waiting on evidence, not code**: the scorecard's "hours building unasked" reads "not measured yet" until the first Saturday GitHub read proves the token can read commits.
+- **Content Engine**: unified editorial system merged 7 September (independent Money of AI and Built with AI lenses, one content output registry, approved ideas flow straight into Studio production). Build signals from Krish's repos ingest every Saturday 05:00 UTC.
+- **Architecture doc**: `docs/MINDMAKE_OS_ARCHITECTURE.md` on `main` is the only OS architecture surface (ruling 7 September; VPS and Drive copies deleted). The engine writes section 20 on Sundays 13:00 UTC and stamps the header's "Last engine refresh" line each time.
+- **Docs steward** (this file and `docs/steward/`) adopted 7 September (PR #279), bootstrapped by hand across all eight fleet repos the same day (`docs/steward/LEDGER.md`), automated by `.github/workflows/docs-steward.yml` on every push to `main` and nightly. Proven end to end on 7 September: the token gate, the digest, Claude's run and the strict validator all passed on a live dispatch.
+- **Waiting on evidence, not code**: the scorecard's "hours building unasked" reads "not measured yet" until a Saturday GitHub read has written a week.
 - **Parked**: the hunter job-search lane is hidden behind `VITE_BRIDGES_LANE_ENABLED` and the agent row is left active by Krish's choice.
 
 ## What changed recently
 
-- 2026-09-07 **The scorecard counts every commit, not one login** (`37af6d3c`, guard `e86e31b8`). Why: a dry run showed most session commits carry the coding agent's address (36 of 38 in one repo, 18 of 34 here), so the Rule 6 tripwire "was reading roughly half the truth". `GITHUB_AUTHOR` is no longer read anywhere and the guard fails if either reader brings it back. First Saturday run: 12 September.
+- 2026-09-07 **The scorecard counts every commit, not one login** (`37af6d3c`, guard `e86e31b8`). Why: a dry run showed most session commits carry the coding agent's address (36 of 38 in one repo, 18 of 34 here), so the Rule 6 tripwire "was reading roughly half the truth". `GITHUB_AUTHOR` is no longer read anywhere and the guard fails if either reader brings it back.
 - 2026-09-07 **Architecture doc: the one-surface retirement closed out** (#280, #281). The last three references to a VPS or Drive copy removed; the three weekly Documentation Refresh Routines recorded as deleted by Krish; the fleet's last reference to the trashed Drive file removed.
 - 2026-09-07 **Build signals** (`2c83ff90`, `e11f2ab5`). Why: every Saturday the scorecard counted Krish's commits against him as unasked hours, and nothing read the same stream for content, although canon asks for a solo Built with AI variant on exactly that material. One new `source_type` flows into the existing content spine; nothing new to run.
 - 2026-09-07 **One architecture surface, kept current by the engine** (`ec7f05e7`, `31fc3162`, `1be3dddb`). Why: six copies of the OS architecture doc drifted silently; the sync script had written a misspelled filename into an untracked path for nine days and nothing errored. Krish deleted the VPS and Drive copies for good. A Sunday cron now writes the weekly entry.
@@ -60,10 +60,8 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What is next and what is waiting on Krish
 
-- Next: the first Saturday build-signal ingest (05:00 UTC) and the first Sunday architecture refresh (13:00 UTC) prove the two engines end to end. Read the Monday note.
+- Next: jobs 1 and 2 of the one swing are the work in play. `docs/plans/one-swing/STATE.md` carries the ledger; the Monday note carries the week.
 - Waiting on Krish (`docs/plans/one-swing/STATE.md`, "Ops steps owed"): `PARTNER_EMAIL` when a partner exists; whether to set the hunter agent inactive; a cash balance in COMPOUND Settings; saying the mission out loud to one person.
-- Waiting on Krish (harness, outside this repo): the `mindmake-os` skill in the synced harness still describes six architecture surfaces and the `MINDMAKER_` filename. Both were overruled on 7 September. It needs the same one-surface rewrite.
-- Waiting on Krish: `CLAUDE_CODE_OAUTH_TOKEN` as an Actions secret on each fleet repo, so the docs steward can run unattended.
 
 ## Read next
 
