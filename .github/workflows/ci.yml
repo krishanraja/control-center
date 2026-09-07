@@ -240,3 +240,10 @@ jobs:
       # the meter was built, and every synthesis call would have metered real
       # tokens against $0.00.
       - run: npx tsx scripts/check-model-prices.mts
+      # NOW.md is the one file agents are promised is current, and
+      # docs/history/LOG.md is where superseded material goes instead of being
+      # deleted. Both have a schema (docs/steward/SCHEMA.md). A branch can
+      # break either without any test noticing, so the structural half of the
+      # steward's validator runs here; the head/as_of half only holds on main
+      # and runs in .github/workflows/docs-steward.yml.
+      - run: node scripts/steward/validate.mjs . --fleet docs/steward/fleet.json --repo control-center

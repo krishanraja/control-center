@@ -21,7 +21,22 @@
 > companion: `docs/icp.json`. Live executable copy: `api/_icpScore.ts` +
 > `scripts/apollo/burn.ts`. Full rubric + math: `docs/APOLLO_ICP_RUBRIC.md`.
 
-Status: v2, 2026-06-20. Calibrated against two live Apollo pulls (82 reveals).
+Status: v3, 2026-09-07. Lane order and live/parked status follow ADR-016 and
+`api/_icpScore.ts`. The six-lane body below is the v2 reference of 2026-06-20,
+calibrated against two live Apollo pulls (82 reveals); it still describes each
+lane correctly, it no longer decides which lane comes first.
+
+## Lane status (2026-09-07, mirrors `api/_icpScore.ts` and `docs/icp.json`)
+
+| Lane (tag) | Status | Serves |
+|---|---|---|
+| `room_face` | **Live, first.** The door this quarter | The room, job 1 of the one swing |
+| `mindmake_buyer` | Live, context | Advisory buyers adopting AI |
+| `signal_noise_guest` | Live | Guests for the AI-in-media show |
+| `builder_economy_guest` | Live | Guests for Built with AI |
+| `fractional_network` | Parked: scored for the record, never the best lane, never a tag | Referral and co-delivery |
+| `mm_ctrl_buyer` | Parked | CTRL buyers |
+| `ecosystem_partner` | Parked | Channel and referrals |
 
 ---
 
@@ -37,7 +52,11 @@ Multi-tag is allowed (a person can fit several lanes). The single
 
 ---
 
-## The six lanes
+## The six v2 lanes
+
+> Reference detail for the lanes in the table above. `room_face` (added
+> 2026-09-06) is defined in the ADR-016 note at the top of this file and in
+> `docs/icp.json`; it is sourced from the network, not from Apollo.
 
 ### 1. `mindmake_buyer` → primary_venture `mindmake`  (serves O-2, consulting revenue)
 **Who:** Senior operators or dedicated AI/transformation leaders **inside non-tech

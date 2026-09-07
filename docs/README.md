@@ -35,6 +35,9 @@
 | [`TESTING.md`](./TESTING.md) | What is tested, how to run it, and the selector rule that keeps it green |
 | [`plans/compound/STATE.md`](./plans/compound/STATE.md) | Current production truth for the private COMPOUND sibling application |
 | [`plans/compound/RELEASE_GATE.md`](./plans/compound/RELEASE_GATE.md) | Completed release evidence and genuinely open operational gates for COMPOUND |
+| [`../NOW.md`](../NOW.md) | Where Control Center is right now, for agents: what it is, why Mindmake's buyer cares, what changed, what not to trust. Kept current by the docs steward |
+| [`history/LOG.md`](./history/LOG.md) | Chronological log of superseded and rolled material. Nothing in it is current |
+| [`steward/`](./steward/) | The docs steward: `RUNBOOK.md` (procedure), `SCHEMA.md` (NOW.md and LOG contract), `fleet.json` (the eight repos), `LEDGER.md` (cross-repo run history), `caller-workflow.yml` (template for a fleet repo) |
 
 The `pr-*.md` files (e.g. `pr-7-living-plans-decisions-view.md`) and the
 `visibility-followups-2026-05.md` file are rolling change notes from the

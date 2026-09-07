@@ -237,4 +237,29 @@ const archCron = vercel.crons.find(c => c.path === '/api/architecture/weekly')
 assert.equal(archCron?.schedule, '0 13 * * 0', 'the Sunday refresh is registered after the Saturday ingest and the Sunday radar')
 assert.match(read('api/scorecard/monday.ts'), /Architecture doc: engine refresh stale/, 'the Monday note reads the stamp back')
 
-console.log('PASS  five named products, anonymous side builds, no figures in the Money of AI, one source type in three places, cron wired')
+// ── The docs steward handshake ───────────────────────────────────────────────
+// docs/steward/SCHEMA.md: every fleet repo carries NOW.md at its root and a
+// history log. The ingest reads NOW.md's three lens-facing sections instead of
+// the README opening, merges its never_publish list into the never-reveal
+// note, and treats the history log as a build-log candidate. Without this the
+// steward writes the "why" for a reader who never sees it.
+const { BUILD_LOG_CANDIDATES, NOW_SECTIONS, nowExcerpt, withNeverPublish } = await import('../api/_buildSignals.ts')
+assert.ok((BUILD_LOG_CANDIDATES as readonly string[]).includes('docs/history/LOG.md'), 'the steward history log is a build-log candidate')
+assert.deepEqual([...NOW_SECTIONS], ['What it is', 'Who it is for and why it matters for Mindmake', 'What changed recently'], 'the lens reads the three sections SCHEMA.md promises')
+const sampleNow = [
+  '---', 'repo: krishanraja/example', 'as_of: 2026-09-07', 'never_publish: [the client list, "the rate card"]', '---',
+  '# Example: where it is right now', '', '## What it is', 'A thing.', '', '## Who it is for and why it matters for Mindmake', 'The buyer.', '',
+  '## Where it is right now (as of 2026-09-07)', 'Live.', '', '## What changed recently', '- 2026-09-06 shipped the gate.', '', '## Read next', 'x', '', '## Do not trust', 'Nothing.', '',
+].join('\n')
+const excerpt = nowExcerpt(sampleNow)
+assert.deepEqual(excerpt.never_publish, ['the client list', 'the rate card'], 'never_publish parses from the frontmatter list')
+assert.match(excerpt.text, /## What it is\nA thing\./)
+assert.match(excerpt.text, /## What changed recently\n- 2026-09-06 shipped the gate\./)
+assert.doesNotMatch(excerpt.text, /Where it is right now|Read next|Do not trust/, 'only the three lens-facing sections travel')
+assert.deepEqual(nowExcerpt('no frontmatter, no sections'), { text: '', never_publish: [] }, 'a malformed NOW.md degrades to nothing, never throws')
+const merged = withNeverPublish(buildProductFor('krishanraja/mm-ctrl'), ['the rate card'])
+assert.match(merged.never_reveal || '', /unreleased pricing; the rate card$/, 'never_publish extends the registry note')
+assert.equal(withNeverPublish(buildProductFor('krishanraja/mm-ctrl'), []).never_reveal, buildProductFor('krishanraja/mm-ctrl').never_reveal, 'an empty list changes nothing')
+assert.match(read('api/_buildSignals.ts'), /fetchDocExcerpts\(key, token, head, compare\.paths, now\)/, 'the ingest passes NOW.md into the excerpt reader')
+
+console.log('PASS  five named products, anonymous side builds, no figures in the Money of AI, one source type in three places, cron wired, steward handshake')
