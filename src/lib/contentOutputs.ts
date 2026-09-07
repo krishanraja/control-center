@@ -1,6 +1,6 @@
 import { CHANNEL_ADAPTS, VIDEO_FORMATS } from './contentEngine'
 
-export type ContentOutputFamily = 'article' | 'social' | 'audio' | 'video_script' | 'carousel'
+export type ContentOutputFamily = 'article' | 'social' | 'audio' | 'video_script' | 'video' | 'carousel'
 
 export interface ContentOutputDefinition {
   key: string
@@ -38,6 +38,7 @@ export const CONTENT_OUTPUTS: ReadonlyArray<ContentOutputDefinition> = Object.fr
     family: 'video_script' as const,
     engine: 'video_script' as const,
   })),
+  { key: 'studio_video', label: 'Video production', family: 'video', engine: 'studio' },
   { key: 'carousel_linkedin', label: 'LinkedIn carousel', family: 'carousel', engine: 'studio' },
   { key: 'carousel_instagram', label: 'Instagram carousel', family: 'carousel', engine: 'studio' },
 ])
@@ -64,4 +65,51 @@ export function storedContentOutputs(outputs: unknown) {
     const body = readableOutputBody(artifact)
     return body ? [{ definition, artifact: artifact as Record<string, unknown>, body }] : []
   })
+}
+
+export interface StoredProductionBrief {
+  brief_id: string
+  content_revision_hash: string
+  production_kinds: Array<'video' | 'carousel'>
+  source_mode: 'extract' | 'solo' | 'short_native' | 'written'
+  created_at: string | null
+  status: string
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+export function hasExactProductionApproval(meta: unknown): boolean {
+  const approval = record(record(meta)?.production_approval)
+  return approval?.schema_version === 1
+    && approval.approved_by === 'Krish'
+    && typeof approval.approved_at === 'string'
+    && typeof approval.content_revision_hash === 'string'
+    && /^[a-f0-9]{64}$/.test(approval.content_revision_hash)
+}
+
+export function storedProductionBriefs(outputs: unknown): StoredProductionBrief[] {
+  const productionBriefs = record(record(outputs)?.production_briefs)
+  if (!productionBriefs) return []
+  return Object.values(productionBriefs).flatMap((entry) => {
+    const wrapper = record(entry)
+    const brief = record(wrapper?.brief)
+    const kinds = Array.isArray(brief?.production_kinds)
+      ? brief.production_kinds.filter((kind): kind is 'video' | 'carousel' => kind === 'video' || kind === 'carousel')
+      : []
+    const sourceMode = brief?.source_mode
+    if (typeof brief?.brief_id !== 'string'
+      || typeof brief.content_revision_hash !== 'string'
+      || !kinds.length
+      || !['extract', 'solo', 'short_native', 'written'].includes(String(sourceMode))) return []
+    return [{
+      brief_id: brief.brief_id,
+      content_revision_hash: brief.content_revision_hash,
+      production_kinds: kinds,
+      source_mode: sourceMode as StoredProductionBrief['source_mode'],
+      created_at: typeof wrapper?.created_at === 'string' ? wrapper.created_at : null,
+      status: typeof wrapper?.status === 'string' ? wrapper.status : 'ready_for_studio',
+    }]
+  }).sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))
 }

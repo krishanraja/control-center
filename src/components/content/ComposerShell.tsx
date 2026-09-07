@@ -33,7 +33,7 @@ export interface ComposerShellProps {
 export function ComposerShell({ onClose, eyebrow, title, meta, actions, banner, children }: ComposerShellProps) {
   return (
     <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base text-white flex flex-col">
-      <header className="flex items-center gap-2 px-3 sm:px-5 h-14 border-b border-white/[0.08] flex-shrink-0">
+      <header className="flex min-h-14 flex-shrink-0 items-center gap-2 border-b border-white/[0.08] px-3 py-2 sm:px-5">
         <button
           type="button" onClick={onClose} aria-label="Back to pipeline"
           className="flex items-center justify-center w-9 h-9 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
@@ -45,9 +45,9 @@ export function ComposerShell({ onClose, eyebrow, title, meta, actions, banner, 
             <div className="text-micro uppercase tracking-[0.14em] text-sky-200/80">{eyebrow}</div>
           ) : null}
           {title}
-          {meta ? <div className="flex items-center gap-1.5 mt-0.5">{meta}</div> : null}
+          {meta ? <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">{meta}</div> : null}
         </div>
-        {actions}
+        {actions ? <div className="flex flex-wrap items-center justify-end gap-1.5">{actions}</div> : null}
       </header>
       {banner}
       {children}

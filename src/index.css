@@ -318,6 +318,28 @@
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / var(--card-hi-a)), var(--card-shadow);
   }
 
+  /* Editorial Desk surface. This is the one daylight material used when the
+     work itself needs to be read, compared or approved. It is shared by
+     Content and Studio; individual engines do not invent their own skin. */
+  .editorial-paper {
+    color: #102017;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.28), transparent 44%),
+      #f4f1e6;
+    border: 1px solid #cfd6c8;
+    box-shadow: 0 18px 46px -32px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.7);
+  }
+  .editorial-paper-muted { color: rgba(16,32,23,.66); }
+  .editorial-kicker {
+    color: #476154;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .625rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
   /* Mint answer ink. Kept inside one hue so amber retains its change meaning. */
   .aurora-text {
     background: linear-gradient(115deg, rgb(var(--accent)) 0%, rgb(var(--accent-2)) 100%);
@@ -802,4 +824,32 @@ body[data-scroll-locked] .tab-chat-pill { display: none; }
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+/* ── Complete-copy invariant ───────────────────────────────────────────────
+   Compact means fewer simultaneous controls, never missing language. Legacy
+   cards still carry Tailwind truncation utilities, so enforce the Editorial
+   Desk rule at the design-system boundary: names, evidence, statuses and
+   instructions wrap instead of disappearing behind an ellipsis or clamp.
+   Fixed identifiers may become taller; that is preferable to hiding the part
+   needed to distinguish or audit them. */
+.truncate {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.line-clamp-1,
+.line-clamp-2,
+.line-clamp-3,
+.line-clamp-4,
+.line-clamp-5,
+.line-clamp-6 {
+  display: block !important;
+  overflow: visible !important;
+  -webkit-box-orient: initial !important;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+  overflow-wrap: anywhere;
 }

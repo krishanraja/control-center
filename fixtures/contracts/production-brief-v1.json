@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "brief_id": "brief_f93ed910a9cf928e856b2eb6",
+  "content_idea_id": "11111111-1111-4111-8111-111111111111",
+  "content_revision_hash": "6d0703fb04db0c67049f072f6b9c9d792fd97daef38f051a5ee8011d6562a3bb",
+  "series": "money_of_ai",
+  "production_kinds": ["video"],
+  "source_mode": "solo",
+  "content": {
+    "title": "When AI cuts implementation labour, who gets the saving?",
+    "thesis": "The labour saving changes price, margin or scope only when the commercial mechanism lets it through.",
+    "approved_text": "Longer autonomous runs can mean fewer interventions and less delivery labour. Buyers still pay for risk and accountability, so the saving may never reach the invoice.",
+    "audience": "Enterprise leaders need to know who captures the saving.",
+    "intended_payoff": "A way to inspect whether AI changes price, margin or scope."
+  },
+  "claims": [{
+    "claim_id": "claim_56754db7469269aaf8556306",
+    "text": "The labour saving changes price, margin or scope only when the commercial mechanism lets it through.",
+    "evidence_urls": ["https://example.com/evidence"],
+    "verification": "human_required",
+    "approved_case_material": false
+  }],
+  "visual_opportunities": [{
+    "opportunity_id": "visual_e769906633a9c7634052bfb4",
+    "description": "Show the task trace beside the commercial before and after.",
+    "proof_role": "evidence",
+    "source_urls": ["https://example.com/evidence"]
+  }],
+  "hard_gates": {
+    "truth": "passed",
+    "rights": "passed",
+    "confidentiality": "passed",
+    "meaning": "passed",
+    "naming": "passed"
+  },
+  "editorial_approval": {
+    "approved_by": "Krish",
+    "approved_at": "2026-09-07T12:00:00.000Z",
+    "approval_revision_hash": "6d0703fb04db0c67049f072f6b9c9d792fd97daef38f051a5ee8011d6562a3bb"
+  }
+}
