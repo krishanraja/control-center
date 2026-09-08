@@ -199,6 +199,9 @@
     },
     "api/room/seed.ts": {
       "maxDuration": 60
+    },
+    "api/aeo/ingest.ts": {
+      "maxDuration": 120
     }
   }
 }

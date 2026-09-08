@@ -23,6 +23,10 @@ export type IdeaSourceType =
    *  solo variant of Built with AI (and, for its pricing decisions, The Money
    *  of AI). Flagged meta.mindmake_build. */
   | 'build_signal'
+  /** One article the weekly answer-engine research recommends
+   *  (krishanraja/AEO-Engine via api/aeo/ingest.ts): the target query, the
+   *  angle and the measured evidence ride in meta.aeo. */
+  | 'aeo_signal'
 
 export type IdeaState =
   | 'seeded'

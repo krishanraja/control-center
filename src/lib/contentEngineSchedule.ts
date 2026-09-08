@@ -17,6 +17,10 @@ export interface ContentEngineJob {
   everyHours: number
   /** How long past the expectation we stay quiet, in hours. */
   graceHours: number
+  /** Who fires it. 'cron' (default) is a vercel.json cron; 'external' is a
+   *  machine outside this repo POSTing in (the AEO engine on GitHub Actions).
+   *  An external job has no cron entry, but its silence is still said here. */
+  trigger?: 'cron' | 'external'
 }
 
 const DAY = 24
@@ -37,6 +41,7 @@ export const CONTENT_ENGINE_JOBS: ContentEngineJob[] = [
   { job: 'briefs_assemble',  path: '/api/briefs/assemble',               label: 'Weekly brief',          everyHours: WEEK, graceHours: DAY },
   { job: 'purge',            path: '/api/purge/run',                     label: 'Monday purge',          everyHours: WEEK, graceHours: DAY },
   { job: 'runner_watch',     path: '/api/video-studio/runner/watch',     label: 'Studio runner watch',   everyHours: DAY,  graceHours: 12 },
+  { job: 'aeo_ingest',       path: '/api/aeo/ingest',                    label: 'AEO research',          everyHours: WEEK, graceHours: DAY, trigger: 'external' },
 ]
 
 export interface ContentEngineRunRow {

@@ -8,8 +8,7 @@ the OS. Product brands only; no personal brand anywhere.
 - **SEO rank** (`maya_striking_distance`) — Maya SEO Rank Sweep (weekly). Serper
   positions + DataForSEO volume for CTRL / Pulse / Legibility ICP keywords. Surfaced
   on the Growth tab (SEO rank board).
-- **GEO citations** (`zara_signals`) — Zara GEO Citation Sweep (weekly). Whether
-  products get cited in AI answers.
+- **GEO citations** (`growth_geo_probes`), the weekly answer-engine research (krishanraja/AEO-Engine, Sunday 04:00 UTC, landing through `api/aeo/ingest.ts`), with the Monday `api/growth/geo-probe` Perplexity cron as the baseline until the engine has two green weeks. Whether an answer engine cites us, per subject (venture, prospect, aspiration) and per query; the citation rate is computed from the rows, never stored. The scored queries and the weekly digest sit beside it in `growth_aeo_queries` and `growth_aeo_digests`. (The Zara GEO Citation Sweep into `zara_signals` never wrote a row and is retired; corrected 2026-09-09.)
 - **PostHog product analytics** (`product_metrics`) — Maya PostHog Product Sync
   (daily 06:30 UTC). 7-day rolling active users / pageviews / events per product.
   One shared PostHog project (free tier caps at one); the `product` super-property

@@ -104,6 +104,19 @@
       "rules_files": ["README.md", "docs/ARCHITECTURE.md", "docs/HANDOVER.md"],
       "write_allowlist": ["**/*.md"],
       "bootstrap_head": "08def7e"
+    },
+    {
+      "name": "AEO-Engine",
+      "product": "AEO research machine (weekly answer-engine research for the ventures, the buyers and the benchmarks)",
+      "docs_roots": ["docs"],
+      "state_doc": "docs/STATE.md",
+      "history_dir": "docs/history",
+      "truth_files": ["docs/packet.schema.json"],
+      "docs_check": "npm run check:config",
+      "rules_files": ["README.md", "docs/NEVER-PUBLISH.md"],
+      "write_allowlist": ["**/*.md"],
+      "nightly_utc": "20:45",
+      "bootstrap_head": "0d5a6f3"
     }
   ]
 }
