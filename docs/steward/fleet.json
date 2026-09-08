@@ -116,7 +116,7 @@
       "rules_files": ["README.md", "docs/NEVER-PUBLISH.md"],
       "write_allowlist": ["**/*.md"],
       "nightly_utc": "20:45",
-      "bootstrap_head": "pending"
+      "bootstrap_head": "0d5a6f3"
     }
   ]
 }
