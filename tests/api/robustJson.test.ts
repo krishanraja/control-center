@@ -56,3 +56,43 @@ test('unparseable input returns null rather than throwing', () => {
 test('a fence with trailing whitespace after it', () => {
   assert.deepEqual(robustJson('```json\n{"a":1}\n```   '), { a: 1 })
 })
+
+test('raw newlines inside a string are repaired', () => {
+  // A model asked for JSON whose values are markdown will sometimes emit the
+  // markdown's newlines literally. The document is complete and correct except
+  // for the escaping, and JSON.parse rejects all of it.
+  const raw = '{"body":"# A heading\nand a paragraph\n\n- a bullet"}'
+  const out = robustJson(raw)
+  assert.ok(out, 'a document that is only mis-escaped must not parse as nothing')
+  assert.match(out.body, /# A heading/)
+  assert.match(out.body, /a bullet/)
+  assert.ok(out.body.includes('\n'), 'the newlines survive as real newlines')
+})
+
+test('raw tabs and carriage returns too', () => {
+  const out = robustJson('{"a":"one\ttwo\r\nthree"}')
+  assert.ok(out)
+  assert.ok(out.a.includes('\t'))
+})
+
+test('an escaped quote does not end the string early', () => {
+  const out = robustJson('{"a":"he said \\"go\\" then\nleft"}')
+  assert.ok(out)
+  assert.equal(out.a, 'he said "go" then\nleft')
+})
+
+test('a trailing backslash outside a string does not run away', () => {
+  assert.equal(robustJson('not json \\ at all'), null)
+})
+
+test('valid JSON is returned unchanged by the repair path', () => {
+  // Newlines BETWEEN tokens are legal and must not be touched.
+  const out = robustJson('{\n  "a": 1,\n  "b": "two"\n}')
+  assert.deepEqual(out, { a: 1, b: 'two' })
+})
+
+test('both faults at once: a fenced payload with raw newlines', () => {
+  const out = robustJson('```json\n{"body":"line one\nline two"}\n```')
+  assert.ok(out)
+  assert.equal(out.body, 'line one\nline two')
+})

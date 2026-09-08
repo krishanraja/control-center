@@ -86,8 +86,44 @@ export function robustJson(txt: string): any {
   }
   try { return JSON.parse(t) } catch { /* fallthrough */ }
   const i = t.indexOf('{'), j = t.lastIndexOf('}')
-  if (i >= 0 && j > i) { try { return JSON.parse(t.slice(i, j + 1)) } catch { /* noop */ } }
+  if (i >= 0 && j > i) {
+    const braced = t.slice(i, j + 1)
+    try { return JSON.parse(braced) } catch { /* noop */ }
+    try { return JSON.parse(escapeControlsInStrings(braced)) } catch { /* noop */ }
+  }
+  try { return JSON.parse(escapeControlsInStrings(t)) } catch { /* noop */ }
   return null
+}
+
+/** Escape raw control characters that appear inside JSON string literals.
+ *
+ *  A model asked for JSON whose values are markdown will sometimes emit the
+ *  markdown's newlines literally rather than as \n. That is invalid JSON and
+ *  JSON.parse rejects the whole document, so a complete and otherwise correct
+ *  response parses as nothing. The brace fallback does not help: the document
+ *  is intact, it is the escaping that is wrong.
+ *
+ *  This walks the text tracking whether it is inside a string literal, honours
+ *  backslash escapes so an already-escaped quote does not end the string
+ *  early, and rewrites only the control characters found inside one. Text
+ *  outside string literals is untouched, so a document that was already valid
+ *  is returned byte for byte. Tried only after a straight parse has failed. */
+function escapeControlsInStrings(src: string): string {
+  let out = ''
+  let inString = false
+  let escaped = false
+  for (const ch of src) {
+    if (escaped) { out += ch; escaped = false; continue }
+    if (ch === '\\') { out += ch; escaped = inString; continue }
+    if (ch === '"') { inString = !inString; out += ch; continue }
+    if (inString && ch < ' ') {
+      out += ch === '\n' ? '\\n' : ch === '\r' ? '\\r' : ch === '\t' ? '\\t'
+        : `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`
+      continue
+    }
+    out += ch
+  }
+  return out
 }
 
 export function parseVal(v: unknown): any {
