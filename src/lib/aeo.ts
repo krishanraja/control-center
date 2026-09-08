@@ -47,8 +47,20 @@ export interface AeoRecommendation {
   evidence: string[]
   engines: Engine[]
   demand: number
+  /** What you have that the sites cited today structurally cannot have. Null
+   *  when the machine could not name one, which the card says in words rather
+   *  than implying there was a reason. */
+  why_you_can_win?: string | null
   content_idea_id?: string | null
   dismissed_at?: string | null
+}
+
+/** A question probed and scored that is not worth trying to win. */
+export interface AeoNotWorthChasing {
+  query_id: string
+  query: string
+  owned_by: string[]
+  why_not: string
 }
 
 export interface AeoTheme { theme: string; calls: number; evidence: Array<{ call_ref: string; date: string; paraphrase: string }> }
@@ -63,6 +75,7 @@ export interface AeoDigestRow {
   strongest_signal: string | null
   recommendations: unknown
   watch_list: unknown
+  not_worth_chasing: unknown
   competitor_gap: unknown
   playbook: unknown
   approach_hook: string | null
@@ -145,6 +158,7 @@ export function recommendationsOf(d: AeoDigestRow | null | undefined): AeoRecomm
     evidence: Array.isArray(r.evidence) ? (r.evidence as unknown[]).map(String) : [],
     engines: Array.isArray(r.engines) ? (r.engines as Engine[]) : [],
     demand: Number(r.demand) || 0,
+    why_you_can_win: typeof r.why_you_can_win === 'string' && r.why_you_can_win.trim() ? r.why_you_can_win : null,
     content_idea_id: typeof r.content_idea_id === 'string' ? r.content_idea_id : null,
     dismissed_at: typeof r.dismissed_at === 'string' ? r.dismissed_at : null,
   })).filter(r => r.title)
@@ -177,6 +191,17 @@ export function gapOf(d: AeoDigestRow | null | undefined): { domain: string | nu
 export function watchListOf(d: AeoDigestRow | null | undefined): Array<{ query_id: string; query: string; why: string }> {
   if (!d || !Array.isArray(d.watch_list)) return []
   return (d.watch_list as unknown[]).filter(isObj).map(w => ({ query_id: String(w.query_id || ''), query: String(w.query || ''), why: String(w.why || '') })).filter(w => w.query)
+}
+
+/** What not to chase, and who owns it. Empty until the engine has judged. */
+export function notWorthChasingOf(d: AeoDigestRow | null | undefined): AeoNotWorthChasing[] {
+  if (!d || !Array.isArray(d.not_worth_chasing)) return []
+  return (d.not_worth_chasing as unknown[]).filter(isObj).map(w => ({
+    query_id: String(w.query_id || ''),
+    query: String(w.query || ''),
+    owned_by: Array.isArray(w.owned_by) ? (w.owned_by as unknown[]).map(String) : [],
+    why_not: String(w.why_not || ''),
+  })).filter(w => w.query)
 }
 
 export function playbookOf(d: AeoDigestRow | null | undefined): Array<{ url: string; host: string; path_pattern: string; times_cited: number; why: string }> {

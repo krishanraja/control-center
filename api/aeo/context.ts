@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardBearerExport } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import { loadVoiceBlock } from '../_content.js'
+import { loadConfig, loadVoiceBlock } from '../_content.js'
 import { loadCuratedVoices } from '../_creators.js'
 import { LANE_SLUG, mondayOf } from '../_growth.js'
 import { CONTACT_COLUMNS } from '../_room.js'
@@ -75,9 +75,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const since = new Date(Date.now() - PROBE_WINDOW_DAYS * 86_400_000).toISOString()
     const weekStart = mondayOf(new Date())
 
-    const [voiceBlock, ratedVoices, touchpoints, striking, probes, digests, rooms] = await Promise.all([
+    const [voiceBlock, canonConfig, ratedVoices, touchpoints, striking, probes, digests, rooms] = await Promise.all([
       // Told to the OS once, on the Content side, and read here ever since.
       loadVoiceBlock().catch(() => ''),
+      loadConfig(['mindmake_canon']).catch(() => ({} as Record<string, unknown>)),
       loadCuratedVoices().catch(() => []),
       productSlugs.length
         ? supabase.from('growth_touchpoints')
@@ -196,6 +197,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // is worse than one writing plainly.
         voice_block: voiceBlock,
         voices_he_rates: (ratedVoices as Array<{ name: string; why: string }>).map(v => ({ name: v.name, why: v.why })),
+        // The business canon: krishanraja/mindmake project-documentation
+        // 00_NORTH_STAR.md, the file that repo calls the one to read if you
+        // read only one, written so a model arriving with no context can
+        // decide on Mindmake's behalf. It is what tells the research machine
+        // which answers are worth trying to win. Without it the machine
+        // recommends whatever it is absent from, which is a category term a
+        // jobs board already owns.
+        canon: typeof canonConfig.mindmake_canon === 'string' ? canonConfig.mindmake_canon : '',
       },
       icp: { room_face: ROOM_FACE },
       subjects: out,

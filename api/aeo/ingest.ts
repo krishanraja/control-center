@@ -159,6 +159,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       strongest_signal: packet.strongest_signal,
       recommendations: enriched,
       watch_list: packet.watch_list,
+      not_worth_chasing: packet.not_worth_chasing ?? [],
       competitor_gap: packet.competitor_gap,
       playbook: packet.playbook,
       approach_hook: packet.approach_hook,
