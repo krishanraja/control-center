@@ -4,6 +4,7 @@ import type { ContentDecisionRow } from '../../lib/contentV2'
 import { DecisionCard } from './DecisionCard'
 import { Pending } from '../shared/Pending'
 import { useToast } from '../shared/Toast'
+import { failureMessage, requestJson } from '../../lib/apiFetch'
 import { contentEngineAttention } from '../../lib/contentEngineSchedule'
 import { useEngineHealth } from '../../hooks/useEngineHealth'
 import {
@@ -31,8 +32,9 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
   /** Video Engine reviews waiting on a decision. Empty when the engine is off. */
   videoReviews?: VideoStudioReviewListItem[]
 }) {
-  const { brief, decisions, loading, runs } = v2
+  const { brief, decisions, loading, runs, refresh } = v2
   const [busy, setBusy] = useState<string | null>(null)
+  const [replaying, setReplaying] = useState<string | null>(null)
   const { toast } = useToast()
   // A cron that stopped, or failed last time, is an obligation too: the fix
   // is on Krish's side (a key, a mount, a machine), and nothing else says so.
@@ -54,6 +56,40 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
       toast(`Could not save that: ${(e as Error)?.message || 'try again'}`, 'error')
     } finally {
       setBusy(null)
+    }
+  }
+
+  // Run one engine cron now, rather than waiting for its next schedule.
+  //
+  // requestOk is not used here because every interesting answer arrives with
+  // `ok: false` and would be flattened into one sentence. Two of them are not
+  // failures at all: the engine refuses `purge` and `aeo_ingest` on purpose and
+  // returns the reason, and a job that outlives the sixty second call answers
+  // 202 because it is still running. Reporting either as an error would send
+  // Krish looking for a fault that is not there.
+  const replay = async (job: string, label: string) => {
+    setReplaying(job)
+    try {
+      const { status, json } = await requestJson<{
+        ok?: boolean; error?: string; note?: string; reason?: string; elapsed_ms?: number
+      }>('/api/content-engine/runs/replay', { method: 'POST', body: { job } })
+
+      if (status === 202) {
+        toast(`${label} is running and will take longer than this page waits. Its result appears in the ledger when it finishes.`, 'info')
+      } else if (json?.ok) {
+        toast(`${label} ran.`, 'success')
+      } else if (json?.note) {
+        toast(json.note, 'info')
+      } else {
+        toast(`${label} could not run: ${json?.reason || json?.error || `the engine answered ${status}`}`, 'error')
+      }
+    } catch (e) {
+      toast(failureMessage(e, `Could not reach the engine to run ${label}.`), 'error')
+    } finally {
+      setReplaying(null)
+      // Refresh either way. A refused replay changes nothing and a successful
+      // one wrote a ledger row; re-reading is how the strip stops nagging.
+      await refresh()
     }
   }
 
@@ -117,9 +153,24 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
       {engine.attention.length > 0 && (
         <div className="flex flex-col gap-1.5" data-testid="engine-attention">
           {engine.attention.map(a => (
-            <p key={a.job} className={`rounded-xl border px-4 py-2.5 text-label ${a.kind === 'failed' ? 'border-rose-400/25 bg-rose-500/[0.05] text-rose-100/85' : 'border-amber-400/25 bg-amber-400/[0.05] text-amber-100/85'}`}>
-              {a.line}
-            </p>
+            <div
+              key={a.job}
+              className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-label ${a.kind === 'failed' ? 'border-rose-400/25 bg-rose-500/[0.05] text-rose-100/85' : 'border-amber-400/25 bg-amber-400/[0.05] text-amber-100/85'}`}
+            >
+              <p>{a.line}</p>
+              {/* The strip could say a job was stale and offer nothing to do
+                  about it, so a weekly job that failed on Friday waited a week.
+                  The engine refuses the two that delete or cost money and says
+                  why, so this offers the action and lets the engine rule. */}
+              <button
+                type="button"
+                disabled={replaying !== null}
+                onClick={() => replay(a.job, a.label)}
+                className="shrink-0 rounded-full border border-white/15 px-3 py-1 text-micro font-semibold text-white/80 hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {replaying === a.job ? 'Running…' : 'Run again'}
+              </button>
+            </div>
           ))}
         </div>
       )}
