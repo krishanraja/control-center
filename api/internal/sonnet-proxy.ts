@@ -74,14 +74,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // is the one route by which n8n Anthropic spend becomes attributable at
     // all, so it meters here rather than nowhere.
     try {
-      const j = JSON.parse(text) as { usage?: { input_tokens?: number; output_tokens?: number } }
-      await meter.anthropicCall({
-        agent: caller,
-        model: body.model,
-        inputTokens: Number(j?.usage?.input_tokens) || 0,
-        outputTokens: Number(j?.usage?.output_tokens) || 0,
-        failed: !r.ok,
-      })
+      const j = JSON.parse(text) as { usage?: unknown }
+      await meter.anthropicCall({ agent: caller, model: body.model, usage: j?.usage, failed: !r.ok })
     } catch { /* an unparseable body is Anthropic's problem, not the meter's */ }
     res.status(r.status).setHeader('Content-Type', 'application/json').send(text)
   } catch (e) {

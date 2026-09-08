@@ -115,13 +115,34 @@ jobs:
           cat .steward/digest.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate the current state before Claude touches anything
-        # Informational on the way in: a failing validator here is one of the
-        # reasons the steward has work to do. Recorded, never fatal.
-        continue-on-error: true
-        run: node .steward/scripts/steward/validate.mjs . --strict --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+        # On a schedule or a dispatch this is informational and strict: a stale
+        # head is one of the reasons the steward has work to do, so it is
+        # recorded and never fatal on the way in.
+        #
+        # On a push it is the whole job and therefore fatal, but WITHOUT
+        # --strict. Strict adds the head and as_of checks, and a merge always
+        # leaves NOW.md a commit behind by definition: that is the nightly run's
+        # work, not a broken merge. Failing on it would make every merge red for
+        # a reason nobody can fix at merge time, which is how the push trigger
+        # got ignored in the first place. What a push can genuinely break is the
+        # schema, the sections, a missing truth file, an em dash or a committed
+        # secret, and those all fail without --strict.
+        continue-on-error: ${{ github.event_name != 'push' }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            node .steward/scripts/steward/validate.mjs . --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+          else
+            node .steward/scripts/steward/validate.mjs . --strict --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+          fi
 
       - name: Run the steward
-        if: ${{ !inputs.dry_run }}
+        # anthropics/claude-code-action@v1 accepts schedule, workflow_dispatch and
+        # the pull-request family, and refuses push with "Unsupported event type".
+        # So a push runs the deterministic half only: the digest and the strict
+        # validator, which catch a broken NOW.md the moment it lands. The writing
+        # half is the nightly run. Shipped 2026-09-07 with push in the trigger
+        # list, which failed every push for a day before anyone read the log.
+        if: ${{ !inputs.dry_run && github.event_name != 'push' }}
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
@@ -145,14 +166,14 @@ jobs:
         # The hard gate. If Claude pushed something the schema rejects, this
         # fails the job and GitHub emails the owner. Nothing here rewrites
         # what was pushed; the next run (or a person) does that.
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && github.event_name != 'push' }}
         run: |
           git fetch origin main
           git checkout -q origin/main
           node .steward/scripts/steward/validate.mjs . --strict --since ${{ steps.before.outputs.sha }} --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
 
       - name: Fail the job if Claude's run failed
-        if: ${{ !inputs.dry_run && steps.claude.outputs.conclusion == 'failure' }}
+        if: ${{ !inputs.dry_run && github.event_name != 'push' && steps.claude.outputs.conclusion == 'failure' }}
         run: |
           echo "::error::The steward run ended in failure. Read the step log above."
           exit 1

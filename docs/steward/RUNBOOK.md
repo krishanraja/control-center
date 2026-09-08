@@ -214,6 +214,34 @@ allowlist. The steward must leave it alone: it is rendered from
 detected as inbound drift and turned into a proposal against the canon. Editing
 it here would open a proposal against a change nobody made.
 
+## When it runs, and what runs when
+
+The steward has two modes, because `anthropics/claude-code-action@v1` accepts
+`schedule`, `workflow_dispatch` and the pull-request family, and refuses `push`
+with "Unsupported event type: push".
+
+| Trigger | What runs | Fatal? |
+|---|---|---|
+| Push to `main` | The digest, then the validator **without** `--strict`. Claude does not run. | Yes. A merge that breaks the schema, a section, a truth file, or commits a secret fails at the merge. |
+| Nightly schedule | Everything: digest, strict validator (informational), Claude, then the strict validator as the hard gate. | Yes, on the way out. |
+| `workflow_dispatch` | Same as nightly, or validate-only with `dry_run`. | Yes, unless `dry_run`. |
+
+The push run drops `--strict` deliberately. Strict adds the head and `as_of`
+checks, and a merge always leaves `NOW.md` one commit behind by definition. That
+is the nightly run's work, not a broken merge. Failing on it would make every
+merge red for a reason nobody can fix at merge time, which is precisely how the
+push trigger came to be ignored.
+
+So documentation is reconciled once a day, not on every merge, and the push
+trigger exists to catch a broken `NOW.md` immediately rather than to write one.
+Say "validated on every push, reconciled nightly" in any prose that describes
+this; "reconciled on every push" is wrong.
+
+Shipped 2026-09-07 with `push` in the trigger list and no mode split, which
+failed every push for a day. The nightly runs succeeded throughout, so the only
+symptom was a red mark per merge, which is the kind of defect that survives
+longest: it costs nothing except the habit of trusting the light.
+
 ## What the steward never does
 
 - Delete a file, rewrite the LOG, or edit anything in `docs/history/` other

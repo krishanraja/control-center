@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-08
-head: 88f8d1a0
+head: caa34027
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -42,6 +42,10 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 - **Parked**: the hunter job-search lane is hidden behind `VITE_BRIDGES_LANE_ENABLED` and the agent row is left active by Krish's choice.
 
 ## What changed recently
+
+- 2026-09-08 **The outermost clock, outside the thing it watches.** Why: the harness watchdog lived in the repository it watched, so a repository-wide failure would take the alarm with it. `api/health.ts` now reads `state/heartbeats.json` from `krishanraja/ai-harness` over the GitHub API and raises a critical alert when the newest heartbeat is over 48 hours old. It cannot be silenced by the thing it measures, which is the only property that makes a watchdog worth having.
+- 2026-09-08 **Prompt-cache spend is visible, and guarded.** Why: five Anthropic call sites each plucked `input_tokens` and `output_tokens` by hand and dropped the cache fields, so a cached call and an uncached one of the same size were identical in `meter_daily`, and caching could break with no error and no symptom except a larger bill. `api/_meter.ts` now takes the whole usage object at one choke point, `api/_prices.ts` prices reads at 0.1x and writes at 1.25x and 2x, and `meter_daily` carries `cache_read_tokens`, `cache_write_tokens` and `usd_uncached` so a site writing caches nobody reads shows up as costing more rather than netting to zero.
+- 2026-09-08 **Measured, and the answer was no.** Why: the caching plan assumed there were prefixes worth caching here. There are not. The largest constant Anthropic system prompt in `api/` is roughly 842 tokens against Sonnet 5's 1,024 token minimum, so a `cache_control` block today would be silently ignored and cost exactly the same while looking like a saving. `scripts/check-cache-metering.mts` reports that as an advisory on every push and will say so the month a prompt crosses the line, because nobody is going to remember to re-measure.
 
 - 2026-09-09 **The AEO research machine lands: subjects, probes, digests, and recommendations into the content spine.** Why: Krish wants the white-glove AEO research agent from a LinkedIn post for every venture, every company he wants to sell to and every company he wants to be like, autonomous and always ending in an action. The machine is `krishanraja/AEO-Engine` on GitHub Actions (Sunday 04:00 UTC); this repo gained the subject registry, the extended probe table, the query corpus and digest tables, five routes under `api/aeo/`, `aeo_signal` in the content spine, and the council's AEO evidence block. The Signals surface is rebuilt after a rendered mock is approved. Spec: `docs/AEO-ENGINE.md`.
 - 2026-09-08 **Growth says what it is for and reads insight first.** Why: on a phone the + opened the desktop grid inline with a native select and a date picker, the GEO rows spiralled into a three-word column beside a chip stack, the weekly review buried the council's own headline as one key: value row among eight, "autonomy ladder" explained nothing, the connected tools truncated their jobs to three letters, and Spend limits read $0 while Intel read the real bills with no line between them. Now the header carries the purpose, every evidence section opens on one sentence with the rows folded, each council move can become today's work or a clip from the card, the two composers are house bottom sheets with chips, and Spend limits shows Intel's number beside a line saying what the lane figures count.

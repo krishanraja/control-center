@@ -1,4 +1,4 @@
-import { priceUsd, isPriced } from './_prices.js'
+import { priceUsd, priceUsdDetailed, priceUsdUncached, readUsage, isPriced, type TokenUsage } from './_prices.js'
 
 /**
  * Supabase, lazily.
@@ -60,6 +60,19 @@ export interface MeterRow {
   units: number
   /** What `units` counts: 'compute-units' | 'executions' | 'tokens'. */
   unit_name: string | null
+  /**
+   * Cached tokens, kept apart from `units` and from each other.
+   *
+   * Netting reads against writes would hide the one failure worth catching: a
+   * site that writes cache entries nobody reads pays MORE than one with no
+   * caching at all, because a write is priced above an ordinary input token
+   * and a read is priced at a tenth of one. Two columns, so the ratio between
+   * them is visible and a write-only site shows up as exactly what it is.
+   */
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  /** What the same work would have cost with no caching. usd minus this is the saving. */
+  usd_uncached?: number
 }
 
 /** UTC calendar day of an instant, as the meter stores it. */
@@ -117,6 +130,10 @@ export async function add(e: {
   failed?: number
   units?: number
   unitName?: string | null
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
+  /** What this call would have cost uncached, so the saving is a stored number. */
+  usdUncached?: number
   /** Defaults to today. */
   day?: string
 }): Promise<void> {
@@ -136,6 +153,9 @@ export async function add(e: {
       p_failed: e.failed ?? 0,
       p_units: e.units ?? 0,
       p_unit_name: e.unitName ?? null,
+      p_cache_read_tokens: e.cacheReadTokens ?? 0,
+      p_cache_write_tokens: e.cacheWriteTokens ?? 0,
+      p_usd_uncached: e.usdUncached ?? e.usd ?? 0,
     })
   } catch { /* metering is never load-bearing */ }
 }
@@ -280,12 +300,26 @@ export function normalizeAgent(raw: string | null | undefined): string {
 export async function anthropicCall(e: {
   agent?: string | null
   model: string
-  inputTokens: number
-  outputTokens: number
+  inputTokens?: number
+  outputTokens?: number
+  /**
+   * The raw `usage` object from the response, preferred over the two counts.
+   *
+   * Every call site used to pluck input_tokens and output_tokens by hand and
+   * drop everything else, which is why cache savings were invisible across the
+   * whole OS: five sites, five places to forget. Passing the object through
+   * means the cache fields are read in exactly one place, and a site that
+   * starts caching tomorrow is measured without touching it.
+   */
+  usage?: unknown
   /** A call that errored after tokens were produced still cost money. */
   failed?: boolean
 }): Promise<void> {
-  const tokens = (e.inputTokens || 0) + (e.outputTokens || 0)
+  const u: TokenUsage = e.usage
+    ? readUsage(e.usage)
+    : { input: e.inputTokens || 0, output: e.outputTokens || 0 }
+  const cached = (u.cacheRead || 0) + (u.cacheWrite5m || 0) + (u.cacheWrite1h || 0)
+  const tokens = u.input + u.output + cached
   if (!tokens) return
   await add({
     provider: 'anthropic',
@@ -294,10 +328,13 @@ export async function anthropicCall(e: {
     bucket: e.model,
     label: normalizeAgent(e.agent),
     category: isPriced(e.model) ? 'priced' : 'unpriced-model',
-    usd: priceUsd(e.model, e.inputTokens || 0, e.outputTokens || 0),
+    usd: priceUsdDetailed(e.model, u),
+    usdUncached: priceUsdUncached(e.model, u),
     runs: 1,
     failed: e.failed ? 1 : 0,
     units: tokens,
     unitName: 'tokens',
+    cacheReadTokens: u.cacheRead || 0,
+    cacheWriteTokens: (u.cacheWrite5m || 0) + (u.cacheWrite1h || 0),
   })
 }

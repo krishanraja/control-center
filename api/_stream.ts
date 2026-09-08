@@ -112,8 +112,9 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
   const decoder = new TextDecoder()
   let buffer = ''
   let out = ''
-  let inputTokens = 0
-  let outputTokens = 0
+  // The whole usage object, accumulated across frames, rather than two numbers
+  // plucked from it. Cache figures only appear on message_start.
+  let usage: Record<string, unknown> = {}
 
   for (;;) {
     const { done, value } = await reader.read()
@@ -135,8 +136,8 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
           const evt = JSON.parse(raw) as {
             type?: string
             delta?: { type?: string; text?: string }
-            message?: { usage?: { input_tokens?: number; output_tokens?: number } }
-            usage?: { input_tokens?: number; output_tokens?: number }
+            message?: { usage?: Record<string, unknown> }
+            usage?: Record<string, unknown>
             error?: { message?: string }
           }
           if (evt.type === 'error') throw new Error(evt.error?.message || 'anthropic_stream_error')
@@ -144,13 +145,18 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
             out += evt.delta.text
             opts.onText(evt.delta.text)
           }
-          // Token counts arrive in their own frames, not with the text.
-          if (evt.type === 'message_start') {
-            inputTokens = Number(evt.message?.usage?.input_tokens) || inputTokens
-            outputTokens = Number(evt.message?.usage?.output_tokens) || outputTokens
+          // Token counts arrive in their own frames, not with the text. The
+          // whole usage object is kept, not two numbers off it: cache_read and
+          // cache_creation ride along on message_start and were being dropped
+          // here, which is one of the five places cache spend went unmeasured.
+          if (evt.type === 'message_start' && evt.message?.usage) {
+            usage = { ...usage, ...evt.message.usage }
           }
           if (evt.type === 'message_delta' && evt.usage) {
-            outputTokens = Number(evt.usage.output_tokens) || outputTokens
+            // message_delta restates the running output count and nothing else,
+            // so merging it wholesale would zero the input and cache figures
+            // that only message_start carries.
+            if (evt.usage.output_tokens != null) usage.output_tokens = evt.usage.output_tokens
           }
         } catch (e) {
           // A frame we cannot parse is not fatal on its own; a reported error is.
@@ -160,6 +166,6 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
     }
   }
 
-  await meter.anthropicCall({ agent: opts.agent, model: opts.model, inputTokens, outputTokens })
+  await meter.anthropicCall({ agent: opts.agent, model: opts.model, usage })
   return out
 }
