@@ -66,7 +66,44 @@ for (const f of files) {
   }
 }
 
-// 3. The price table must carry cache multipliers, because pricing a cache read
+// 3. Advisory: which constant system prompts are near or over a cacheable size.
+//
+//    Measured 2026-09-09 and the answer was no, everywhere. The largest constant
+//    system prompt in api/ is roughly 842 tokens and the fan-out sites use about
+//    277, while Sonnet 5 needs 1,024 and Haiku 4.5 needs 4,096. A cache_control
+//    block on any of them today would be SILENTLY IGNORED and cost exactly the
+//    same, which is worse than not adding one: it looks like a saving that is
+//    not there.
+//
+//    That answer is true today and prompts grow. So this reports rather than
+//    fails. When a constant prompt crosses the threshold it becomes worth a
+//    breakpoint, and nobody is going to remember to re-measure. This remembers.
+const MIN_CACHEABLE = { sonnet: 1024, haiku: 4096 }
+const TOKENS_PER_CHAR = 0.25
+const advisories: string[] = []
+for (const f of files) {
+  const src = readFileSync(f, 'utf8')
+  // Anthropic only. The first version of this advisory flagged
+  // SKILL_BUILDER_SYSTEM_PROMPT at 1,273 tokens, which goes to gpt-4o where
+  // Anthropic prompt caching does not exist. A prompt being large is not the
+  // signal; a prompt being large AND going somewhere that can cache it is.
+  if (!/api\.anthropic\.com|callClaude|anthropicCall|anthropicJson/.test(src)) continue
+  // Only a constant, non-interpolated template literal can be a stable cache
+  // prefix. Anything interpolated varies per call and never can be.
+  for (const m of src.matchAll(/const\s+(\w*SYSTEM\w*)\s*=\s*`([^`]*)`/g)) {
+    const [, name, body] = m
+    if (body.includes('${')) continue
+    const tokens = Math.round(body.length * TOKENS_PER_CHAR)
+    const line = src.slice(0, m.index).split('\n').length
+    if (tokens >= MIN_CACHEABLE.sonnet) {
+      advisories.push(`${f}:${line} ${name} is about ${tokens} tokens, over Sonnet 5's ${MIN_CACHEABLE.sonnet} minimum. If it is sent repeatedly inside a five minute window, a breakpoint at its end would now actually engage.`)
+    } else if (tokens >= MIN_CACHEABLE.sonnet * 0.8) {
+      advisories.push(`${f}:${line} ${name} is about ${tokens} tokens, approaching Sonnet 5's ${MIN_CACHEABLE.sonnet} minimum. Not cacheable yet, and a breakpoint here today would be silently ignored.`)
+    }
+  }
+}
+
+// 4. The price table must carry cache multipliers, because pricing a cache read
 //    at the full input rate would report a saving that is not there.
 const prices = readFileSync('api/_prices.ts', 'utf8')
 for (const needed of ['CACHE_MULTIPLIERS', 'priceUsdDetailed', 'priceUsdUncached', 'readUsage']) {
@@ -80,3 +117,9 @@ if (failures.length) {
   process.exit(1)
 }
 console.log(`Cache metering guard passed: ${files.length} api files, every anthropicCall passes a usage object, cache pricing intact.`)
+if (advisories.length) {
+  console.log('\nAdvisory, not a failure. Prompts at or near a cacheable size:')
+  for (const a of advisories) console.log(`- ${a}`)
+} else {
+  console.log('Advisory: no constant system prompt in api/ is within 80 percent of Sonnet 5\'s 1024 token minimum, so no breakpoint here would engage today. Measured, not assumed.')
+}
