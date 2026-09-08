@@ -26,6 +26,7 @@
  * with it.
  */
 
+import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, basename } from 'node:path'
@@ -249,6 +250,29 @@ if (since) {
     if (!code.startsWith('D') && exists(path) && statSync(join(repo, path)).isFile()) {
       const content = read(path)
       for (const rule of SECRET_RULES) if (rule.re.test(content)) fail(`secret: ${path} contains what looks like a ${rule.name}`)
+    }
+  }
+}
+
+// ------------------------------------------------- the harness steward's territory
+//
+// AGENTS.md is on the markdown allowlist, and part of it belongs to the other
+// steward. The canon block is rendered from krishanraja/ai-harness and its start
+// marker carries the sha256 of the body it introduces, so an edit inside the
+// markers is arithmetic to detect. The docs steward must never make one: the
+// harness reconciler would read it as inbound drift and open a proposal against
+// a change nobody decided. Editing outside the markers stays entirely free.
+{
+  const START = /<!--\s*krish-canon:start\s+release=(\S+)\s+sha=([0-9a-f]{12})\s+rendered=(\S+)\s*-->\n([\s\S]*?)\n<!-- krish-canon:end -->/
+  const canonFiles = git('ls-files', '*.md', '**/*.md').split('\n').filter(Boolean)
+  for (const f of canonFiles) {
+    let text
+    try { text = read(f) } catch { continue }
+    const m = text.match(START)
+    if (!m) continue
+    const actual = createHash('sha256').update(m[4], 'utf8').digest('hex').slice(0, 12)
+    if (actual !== m[2]) {
+      fail(`canon: ${f} was edited between the krish-canon markers (body hashes ${actual}, marker says ${m[2]}). That block belongs to krishanraja/ai-harness; the docs steward never writes inside it.`)
     }
   }
 }
