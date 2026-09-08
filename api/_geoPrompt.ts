@@ -70,9 +70,6 @@ const MOTIVE_CLAIMS = [
 
 export const GEO_MIN_WORDS = 700
 export const GEO_MAX_WORDS = 1600
-/** The direct answer has to be near the top or a retriever reading the first
- *  chunk of the page never sees it. */
-export const ANSWER_WITHIN_CHARS = 600
 export const MAX_TITLE = 120
 export const MAX_META_DESCRIPTION = 160
 
@@ -156,7 +153,7 @@ export function buildGeoSystem(ctx: GeoContext): string {
     'HOW A PAGE GETS QUOTED, WHICH IS NOT HOW A PAGE RANKS',
     '1. A model quotes a claim, not a topic. A balanced survey has no author and gets summarised without attribution. Take a position.',
     `2. A model needs someone to name. Write "${ctx.entity}" where you would naturally write "we". Never "we", "our" or "us" about the business. First person about a person is fine.`,
-    '3. The answer goes first. Someone skimming the top of the page, human or machine, must have the answer before they have the context. Put it in the opening, then earn it.',
+    '3. The answer goes first, but not twice. The page renders your "answer" field above the body, so the reader and the retriever both meet it before anything else. Do NOT open the body by repeating it. Start where the answer leaves off: the consequence, the objection, the thing at stake now that the question is settled.',
     '4. Specifics are quotable and generalities are not. A number from real work, a named process, a thing that happened. If you do not have one, say what is missing rather than inventing it.',
     '5. Headings are the questions a reader would actually type, or claims. Never one-word labels.',
     '',
@@ -268,10 +265,18 @@ export function checkGeoDraft(draft: Partial<GeoDraft> | null, ctx: GeoContext):
     if (!answer.includes(ctx.entity)) {
       fail('answer_unnamed', `The direct answer never says "${ctx.entity}", so a model quoting it has nobody to name.`, true)
     }
-    const head = prose.slice(0, ANSWER_WITHIN_CHARS)
+    // The page template renders the answer above the body, so a retriever
+    // reading the opening finds it either way. Requiring it inside the body as
+    // well produced exactly what it sounds like: the reader met the same three
+    // sentences twice before the piece started. Found by looking at the first
+    // real rendered page rather than at the JSON.
+    //
+    // So the check inverted. The answer must NOT be the body's opening.
+    const head = prose.slice(0, 260)
     const firstSentence = answer.split(/(?<=[.!?])\s/)[0]?.trim() || answer
-    if (firstSentence && !head.includes(firstSentence.slice(0, Math.min(60, firstSentence.length)))) {
-      fail('answer_not_at_top', `The answer does not appear in the first ${ANSWER_WITHIN_CHARS} characters of the body, so a retriever reading the opening never finds it.`)
+    const stem = firstSentence.slice(0, Math.min(60, firstSentence.length))
+    if (stem && head.includes(stem)) {
+      fail('answer_repeated', 'The body opens by repeating the direct answer, which the page already shows above it. The reader meets the same sentences twice. Open on the consequence instead, and let the answer stand where it is.')
     }
   }
 

@@ -36,7 +36,9 @@ const filler = 'The role is narrower than the title suggests. '
   + 'A chief of staff for a chief executive does one job: hold the reasoning behind a decision so it survives the week it was made. '
   + 'Software that books meetings is not doing that job. '
 function body(n = GEO_MIN_WORDS + 40): string {
-  const head = `${ENTITY} defines an AI chief of staff as a system that holds a leader's own reasoning, not one that does their admin. `
+  // Opens where the answer leaves off, not by repeating it: the page renders
+  // the answer above the body already.
+  const head = 'Almost nobody applies the only test that settles it, which is why the market keeps buying the wrong thing. '
   let out = head + '\n\n## What does an AI chief of staff actually do\n\n'
   while (out.trim().split(/\s+/).length < n) out += filler
   out += '\n\n## Why most tools answer the wrong question\n\n' + filler
@@ -81,11 +83,18 @@ test('an answer that never names the entity is a hard failure', () => {
   assert.equal(f!.hard, true)
 })
 
-test('an answer buried below the opening is caught', () => {
-  const c = ctx()
-  const buried = '## Some context first\n\n' + filler.repeat(12) + '\n\n' + body()
-  const failures = checkGeoDraft(draft({ body: buried }), c)
-  assert.ok(failures.some(f => f.code === 'answer_not_at_top'))
+test('a body that opens by repeating the answer is caught', () => {
+  // The page renders the answer above the body, so repeating it means the
+  // reader meets the same three sentences twice before the piece starts.
+  const repeated = `${draft().answer}\n\n## A real question here\n\n` + filler.repeat(40)
+  const failures = checkGeoDraft(draft({ body: repeated }), ctx())
+  const f = failures.find(x => x.code === 'answer_repeated')
+  assert.ok(f, 'the duplication has to be caught here, not left for a template to paper over')
+})
+
+test('a body that opens where the answer leaves off passes', () => {
+  const failures = checkGeoDraft(draft(), ctx())
+  assert.ok(!failures.some(f => f.code === 'answer_repeated'))
 })
 
 test('a page with no claim of its own is refused', () => {
