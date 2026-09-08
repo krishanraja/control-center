@@ -135,6 +135,27 @@ jobs:
             node .steward/scripts/steward/validate.mjs . --strict --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
           fi
 
+      # anthropics/claude-code-action@v1 installed Claude Code 2.1.265 and then
+      # failed with "native binary not found at /home/runner/.local/bin/claude".
+      # Its own log gives the cause twice before it dies:
+      #
+      #   ● claude command at /home/runner/.local/bin/claude missing or broken
+      #     (/home/runner/.local/bin does not exist)
+      #   ✔ Claude Code successfully installed!  Location: ~/.local/bin/claude
+      #
+      # The launcher step cannot place the binary because the directory is not
+      # there, reports success anyway, and the SDK is then pointed at the path
+      # nothing was written to. Creating the directory first is the whole fix.
+      #
+      # Reproduced on 2026-09-08: the nightly run failed, a re-run of the same
+      # job failed identically, so it is not transient. Pinning the action to an
+      # older version was the alternative and this is better, because it needs no
+      # guess about which version predates the bug and it stops applying by
+      # itself the day upstream fixes the installer.
+      - name: The installer needs its launcher directory to exist
+        if: ${{ !inputs.dry_run && github.event_name != 'push' }}
+        run: mkdir -p "$HOME/.local/bin"
+
       - name: Run the steward
         # anthropics/claude-code-action@v1 accepts schedule, workflow_dispatch and
         # the pull-request family, and refuses push with "Unsupported event type".
