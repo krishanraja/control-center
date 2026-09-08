@@ -265,7 +265,10 @@ function yamlString(s: string): string {
 export function renderPage(geo: Row, meta: Row, publishedAt: string): string {
   const faq = Array.isArray(geo.faq) ? geo.faq as Array<{ q: string; a: string }> : []
   const firstParty = Array.isArray(geo.first_party) ? geo.first_party as string[] : []
-  const front = [
+  // The date, not the timestamp. A published date is a day, and at least one
+  // site's loader requires exactly YYYY-MM-DD and refuses anything longer.
+  const publishedDate = String(publishedAt).slice(0, 10)
+  const lines = [
     '---',
     `title: ${yamlString(geo.title || meta.idea || '')}`,
     `slug: ${yamlString(geo.slug || '')}`,
@@ -273,14 +276,18 @@ export function renderPage(geo: Row, meta: Row, publishedAt: string): string {
     `answer: ${yamlString(geo.answer || '')}`,
     `claim: ${yamlString(geo.claim || '')}`,
     `target_query: ${yamlString(geo.target_query || '')}`,
-    `published_at: ${yamlString(publishedAt)}`,
+    `published_at: ${yamlString(publishedDate)}`,
     firstParty.length ? 'first_party:' : '',
     ...firstParty.map(f => `  - ${yamlString(f)}`),
     faq.length ? 'faq:' : '',
     ...faq.flatMap(f => [`  - q: ${yamlString(f.q)}`, `    a: ${yamlString(f.a)}`]),
-    '---',
-    '',
-  ].filter(Boolean).join('\n')
+  ].filter(Boolean)
+  // The blank line after the closing fence is structural, not cosmetic: a
+  // parser looking for the front matter block needs the fence on a line of its
+  // own. This used to be a trailing '' inside the array above, which the
+  // filter for truthy values then removed, gluing the fence to the first line
+  // of the prose. Every page written that way broke a site build.
+  const front = `${lines.join('\n')}\n---\n\n`
   const body = String(geo.body_md || '')
   const faqSection = faq.length
     ? ['', '## Questions people ask next', '', ...faq.flatMap(f => [`### ${f.q}`, '', f.a, ''])].join('\n')
