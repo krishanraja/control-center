@@ -150,6 +150,10 @@ jobs:
       # Krish's own builds as Content Engine supply: five named products,
       # everything else anonymous, no figure in a Money of AI candidate, one
       # source type declared in three places, the Saturday cron wired.
+      # The AEO read on the Growth tab computes its sentences from rows; this
+      # holds them to fixtures so a sentence cannot silently start lying. The
+      # engine owns api/aeo/*; this guard reads src/lib/aeo.ts only.
+      - run: npm run check:aeo-read
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it

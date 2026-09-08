@@ -65,7 +65,8 @@ export interface CouncilReviewRow {
 
 export interface GeoProbeRow {
   id: string
-  product_slug: ProductSlug
+  /** A Growth slug for a venture row; the subject slug for a prospect or an aspiration. */
+  product_slug: ProductSlug | string
   question: string
   engine: Engine
   answer_snapshot: string | null
@@ -73,6 +74,12 @@ export interface GeoProbeRow {
   competitors_cited: unknown
   touchpoint_id: string | null
   run_at: string
+  // Since 2026-09-09: which subject, kind, run and query the answer belongs to
+  // (the AEO engine writes them; the Monday probe cron leaves them null).
+  subject_id?: string | null
+  subject_kind?: 'venture' | 'prospect' | 'aspiration'
+  run_id?: string | null
+  query_id?: string | null
 }
 
 export interface SocialAccountRow {

@@ -85,3 +85,35 @@ Rejection rates feed Vera's weekly ladder check via `feedback_queue`.
 - Legibility / Full Time / Pulse capture intakes: clone the CTRL pattern
   (checked-in reference: `acquisition-ctrl-capture-intake.workflow.json`) with
   their lane slug; the whole Growth tab lights up per lane automatically.
+
+## The AEO research machine (2026-09-09)
+
+`krishanraja/AEO-Engine` runs on GitHub Actions every Sunday 04:00 UTC and
+lands one packet per subject per week on `POST /api/aeo/ingest`. Full spec:
+`docs/AEO-ENGINE.md`; contract: `docs/AEO-PACKET.schema.json`.
+
+- **Subjects** live in `growth_aeo_subjects` and are edited on the tab or
+  through `api/aeo/subjects`. A prospect can link a Room target so the
+  week's read can be used in the approach. Competitor lists start empty on
+  purpose: name them, the engine will not invent them.
+- **Run now** (`POST /api/aeo/run`) queues an `aeo_commands` row and fires
+  `repository_dispatch` on `AEO_REPO`. The response says `dispatched: true`
+  or the GitHub error. There is no drain: a row that could not start stays
+  queued until the next scheduled packet supersedes it.
+- **Secrets, by name.** Vercel: `AEO_ENGINE_SECRET` (the bearer the engine
+  proves), `AEO_DISPATCH_TOKEN` (fine-grained, scoped to the engine repo,
+  Contents read and write, which repository_dispatch needs), `AEO_REPO`.
+  The engine repo's Actions secrets: `CONTROL_CENTER_URL`,
+  `AEO_ENGINE_SECRET`, `FIREFLIES_API_KEY`, `ANTHROPIC_API_KEY`,
+  `OPENAI_API_KEY`, `PERPLEXITY_API_KEY`, optional `XAI_API_KEY` and
+  `EXA_API_KEY`; the variable `AEO_MAX_USD_PER_RUN` caps a run.
+- **When it goes quiet** the Content tab's obligation strip says so
+  (`aeo_ingest` in `content_engine_runs`, a week plus a day of grace), and
+  the Sunday council reads the missing digest as an unknown.
+- **Retirement, owed.** The Monday `api/growth/geo-probe` Perplexity cron
+  stays in `vercel.json` until the engine has two green Sundays; then remove
+  the cron entry and keep the route as a manual fallback.
+- **Legibility** is not a subject yet (the Growth key space does not carry
+  it), so its striking-distance rows are never read. "No gap" for Legibility
+  is not a finding.
+
