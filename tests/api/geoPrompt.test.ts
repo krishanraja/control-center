@@ -187,3 +187,24 @@ test('repair hands back only the soft failures, verbatim', () => {
   assert.ok(!/nothing on this page could only have been written/i.test(repair),
     'a hard failure is not something a repair pass can fix, so it is not offered back')
 })
+
+test('asserting what a named company privately wants is caught', () => {
+  const accusatory = body() + '\n\nThe marketplaces will not tell you how to skip them.'
+  const failures = checkGeoDraft(draft({ body: accusatory }), ctx())
+  const f = failures.find(x => x.code === 'third_party_motive')
+  assert.ok(f, 'a motive claim about a named third party is unfalsifiable and comes back as a complaint')
+  assert.match(f!.why, /will not tell you/)
+})
+
+test('describing what a company sells is still allowed', () => {
+  const structural = body() + '\n\nA marketplace earns on placement, so its incentive sits with volume.'
+  const failures = checkGeoDraft(draft({ body: structural }), ctx())
+  assert.ok(!failures.some(f => f.code === 'third_party_motive'),
+    'the structural version of the same argument is fair and must survive')
+})
+
+test('the prompt tells the model to describe structure rather than motive', () => {
+  const sys = buildGeoSystem(ctx())
+  assert.match(sys, /Asserting their motives is not/)
+  assert.match(sys, /a marketplace earns on placement/)
+})

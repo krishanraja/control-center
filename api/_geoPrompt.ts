@@ -49,6 +49,25 @@ const UNATTRIBUTABLE = [
  *  who. */
 const FIRST_PERSON = /\b(we|our|us|ours)\b/gi
 
+/** Naming a competitor is fine and often necessary: the whole argument is
+ *  that the sites currently answering cannot make this claim. Asserting what
+ *  a named company privately wants is something else. It is unfalsifiable,
+ *  it reads as a hatchet job, and on a page that gets quoted it is the one
+ *  sentence that can come back as a complaint rather than a citation. The
+ *  research machine's own winnability reasons are written in exactly this
+ *  register ("none can honestly tell a buyer how to skip them"), so without a
+ *  check the accusation travels straight onto the page.
+ *
+ *  The rule is: say what a company sells and publishes, never what it wants
+ *  or hides. */
+const MOTIVE_CLAIMS = [
+  'will not tell you', 'will never tell you', 'do not want you to',
+  'will never admit', 'would rather you', 'have no interest in',
+  'profit from keeping', 'cannot honestly', 'will not honestly',
+  'their real motive', 'what they will not say', 'they are hiding',
+  'they do not care', 'do not want you knowing',
+]
+
 export const GEO_MIN_WORDS = 700
 export const GEO_MAX_WORDS = 1600
 /** The direct answer has to be near the top or a retriever reading the first
@@ -145,6 +164,7 @@ export function buildGeoSystem(ctx: GeoContext): string {
     'Unattributable filler: ' + UNATTRIBUTABLE.map(u => `"${u}"`).join(', ') + '.',
     'Openers that announce themselves: ' + BANNED_OPENERS.slice(0, 12).map(b => `"${b}"`).join(', ') + '.',
     ctx.never_say.length ? `Phrases this business does not use: ${ctx.never_say.map(n => `"${n}"`).join(', ')}.` : '',
+    'Any claim about what a named company privately wants, hides or refuses to admit. Naming the sites that answer this question today is necessary and expected. Saying what they sell and publish is fair. Asserting their motives is not: it cannot be checked, it reads as a hatchet job, and it is the one sentence on a quoted page that comes back as a complaint. Where the argument depends on a conflict of interest, describe the structure ("a marketplace earns on placement") and let the reader draw the conclusion.',
     'Any invented figure, client, quote or outcome. A gap named honestly is worth more than a plausible fabrication, because one wrong number on a cited page is worse than not being cited.',
     '',
     'IT ALSO HAS TO BE WORTH READING',
@@ -279,6 +299,11 @@ export function checkGeoDraft(draft: Partial<GeoDraft> | null, ctx: GeoContext):
   const filler = UNATTRIBUTABLE.filter(u => lowerProse.includes(u))
   if (filler.length) fail('unattributable', `Unattributable filler: ${filler.join(', ')}.`)
 
+  const motive = MOTIVE_CLAIMS.filter(m => lowerProse.includes(m))
+  if (motive.length) {
+    fail('third_party_motive', `States what a named company privately wants or hides: ${motive.join(', ')}. Describe the structure and let the reader conclude.`)
+  }
+
   const opener = BANNED_OPENERS.find(b => lowerProse.trimStart().startsWith(b.toLowerCase()))
   if (opener) fail('banned_opener', `Opens with "${opener}".`)
 
@@ -315,4 +340,4 @@ export function buildGeoRepair(failures: GeoFailure[]): string {
   ].join('\n')
 }
 
-export const GEO_VOCAB = { UNATTRIBUTABLE }
+export const GEO_VOCAB = { UNATTRIBUTABLE, MOTIVE_CLAIMS }
