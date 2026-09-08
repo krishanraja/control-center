@@ -247,6 +247,76 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     }
 
     // Overall status
+    // ---------------------------------------------------- the outermost clock
+    //
+    // The harness watches itself with two clocks: the observer writes
+    // state/heartbeats.json and the nightly audit fails when it goes 48 hours
+    // stale. Both live in the same GitHub Actions workflow, so if that workflow
+    // stops firing they stop together and nothing complains. GitHub disables a
+    // scheduled workflow after 60 days of repository inactivity, which a canon
+    // repository can easily reach, so that is not a hypothetical.
+    //
+    // A watchdog that shares a fate with the thing it watches is not a watchdog.
+    // This is the one outside it. It reads the heartbeat from here, where Krish
+    // already looks, which is the honest terminus: you cannot close the
+    // recursion, you can only make the last watcher a person glancing at a
+    // dashboard they open anyway.
+    try {
+      const ghToken = process.env.GITHUB_TOKEN || ''
+      if (!ghToken) {
+        health.components['harness-heartbeat'] = {
+          status: 'unknown', last_check: nowIso,
+          message: 'GITHUB_TOKEN not set, so the harness heartbeat cannot be read from here',
+        }
+      } else {
+        const r = await fetch(
+          'https://api.github.com/repos/krishanraja/ai-harness/contents/state/heartbeats.json?ref=main',
+          { headers: { authorization: `Bearer ${ghToken}`, accept: 'application/vnd.github+json', 'user-agent': 'control-center-health' } },
+        )
+        if (!r.ok) {
+          health.components['harness-heartbeat'] = {
+            status: 'unknown', last_check: nowIso,
+            message: `heartbeats.json unreadable (${r.status})`,
+          }
+        } else {
+          const file = await r.json() as { content?: string }
+          const beats = JSON.parse(Buffer.from(String(file.content || ''), 'base64').toString('utf8')) as
+            Record<string, { last_run?: string } | null>
+          const ages = Object.entries(beats)
+            .filter(([, b]) => b?.last_run)
+            .map(([who, b]) => ({ who, hours: (now.getTime() - new Date(b!.last_run!).getTime()) / 3_600_000 }))
+          if (!ages.length) {
+            health.components['harness-heartbeat'] = {
+              status: 'failed', last_check: nowIso,
+              message: 'heartbeats.json carries no clock with a last_run',
+            }
+            health.alerts.push({ severity: 'critical', message: 'The harness has no live clock at all.', component: 'harness-heartbeat', timestamp: nowIso })
+          } else {
+            const oldest = ages.sort((a, b) => b.hours - a.hours)[0]
+            // 48 hours matches the harness audit's own limit, so the two agree
+            // on what stale means rather than each having an opinion.
+            const level: Level = oldest.hours > 48 ? 'failed' : oldest.hours > 30 ? 'degraded' : 'healthy'
+            health.components['harness-heartbeat'] = {
+              status: level, last_check: nowIso,
+              message: `${ages.length} clock(s), oldest is ${oldest.who} at ${Math.round(oldest.hours)}h`,
+            }
+            if (level === 'failed') {
+              health.alerts.push({
+                severity: 'critical',
+                message: `The harness ${oldest.who} clock has not run for ${Math.round(oldest.hours)} hours. Its own watchdog runs in the same workflow, so if that workflow stopped, nothing inside the harness can tell you.`,
+                component: 'harness-heartbeat', timestamp: nowIso,
+              })
+            }
+          }
+        }
+      }
+    } catch (e) {
+      health.components['harness-heartbeat'] = {
+        status: 'unknown', last_check: nowIso,
+        message: `heartbeat read failed: ${e instanceof Error ? e.message : 'unknown'}`,
+      }
+    }
+
     if (health.alerts.some(a => a.severity === 'critical')) health.status = 'failed'
     else if (health.alerts.some(a => a.severity === 'warning')) health.status = 'degraded'
     else {
