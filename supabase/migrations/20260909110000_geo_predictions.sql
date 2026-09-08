@@ -68,9 +68,15 @@ create table if not exists public.geo_predictions (
 -- One live prediction per idea per question. A republish of the same piece
 -- replaces the prediction rather than stacking a second one, or the four-week
 -- check counts one page twice.
+--
+-- Not partial, deliberately. A partial unique index cannot serve ON CONFLICT
+-- unless the statement repeats its predicate, which PostgREST cannot express,
+-- and the predicate earned nothing anyway: content_idea_id is nullable and
+-- NULLs are distinct, so an unfiltered index already permits the rows a
+-- partial one was written to allow. The first real publish found this by
+-- reporting the failure instead of swallowing it.
 create unique index if not exists geo_predictions_idea_query_uq
-  on public.geo_predictions (content_idea_id, target_query)
-  where content_idea_id is not null;
+  on public.geo_predictions (content_idea_id, target_query);
 
 -- The check reads by due date, so that is the index that matters.
 create index if not exists geo_predictions_due_idx
