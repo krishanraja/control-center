@@ -5,6 +5,7 @@ import { DecisionCard } from './DecisionCard'
 import { Pending } from '../shared/Pending'
 import { useToast } from '../shared/Toast'
 import { contentEngineAttention } from '../../lib/contentEngineSchedule'
+import { useEngineHealth } from '../../hooks/useEngineHealth'
 import {
   VIDEO_GATE_LABEL,
   VIDEO_SERIES_LABEL,
@@ -36,6 +37,10 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
   // A cron that stopped, or failed last time, is an obligation too: the fix
   // is on Krish's side (a key, a mount, a machine), and nothing else says so.
   const engine = contentEngineAttention(runs)
+  // Since the crons moved to the content-engine project this dashboard's
+  // schedule table is a copy. Say so when the two disagree, rather than
+  // nagging about a job nobody runs or staying quiet about one that stopped.
+  const engineHealth = useEngineHealth()
 
   // Say so when a ruling fails. useContentV2's fetch wrapper throws on any
   // non-OK response and this was a bare try/finally, so a 409 ("already
@@ -92,6 +97,21 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
             {brief!.title || 'This week, assembled'}
           </p>
         </button>
+      )}
+
+      {(engineHealth.scheduleDrift || engineHealth.health?.ready === false) && (
+        <div className="flex flex-col gap-1.5" data-testid="engine-health">
+          {engineHealth.scheduleDrift ? (
+            <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
+              {engineHealth.scheduleDrift}
+            </p>
+          ) : null}
+          {engineHealth.health && !engineHealth.health.ready ? (
+            <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
+              The engine is missing {engineHealth.health.missingRequired.join(', ')}, so that part of it cannot run.
+            </p>
+          ) : null}
+        </div>
       )}
 
       {engine.attention.length > 0 && (

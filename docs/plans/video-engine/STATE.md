@@ -2,6 +2,13 @@
 
 ## Delivery state
 
+- **2026-09-08: the control plane moved to `krishanraja/content-engine`** (ADR-019).
+  `api/video-studio/**` now runs from that repo's `apps/control-plane` as its own
+  Vercel project; Control Center rewrites to it, so the runner's pinned URL, the
+  MCP endpoint and every browser call are unchanged. Authority is untouched:
+  ADR-014 still governs who owns media, projections, leases and receipts. The
+  runner bearer and signing key must be set on the engine project with the exact
+  values the Windows machine holds, or the runner cannot claim work.
 - Status: live in production since 2026-09-07. The control-plane migrations are applied to the Mindmaker OS project, `VITE_VIDEO_ENGINE_ENABLED` is on, the Windows runner heartbeats (idle, Drive ready), and the two synthetic validation jobs written on 2026-09-05 as activation proof are retired from the queue (`20260908100000_video_studio_jobs_retired.sql`). No real job has been projected yet; the first will arrive through a production brief the runner claims.
 - Canonical state route: `docs/plans/video-engine/STATE.md`
 - First approval artifact: `docs/plans/video-engine/mock-mobile-magic-v1.html`

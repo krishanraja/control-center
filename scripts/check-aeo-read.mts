@@ -12,6 +12,11 @@
 //   a new competitor       named with the count and last week's domain
 //   no em dash             in any sentence, ever
 //
+// The other half of this guard, which held docs/AEO-PACKET.schema.json to the
+// ingest validator, moved with api/_aeo.ts to krishanraja/content-engine
+// (apps/control-plane/scripts/check-aeo-packet-schema.ts). Each half now runs
+// in the repo that holds its inputs.
+//
 //   npx tsx scripts/check-aeo-read.mts
 import assert from 'node:assert/strict'
 import {
@@ -105,28 +110,3 @@ assert.match(commandCaption({ id: 1, subject_id: null, state: 'failed', requeste
 for (const s of [neverRun.sentence, firstRead.sentence, ...moved.map(m => m.line)]) assert.doesNotMatch(s, /[—–]/, `em dash in: ${s}`)
 
 console.log('PASS  the AEO read says the never-run, first-week, movement and caption states in words, from rows')
-
-// ── The packet contract, in two repos ────────────────────────────────────────
-// docs/AEO-PACKET.schema.json here and docs/packet.schema.json in
-// krishanraja/AEO-Engine are the same contract. The engine writes packets
-// against its copy and api/_aeo.ts validates them against this one, so a
-// field added to one and not the other is a 400 on a Sunday morning with no
-// digest and nothing on the tab to say why. This holds the schema and the
-// validator to each other; the engine's copy is checked by eye at review
-// (they are byte-identical when copied).
-import { readFileSync } from 'node:fs'
-import { AEO_ENGINES, AEO_THEMES_STATUSES, SUBJECT_KINDS } from '../api/_growth.ts'
-import { PACKET_SCHEMA_VERSION, MAX_QUERIES, MAX_PROBES, MAX_RECOMMENDATIONS } from '../api/_aeo.ts'
-
-const schema = JSON.parse(readFileSync(new URL('../docs/AEO-PACKET.schema.json', import.meta.url), 'utf8'))
-assert.equal(schema.properties.schema_version.const, PACKET_SCHEMA_VERSION, 'the schema and the validator agree on the version')
-assert.equal(schema.properties.queries.maxItems, MAX_QUERIES)
-assert.equal(schema.properties.recommendations.maxItems, MAX_RECOMMENDATIONS)
-assert.ok(MAX_PROBES > 0)
-assert.deepEqual([...schema.$defs.kind.enum].sort(), [...SUBJECT_KINDS].sort(), 'subject kinds agree')
-assert.deepEqual([...schema.$defs.engine.enum].sort(), [...AEO_ENGINES].sort(), 'engines agree')
-assert.deepEqual([...schema.properties.themes_status.enum].sort(), [...AEO_THEMES_STATUSES].sort(), 'theme statuses agree')
-for (const key of ['schema_version', 'run_id', 'subject', 'week_start', 'engines', 'themes_status', 'queries', 'recommendations', 'stats']) {
-  assert.ok(schema.required.includes(key), `the schema requires ${key}`)
-}
-console.log('PASS  the packet schema and the ingest validator agree on version, caps and every enum')

@@ -49,6 +49,33 @@ commit, plus the two surfaces as they rendered before this change.
 | `cadence` config | #1 | Removed. Nothing read it |
 | Three same-day carousel docs | 7 Sep | Folded into `CAROUSEL_ENGINE_STATE.md` as appendices, verbatim |
 
+## Moved to `content-engine` (2026-09-08, ADR-019)
+
+The same rule applies to the move: nothing is removed here until this row names
+where it now runs. Every path below is `apps/control-plane/` in that repo, and
+every URL is unchanged because Control Center rewrites to it.
+
+| What | Was | Now | Reached by |
+|---|---|---|---|
+| Content ideas, the Composer's routes, capture, cluster, synthesize, research | `api/content-ideas*` | same paths in the engine | rewrite |
+| Weekly brief, shifts, arcs, decisions, purge | `api/briefs`, `api/shifts`, `api/arcs`, `api/content-decisions`, `api/purge` | same paths | rewrite |
+| Feed ingest, editorial radar, build signals, lens radar, creator scout, seeds, investigations | `api/feed`, `api/content-opportunities`, `api/discover-*`, `api/content-seed-candidates.ts`, `api/investigations` | same paths | rewrite |
+| The whole Video and Carousel control plane, the runner protocol, the MCP gateway, learning proposals | `api/video-studio/**` | same paths | rewrite; the runner's pinned URL is unchanged |
+| The fourteen content crons | `vercel.json` here | the engine's own `vercel.json` | Vercel schedules them there |
+| The machinery guards and the Postgres projection replay | `scripts/check-*.mts`, the CI Postgres job | `apps/control-plane/scripts`, the engine's `control-plane-sql` job | engine CI |
+| The eval harness and the shift backfill scripts | `scripts/eval`, `scripts/backfill-shifts.ts` | the engine | engine |
+| `withContentRun`, the ledger writer | `api/_runs.ts` | the engine | the ledger table is unchanged and this repo still reads it |
+
+Kept here on purpose: the Content tab and every component under `content/`,
+`content-v2/` and `video-studio/`; the hooks and the browser types they read;
+the reject-reason taxonomy (`api/feedback.ts`), which serves fourteen surfaces;
+the triage routes reject, promote, calibrate and relevance-sweep, which leads,
+guests and contacts also call; `api/concepts/[id]/close.ts`, which cascades
+tasks and leads; and the applied migration history.
+
+New here: `src/hooks/useEngineHealth.ts` reads the engine's job list and says on
+the tab when this dashboard's schedule table and the engine's disagree.
+
 ## Known gaps left open on purpose
 
 - Two lockup systems draw the same two publications: `VideoBrandLockup` (video, official assets by data URI) and `SeriesIdentity` (lanes, public assets by hash). Since 2026-09-08 they share plate colour, border and shadow so they read as one brand; folding them into one component is the follow-up.

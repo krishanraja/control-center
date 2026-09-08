@@ -1,24 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { classifyRun, countsFrom } from '../../api/_runs.ts'
 import { CONTENT_ENGINE_JOBS, contentEngineAttention } from '../../src/lib/contentEngineSchedule.ts'
 
-// The run ledger's two pure halves: how a finished handler is classified, and
-// how the dashboard turns the ledger into attention lines.
-
-test('a quiet skip is a skip, an ok:false is a failure, a throw is a failure', () => {
-  assert.deepEqual(classifyRun(200, { ok: true, inserted: 4 }, null), { status: 'ok', reason: null })
-  assert.deepEqual(classifyRun(200, { ok: true, skipped: 'corpus too thin' }, null), { status: 'skipped', reason: 'corpus too thin' })
-  assert.deepEqual(classifyRun(200, { ok: false, error: 'pool not configured' }, null), { status: 'failed', reason: 'pool not configured' })
-  assert.deepEqual(classifyRun(500, { ok: false, error: 'boom' }, null), { status: 'failed', reason: 'boom' })
-  assert.deepEqual(classifyRun(503, {}, null), { status: 'failed', reason: 'http_503' })
-  assert.deepEqual(classifyRun(500, null, new Error('threw')), { status: 'failed', reason: 'threw' })
-})
-
-test('counts keep numbers and drop everything else', () => {
-  assert.deepEqual(countsFrom({ ok: true, inserted: 3, days: 2, sample: [1, 2], nested: { n: 1 }, schema_version: 1 }), { inserted: 3, days: 2 })
-  assert.deepEqual(countsFrom(null), {})
-})
+// How the dashboard turns the run ledger into attention lines.
+//
+// The other half of this file, classifyRun and countsFrom, moved to the engine
+// with api/_runs.ts in the 2026-09 unification: the wrapper that writes the
+// ledger now runs there. This side keeps what the dashboard does with what it
+// reads, which is the half that can still break a screen Krish looks at.
 
 const now = new Date('2026-09-10T12:00:00.000Z')
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000).toISOString()

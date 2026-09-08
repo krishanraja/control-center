@@ -66,24 +66,11 @@ if (QUEUE_WEEK_SPAN !== API_SPAN) {
   }
 }
 
-// 4. The purge must keep ageing kinds other than purge_preview.
-{
-  const purge = readFileSync('api/purge/run.ts', 'utf8')
-  if (!/queueWindowStart\s*\(/.test(purge)) {
-    bad('api/purge/run.ts no longer uses queueWindowStart — its boundary and the deck\'s window can now disagree')
-  }
-  if (!/\.neq\(\s*['"]kind['"]\s*,\s*['"]purge_preview['"]\s*\)/.test(purge)) {
-    bad('api/purge/run.ts no longer sweeps decision kinds beyond purge_preview — brief_review cards go immortal again')
-  }
-  // An aged-out card must not land in the same bucket as one Krish ruled on:
-  // 'dismissed' is a judgement, 'archived' is a timeout, and a comparison that
-  // conflates them counts the engine's unreviewed output as his rejections.
-  if (!/status:\s*['"]archived['"]/.test(purge)) {
-    bad("api/purge/run.ts no longer sweeps to 'archived' — timed-out cards would read as Krish's rejections")
-  }
-}
+// The purge half of this contract moved to the engine with api/purge/run.ts
+// (apps/control-plane/scripts/check-content-window.ts). Both sides read the
+// same week window; this one guards the deck, that one guards the sweep.
 
 console.log(fail === 0
-  ? 'PASS  one week window, client and cron agree, queue bounded, all kinds aged'
+  ? 'PASS  one week window, the deck bounded and ordered newest-first'
   : `${fail} FAILURE(S)`)
 process.exit(fail ? 1 : 0)

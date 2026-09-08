@@ -19,6 +19,15 @@ mutations) or through an `/api/*` function (when service-role context is
 required, e.g. promoting a lead to a task or triggering an N8N orchestrator
 webhook).
 
+Since 2026-09-08 the repo does *not* contain the Content Engine machinery
+either: the editorial routes, the Composer's routes, the fourteen content crons
+and the whole Video and Carousel control plane run from
+`krishanraja/content-engine` (`apps/control-plane`, its own Vercel project) and
+are reached through rewrites in `vercel.json`, so every URL is unchanged. This
+repo keeps the Content tab and the surfaces that drive them. See
+[ADR-019](./docs/DECISIONS/019-content-engine-owns-the-control-plane.md) and
+[`docs/CONTENT-ENGINE-PARITY-LEDGER.md`](./docs/CONTENT-ENGINE-PARITY-LEDGER.md).
+
 The repo does *not* contain the agents themselves. Agents are 14 Supabase
 rows (`agents.brief_content`) plus ~76 N8N workflows; they live in the
 broader mind/make OS, hosted on a VPS and N8N Cloud. The Control Center is
