@@ -115,12 +115,25 @@ jobs:
           cat .steward/digest.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate the current state before Claude touches anything
-        # On a schedule or a dispatch this is informational: a failing validator
-        # is one of the reasons the steward has work to do. On a push it is the
-        # whole job and therefore fatal, so a merge that breaks NOW.md is caught
-        # at the merge rather than eight hours later.
+        # On a schedule or a dispatch this is informational and strict: a stale
+        # head is one of the reasons the steward has work to do, so it is
+        # recorded and never fatal on the way in.
+        #
+        # On a push it is the whole job and therefore fatal, but WITHOUT
+        # --strict. Strict adds the head and as_of checks, and a merge always
+        # leaves NOW.md a commit behind by definition: that is the nightly run's
+        # work, not a broken merge. Failing on it would make every merge red for
+        # a reason nobody can fix at merge time, which is how the push trigger
+        # got ignored in the first place. What a push can genuinely break is the
+        # schema, the sections, a missing truth file, an em dash or a committed
+        # secret, and those all fail without --strict.
         continue-on-error: ${{ github.event_name != 'push' }}
-        run: node .steward/scripts/steward/validate.mjs . --strict --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            node .steward/scripts/steward/validate.mjs . --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+          else
+            node .steward/scripts/steward/validate.mjs . --strict --fleet .steward/docs/steward/fleet.json --repo "${{ steps.digest.outputs.name }}"
+          fi
 
       - name: Run the steward
         # anthropics/claude-code-action@v1 accepts schedule, workflow_dispatch and

@@ -222,9 +222,15 @@ with "Unsupported event type: push".
 
 | Trigger | What runs | Fatal? |
 |---|---|---|
-| Push to `main` | The digest, then the strict validator. Claude does not run. | Yes. A merge that breaks `NOW.md` fails at the merge. |
-| Nightly schedule | Everything: digest, validator, Claude, then the strict validator as the hard gate. | Yes, on the way out. |
+| Push to `main` | The digest, then the validator **without** `--strict`. Claude does not run. | Yes. A merge that breaks the schema, a section, a truth file, or commits a secret fails at the merge. |
+| Nightly schedule | Everything: digest, strict validator (informational), Claude, then the strict validator as the hard gate. | Yes, on the way out. |
 | `workflow_dispatch` | Same as nightly, or validate-only with `dry_run`. | Yes, unless `dry_run`. |
+
+The push run drops `--strict` deliberately. Strict adds the head and `as_of`
+checks, and a merge always leaves `NOW.md` one commit behind by definition. That
+is the nightly run's work, not a broken merge. Failing on it would make every
+merge red for a reason nobody can fix at merge time, which is precisely how the
+push trigger came to be ignored.
 
 So documentation is reconciled once a day, not on every merge, and the push
 trigger exists to catch a broken `NOW.md` immediately rather than to write one.
