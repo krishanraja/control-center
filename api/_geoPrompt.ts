@@ -294,10 +294,14 @@ export function checkGeoDraft(draft: Partial<GeoDraft> | null, ctx: GeoContext):
     if (n < GEO_MIN_WORDS) fail('too_short', `The body is ${n} words, under ${GEO_MIN_WORDS}.`)
     if (n > GEO_MAX_WORDS) fail('too_long', `The body is ${n} words, over ${GEO_MAX_WORDS}.`)
 
-    const headings = body.match(/^##\s+(.+)$/gm) || []
-    if (headings.length < 2) fail('no_structure', 'Fewer than two section headings, so a retriever has no way to find the part of the page that answers a follow-up.')
-    const labels = headings.filter(h => words(h.replace(/^##\s+/, '')) <= 2)
-    if (labels.length) fail('label_headings', `These headings are labels rather than questions or claims: ${labels.map(l => l.replace(/^##\s+/, '')).join(', ')}.`)
+    // Any real heading level counts. The check used to insist on exactly two
+    // hashes, which rejected a perfectly well-structured page for using three
+    // and could not be repaired, because the failure it reported said nothing
+    // about the marker. What a retriever needs is a heading, not a level.
+    const headings = (body.match(/^#{2,4}\s+(.+)$/gm) || []).map(h => h.replace(/^#{2,4}\s+/, '').trim())
+    if (headings.length < 2) fail('no_structure', 'Fewer than two section headings. Use markdown headings, ## or ###, so a retriever can find the part of the page that answers a follow-up.')
+    const labels = headings.filter(h => words(h) <= 2)
+    if (labels.length) fail('label_headings', `These headings are labels rather than questions or claims: ${labels.join(', ')}.`)
   }
 
   // First person hides the entity from the model doing the citing.

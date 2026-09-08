@@ -217,3 +217,19 @@ test('the prompt tells the model to describe structure rather than motive', () =
   assert.match(sys, /Asserting their motives is not/)
   assert.match(sys, /a marketplace earns on placement/)
 })
+
+test('a page structured with h3 headings is accepted', () => {
+  // The gate used to demand exactly two hashes, which refused a well-formed
+  // page for using three and reported a failure that never mentioned the
+  // marker, so the repair pass could not fix it either.
+  const h3 = body().replace(/^## /gm, '### ')
+  const failures = checkGeoDraft(draft({ body: h3 }), ctx())
+  assert.ok(!failures.some(f => f.code === 'no_structure'),
+    'what a retriever needs is a heading, not a particular level')
+})
+
+test('label headings are still caught at any level', () => {
+  const labelled = body().replace('## What does an AI chief of staff actually do', '### Background')
+  const failures = checkGeoDraft(draft({ body: labelled }), ctx())
+  assert.ok(failures.some(f => f.code === 'label_headings'))
+})
