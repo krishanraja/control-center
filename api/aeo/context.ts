@@ -21,6 +21,12 @@ import { CONTACT_COLUMNS } from '../_room.js'
 // ICP; and the prior week's digest and queries so the engine can carry a
 // query_id forward and compute a trend.
 //
+// It also carries must_reprobe: the questions a published page was predicted
+// to change and that are still unsettled. The engine has to ask these again
+// even when it would not otherwise choose them, because a prediction nobody
+// re-measures is a wish. This is the only part of the context that exists to
+// serve the measurement rather than the week's research.
+//
 // It also carries the two things Krish has already told the OS once and
 // should never have to say again (2026-09-09): the krish-voice block
 // (system_config.content_voice_block, the same text every content call is
@@ -115,6 +121,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // The prior week's queries, one read for every subject's latest digest week.
     const priorBySubject = new Map<string, Row>()
     for (const d of (digests.data || []) as Row[]) if (!priorBySubject.has(String(d.subject_id))) priorBySubject.set(String(d.subject_id), d)
+    // Questions a published page was predicted to change and that have not been
+    // settled. The engine must re-ask these or the prediction is never
+    // measured: the weekly run proposes fresh questions and has no reason of
+    // its own to revisit an old one, so a page can sit live and unmeasured for
+    // ever. These are carried per subject as must_reprobe.
+    const openPreds = await supabase.from('geo_predictions')
+      .select('subject_id, target_query, query_id, claim, predicted_at, published_url')
+      .is('checked_at', null)
+      .in('subject_id', ids)
+      .order('predicted_at')
+      .limit(20 * ids.length)
+    if (openPreds.error) throw new Error(openPreds.error.message)
+    const openPredictions = (openPreds.data || []) as Row[]
+
     const priorKeys = [...priorBySubject.values()]
     let priorQueries: Row[] = []
     if (priorKeys.length) {
@@ -172,6 +192,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             competitors_cited: Array.isArray(p.competitors_cited) ? p.competitors_cited : [],
             run_at: p.run_at, run_id: p.run_id ?? null, query_id: p.query_id ?? null,
           })),
+        must_reprobe: openPredictions.filter(r => r.subject_id === id).map(r => ({
+          query: r.target_query,
+          query_id: r.query_id ?? null,
+          claim: r.claim ?? null,
+          published_at: r.predicted_at,
+          page: r.published_url ?? null,
+        })),
         prior: prior ? {
           week_start: prior.week_start,
           strongest_signal: prior.strongest_signal ?? null,
