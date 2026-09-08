@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
+const previewPort = Number(process.env.PLAYWRIGHT_PORT || '4173')
+const previewUrl = `http://127.0.0.1:${previewPort}`
+
 /**
  * E2E for the Growth tab (acquisition command deck). Runs against the
  * production build via `vite preview`; all /api/* calls are mocked in the
@@ -10,7 +13,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: 0,
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: previewUrl,
     viewport: { width: 1280, height: 800 },
     // CI/remote environments preinstall Chromium outside the version-pinned
     // cache; prefer it when present so `playwright install` is never needed.
@@ -19,8 +22,8 @@ export default defineConfig({
       : undefined,
   },
   webServer: {
-    command: 'npm run preview -- --port 4173 --strictPort --host 127.0.0.1',
-    url: 'http://127.0.0.1:4173',
+    command: `npm run preview -- --port ${previewPort} --strictPort --host 127.0.0.1`,
+    url: previewUrl,
     reuseExistingServer: true,
     timeout: 60_000,
   },

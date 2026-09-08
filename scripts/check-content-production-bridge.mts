@@ -4,6 +4,8 @@ import {
   buildProductionBrief,
   contentRevisionHash,
   createProductionApproval,
+  normalizeProductionFormat,
+  PRODUCTION_FORMATS_BY_SERIES,
   productionBriefHash,
   readProductionApproval,
 } from '../api/_productionBrief'
@@ -13,7 +15,7 @@ import {
   productionBriefCanBeClaimed,
   readProductionBriefEnvelope,
 } from '../api/video-studio/_productionBriefQueue'
-import { CONTENT_OUTPUTS, hasExactProductionApproval, storedProductionBriefs } from '../src/lib/contentOutputs'
+import { CONTENT_OUTPUTS, hasExactProductionApproval, storedProductionBriefs, STUDIO_FORMATS_BY_SERIES } from '../src/lib/contentOutputs'
 
 const row = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -42,16 +44,21 @@ assert.equal(readProductionApproval(approval)?.approved_by, 'Krish')
 assert.equal(contentRevisionHash({ ...row, body: `${row.body} ` }), approval.content_revision_hash, 'irrelevant outer whitespace must not change the revision')
 assert.notEqual(contentRevisionHash({ ...row, body: `${row.body} Changed.` }), approval.content_revision_hash, 'meaningful edits must retire approval')
 
-const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo' })
+const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' })
 assert.equal(brief.editorial_approval.approved_by, 'Krish')
 assert.equal(brief.content_revision_hash, approval.content_revision_hash)
 assert.equal(brief.series, 'money_of_ai')
 assert.equal(brief.claims[0]?.verification, 'human_required')
 assert.deepEqual(brief.claims[0]?.evidence_urls, ['https://example.com/evidence'])
-assert.throws(() => buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'written' }), /video_source_mode_required/)
+assert.throws(() => buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'written', editorialFormat: 'money_trace' }), /video_source_mode_required/)
 const contractFixture = JSON.parse(readFileSync(new URL('../fixtures/contracts/production-brief-v1.json', import.meta.url), 'utf8'))
 assert.deepEqual(brief, contractFixture, 'Control Center must emit the shared cross-repository contract fixture')
-assert.equal(productionBriefHash(contractFixture), '84da9d78420f15d5068c43b93774c76dbeaefded45665ba0bd0005a096f12ca3')
+assert.equal(productionBriefHash(contractFixture), '93ca6cd821a3d2faa50002474ca6ddbd50e3cb85f7b26e903a5b147108f355d9')
+for (const series of ['money_of_ai', 'built_with_ai'] as const) {
+  assert.deepEqual(STUDIO_FORMATS_BY_SERIES[series].map(option => option.value), [...PRODUCTION_FORMATS_BY_SERIES[series]])
+}
+assert.equal(normalizeProductionFormat('The Teardown', 'money_of_ai'), 'artifact')
+assert.equal(normalizeProductionFormat('teardown', 'built_with_ai'), null)
 
 const wrapper = {
   production_briefs: {
@@ -87,7 +94,13 @@ assert.match(bridgeRoute, /guard\(req, res, \['POST'\]\)/)
 assert.match(bridgeRoute, /confirm_hard_gates !== true/)
 assert.match(bridgeRoute, /approval\.content_revision_hash !== contentRevisionHash\(row\)/)
 assert.match(bridgeRoute, /hard_editorial_gate_failed/)
+assert.match(bridgeRoute, /canonical_editorial_format_required/)
 assert.doesNotMatch(bridgeRoute, /callClaude|ANTHROPIC_API_KEY|openai/i)
+
+const composer = readFileSync(new URL('../src/components/content/ContentComposer.tsx', import.meta.url), 'utf8')
+assert.match(composer, /STUDIO_FORMATS_BY_SERIES/)
+assert.match(composer, /editorial_format: editorialFormat/)
+assert.match(composer, /grid-cols-2/)
 
 const claimRoute = readFileSync(new URL('../api/video-studio/runner/production-brief-claim.ts', import.meta.url), 'utf8')
 const completeRoute = readFileSync(new URL('../api/video-studio/runner/production-brief-complete.ts', import.meta.url), 'utf8')

@@ -29,7 +29,10 @@ import { productionBriefStatusLabel,
   hasExactProductionApproval,
   storedContentOutputs,
   storedProductionBriefs,
+  STUDIO_FORMATS_BY_SERIES,
+  studioFormatLabel,
   type ContentOutputDefinition,
+  type StudioEditorialFormat,
 } from '../../lib/contentOutputs'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
@@ -1604,12 +1607,15 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   const [family, setFamily] = useState<'written' | 'script' | 'studio'>('written')
   const [selected, setSelected] = useState('substack')
   const [sourceMode, setSourceMode] = useState<'extract' | 'solo' | 'short_native'>('short_native')
+  const [editorialFormat, setEditorialFormat] = useState<StudioEditorialFormat>('money_trace')
   const [hardGatesConfirmed, setHardGatesConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const cuts = useMemo(() => storedContentOutputs(idea.transformed_outputs), [idea.transformed_outputs])
   const briefs = useMemo(() => storedProductionBriefs(idea.transformed_outputs), [idea.transformed_outputs])
   const exactApproval = hasExactProductionApproval(idea.meta)
-  const canonicalSeries = idea.lane === 'publication' && (idea.lane_slot === 'money_of_ai' || idea.lane_slot === 'built_with_ai')
+  const studioSeries = idea.lane === 'publication' && (idea.lane_slot === 'money_of_ai' || idea.lane_slot === 'built_with_ai') ? idea.lane_slot : null
+  const canonicalSeries = Boolean(studioSeries)
+  const studioFormats = studioSeries ? STUDIO_FORMATS_BY_SERIES[studioSeries] : []
   const launchers = useMemo(() => CONTENT_OUTPUTS.filter((definition) => (
     family === 'written'
       ? definition.engine === 'channel_cut'
@@ -1629,6 +1635,10 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
     ))
     if (first) setSelected(first.key)
   }, [family, idea.id])
+
+  useEffect(() => {
+    if (studioSeries) setEditorialFormat(STUDIO_FORMATS_BY_SERIES[studioSeries][0]!.value)
+  }, [studioSeries, idea.id])
 
   const approveExactRevision = async () => {
     h.heavy(); setBusy(true)
@@ -1670,6 +1680,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
           body: JSON.stringify({
             production_kinds: [productionKind],
             source_mode: productionKind === 'carousel' ? 'written' : sourceMode,
+            editorial_format: editorialFormat,
             confirm_hard_gates: true,
           }),
         })
@@ -1717,6 +1728,22 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
 
         {family === 'studio' ? (
           <div className="mt-3 space-y-3 border-t border-[#102017]/12 pt-3">
+            {studioSeries ? (
+              <fieldset>
+                <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Format</legend>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  {studioFormats.map(format => (
+                    <button
+                      key={format.value}
+                      type="button"
+                      onClick={() => setEditorialFormat(format.value)}
+                      aria-pressed={editorialFormat === format.value}
+                      className={`min-h-[44px] break-words rounded-lg border px-2 py-1.5 text-label font-semibold leading-snug ${editorialFormat === format.value ? 'border-emerald-700/35 bg-emerald-700/[0.08]' : 'border-[#102017]/12 text-[#102017]/58'}`}
+                    >{format.label}</button>
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
             {selectedDefinition?.family === 'video' ? (
               <fieldset>
                 <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Source</legend>
@@ -1782,6 +1809,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
               <div className="flex flex-wrap items-center gap-2 text-label text-emerald-100/85">
                 {brief.production_kinds.includes('video') ? <Film size={14} /> : <Layers size={14} />}
                 <strong>{brief.production_kinds.join(' + ')}</strong>
+                {brief.editorial_format ? <span>{studioFormatLabel(brief.editorial_format)}</span> : null}
               </div>
               {/* The brief used to end here with a raw status word and an id.
                   This is the one place the thread from an approved piece to a
