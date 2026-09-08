@@ -60,6 +60,28 @@ nothing is deleted because the digests hang off the row. A competitor list
 starts empty on purpose: the engine tallies who is actually cited instead of
 us and never invents a rival.
 
+## It already knows how he writes and who he rates
+
+Krish said both of these to the OS once, on the Content side, and neither
+should ever be repeated:
+
+- **`system_config.content_voice_block`** is the krish-voice body, the same
+  text every content call is grounded in. The context route sends it, so a
+  recommendation title and angle are written in his voice rather than in
+  generic marketing register.
+- **`content_creators`** is the registry of the writers he rates, each with
+  the move he rates them for ("named concept plus one-line economics plus
+  proof plus CTA", "story-led essays that build the audience before the
+  product"). The Tuesday creator scrape and the editorial lens already read
+  it; the AEO digest reads the same rows, so the moves it reaches for are the
+  ones he admires.
+
+Adding a voice on the Content tab improves the next AEO digest with nothing
+to copy across. Both are sent empty rather than invented when the read fails:
+a machine writing in a voice it guessed at is worse than one writing plainly.
+This is also the natural seed list for aspiration subjects, which are
+companies rather than people, so the two lists stay separate on purpose.
+
 ## The packet
 
 `docs/AEO-PACKET.schema.json` (identical to `docs/packet.schema.json` in the

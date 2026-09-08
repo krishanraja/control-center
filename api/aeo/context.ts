@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardBearerExport } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import { loadVoiceBlock } from '../_content.js'
+import { loadCuratedVoices } from '../_creators.js'
 import { LANE_SLUG, mondayOf } from '../_growth.js'
 import { CONTACT_COLUMNS } from '../_room.js'
 
@@ -18,6 +20,16 @@ import { CONTACT_COLUMNS } from '../_room.js'
 // from the last 28 days; for a prospect the linked Room target and the face
 // ICP; and the prior week's digest and queries so the engine can carry a
 // query_id forward and compute a trend.
+//
+// It also carries the two things Krish has already told the OS once and
+// should never have to say again (2026-09-09): the krish-voice block
+// (system_config.content_voice_block, the same text every content call is
+// grounded in) and the creators he rates with the move he rates them for
+// (content_creators, the registry the Tuesday scrape and the editorial lens
+// already read). A recommendation the machine writes has to sound like him
+// and reach for the moves he admires, and there is one place that says what
+// those are. Adding a voice on the Content side improves the AEO digest the
+// same week, with nothing to copy across.
 //
 // Bearer AEO_ENGINE_SECRET, fail-closed and rate-limited (guardBearerExport).
 
@@ -63,7 +75,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const since = new Date(Date.now() - PROBE_WINDOW_DAYS * 86_400_000).toISOString()
     const weekStart = mondayOf(new Date())
 
-    const [touchpoints, striking, probes, digests, rooms] = await Promise.all([
+    const [voiceBlock, ratedVoices, touchpoints, striking, probes, digests, rooms] = await Promise.all([
+      // Told to the OS once, on the Content side, and read here ever since.
+      loadVoiceBlock().catch(() => ''),
+      loadCuratedVoices().catch(() => []),
       productSlugs.length
         ? supabase.from('growth_touchpoints')
           .select('id, product_slug, icp_trigger, watering_hole, coverage_status, cost_efficiency_score')
@@ -173,7 +188,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: true,
       week_start: weekStart,
       generated_at: new Date().toISOString(),
-      krish: KRISH,
+      krish: {
+        ...KRISH,
+        // How he writes, and the moves he rates. One place, said once, read
+        // by the Content engine and by this one. Empty rather than invented
+        // when either read fails: a machine writing in a voice it guessed at
+        // is worse than one writing plainly.
+        voice_block: voiceBlock,
+        voices_he_rates: (ratedVoices as Array<{ name: string; why: string }>).map(v => ({ name: v.name, why: v.why })),
+      },
       icp: { room_face: ROOM_FACE },
       subjects: out,
     })
