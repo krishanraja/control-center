@@ -154,6 +154,14 @@ jobs:
       # holds them to fixtures so a sentence cannot silently start lying. The
       # engine owns api/aeo/*; this guard reads src/lib/aeo.ts only.
       - run: npm run check:aeo-read
+      # Prompt caching fails silently: no error, just a bigger bill. Until
+      # 2026-09-09 five call sites plucked input_tokens and output_tokens by
+      # hand and dropped the cache fields, so a cached call and an uncached one
+      # of the same size were identical in meter_daily. This holds every site
+      # to passing its whole usage object, so a sixth site copied from a fifth
+      # cannot reintroduce the blind spot. Deterministic and free: it makes no
+      # API call, so it runs on every push rather than rarely and late.
+      - run: npm run check:cache-metering
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it
