@@ -67,10 +67,23 @@ export function slug(s: string): string {
   return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
 }
 
-/** Tolerant JSON extraction from an LLM text response (handles ```json fences). */
+/** Tolerant JSON extraction from an LLM text response (handles ```json fences).
+ *
+ *  The fence is stripped as a pair, opening line and closing line, rather than
+ *  by splitting on every fence in the string. Splitting works right up until
+ *  the JSON payload itself contains a fenced code block, at which point there
+ *  are more than two fences, the second slice ends at the inner one, and a
+ *  perfectly well-formed response parses as nothing. The brace fallback below
+ *  cannot rescue it either, because by then the tail has already been cut off.
+ *
+ *  Found by an answer-engine page whose markdown body carried a code sample.
+ *  Any caller asking a model for JSON with prose or markdown inside it has the
+ *  same exposure. */
 export function robustJson(txt: string): any {
   let t = String(txt || '').trim()
-  if (t.startsWith('```')) t = t.split('```')[1].replace(/^json/, '').trim()
+  if (t.startsWith('```')) {
+    t = t.replace(/^```[a-zA-Z0-9_-]*[ \t]*\r?\n?/, '').replace(/\r?\n?```[ \t]*$/, '').trim()
+  }
   try { return JSON.parse(t) } catch { /* fallthrough */ }
   const i = t.indexOf('{'), j = t.lastIndexOf('}')
   if (i >= 0 && j > i) { try { return JSON.parse(t.slice(i, j + 1)) } catch { /* noop */ } }
