@@ -2,6 +2,27 @@ import { CHANNEL_ADAPTS, VIDEO_FORMATS } from './contentEngine'
 
 export type ContentOutputFamily = 'article' | 'social' | 'audio' | 'video_script' | 'video' | 'carousel'
 
+export type StudioSeries = 'money_of_ai' | 'built_with_ai'
+export type StudioEditorialFormat = 'money_trace' | 'artifact' | 'verdict' | 'cold_open_cutdown' | 'builder_conversation' | 'build_itself' | 'third_why' | 'first_version'
+export const STUDIO_FORMATS_BY_SERIES: Record<StudioSeries, ReadonlyArray<{ value: StudioEditorialFormat; label: string }>> = {
+  money_of_ai: [
+    { value: 'money_trace', label: 'Money Trace' },
+    { value: 'artifact', label: 'The Artifact' },
+    { value: 'verdict', label: 'Verdict' },
+    { value: 'cold_open_cutdown', label: 'Cold-open cutdown' },
+  ],
+  built_with_ai: [
+    { value: 'builder_conversation', label: 'Builder conversation' },
+    { value: 'build_itself', label: 'The Build Itself' },
+    { value: 'third_why', label: 'The Third Why' },
+    { value: 'first_version', label: 'First Version' },
+  ],
+}
+
+export function studioFormatLabel(format: StudioEditorialFormat): string {
+  return Object.values(STUDIO_FORMATS_BY_SERIES).flat().find(option => option.value === format)?.label || format.replace(/_/g, ' ')
+}
+
 export interface ContentOutputDefinition {
   key: string
   label: string
@@ -72,6 +93,7 @@ export interface StoredProductionBrief {
   content_revision_hash: string
   production_kinds: Array<'video' | 'carousel'>
   source_mode: 'extract' | 'solo' | 'short_native' | 'written'
+  editorial_format: StudioEditorialFormat | null
   created_at: string | null
   status: string
   /** The Studio job the runner created from this brief, once it has. */
@@ -116,15 +138,18 @@ export function storedProductionBriefs(outputs: unknown): StoredProductionBrief[
       ? brief.production_kinds.filter((kind): kind is 'video' | 'carousel' => kind === 'video' || kind === 'carousel')
       : []
     const sourceMode = brief?.source_mode
+    const editorialFormat = brief?.editorial_format
     if (typeof brief?.brief_id !== 'string'
       || typeof brief.content_revision_hash !== 'string'
       || !kinds.length
-      || !['extract', 'solo', 'short_native', 'written'].includes(String(sourceMode))) return []
+      || !['extract', 'solo', 'short_native', 'written'].includes(String(sourceMode))
+      || (editorialFormat !== undefined && !Object.values(STUDIO_FORMATS_BY_SERIES).flat().some(option => option.value === editorialFormat))) return []
     return [{
       brief_id: brief.brief_id,
       content_revision_hash: brief.content_revision_hash,
       production_kinds: kinds,
       source_mode: sourceMode as StoredProductionBrief['source_mode'],
+      editorial_format: typeof editorialFormat === 'string' ? editorialFormat as StudioEditorialFormat : null,
       created_at: typeof wrapper?.created_at === 'string' ? wrapper.created_at : null,
       status: typeof wrapper?.status === 'string' ? wrapper.status : 'ready_for_studio',
       job_id: typeof wrapper?.job_id === 'string' ? wrapper.job_id : null,

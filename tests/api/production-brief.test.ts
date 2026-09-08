@@ -4,6 +4,7 @@ import {
   buildProductionBrief,
   contentRevisionHash,
   createProductionApproval,
+  normalizeProductionFormat,
   readProductionApproval,
 } from '../../api/_productionBrief.ts'
 import {
@@ -58,49 +59,59 @@ test('an approval round-trips and a tampered one is rejected', () => {
 
 test('a brief binds to the approved revision and refuses a drifted one', () => {
   const approval = createProductionApproval(row, approvedAt)
-  const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo' })
+  const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' })
   assert.equal(brief.series, 'money_of_ai')
+  assert.equal(brief.editorial_format, 'money_trace')
   assert.equal(brief.content_revision_hash, approval.content_revision_hash)
   assert.equal(brief.editorial_approval.approval_revision_hash, approval.content_revision_hash)
   assert.equal(brief.claims[0].verification, 'human_required')
   assert.throws(
-    () => buildProductionBrief({ row: { ...row, body: row.body + ' New sentence.' }, approval, productionKinds: ['video'], sourceMode: 'solo' }),
+    () => buildProductionBrief({ row: { ...row, body: row.body + ' New sentence.' }, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' }),
     /approved_revision_changed/,
   )
   assert.throws(
-    () => buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'written' }),
+    () => buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'written', editorialFormat: 'money_trace' }),
     /video_source_mode_required/,
   )
   assert.throws(
-    () => buildProductionBrief({ row: { ...row, lane_slot: 'signal_noise' }, approval: createProductionApproval({ ...row, lane_slot: 'signal_noise' }, approvedAt), productionKinds: ['carousel'], sourceMode: 'written' }),
+    () => buildProductionBrief({ row: { ...row, lane_slot: 'signal_noise' }, approval: createProductionApproval({ ...row, lane_slot: 'signal_noise' }, approvedAt), productionKinds: ['carousel'], sourceMode: 'written', editorialFormat: 'money_trace' }),
     /canonical_series_required/,
   )
 })
 
+test('formats stay inside their canonical series and retired input normalises to The Artifact', () => {
+  assert.equal(normalizeProductionFormat('The Teardown', 'money_of_ai'), 'artifact')
+  assert.equal(normalizeProductionFormat('third_why', 'money_of_ai'), null)
+  assert.equal(normalizeProductionFormat('The Third Why', 'built_with_ai'), 'third_why')
+})
+
 test('the brief id is deterministic for the same identity and changes with the kinds', () => {
   const approval = createProductionApproval(row, approvedAt)
-  const a = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo' })
-  const b = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo' })
-  const c = buildProductionBrief({ row, approval, productionKinds: ['video', 'carousel'], sourceMode: 'solo' })
+  const a = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' })
+  const b = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' })
+  const c = buildProductionBrief({ row, approval, productionKinds: ['video', 'carousel'], sourceMode: 'solo', editorialFormat: 'money_trace' })
   assert.equal(a.brief_id, b.brief_id)
   assert.notEqual(a.brief_id, c.brief_id)
 })
 
 test('a stored envelope fails closed when its hash or lease is malformed', () => {
   const approval = createProductionApproval(row, approvedAt)
-  const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo' })
+  const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' })
   const envelope = { brief, status: 'ready_for_studio', requested_by: 'Krish', created_at: approvedAt }
   const read = readProductionBriefEnvelope(envelope)
   assert.ok(read)
   assert.equal(read.status, 'ready_for_studio')
   assert.equal(readProductionBriefEnvelope({ ...envelope, brief_hash: 'a'.repeat(64) }), null)
+  assert.equal(readProductionBriefEnvelope({ ...envelope, brief: { ...brief, editorial_format: 'third_why' } }), null)
+  const { editorial_format: _legacyFormat, ...legacyBrief } = brief
+  assert.ok(readProductionBriefEnvelope({ ...envelope, brief: legacyBrief }))
   assert.equal(readProductionBriefEnvelope({ ...envelope, requested_by: 'Cleo' }), null)
   assert.equal(readProductionBriefEnvelope({ ...envelope, lease: { runner_id_hash: 'short' } }), null)
 })
 
 test('a lease can be reclaimed only after it expires', () => {
   const approval = createProductionApproval(row, approvedAt)
-  const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo' })
+  const brief = buildProductionBrief({ row, approval, productionKinds: ['video'], sourceMode: 'solo', editorialFormat: 'money_trace' })
   const lease = {
     runner_id_hash: 'b'.repeat(64),
     token_hash: hashLeaseToken('secret-token'),

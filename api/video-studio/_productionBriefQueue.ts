@@ -1,7 +1,9 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import {
   jsonRecord,
+  normalizeProductionFormat,
   productionBriefHash,
+  type ProductionSeries,
   type ProductionBriefV1,
 } from '../_productionBrief.js'
 
@@ -55,6 +57,7 @@ export function readProductionBrief(value: unknown): ProductionBriefV1 | null {
     || typeof brief.content_idea_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(brief.content_idea_id)
     || !isSha256(brief.content_revision_hash)
     || !['money_of_ai', 'built_with_ai'].includes(String(brief.series || ''))
+    || (brief.editorial_format !== undefined && normalizeProductionFormat(brief.editorial_format, brief.series as ProductionSeries) !== brief.editorial_format)
     || !Array.isArray(brief.production_kinds) || brief.production_kinds.length < 1 || brief.production_kinds.length > 2
     || new Set(brief.production_kinds).size !== brief.production_kinds.length
     || brief.production_kinds.some(kind => !['video', 'carousel'].includes(String(kind)))

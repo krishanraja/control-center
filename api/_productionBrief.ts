@@ -3,10 +3,15 @@ import { createHash } from 'node:crypto'
 export const PRODUCTION_BRIEF_SCHEMA_VERSION = 1 as const
 export const PRODUCTION_KIND_VALUES = ['video', 'carousel'] as const
 export const PRODUCTION_SOURCE_MODE_VALUES = ['extract', 'solo', 'short_native', 'written'] as const
+export const PRODUCTION_FORMATS_BY_SERIES = {
+  money_of_ai: ['money_trace', 'artifact', 'verdict', 'cold_open_cutdown'],
+  built_with_ai: ['builder_conversation', 'build_itself', 'third_why', 'first_version'],
+} as const
 
 export type ProductionKind = typeof PRODUCTION_KIND_VALUES[number]
 export type ProductionSourceMode = typeof PRODUCTION_SOURCE_MODE_VALUES[number]
 export type ProductionSeries = 'money_of_ai' | 'built_with_ai'
+export type ProductionFormat = typeof PRODUCTION_FORMATS_BY_SERIES[ProductionSeries][number]
 
 type JsonRecord = Record<string, unknown>
 
@@ -31,6 +36,7 @@ export interface ProductionBriefV1 {
   content_idea_id: string
   content_revision_hash: string
   series: ProductionSeries
+  editorial_format?: ProductionFormat
   production_kinds: ProductionKind[]
   source_mode: ProductionSourceMode
   content: {
@@ -170,18 +176,45 @@ export function normalizeProductionSourceMode(value: unknown): ProductionSourceM
   return PRODUCTION_SOURCE_MODE_VALUES.includes(value as ProductionSourceMode) ? value as ProductionSourceMode : null
 }
 
+export function normalizeProductionFormat(value: unknown, series: ProductionSeries): ProductionFormat | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
+  const aliases: Record<string, ProductionFormat> = {
+    'money trace': 'money_trace',
+    'the money trace': 'money_trace',
+    artifact: 'artifact',
+    'the artifact': 'artifact',
+    teardown: 'artifact',
+    'the teardown': 'artifact',
+    verdict: 'verdict',
+    'the verdict': 'verdict',
+    'cold open cutdown': 'cold_open_cutdown',
+    'builder conversation': 'builder_conversation',
+    'the builder conversation': 'builder_conversation',
+    'build itself': 'build_itself',
+    'the build itself': 'build_itself',
+    'third why': 'third_why',
+    'the third why': 'third_why',
+    'first version': 'first_version',
+  }
+  const format = aliases[normalized]
+  return format && (PRODUCTION_FORMATS_BY_SERIES[series] as readonly string[]).includes(format) ? format : null
+}
+
 export function buildProductionBrief(input: {
   row: ContentRevisionInput & { id: string; source_url?: string | null; meta?: JsonRecord | null }
   approval: ProductionApprovalV1
   productionKinds: ProductionKind[]
   sourceMode: ProductionSourceMode
+  editorialFormat: ProductionFormat
 }): ProductionBriefV1 {
-  const { row, approval, productionKinds, sourceMode } = input
+  const { row, approval, productionKinds, sourceMode, editorialFormat } = input
   const series = productionSeries(row)
   if (!series) throw new Error('canonical_series_required')
   const revisionHash = contentRevisionHash(row)
   if (approval.content_revision_hash !== revisionHash) throw new Error('approved_revision_changed')
   if (productionKinds.includes('video') && sourceMode === 'written') throw new Error('video_source_mode_required')
+  if (!(PRODUCTION_FORMATS_BY_SERIES[series] as readonly string[]).includes(editorialFormat)) throw new Error('canonical_editorial_format_required')
 
   const meta = jsonRecord(row.meta)
   const route = jsonRecord(meta.editorial_route)
@@ -199,6 +232,7 @@ export function buildProductionBrief(input: {
     content_revision_hash: revisionHash,
     production_kinds: [...productionKinds].sort(),
     source_mode: sourceMode,
+    editorial_format: editorialFormat,
   }
 
   return {
@@ -207,6 +241,7 @@ export function buildProductionBrief(input: {
     content_idea_id: row.id,
     content_revision_hash: revisionHash,
     series,
+    editorial_format: editorialFormat,
     production_kinds: productionKinds,
     source_mode: sourceMode,
     content: {

@@ -5,6 +5,7 @@ import {
   contentRevisionHash,
   jsonRecord,
   normalizeProductionKinds,
+  normalizeProductionFormat,
   normalizeProductionSourceMode,
   productionBriefHash,
   productionSeries,
@@ -56,6 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (row.state !== 'approved') return res.status(409).json({ ok: false, error: 'exact_revision_not_approved' })
     if (!row.body?.trim() || row.body.trim().length < 12) return res.status(409).json({ ok: false, error: 'approved_content_missing' })
     if (!productionSeries(row)) return res.status(409).json({ ok: false, error: 'canonical_series_required' })
+    const series = productionSeries(row)!
+    const editorialFormat = normalizeProductionFormat(payload.editorial_format, series)
+    if (!editorialFormat) return res.status(400).json({ ok: false, error: 'canonical_editorial_format_required' })
     if (productionKinds.includes('video') && sourceMode === 'written') {
       return res.status(400).json({ ok: false, error: 'video_source_mode_required' })
     }
@@ -78,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let brief
     try {
-      brief = buildProductionBrief({ row, approval, productionKinds, sourceMode })
+      brief = buildProductionBrief({ row, approval, productionKinds, sourceMode, editorialFormat })
     } catch (error) {
       return res.status(409).json({ ok: false, error: (error as Error).message })
     }
