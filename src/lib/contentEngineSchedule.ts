@@ -42,7 +42,8 @@ export const CONTENT_ENGINE_JOBS: ContentEngineJob[] = [
   { job: 'purge',            path: '/api/purge/run',                     label: 'Monday purge',          everyHours: WEEK, graceHours: DAY },
   { job: 'runner_watch',     path: '/api/video-studio/runner/watch',     label: 'Studio runner watch',   everyHours: DAY,  graceHours: 12 },
   { job: 'aeo_ingest',       path: '/api/aeo/ingest',                    label: 'AEO research',          everyHours: WEEK, graceHours: DAY, trigger: 'external' },
-  { job: 'geo_check_predictions', path: '/api/geo/check-predictions',   label: 'Answer check',          everyHours: WEEK, graceHours: DAY, trigger: 'external' },
+  { job: 'geo_check_predictions', path: '/api/geo/check-predictions',   label: 'Answer check',          everyHours: WEEK, graceHours: DAY },
+  { job: 'geo_weekly',       path: '/api/geo/weekly',                    label: 'This week\'s page',     everyHours: WEEK, graceHours: DAY },
 ]
 
 export interface ContentEngineRunRow {
