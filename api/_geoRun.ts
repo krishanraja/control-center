@@ -326,10 +326,10 @@ export async function publishIdea(id: string, opts: { dry?: boolean } = {}): Pro
     const publishedAt = writtenAt
     const page = renderPage({ ...geo, title: idea.idea, body_md: idea.body }, { idea: idea.idea }, publishedAt)
     const path = `${CONTENT_DIR}/${geo.slug}.md`
-    const branch = `answers/${geo.slug}`.slice(0, 240)
+    const baseBranch = `answers/${geo.slug}`.slice(0, 200)
 
     if (dry) {
-      return respond(200, { ok: true, dry: true, repo, path, branch, bytes: page.length, target_query: geo.target_query })
+      return respond(200, { ok: true, dry: true, repo, path, branch: baseBranch, bytes: page.length, target_query: geo.target_query })
     }
 
     // The default branch, read rather than assumed: these repos are not all
@@ -347,17 +347,39 @@ export async function publishIdea(id: string, opts: { dry?: boolean } = {}): Pro
 
     // A re-publish of the same page reuses its branch rather than opening a
     // second one, so a corrected page never becomes two competing pages.
+    //
+    // Unless that branch has gone stale, which happens the moment a previous
+    // version of the page reaches the default branch: the branch is then
+    // behind, both sides have touched the same file, and every future publish
+    // opens a pull request nobody can merge. Resetting the ref would be the
+    // tidy fix and is not available, because moving a ref needs a permission
+    // that writing a file does not. So a stale branch is abandoned and a fresh
+    // one is cut from the base instead. The suffix is the day, which keeps the
+    // name readable and stable within a day's retries.
+    let branch = baseBranch
     const branchRead = await gh(`https://api.github.com/repos/${repo}/git/ref/heads/${branch}`, token!)
-    if (branchRead.status === 404) {
+    if (branchRead.ok) {
+      const cmp = await gh(`https://api.github.com/repos/${repo}/compare/${base}...${branch}`, token!)
+      const status = cmp.ok ? String(((await cmp.json()) as { status?: string }).status || '') : ''
+      if (status === 'behind' || status === 'diverged') {
+        branch = `${baseBranch}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`.slice(0, 240)
+      }
+    } else if (branchRead.status !== 404) {
+      throw new Error(`branch read failed: HTTP ${branchRead.status}`)
+    }
+
+    const exists = branch === baseBranch && branchRead.ok
+    if (!exists) {
       const made = await gh(`https://api.github.com/repos/${repo}/git/refs`, token!, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha }),
       })
       if (made.status === 403) return respond(200, { ok: false, skipped: 'github_write_forbidden', status: 403, repo })
-      if (!made.ok) throw new Error(`branch create failed: HTTP ${made.status} ${(await made.text().catch(() => '')).slice(0, 160)}`)
-    } else if (!branchRead.ok) {
-      throw new Error(`branch read failed: HTTP ${branchRead.status}`)
+      // 422 is "already exists", which a same-day retry hits and which is fine.
+      if (!made.ok && made.status !== 422) {
+        throw new Error(`branch create failed: HTTP ${made.status} ${(await made.text().catch(() => '')).slice(0, 160)}`)
+      }
     }
 
     const existing = await gh(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`, token!)
