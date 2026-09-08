@@ -47,3 +47,84 @@ export function priceUsd(model: string, inputTokens: number, outputTokens: numbe
   const p = MODEL_PRICES[key]
   return (inputTokens / 1e6) * p.in + (outputTokens / 1e6) * p.out
 }
+
+// ---------------------------------------------------------------- caching
+//
+// Cached tokens are priced as multiples of the model's base input rate, so
+// there is one multiplier set rather than three more columns per model. Adding
+// a model still means adding one row.
+//
+//   read      a cache hit, an order of magnitude cheaper than sending it again
+//   write5m   the surcharge for writing a five minute cache entry
+//   write1h   the surcharge for a one hour entry
+//
+// A write costs MORE than an uncached send. That is the whole trade: you
+// overpay once so the next N calls pay a tenth. It only wins when the prefix is
+// genuinely reused, which is why the meter records reads and writes separately
+// instead of netting them off. A site writing caches nobody reads is more
+// expensive than one with no caching at all, and netting them would hide it.
+export const CACHE_MULTIPLIERS = { read: 0.1, write5m: 1.25, write1h: 2 } as const
+
+export interface TokenUsage {
+  input: number
+  output: number
+  /** Tokens served from an existing cache entry. */
+  cacheRead?: number
+  /** Tokens written into a new five minute cache entry. */
+  cacheWrite5m?: number
+  /** Tokens written into a new one hour cache entry. */
+  cacheWrite1h?: number
+}
+
+/**
+ * USD for a call, cache included.
+ *
+ * Unknown model => 0, same contract as priceUsd: a guessed rate produces a
+ * plausible wrong number nobody questions.
+ */
+export function priceUsdDetailed(model: string, u: TokenUsage): number {
+  const key = priceFamily(model)
+  if (!key) return 0
+  const p = MODEL_PRICES[key]
+  const m = CACHE_MULTIPLIERS
+  return (
+    (u.input / 1e6) * p.in +
+    (u.output / 1e6) * p.out +
+    ((u.cacheRead || 0) / 1e6) * p.in * m.read +
+    ((u.cacheWrite5m || 0) / 1e6) * p.in * m.write5m +
+    ((u.cacheWrite1h || 0) / 1e6) * p.in * m.write1h
+  )
+}
+
+/**
+ * What the same call would have cost with no caching at all.
+ *
+ * Every cached token, read or written, would otherwise have been an ordinary
+ * input token. The difference between this and priceUsdDetailed is the saving,
+ * and it is negative when a site writes caches nobody reads.
+ */
+export function priceUsdUncached(model: string, u: TokenUsage): number {
+  const key = priceFamily(model)
+  if (!key) return 0
+  const p = MODEL_PRICES[key]
+  const cached = (u.cacheRead || 0) + (u.cacheWrite5m || 0) + (u.cacheWrite1h || 0)
+  return ((u.input + cached) / 1e6) * p.in + (u.output / 1e6) * p.out
+}
+
+/** Read the cache fields off an Anthropic usage object, whatever is present. */
+export function readUsage(usage: unknown): TokenUsage {
+  const u = (usage || {}) as Record<string, unknown>
+  const n = (v: unknown) => Number(v) || 0
+  // The 1h figure arrives nested under cache_creation on the extended-TTL shape
+  // and is absent otherwise, so a missing key is zero rather than a crash.
+  const creation = (u.cache_creation || {}) as Record<string, unknown>
+  const write1h = n(creation.ephemeral_1h_input_tokens)
+  const write5m = n(creation.ephemeral_5m_input_tokens) || Math.max(0, n(u.cache_creation_input_tokens) - write1h)
+  return {
+    input: n(u.input_tokens),
+    output: n(u.output_tokens),
+    cacheRead: n(u.cache_read_input_tokens),
+    cacheWrite5m: write5m,
+    cacheWrite1h: write1h,
+  }
+}

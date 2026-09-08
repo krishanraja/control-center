@@ -409,7 +409,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
     if (opts.onUsage) opts.onUsage({ input: inputTokens, output: outputTokens, model })
     // Unconditional, unlike onUsage: a route that does not care what it cost is
     // exactly the route whose spend nobody was watching.
-    await meter.anthropicCall({ agent: opts.agent, model, inputTokens, outputTokens })
+    await meter.anthropicCall({ agent: opts.agent, model, usage: j?.usage })
     return firstText(j)
   } catch (e: unknown) {
     if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
@@ -462,12 +462,7 @@ export async function callClaudeMessages(
   })
   const j: any = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
-  await meter.anthropicCall({
-    agent: opts.agent,
-    model,
-    inputTokens: Number(j?.usage?.input_tokens) || 0,
-    outputTokens: Number(j?.usage?.output_tokens) || 0,
-  })
+  await meter.anthropicCall({ agent: opts.agent, model, usage: j?.usage })
   return firstText(j)
 }
 
