@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from '@/lib/icons'
 import { DrawnCheck } from '../shared/DrawnCheck'
 import type { useContentV2 } from '../../hooks/useContentV2'
+import type { useContentTriage } from '../../hooks/useContentTriage'
+import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
@@ -12,8 +14,8 @@ import { useToast } from '../shared/Toast'
 import { useReducedMotion } from '../shared/motion'
 import {
   VIDEO_GATE_LABEL,
-  VIDEO_SERIES_LABEL,
   rememberVideoStudioReturnFocus,
+  videoPreviewStateLabel,
   videoStudioListItemIsWellFormed,
   type VideoStudioReviewListItem,
 } from '../../lib/videoStudio'
@@ -70,17 +72,24 @@ function Big({ children, tone = 'ghost', onClick, disabled }: {
 type DeckItem =
   | { type: 'content'; id: string; decision: ContentDecisionRow }
   | { type: 'video'; id: string; review: VideoStudioReviewListItem }
+  | { type: 'idea'; id: string; idea: ContentIdeaRow }
 
 export function MobileDecisionDeck({
   v2,
   videoReviews = [],
   videoLoading = false,
   videoQueueError = false,
+  triage,
+  upstream = [],
 }: {
   v2: ReturnType<typeof useContentV2>
   videoReviews?: VideoStudioReviewListItem[]
   videoLoading?: boolean
   videoQueueError?: boolean
+  /** The idea pile's actions (send to draft, drop with a reason, undo). */
+  triage?: ReturnType<typeof useContentTriage>
+  /** Raw seeds and research to clear, worst first. The old triage deck's job. */
+  upstream?: ContentIdeaRow[]
 }) {
   const { decisions, brief, loading } = v2
   const [busy, setBusy] = useState(false)
@@ -122,8 +131,11 @@ export function MobileDecisionDeck({
       .map(decision => ({ type: 'content' as const, id: `content:${decision.id}`, decision }))
     const anchors = content.filter(item => item.decision.kind === 'brief_review')
     const remaining = content.filter(item => item.decision.kind !== 'brief_review')
-    return [...anchors, ...videos, ...remaining]
-  }, [decisions, videoReviews])
+    // The idea pile comes last: rulings first, then the raw seeds to keep or
+    // bin. It is the same swipe, so a coffee line clears both.
+    const pile = upstream.map((idea): DeckItem => ({ type: 'idea', id: `idea:${idea.id}`, idea }))
+    return [...anchors, ...videos, ...remaining, ...pile]
+  }, [decisions, videoReviews, upstream])
 
   // A secure video fetch can settle independently of Content. Once Krish has
   // browsed, keep the exact card under his thumb as either source refreshes.
@@ -227,6 +239,7 @@ export function MobileDecisionDeck({
   // covers the card being judged.
   const [rejecting, setRejecting] = useState(false)
   const rejectReasons = reasonsFor('content_decisions')
+  const ideaReasons = reasonsFor('content_ideas')
 
   // Browsing away closes the question. An open reason bar belongs to the card
   // that opened it, and must never answer for the one that replaced it.
@@ -303,10 +316,16 @@ export function MobileDecisionDeck({
 
   const d = current.type === 'content' ? current.decision : null
   const video = current.type === 'video' ? current.review : null
+  const idea = current.type === 'idea' ? current.idea : null
+  // An idea drop parks in the triage hook until a reason is chosen, so the
+  // reason bar shows while that park is open. Cancelling restores the card.
+  const ideaDropPending = Boolean(idea && triage?.pendingDrop?.id === idea.id)
   const videoMalformed = video ? !videoStudioListItemIsWellFormed(video) : false
   const videoNeedsSyncAttention = Boolean(video && !videoMalformed && video.status !== 'pending')
   const p = (d?.payload || {}) as Record<string, any>
-  const chip = video
+  const chip = idea
+    ? { label: idea.state === 'researching' ? 'Being researched' : 'New idea', cls: 'bg-white/[0.08] text-white/70' }
+    : video
     ? {
         label: videoMalformed ? 'Review needs repair' : videoNeedsSyncAttention ? 'Local sync attention' : VIDEO_GATE_LABEL[video.gate],
         cls: videoMalformed || video.route_state === 'requires_editorial_route' || videoNeedsSyncAttention
@@ -375,10 +394,25 @@ export function MobileDecisionDeck({
           // min-h-0 + overflow-y-auto: a long card scrolls inside itself. Without
           // it the card grew past the stage, pushed the thumb-zone buttons into
           // the nav clearance, and "Not a shift" sat under the + button.
-          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing min-h-0 overflow-y-auto ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
+          className={`rounded-2xl border p-4 select-none cursor-grab active:cursor-grabbing min-h-0 overflow-y-auto ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : idea ? 'border-white/[0.08] bg-white/[0.02]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
+          {idea ? (
+            <>
+              <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
+              <h3 className="text-lede font-bold text-white mt-3 leading-snug">{idea.idea}</h3>
+              {idea.thesis ? <p className="text-label text-white/60 mt-2 leading-relaxed">{idea.thesis}</p> : null}
+              {idea.source_snippet ? <p className="text-micro text-white/40 mt-2 italic leading-relaxed">{idea.source_snippet}</p> : null}
+              <p className="text-micro text-white/35 mt-3">
+                {idea.source_type ? idea.source_type.replace(/_/g, ' ') : 'captured'}{idea.lane_slot ? ` · ${idea.lane_slot.replace(/_/g, ' ')}` : ''}
+              </p>
+              {queue.length > 1 && (
+                <p className="text-micro text-white/25 mt-3">Swipe to look through the cards. The buttons make the call.</p>
+              )}
+            </>
+          ) : (
+          <>
           {video && !videoMalformed ? (
-            <VideoBrandLockup series={video.series} placement="card" className="-ml-7 mb-3" />
+            <VideoBrandLockup series={video.series} placement="card" className="mb-3" />
           ) : null}
           <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
           <h3 className="text-lede font-bold text-white mt-3 leading-snug">
@@ -407,7 +441,9 @@ export function MobileDecisionDeck({
             <p className="text-micro text-violet-200/65 mt-3">
               {videoMalformed
                 ? 'Decision blocked'
-                : `${VIDEO_SERIES_LABEL[video.series]} · ${videoNeedsSyncAttention ? 'Local sync attention' : video.preview_state === 'available' ? 'Preview ready' : video.preview_state}`}
+                : videoNeedsSyncAttention
+                  ? 'Decided. The studio computer has not confirmed it yet.'
+                  : `${videoPreviewStateLabel(video.preview_state)}. Open it to compare, direct a change, or decide.`}
             </p>
           ) : null}
           {d?.kind === 'shift_proposal' && p.summary ? (
@@ -416,12 +452,36 @@ export function MobileDecisionDeck({
           {queue.length > 1 && (
             <p className="text-micro text-white/25 mt-3">Swipe to look through the cards. The buttons make the call.</p>
           )}
+          </>
+          )}
         </div>
 
         {/* thumb zone — the reason bar takes it over while a reject is being
             answered, so the question sits under the thumb that asked it */}
         <div className="mt-auto pt-4 pb-2 flex flex-col gap-2">
-          {rejecting ? (
+          {idea && triage ? (
+            ideaDropPending ? (
+              <RejectReasonBar
+                title="Why drop it?"
+                reasons={ideaReasons}
+                onChoose={(code, text) => { triage.chooseDropReason(code, text); setDone(n => n + 1) }}
+                onCancel={triage.cancelDrop}
+                cancelLabel="Keep it"
+              />
+            ) : (
+              <>
+                <Big tone="green" disabled={busy} onClick={() => { triage.sendToDraft(idea); setDone(n => n + 1) }}>Write this</Big>
+                <Big disabled={busy} onClick={() => triage.open(idea.id)}>Open it</Big>
+                <button
+                  onClick={() => triage.drop(idea)}
+                  disabled={busy}
+                  className="w-full rounded-xl py-3 text-body font-semibold text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] active:scale-[0.98] transition disabled:opacity-40"
+                >
+                  Not for me
+                </button>
+              </>
+            )
+          ) : rejecting ? (
             <RejectReasonBar
               title="Why bin it?"
               reasons={rejectReasons}

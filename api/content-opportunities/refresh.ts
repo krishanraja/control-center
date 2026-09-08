@@ -13,6 +13,8 @@ import {
 import { SYNTHESIS_MODEL } from '../_models.js'
 import { supabase } from '../_supabase.js'
 import { buildSignalSummary, forbiddenTermsFor, buildProductFor, type BuildMeta } from '../_buildSignals.js'
+import { aeoSignalSummary, type AeoSignalRow } from '../_aeo.js'
+import { withContentRun } from '../_runs.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -33,9 +35,11 @@ const LOOKBACK_HOURS = 96
 const REUSE_HOURS = 20
 /** The neutral source types the radar judges. A pool headline is the news
  *  corpus; a build signal is one of Krish's own build weeks
- *  (api/discover-build-signals.ts). Both get the same two independent
- *  readings; only the build carries extra rules, see api/_editorialRadar.ts. */
-const RADAR_SOURCE_TYPES = ['pool_headline', 'build_signal'] as const
+ *  (api/discover-build-signals.ts); an AEO signal is one article the weekly
+ *  answer-engine research recommends (api/aeo/ingest.ts), carrying its target
+ *  query and evidence in meta.aeo. All get the same two independent readings;
+ *  only the build carries extra rules, see api/_editorialRadar.ts. */
+const RADAR_SOURCE_TYPES = ['pool_headline', 'build_signal', 'aeo_signal'] as const
 /** Build rows are few and live 21 days (SIGNAL_TTL_DAYS in
  *  api/_buildSignals.ts), so they stay judgeable for longer than a rolling
  *  headline: the Saturday ingest must still be in view for every refresh
@@ -65,7 +69,29 @@ function buildMetaOf(row: PoolIdeaRow): BuildMeta | null {
   return typeof build.repo === 'string' && typeof build.public_name === 'string' ? build as unknown as BuildMeta : null
 }
 
+function aeoMetaOf(row: PoolIdeaRow): AeoSignalRow['meta']['aeo'] | null {
+  if (row.source_type !== 'aeo_signal') return null
+  const meta = asRecord(row.meta)
+  const aeo = asRecord(meta.aeo)
+  return typeof aeo.target_query === 'string' && typeof aeo.subject_slug === 'string' ? aeo as unknown as AeoSignalRow['meta']['aeo'] : null
+}
+
 function toSignal(row: PoolIdeaRow): EditorialSignalV2 {
+  const aeo = aeoMetaOf(row)
+  if (aeo) {
+    // An AEO recommendation: the piece is written to win one question. The
+    // lens reads the question, the angle and the measured evidence; there
+    // are no source URLs because the evidence is the engines' own answers.
+    return {
+      id: row.id,
+      title: row.idea,
+      summary: aeoSignalSummary(aeo, row.thesis || row.idea),
+      occurred_at: row.source_captured_at || row.created_at,
+      source_urls: [],
+      corroboration: Math.max(1, aeo.evidence.length),
+      category: 'aeo_research',
+    }
+  }
   const build = buildMetaOf(row)
   if (build) {
     const product = buildProductFor(build.repo)
@@ -120,14 +146,15 @@ async function runLens(series: EditorialSeries, signals: EditorialSignalV2[], vo
   return parseEditorialLensResponse(robustJson(raw), series, signals)
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardBearerExport(req, res, 'CRON_SECRET', ['GET'])) return
   const now = new Date()
   const since = new Date(now.getTime() - LOOKBACK_HOURS * 3_600_000).toISOString()
   const buildSince = new Date(now.getTime() - BUILD_LOOKBACK_HOURS * 3_600_000).toISOString()
   try {
     // Two reads, not one: a single ordered read capped at N would let a busy
-    // news week push last Saturday's build rows past the cap.
+    // news week push last Saturday's build rows, or Sunday's AEO rows, past
+    // the cap. Both owned sources are few and live 21 days.
     const [headlines, builds] = await Promise.all([
       supabase
         .from('content_ideas')
@@ -139,7 +166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       supabase
         .from('content_ideas')
         .select('id,idea,thesis,source_type,source_url,source_captured_at,created_at,updated_at,meta')
-        .eq('source_type', RADAR_SOURCE_TYPES[1])
+        .in('source_type', [RADAR_SOURCE_TYPES[1], RADAR_SOURCE_TYPES[2]])
         .is('parent_idea_id', null)
         .is('buried_at', null)
         .gte('source_captured_at', buildSince)
@@ -211,3 +238,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('editorial_radar', handler)

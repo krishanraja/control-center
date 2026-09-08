@@ -1,4 +1,5 @@
 import { supabase } from './_supabase.js'
+import { getOperatorTz, ymdIn } from './_timezone.js'
 
 /**
  * What each tab knows about itself.
@@ -61,10 +62,13 @@ function ago(ts: string | null | undefined): string {
 // ── Per-tab builders ────────────────────────────────────────────────────────
 
 async function groundHome(): Promise<string> {
+  // Today's row, on the operator's civil date. The latest row is not today's
+  // once the shutdown writes tomorrow's 3 the night before.
+  const todayYmd = ymdIn(new Date(), await getOperatorTz())
   const [focus, intel, failures] = await Promise.all([
     supabase.from('daily_focus')
       .select('focus_date, status, target_1_text, target_1_completed_at, target_2_text, target_2_completed_at, target_3_text, target_3_completed_at')
-      .order('focus_date', { ascending: false }).limit(1),
+      .eq('focus_date', todayYmd).limit(1),
     supabase.from('home_intelligence').select('summary, daily_brief, top_three').eq('id', 'current').maybeSingle(),
     supabase.from('silent_failures')
       .select('workflow_name, tier, failure_type, detail, detected_at')

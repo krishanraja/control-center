@@ -20,16 +20,19 @@ import { useElapsed } from '../../hooks/useAsyncAction'
 import { streamText } from '../../lib/streamText'
 import { Pending } from '../shared/Pending'
 import { BriefComposer } from './BriefComposer'
-import { ComposerShell, ComposerRail, MetaDot } from './ComposerShell'
+import { ComposerShell, ComposerRail, MetaDot, type ComposerStage } from './ComposerShell'
 import { EditPalette } from './EditPalette'
 import { EditorialOpportunityGate } from './EditorialOpportunityGate'
 import type { EditorialSeries } from '../../lib/editorialOpportunities'
-import {
+import { productionBriefStatusLabel,
   CONTENT_OUTPUTS,
   hasExactProductionApproval,
   storedContentOutputs,
   storedProductionBriefs,
+  STUDIO_FORMATS_BY_SERIES,
+  studioFormatLabel,
   type ContentOutputDefinition,
+  type StudioEditorialFormat,
 } from '../../lib/contentOutputs'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
@@ -89,6 +92,21 @@ export function ContentComposer({ ideaId, week, editorialSeries, narrow, onClose
   return <IdeaComposer ideaId={ideaId} editorialSeries={editorialSeries} narrow={narrow} onClose={onClose} />
 }
 
+// The rail as a sequence. A piece is at one stage at a time, worked out from
+// its state, and the rail opens on that stage's first tool. Every tool stays
+// one click away; none of them face you until they are relevant.
+const RAIL_STAGES: ComposerStage<RailTab>[] = [
+  { id: 'draft', label: 'Draft', tabs: ['cleo', 'materials', 'research'] },
+  { id: 'strengthen', label: 'Strengthen', tabs: ['refine', 'standards'] },
+  { id: 'produce', label: 'Produce', tabs: ['cuts'] },
+]
+
+function stageForState(state: string): ComposerStage<RailTab> {
+  if (state === 'review' || state === 'approved' || state === 'published') return RAIL_STAGES[2]
+  if (state === 'drafting') return RAIL_STAGES[1]
+  return RAIL_STAGES[0]
+}
+
 const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
   { id: 'cleo', label: 'Cleo', icon: <MessageSquare size={14} /> },
   { id: 'refine', label: 'Refine', icon: <Wand2 size={14} /> },
@@ -111,7 +129,17 @@ function IdeaComposer({ ideaId, editorialSeries, narrow, onClose }: { ideaId: st
   const { toast } = useToast()
   const h = useHaptics()
 
-  const [tab, setTab] = useState<RailTab>('cleo')
+  // Open on the stage the piece is at, not always on Cleo. A ready draft opens
+  // on Refine; an approved one opens on Outputs, where the production brief is.
+  const [tab, setTab] = useState<RailTab>(() => stageForState(idea?.state || 'seeded').tabs[0])
+  // The piece can arrive after first paint (the realtime cache is shared and
+  // may still be filling), so re-derive the opening tab once per piece.
+  const openedFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (!idea || openedFor.current === idea.id) return
+    openedFor.current = idea.id
+    setTab(stageForState(idea.state).tabs[0])
+  }, [idea])
 
   // Flow to the next piece without a list round-trip (P-10 / P-22): jump straight
   // to the next-best card, computed across the pile excluding this one. If nothing
@@ -365,7 +393,7 @@ function IdeaComposer({ ideaId, editorialSeries, narrow, onClose }: { ideaId: st
           </main>
 
           {/* Desktop rail — the same component the brief mounts. */}
-          <ComposerRail<RailTab> tabs={RAIL_TABS} tab={tab} onTab={setTab}>
+          <ComposerRail<RailTab> tabs={RAIL_TABS} tab={tab} onTab={setTab} stages={RAIL_STAGES} currentStage={stageForState(idea.state).id}>
             {railPanel}
           </ComposerRail>
         </div>
@@ -1579,12 +1607,15 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   const [family, setFamily] = useState<'written' | 'script' | 'studio'>('written')
   const [selected, setSelected] = useState('substack')
   const [sourceMode, setSourceMode] = useState<'extract' | 'solo' | 'short_native'>('short_native')
+  const [editorialFormat, setEditorialFormat] = useState<StudioEditorialFormat>('money_trace')
   const [hardGatesConfirmed, setHardGatesConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const cuts = useMemo(() => storedContentOutputs(idea.transformed_outputs), [idea.transformed_outputs])
   const briefs = useMemo(() => storedProductionBriefs(idea.transformed_outputs), [idea.transformed_outputs])
   const exactApproval = hasExactProductionApproval(idea.meta)
-  const canonicalSeries = idea.lane === 'publication' && (idea.lane_slot === 'money_of_ai' || idea.lane_slot === 'built_with_ai')
+  const studioSeries = idea.lane === 'publication' && (idea.lane_slot === 'money_of_ai' || idea.lane_slot === 'built_with_ai') ? idea.lane_slot : null
+  const canonicalSeries = Boolean(studioSeries)
+  const studioFormats = studioSeries ? STUDIO_FORMATS_BY_SERIES[studioSeries] : []
   const launchers = useMemo(() => CONTENT_OUTPUTS.filter((definition) => (
     family === 'written'
       ? definition.engine === 'channel_cut'
@@ -1604,6 +1635,10 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
     ))
     if (first) setSelected(first.key)
   }, [family, idea.id])
+
+  useEffect(() => {
+    if (studioSeries) setEditorialFormat(STUDIO_FORMATS_BY_SERIES[studioSeries][0]!.value)
+  }, [studioSeries, idea.id])
 
   const approveExactRevision = async () => {
     h.heavy(); setBusy(true)
@@ -1645,6 +1680,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
           body: JSON.stringify({
             production_kinds: [productionKind],
             source_mode: productionKind === 'carousel' ? 'written' : sourceMode,
+            editorial_format: editorialFormat,
             confirm_hard_gates: true,
           }),
         })
@@ -1692,6 +1728,22 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
 
         {family === 'studio' ? (
           <div className="mt-3 space-y-3 border-t border-[#102017]/12 pt-3">
+            {studioSeries ? (
+              <fieldset>
+                <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Format</legend>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  {studioFormats.map(format => (
+                    <button
+                      key={format.value}
+                      type="button"
+                      onClick={() => setEditorialFormat(format.value)}
+                      aria-pressed={editorialFormat === format.value}
+                      className={`min-h-[44px] break-words rounded-lg border px-2 py-1.5 text-label font-semibold leading-snug ${editorialFormat === format.value ? 'border-emerald-700/35 bg-emerald-700/[0.08]' : 'border-[#102017]/12 text-[#102017]/58'}`}
+                    >{format.label}</button>
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
             {selectedDefinition?.family === 'video' ? (
               <fieldset>
                 <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Source</legend>
@@ -1757,9 +1809,19 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
               <div className="flex flex-wrap items-center gap-2 text-label text-emerald-100/85">
                 {brief.production_kinds.includes('video') ? <Film size={14} /> : <Layers size={14} />}
                 <strong>{brief.production_kinds.join(' + ')}</strong>
-                <span className="text-micro uppercase tracking-[0.14em] text-emerald-200/55">{brief.status.replace(/_/g, ' ')}</span>
+                {brief.editorial_format ? <span>{studioFormatLabel(brief.editorial_format)}</span> : null}
               </div>
-              <p className="mt-1 break-all text-micro leading-relaxed text-white/38">{brief.brief_id}</p>
+              {/* The brief used to end here with a raw status word and an id.
+                  This is the one place the thread from an approved piece to a
+                  studio job is visible, so it says what the runner did. */}
+              <p className="mt-1 text-label leading-relaxed text-white/70">{productionBriefStatusLabel(brief.status)}</p>
+              {brief.job_id ? (
+                <p className="mt-0.5 break-all text-micro leading-relaxed text-emerald-200/70">Studio job {brief.job_id}. Its reviews reach the Queue and the strip above the rooms.</p>
+              ) : null}
+              {brief.safe_code ? (
+                <p className="mt-0.5 text-micro leading-relaxed text-amber-100/70">Runner code: {brief.safe_code.replace(/_/g, ' ')}</p>
+              ) : null}
+              <p className="mt-1 break-all text-micro leading-relaxed text-white/30">{brief.brief_id}</p>
             </div>
           ))}
         </section>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Search, Users, X } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { FreshnessLine } from '../shared/FreshnessLine'
@@ -17,6 +17,14 @@ import type { RoomProposal, RoomState } from '../../hooks/useRoom'
 
 const SUBTITLE = 'Mindmake sales list: up to 25 leaders you already know at PE or VC backed media, adtech and data companies. The OS finds a news hook and drafts the note. You send.'
 
+/** Plain words for the search stages the server reports as skipped. */
+function degradedWords(stages: string[]): string {
+  const words = stages.map(stage => stage.startsWith('embedding') ? 'semantic matching'
+    : stage.startsWith('rerank') ? 'the reranker'
+    : stage.replace(/[:_]/g, ' '))
+  return [...new Set(words)].join(' or ')
+}
+
 /** The counts line, in ladder order, only the states that have anyone. */
 function countsLine(counts: Record<string, number>): string {
   return ROOM_STATES
@@ -28,9 +36,10 @@ function countsLine(counts: Record<string, number>): string {
 export function RoomBody({ narrow }: { narrow: boolean }) {
   const { toast } = useToast()
   const [view, setView] = useState<RoomState | null>(null)
-  const { targets, stateCounts, loading, refetch } = useRoom(view)
+  const { targets, stateCounts, loading, error, refetch } = useRoom(view)
   const [seeding, setSeeding] = useState(false)
   const [proposals, setProposals] = useState<RoomProposal[] | null>(null)
+  const [findNote, setFindNote] = useState<string | null>(null)
   const [accepting, setAccepting] = useState<string | null>(null)
 
   const counts = useMemo(() => countsLine(stateCounts), [stateCounts])
@@ -49,16 +58,33 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
   const findMore = async () => {
     if (seeding) return
     setSeeding(true)
+    setFindNote(null)
     try {
-      const found = await seedRoom(5)
+      const { proposals: found, degraded } = await seedRoom(5)
       setProposals(found)
-      if (!found.length) toast('Nobody new fits closely enough right now.')
+      if (!found.length) {
+        setFindNote(degraded.length
+          ? `Nobody came back. The search ran without ${degradedWords(degraded)}, so it could not rank properly.`
+          : 'Nobody new fits closely enough right now.')
+      } else if (degraded.length) {
+        setFindNote(`Ranked without ${degradedWords(degraded)}. The order is rougher than usual.`)
+      }
     } catch (err) {
-      toast(`Could not search: ${(err as Error)?.message || 'try again'}`, 'error')
+      setFindNote(`Could not search: ${(err as Error)?.message || 'try again'}`)
     } finally {
       setSeeding(false)
     }
   }
+
+  // The charter says the OS drafts and Krish sends. An empty Room that waits
+  // for a button is the OS not drafting. So the first time the Room opens
+  // empty, the five are found and shown; nothing is listed until Accept.
+  const autoFound = useRef(false)
+  useEffect(() => {
+    if (loading || error || view || targets.length || proposals || autoFound.current) return
+    autoFound.current = true
+    void findMore()
+  }, [loading, error, view, targets.length, proposals])
 
   const accept = async (p: RoomProposal) => {
     if (accepting) return
@@ -106,7 +132,7 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p data-testid="room-counts" className="text-label text-white/55">
-          {counts || 'Nobody listed yet.'}
+          {counts || (error ? 'The Room could not be read.' : 'Nobody listed yet.')}
         </p>
         <button
           type="button"
@@ -143,6 +169,10 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
             )
           })}
         </div>
+      )}
+
+      {findNote && (
+        <p data-testid="room-find-note" className="text-label text-amber-100/75">{findNote}</p>
       )}
 
       {proposals && proposals.length > 0 && (
@@ -194,9 +224,21 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
         </section>
       )}
 
-      {targets.length === 0 ? (
+      {error ? (
+        <p data-testid="room-error" className="text-body text-rose-100/80" role="alert">
+          {error === 'not_signed_in'
+            ? 'This phone is not signed in to Control Center, so the Room cannot be read. Open it once on a signed-in browser.'
+            : `The Room could not be read (${error}). It retries every minute.`}
+        </p>
+      ) : targets.length === 0 ? (
         <p data-testid="room-empty" className="text-body text-white/45">
-          {view ? `Nobody is ${ROOM_STATE_LABEL[view].toLowerCase()} right now.` : 'Nobody listed yet. Find five to start.'}
+          {view
+            ? `Nobody is ${ROOM_STATE_LABEL[view].toLowerCase()} right now.`
+            : proposals?.length
+              ? 'Accept the ones who fit. The Monday run drafts a note for everyone listed.'
+              : seeding
+                ? 'Looking through your network for five who fit the face.'
+                : 'Nobody listed yet. Find five to start.'}
         </p>
       ) : (
         <div className={narrow ? 'space-y-3' : 'grid grid-cols-1 xl:grid-cols-2 gap-4'}>

@@ -1,6 +1,7 @@
 import React from 'react'
 import { laneLabel, type OutreachCandidate, type PublishCandidate } from '../../lib/publishCandidates'
 import { useHaptics } from '../../hooks/useHaptics'
+import { Working } from '../shared/Working'
 import { Tap } from './controls'
 
 // One candidate, never a list. On a red day selection is the expensive
@@ -51,7 +52,8 @@ export function PublishCandidateCard({
       </div>
 
       <Tap onTap={onAccept} disabled={saving} feel="success" className="w-full justify-center flex items-center">
-        {saving ? 'Saving' : submitLabel}
+        {saving && <Working size={14} />}
+        {submitLabel}
       </Tap>
 
       <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
@@ -114,7 +116,8 @@ export function OutreachCandidateCard({
       </div>
 
       <Tap onTap={onAccept} disabled={saving} feel="success" className="w-full justify-center flex items-center">
-        {saving ? 'Saving' : submitLabel}
+        {saving && <Working size={14} />}
+        {submitLabel}
       </Tap>
 
       <div className="flex items-center flex-wrap gap-x-4 gap-y-1">

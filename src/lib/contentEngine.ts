@@ -1,14 +1,8 @@
-// contentEngine — shared config for the Content Engine layer on the Content tab.
+// contentEngine: shared config for the Content Engine layer on the Content tab.
 //
-// The engine is additive: it layers transform-axes, enrich/challenge, channel
-// variants, the Five Standards gate, and Push-to-Cleo on top of the existing
-// read-only-ish ContentIdeaCard. Everything new is gated behind
-// VITE_CONTENT_ENGINE_ENABLED so the inbox UI is untouched when off.
-
-export function contentEngineEnabled(): boolean {
-  // Default OFF — opt in per environment (Vite build-time var).
-  return String(import.meta.env.VITE_CONTENT_ENGINE_ENABLED) === 'true'
-}
+// The engine layers transform-axes, enrich/challenge, channel variants and the
+// Five Standards gate on the one Content surface. It is always on; the old
+// build-time flag was removed because a missing variable silently hid it.
 
 // ── The single source of truth for the content state machine ─────────────
 // Every surface (lanes list, triage deck, the right-rail decision actions, the

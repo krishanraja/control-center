@@ -64,7 +64,7 @@ controlling those two.
 # .env: VITE_SUPABASE_URL=https://placeholder.supabase.co
 #       VITE_SUPABASE_ANON_KEY=placeholder
 #       VITE_UI_V2_ENABLED=true
-VITE_CONTENT_V2_ENABLED=true VITE_UI_V2_ENABLED=true npm run build
+VITE_UI_V2_ENABLED=true VITE_VIDEO_ENGINE_ENABLED=true npm run build
 PLAYWRIGHT_CHROMIUM_PATH=<your chromium binary> npx playwright test
 ```
 
@@ -78,10 +78,16 @@ The build-time vars are load-bearing:
   asserting against a surface that is not there. The symptom is every spec in
   that file failing on a missing search field, which reads like an app crash
   and is not one.
-- `VITE_CONTENT_V2_ENABLED=true` for the same reason on the Content surface:
-  `composer.spec.ts` and the `content-room` segments assert the v2 rooms.
-  Pass it on the build command (see the `.env.production.local` trap in the
-  root `AGENTS.md` — a pulled env file can silently override `.env`).
+- `VITE_VIDEO_ENGINE_ENABLED=true` because `video-engine-mobile.spec.ts`
+  asserts the reviewer. The Content surface itself no longer has a flag.
+  Pass build-time vars on the build command (see the `.env.production.local`
+  trap in the root `AGENTS.md`: a pulled env file can silently override `.env`).
+
+The four content and video specs also run in CI (`e2e` job in
+`.github/workflows/ci.yml`) against the production build with every network
+call mocked. `tests/api/*.test.ts` are `node --test` behaviour tests for the
+pure halves of the content-to-production bridge and the run ledger; run them
+with `npx tsx --test tests/api/*.test.ts`.
 
 `playwright.config.ts` sets `reuseExistingServer: true`, so a preview server
 you left running serves a **stale `dist`**. Rebuild before you re-run, or kill

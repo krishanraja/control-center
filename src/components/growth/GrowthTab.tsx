@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useGrowth } from '../../hooks/useGrowth'
 import { BATCH_MAX, citationRate, mondayOf, pct } from '../../lib/growth'
 import { TouchpointMap } from './TouchpointMap'
+import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 import { CreativeBoard } from './CreativeBoard'
 import { CouncilFeed } from './CouncilFeed'
 import { SignalsPanel } from './SignalsPanel'
@@ -36,16 +37,24 @@ import { useQuickCreateListener } from '../../lib/quickCreate'
 
 export type GrowthSectionId = 'map' | 'work' | 'signals' | 'council' | 'governance'
 
-const SECTIONS: Array<{ id: GrowthSectionId; label: string }> = [
+/**
+ * What the whole tab is for, in one sentence, and what each section is for,
+ * in one more. Krish (2026-09-08): "I don't know what this tab is for. In
+ * plain English what is it for and why doesn't it just say that?" So it says
+ * it, at the top, and the line changes with the section under the pills.
+ */
+export const GROWTH_PURPOSE = 'Find buyers where they already are, make them something each week, and see whether it worked.'
+
+const SECTIONS: Array<{ id: GrowthSectionId; label: string; what: string }> = [
   // Krish: "I find the laguage used over complicated and hard to understand
   // what everything actually is, full of jargon". Section names now say what
   // the section IS, not what the subsystem behind it is called. The ids are
   // unchanged so nothing downstream breaks.
-  { id: 'map', label: 'Where they are' },
-  { id: 'work', label: 'To do' },
-  { id: 'signals', label: "What's moving" },
-  { id: 'council', label: 'Weekly review' },
-  { id: 'governance', label: 'Spend limits' },
+  { id: 'map', label: 'Where they are', what: 'The places your buyers already go, per product. Add one, answer the open questions, mark what is covered.' },
+  { id: 'work', label: 'To do', what: 'The 3 to 5 clips to make this week, from brief to posted. You film. The card holds the script.' },
+  { id: 'signals', label: "What's moving", what: 'Whether anyone is finding you: do AI answers mention you, and where do you rank on Google.' },
+  { id: 'council', label: 'Weekly review', what: 'Every Sunday, one verdict per product: what to stop, what to do next, and your ruling on it.' },
+  { id: 'governance', label: 'Spend limits', what: 'The money and freedom each product\'s agents get: the budget, how much they may do alone, what they may say.' },
 ]
 
 export function GrowthTab({
@@ -85,10 +94,12 @@ export function GrowthTab({
     }
   }, [g.touchpoints, g.cards, g.reviews, g.probes])
 
-  // The + create sheet's "Add a touchpoint": land on the map with its
+  // The + create sheet's "Add a place": land on the map with its
   // composer open, wherever in Growth you were.
   const [mapCompose, setMapCompose] = useState(0)
   useQuickCreateListener('touchpoint', () => { setSection('map'); setMapCompose(n => n + 1) })
+  const [clipCompose, setClipCompose] = useState(0)
+  useQuickCreateListener('clip', () => { setSection('work'); setClipCompose(n => n + 1) })
 
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
@@ -97,18 +108,16 @@ export function GrowthTab({
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
         <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Growth</h1>
-        {/* One line on a phone, not five numbers demanding attention at once:
-            the section pills below already carry their own counts. The desk,
-            with room and a pointer, keeps the full readout. */}
-        <p className="text-xs md:text-body text-white/50 mt-0.5">
-          {g.loading
-            ? 'Reading the map...'
-            : variant === 'mobile'
-              ? (counts.map > 0
-                  ? `${counts.map} question${counts.map === 1 ? '' : 's'} to answer when you have a minute.`
-                  : 'Nothing here needs an answer right now.')
-              : `${g.touchpoints.length} touchpoints · ${counts.map} open questions · ${counts.work} in this week's batch · ${counts.council} council calls waiting · ${pct(geoRate)} GEO citation rate`}
-        </p>
+        {/* The purpose, not a readout. The counts live on the pills, and the
+            desk keeps its one line of numbers under the purpose because it
+            has the room. The old phone line ("3 questions to answer when you
+            have a minute") named a chore without saying what the tab was. */}
+        <p className="text-xs md:text-body text-white/60 mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
+        {variant === 'desktop' && !g.loading && (
+          <p className="text-label text-white/40 mt-0.5 tabular-nums">
+            {g.touchpoints.length} touchpoints · {counts.map} open questions · {counts.work} in this week's batch · {counts.council} reviews waiting on you · {pct(geoRate)} of AI answers mention you
+          </p>
+        )}
         {g.error && <p className="text-label text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
 
@@ -131,36 +140,42 @@ export function GrowthTab({
         testIdPrefix="growth-section"
       />
 
+      {/* What the open section is for. One sentence, changes with the pill. */}
+      <p className="text-label text-white/45 leading-snug flex-shrink-0" data-testid="growth-section-what">
+        {SECTIONS.find(s => s.id === section)?.what}
+      </p>
+
       {/* The scroll container announces which section is mounted. Asserting on a
           heading meant the specs broke when "Touchpoint map" was renamed along
           with the section labels; a panel id says WHICH section is showing
           without depending on any word inside it. */}
-      <div data-testid={`growth-panel-${section}`} className="flex-1 min-h-0 overflow-y-auto">
+      <div data-testid={`growth-panel-${section}`} className={`flex-1 min-h-0 overflow-y-auto ${variant === 'mobile' ? BOTTOM_NAV_PAD : ''}`}>
         {section === 'map' ? (
           <TouchpointMap g={g} variant={variant} composeSignal={mapCompose} />
         ) : section === 'work' ? (
-          <CreativeBoard g={g} variant={variant} />
+          <CreativeBoard g={g} variant={variant} composeSignal={clipCompose} />
         ) : section === 'signals' ? (
           <div className="space-y-4">
-            {/* Venture health at a glance — relocated from Home in the 2026-08-20
+            {/* Venture health at a glance, relocated from Home in the 2026-08-20
                 recompose; Growth owns venture-level signal. */}
             {isGrowthScoreboardEnabled() && (
               <GrowthScoreboard variant={variant === 'mobile' ? 'mobile' : 'desktop'} />
             )}
-            <SignalsPanel g={g} />
+            <SignalsPanel g={g} variant={variant} />
           </div>
         ) : section === 'council' ? (
           <div className="space-y-4">
-            {/* The Friday retro — relocated from Home's ambient fold; the weekly
+            {/* The Friday retro, relocated from Home's ambient fold; the weekly
                 review is where a retro belongs. */}
             <DailyBriefBanner blocking={false} variant={variant === 'mobile' ? 'mobile' : 'desktop'} retroOnly />
-            <CouncilFeed g={g} />
+            <CouncilFeed g={g} variant={variant} onNavigate={onNavigate} />
           </div>
         ) : (
           <GovernancePanel
             variant={variant}
             lane={lane}
             onSelectLane={slug => onNavigate?.('growth', { lane: slug })}
+            onNavigate={onNavigate}
           />
         )}
       </div>

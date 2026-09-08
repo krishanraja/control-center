@@ -11,6 +11,16 @@ export type VideoStudioPlatform = 'youtube_shorts' | 'linkedin' | 'tiktok' | 'in
 export type VideoStudioGate = 'story' | 'treatment' | 'final' | 'learning'
 export type VideoStudioReviewStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested' | 'superseded'
 export type VideoStudioPreviewState = 'processing' | 'available' | 'unavailable' | 'expired'
+
+/** Plain words for a preview state. A raw enum value used to reach the card. */
+export function videoPreviewStateLabel(state: VideoStudioPreviewState | string): string {
+  switch (state) {
+    case 'available': return 'Preview ready'
+    case 'processing': return 'Preview being prepared'
+    case 'expired': return 'Preview expired'
+    default: return 'No preview yet'
+  }
+}
 export type VideoStudioEditorialState =
   | 'ingesting'
   | 'needs_story_review'
@@ -778,6 +788,41 @@ async function mutate<T>(path: string, body: unknown): Promise<T> {
   })
   if (response.status === 401 || response.status === 403) session = null
   return readJson<T>(response)
+}
+
+export interface VideoStudioLearningProposal {
+  id: string
+  weekly_batch_id: string
+  proposal_class: 'taste' | 'performance' | 'engine_quality'
+  assertion: string
+  scope: Record<string, unknown>
+  independent_session_count: number
+  independent_job_count: number
+  counterexamples: unknown[]
+  regression_cases: unknown[]
+  proposed_change: Record<string, unknown>
+  status: string
+  created_at: string
+}
+
+/** What the Studio has learned and wants confirmed. Empty when the engine is off. */
+export async function listVideoStudioLearningProposals(signal?: AbortSignal): Promise<VideoStudioLearningProposal[]> {
+  const response = await fetch('/api/video-studio/learning-proposals', {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+  const body = await readJson<{ proposals: unknown }>(response)
+  const rows = Array.isArray(body.proposals) ? body.proposals : []
+  return rows.filter((row): row is VideoStudioLearningProposal => {
+    const r = recordValue(row)
+    return Boolean(r && typeof r.id === 'string' && typeof r.assertion === 'string' && typeof r.proposal_class === 'string')
+  })
+}
+
+export async function decideVideoStudioLearningProposal(id: string, decision: 'approved' | 'rejected'): Promise<void> {
+  await mutate<{ ok: true }>('/api/video-studio/learning-proposals', { id, decision })
 }
 
 export async function listVideoStudioReviews(signal?: AbortSignal): Promise<VideoStudioReviewListItem[]> {

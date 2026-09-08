@@ -16,7 +16,8 @@
     "check:editorial-text": "tsx scripts/check-editorial-text-integrity.mts",
     "check:content-spine": "tsx scripts/check-unified-content-spine.mts",
     "check:content-production": "tsx scripts/check-content-production-bridge.mts",
-    "check:build-signals": "tsx scripts/check-build-signals.mts"
+    "check:build-signals": "tsx scripts/check-build-signals.mts",
+    "check:aeo-read": "tsx scripts/check-aeo-read.mts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.8",

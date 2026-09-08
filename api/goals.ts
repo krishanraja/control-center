@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { weekOfLabel } from './_week.js'
+import { weekOfLabel, targetWeekStartIn } from './_week.js'
 import { supabase } from './_supabase.js'
 import { syncNorthStar } from './_northStar.js'
 import { isJob } from './_mission.js'
+import { resolveTz } from './_timezone.js'
+import { logGoalChange } from './_goals.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -78,9 +80,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // missing here, so that record wrote current:null even when the goal
         // had a value — a silent hole in the provenance trail, surfaced by
         // the type error this select was causing.
-        .select('title, source, venture, objective_kind, horizon, current')
+        .select('title, source, venture, objective_kind, horizon, current, status, week_start, parent_id, job, priority')
         .eq('id', body.goalId)
         .single()
+
+      // Carry: a missed weekly objective brought into the new week. The missed
+      // row keeps its outcome (the goals table is the archive); a fresh row
+      // takes its place in this week, linked back through carried_from, so the
+      // history shows the same objective set twice and how each week ended.
+      if (existing && existing.horizon === 'weekly' && existing.status === 'missed' && body.status === 'active') {
+        const tz = await resolveTz(req)
+        const week = targetWeekStartIn(new Date(), tz)
+        const newId = `${String(body.goalId).replace(/@\d{4}-\d{2}-\d{2}$/, '')}@${week}`
+        const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : existing.title
+        const { data: carried, error: carryErr } = await supabase
+          .from('goals')
+          .upsert({
+            id: newId,
+            title,
+            horizon: 'weekly',
+            parent_id: existing.parent_id,
+            venture: existing.venture,
+            job: existing.job,
+            priority: existing.priority,
+            status: 'active',
+            source: 'krish_declared',
+            created_by: 'krish',
+            week_start: week,
+            carried_from: body.goalId,
+            activated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' })
+          .select()
+          .single()
+        if (carryErr) return res.status(500).json({ ok: false, error: carryErr.message })
+        await logGoalChange('set', { id: newId, title, horizon: 'weekly' }, { carried_from: body.goalId, week_start: week })
+        const { data: goals } = await supabase.from('goals').select('*').order('created_at')
+        return res.json({ ok: true, carried: carried, goals: { goals: goals || [], north_star: '', week_of: weekOfLabel() } })
+      }
 
       const updates: any = { updated_at: new Date().toISOString() }
       if (body.title !== undefined) updates.title = body.title
@@ -103,12 +140,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Mirrors goals_status_objective_check exactly. 'archived' is NOT in it:
         // sending it returned a raw Postgres constraint error to the UI. Keep
         // these in step with the constraint, or the whitelist just moves the
-        // failure one layer down.
-        const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped'])
+        // failure one layer down. 'missed' is the Saturday close's verdict
+        // (api/goals/week-close.ts); a client may set it, but never unset it
+        // except by carrying (above).
+        const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped', 'missed'])
         if (!ALLOWED_STATUS.has(String(body.status))) {
           return res.status(400).json({ ok: false, error: `unknown status '${body.status}'` })
         }
         updates.status = body.status
+        // A done objective is closed the moment it is done; reopening clears it.
+        if (existing?.horizon === 'weekly') {
+          updates.closed_at = body.status === 'done' || body.status === 'missed' || body.status === 'dropped'
+            ? new Date().toISOString()
+            : null
+        }
       }
       const { error } = await supabase.from('goals').update(updates).eq('id', body.goalId)
       if (error) {

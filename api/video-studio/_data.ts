@@ -81,6 +81,7 @@ const JOB_SELECT = [
   'safe_title',
   'safe_summary',
   'updated_at',
+  'retired_at',
 ].join(',')
 
 const PLATFORM_STATE_SELECT = [
@@ -754,7 +755,13 @@ export async function listReviews(status: string, limit: number): Promise<{
     .select(PLATFORM_STATE_SELECT)
     .in('job_id', jobIds)
   if (statesResult.error) return { reviews: [], error: statesResult.error }
-  const jobRows = (jobsResult.data || []).map(databaseRecord).filter((row): row is RecordValue => Boolean(row))
+  // A retired job (synthetic validation rows, abandoned work) keeps its rows
+  // and events but leaves the queue. Its reviews drop here, before projection.
+  const jobRows = (jobsResult.data || []).map(databaseRecord)
+    .filter((row): row is RecordValue => Boolean(row))
+    .filter((row) => row.retired_at === null || row.retired_at === undefined)
+  const retiredJobIds = new Set(jobIds.filter((id) => !jobRows.some((row) => String(row.job_id) === id)))
+  rows = rows.filter((row) => !retiredJobIds.has(String(row.job_id)))
   const stateRows = (statesResult.data || []).map(databaseRecord).filter((row): row is RecordValue => Boolean(row))
   const jobsById = new Map(jobRows.map((job) => [String(job.job_id), job]))
   const jobs = new Map(stateRows.flatMap((state) => {

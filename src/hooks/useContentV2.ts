@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { ArcCardRow, ContentDecisionRow, ShiftEvidenceRow, ShiftRow, WeeklyBriefRow } from '../lib/contentV2'
 import { earliestQueueWeek } from '../lib/contentV2'
+import type { ContentEngineRunRow } from '../lib/contentEngineSchedule'
 
 // Data layer for the four-room Content tab. Reads go straight to Supabase
 // (anon SELECT per house RLS); every write goes through /api/* (service role).
@@ -22,6 +23,7 @@ export function useContentV2() {
   const [decisions, setDecisions] = useState<ContentDecisionRow[]>([])
   const [shifts, setShifts] = useState<ShiftRow[]>([])
   const [arcCards, setArcCards] = useState<ArcCardRow[]>([])
+  const [runs, setRuns] = useState<ContentEngineRunRow[]>([])
   const [loading, setLoading] = useState(true)
   const alive = useRef(true)
 
@@ -32,7 +34,7 @@ export function useContentV2() {
     // purge only archived 'pushed'/'sent' and nothing had ever been pushed,
     // meant a brief from any past week could sit here indefinitely.
     const since = earliestQueueWeek()
-    const [briefQ, decQ, shiftQ, cardQ] = await Promise.all([
+    const [briefQ, decQ, shiftQ, cardQ, runQ] = await Promise.all([
       supabase.from('weekly_briefs').select('*')
         .in('status', ['ready', 'in_review', 'approved', 'pushed', 'sent'])
         .gte('week', since)
@@ -59,12 +61,18 @@ export function useContentV2() {
         .order('surfaced', { ascending: false })
         .order('score', { ascending: false })
         .limit(120),
+      // The crons' run ledger, newest first. Enough rows to find the last
+      // success of every job even after a week of daily failures.
+      supabase.from('content_engine_runs').select('job, status, reason, finished_at')
+        .order('finished_at', { ascending: false })
+        .limit(300),
     ])
     if (!alive.current) return
     setBrief(((briefQ.data || [])[0] as WeeklyBriefRow) || null)
     setDecisions((decQ.data as ContentDecisionRow[]) || [])
     setShifts((shiftQ.data as ShiftRow[]) || [])
     setArcCards((cardQ.data as ArcCardRow[]) || [])
+    setRuns((runQ.data as ContentEngineRunRow[]) || [])
     setLoading(false)
   }, [])
 
@@ -106,7 +114,7 @@ export function useContentV2() {
     refresh()
   }, [refresh])
 
-  return { brief, decisions, shifts, arcCards, loading, refresh, resolveDecision, rejectDecision, ruleShift }
+  return { brief, decisions, shifts, arcCards, runs, loading, refresh, resolveDecision, rejectDecision, ruleShift }
 }
 
 export function useShiftEvidence(shiftId: string | null) {

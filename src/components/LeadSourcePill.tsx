@@ -38,6 +38,7 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   lane_sourcing:        { label: 'Lane sourcing',        icon: Wand2,    tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
   creator_move:         { label: 'Creator move',         icon: Users,    tone: 'text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20' },
   build_signal:         { label: 'Mindmake build',       icon: GitMerge, tone: 'text-emerald-200 bg-emerald-500/10 border-emerald-500/20' },
+  aeo_signal:           { label: 'AEO research',         icon: Radar,    tone: 'text-cyan-200 bg-cyan-500/10 border-cyan-500/20' },
 }
 
 interface Props {

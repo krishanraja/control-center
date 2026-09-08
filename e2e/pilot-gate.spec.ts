@@ -21,6 +21,10 @@ const CHECKIN = '**/api/pilot/checkin*'
 interface Options {
   /** Today's morning row, or null for a day not yet answered. */
   morning?: Record<string, unknown> | null
+  /** Last night's shutdown row, when one carries a ONE. */
+  lastEvening?: Record<string, unknown> | null
+  /** Whether tonight's shutdown is already done (a skip counts). */
+  eveningDone?: boolean
   onPost?: (body: any) => void
   onGet?: (url: URL) => void
 }
@@ -49,8 +53,8 @@ async function mockPilot(page: Page, opts: Options = {}) {
       json: {
         ok: true,
         morning: opts.morning ?? null,
-        last_evening: null,
-        evening_done_today: false,
+        last_evening: opts.lastEvening ?? null,
+        evening_done_today: opts.eveningDone ?? false,
         yesterday: null,
         timezone: 'America/New_York', // deliberately STALE, see the pin test
         today: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
@@ -143,6 +147,155 @@ test.describe('skipping', () => {
     // never answered.
     expect(posts[0].energy).toBeNull()
     expect(posts[0].anxiety).toBeNull()
+    await ctx.close()
+  })
+})
+
+test.describe('last night feeds the morning', () => {
+  test('the set screen shows what the shutdown chose', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(new Date('2026-08-12T11:00:00Z'))
+    await mockPilot(page, {
+      lastEvening: { id: 'e1', kind: 'evening', checkin_date: '2026-08-11', tomorrow_one: 'Send the licensing memo to counsel', tomorrow_one_url: null, shipped_today: 'Two approaches out', skipped: false },
+    })
+    await page.goto('/')
+    await expect(page.getByText(GATE)).toBeVisible()
+    // The header carries what he said shipped, from last night, not a count.
+    await expect(page.getByText(/Shipped: Two approaches out/)).toBeVisible()
+    await ctx.close()
+  })
+})
+
+test.describe('the evening shutdown', () => {
+  const evening = (iso: string) => ({ timezoneId: 'America/New_York', time: new Date(iso) })
+
+  test('dismissing writes a skipped evening row and does not return on reload', async ({ browser }) => {
+    const ctx = await browser.newContext(evening('2026-08-12T22:30:00Z')) // 18:30 New York
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(new Date('2026-08-12T22:30:00Z'))
+    const posts: any[] = []
+    let done = false
+    await mockPilot(page, {
+      morning: answeredMorning,
+      onPost: b => { posts.push(b); if (b.kind === 'evening' && b.skipped) done = true },
+    })
+    // The GET answers from `done`, the way the real route answers from the row.
+    await page.route(CHECKIN, (r: Route) => {
+      if (r.request().method() !== 'GET') return r.fallback()
+      const tz = new URL(r.request().url()).searchParams.get('tz') || 'America/New_York'
+      return r.fulfill({ json: {
+        ok: true, morning: answeredMorning, last_evening: null, evening_done_today: done, yesterday: null,
+        timezone: 'America/New_York', today: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+      } })
+    })
+    await page.goto('/')
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    // Arms on the first interaction after the shutdown hour (a key press
+    // counts). The prompt's own pilot read lands a beat after the gate's, so
+    // keep tapping until the listener is there.
+    await expect.poll(async () => {
+      await page.keyboard.press('Shift')
+      return page.getByRole('heading', { name: 'Shutdown' }).count()
+    }, { timeout: 10_000 }).toBeGreaterThan(0)
+    await expect(page.getByRole('heading', { name: 'Shutdown' }).first()).toBeVisible()
+    await page.getByRole('button', { name: 'Not now' }).click()
+    await expect(page.getByRole('heading', { name: 'Shutdown' })).toHaveCount(0)
+    await expect.poll(() => posts.some(b => b.kind === 'evening' && b.skipped === true)).toBe(true)
+
+    await page.reload()
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    for (let i = 0; i < 5; i++) { await page.keyboard.press('Shift'); await page.waitForTimeout(200) }
+    await expect(page.getByRole('heading', { name: 'Shutdown' })).toHaveCount(0)
+    await ctx.close()
+  })
+})
+
+test.describe('the evening shutdown on a phone', () => {
+  test('the way out is on screen without scrolling, above the bottom nav', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      timezoneId: 'America/New_York',
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(new Date('2026-08-12T22:30:00Z')) // 18:30 New York
+    const posts: any[] = []
+    await mockPilot(page, { morning: answeredMorning, onPost: b => posts.push(b) })
+    await page.goto('/')
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    await expect.poll(async () => {
+      await page.keyboard.press('Shift')
+      return page.getByRole('heading', { name: 'Shutdown' }).count()
+    }, { timeout: 10_000 }).toBeGreaterThan(0)
+
+    // Both exits are inside the viewport with nothing scrolled, and nothing
+    // covers them: the close in the pinned header, Not now in the pinned footer.
+    const notNow = page.getByRole('button', { name: 'Not now' })
+    await expect(notNow).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Close' })).toBeInViewport()
+    const box = await notNow.boundingBox()
+    expect(box).not.toBeNull()
+    const hit = await page.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y)
+      return el ? (el.closest('button')?.textContent || el.tagName) : 'nothing'
+    }, [box!.x + box!.width / 2, box!.y + box!.height / 2])
+    expect(hit).toContain('Not now')
+
+    await notNow.click()
+    await expect(page.getByRole('heading', { name: 'Shutdown' })).toHaveCount(0)
+    await expect.poll(() => posts.some(b => b.kind === 'evening' && b.skipped === true)).toBe(true)
+    await ctx.close()
+  })
+})
+
+test.describe('a slow link', () => {
+  test('a slow boot gets words, then a door to the dashboard', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    // Real clock here: the elapsed counter reads Date.now.
+    await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+    await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
+    await page.route('**/realtime/**', (r: Route) => r.abort())
+    await page.route(CHECKIN, async (r: Route) => {
+      if (r.request().method() !== 'GET') return r.fulfill({ json: { ok: true } })
+      // Never answers inside the test: the gate must not depend on it.
+      await new Promise(res => setTimeout(res, 30_000))
+      return r.fulfill({ json: { ok: true, morning: answeredMorning, last_evening: null, evening_done_today: true, yesterday: null, timezone: 'America/New_York', today: '2026-08-12' } })
+    })
+    await page.goto('/')
+    // Under two seconds: the splash alone. Past it: a sentence naming the work.
+    await expect(page.getByText('Reading the day')).toBeVisible({ timeout: 6_000 })
+    // Past six seconds: a way through. Taking it renders the dashboard.
+    const door = page.getByRole('button', { name: 'Open the dashboard without it' })
+    await expect(door).toBeVisible({ timeout: 10_000 })
+    await door.click()
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    await ctx.close()
+  })
+
+  test('offline is said once, and a write refuses with a sentence instead of hanging', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York', viewport: { width: 1280, height: 800 } })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(new Date('2026-08-12T17:30:00Z')) // 13:30 New York, no gate, no shutdown
+    await mockPilot(page, { morning: answeredMorning, eveningDone: true })
+    await page.goto('/#/home')
+    await expect(page.getByLabel('Today', { exact: true })).toBeVisible({ timeout: 15_000 })
+
+    await ctx.setOffline(true)
+    await expect(page.getByText('Offline. Nothing saves until the connection is back.')).toBeVisible()
+
+    // A hand-written Today slot: shows at once, then the save refuses politely
+    // and the slot reverts. Nothing hangs, nothing is lost silently.
+    await page.getByRole('button', { name: 'Set target 1' }).click()
+    await page.getByRole('textbox', { name: 'Target 1' }).fill('Send the memo to counsel')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText('You are offline. This will not save until the connection is back.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
+
+    await ctx.setOffline(false)
+    await expect(page.getByText('Back online.')).toBeVisible()
     await ctx.close()
   })
 })

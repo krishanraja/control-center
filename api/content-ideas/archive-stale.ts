@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { guardCronRoute } from '../_auth.js'
+import { withContentRun } from '../_runs.js'
 
 // Daily staleness archive for the content backlog.
 //
@@ -25,7 +26,7 @@ import { guardCronRoute } from '../_auth.js'
 //   GET (CRON_SECRET) — daily 13:00 UTC   ·   POST — manual
 //   POST { dry_run: true } previews without burying anything.
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
 
   if (guardCronRoute(req, res)) return
@@ -78,3 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: msg })
   }
 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('archive_stale', handler)

@@ -9,6 +9,7 @@ import { checkDuplicate } from './_dedup.js'
 import { canonicalUrl } from './_text.js'
 import { onTeardownBeat } from './_beat.js'
 import { loadConfig } from './_content.js'
+import { withContentRun } from './_runs.js'
 
 // discover-creator-posts: the creator scout.
 //
@@ -67,7 +68,7 @@ function postDate(item: Record<string, unknown>): string | null {
 
 const bump = (m: Record<string, number>, k: string) => { m[k] = (m[k] || 0) + 1 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   if (guardCronRoute(req, res)) return
   const started = Date.now()
   const dry = req.query.dry === '1'
@@ -310,3 +311,7 @@ async function audit(details: Record<string, unknown>): Promise<void> {
 }
 
 export const config = { maxDuration: 300 }
+
+// Every run lands in content_engine_runs so the Content tab can say when this
+// job last succeeded. See api/_runs.ts.
+export default withContentRun('creator_posts', handler)

@@ -191,7 +191,7 @@ assert.match(read('src/components/LeadSourcePill.tsx'), /build_signal:\s+\{ labe
 
 // ── The wiring ───────────────────────────────────────────────────────────────
 const refresh = read('api/content-opportunities/refresh.ts')
-assert.match(refresh, /RADAR_SOURCE_TYPES = \['pool_headline', 'build_signal'\]/)
+assert.match(refresh, /RADAR_SOURCE_TYPES = \['pool_headline', 'build_signal', 'aeo_signal'\]/, 'the radar judges headlines, builds and AEO recommendations, and nothing else')
 assert.match(refresh, /buildEditorialLensSystemPrompt\(series, voice, corpusForChannel\(corpus, series\), hasBuild\)/)
 const cron = read('api/discover-build-signals.ts')
 assert.match(cron, /guardCronRoute\(req, res\)/)

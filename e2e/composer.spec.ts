@@ -50,6 +50,23 @@ const BRIEF = {
   },
 }
 
+const IDEA_ID = '11111111-1111-4111-8111-111111111111'
+const IDEA = {
+  id: IDEA_ID,
+  idea: 'The third question changed what we built',
+  thesis: 'The useful part of the build was the constraint that appeared only after speaking to the operator.',
+  body: 'The first version solved the visible task. The conversation exposed the real constraint, so the next build removed a handoff instead of adding another AI feature.',
+  distribution: [],
+  source_type: 'manual',
+  state: 'approved',
+  lane: 'publication',
+  lane_slot: 'built_with_ai',
+  transformed_outputs: {},
+  meta: { production_approval: { schema_version: 1, approved_by: 'Krish', approved_at: '2026-09-08T12:00:00.000Z', content_revision_hash: 'a'.repeat(64) } },
+  created_at: '2026-09-08T11:00:00.000Z',
+  updated_at: '2026-09-08T12:00:00.000Z',
+}
+
 
 async function mock(page: Page) {
   // Fixed afternoon + a completed check-in: the pilot gate must never decide
@@ -74,6 +91,18 @@ async function openBrief(page: Page) {
   await expect(page.getByText(`Weekly brief · ${WEEK}`)).toBeVisible()
 }
 
+async function openIdea(page: Page) {
+  await page.clock.setFixedTime(new Date('2026-09-08T18:30:00Z'))
+  await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+  await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
+  await page.route('**/realtime/**', (r: Route) => r.abort())
+  await answerPilotGate(page)
+  await page.route(/\/rest\/v1\/content_ideas(?:\?|$)/, (r: Route) => r.fulfill({ json: [IDEA] }))
+  await page.goto(`/#/content?idea=${IDEA_ID}`)
+  await expect(page.getByRole('button', { name: 'Outputs', exact: true }).last()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText(IDEA.idea, { exact: true }).last()).toBeVisible()
+}
+
 test('a brief opens in the composer, with the rail', async ({ page }) => {
   await openBrief(page)
   // The rail is the half of CONTENT-ENGINE-V2-SPEC.md:75 that never shipped.
@@ -92,6 +121,9 @@ test('the rail tabs carry their labels, not just icons', async ({ page }) => {
 test('the brief gets the whole palette, not four chips', async ({ page }) => {
   await openBrief(page)
   const chips = page.locator('[data-testid^="edit-chip-"]')
+  // count() does not wait, and on a slow CI runner it once read 0 before the
+  // palette mounted. Wait for the first chip, then count.
+  await expect(chips.first()).toBeVisible()
   // 28 at the time of writing. The assertion is deliberately "many more than
   // four" rather than an exact count, so adding a preset does not fail it.
   expect(await chips.count()).toBeGreaterThan(20)
@@ -124,6 +156,41 @@ test('a brief is never offered the two edits it cannot answer', async ({ page })
   await expect(page.getByTestId('edit-chip-feedback-adapt-paid')).toHaveCount(0)
   await expect(page.getByTestId('edit-chip-deepen-paid')).toHaveCount(0)
   await expect(page.getByTestId('edit-chip-channel-substack')).toHaveCount(0)
+})
+
+test('the existing output panel sends one canonical publication format to Studio', async ({ page }) => {
+  let requestBody: Record<string, unknown> | null = null
+  await openIdea(page)
+  await page.route(`**/api/content-ideas/${IDEA_ID}/production-brief`, async (route: Route) => {
+    requestBody = route.request().postDataJSON() as Record<string, unknown>
+    await route.fulfill({ json: { ok: true, created: true, status: 'ready_for_studio' } })
+  })
+  await page.getByTestId('composer-rail-cuts').click()
+  await page.getByRole('button', { name: 'Studio', exact: true }).click()
+  for (const label of ['Builder conversation', 'The Build Itself', 'The Third Why', 'First Version']) {
+    await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
+  }
+  await page.getByRole('button', { name: 'The Third Why', exact: true }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Create exact Studio brief' }).click()
+  await expect.poll(() => requestBody).not.toBeNull()
+  expect(requestBody).toMatchObject({ production_kinds: ['video'], source_mode: 'short_native', editorial_format: 'third_why', confirm_hard_gates: true })
+})
+
+test('the four canonical Studio formats stay readable and thumb-sized on mobile', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await ctx.newPage()
+  await openIdea(page)
+  await page.getByRole('button', { name: 'Outputs', exact: true }).last().click()
+  await page.getByRole('button', { name: 'Studio', exact: true }).click()
+
+  for (const label of ['Builder conversation', 'The Build Itself', 'The Third Why', 'First Version']) {
+    const button = page.getByRole('button', { name: label, exact: true })
+    await expect(button).toBeVisible()
+    expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  await ctx.close()
 })
 
 test('the citations toggle keeps working past the first press', async ({ page }) => {

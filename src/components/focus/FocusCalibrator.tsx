@@ -11,12 +11,19 @@ import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { rankByIntent } from '../../lib/pilotCapacity'
 import { civilYmd } from '../../lib/civilDate'
 import { Working } from '../shared/Working'
+import { Pending } from '../shared/Pending'
+import { useElapsed, useStageWalk } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
+import { requestOk, failureMessage } from '../../lib/apiFetch'
 
-// Picker for today's 3 focuses. Renders only when no daily_focus row
-// exists for today. Krish sees Marcus's 7 leverage picks as compact
-// expandable rows + a dynamic "Today's 3" list. He can pick from
-// Marcus, type his own, or mix. Save → daily_focus row written,
-// calibrator webhook fires, Home recalibrates.
+// Picker for today's 3 focuses. Renders until today's row is locked
+// (calibrated). Manual first (2026-09-08): the three slots he writes himself
+// come first, prefilled from whatever the shutdown chose last night or a hand
+// edit on Home already wrote. The machine's suggestions (the OS picks derived
+// from this week's objectives, Marcus's leverage cards) sit behind one
+// disclosure and are only fetched when he opens it, because the OS picks are
+// a Claude call. Lock → daily_focus row written, calibrator webhook fires,
+// Home recalibrates.
 
 interface Suggestion {
   kind?: string
@@ -116,6 +123,11 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
     os_picks: [], marcus_top_three: [], marcus_alternates: [], marcus_reasoning: null,
   })
   const [picks, setPicks] = useState<Pick[]>([])
+  // Suggestions are asked for, not served: closed until he opens it.
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [suggestAttempt, setSuggestAttempt] = useState(0)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   // Marcus suggestion keys Krish has thumbs-downed this session. Dim + lock
   // the bubble so he can't accidentally pick something he just rejected.
@@ -125,28 +137,58 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   const [composingDownFor, setComposingDownFor] = useState<string | null>(null)
   const [submittingDownFor, setSubmittingDownFor] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // The lock is a write plus the n8n calibrator (a model call), so it is the
+  // longest wait in the loop. It narrates: label, stage, elapsed, and past the
+  // usual time it says so, rather than a spinner that could be a hang.
+  const lockWork = useWork('focus.lock')
+  const lockMs = useElapsed(submitting)
+  const lockStage = useStageWalk(lockWork.stages, submitting, 8_000)
+  const suggestWork = useWork('focus.suggest')
+  const suggestMs = useElapsed(suggestLoading)
   const h = useHaptics()
   const { toast } = useToast()
   const pilot = usePilotStateContext()
   const { canon } = useGoalCanon()
   const weeklyGoals = (canon?.weekly ?? []).filter(g => g.status === 'active')
 
+  const suggestionsFetched = useRef(false)
   useEffect(() => {
+    if (!suggestOpen) return
+    if (suggestionsFetched.current && suggestAttempt === 0) return
+    suggestionsFetched.current = true
+    setSuggestLoading(true)
+    setSuggestError(null)
     void (async () => {
       try {
-        const r = await fetch('/api/daily-focus/suggestions')
-        if (r.ok) {
-          const j = await r.json()
-          if (j.ok) setSuggestions({
-            os_picks: j.os_picks || [],
-            marcus_top_three: j.marcus_top_three || [],
-            marcus_alternates: j.marcus_alternates || [],
-            marcus_reasoning: typeof j.marcus_reasoning === 'string' ? j.marcus_reasoning : null,
-          })
-        }
-      } catch { /* leave empty */ }
+        const j = await requestOk<Record<string, any>>('/api/daily-focus/suggestions', { timeoutMs: 40_000 })
+        setSuggestions({
+          os_picks: j.os_picks || [],
+          marcus_top_three: j.marcus_top_three || [],
+          marcus_alternates: j.marcus_alternates || [],
+          marcus_reasoning: typeof j.marcus_reasoning === 'string' ? j.marcus_reasoning : null,
+        })
+      } catch (e) {
+        setSuggestError(failureMessage(e, 'The suggestions did not come back.'))
+      } finally { setSuggestLoading(false) }
     })()
-  }, [])
+  }, [suggestOpen, suggestAttempt])
+
+  // A draft row (the shutdown's tomorrow, or a hand edit on Home) prefills
+  // the slots once, so locking is a confirmation rather than a retype.
+  const seededDraft = useRef(false)
+  useEffect(() => {
+    if (seededDraft.current || !today) return
+    const draft: Pick[] = []
+    for (const n of [1, 2, 3] as const) {
+      const text = today[`target_${n}_text`]
+      if (typeof text === 'string' && text.trim()) {
+        draft.push({ kind: 'custom', text: text.trim(), id: `draft-${n}`, goalId: today[`target_${n}_goal_id`] ?? null, job: today[`target_${n}_job`] ?? null })
+      }
+    }
+    if (draft.length === 0) return
+    seededDraft.current = true
+    setPicks(prev => (prev.length > 0 ? prev : draft))
+  }, [today])
 
   // One commitment, not two.
   //
@@ -169,7 +211,8 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
 
   if (!isFocusEnabled()) return null
   if (loading) return null
-  if (today) return null
+  // A locked day is settled; a draft (pending, never calibrated) is still his to shape.
+  if (today && (today.status === 'calibrated' || today.status === 'complete' || today.calibrated_at)) return null
 
   // Today is always exactly 3. The daily_focus schema, the completion RPC and
   // the calibrate route all hardcode 3 slots; a capacity-varied count is what
@@ -343,20 +386,18 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         return { text, source: 'krish_added' as PickedSource, goal_id: p.goalId || null, job: p.job || null }
       })
       const body: CalibrateBody = { date: ymd(new Date()), targets }
-      const r = await fetch('/api/daily-focus/calibrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'unknown')
+      // The route awaits the calibrator webhook (up to 90s server side), so
+      // the client gives it that long before calling it hung. The row is
+      // written first, so a timeout here still leaves the 3 on Home.
+      await requestOk('/api/daily-focus/calibrate', { method: 'POST', body, timeoutMs: 100_000 })
       h.success()
       toast('Locked in. Marcus is planning today around it.', 'success')
       onLocked?.()
     } catch (e) {
       h.error()
-      toast(`Lock failed: ${(e as Error).message}`, 'error')
+      toast(failureMessage(e, 'The lock did not go through.'), 'error', {
+        action: { label: 'Retry', onClick: () => { void submit() } },
+      })
     } finally {
       setSubmitting(false)
     }
@@ -369,16 +410,55 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       <header className="mb-4">
         <h2 className="text-lede font-semibold text-white">What are your 3 today?</h2>
         <p className="text-label text-white/55 mt-1">
-          The OS turns this week's objectives into today's moves. Pick from those, from Marcus&rsquo;s leverage picks, or add your own. Lock {targetCount} and Home recalibrates.
+          Write them yourself. Tap an objective to start from it, or ask for suggestions below. Lock {targetCount} and Home recalibrates.
           {carry_over ? ' Yesterday is still open below.' : ''}
         </p>
       </header>
 
+      {/* Today's 3, first. His words, prefilled when last night chose them. */}
+      <div>
+        <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Today's 3</div>
+        <div className="flex flex-col gap-2">
+          {picks.length === 0 && (
+            <div className="rounded-md border border-dashed border-white/[0.08] px-3 py-3 text-label text-white/40 text-center">
+              Nothing yet. Add your own, or start from an objective.
+            </div>
+          )}
+          {picks.map((p, i) => (
+            <SelectedSlot
+              key={p.id}
+              n={i + 1}
+              pick={p}
+              onChangeText={(t) => updatePickText(p.id, t)}
+              onRemove={() => removePick(p.id)}
+            />
+          ))}
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={addCustom}
+            disabled={picks.length >= targetCount}
+            className="inline-flex items-center gap-1.5 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Plus size={11} />
+            Add your own
+          </button>
+          {picks.length >= targetCount && (
+            <span className="text-micro text-white/45">{targetCount}/{targetCount} · remove one to swap</span>
+          )}
+          {picks.length < targetCount && (
+            <span className="text-micro text-white/45 tabular-nums">{picks.length}/{targetCount}</span>
+          )}
+        </div>
+      </div>
+
       {/* THE WEEK'S OBJECTIVES as picks: the canon chain OS → week → today,
           one tap. Adds a pick pre-linked to the weekly goal it serves. */}
       {weeklyGoals.length > 0 && (
-        <div className="mb-4">
-          <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">From this week's objectives</div>
+        <div className="mt-5">
+          <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Start from this week's objectives</div>
           <div className="flex flex-wrap gap-1.5">
             {weeklyGoals.map(g => {
               const picked = picks.some(p => p.goalId === g.id)
@@ -401,8 +481,38 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         </div>
       )}
 
-      {hasAnyMarcus && (
-        <div className="mb-4">
+      {/* The machine's view, behind one disclosure. Nothing is fetched until
+          he asks; the OS picks are a model call on this week's objectives. */}
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={() => { h.tap(); setSuggestOpen(o => !o) }}
+          aria-expanded={suggestOpen}
+          className="inline-flex items-center gap-1.5 text-label text-white/55 hover:text-white/85"
+        >
+          <ChevronDown size={13} className={`transition-transform ${suggestOpen ? 'rotate-180' : ''}`} />
+          {suggestOpen ? 'Hide suggestions' : 'Suggest from this week\'s objectives'}
+        </button>
+      </div>
+
+      {suggestOpen && suggestLoading && (
+        <div className="mt-2">
+          <Pending label={suggestWork.label} elapsedMs={suggestMs} expectedMs={suggestWork.expectedMs} />
+          {suggestWork.sub && <p className="mt-1 text-micro text-white/35">{suggestWork.sub}</p>}
+        </div>
+      )}
+      {suggestOpen && !suggestLoading && suggestError && (
+        <p className="mt-2 text-label text-rose-300 flex items-center gap-2 flex-wrap">
+          <span>{suggestError}</span>
+          <button type="button" onClick={() => setSuggestAttempt(a => a + 1)} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+        </p>
+      )}
+      {suggestOpen && !suggestLoading && !suggestError && !hasAnyMarcus && (
+        <p className="mt-2 text-label text-white/45">Nothing to suggest yet. Set this week's objectives first.</p>
+      )}
+
+      {suggestOpen && hasAnyMarcus && (
+        <div className="mt-3">
           <div className="flex items-baseline justify-between mb-2">
             <div className="text-micro uppercase tracking-[0.14em] text-white/45">{suggestions.os_picks.length > 0 ? 'From your objectives, then Marcus' : "Marcus's leverage picks"}</div>
             <div className="text-micro text-white/35 tabular-nums">{allPicks.length} suggestions</div>
@@ -432,55 +542,20 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         </div>
       )}
 
-      {/* Today's 3 — dynamic list of what's picked. */}
-      <div className="mt-5">
-        <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Today's 3</div>
-        <div className="flex flex-col gap-2">
-          {picks.length === 0 && (
-            <div className="rounded-md border border-dashed border-white/[0.08] px-3 py-3 text-label text-white/40 text-center">
-              Pick a leverage card above, or add your own.
-            </div>
-          )}
-          {picks.map((p, i) => (
-            <SelectedSlot
-              key={p.id}
-              n={i + 1}
-              pick={p}
-              onChangeText={(t) => updatePickText(p.id, t)}
-              onRemove={() => removePick(p.id)}
-            />
-          ))}
-        </div>
-
-        <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-5 flex items-center justify-end gap-3 flex-wrap">
+        {submitting ? (
+          <Pending label={lockWork.label} stage={lockStage} elapsedMs={lockMs} expectedMs={lockWork.expectedMs} />
+        ) : (
           <button
             type="button"
-            onClick={addCustom}
-            disabled={picks.length >= targetCount}
-            className="inline-flex items-center gap-1.5 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={submit}
+            disabled={!canLock}
+            className="inline-flex items-center gap-1.5 text-label font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus size={11} />
-            Add your own
+            <Check size={12} />
+            {`Lock today's ${targetCount}`}
           </button>
-          {picks.length >= targetCount && (
-            <span className="text-micro text-white/45">{targetCount}/{targetCount} · un-pick to swap</span>
-          )}
-          {picks.length < targetCount && (
-            <span className="text-micro text-white/45 tabular-nums">{picks.length}/{targetCount}</span>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!canLock}
-          className="inline-flex items-center gap-1.5 text-label font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting ? <Working size={12} /> : <Check size={12} />}
-          {submitting ? 'Locking…' : `Lock today's ${targetCount}`}
-        </button>
+        )}
       </div>
     </section>
   )

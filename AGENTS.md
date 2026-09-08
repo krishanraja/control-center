@@ -100,13 +100,16 @@ This repo contains **two independent frontends**, each with its own
   `vercel env pull` writes every secret as the literal string `[SENSITIVE]`, and
   Vite loads `.env.production.local` *after* `.env` in a production build, so a
   flag you set in `.env` is overwritten with `[SENSITIVE]` rather than used.
-  Nothing errors: `contentV2Enabled()` just compares `"[SENSITIVE]" === 'true'`,
-  gets false, and the app renders the pre-v2 surface. It looks exactly like a
-  broken feature. Force the flag on the build command instead, which takes
-  precedence over both files:
+  Nothing errors: a flag reader just compares `"[SENSITIVE]" === 'true'`, gets
+  false, and the surface behind it vanishes. It looks exactly like a broken
+  feature. Force flags on the build command instead, which takes precedence
+  over both files:
   ```
-  VITE_CONTENT_V2_ENABLED=true VITE_UI_V2_ENABLED=true npm run build
+  VITE_UI_V2_ENABLED=true VITE_VIDEO_ENGINE_ENABLED=true npm run build
   ```
+  (The Content surface no longer has a flag: `scripts/check-env-example.mts`
+  fails the build for any variable the code reads that `.env.example` does
+  not name, which is how the missing content flag went unnoticed.)
 - **Playwright checks `page.route` handlers in REVERSE registration order.**
   Register the catch-alls (`**/api/**`, `**/rest/v1/**`) FIRST and the specific
   routes after them. The other way round, the catch-all shadows the specific

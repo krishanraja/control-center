@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   Sparkles, Check, Target, ArrowLeft, ArrowRight,
-  CheckCircle2, Inbox, Plus, X, RotateCcw,
+  CheckCircle2, Inbox, Plus, X, RotateCcw, History,
 } from '@/lib/icons'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
@@ -17,12 +17,17 @@ import { ContextHeader } from '../focus/ContextHeader'
 import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { FocusCalibrator } from '../focus/FocusCalibrator'
 import { useFocusRitualOpen, closeFocusRitual } from '../../lib/focusRitual'
-import { weekOf } from '../../lib/civilDate'
+import { isWeekend, getZone } from '../../lib/civilDate'
+import { SlideOver } from '../shared/SlideOver'
 import {
   createGoal, patchGoal, acceptProposed, rejectProposed,
   type GateVerdictWire,
 } from '../../lib/goalsApi'
 import { Working } from '../shared/Working'
+import { Pending } from '../shared/Pending'
+import { useElapsed } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
+import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { OptionChips, ServesPicker, VentureChips } from '../goals/GoalPickers'
 import { JOB_OPTIONS, jobLabel } from '../../content/jobs'
 
@@ -212,8 +217,9 @@ function WeeklyStep() {
   const os = canon?.os ?? []
   const weekly = canon?.weekly ?? []
   const proposed = canon?.weeklyProposed ?? []
+  const lastWeek = canon?.lastWeek ?? []
   const ventures = canon?.ventures ?? []
-  const currentWeek = weekOf(new Date())
+  const weekend = isWeekend()
 
   const [text, setText] = useState('')
   const [servesId, setServesId] = useState('')
@@ -221,14 +227,16 @@ function WeeklyStep() {
   const [job, setJob] = useState('')
   const [gate, setGate] = useState<GateVerdictWire | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  // The gate runs a model pass on every add, and a Carry is a write. Past a
+  // few seconds a disabled button with no sentence reads as a hang.
+  const busyMs = useElapsed(busy != null)
+  const gateWork = useWork('goals.gate')
+  const carryWork = useWork('goals.carry')
 
   useEffect(() => { if (!servesId && os.length > 0) setServesId(os[0].id) }, [os, servesId])
 
   const activeCount = weekly.filter(g => g.status === 'active').length
   const osTitle = useMemo(() => new Map(os.map(g => [g.id, g.title])), [os])
-  const touchedThisWeek = (g: CanonGoal) => {
-    try { return weekOf(new Date(g.updated_at)) === currentWeek } catch { return false }
-  }
 
   const run = async (key: string, fn: () => Promise<void>, okMsg?: string) => {
     if (busy) return
@@ -240,7 +248,7 @@ function WeeklyStep() {
       if (okMsg) toast(okMsg, 'success')
     } catch (e) {
       h.error()
-      toast((e as Error).message || 'That did not save.', 'error')
+      toast(failureMessage(e), 'error', { action: { label: 'Retry', onClick: () => { void run(key, fn, okMsg) } } })
     } finally {
       setBusy(null)
     }
@@ -260,8 +268,46 @@ function WeeklyStep() {
   return (
     <div className="space-y-3">
       <p className="text-label text-white/55 leading-snug">
-        Pick up to 3 objectives for the week. Each one serves an OS goal, and today's 3 come from them.
+        {weekend
+          ? 'The week has closed. Anything set now is for the week that starts Monday.'
+          : 'Pick up to 3 objectives for the week. Each one serves an OS goal, and today\'s 3 come from them.'}
       </p>
+
+      {/* Last week, with how it ended. Carry brings an objective into this
+          week as a fresh row linked to the old one; the old row keeps its
+          outcome, so the history shows both. */}
+      {lastWeek.length > 0 && (
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-2">
+          <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">Last week</p>
+          <ul className="space-y-1.5">
+            {lastWeek.map(g => {
+              const done = g.status === 'done'
+              const outcome = done ? 'done' : g.status === 'missed' ? 'missed' : 'dropped'
+              return (
+                <li key={g.id} className="flex items-start gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <span className="flex-1 min-w-0">
+                    <span className={`block text-body leading-snug break-words ${done ? 'text-white/55 line-through' : 'text-white/85'}`}>{g.title}</span>
+                    <span className={`mt-0.5 inline-block text-micro ${done ? 'text-emerald-300/80' : outcome === 'missed' ? 'text-amber-300/80' : 'text-white/40'}`}>{outcome}</span>
+                  </span>
+                  {!done && (busy === `carry-${g.id}` ? (
+                    <Pending label={carryWork.label} elapsedMs={busyMs} expectedMs={carryWork.expectedMs} />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy != null || activeCount >= 3}
+                      title="Carry this into the new week"
+                      onClick={() => void run(`carry-${g.id}`, () => patchGoal({ goalId: g.id, status: 'active' }), 'Carried into this week.')}
+                      className="min-h-[28px] px-2 rounded-md text-micro inline-flex items-center gap-1 text-white/60 hover:text-white/90 border border-white/[0.10] disabled:opacity-40"
+                    >
+                      <RotateCcw size={11} /> Carry
+                    </button>
+                  ))}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Marcus-proposed weekly goals: take or pass, one tap each. */}
       {proposed.length > 0 && (
@@ -313,7 +359,6 @@ function WeeklyStep() {
           <ul className="space-y-1.5">
             {weekly.map(g => {
               const done = g.status === 'done'
-              const carried = !touchedThisWeek(g)
               return (
                 <li key={g.id} className="flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
                   <button
@@ -331,20 +376,9 @@ function WeeklyStep() {
                       )}
                       {g.job && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{jobLabel(g.job)}</span>}
                       {g.venture && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{g.venture}</span>}
-                      {carried && <span className="text-amber-300/70">from last week</span>}
+                      {g.carried_from && <span className="text-white/40">carried</span>}
                     </span>
                   </span>
-                  {carried && !done && (
-                    <button
-                      type="button"
-                      disabled={busy != null}
-                      title="Carry this into the new week"
-                      onClick={() => void run(`keep-${g.id}`, () => patchGoal({ goalId: g.id, status: 'active' }), 'Carried into this week.')}
-                      className="min-h-[28px] px-2 rounded-md text-micro inline-flex items-center gap-1 text-white/60 hover:text-white/90 border border-white/[0.10]"
-                    >
-                      <RotateCcw size={11} /> Keep
-                    </button>
-                  )}
                   <button
                     type="button"
                     aria-label="Drop this objective"
@@ -383,14 +417,20 @@ function WeeklyStep() {
               <ServesPicker os={os} value={servesId} onChange={setServesId} disabled={busy != null} />
               <OptionChips label="Which job of the OS does this serve?" options={JOB_OPTIONS} value={job} onChange={setJob} disabled={busy != null} />
               <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={busy != null} />
-              <button
-                type="button"
-                onClick={() => add()}
-                disabled={!text.trim() || !servesId || busy != null}
-                className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
-              >
-                <Plus size={11} /> Add
-              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => add()}
+                  disabled={!text.trim() || !servesId || busy != null}
+                  aria-busy={busy === 'add'}
+                  className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
+                >
+                  <Plus size={11} /> Add
+                </button>
+                {busy === 'add' && (
+                  <Pending label={gateWork.label} elapsedMs={busyMs} expectedMs={gateWork.expectedMs} />
+                )}
+              </div>
             </div>
 
             {/* The gate held it: the form stays open with the verdict attached. */}
@@ -445,7 +485,11 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
   const pilotOne = pilot?.last_evening?.tomorrow_one ?? null
   const { today } = useDailyFocus()
 
-  if (today) {
+  // A row the shutdown or a hand edit wrote is a draft until the lock runs;
+  // the calibrator opens on it prefilled. Only a calibrated day is settled.
+  const locked = Boolean(today && (today.status === 'calibrated' || today.status === 'complete' || today.calibrated_at))
+
+  if (today && locked) {
     const targets = [today.target_1_text, today.target_2_text, today.target_3_text].filter(Boolean) as string[]
     return (
       <div className="space-y-3">
@@ -478,6 +522,7 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
   const { decisions } = useRealtimeDecisionsWaiting()
   const h = useHaptics()
   const waiting = splitDecisions(decisions).decisions.length
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   return (
     <div className="space-y-4 py-2">
@@ -508,6 +553,91 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
           <ArrowRight size={14} className="text-amber-300/80" />
         </button>
       )}
+      <button
+        type="button"
+        onClick={() => { h.tap(); setHistoryOpen(true) }}
+        className="inline-flex items-center gap-1.5 text-label text-white/45 hover:text-white/80"
+      >
+        <History size={12} /> How the last weeks went
+      </button>
+      <GoalHistory open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
+  )
+}
+
+// ── History ──────────────────────────────────────────────────────────────────
+// The archive, read by week: every objective set, how its week ended, and how
+// many days were locked and picks completed. Not on Home (no scroll budget);
+// one line in the summary opens it. Reads GET /api/goals/history.
+interface HistoryWeek {
+  week_start: string
+  objectives: Array<{ id: string; title: string; status: string; carried_from: string | null }>
+  set: number
+  done: number
+  missed: number
+  days_locked: number
+  targets_set: number
+  targets_done: number
+}
+
+function GoalHistory({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [weeks, setWeeks] = useState<HistoryWeek[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const loading = open && !weeks && !error
+  const readMs = useElapsed(loading)
+  const work = useWork('goals.history')
+
+  useEffect(() => {
+    if (!open) return
+    let alive = true
+    setError(null)
+    void (async () => {
+      try {
+        const j = await requestOk<{ ok?: boolean; error?: string; weeks: HistoryWeek[] }>(`/api/goals/history?weeks=8&tz=${encodeURIComponent(getZone())}`, { timeoutMs: 15_000 })
+        if (alive) setWeeks(j.weeks)
+      } catch (e) {
+        if (alive) setError(failureMessage(e, 'Could not read the archive.'))
+      }
+    })()
+    return () => { alive = false }
+  }, [open, attempt])
+
+  return (
+    <SlideOver open={open} onClose={onClose} ariaLabel="Goal history" label="The last eight weeks">
+      <div className="p-5 space-y-4">
+        <h2 className="text-ui font-semibold text-white">The last eight weeks</h2>
+        {error && (
+          <p className="text-label text-rose-300 flex items-center gap-2 flex-wrap">
+            <span>{error}</span>
+            <button type="button" onClick={() => setAttempt(a => a + 1)} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+          </p>
+        )}
+        {loading && <Pending variant="block" label={work.label} elapsedMs={readMs} expectedMs={work.expectedMs} />}
+        {weeks && weeks.every(w => w.set === 0 && w.days_locked === 0) && (
+          <p className="text-label text-white/45">Nothing recorded yet. The first closed week lands here on Saturday.</p>
+        )}
+        {weeks && weeks.map(w => (
+          <section key={w.week_start} className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-1.5">
+            <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">
+              Week of {w.week_start}
+              <span className="ml-2 normal-case tracking-normal text-white/35 font-normal">
+                {w.set} set, {w.done} done, {w.missed} missed. {w.days_locked} {w.days_locked === 1 ? 'day' : 'days'} with a Today, {w.targets_done}/{w.targets_set} picks done.
+              </span>
+            </p>
+            {w.objectives.length > 0 && (
+              <ul className="space-y-1">
+                {w.objectives.map(o => (
+                  <li key={o.id} className="flex items-start gap-2 text-body leading-snug">
+                    <span className={`shrink-0 text-micro mt-[3px] w-12 ${o.status === 'done' ? 'text-emerald-300/80' : o.status === 'missed' ? 'text-amber-300/80' : 'text-white/40'}`}>{o.status}</span>
+                    <span className="text-white/80 break-words">{o.title}{o.carried_from ? <span className="text-white/35"> (carried)</span> : null}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+      </div>
+    </SlideOver>
   )
 }

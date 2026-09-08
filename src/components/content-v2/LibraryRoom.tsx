@@ -2,15 +2,26 @@ import { useMemo } from 'react'
 import { contentV2Api, type useContentV2 } from '../../hooks/useContentV2'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { monthLabel } from '../../lib/contentV2'
+import { ContentCalendar } from './ContentCalendar'
+import { BackburnerSection } from '../shared/BackburnerSection'
+import { LearningProposals } from './LearningProposals'
+import { Eyebrow } from '../shared/Eyebrow'
 
-// The tap-anytime bank (mockup set 1, fate 3). Two shelves: settled shifts
-// (retired with a verdict, full dossier attached) and graduated evergreen
-// pieces. Opening either seeds the Composer, so the Library is where extra
-// publishing weeks start.
+// The tap-anytime bank (mockup set 1, fate 3). Settled shifts (retired with a
+// verdict, full dossier attached), graduated evergreen pieces, the publishing
+// calendar, the backburner, and what the Studio has learned and wants
+// confirmed. Opening a shelf item seeds the Composer, so the Library is where
+// extra publishing weeks start. The calendar and backburner came over from the
+// retired desktop surface; they are reference, not obligations, which is why
+// they live here and not in a lane.
 
 type LibIdea = ContentIdeaRow & { library_at?: string | null }
 
-export function LibraryRoom({ v2, ideas }: { v2: ReturnType<typeof useContentV2>; ideas: ContentIdeaRow[] }) {
+export function LibraryRoom({ v2, ideas, variant = 'desktop' }: {
+  v2: ReturnType<typeof useContentV2>
+  ideas: ContentIdeaRow[]
+  variant?: 'desktop' | 'mobile'
+}) {
   const settledShifts = useMemo(
     () => v2.shifts.filter(s => ['retired', 'library'].includes(s.status)),
     [v2.shifts],
@@ -19,18 +30,39 @@ export function LibraryRoom({ v2, ideas }: { v2: ReturnType<typeof useContentV2>
     () => (ideas as LibIdea[]).filter(i => i.library_at).sort((a, b) => (b.library_at || '').localeCompare(a.library_at || '')),
     [ideas],
   )
+  const buried = useMemo(
+    () => ideas.filter(i => i.buried_at && i.state !== 'dropped' && i.state !== 'published')
+      .map(i => ({ id: i.id, title: i.idea, buried_reason: i.buried_reason ?? null })),
+    [ideas],
+  )
+  const dated = useMemo(() => ideas.filter(i => i.state !== 'dropped' && i.state !== 'absorbed'), [ideas])
 
-  if (!settledShifts.length && !evergreens.length) {
-    return (
-      <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">
-        Nothing in the Library yet. It fills two ways: shifts you retire with a settled verdict, and pieces you
-        graduate before the weekly purge. Both keep their receipts forever.
-      </div>
-    )
-  }
+  const empty = !settledShifts.length && !evergreens.length
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
+      {empty && (
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">
+          Nothing on the shelves yet. They fill two ways: shifts you retire with a settled verdict, and pieces you
+          graduate before the weekly purge. Both keep their receipts forever.
+        </div>
+      )}
+
+      <LearningProposals />
+
+      {variant === 'desktop' && (
+        <section data-testid="content-calendar">
+          <h3 className="mb-2"><Eyebrow>Calendar</Eyebrow></h3>
+          <ContentCalendar ideas={dated} />
+        </section>
+      )}
+
+      {buried.length > 0 && (
+        <section data-testid="content-backburner">
+          <h3 className="mb-2"><Eyebrow>Backburner</Eyebrow></h3>
+          <BackburnerSection table="content_ideas" items={buried} promote={{ label: 'Research it', toState: 'researching' }} />
+        </section>
+      )}
       {settledShifts.length ? (
         <section>
           <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-2.5">Settled shifts</h3>

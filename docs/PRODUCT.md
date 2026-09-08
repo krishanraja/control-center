@@ -80,16 +80,22 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
    opens People → Room. Absent otherwise, so a quiet week costs the canon
    nothing.
 4. **GoalLadder** - the top two layers of the canon: **OS** (the single
-   mission line since ADR-016, inline edit, quiet stale markers) and **THIS
-   WEEK** (≤3 single-line objectives, done toggles, serves-chip, job chip,
-   optional venture tag).
-   Still the ONE goal editor; writes travel `src/lib/goalsApi.ts`.
+   mission line since ADR-016, inline edit, quiet stale markers; the OS
+   composer appears only at cold start, ADR-018) and **THIS WEEK** (≤3
+   single-line objectives for the current operator week, done toggles,
+   serves-chip, job chip, optional venture tag; "Week closed" on Saturday
+   and Sunday). Nothing composes inline any more: the week's "+ Add" opens
+   the Focus Ritual at the weekly step, the one weekly composer. Writes
+   still travel `src/lib/goalsApi.ts`.
 5. **TodayList** - the third layer: exactly 3 slots from `daily_focus`,
-   done toggles, weekly-goal chip when linked. Three quiet empty slots when
-   unset — the CTA is the ask, the layer never begs.
+   done toggles, weekly-goal chip when linked. Every slot is editable in
+   place (inline on desktop, the focused editor sheet on a phone) through
+   `POST /api/daily-focus/slot`. Slots the shutdown wrote the night before
+   are already filled. Three quiet empty bars when unset; the CTA is the
+   ask, the layer never begs.
 6. **CanonCta** - THE one contextual ask, under the layer it serves:
-   "Set this week's 3" or "Pick your 3 for today" → opens the Focus Ritual.
-   Hidden when the canon is fresh.
+   "Set this week's 3" (Monday to Friday only) or "Pick your 3 for today"
+   → opens the Focus Ritual. Hidden when the canon is fresh.
 7. **The doors** (2026-08-22, seated together 2026-08-25) - Focus and Intel
    side by side at the bottom of both shells, never numbers (counting
    anything about the operator in ambient chrome breaks the Focus
@@ -134,9 +140,15 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 | SignalsDoor / SignalsDrawer | `home_intelligence.external_signals` + `zara_signals` | `useHomeIntelligence`, `useZaraSignals` |
 
 ### Writes
-- **GoalLadder** → `POST /api/objectives` (gated create) and
-  `PATCH /api/goals` (title / status), both via `src/lib/goalsApi.ts`.
+- **GoalLadder** → `POST /api/objectives` (gated create, OS at cold start)
+  and `PATCH /api/goals` (title / status), both via `src/lib/goalsApi.ts`.
+  Weekly objectives are created in the Focus Ritual over the same wire path;
+  `POST /api/objectives` stamps `week_start` (next Monday on a weekend).
 - **TodayList · done toggle** → `POST /api/daily-focus/complete`.
+- **TodayList · slot edit** → `POST /api/daily-focus/slot` (leaves the day
+  `pending`; only the ritual lock calibrates).
+- **Saturday 05:00 UTC cron** `/api/goals/week-close` → still-active weekly
+  rows for a past week become `missed` with `closed_at`; nothing is deleted.
 - **VitalsLine · Log** → `POST /api/pilot/ships` (manual).
 
 ### Behaviour rules
@@ -160,8 +172,9 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 |---|---|
 | No critical alerts | Banner absent (zero height). |
 | Cold start (no OS goals) | The ladder's empty state carries the ask: "Set your OS goals." |
-| New week, nothing set | "No objectives set for this week." + the one CTA. |
-| Day not locked | Three quiet numbered slots + the one CTA. |
+| New week, nothing set | "No objectives set for this week." + the one CTA; the ritual's weekly step shows last week's outcomes with Carry. |
+| Saturday or Sunday | "Week closed. Set next week's 3 on Monday." No weekly CTA. |
+| Day not locked | Three quiet numbered slots (tap to write) + the one CTA. |
 | Loading | One HomeSkeleton in the page's real proportions; a warm cache paints straight through. |
 
 ### SLAs
@@ -428,11 +441,11 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 
 ## Tab: Content
 
-> **Live shape: Content Engine v2** (`VITE_CONTENT_V2_ENABLED`, ON in prod):
-> rooms Built / Paid / Library plus the mobile-first Queue decision deck.
-> Spec: [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
-> `MINDMAKE_OS_ARCHITECTURE.md` §5.8. The v1 description below holds
-> behind the flag.
+> **Live shape: one Content surface** (2026-09-07, no build flag): rooms
+> Built / Paid / Library plus the mobile-first Queue decision deck. Spec:
+> [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
+> `MINDMAKE_OS_ARCHITECTURE.md` §5.8. The v1 description below is history;
+> each feature's new home is in `CONTENT-ENGINE-PARITY-LEDGER.md`.
 
 ### Purpose
 > *What content ideas have been captured, which are ready to send to a
@@ -467,13 +480,66 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 ## Tab: Growth
 
 One tab, five sections in the order of the weekly loop (Map, Work, Signals,
-Council, Governance), both device classes via `growth/GrowthTab`. On a phone
-it leads with one line (the number of map questions waiting) and each
-touchpoint row collapses to a single readable line that expands on tap; the
-+ create sheet carries "Add a touchpoint". Full spec and runbook:
-[`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+Council, Governance), both device classes via `growth/GrowthTab`. Full spec
+and runbook: [`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+
+**It says what it is for (2026-09-08).** The header carries the purpose in
+one sentence ("Find buyers where they already are, make them something each
+week, and see whether it worked") and a second line under the pills says what
+the open section is for. Krish had asked, in so many words, why the tab did
+not just say that.
+
+**Read first, rows second.** Every section that shows evidence opens on a
+sentence that says what the evidence means, with the rows folded under it:
+
+- *What's moving* leads with "asked N questions across M engines, K answers
+  mentioned you, cited instead: these hosts", per product, computed from
+  `growth_geo_probes` on every render. The questions sit behind "Show the N
+  questions"; the engine's answer text never renders on a phone.
+- *Weekly review* leads with the council's headline, then "Do next" (each
+  move has "Put on today", the Today slot write path, and "Make it a clip",
+  the creative board write path), then "Stop", then the findings folded
+  under "Why: the evidence", then the ruling. The council already wrote the
+  headline every Sunday; the surface used to bury it as one key: value row.
+- *Spend limits* opens with Intel's whole-OS spend for the month beside a
+  line saying the lane figures below count only what is tagged to the lane
+  (agent runs, tagged API calls, lane costs, lane tools), so the two tabs
+  stop contradicting each other. The autonomy card says the rungs in words
+  ("You approve every send", "They send, you check 1 in 10", "They send, you
+  only see exceptions"). Connected tools are two lines each, name and price,
+  then the job or the reason it is locked, in full.
+
+**Composers are the house shape.** Adding a place or a clip on a phone opens
+a bottom sheet (`growth/Composer.tsx`): one required question at the top in
+the operator's words, product and channel as chips, everything optional
+under "More", one full-width action riding above the keyboard. The desk gets
+the same fields inline. No `<select>` and no date picker anywhere in either:
+a score is ten chips, a week is two. The + create sheet carries both ("Add a
+place", "Add a clip") and lands on the right section with the sheet open.
+
+**The board on a phone is a list, not a kanban.** The desk keeps five
+columns; a phone shows only the stages holding a card, top to bottom, and
+the arrows on each card move it. On a phone no section repeats the line
+under the pill: a section head carries only what the pill does not (a
+count, an action).
 
 ---
+
+**The AEO research machine lands on Signals (2026-09-09).** Every Sunday
+04:00 UTC `krishanraja/AEO-Engine` studies each subject in
+`growth_aeo_subjects` (your ventures, companies you want to sell to,
+companies you want to be like): the last seven days of calls become themes,
+the engines are asked the queries those buyers or leaders ask, demand is
+scored as a labelled proxy, and one digest per subject lands through
+`api/aeo/ingest`: the strongest signal, three to five article
+recommendations with their target query and evidence, a watch list, the
+biggest competitor gap, and for a prospect one opening line, for a benchmark
+the pages that win. Recommendations also arrive as `aeo_signal` ideas in the
+Content rooms. On the tab each recommendation is one tap from today's list, a
+clip, the idea, the Room or the map; Run now fires the engine and says
+whether it started. The Signals surface is being rebuilt around this read
+(one rendered mock, then code; `docs/AEO-ENGINE.md`); until it ships the
+data lands and the council reads it.
 
 ## Tab: Focus & Purpose
 

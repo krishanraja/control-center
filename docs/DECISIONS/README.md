@@ -32,6 +32,7 @@
 | [015](./015-mindmake-instrument-room.md) | Mindmake Instrument Room across Control Center and Video Engine | Accepted |
 | [016](./016-ikigai-v4-one-swing.md) | Ikigai v4 canon: the Control Center is the engine under one swing | Accepted |
 | [017](./017-portable-studio-session-gateway.md) | Portable Studio session gateway | Accepted |
+| [018](./018-weekly-cadence-and-manual-today.md) | Weekly cadence, one writer for tomorrow, and a manual-first Today | Accepted |
 
 ---
 

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { weekOfLabel } from '../_week.js'
+import { weekOfLabel, weekStartIn } from '../_week.js'
+import { resolveTz, shiftYmd } from '../_timezone.js'
 
 // GET /api/goals/ladder
 //
@@ -29,8 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const [goalsRes, healthRes, cfgRes, ventureRes] = await Promise.all([
     supabase
       .from('goals')
-      .select('id, title, horizon, parent_id, venture, job, status, priority, why_now, definition_of_done, target_horizon, updated_at, created_at')
-      .not('status', 'in', '("dropped","archived")')
+      .select('id, title, horizon, parent_id, venture, job, status, priority, why_now, definition_of_done, target_horizon, week_start, closed_at, carried_from, updated_at, created_at')
+      // dropped and missed rows are the archive: they stay in the table and
+      // leave the ladder. last_week below is the one place they come back.
+      .not('status', 'in', '("dropped","archived","missed")')
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),
     supabase.from('goals_health').select('id, is_stale, orphaned, days_since_touch, stale_after_days'),
@@ -44,6 +47,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const err = goalsRes.error || healthRes.error || cfgRes.error
   if (err) return res.status(500).json({ ok: false, error: err.message })
+
+  // The week keys, on the operator's own Monday: the zone the browser sent,
+  // or the stored setting for callers with no opinion. week_of stays a label.
+  const tz = await resolveTz(req)
+  const now = new Date()
+  const currentWeek = weekStartIn(now, tz)
+  const previousWeek = shiftYmd(currentWeek, -7)
+
+  // Last week's set with its outcomes, for the Monday sitting: done, missed or
+  // dropped, each carryable. Read separately because the main read excludes
+  // missed rows on purpose.
+  const lastWeekRes = await supabase
+    .from('goals')
+    .select('id, title, horizon, parent_id, venture, job, status, priority, week_start, closed_at, carried_from, updated_at, created_at')
+    .eq('horizon', 'weekly')
+    .eq('week_start', previousWeek)
+    .order('priority', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   const health = new Map((healthRes.data || []).map(h => [(h as any).id, h]))
   const rows = (goalsRes.data || []).map(g => {
@@ -63,6 +84,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const byHorizon: Record<string, unknown[]> = {}
   for (const hz of HORIZONS) byHorizon[hz] = rows.filter(r => r.horizon === hz)
 
+  // Objectives already carried into this week are not offered again.
+  const carriedFrom = new Set(rows.map(r => (r as { carried_from?: string | null }).carried_from).filter(Boolean))
+  const lastWeek = ((lastWeekRes.data || []) as Array<Record<string, unknown>>)
+    .filter(g => !carriedFrom.has(g.id as string))
+
   return res.json({
     ok: true,
     horizons: HORIZONS,
@@ -76,5 +102,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Derived, never read from config: a stored week label is wrong the
     // moment the week turns, and it was showing April in August.
     week_of: weekOfLabel(),
+    // The operator-civil Monday keys. `week_start` on each weekly row is
+    // compared against current_week to decide whether this week is set.
+    current_week: currentWeek,
+    previous_week: previousWeek,
+    last_week: lastWeek,
   })
 }

@@ -27,11 +27,20 @@ const WEEKLY = [
   { id: 'weekly:license-memo', title: 'Draft the licensing one-pager', parent: 'os:asset' },
 ]
 
+/** Monday of the current civil week, YYYY-MM-DD, in the browser's zone. */
+function currentWeek(): string {
+  const now = new Date()
+  const dow = (now.getDay() + 6) % 7
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 12)
+  return new Intl.DateTimeFormat('en-CA').format(monday)
+}
+
 function goalRow(id: string, title: string, horizon: 'os' | 'weekly', parent: string | null) {
   return {
     id, title, horizon, parent_id: parent, venture: null, status: 'active',
     priority: null, why_now: null, definition_of_done: null, target_horizon: null,
     is_stale: false, orphaned: false, days_since_touch: 1, stale_after_days: horizon === 'weekly' ? 10 : 90,
+    week_start: horizon === 'weekly' ? currentWeek() : null, closed_at: null, carried_from: null,
     updated_at: new Date().toISOString(), created_at: new Date().toISOString(),
   }
 }
@@ -109,6 +118,9 @@ async function mockHome(page: Page, state: 'empty' | 'full') {
     ventures: ['mindmaker'],
     north_star: '',
     week_of: 'Aug 17–23',
+    current_week: currentWeek(),
+    previous_week: null,
+    last_week: [],
   } }))
 
   if (state === 'full') {

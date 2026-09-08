@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import type { PilotMode, YesterdayRecap } from '../../types/pilot'
+import type { PilotCheckin, PilotMode, YesterdayRecap } from '../../types/pilot'
 import { computeMode, saveMorning } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
 import { INTENTS, type Intent } from '../../lib/pilotIntent'
@@ -9,6 +9,10 @@ import { bucketFor, type StateBucket } from '../../lib/pilotStoic'
 import { MicButton, browserCanRecord } from '../shared/VoiceCapture'
 import { ThumbSlider, ENERGY_NOTCHES, ANXIETY_NOTCHES } from './ThumbSlider'
 import { Tap } from './controls'
+import { Working } from '../shared/Working'
+import { Pending } from '../shared/Pending'
+import { useElapsed } from '../../hooks/useAsyncAction'
+import { useWork } from '../../lib/loadingVoice'
 
 /**
  * The gate, as four screens instead of one long form.
@@ -27,6 +31,8 @@ const API = import.meta.env.VITE_API_URL ?? ''
 
 interface Props {
   yesterday: YesterdayRecap | null
+  /** Last night's shutdown, when it chose today's ONE. Null when none was filed. */
+  lastEvening?: PilotCheckin | null
   today: string
   /** The reading rides along so the gate can route an anxious day to Focus. */
   onDone: (mode: PilotMode, intent: Intent | null, reading?: { anxiety: number | null }) => void
@@ -62,7 +68,7 @@ const MOOD_CHIPS_DEFAULT = ['clear', 'steady', 'scattered', 'flat', 'wired', 'he
 
 type Stage = 'read' | 'word' | 'intent' | 'set'
 
-export function MorningCheckin({ yesterday, today, onDone }: Props) {
+export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }: Props) {
   const h = useHaptics()
   const [stage, setStage] = useState<Stage>('read')
   const [energy, setEnergy] = useState<number | null>(null)
@@ -76,6 +82,8 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
   const [chosen, setChosen] = useState<PilotMode | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const saveMs = useElapsed(saving)
+  const saveWork = useWork('pilot.checkin')
 
   const [venture, setVenture] = useState<string | null>(null)
   const answered = energy !== null && anxiety !== null
@@ -189,7 +197,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
             ))}
           </div>
           <p className="mt-3 h-[18px] text-label text-ink-faint truncate">
-            {yesterdayLine(yesterday)}
+            {yesterdayLine(yesterday, lastEvening)}
           </p>
         </header>
 
@@ -348,7 +356,18 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
               {intent && (
                 <p className="mt-5 text-body text-ink-faint">{intent.blurb}</p>
               )}
-              {error && <p className="mt-4 text-body text-ink-muted">{error}</p>}
+              {/* What last night chose for today. Choosing happened at higher
+                  capacity; the morning only confirms it, never re-decides. */}
+              {lastEvening?.tomorrow_one && (
+                <p className="mt-4 text-body text-ink-muted leading-snug">
+                  <span className="text-ink-faint">Last night you chose: </span>
+                  {lastEvening.tomorrow_one}
+                </p>
+              )}
+              {saving && saveMs >= 3000 && (
+                <Pending label={saveWork.label} elapsedMs={saveMs} expectedMs={saveWork.expectedMs} className="mt-4 text-ink-muted" />
+              )}
+              {error && !saving && <p className="mt-4 text-body text-ink-muted">{error}</p>}
             </Fade>
           )}
         </main>
@@ -365,8 +384,9 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
             </button>
           )}
           {stage === 'set' ? (
-            <Tap className="flex-1 justify-center flex items-center !min-h-[54px]" onTap={commit} disabled={saving} feel="success">
-              {saving ? 'Saving' : 'Start'}
+            <Tap className="flex-1 justify-center flex items-center gap-2 !min-h-[54px]" onTap={commit} disabled={saving} feel="success">
+              {saving && <Working size={14} />}
+              Start
             </Tap>
           ) : (
             <Tap
@@ -390,17 +410,21 @@ function Fade({ children }: { children: React.ReactNode }) {
 }
 
 /** Yesterday in one line, or a quiet placeholder on the first ever day. */
-function yesterdayLine(y: YesterdayRecap | null): string {
+function yesterdayLine(y: YesterdayRecap | null, evening: PilotCheckin | null): string {
+  // Last night's shutdown said what shipped, in his words. That beats a count.
+  const said = evening?.shipped_today?.trim()
+  const shipped = said ? ` Shipped: ${said.length > 60 ? `${said.slice(0, 57)}...` : said}` : ''
   // A skipped day still shipped, or did not. Say so without a reading, and
   // without the reproach a "you skipped this" line would carry.
   if (y?.skipped) {
-    return y.ships === 0 ? 'Yesterday: no check-in.' : `Yesterday: no check-in, ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
+    const base = y.ships === 0 ? 'Yesterday: no check-in.' : `Yesterday: no check-in, ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
+    return `${base}${shipped}`
   }
-  if (!y || y.energy === null || y.anxiety === null) return 'First check-in.'
+  if (!y || y.energy === null || y.anxiety === null) return said ? `Yesterday.${shipped}` : 'First check-in.'
   const state = readingFor(y.energy, y.anxiety).replace(/\.$/, '')
   const word = y.one_word ? `, ${y.one_word}` : ''
   const ships = y.ships === 0
     ? 'nothing left the machine'
     : `${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}`
-  return `Yesterday: ${state.toLowerCase()}${word}. ${ships}.`
+  return `Yesterday: ${state.toLowerCase()}${word}. ${ships}.${shipped}`
 }

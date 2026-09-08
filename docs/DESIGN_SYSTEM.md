@@ -202,6 +202,11 @@ One source, one weight, one rhythm — the icon counterpart of the type sweep.
   The one sanctioned character mark is the middle dot as a separator.
 - **Identity marks are not icons:** `MindmakeIdentity`, `AgentAvatar`,
   `DrawnCheck` and the hand-drawn sparklines stay bespoke.
+- **No magic sparkle icons** (Krish, 2026-09-08). Nothing here is magic; it
+  is a model call with a cost and a wait. `Sparkles` and `Wand2` still exist
+  as names in `@/lib/icons` so no call site changes, but they render `Cpu`
+  (machine work) and `PenLine` (an edit). Do not import a sparkle, wand,
+  star burst or similar glyph under any other name.
 
 ## Responsive identity
 
@@ -255,6 +260,20 @@ each:
    `shared/ChipOverflow` (+N into a sheet). A dynamic label that cannot fit
    moves into the sheet and remains whole. Do not abbreviate it with an
    ellipsis or clip it inside a chip.
+
+## Read first, rows second
+
+Locked 2026-09-08, after the Growth tab's signal and review sections read as
+walls on a phone (Krish: "It's just data. It's not insight."). Any surface
+that shows evidence, a list of probes, findings, rows from a workflow, opens
+on ONE sentence that says what the evidence means, computed or written, and
+folds the rows under a disclosure ("Show the N questions", "Why: the
+evidence"). Where the machine already wrote a headline (the council's
+`findings.headline`), the surface leads with it; it never buries it as one
+key: value row among the findings. Every suggested action carries a way to
+act on it in place, through an existing write path (a Today slot, a card),
+never a new one. The desk may open the rows by default; the phone opens on
+the sentence.
 
 ## Create — the one + button
 
@@ -415,6 +434,8 @@ entry per operation. Do not type a loading string into a component.
 | Elapsed / stage / stage-walk | `src/hooks/useAsyncAction.ts` |
 | Every loading string | `src/lib/loadingVoice.ts` |
 | Streaming client (SSE, JSON fallback) | `src/lib/streamText.ts` |
+| Timed, offline-aware JSON requests (every write in the daily loop) | `src/lib/apiFetch.ts` |
+| The offline line and the "back online" toast | `src/components/shared/OfflineLine.tsx`, `src/hooks/useOnline.ts` |
 | Streaming server helper | `api/_stream.ts` |
 | Sweep, rail, orbit, dials, reduced motion | `src/index.css` |
 
@@ -425,6 +446,27 @@ the `prefers-reduced-motion` block.
 
 **Never reach for `animate-spin`.** It runs on a clock no dial can reach and it
 is suppressed under reduced motion. Use `Working`.
+
+### Slow links and no link
+
+Three rules on top of the ladder, because a slow phone is the common case,
+not the edge case:
+
+1. **Every write has an end.** Requests go through `requestJson` /
+   `requestOk` in `src/lib/apiFetch.ts` with a timeout sized to the work
+   (a plain save 12s, the goal gate 25s, the calibrator lock 100s). A hung
+   request becomes a sentence and a Retry, never a disabled button forever.
+2. **Offline is said, once, and refused up front.** `OfflineLine` is one line
+   at the top while the device is offline; a write attempted offline fails
+   at once with "You are offline" rather than after the OS gives up. The
+   return of the connection is one info toast.
+3. **The boot narrates past two seconds and opens a door past six.**
+   `PilotGate` shows the splash alone under two seconds, then `Pending`
+   with the elapsed clock, then "Open the dashboard without it". The gate
+   fails open on timeout (12s) the same way it does on error.
+
+Writes in the daily loop (Today's slots, the done tick) are optimistic: the
+row changes on tap and reverts with a Retry toast on failure.
 
 ### Boot
 
