@@ -148,6 +148,12 @@ export async function draftIdea(id: string, opts: { overwrite?: boolean } = {}):
     }
 
     if (failures.length) {
+      // A parse failure and a content failure look identical from the outside
+      // and need opposite responses, so when nothing parsed the reply carries
+      // the shape of what did come back. Without it the only thing a reader
+      // learns is that something went wrong, which is what sent the first
+      // investigation looking at the prompt instead of the transport.
+      const unparsed = failures.some(f => f.code === 'no_draft')
       // Reported, never published weaker. The failures are written onto the
       // idea so the next run can see what this one could not fix.
       await supabase.from('content_ideas').update({
@@ -157,6 +163,7 @@ export async function draftIdea(id: string, opts: { overwrite?: boolean } = {}):
       return respond(422, {
         ok: false, error: 'draft_failed_checks', repaired,
         failures, ms: Date.now() - started,
+        ...(unparsed ? { raw_length: raw.length, raw_head: raw.slice(0, 300), raw_tail: raw.slice(-200) } : {}),
       })
     }
 
