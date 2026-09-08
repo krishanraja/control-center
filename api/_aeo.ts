@@ -485,3 +485,25 @@ export function queryRows(packet: AeoPacket): Array<Record<string, unknown>> {
     touchpoint_id: q.touchpoint_id,
   }))
 }
+
+/** A URL reduced to the host that answers "who got cited instead of us".
+ *
+ *  Twin of hostLabel in src/lib/aeo.ts. The two cannot share: that one is the
+ *  browser read layer and this one runs on the server, and the tsconfigs do
+ *  not overlap. Kept identical on purpose; change both or neither. */
+export function hostLabel(s: string): string {
+  try {
+    return new URL(s).hostname.replace(/^www\./, '')
+  } catch {
+    return s
+  }
+}
+
+/** A probe's citations, whichever shape they were recorded in. Older rows
+ *  hold plain URL strings; some hold { url }. */
+export function citationsOf(competitorsCited: unknown): string[] {
+  if (!Array.isArray(competitorsCited)) return []
+  return competitorsCited
+    .map(x => (typeof x === 'string' ? x : x && typeof x === 'object' && typeof (x as { url?: unknown }).url === 'string' ? (x as { url: string }).url : ''))
+    .filter(Boolean)
+}

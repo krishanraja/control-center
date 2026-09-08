@@ -498,11 +498,11 @@ export function pathId(req: any): string | null {
 
 /** The KILL-LIST mechanics, restated for the model so rewrites never reintroduce tells. */
 export const VOICE_GUARDRAILS = [
-  'HARD RULES (never violate): No em dashes anywhere — use commas, periods, or parentheses.',
+  'HARD RULES (never violate): No em dashes anywhere, use commas, periods, or parentheses.',
   'No self-credentialing, no company-name-dropping for credibility.',
   'No AI tells: no "hook line, gap, explanation" opening, no "here\'s the thing", no "the truth is", no "let\'s dive in", no "delve", no "unpack", no "deep dive".',
   'No synthetic enthusiasm ("excited", "thrilled"). No "leverage" (except "leverage audit"). No "utilise", "seamless", "empower", "journey", "landscape", "robust", "synergy".',
   'Active voice only. Dropped subject pronouns where natural ("Been thinking", not "I\'ve been thinking").',
-  'End on a hard, forward-looking verdict — never a summary, rhetorical question, or CTA.',
+  'End on a hard, forward-looking verdict, never a summary, rhetorical question, or CTA.',
   'Specific over general. Never invent numbers, outcomes, or quotes; flag gaps instead.',
 ].join('\n')
