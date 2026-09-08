@@ -112,3 +112,32 @@ test('every mapped venture is a valid destination', async () => {
     assert.match(SITE_REPO[slug], /^krishanraja\/[a-z-]+$/)
   }
 })
+
+test('spreads across ventures before going deep on one', () => {
+  // The live corpus is flat on demand, so without this the queue writes three
+  // pages for one venture before touching another.
+  const rows = [
+    idea({ id: 'ctrl-1', product: 'ctrl', created: '2026-09-07T12:00:00.000Z' }),
+    idea({ id: 'ctrl-2', product: 'ctrl', created: '2026-09-07T11:00:00.000Z' }),
+    idea({ id: 'circle-1', product: 'circle', created: '2026-09-07T10:00:00.000Z' }),
+  ]
+  // CTRL already has a page; circle has none.
+  const pick = chooseCandidate(rows, NOW, { ctrl: 1 })
+  assert.equal(pick?.id, 'circle-1', 'the venture with no page yet comes first, even though the CTRL rows are fresher')
+})
+
+test('coverage outranks demand, because demand is currently flat', () => {
+  const pick = chooseCandidate([
+    idea({ id: 'served-high', product: 'ctrl', demand: 90 }),
+    idea({ id: 'unserved-low', product: 'pulse', demand: 5 }),
+  ], NOW, { ctrl: 2, pulse: 0 })
+  assert.equal(pick?.id, 'unserved-low')
+})
+
+test('with coverage equal, demand decides again', () => {
+  const pick = chooseCandidate([
+    idea({ id: 'low', product: 'ctrl', demand: 10 }),
+    idea({ id: 'high', product: 'pulse', demand: 40 }),
+  ], NOW, { ctrl: 1, pulse: 1 })
+  assert.equal(pick?.id, 'high')
+})

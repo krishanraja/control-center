@@ -76,11 +76,28 @@ interface Candidate {
   created_at: string
 }
 
-/** The pick. Demand first, because it is the only proxy for how often the
- *  question gets asked, then freshness. A recommendation with no reason it can
- *  be won is not a candidate at all: there is nothing for the page to argue,
- *  and the drafting step would refuse it anyway. */
-export function chooseCandidate(rows: Row[], now = new Date()): Candidate | null {
+/** The pick.
+ *
+ *  Three sorts, in this order, and the order was decided by looking at the
+ *  real corpus rather than by reasoning about it.
+ *
+ *  1. FEWEST PAGES SO FAR. Spread across ventures before going deep on one.
+ *     Run against live data the first time, the queue wanted to write three
+ *     pages for one venture before touching another, which would have given
+ *     one site an answer surface and four sites nothing, and made the first
+ *     month's evidence about one market instead of five. Coverage first is
+ *     also the better experiment: five questions across five sites tell you
+ *     more about what gets quoted than three on one.
+ *  2. DEMAND. Kept, but honestly it is doing nothing today: every
+ *     recommendation in the live corpus scores exactly 20, because the demand
+ *     basis is three proxies that currently agree. It stays in the sort so it
+ *     starts working the moment that changes, and it is not pretended to be
+ *     a signal in the meantime.
+ *  3. FRESHNESS. The real tie-break while demand is flat.
+ *
+ *  A recommendation with no reason it can be won is not a candidate at all:
+ *  there is nothing for the page to argue, and drafting would refuse it. */
+export function chooseCandidate(rows: Row[], now = new Date(), publishedPerProduct: Record<string, number> = {}): Candidate | null {
   const cutoff = now.getTime() - CANDIDATE_MAX_AGE_DAYS * 86_400_000
   const usable = rows
     .map(r => {
@@ -99,6 +116,9 @@ export function chooseCandidate(rows: Row[], now = new Date()): Candidate | null
 
   if (!usable.length) return null
   usable.sort((a, b) => {
+    const ca = publishedPerProduct[String(a.aeo!.product_slug || '')] || 0
+    const cb = publishedPerProduct[String(b.aeo!.product_slug || '')] || 0
+    if (ca !== cb) return ca - cb
     const d = (Number(b.aeo!.demand) || 0) - (Number(a.aeo!.demand) || 0)
     if (d !== 0) return d
     return String(b.row.created_at).localeCompare(String(a.row.created_at))
@@ -150,7 +170,17 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       .limit(120)
     if (pool.error) throw new Error(`candidate read failed: ${pool.error.message}`)
 
-    const pick = chooseCandidate((pool.data || []) as Row[], now)
+    // How many pages each venture already has, so the loop spreads before it
+    // goes deep. Read from what shipped, not from a counter.
+    const shipped = await supabase.from('geo_predictions').select('product_slug').limit(500)
+    if (shipped.error) throw new Error(`coverage read failed: ${shipped.error.message}`)
+    const publishedPerProduct: Record<string, number> = {}
+    for (const r of (shipped.data || []) as Row[]) {
+      const k = String(r.product_slug || '')
+      if (k) publishedPerProduct[k] = (publishedPerProduct[k] || 0) + 1
+    }
+
+    const pick = chooseCandidate((pool.data || []) as Row[], now, publishedPerProduct)
 
     if (!pick) {
       // Nothing to write is a real answer some weeks. A run of them is not.
