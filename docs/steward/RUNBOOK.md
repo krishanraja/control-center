@@ -187,6 +187,32 @@ cross-repo chronology.
   reason alone.
 - **fractionl-circle.** The archive is `docs/_archive/`; moves go there and
   the LOG records them with `archived` lines.
+- **ai-harness.** The canon repository, added to the fleet 2026-09-08 so the
+  canon is not exempt from the treatment it gives everyone else. Its
+  current-state doc is `state/skill-registry.yaml`, which is machine-owned:
+  the steward reads it and never writes it. `contract/` is the canon and is
+  edited only through the harness steward's own proposals, never here. The
+  registry's `reviewed` dates are the freshness signal for NOW.md; an expired
+  date is reported as waiting on Krish, never bumped, because
+  "review-date expiry opens a finding; it does not silently rewrite a skill".
+
+## The two stewards
+
+Two automated writers now touch the same repositories, so their territories are
+fixed and disjoint:
+
+| | Docs steward | Harness steward |
+|---|---|---|
+| Lives in | `control-center/docs/steward/` | `ai-harness/scripts/` |
+| Owns | `NOW.md`, `docs/history/LOG.md`, banners on superseded docs | the text between the `krish-canon` markers in `AGENTS.md`, and the harness canon itself |
+| Writes by | committing to `main` | opening a pull request |
+| Never touches | anything between the `krish-canon` markers | `NOW.md`, `docs/history/`, or anything outside the markers |
+
+The canon block is inside `AGENTS.md`, which is on the docs steward's markdown
+allowlist. The steward must leave it alone: it is rendered from
+`krishanraja/ai-harness` and carries the sha256 of its own body, so an edit is
+detected as inbound drift and turned into a proposal against the canon. Editing
+it here would open a proposal against a change nobody made.
 
 ## What the steward never does
 
