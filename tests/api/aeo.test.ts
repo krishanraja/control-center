@@ -137,3 +137,43 @@ test('the lane map covers every Growth product and the ledger knows the external
   assert.equal(stale.attention.length, 1)
   assert.match(stale.attention[0].line, /AEO research has not succeeded/)
 })
+
+test('the winnability gate: a reason is optional on the wire, carried when present, and never invented', () => {
+  const p = packet()
+  const withReason = validatePacket(packet({
+    recommendations: [{ ...p.recommendations[0], why_you_can_win: 'You have four live captures of this decision running in CTRL; the sites cited sell advice about it.' }],
+  }))
+  assert.equal(withReason.ok, true)
+
+  // An older packet, written before the gate, still lands rather than being
+  // refused. The tab says the reason is missing; it never implies there was one.
+  const withoutReason = validatePacket(p)
+  assert.equal(withoutReason.ok, true)
+  if (withoutReason.ok) {
+    const row = aeoSignalRow(withoutReason.packet, withoutReason.packet.recommendations[0], 'CTRL')
+    assert.equal(row.meta.aeo.why_you_can_win, null)
+  }
+
+  const tooLong = validatePacket(packet({
+    recommendations: [{ ...p.recommendations[0], why_you_can_win: 'x'.repeat(301) }],
+  }))
+  assert.equal(tooLong.ok, false)
+})
+
+test('what not to chase must point at questions the packet actually probed', () => {
+  const good = validatePacket(packet({
+    not_worth_chasing: [{ query_id: Q2, query: 'how to build a personal AI brain', owned_by: ['linkedin.com', 'youtube.com'], why_not: 'A social network and a video platform own this answer by reach. One piece will not move it.' }],
+  }))
+  assert.equal(good.ok, true)
+
+  const strayId = validatePacket(packet({
+    not_worth_chasing: [{ query_id: '99999999-9999-4999-8999-999999999999', query: 'x', owned_by: [], why_not: 'y' }],
+  }))
+  assert.equal(strayId.ok, false)
+  if (!strayId.ok) assert.ok(strayId.errors.some(e => /not one of the packet's queries/.test(e)))
+
+  const tooMany = validatePacket(packet({
+    not_worth_chasing: Array.from({ length: 7 }, () => ({ query_id: Q2, query: 'x', owned_by: [], why_not: 'y' })),
+  }))
+  assert.equal(tooMany.ok, false)
+})

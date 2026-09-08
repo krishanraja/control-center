@@ -72,6 +72,28 @@ export interface AeoRecommendation {
   evidence: string[]
   engines: AeoEngine[]
   demand: number
+  /**
+   * What this business has that the sites currently cited structurally cannot
+   * have, drawn from the canon. The first live digest recommended whatever the
+   * machine was absent from, which is how it offered a category term a jobs
+   * board already owns. Absence is not opportunity, and a recommendation that
+   * cannot name the advantage is a guess.
+   *
+   * Nullable so a packet written before the gate still validates. The engine
+   * treats a null as a bug in itself, and the tab says the reason is missing
+   * rather than implying there was one.
+   */
+  why_you_can_win?: string | null
+}
+
+/** A question probed and scored that is not worth trying to win. */
+export interface AeoNotWorthChasing {
+  query_id: string
+  query: string
+  /** The sites that own the answer today. */
+  owned_by: string[]
+  /** One plain sentence. Worth more than a bad suggestion: it saves a week. */
+  why_not: string
 }
 
 export interface AeoPacket {
@@ -89,6 +111,7 @@ export interface AeoPacket {
   strongest_signal: string | null
   recommendations: AeoRecommendation[]
   watch_list: Array<{ query_id: string; query: string; why: string }>
+  not_worth_chasing?: AeoNotWorthChasing[]
   competitor_gap: { domain: string | null; times_cited: number; questions: string[] }
   playbook: Array<{ url: string; host: string; path_pattern: string; times_cited: number; why: string }> | null
   approach_hook: string | null
@@ -266,6 +289,20 @@ export function validatePacket(input: unknown): { ok: true; packet: AeoPacket } 
       arr(r.evidence, `${path}.evidence`, 6, errs)
       if (arr(r.engines, `${path}.engines`, 4, errs)) for (const e of r.engines) if (typeof e !== 'string' || !AEO_ENGINES.has(e)) errs.push(`${path}.engines: unknown engine`)
       int(r.demand, `${path}.demand`, 0, 100, errs)
+      // Nullable on purpose: a packet written before the winnability gate
+      // still lands. A present reason has to be a real sentence.
+      if (r.why_you_can_win != null && !str(r.why_you_can_win, `${path}.why_you_can_win`, 300, errs)) { /* reported */ }
+    }
+  }
+  if (p.not_worth_chasing !== undefined && arr(p.not_worth_chasing, 'packet.not_worth_chasing', 6, errs)) {
+    for (const [i, w] of p.not_worth_chasing.entries()) {
+      const path = `packet.not_worth_chasing[${i}]`
+      if (!isObj(w)) { errs.push(`${path}: must be an object`); continue }
+      if (typeof w.query_id !== 'string' || !UUID.test(w.query_id)) errs.push(`${path}.query_id: must be a uuid`)
+      else if (queryIds.size && !queryIds.has(w.query_id)) errs.push(`${path}.query_id: not one of the packet's queries`)
+      str(w.query, `${path}.query`, 400, errs)
+      str(w.why_not, `${path}.why_not`, 300, errs)
+      if (arr(w.owned_by, `${path}.owned_by`, 8, errs)) for (const d of w.owned_by) if (typeof d !== 'string') errs.push(`${path}.owned_by: must be site names`)
     }
   }
   if (arr(p.watch_list, 'packet.watch_list', 15, errs)) {
@@ -336,6 +373,10 @@ export interface AeoSignalRow {
       evidence: string[]
       engines: AeoEngine[]
       demand: number
+      /** Why this business can win this answer when the sites cited today
+       *  cannot. Rides onto the routed child so a finished piece can be
+       *  checked against the advantage it was written to press. */
+      why_you_can_win: string | null
       approach_hook: string | null
     }
   }
@@ -382,6 +423,7 @@ export function aeoSignalRow(packet: AeoPacket, rec: AeoRecommendation, subjectN
         evidence: rec.evidence,
         engines: rec.engines,
         demand: rec.demand,
+        why_you_can_win: rec.why_you_can_win ?? null,
         approach_hook: packet.approach_hook,
       },
     },
