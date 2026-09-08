@@ -37,6 +37,11 @@ export const CONTENT_ENGINE_JOBS: ContentEngineJob[] = [
   { job: 'briefs_assemble',  path: '/api/briefs/assemble',               label: 'Weekly brief',          everyHours: WEEK, graceHours: DAY },
   { job: 'purge',            path: '/api/purge/run',                     label: 'Monday purge',          everyHours: WEEK, graceHours: DAY },
   { job: 'runner_watch',     path: '/api/video-studio/runner/watch',     label: 'Studio runner watch',   everyHours: DAY,  graceHours: 12 },
+  { job: 'learning_compile', path: '/api/learning/compile',              label: 'Learning compiler',     everyHours: WEEK, graceHours: DAY },
+  // Runs every two hours, but a quiet day is still a quiet day: the
+  // expectation is a success daily, not that Krish saves something twelve
+  // times. Input starvation is the lane's normal state, not a failure.
+  { job: 'inspiration_scan', path: '/api/inspiration/drive-scan',        label: 'Drive inspiration scan', everyHours: DAY, graceHours: 12 },
 ]
 
 export interface ContentEngineRunRow {
