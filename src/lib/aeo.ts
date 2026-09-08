@@ -75,7 +75,10 @@ export interface AeoDigestRow {
   strongest_signal: string | null
   recommendations: unknown
   watch_list: unknown
-  not_worth_chasing: unknown
+  /** Added 2026-09-08 with the winnability gate. Absent on every digest
+   *  written before it, so optional here and read through
+   *  notWorthChasingOf, which returns an empty list rather than assuming. */
+  not_worth_chasing?: unknown
   competitor_gap: unknown
   playbook: unknown
   approach_hook: string | null
