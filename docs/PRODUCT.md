@@ -525,6 +525,22 @@ count, an action).
 
 ---
 
+**The AEO research machine lands on Signals (2026-09-09).** Every Sunday
+04:00 UTC `krishanraja/AEO-Engine` studies each subject in
+`growth_aeo_subjects` (your ventures, companies you want to sell to,
+companies you want to be like): the last seven days of calls become themes,
+the engines are asked the queries those buyers or leaders ask, demand is
+scored as a labelled proxy, and one digest per subject lands through
+`api/aeo/ingest`: the strongest signal, three to five article
+recommendations with their target query and evidence, a watch list, the
+biggest competitor gap, and for a prospect one opening line, for a benchmark
+the pages that win. Recommendations also arrive as `aeo_signal` ideas in the
+Content rooms. On the tab each recommendation is one tap from today's list, a
+clip, the idea, the Room or the map; Run now fires the engine and says
+whether it started. The Signals surface is being rebuilt around this read
+(one rendered mock, then code; `docs/AEO-ENGINE.md`); until it ships the
+data lands and the council reads it.
+
 ## Tab: Focus & Purpose
 
 The operator's own hub: the daily ask, the steadying moves, the

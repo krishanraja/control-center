@@ -50,6 +50,7 @@ const ALLOWED_SOURCE = new Set([
   'lens_radar',
   'manual',
   'creator_move',
+  'aeo_signal',
   'build_signal',
 ])
 

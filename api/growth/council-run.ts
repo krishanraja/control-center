@@ -20,7 +20,8 @@ import { mondayOf } from '../_growth.js'
  *
  * HONESTY IS THE POINT. Every number in a review is computed here from real
  * rows: attribution.events (through growth_attribution_weekly and the fleet_*
- * views), the customers table, growth_geo_probes and growth_touchpoints. The
+ * views), the customers table, growth_geo_probes, growth_touchpoints and,
+ * since 2026-09-09, the week's AEO digest (growth_aeo_digests). The
  * evidence bundle carries an explicit `unknowns` list and the writing pass is
  * instructed that an unknown must be stated as unknown. Nothing infers traffic
  * we cannot see: a product with no emitter reads "unknown", never "zero".
@@ -114,6 +115,20 @@ interface Evidence {
     warehouse_purchases_lifetime: number | null
     warehouse_gross_usd: number | null
   }
+  // The week's answer-engine research (growth_aeo_digests, written Sunday
+  // 04:00 UTC by krishanraja/AEO-Engine through api/aeo/ingest.ts). When the
+  // digest is missing that is an unknown, never "no demand".
+  aeo: {
+    status: 'present' | 'missing'
+    week_start: string
+    themes_status: string | null
+    themes: string[]
+    strongest_signal: string | null
+    biggest_gap: { domain: string | null; times_cited: number; questions: string[] } | null
+    top_recommendations: Array<{ title: string; target_query: string; demand: number }>
+    watch_list: string[]
+    stats: Record<string, unknown> | null
+  }
 }
 
 function num(v: unknown): number { const n = Number(v); return Number.isFinite(n) ? n : 0 }
@@ -139,9 +154,45 @@ function weekEvents(rows: WeeklyRow[], app: string, week: string): Record<string
 async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
   weekly: WeeklyRow[]; health: HealthRow[]; funnel: FunnelRow[]; revenue: RevenueRow[]
   touchpoints: Array<Record<string, any>>; probes: Array<Record<string, any>>; customers: Array<Record<string, any>>
+  digests: Array<Record<string, any>>
 }): Promise<Evidence> {
   const unknowns: string[] = []
   const nowISO = new Date().toISOString()
+
+  // --- answer-engine research (the AEO digest for this week) -------------
+  const digest = ctx.digests.find(d => d.product_slug === slug) ?? null
+  const recsOf = (d: Record<string, any> | null) => (Array.isArray(d?.recommendations) ? d!.recommendations as Array<Record<string, any>> : [])
+  const aeo: Evidence['aeo'] = digest ? {
+    status: 'present',
+    week_start: String(digest.week_start),
+    themes_status: typeof digest.themes_status === 'string' ? digest.themes_status : null,
+    themes: (Array.isArray(digest.themes) ? digest.themes : []).map((t: any) => String(t?.theme || '')).filter(Boolean).slice(0, 10),
+    strongest_signal: digest.strongest_signal ? String(digest.strongest_signal) : null,
+    biggest_gap: digest.competitor_gap && typeof digest.competitor_gap === 'object' ? {
+      domain: digest.competitor_gap.domain ?? null,
+      times_cited: num(digest.competitor_gap.times_cited),
+      questions: (Array.isArray(digest.competitor_gap.questions) ? digest.competitor_gap.questions : []).slice(0, 5).map(String),
+    } : null,
+    top_recommendations: recsOf(digest)
+      .filter(r => !r.dismissed_at)
+      .sort((a, b) => num(b.demand) - num(a.demand))
+      .slice(0, 3)
+      .map(r => ({ title: String(r.title || ''), target_query: String(r.target_query || ''), demand: num(r.demand) })),
+    watch_list: (Array.isArray(digest.watch_list) ? digest.watch_list : []).slice(0, 6).map((w: any) => String(w?.query || '')).filter(Boolean),
+    stats: digest.stats && typeof digest.stats === 'object' ? digest.stats as Record<string, unknown> : null,
+  } : {
+    status: 'missing', week_start: weekStart, themes_status: null, themes: [], strongest_signal: null,
+    biggest_gap: null, top_recommendations: [], watch_list: [], stats: null,
+  }
+  if (!digest) {
+    unknowns.push(`Answer-engine research for ${slug} is UNKNOWN this week: no AEO digest landed for the week of ${weekStart}. That is a missing run, not no demand.`)
+  } else if (aeo.themes_status === 'no_calls') {
+    unknowns.push(`Customer call themes for ${slug} are UNKNOWN: no calls were recorded in the last 7 days, so the AEO queries rest on the map, the search data and the competitor gap only.`)
+  } else if (aeo.themes_status === 'no_attributed_calls') {
+    unknowns.push(`Customer call themes for ${slug} are UNKNOWN: calls were recorded in the last 7 days but none was about ${slug}.`)
+  } else if (aeo.themes_status === 'fireflies_unavailable') {
+    unknowns.push(`Customer call themes for ${slug} are UNKNOWN: the transcript source was unavailable to the AEO run, which is a fault, not a quiet week.`)
+  }
 
   // --- touchpoints (what we are actually working) -------------------------
   const tps = ctx.touchpoints.filter(t => t.product_slug === slug)
@@ -289,6 +340,7 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
       warehouse_purchases_lifetime: app ? rRows.reduce((s, r) => s + num(r.purchases), 0) : null,
       warehouse_gross_usd: app ? Math.round(rRows.reduce((s, r) => s + num(r.gross_cents), 0)) / 100 : null,
     },
+    aeo,
   }
 }
 
@@ -302,10 +354,14 @@ function measuredLine(e: Evidence): string {
   const geo = e.geo.probes
     ? `GEO ${e.geo.cited}/${e.geo.probes} cited`
     : `GEO unknown (0 probes in ${e.geo.window_days}d)`
+  const aeo = e.aeo.status === 'present'
+    ? `AEO ${e.aeo.top_recommendations.length} recommendation${e.aeo.top_recommendations.length === 1 ? '' : 's'}, gap ${e.aeo.biggest_gap?.domain || 'none'}`
+    : 'AEO unknown (no digest this week)'
   return [
     traffic,
     `signups ${a.status === 'no_emitter_wired' ? 'unknown' : num(a.this_week.signed_up)} this week`,
     geo,
+    aeo,
     `customers table: paid ${e.revenue.paid_now}, MRR $${e.revenue.mrr_usd}, churned ${e.revenue.churned_total}`,
     `touchpoints ${e.touchpoints.total} (${Object.entries(e.touchpoints.by_status).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'})`,
   ].join(' | ')
@@ -352,6 +408,7 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'ABSOLUTE RULE: the evidence carries an `unknowns` array. Each entry there MUST be reflected in your findings, stated as unknown. Never convert an unknown into a zero. "No emitter wired" is not "no traffic".',
     'Tone: blunt, specific, structural. Name the constraint, not the mood. No hedging, no encouragement, no summary of the summary.',
     'touchpoints.known_structure carries what the map already knows about each channel: the diagnosed blocker, the flagged assumption, what shipped and when. Use it. If a structural blocker is recorded there, name it, because a metric that cannot move until that blocker clears is not a performance problem.',
+    'evidence.aeo carries this week\'s answer-engine research: the strongest signal, the call themes, the biggest competitor gap and the top article recommendations with their target queries. When status is present, at least one finding or double_down must address it (name the target query to write for, or the domain to displace). When status is missing, say the research is unknown this week; never read a missing digest as no demand.',
     VOICE_GUARDRAILS,
     'Respond with ONLY a JSON object:',
     '{"headline": string (<=160 chars, the one sentence that matters this week),',
@@ -428,13 +485,23 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     supabase.from('fleet_funnel_by_campaign').select('*'),
     supabase.from('fleet_revenue_by_campaign').select('*'),
     supabase.from('growth_touchpoints').select('*'),
-    supabase.from('growth_geo_probes').select('*').gte('run_at', geoSince).limit(500),
+    supabase.from('growth_geo_probes').select('*').eq('subject_kind', 'venture').gte('run_at', geoSince).limit(500),
     supabase.from('customers').select('product, kind, mrr_usd, churned_at, became_paid_at, attribution_channel').limit(5000),
     supabase.from('growth_council_reviews').select('id, product_slug, krish_decision').eq('week_start', weekStart),
   ])
   for (const r of [weekly, health, funnel, revenue, touchpoints, probes, customers, existing]) {
     if (r.error) throw new Error(r.error.message)
   }
+  // The week's AEO digests, keyed back to the product slug through the
+  // subject registry. A read error here is a real fault; an empty result is
+  // the honest "no digest" that buildEvidence turns into an unknown.
+  const digestsRead = await supabase.from('growth_aeo_digests')
+    .select('subject_id, week_start, themes, themes_status, strongest_signal, recommendations, watch_list, competitor_gap, stats, subject:growth_aeo_subjects(product_slug, kind)')
+    .eq('week_start', weekStart)
+  if (digestsRead.error) throw new Error(digestsRead.error.message)
+  const digests = ((digestsRead.data || []) as Array<Record<string, any>>)
+    .filter(d => d.subject && d.subject.kind === 'venture' && d.subject.product_slug)
+    .map(d => ({ ...d, product_slug: d.subject.product_slug }))
 
   const ctx = {
     weekly: (weekly.data || []) as WeeklyRow[],
@@ -444,6 +511,7 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     touchpoints: (touchpoints.data || []) as Array<Record<string, any>>,
     probes: (probes.data || []) as Array<Record<string, any>>,
     customers: (customers.data || []) as Array<Record<string, any>>,
+    digests,
   }
   const decided = new Set(
     (existing.data || []).filter((r: any) => r.krish_decision).map((r: any) => String(r.product_slug)),

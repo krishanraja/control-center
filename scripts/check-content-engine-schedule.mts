@@ -1,4 +1,6 @@
 // The dashboard's schedule table and vercel.json must name the same crons.
+// (A job marked trigger: 'external' is the one exception: fired from outside,
+// recorded here, never a cron.)
 //
 // src/lib/contentEngineSchedule.ts is what the Content tab reads to say a job
 // has gone quiet. If a cron is added to vercel.json and not here, its silence
@@ -16,7 +18,11 @@ const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')) as { crons?: Arra
 const cronPaths = new Set((vercel.crons || []).map(c => c.path))
 
 for (const job of CONTENT_ENGINE_JOBS) {
-  if (!cronPaths.has(job.path)) bad(`${job.job} points at ${job.path}, which is not a cron in vercel.json`)
+  // An external job is fired by a machine outside this repo (the AEO engine on
+  // GitHub Actions). It must not be a cron here, and it must still record.
+  if (job.trigger === 'external') {
+    if (cronPaths.has(job.path)) bad(`${job.job} is marked external but ${job.path} is a cron in vercel.json`)
+  } else if (!cronPaths.has(job.path)) bad(`${job.job} points at ${job.path}, which is not a cron in vercel.json`)
   const file = 'api' + job.path.slice('/api'.length) + '.ts'
   let src = ''
   try { src = readFileSync(file, 'utf8') } catch { bad(`${job.job}: ${file} does not exist`); continue }

@@ -176,6 +176,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // A build signal's flag rides onto the developed story so the chip and
       // the never-reveal list survive the route.
       ...(meta.mindmake_build ? { mindmake_build: true, build: meta.build ?? null, source_label: meta.source_label ?? null } : {}),
+      // An AEO recommendation keeps its target query and evidence on the
+      // developed story, so the piece can be checked against the question it
+      // was written to win.
+      ...(meta.aeo ? { aeo: meta.aeo, source_label: meta.source_label ?? null } : {}),
       generated_by: 'editorial_radar',
       transformed_from: source.id,
       research,

@@ -16,6 +16,28 @@ export const COVERAGE_STATUSES = new Set(['unaddressed', 'in_progress', 'covered
 
 export const CREATIVE_STAGES = new Set(['brief', 'script', 'producing', 'produced', 'posted', 'dropped'])
 
+// ── AEO engine (api/aeo/*) ───────────────────────────────────────────────────
+// The two venture key spaces are recorded debt (docs/MINDMAKE_OS_ARCHITECTURE.md,
+// "Known debt, deliberately not bundled"): the Growth tab keys on product
+// slugs, the acquisition lanes and maya_striking_distance on lane slugs. This
+// is the one map between them; lane slugs are never written into growth_aeo_*.
+export const LANE_SLUG: Record<string, string | null> = {
+  ctrl: 'mm_ctrl',
+  circle: 'fractionl_circle',
+  pulse: 'fractionl_pulse',
+  'full-time': 'full_time',
+  mindmake: null,
+}
+
+/** Mirrors growth_aeo_subjects.kind. */
+export const SUBJECT_KINDS = new Set(['venture', 'prospect', 'aspiration'])
+
+/** Mirrors growth_geo_probes.engine, minus google_aio which no engine writes. */
+export const AEO_ENGINES = new Set(['perplexity', 'chatgpt', 'claude', 'grok'])
+
+/** Mirrors growth_aeo_digests.themes_status. */
+export const AEO_THEMES_STATUSES = new Set(['ok', 'no_calls', 'no_attributed_calls', 'fireflies_unavailable', 'not_applicable'])
+
 /** Trim a string field, returning null for blank so we never store empty text. */
 export function text(v: unknown): string | null {
   if (v == null) return null
