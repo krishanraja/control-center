@@ -159,7 +159,7 @@ More `check-*.mts` guards exist outside CI (`check-edit-palette`,
 change. Known: `check-content-taxonomy` has a failing baseline on main —
 fix the baseline before wiring it into CI.
 
-<!-- krish-canon:start release=v2026.08.29.3 sha=0cbd5f9a0b80 rendered=2026-09-08 -->
+<!-- krish-canon:start release=v2026.08.29.3 sha=049fccc9df84 rendered=2026-09-08 -->
 ## Krish canon
 
 Rendered from `krishanraja/ai-harness` at release v2026.08.29.3. Nothing inside these
@@ -190,8 +190,9 @@ finding rather than picking the convenient one.
 
 **Secrets.** Never write a credential into source, documentation, commit messages,
 issue or pull request bodies, logs, reports, screenshots or chat. Refer to secrets by
-symbolic name and retrieve them at execution time. A secret found in the tree is already exposed: report its location without the
-value, rotate it, scrub the copies, and add the gate that stops the next one.
+symbolic name and retrieve them at execution time. A secret found in the tree is
+already exposed: report its location without the value, rotate it, scrub the copies,
+and add the gate that stops the next one.
 
 **Corrections are the training data.** When Krish overrules a decision, record it in the
 commit body as `Ruling (Krish, YYYY-MM-DD): the ruling, in one line`. That line is read
