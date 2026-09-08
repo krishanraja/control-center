@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/aeo/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/aeo/:path*"
+    },
+    {
       "source": "/api/content-ideas/:path*",
       "destination": "https://content-engine-flame-nu.vercel.app/api/content-ideas/:path*"
     },
@@ -281,9 +285,6 @@
     },
     "api/room/seed.ts": {
       "maxDuration": 60
-    },
-    "api/aeo/ingest.ts": {
-      "maxDuration": 120
     }
   }
 }
