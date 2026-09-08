@@ -4,6 +4,146 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/content-ideas/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-ideas/:path*"
+    },
+    {
+      "source": "/api/content-decisions/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-decisions/:path*"
+    },
+    {
+      "source": "/api/content-opportunities/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-opportunities/:path*"
+    },
+    {
+      "source": "/api/content-seed-candidates/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-seed-candidates/:path*"
+    },
+    {
+      "source": "/api/content-creators/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-creators/:path*"
+    },
+    {
+      "source": "/api/briefs/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/briefs/:path*"
+    },
+    {
+      "source": "/api/shifts/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/shifts/:path*"
+    },
+    {
+      "source": "/api/arcs/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/arcs/:path*"
+    },
+    {
+      "source": "/api/purge/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/purge/:path*"
+    },
+    {
+      "source": "/api/feed/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/feed/:path*"
+    },
+    {
+      "source": "/api/investigations/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/investigations/:path*"
+    },
+    {
+      "source": "/api/video-studio/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/video-studio/:path*"
+    },
+    {
+      "source": "/api/discover-lens-radar/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/discover-lens-radar/:path*"
+    },
+    {
+      "source": "/api/discover-creator-posts/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/discover-creator-posts/:path*"
+    },
+    {
+      "source": "/api/discover-build-signals/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/discover-build-signals/:path*"
+    },
+    {
+      "source": "/api/content-engine/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-engine/:path*"
+    },
+    {
+      "source": "/api/concepts/:path*",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/concepts/:path*"
+    },
+    {
+      "source": "/api/content-ideas",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-ideas"
+    },
+    {
+      "source": "/api/content-decisions",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-decisions"
+    },
+    {
+      "source": "/api/content-opportunities",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-opportunities"
+    },
+    {
+      "source": "/api/content-seed-candidates",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-seed-candidates"
+    },
+    {
+      "source": "/api/content-creators",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-creators"
+    },
+    {
+      "source": "/api/briefs",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/briefs"
+    },
+    {
+      "source": "/api/shifts",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/shifts"
+    },
+    {
+      "source": "/api/arcs",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/arcs"
+    },
+    {
+      "source": "/api/purge",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/purge"
+    },
+    {
+      "source": "/api/feed",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/feed"
+    },
+    {
+      "source": "/api/investigations",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/investigations"
+    },
+    {
+      "source": "/api/video-studio",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/video-studio"
+    },
+    {
+      "source": "/api/discover-lens-radar",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/discover-lens-radar"
+    },
+    {
+      "source": "/api/discover-creator-posts",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/discover-creator-posts"
+    },
+    {
+      "source": "/api/discover-build-signals",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/discover-build-signals"
+    },
+    {
+      "source": "/api/content-engine",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-engine"
+    },
+    {
+      "source": "/api/concepts",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/concepts"
+    },
+    {
+      "source": "/api/triage/sweep",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/triage/sweep"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
@@ -15,62 +155,18 @@
         {
           "key": "Cache-Control",
           "value": "no-store"
+        },
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
         }
       ]
     }
   ],
   "crons": [
     {
-      "path": "/api/triage/sweep",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/content-ideas/cluster",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/discover-lens-radar",
-      "schedule": "0 9 * * 1"
-    },
-    {
       "path": "/api/discover-guest-scout",
       "schedule": "0 10 * * 1"
-    },
-    {
-      "path": "/api/discover-creator-posts",
-      "schedule": "0 8 * * 2"
-    },
-    {
-      "path": "/api/feed/ingest",
-      "schedule": "30 11 * * *"
-    },
-    {
-      "path": "/api/content-opportunities/refresh",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/investigations/run",
-      "schedule": "0 21 * * 4"
-    },
-    {
-      "path": "/api/shifts/detect",
-      "schedule": "30 17 * * 5"
-    },
-    {
-      "path": "/api/arcs/surface",
-      "schedule": "50 17 * * 5"
-    },
-    {
-      "path": "/api/briefs/assemble",
-      "schedule": "0 18 * * 5"
-    },
-    {
-      "path": "/api/purge/run",
-      "schedule": "0 14 * * 1"
-    },
-    {
-      "path": "/api/video-studio/runner/watch",
-      "schedule": "30 6 * * *"
     },
     {
       "path": "/api/acquisition/governor",
@@ -99,10 +195,6 @@
     {
       "path": "/api/health/fleet-reconcile",
       "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/content-ideas/archive-stale",
-      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/feedback/backfill-embeddings",
@@ -141,10 +233,6 @@
       "schedule": "0 4 * * 6"
     },
     {
-      "path": "/api/discover-build-signals",
-      "schedule": "0 5 * * 6"
-    },
-    {
       "path": "/api/architecture/weekly",
       "schedule": "0 13 * * 0"
     },
@@ -159,9 +247,6 @@
   ],
   "functions": {
     "api/spend/ingest.ts": {
-      "maxDuration": 300
-    },
-    "api/content-opportunities/refresh.ts": {
       "maxDuration": 300
     },
     "api/health/connections-sweep.ts": {
@@ -180,9 +265,6 @@
       "maxDuration": 300
     },
     "api/scorecard/github-sync.ts": {
-      "maxDuration": 120
-    },
-    "api/discover-build-signals.ts": {
       "maxDuration": 120
     },
     "api/architecture/weekly.ts": {

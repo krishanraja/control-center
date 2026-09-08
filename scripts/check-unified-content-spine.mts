@@ -49,14 +49,9 @@ assert.equal(editorialSeriesForKey('paid'), 'money_of_ai')
 assert.equal(publicKeyForEditorialSeries('built_with_ai'), 'built')
 assert.equal(editorialOpportunityHref('source 1', 'money_of_ai'), '#/content?idea=source%201&lens=money_of_ai')
 
-const route = readFileSync(new URL('../api/content-ideas/[id]/editorial-route.ts', import.meta.url), 'utf8')
-assert.match(route, /guard\(req, res, \['POST'\]\)/)
-assert.match(route, /editorial-route-v1:/)
-assert.match(route, /lane: 'publication'/)
-assert.match(route, /const slot = series/)
-assert.match(route, /status === 'near_miss' && overrideReason\.length < 8/)
-assert.match(route, /hard_editorial_gate_failed/)
-assert.doesNotMatch(route, /callClaude|ANTHROPIC_API_KEY|openai/i)
+// The editorial-route half moved to the engine with the route
+// (apps/control-plane/scripts/check-unified-content-spine.ts). What stays here
+// is the spine the browser reads: one opportunity shape, one output registry.
 
 const outputKeys = new Set(CONTENT_OUTPUTS.map(output => output.key))
 for (const required of ['substack', 'linkedin', 'instagram', 'youtube', 'podcast', 'signal_noise', 'video_15s', 'video_60s', 'carousel_linkedin', 'carousel_instagram']) {
