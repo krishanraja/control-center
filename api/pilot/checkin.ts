@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { resolveTz, ymdIn, shiftYmd, dayStartUtcIn, dayEndUtcIn } from '../_timezone.js'
 import { upsertSlots, validateSlot, type SlotInput } from '../_dailyFocus.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/pilot/checkin
@@ -47,6 +48,8 @@ function clampScore(value: unknown): number | null {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['PATCH', 'POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

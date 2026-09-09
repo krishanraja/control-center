@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 // POST /api/contacts/bulk — batch operations on Relationship Engine contacts.
 //
@@ -17,6 +18,8 @@ const ACTIONS = new Set(['assign_owner', 'set_tier', 'do_not_contact', 'dismiss_
 const MAX_IDS = 500
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

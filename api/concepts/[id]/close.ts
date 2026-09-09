@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/concepts/:id/close
 // Thin wrapper over the close_concept(p_concept_id, p_reason, p_decided_by) RPC
@@ -12,6 +13,8 @@ import { supabase } from '../../_supabase.js'
 // Response: { ok, concept_id, tasks_closed, leads_closed, decided_at }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

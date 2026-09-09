@@ -3,6 +3,7 @@ import { supabase } from '../../_supabase.js'
 import { ventureOffer } from '../../_venturePositioning.js'
 import { loadOutboundVoice } from '../../_voice.js'
 import { deliverEmailDraft } from '../../_emailDraft.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/contacts/:id/draft-email
 // Server-side proxy to the Cleo Email Draft N8N workflow for Relationship Engine
@@ -102,6 +103,8 @@ function researchFromDossier(dossier: any, ventureSlug: string | null): { lines:
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

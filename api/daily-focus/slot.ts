@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { upsertSlots, validateSlot, isYmd, type SlotInput } from '../_dailyFocus.js'
+import { guard } from '../_auth.js'
 
 // POST /api/daily-focus/slot
 //   Body: { date, slot: 1|2|3, text, goal_id?, job? }
@@ -18,6 +19,8 @@ interface Body {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

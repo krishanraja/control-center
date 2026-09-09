@@ -3,6 +3,7 @@ import { supabase } from '../../_supabase.js' // .js extension MANDATORY (ESM, "
 import { researchBrief } from '../../_enrich.js'
 import { callClaude } from '../../_content.js'
 import { googleConfigured, createDriveDoc } from '../../_google.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/guests/:id/briefing
 //
@@ -25,6 +26,8 @@ const AGATHA_SECRET = process.env.AGATHA_WEBHOOK_SECRET || ''
 const STALE_MS = 15 * 60 * 1000
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

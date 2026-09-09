@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { attachRejectSignal } from '../_rejectSignal.js'
+import { guard } from '../_auth.js'
 
 /** Where each table keeps the one line that says what the thing actually was. */
 const TITLE_COLUMN: Record<string, string> = {
@@ -22,6 +23,8 @@ const TITLE_COLUMN: Record<string, string> = {
 const ALLOWED = new Set(['content_ideas', 'leads', 'visibility_targets', 'guests', 'tasks', 'zara_signals'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' })
   const body = (req.body || {}) as {

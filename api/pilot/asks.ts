@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { resolveTz, ymdIn } from '../_timezone.js'
 import { recordShip } from '../_ships.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/pilot/asks
@@ -36,6 +37,8 @@ import { recordShip } from '../_ships.js'
 const OUTCOMES = new Set(['yes', 'no', 'alternative', 'no_reply'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['PATCH', 'POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

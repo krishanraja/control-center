@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { researchBrief } from '../../_enrich.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/leads/:id/enrich
 // Deep-enriches a lead. Prefers the Agatha Lead Deep Enrich N8N workflow when
@@ -10,6 +11,8 @@ import { researchBrief } from '../../_enrich.js'
 // the brief into raw_extraction.direct_research without touching the n8n shape.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

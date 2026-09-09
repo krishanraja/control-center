@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 /**
  * POST /api/triage/promote
@@ -16,6 +17,8 @@ import { supabase } from '../_supabase.js'
 const ALLOWED = new Set(['content_ideas', 'leads', 'visibility_targets', 'guests'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' })
   const body = (req.body || {}) as { source_table?: string; source_id?: string; agent?: string }

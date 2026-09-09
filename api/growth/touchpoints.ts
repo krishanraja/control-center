@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { preamble } from '../_content.js'
 import { PRODUCT_SLUGS, TOUCHPOINT_CHANNELS, COVERAGE_STATUSES, text, score, bodyId } from '../_growth.js'
+import { guard } from '../_auth.js'
 
 // /api/growth/touchpoints: the ICP touchpoint map, the spine of the Growth tab.
 //
@@ -21,6 +22,8 @@ import { PRODUCT_SLUGS, TOUCHPOINT_CHANNELS, COVERAGE_STATUSES, text, score, bod
 const EDITABLE = ['icp_trigger', 'channel', 'watering_hole', 'coverage_status', 'owner_agent', 'rationale', 'assumption_flag'] as const
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+
   if (preamble(req, res, 'GET, POST, PATCH, OPTIONS')) return
 
   if (req.method === 'GET') {

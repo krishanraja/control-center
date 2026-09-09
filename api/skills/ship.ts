@@ -28,10 +28,13 @@ import {
   type SkillData,
   type QualityGateResult,
 } from '../_skill-prompt.js'
+import { guard } from '../_auth.js'
 
 const ZIP_BUCKET = 'skill-deliveries'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

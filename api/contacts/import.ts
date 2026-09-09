@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { emailNorm, linkedinNorm } from '../_text.js'
 import { parseDelimited } from '../_csv.js'
+import { guard } from '../_auth.js'
 
 // POST /api/contacts/import — Relationship Engine CSV import with provenance.
 //
@@ -28,6 +29,8 @@ interface ParsedRow {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

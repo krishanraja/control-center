@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // down. '../_supabase.js' pointed at api/leads/_supabase.js, which does not
 // exist, so PATCH /api/leads/:id 500ed on every call. Verified in production.
 import { supabase } from '../../_supabase.js'
+import { guard } from '../../_auth.js'
 
 // PATCH /api/leads/:id — update lead status / next step / why-relevant.
 // Used by the Leads tab when Krish marks a lead contacted, drops it,
@@ -20,6 +21,8 @@ const ALLOWED_STATUS = new Set([
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['PATCH'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

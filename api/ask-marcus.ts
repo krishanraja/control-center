@@ -3,6 +3,7 @@ import { supabase } from './_supabase.js'
 import { goalsSpine } from './_goals.js'
 import { openStream, send, fail, streamClaude } from './_stream.js'
 import { SYNTHESIS_MODEL } from './_models.js'
+import { guard } from './_auth.js'
 
 /**
  * POST /api/ask-marcus
@@ -66,6 +67,8 @@ function fmtShifts(rows: any[]): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

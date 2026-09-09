@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { directionSpine, directionPrompt, type LaneDirection } from '../../_direction.js'
+import { guard } from '../../_auth.js'
 
 /**
  * /api/acquisition/lanes/:slug — the autonomy + governor control plane for one lane.
@@ -68,6 +69,8 @@ async function setWorkflowsActive(workflowIds: string[], active: boolean): Promi
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

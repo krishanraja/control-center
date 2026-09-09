@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getOperatorTz, setOperatorTz, isValidTz } from '../_timezone.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/pilot/timezone
@@ -17,6 +18,8 @@ import { getOperatorTz, setOperatorTz, isValidTz } from '../_timezone.js'
  * device is the authority. See src/lib/civilDate.ts.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['PUT'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

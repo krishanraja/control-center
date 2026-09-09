@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 const ALLOWED_REASON  = new Set(['welcome','check_in','expansion','save','exit_interview','other'])
 const ALLOWED_CHANNEL = new Set(['email','call','video','message','in_person'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { checkDuplicate, recordDuplicateSource, type DedupTable } from '../_dedup.js'
+import { guard } from '../_auth.js'
 
 // POST /api/dedup/check
 //
@@ -39,6 +40,8 @@ const VALID_TABLES = new Set<DedupTable>([
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Agatha-Secret')
