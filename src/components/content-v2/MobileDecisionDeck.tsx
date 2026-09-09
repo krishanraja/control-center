@@ -4,7 +4,7 @@ import { DrawnCheck } from '../shared/DrawnCheck'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
-import type { ContentDecisionRow } from '../../lib/contentV2'
+import { shiftIsOnBeat, type ContentDecisionRow } from '../../lib/contentV2'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
@@ -126,7 +126,19 @@ export function MobileDecisionDeck({
         id: `video:${typeof review?.id === 'string' ? review.id : `malformed-${index}`}`,
         review,
       }))
-    const content = [...decisions]
+    // Same lens filter as the desk. A shift ruling only enters the deck when the
+    // arc landed in one of the six lenses; the arcs still filed under the
+    // vocabulary retired on 2026-08-27 are not swipeable cards, because asking
+    // for a ruling is asking for attention and these were never going to earn
+    // it. The desk shows the discards as an auditable line; the phone does not
+    // show them at all, since a thesis is desk work.
+    const byId = new Map(v2.shifts.map(sh => [sh.id, sh]))
+    const onBeat = decisions.filter(d => {
+      if (d.kind !== 'shift_proposal' && d.kind !== 'shift_fading') return true
+      const sh = byId.get(d.ref)
+      return sh ? shiftIsOnBeat(sh) : true
+    })
+    const content = [...onBeat]
       .sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
       .map(decision => ({ type: 'content' as const, id: `content:${decision.id}`, decision }))
     const anchors = content.filter(item => item.decision.kind === 'brief_review')
@@ -135,7 +147,7 @@ export function MobileDecisionDeck({
     // bin. It is the same swipe, so a coffee line clears both.
     const pile = upstream.map((idea): DeckItem => ({ type: 'idea', id: `idea:${idea.id}`, idea }))
     return [...anchors, ...videos, ...remaining, ...pile]
-  }, [decisions, videoReviews, upstream])
+  }, [decisions, videoReviews, upstream, v2.shifts])
 
   // A secure video fetch can settle independently of Content. Once Krish has
   // browsed, keep the exact card under his thumb as either source refreshes.
@@ -431,7 +443,7 @@ export function MobileDecisionDeck({
                 ? 'The engine stopped before inventing an answer. This needs your editorial judgement.'
                 : video.safe_summary)
               : d!.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, put together on Friday. Read it, fix anything weak with the edit chips, then send it out.`
-              : d!.kind === 'shift_proposal' ? `This kept coming up on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
+              : d!.kind === 'shift_proposal' ? `${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Closest to what you track: ${p.nearest.title}.` : ''}`
               : d!.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}.`
               : d!.kind === 'investigation' ? `${p.citable_evidence ?? 0} pieces of evidence you can cite, from ${p.distinct_domains ?? 0} sites and ${p.distinct_origins ?? 0} original sources.`
               : d!.kind === 'graduation' ? 'This has been used for weeks and still holds up. Keep it in the Library for good?'

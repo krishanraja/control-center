@@ -60,9 +60,16 @@ export interface ShiftRow {
   title: string
   summary: string
   implication: string
+  /** FROZEN 2026-08-27. The pre-rewrite classification, kept as history. Three
+   *  of its nine values (governance, security, proof) have no counterpart among
+   *  the six lenses by design. Read `lens`, not this, to decide what surfaces. */
   category: string
-  /** 'built' | 'paid', or null when the detector has not classified it. Null
-   *  shows in every lane rather than being hidden or forced into one. */
+  /** One of the six lenses, or null for a row the detector classified under the
+   *  old vocabulary. Null is the discard signal: see `shiftIsOnBeat`. */
+  lens?: string | null
+  /** The tracked question this arc files under, or null when it matched none. */
+  theme_id?: string | null
+  /** 'built' | 'paid', or null when the detector has not classified it. */
   lane?: string | null
   status: ShiftStatus
   first_seen_on: string
@@ -144,6 +151,36 @@ export interface ContentDecisionRow {
   status: 'pending' | 'done' | 'dismissed' | 'archived'
   resolution: Record<string, unknown> | null
   created_at: string
+}
+
+// ── What counts as on-beat ───────────────────────────────────────────────
+//
+// The 2026-08-27 rewrite replaced nine categories with six lenses and said, in
+// the migration itself, that the new vocabulary "exists to stop producing"
+// governance, security and proof stories. It added the column and froze the old
+// one. It never added the filter, so the detector kept writing the old
+// categories with a null lens and every surface kept rendering them: on
+// 2026-09-09, three of the five proposals awaiting a ruling were governance,
+// security and orchestration, matching none of the eleven tracked questions.
+//
+// This is that missing filter, in one place so no surface can forget it. A null
+// lens is not missing data to be tolerated, it is the detector saying this arc
+// fits none of the six things Krish writes about.
+
+export const LENS_LABEL: Record<string, string> = {
+  pricing_packaging: 'Pricing and packaging',
+  distribution_channel: 'Distribution',
+  moat_defensibility: 'Moat',
+  buyer_behaviour: 'Buyer behaviour',
+  category_positioning: 'Category',
+  build_practice: 'Build practice',
+}
+
+/** True when the detector placed this arc in one of the six lenses. Every
+ *  surface that offers a ruling must filter on this; the register keeps the
+ *  rest as history. */
+export function shiftIsOnBeat(s: Pick<ShiftRow, 'lens'>): boolean {
+  return Boolean(s.lens && LENS_LABEL[s.lens])
 }
 
 export type ShiftVerdict = 'accelerating' | 'steady' | 'fading' | 'new'

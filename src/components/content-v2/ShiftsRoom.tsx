@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { X } from '@/lib/icons'
 import { contentV2Api, useShiftEvidence, type useContentV2 } from '../../hooks/useContentV2'
-import { monthLabel, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
+import { LENS_LABEL, monthLabel, shiftIsOnBeat, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
 import { SkeletonText, SkeletonList } from '../shared/Skeleton'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { publicSeriesLabel } from '../../lib/publicSeries'
@@ -81,7 +81,7 @@ function DossierBody({ shift, v2, onClose, chrome }: {
     <>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300">Dossier · {shift.category}</span>
+          <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300">Dossier · {shift.lens ? LENS_LABEL[shift.lens] : shift.category}</span>
           <h3 className="text-lede font-bold text-white mt-1">{shift.title}</h3>
           <p className="text-label text-white/55 mt-1 max-w-xl leading-relaxed">{shift.summary}</p>
           <p className="text-label text-emerald-200/80 mt-2 max-w-xl leading-relaxed"><span className="font-semibold">For your org:</span> {shift.implication}</p>
@@ -159,15 +159,29 @@ export function ShiftsRoom({ v2, variant, lane }: {
   v2: ReturnType<typeof useContentV2>
   variant: 'desktop' | 'mobile'
   /** Scope to one format. Omit for the whole register. A shift with no lane
-   *  (governance, security and org cut across both formats by design) still
-   *  appears in every scoped room — but under its own labelled section, so the
+   *  still appears in every scoped room, under its own labelled section, so the
    *  repetition reads as a choice instead of a bug. Silent duplication is what
-   *  made Built and Paid look identical. */
+   *  made Built and Paid look identical.
+   *
+   *  The old note here said governance, security and org "cut across both
+   *  formats by design". That was true of the pre-2026-08-27 vocabulary and is
+   *  now the opposite of the design: those three were retired precisely so they
+   *  would stop being produced, and the lens filter below is what enforces it.
+   *  It was also the mechanism that put the same six governance arcs in front
+   *  of Krish twice, once per room. */
   lane?: 'built' | 'paid'
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const live = useMemo(
-    () => v2.shifts.filter(s => ['proposed', 'active', 'fading'].includes(s.status)),
+    () => v2.shifts
+      .filter(shiftIsOnBeat)
+      .filter(s => ['proposed', 'active', 'fading'].includes(s.status)),
+    [v2.shifts],
+  )
+  const offBeat = useMemo(
+    () => v2.shifts
+      .filter(s => !shiftIsOnBeat(s))
+      .filter(s => ['proposed', 'active', 'fading'].includes(s.status)).length,
     [v2.shifts],
   )
   const own = useMemo(
@@ -184,8 +198,17 @@ export function ShiftsRoom({ v2, variant, lane }: {
   if (!own.length && !crossCutting.length) {
     return (
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">
-        No shifts yet. The detector runs every Friday and only counts something
-        as a shift once it shows up over at least 3 days in at least 3 places.
+        <p>
+          No shifts in your six lenses yet. The detector runs every Friday and
+          only counts something as a shift once it shows up over at least 3 days
+          in at least 3 places.
+        </p>
+        {offBeat > 0 && (
+          <p className="mt-2 text-label text-white/40" data-testid="shifts-off-beat-note">
+            {offBeat} arc{offBeat === 1 ? '' : 's'} in the register {offBeat === 1 ? 'is' : 'are'} filed
+            under the vocabulary retired on 2026-08-27 and {offBeat === 1 ? 'is' : 'are'} not shown here.
+          </p>
+        )}
       </div>
     )
   }
@@ -203,7 +226,7 @@ export function ShiftsRoom({ v2, variant, lane }: {
             }`}
           >
             <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300/90">
-              Shift · {s.category}{s.status === 'proposed' ? ' · awaiting your ruling' : ''}
+              {s.lens ? LENS_LABEL[s.lens] : 'Shift'}{s.status === 'proposed' ? ' · awaiting your ruling' : ''}
             </span>
             <div className="text-ui font-semibold text-white/95 mt-1.5 leading-snug">{s.title}</div>
             <div className="flex items-center gap-2.5 mt-2.5">

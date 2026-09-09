@@ -13,6 +13,9 @@ import { videoEngineEnabled } from '../../lib/videoStudio'
 import { publicSeriesLabel } from '../../lib/publicSeries'
 import { useContentTriage } from '../../hooks/useContentTriage'
 import { BOTTOM_NAV_PAD } from '../mobile/primitives'
+import { NextBestActionHero } from '../content/NextBestActionHero'
+import { isActiveIdea } from '../../lib/contentEngine'
+import { routeIdea } from '../../lib/contentRouting'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -35,6 +38,27 @@ import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 // The retired triage surface that used to sit behind a build flag is gone; its
 // jobs live here now: the phone deck clears the upstream pile, the desk lane
 // shows the pieces in flight, and the Library holds the calendar and backburner.
+//
+// ── Why the desk is one scroller (2026-09-09) ────────────────────────────
+//
+// It used to be two. An obligation strip pinned at `shrink-0 max-h-[38vh]
+// overflow-y-auto`, then the room at `flex-1 min-h-0 overflow-y-auto`, both
+// inside a fixed `h-full` column. That allocates space by decree rather than by
+// content, so the two halves fight and both lose: five proposals overflowed the
+// 38vh cap and the strip guillotined the third one mid-sentence, while the room
+// below took the remainder and had nothing to put in it. Neither box could ever
+// borrow from the other, so no amount of content made either one right.
+//
+// The earlier note below this admits the trade honestly: capping the strip was
+// a fix for the strip pushing the room off screen. It swapped "room crushed to
+// zero" for "strip guillotined AND room starved".
+//
+// So: one scroller, content-sized, no caps. And the order inverts. The tab used
+// to open with the machine asking five questions and Krish's own work nowhere
+// on the page. Now the first thing rendered is the one action to take, the room
+// is next, and the machine's questions sit at the bottom under "Also waiting",
+// because a proposal is something to consult, not an obligation that outranks
+// the six pieces sitting in review.
 
 export type RoomId = 'built' | 'paid' | 'library'
 /** Mobile adds a Queue view (the decision deck) as a peer of the rooms. */
@@ -54,7 +78,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   // Both viewports read the video queue: the phone decides from the deck, the
   // desk from the obligation strip. Desktop used to have no way in at all.
   const videoQueue = useVideoStudioReviews(videoEngineEnabled())
-  const { ideas } = useRealtimeContentIdeas()
+  const { ideas, loading: ideasLoading } = useRealtimeContentIdeas()
   const triage = useContentTriage()
   // The phone deck clears the upstream pile: raw seeds and research, one card
   // at a time. Drafts and gates stay on the desk where they get real attention.
@@ -63,16 +87,22 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     [triage.deck],
   )
 
+  // Live means live. The badge used to filter only on `library_at`, while every
+  // room filtered on `isActiveIdea`, which also drops buried cards. On
+  // 2026-09-09 that gap read "Built With AI 4" and "The Money of AI 5" over two
+  // empty rooms: all nine were buried drafts. A count you cannot click through
+  // to is worse than no count, so both sides use the same predicate now.
+  const liveIdeas = useMemo(() => ideas.filter(i => !i.library_at && isActiveIdea(i)), [ideas])
+
   const counts = useMemo(() => {
-    const live = ideas.filter(i => !i.library_at)
-    const forLane = (lane: RoomId) => live.filter(i => laneOf(i.lane, i.lane_slot) === lane).length
+    const forLane = (lane: RoomId) => liveIdeas.filter(i => routeOf(i).route === lane).length
     return {
       built: forLane('built'),
       paid: forLane('paid'),
       library: v2.shifts.filter(s => s.status === 'library').length
         + ideas.filter(i => i.library_at).length,
     }
-  }, [v2.shifts, ideas])
+  }, [v2.shifts, ideas, liveIdeas])
 
   // Mobile leads with the Queue (the finite decision deck), then the three
   // rooms as peers. The deck used to render ABOVE the rooms while claiming
@@ -101,20 +131,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     }),
   ]
 
-  return (
-    <div className="flex flex-col gap-4 min-h-0 h-full">
-      {/* Obligations on desktop stay above the rooms, because they are
-          cross-format and must not be reachable only by navigating to them. */}
-      {/* Bounded: five shift proposals used to stack to 700px here, push the
-          room chips and "Start from research" to the bottom edge under the
-          pills, and collapse the room below to nothing. The strip scrolls
-          inside its cap instead; the rooms keep their space. */}
-      {!mobile && (
-        <div className="shrink-0 max-h-[38vh] overflow-y-auto">
-          <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} />
-        </div>
-      )}
-
+  const nav = (
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <SegmentedNav<ViewId>
@@ -140,26 +157,60 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
           </button>
         )}
       </div>
+  )
 
+  return (
+    <div className="flex flex-col gap-4 min-h-0 h-full">
       {mobile && room === 'queue' ? (
         // The deck is a fixed stage, not a scroller, so the nav clearance is
         // padding on the stage itself: the thumb-zone buttons sit above the
         // fixed BottomNav instead of under it.
-        <div className={`flex-1 min-h-0 flex flex-col ${BOTTOM_NAV_PAD}`}>
-          <MobileDecisionDeck
-            v2={v2}
-            videoReviews={videoQueue.reviews}
-            videoLoading={videoQueue.loading}
-            videoQueueError={Boolean(videoQueue.error)}
-            triage={triage}
-            upstream={upstream}
-          />
-        </div>
+        <>
+          {nav}
+          <div className={`flex-1 min-h-0 flex flex-col ${BOTTOM_NAV_PAD}`}>
+            <MobileDecisionDeck
+              v2={v2}
+              videoReviews={videoQueue.reviews}
+              videoLoading={videoQueue.loading}
+              videoQueueError={Boolean(videoQueue.error)}
+              triage={triage}
+              upstream={upstream}
+            />
+          </div>
+        </>
       ) : (
+        // ONE scroller for the whole desk. Everything inside is sized by its
+        // content: nothing claims a share of the viewport it has not earned.
         <div data-testid="content-room-scroll" className={`flex-1 min-h-0 overflow-y-auto ${mobile ? BOTTOM_NAV_PAD : ''}`}>
-          {room === 'library'
-            ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
-            : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} />}
+          <div className="flex flex-col gap-5 max-w-3xl">
+            {/* 1. The action. The hero reads the WHOLE active pile, which is
+                what its own docstring always said it did, so it belongs here
+                and not inside a lane. Inside a lane it was invisible: every
+                live idea on 2026-09-09 was unrouted, so both lanes were empty
+                and the one component that hands Krish a button never rendered. */}
+            {/* Held back until the pile has actually loaded. The hero concludes
+                "You're clear" from an empty array, so during the first fetch it
+                rendered that verdict directly above the obligation strip's
+                "Checking what needs you" spinner: two contradictory answers to
+                the same question, and a false one on top. */}
+            {!mobile && !ideasLoading && <NextBestActionHero ideas={liveIdeas} />}
+
+            {/* 2. Anything genuinely broken or already assembled. One line each,
+                and nothing at all when there is nothing. */}
+            {!mobile && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />}
+
+            {/* 3. Navigation, in a stable place under two bounded blocks. */}
+            {nav}
+
+            {/* 4. The work. */}
+            {room === 'library'
+              ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
+              : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} />}
+
+            {/* 5. The machine's open questions, last, because a proposal is
+                something to consult and never outranks a piece in review. */}
+            {!mobile && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />}
+          </div>
         </div>
       )}
 
@@ -170,8 +221,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 
 // Stored lane -> format. Mirrors laneToVenture in api/_finalPass.ts and
 // laneToCorpusChannel in api/_content.ts: map legacy values, never reject them.
-// Returns null when the lane genuinely does not say, which the rooms surface as
-// unclassified rather than guessing.
+// Returns null when the lane genuinely does not say.
 export function laneOf(lane?: string | null, slot?: string | null): RoomId | null {
   if (!lane) return null
   if (lane === 'publication') {
@@ -182,4 +232,28 @@ export function laneOf(lane?: string | null, slot?: string | null): RoomId | nul
   if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built'
   if (lane === 'techonomic' || lane === 'mindmake' || lane === 'mymu' || lane === 'makeyourmindup') return 'paid'
   return null
+}
+
+/**
+ * Where an idea belongs, stored route first and the router only as a fallback.
+ *
+ * The stored `lane_slot` is a decision somebody made and it always wins. The
+ * router fills the silence: on 2026-09-09 every one of 119 live ideas had no
+ * slot, so `laneOf` returned null for all of them, both rooms rendered empty,
+ * and the entire pile was reachable only from a drawer behind a button.
+ *
+ * `derived` is returned rather than hidden because a guess that looks like a
+ * decision is how a corpus quietly becomes wrong. The surface marks derived
+ * cards, and nothing here writes to the row: routing by use is reversible,
+ * routing by backfill is not.
+ */
+export function routeOf(idea: { lane?: string | null; lane_slot?: string | null; idea?: string | null; body?: string | null; meta?: Record<string, unknown> | null }): {
+  route: RoomId | null
+  derived: boolean
+  reason: string | null
+} {
+  const stored = laneOf(idea.lane, idea.lane_slot)
+  if (stored) return { route: stored, derived: false, reason: null }
+  const verdict = routeIdea(idea)
+  return { route: verdict.route, derived: verdict.route != null, reason: verdict.reason }
 }

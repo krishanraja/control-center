@@ -6,6 +6,7 @@ import { Pending } from '../shared/Pending'
 import { useToast } from '../shared/Toast'
 import { failureMessage, requestJson } from '../../lib/apiFetch'
 import { contentEngineAttention } from '../../lib/contentEngineSchedule'
+import { shiftIsOnBeat } from '../../lib/contentV2'
 import { useEngineHealth } from '../../hooks/useEngineHealth'
 import {
   VIDEO_GATE_LABEL,
@@ -26,11 +27,31 @@ import {
 // So obligations are ambient now. When there are none, this renders a single
 // honest line rather than an empty card, because "nothing is waiting" is real
 // information and worth saying.
+//
+// ── Two sections, and the lens filter (2026-09-09) ───────────────────────
+//
+// `section` splits this in two so the desk can put them either side of the
+// work. 'urgent' is what is broken or already assembled: a dead cron, an engine
+// missing a key, a brief waiting to be read. 'proposals' is the machine's open
+// questions, which render UNDER the room, because five theses awaiting a ruling
+// were never more important than six pieces sitting in review.
+//
+// The lens filter is the other half. The 2026-08-27 rewrite retired the
+// governance / security / proof vocabulary and added `shifts.lens`, but nothing
+// ever filtered on it, so the detector kept writing the old categories and this
+// strip kept asking Krish to rule on them. Three of the five proposals on
+// 2026-09-09 were governance, security and orchestration, matching none of his
+// eleven tracked questions. Off-beat proposals no longer render as cards. They
+// collapse into one line that says how many were discarded and why, so the
+// discard is visible and auditable without being an obligation.
 
-export function ObligationStrip({ v2, videoReviews = [] }: {
+export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
   v2: ReturnType<typeof useContentV2>
   /** Video Engine reviews waiting on a decision. Empty when the engine is off. */
   videoReviews?: VideoStudioReviewListItem[]
+  /** Which half to render. 'urgent' goes above the work, 'proposals' below it.
+   *  'all' keeps the original single-block behaviour for any other caller. */
+  section?: 'all' | 'urgent' | 'proposals'
 }) {
   const { brief, decisions, loading, runs, refresh } = v2
   const [busy, setBusy] = useState<string | null>(null)
@@ -93,9 +114,30 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
     }
   }
 
+  // A shift ruling is only worth asking for when the arc landed in one of the
+  // six lenses. `ref` on a shift decision is the shift id, so the lens comes
+  // from the register rather than from the decision payload, which predates it.
+  const lensOf = new Map(v2.shifts.map(sh => [sh.id, sh]))
+  const isShiftDecision = (d: ContentDecisionRow) => d.kind === 'shift_proposal' || d.kind === 'shift_fading'
+  const offBeat = decisions.filter(d => {
+    if (!isShiftDecision(d)) return false
+    const sh = lensOf.get(d.ref)
+    // Unknown to the register is not a discard: say nothing rather than
+    // silently binning a card whose arc simply has not loaded.
+    return sh ? !shiftIsOnBeat(sh) : false
+  })
+  const offBeatIds = new Set(offBeat.map(d => d.id))
+  const shown = decisions.filter(d => !offBeatIds.has(d.id))
+
+  const wantUrgent = section === 'all' || section === 'urgent'
+  const wantProposals = section === 'all' || section === 'proposals'
+
   // Never render the "nothing waiting" line while the answer is still loading:
   // a false statement that gets corrected later is worse than a spinner.
   if (loading) {
+    // Only one of the two halves may claim the loading state, or the desk shows
+    // the same spinner twice, once above the work and once below it.
+    if (!wantUrgent) return null
     return (
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3">
         <Pending label="Checking what needs you" />
@@ -104,17 +146,27 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
   }
 
   const hasBrief = Boolean(brief)
-  if (decisions.length === 0 && !hasBrief && videoReviews.length === 0 && engine.attention.length === 0) {
+  const urgentEmpty = !hasBrief && engine.attention.length === 0
+    && !engineHealth.scheduleDrift && engineHealth.health?.ready !== false
+  const proposalsEmpty = shown.length === 0 && videoReviews.length === 0 && offBeat.length === 0
+
+  // "Nothing is waiting" is worth saying once, on the whole tab, and only when
+  // it is true of both halves. Said by each half separately it becomes two
+  // contradictory lines above and below the work.
+  if (urgentEmpty && proposalsEmpty) {
+    if (!wantUrgent) return null
     return (
       <p className="text-label text-white/40 px-1">
         Nothing is waiting on you right now.
       </p>
     )
   }
+  if (wantUrgent && !wantProposals && urgentEmpty) return null
+  if (wantProposals && !wantUrgent && proposalsEmpty) return null
 
   return (
     <div className="flex flex-col gap-3">
-      {hasBrief && (
+      {wantUrgent && hasBrief && (
         <button
           type="button"
           onClick={() => { if (brief) window.location.hash = `#/content?brief=${brief.week}` }}
@@ -135,7 +187,7 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
         </button>
       )}
 
-      {(engineHealth.scheduleDrift || engineHealth.health?.ready === false) && (
+      {wantUrgent && (engineHealth.scheduleDrift || engineHealth.health?.ready === false) && (
         <div className="flex flex-col gap-1.5" data-testid="engine-health">
           {engineHealth.scheduleDrift ? (
             <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
@@ -150,7 +202,7 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
         </div>
       )}
 
-      {engine.attention.length > 0 && (
+      {wantUrgent && engine.attention.length > 0 && (
         <div className="flex flex-col gap-1.5" data-testid="engine-attention">
           {engine.attention.map(a => (
             <div
@@ -177,7 +229,7 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
 
       {/* A video review is a decision like any other, so it sits in the same
           strip on the desk. It used to be reachable only from the phone deck. */}
-      {videoReviews.length > 0 && (
+      {wantProposals && videoReviews.length > 0 && (
         <div className="flex flex-col gap-2" data-testid="video-review-rows">
           {videoReviews.map(review => {
             const ok = videoStudioListItemIsWellFormed(review)
@@ -204,9 +256,9 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
         </div>
       )}
 
-      {decisions.length > 0 && (
+      {wantProposals && shown.length > 0 && (
         <div className="flex flex-col gap-2">
-          {decisions.map(d => (
+          {shown.map(d => (
             <DecisionCard
               key={d.id}
               decision={d}
@@ -221,6 +273,34 @@ export function ObligationStrip({ v2, videoReviews = [] }: {
             />
           ))}
         </div>
+      )}
+
+      {/* The discards, as one auditable line rather than as cards with buttons.
+          They are shown at all because a detector that quietly drops half its
+          own output is the thing nobody can debug later. */}
+      {wantProposals && offBeat.length > 0 && (
+        <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]" data-testid="shift-discards">
+          <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2.5 text-label text-white/45">
+            <span className="tabular-nums">{offBeat.length}</span>
+            <span>
+              {offBeat.length === 1 ? 'proposal fits' : 'proposals fit'} none of your six lenses, so
+              {offBeat.length === 1 ? ' it is' : ' they are'} not asking for a ruling
+            </span>
+            <span className="ml-auto text-micro text-white/35 group-open:hidden">Show</span>
+            <span className="ml-auto hidden text-micro text-white/35 group-open:inline">Hide</span>
+          </summary>
+          <ul className="flex flex-col gap-1 px-3 pb-3">
+            {offBeat.map(d => {
+              const sh = lensOf.get(d.ref)
+              return (
+                <li key={d.id} className="text-label text-white/50">
+                  <span className="text-white/65">{String((d.payload as Record<string, unknown>)?.title || sh?.title || 'Untitled')}</span>
+                  {sh?.category ? <span className="text-micro text-white/35"> · filed {sh.category} under the retired vocabulary</span> : null}
+                </li>
+              )
+            })}
+          </ul>
+        </details>
       )}
     </div>
   )
