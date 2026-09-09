@@ -82,11 +82,12 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
 
   const subtitle =
     d.kind === 'shift_proposal'
-      // Krish asked what this button actually does and whether the system spots
-      // shifts on its own. It does (api/shifts/detect.ts, Fridays) and this card
-      // IS that output. The copy now says so, and says where Accept sends it,
-      // because a bare "Accept" made an automatic system look manual.
-      ? `The Friday sweep found this on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources. Tracking it moves it to the Shifts room, where the evidence keeps building.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
+      // Was three sentences, two of which were identical on every card: an
+      // explanation of the Friday sweep and of where Accept sends it. Five
+      // proposals meant that boilerplate rendered five times and buried the
+      // only part that differs. What the sweep is belongs in the WhyBadge, once.
+      // What is left is the evidence and the nearest thing he already tracks.
+      ? `${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Closest to what you track: ${p.nearest.title}.` : ''}`
     : d.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}. Close it out, or keep watching.`
     : d.kind === 'graduation' ? 'Keep it in the Library with its sources, or let it go.'
     : d.kind === 'purge_preview' ? 'Nothing to do here, unless you want to save something before it goes.'
