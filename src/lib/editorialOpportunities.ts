@@ -3,7 +3,11 @@ import type { PublicSeriesKey } from './publicSeries'
 
 export const EDITORIAL_SERIES = ['money_of_ai', 'built_with_ai'] as const
 export type EditorialSeries = typeof EDITORIAL_SERIES[number]
-export type EditorialStatus = 'eligible' | 'near_miss' | 'rejected' | 'no_angle'
+/** 'unjudged' is not a verdict: the lens returned no entry for this signal, so
+ *  the engine will retry it. It reads as "not judged yet" everywhere, never as
+ *  a rejection. See unjudged() in the engine's api/_editorialRadar.ts for the
+ *  outage that made the distinction necessary. */
+export type EditorialStatus = 'eligible' | 'near_miss' | 'rejected' | 'no_angle' | 'unjudged'
 
 export interface EditorialOpportunity {
   schema_version: 2
@@ -71,7 +75,7 @@ export function readEditorialOpportunity(idea: ContentIdeaRow, series: Editorial
   const candidate = record(lenses?.[series])
   if (!candidate || candidate.schema_version !== 2 || candidate.series !== series || candidate.signal_id !== idea.id) return null
   const status = candidate.status
-  if (!['eligible', 'near_miss', 'rejected', 'no_angle'].includes(String(status))) return null
+  if (!['eligible', 'near_miss', 'rejected', 'no_angle', 'unjudged'].includes(String(status))) return null
   return candidate as unknown as EditorialOpportunity
 }
 
