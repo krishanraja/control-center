@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { researchBrief } from '../../_enrich.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/contacts/:id/enrich
 // One-click, opt-in deep research for a single Relationship Engine contact.
@@ -11,6 +12,8 @@ import { researchBrief } from '../../_enrich.js'
 // Nothing is enriched automatically — Krish picks which leads are worth it.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

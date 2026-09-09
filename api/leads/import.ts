@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 // Lead document ingest endpoint.
 //
@@ -21,6 +22,8 @@ const N8N_WEBHOOK_URL =
 const AGATHA_SECRET = process.env.AGATHA_WEBHOOK_SECRET || ''
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

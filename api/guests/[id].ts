@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { promoteGuestToContact } from '../_guest-to-contact.js'
+import { guard } from '../_auth.js'
 
 // PATCH /api/guests/:id : update status, notes, scoring fields.
 
@@ -19,6 +20,8 @@ const ALLOWED_STATUS = new Set([
 const ALLOWED_TARGET = new Set(['signal_noise', 'builder_economy', 'either'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['PATCH'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

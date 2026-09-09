@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 /**
  * POST /api/tasks/update
@@ -76,6 +77,8 @@ async function logKrishAction(taskId: string, action: string, agent?: string, no
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' })
 

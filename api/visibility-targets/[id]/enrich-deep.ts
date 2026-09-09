@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { researchBrief } from '../../_enrich.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/visibility-targets/:id/enrich-deep
 // Deep-enriches a visibility target. Prefers Nova's Visibility Deep Enrich N8N
@@ -10,6 +11,8 @@ import { researchBrief } from '../../_enrich.js'
 // fills why_relevant only when empty.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

@@ -6,6 +6,7 @@ import {
   weekEndingFor, deriveWeek, mergeOverrides, loadRows, weekValues, sumValues, gapTo,
   overrideKey, type ScorecardCol, type ScorecardRow,
 } from '../_scorecard.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/scorecard
@@ -25,6 +26,8 @@ import {
  */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['PATCH'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { compileWorry, CompilerSchemaError } from '../_worry-prompt.js'
 import { resolveTz, ymdIn, shiftYmd as tzShift } from '../_timezone.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/pilot/worries
@@ -29,6 +30,8 @@ const WEATHER_DAYS = 7
 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['PATCH', 'POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

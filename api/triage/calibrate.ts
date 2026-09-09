@@ -4,6 +4,7 @@ import {
   TABLE_OF_DOMAIN, DOMAIN_OF, DEFAULT_WEIGHTS,
   features, titleOf, fetchEligible, saveConfig, loadConfig,
 } from '../_grader.js'
+import { guard } from '../_auth.js'
 
 /**
  * Grader calibration on REAL rows (best-worst / MaxDiff).
@@ -26,6 +27,8 @@ import {
 const DOMAINS = Object.keys(TABLE_OF_DOMAIN)
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' })
 

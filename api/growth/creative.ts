@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { preamble } from '../_content.js'
 import { PRODUCT_SLUGS, CREATIVE_STAGES, text, bodyId, mondayOf } from '../_growth.js'
+import { guard } from '../_auth.js'
 
 // /api/growth/creative: the Higgsfield creative board (brief to posted).
 //
@@ -20,6 +21,8 @@ const EDITABLE = [
 ] as const
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+
   if (preamble(req, res, 'GET, POST, PATCH, OPTIONS')) return
 
   if (req.method === 'GET') {

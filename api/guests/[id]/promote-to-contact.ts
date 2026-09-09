@@ -1,9 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { promoteGuestToContact } from '../../_guest-to-contact.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/guests/:id/promote-to-contact
 // Promote a recorded/published guest into the Network as a contact. Idempotent.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

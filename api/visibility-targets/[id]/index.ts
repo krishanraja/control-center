@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
+import { guard } from '../../_auth.js'
 
 // GET /api/visibility-targets/:id  — fetch a single target (any column).
 // PATCH /api/visibility-targets/:id — update notes / next_actions / status fields.
@@ -11,6 +12,8 @@ const ALLOWED_FIELDS = new Set([
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['PATCH'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

@@ -1,9 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 const ALLOWED_STATUS = new Set(['live', 'won', 'lost', 'paused'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['PATCH'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

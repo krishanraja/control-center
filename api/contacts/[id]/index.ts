@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { canonicalVenture } from '../../_venturePositioning.js'
+import { guard } from '../../_auth.js'
 
 // PATCH /api/contacts/:id — light edits from the Network detail sheet.
 // Reassign a contact's venture (e.g. a recorded Signal & Noise guest who's
@@ -32,6 +33,8 @@ const KNOWN_VENTURES = new Set([
 const KNOWN_STATUSES = new Set(['active', 'dormant', 'closed', 'do_not_contact'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['PATCH'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

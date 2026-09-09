@@ -8,6 +8,7 @@ import {
   type GuestCandidate, type GuestFormat,
 } from './_guestSources.js'
 import { SYNTHESIS_MODEL } from './_models.js'
+import { guard } from './_auth.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // discover-guest-scout — find people worth interviewing, for a named format.
@@ -256,6 +257,8 @@ async function recordSilentFailure(detail: string): Promise<void> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
   }

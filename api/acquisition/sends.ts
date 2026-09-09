@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/acquisition/sends — the send-approval write surface (one endpoint, both verbs).
@@ -24,6 +25,8 @@ const DISPATCH_WEBHOOK =
   'https://krishraja10101.app.n8n.cloud/webhook/acquisition-send-dispatch'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

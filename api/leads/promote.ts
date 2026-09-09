@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 /**
  * POST /api/leads/promote
@@ -12,6 +13,8 @@ import { supabase } from '../_supabase.js'
  * task without creating a duplicate.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method_not_allowed' })
     return

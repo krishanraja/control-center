@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { deliverEmailDraft } from '../_emailDraft.js'
 import { directionSpine } from '../_direction.js'
+import { guard } from '../_auth.js'
 
 /**
  * /api/acquisition/replies — the nurture reply inbox.
@@ -28,6 +29,8 @@ const PRODUCT_SENDER: Record<string, string> = {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

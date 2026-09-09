@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guard } from '../_auth.js'
 
 const AGATHA_SECRET = '5fa357ecd8df1b30e508523b7c31d2870731ced4d01187e7'
 const ORCHESTRATOR_URL = 'https://krishraja10101.app.n8n.cloud/webhook/mindmaker-orchestrator'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

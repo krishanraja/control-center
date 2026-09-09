@@ -5,8 +5,11 @@ import { syncNorthStar } from './_northStar.js'
 import { isJob } from './_mission.js'
 import { resolveTz } from './_timezone.js'
 import { logGoalChange } from './_goals.js'
+import { guard } from './_auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['DELETE', 'PATCH', 'POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

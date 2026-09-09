@@ -2,11 +2,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { loadOutboundVoice } from '../../_voice.js'
 import { deliverEmailDraft } from '../../_emailDraft.js'
+import { guard } from '../../_auth.js'
 
 // POST /api/customers/:id/draft-email
 // Server-side proxy to the Cleo Email Draft N8N workflow for customers.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

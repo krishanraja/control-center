@@ -6,6 +6,7 @@ import { logGoalChange } from '../_goals.js'
 import { isJob } from '../_mission.js'
 import { resolveTz } from '../_timezone.js'
 import { targetWeekStartIn } from '../_week.js'
+import { guard } from '../_auth.js'
 
 // Objective Layer, Phase 4.
 // GET  /api/objectives           list active objectives (plus optional nominations)
@@ -52,6 +53,8 @@ function setCors(res: VercelResponse) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+
   setCors(res)
   if (req.method === 'OPTIONS') return res.status(200).end()
 

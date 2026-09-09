@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guard } from '../../_auth.js'
 
 // POST /api/automations/:workflow_id/rerun
 //
@@ -8,6 +9,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // the user must trigger via the n8n UI's "Execute Workflow" button.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

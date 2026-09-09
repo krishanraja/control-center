@@ -4,6 +4,7 @@ import { goalsSpine } from './_goals.js'
 import { openStream, send, fail, streamClaude } from './_stream.js'
 import { groundTab, isTabId, TAB_LABELS } from './_tabGrounding.js'
 import { SYNTHESIS_MODEL } from './_models.js'
+import { guard } from './_auth.js'
 
 /**
  * POST /api/tab-chat
@@ -51,6 +52,8 @@ Rules:
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (guard(req, res, ['POST'])) return
+
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
