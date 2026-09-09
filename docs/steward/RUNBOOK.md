@@ -2,7 +2,7 @@
 
 Status: Current
 Owner: Krish Raja
-Last verified: 2026-09-07 against `.github/workflows/docs-steward.yml` and `scripts/steward/`
+Last verified: 2026-09-09 against `.github/workflows/docs-steward.yml` and `scripts/steward/`
 
 This is the authoritative, versioned procedure. The GitHub Actions workflow
 points here and adds nothing of its own. Change this file to change what the

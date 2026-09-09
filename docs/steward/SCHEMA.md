@@ -2,7 +2,7 @@
 
 Status: Current
 Owner: Krish Raja
-Last verified: 2026-09-07 against `scripts/steward/validate.mjs`
+Last verified: 2026-09-09 against `scripts/steward/validate.mjs`
 
 The steward adds exactly two files to every repo in `fleet.json`. Everything
 else in a repo keeps its own structure, voice, naming, stamp form and archive

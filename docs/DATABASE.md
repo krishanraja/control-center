@@ -763,6 +763,19 @@ in [ADR-008](./DECISIONS/008-security-hardening-and-auth-rls-scope.md)):
   `SECURITY INVOKER` is gated on the auth work in ADR-008 — do not change them
   standalone or Home goes blank.
 
+**2026-09-09**: `audit_failure_patterns()` (`SECURITY DEFINER`) joined the
+service-role-only list, and 24 tables' `USING(true)` anon/public write
+policies were revoked or narrowed to what the app actually calls; full
+breakdown in [`DB_HEALTH.md`](./DB_HEALTH.md#anonymous-write-closure-2026-09-09-pr-306).
+The same day, `public.log_workflow_run(p_workflow_id, p_status, p_outcome)`
+was created, the n8n heartbeat RPC the Silent Success Detector had been
+calling for months against a function that never existed. It is deliberately
+`SECURITY INVOKER`, not definer: the caller may hold the anon key, and an
+invoker function adds no write capability beyond what `workflow_runs`'
+existing policies already grant. Derives `agent_id` (`NOT NULL`, no default)
+from the workflow name prefix, falling back to the last known name in
+`workflow_runs` or `workflow_health`, then to `system`.
+
 ### Migration ledger
 
 `supabase_migrations.schema_migrations` was reconciled on 2026-07-01: 17

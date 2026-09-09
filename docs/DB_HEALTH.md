@@ -49,12 +49,54 @@ specific one.
 | Advisor | Count | Why left as-is |
 |---|---|---|
 | 0010 `security_definer_view` (ERROR) | 4 | `decisions_waiting`, `triage_queue`, `standards_efficacy`, `attribution_app_health`. **`decisions_waiting` is the view the entire dashboard reads via the anon key** — it is SECURITY DEFINER *on purpose* so anon can read it without per-table RLS. Converting to SECURITY INVOKER would blank the app. Proper fix = design explicit RLS on the underlying tables first, then convert. Product decision. |
-| 0024 `rls_policy_always_true` (WARN) | 37 | `USING(true)` write policies on `tasks`, `approvals`, `feedback_queue`, `content_ideas`, etc. These are **load-bearing**: the app's one-click actions write with the anon key and rely on them. Tightening requires introducing auth/ownership semantics first. Product decision. |
+| 0024 `rls_policy_always_true` (WARN) | 37 at audit time; 24 tables closed or narrowed 2026-09-09 (see below) | `USING(true)` write policies on `tasks`, `approvals`, `feedback_queue`, `content_ideas`, etc. The ones the app actually calls with the anon key (`audit_log`, `tasks`, `pending_flags`, `workflow_proposals`, `workflow_runs`) are still **load-bearing** and still gated on the ADR-008 auth cutover for a real per-user replacement. The rest had no anon caller anywhere in the codebase and were closed directly, without waiting for auth. |
 | 0008 `rls_enabled_no_policy` (INFO) | 16 | RLS is on with no policy → already deny-all to anon/authenticated (secure). Benign; touched by service-role paths only. |
 | 0014 `extension_in_public` (WARN) | 2 | `vector` and `http` live in `public`. Moving them can break unqualified references across many functions. Low priority; schedule with a references sweep. |
 
 Net: **142 → ~59** advisories remaining, all of which are the "needs a design
 decision" class above rather than quick fixes.
+
+## Anonymous write closure (2026-09-09, PR #306)
+
+Found by reading `pg_policies` directly rather than the advisor: 24 tables
+carried an `INSERT`, `UPDATE`, `DELETE` or `ALL` policy granted to `anon` or
+`public`, including `standards_registry` (169 rules) and `agent_plans`
+(per-agent strategy) as `ALL to public`, and `schema_migrations` as `ALL to
+anon`. The anon key ships in the browser bundle of a publicly deployed repo,
+so every one of those was writable by anyone who read the key out of it.
+
+Migration `20260909110000_revoke_anon_writes.sql`. Caller-audited first, the
+same discipline as the 2026-07-01 pass: `service_role` bypasses RLS so no
+`api/` writer is affected; the frontend's only anon writes are `audit_log`
+insert, `tasks` update, `pending_flags` update, `workflow_proposals` update,
+and `visibility_targets` insert/update.
+
+- **20 tables revoked outright**: no anon or public writer anywhere in the
+  codebase (`agent_capabilities`, `agent_plans`, `api_endpoints`, `approvals`,
+  `contacted_persons`, `corrections`, `credential_health`, `feedback_queue`,
+  `goals`, `hunter_seen_roles`, `kai_workflow_snapshots`,
+  `maya_competitive_changes`, `maya_reddit_accounts`,
+  `maya_striking_distance`, `memory`, `schema_migrations`,
+  `standards_registry`, `sync_queue`, `vera_audit`, `workstream_contexts`).
+- **2 narrowed to update-only**: `pending_flags` and `workflow_proposals`
+  (the dashboard updates these, never inserts or deletes).
+- **Left open on purpose**: `workflow_runs`. 8 of its 61 n8n writers
+  authenticate with n8n's stored `supabaseApi` credential, whose value cannot
+  be read through the n8n API; if it holds the anon key, revoking would
+  silence their heartbeat. This is the one remaining anonymous write hole,
+  pending that credential check. `audit_log` and `tasks` are untouched; the
+  dashboard writes both directly with the anon key by design.
+
+Reads were not addressed in this pass; `contacts` (10,768 rows), `customers`,
+`leads`, `agents.brief_content` and `system_config` remain anon-readable and
+are a separate table-by-table pass, personal data first.
+
+Same day, a second migration
+(`20260909120000_alarm_report_only.sql`) stopped `audit_failure_patterns()`
+writing `corrections` rows, per Krish's ruling, recorded in
+[`OBSERVABILITY.md`](./OBSERVABILITY.md#the-silent-failure-tier-model-pr-54).
+It is `SECURITY DEFINER` and was revoked from `anon`/`authenticated` the same
+way as the 2026-07-01 pass, granted to `service_role` only.
 
 ## Drift restoration (2026-08-21)
 

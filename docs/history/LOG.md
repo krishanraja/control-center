@@ -5,6 +5,11 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-09-09
+
+- reconciled at `74a9c76e`: six commits since the last reconciliation (`caa34027`) had documentation consequences. `docs/SECURITY.md`, `docs/DB_HEALTH.md` and `docs/DATABASE.md` were stale on two points: the "Today" auth table said `/api/*` write routes carried no auth (75 of 141 now call `guard()`, PR #308), and the `USING(true)` write-policy row said tightening was blocked on the ADR-008 auth cutover (24 tables were narrowed directly on 2026-09-09 without it, PR #306, because they had no anon caller in the codebase at all). `docs/OBSERVABILITY.md`'s tier-4 row said a failure cluster still wrote a `corrections` row; it is report only since Krish's ruling the same day. `docs/CONTENT-ENGINE-V2-SPEC.md` gained a dated addendum for the Content tab layout and routing fix (PR #307) and the obligation strip's Run again button (PR #305). `NOW.md` re-headed to `74a9c76e` with six new bullets.
+- note: `docs/steward/RUNBOOK.md` and `docs/steward/SCHEMA.md` stamps bumped to 2026-09-09 after checking their bodies against the current `.github/workflows/docs-steward.yml` and `scripts/steward/validate.mjs`; no content drift found in either.
+
 ## 2026-09-07
 
 - decision (Krish, 2026-09-07): the docs steward is adopted across eight repos. `NOW.md` at the root is the one file agents are promised is current; this log is where superseded material goes instead of being deleted. Procedure: `docs/steward/RUNBOOK.md`. The three weekly "Documentation Refresh" Routines that wrote to unmerged `claude/*` branches were deleted by Krish the same day (recorded in `docs/MINDMAKE_OS_ARCHITECTURE.md` section 0c, #281).

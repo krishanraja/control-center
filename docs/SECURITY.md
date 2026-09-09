@@ -20,7 +20,9 @@
 | Compromised Supabase service-role key | Yes | Most damaging single secret; full DB access. |
 | Hostile collaborator | Out of scope | Single-operator product. Audit log gives forensic recovery if this changes. |
 | Multi-tenant data leakage | Out of scope today | Single-operator today. A real auth + RLS model is scoped in ADR-008. |
-| Public anon key calling privileged RPCs | Closed (2026-07-01) | `SECURITY DEFINER` functions were revoked from anon/authenticated → service-role-only. See below + [`DB_HEALTH.md`](./DB_HEALTH.md). |
+| Public anon key calling privileged RPCs | Closed (2026-07-01, extended 2026-09-09) | `SECURITY DEFINER` functions were revoked from anon/authenticated → service-role-only; `audit_failure_patterns()` closed the same way 2026-09-09. See below + [`DB_HEALTH.md`](./DB_HEALTH.md). |
+| Anon key writing tables it has no legitimate write path to | Closed (2026-09-09, PR #306) | 24 tables carried an anon or public write policy with no caller anywhere in the codebase (`standards_registry` and `agent_plans` were `ALL to public`). 20 revoked outright, 2 narrowed to the single update the dashboard performs. See below + [`DB_HEALTH.md`](./DB_HEALTH.md). |
+| `/api/*` write routes reachable with no credential | Closed (2026-09-09, PR #308) | 75 of 141 routes accepted a write with no auth check, 22 of them reaching the outbound dispatcher on the service-role key (bypasses RLS entirely). All but the deliberate exceptions now call `guard()`. See "Today" below. |
 | End-user XSS | Low | UI never renders user-supplied HTML; markdown is plaintext-rendered today. |
 
 ---
@@ -75,11 +77,12 @@ incident.
 | Surface | Auth |
 |---|---|
 | Web UI | Edge gate (`middleware.ts`): a single-field access-code page that, on the right `ACCESS_CODE`, sets a SHA-256 cookie and lets the request through. A curtain against casual/public access, **not** real authentication — a technical visitor can still reach the Supabase data layer directly (anon key + RLS). Fails open if `ACCESS_CODE` is unset. |
-| `/api/*` | Not gated by the edge middleware (see `matcher` in `middleware.ts`); each endpoint keeps its own model below. |
+| `/api/*` | Not gated by the edge middleware (see `matcher` in `middleware.ts`); most write methods now re-check the same `ACCESS_CODE` cookie at the route (`guard()` in `api/_auth.ts`), since 2026-09-09 (PR #308). |
 | `/api/sync` | Shared-secret header `x-sync-secret` (optional in dev when `SYNC_SECRET` is unset). |
-| `/api/trigger-agent` | None today. |
-| `/api/health` | None today (intentionally — used by external monitors). |
-| Other `/api/*` | None today. |
+| `/api/trigger-agent` | `guard()`, same cookie as the web UI, since 2026-09-09. |
+| `/api/health`, `/api/sonnet-proxy`, `/api/tasks-inbox/digest` | None (intentionally: used by external monitors and n8n). |
+| 18 dual-method routes (e.g. `/api/data`, `/api/goals`) | `GET` stays open by Krish's ruling (PR #308); non-`GET` methods call `guard()`. |
+| Other `/api/*` write routes | `guard()`, same cookie, since 2026-09-09 (PR #308). `guard()` fails open only if `ACCESS_CODE` itself is unset, matching the edge gate. `scripts/test-guard.ts` covers the cookie, method and CORS-origin cases. |
 
 ### Tomorrow (planned, not implemented)
 
@@ -109,7 +112,7 @@ rationale in [ADR-008](./DECISIONS/008-security-hardening-and-auth-rls-scope.md)
 | Function `search_path` | Pinned on all user-defined functions (advisor 0011) — closes search-path injection. |
 | `SECURITY DEFINER` function EXECUTE | Revoked from `public`/`anon`/`authenticated`, granted to `service_role` only. Privileged admin RPCs are no longer callable with the public anon key. |
 | `SECURITY DEFINER` views (`decisions_waiting`, `triage_queue`, …) | Intentionally left definer — the anon dashboard reads them without per-table RLS. Converting to invoker is gated on the auth work (ADR-008). |
-| `USING(true)` write policies | Load-bearing for one-click anon writes today; replaced by real RLS under the auth work (ADR-008). |
+| `USING(true)` write policies | Narrowed 2026-09-09 (PR #306), ahead of and separate from the ADR-008 auth cutover: 24 tables carried an anon/public write policy with no caller in the codebase; 20 revoked, 2 (`pending_flags`, `workflow_proposals`) narrowed to update-only. What remains open to anon writes (`audit_log`, `tasks`, `pending_flags` update, `workflow_proposals` update, and `workflow_runs` pending an n8n credential check) is exactly what the app calls with the anon key today. Still load-bearing for those five; still gated on ADR-008 for the eventual move to per-user RLS. |
 
 **Do not** enable RLS or tighten a write policy on a table the anon client reads
 or writes without the auth cutover in ADR-008 — it will break the live app.

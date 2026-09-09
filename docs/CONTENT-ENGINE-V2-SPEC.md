@@ -88,6 +88,28 @@ Model tiering per MT-003: Sonnet for detect/assemble/essay; Haiku for why-lines 
 > weekly detector also heals missing lanes on re-detection. The section
 > below is the original spec, kept for the intent and the details that
 > still hold (composer, feed semantics, purge).
+>
+> **2026-09-09 (#307): one scroller, Krish's own work first, and routing
+> that admits what it does not know.** The tab used to be two independently
+> scrolling, height-capped boxes (an obligation strip and the room below),
+> so neither could borrow space from the other; it opened with five machine
+> questions and none of Krish's own work on screen. Now one content-sized
+> scroller, ordered the one action, then the room, then "Also waiting"
+> (proposals). Room badges and rooms now share one predicate (`isActiveIdea`)
+> instead of two disagreeing ones. `shiftIsOnBeat` (`src/lib/contentV2.ts`)
+> filters shifts to the eleven tracked questions post-rewrite; off-beat arcs
+> collapse into one line instead of dead buttons. `src/lib/contentRouting.ts`
+> derives a format for ideas with no stored `lane_slot` (roughly all 119 live
+> ones at the time) from the idea's own text, with three outcomes, not two:
+> routed, refused by name with a reason (roughly 30% of the corpus is
+> governance, safety and incident news fitting neither masthead), or
+> honestly undecided. It never overwrites a stored route. Radar signals the
+> lens never answered for are recorded as `unjudged`, not silently coerced
+> into `no_angle`. Every one of these is a read-time or detection-time fix;
+> no backfill was run. The `ObligationStrip`'s engine attention rows also
+> gained a **Run again** button (2026-09-08, #305) wired to each engine's
+> own replay route, so a job that failed mid-week does not sit unactionable
+> until the next scheduled run.
 
 Four rooms replaced mode-switched triage (the original design; the v1 files are gone):
 

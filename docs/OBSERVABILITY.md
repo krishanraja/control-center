@@ -38,11 +38,35 @@ catch it:
 | 1 | `completeness_contracts` row per workflow_id, gated by the workflow's terminal node | Real-time per execution | "Did this workflow write at least `expected_min_rows` rows with `expected_columns` populated within `freshness_window_hours`?" |
 | 2 | Silent Success Detector (N8N system workflow) | Every 4h | For each (workflow_id, ok=true) run, checks downstream effects. Zero effects → tier-2 row. |
 | 3 | Critical Infrastructure Monitor (N8N system workflow) | Every 5m | Watches `credential_health`, `system_health`, RLS denials. Critical issues → tier-3 row. **Anchors Home `CriticalAlertBanner` via `useCriticalAlerts`.** |
-| 4 | Vera Failure Pattern Sweep (N8N) | Weekly (Sun 07:00 UTC) | Groups tier-1/2/3 over the last 7 days; ≥3 matching failures → `corrections` row → Agatha brief edit. |
+| 4 | Vera Failure Pattern Sweep (N8N) | Weekly (Sun 07:00 UTC) | Groups tier-1/2/3 over the last 7 days; ≥3 matching failures cluster via `audit_failure_patterns()`. **Report only since 2026-09-09 (Krish's ruling)**: it no longer writes a `corrections` row or an Agatha brief edit; see below. |
+
+**2026-09-09: the detector watching for silent failures had one of its own.**
+The tier-2 detector's own heartbeat call, `POST
+/rest/v1/rpc/log_workflow_run` at the end of every run, targeted a function
+that had never existed in this schema. The workflow whose entire job is
+catching jobs that run and do nothing had itself been running, doing nothing
+useful with the call, and unable to record that it ran at all. Fixed by
+creating `public.log_workflow_run()` (`DATABASE.md`); this was the only
+caller found, not a fleet-wide gap.
+
+**2026-09-09: tier 4 stopped writing into a void.** Eleven `corrections` rows
+from this sweep had sat at `approval_state='proposed'` for up to seventeen
+days, unread, while `silent_failures` held 20+ workflows logging
+`runtime_failing` with zero resolutions ever recorded and
+`escalated_to_krish_at` never set once in the table's history. Krish's
+ruling: keep the detection (`silent_failures` is the useful signal and is how
+this was found), stop the automatic queue-filling nobody was reading.
+`audit_failure_patterns()` still clusters and returns the same shape for
+on-demand reads; it just no longer inserts.
 
 The promise: **same silent failure does not survive a week.** Control
 Center surfaces the output but does not run these — they live in the OS
-infrastructure (see `MINDMAKE_OS_ARCHITECTURE.md` §7.7).
+infrastructure (see `MINDMAKE_OS_ARCHITECTURE.md` §7.7). As of 2026-09-09,
+the "does not survive a week" half of that promise is unfulfilled for
+tier-4 clusters specifically: nothing acts on them automatically, and there
+is no other automatic path to `corrections` in its place. 269 unresolved
+`silent_failures` rows remain, oldest 2026-06-15, waiting on Krish, not
+a docs gap.
 
 ---
 
