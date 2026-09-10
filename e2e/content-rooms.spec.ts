@@ -1,24 +1,39 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 
 /**
- * Built vs Paid must actually differ. Twenty of the register's shifts carry no
- * lane on purpose (governance, security and org cut across both formats), and
- * they used to render in BOTH rooms unlabelled — which read as one duplicated
- * room. The contract now: a room leads with its own shifts, and cross-cutting
- * shifts follow under a header that says why they repeat.
+ * Built vs Paid must actually differ. A shift with no LANE is cross-cutting and
+ * used to render in BOTH rooms unlabelled, which read as one duplicated room.
+ * The contract: a room leads with its own shifts, and cross-cutting shifts
+ * follow under a header that says why they repeat.
+ *
+ * Both fixtures carry a `lens`, because since the 2026-08-27 rewrite that is
+ * what decides whether an arc surfaces at all: `shiftIsOnBeat` is
+ * `Boolean(s.lens && LENS_LABEL[s.lens])`, and ShiftsRoom drops everything else
+ * before it splits own from cross-cutting. These fixtures used to carry only
+ * the retired `category` vocabulary, so every one of them was filtered out and
+ * the room fell through to its "no shifts in your six lenses yet" state. The
+ * four specs below have been red on main since #307 for that reason: the
+ * product changed underneath them and the fixtures did not follow.
+ *
+ * `category` stays on the rows because ShiftRow still carries it, frozen, as
+ * history. It is deliberately NOT what these specs turn on.
  */
 
 const SHIFTS = [
   {
     id: 's-built', slug: 'agents-in-ci', title: 'Agent teams are moving into CI pipelines',
-    summary: 'x', implication: 'x', category: 'tools', status: 'active', lane: 'built',
+    summary: 'x', implication: 'x', category: 'tools', lens: 'build_practice',
+    status: 'active', lane: 'built',
     first_seen_on: '2026-07-01', last_evidence_on: '2026-08-20',
     momentum: 4, momentum_history: [{ week: '2026-W32', momentum: 3 }, { week: '2026-W33', momentum: 4 }],
     day_span_total: 9, source_count_total: 5, story_count: 12, provenance: 'lived', decision: null,
   },
   {
+    // No lane: this is the cross-cutting one, which is what the fourth spec
+    // turns on. It still needs a lens to reach a room at all.
     id: 's-cross', slug: 'veto-power', title: 'Governments claim pre-release veto power over frontier AI',
-    summary: 'x', implication: 'x', category: 'governance', status: 'proposed', lane: null,
+    summary: 'x', implication: 'x', category: 'governance', lens: 'category_positioning',
+    status: 'proposed', lane: null,
     first_seen_on: '2026-07-10', last_evidence_on: '2026-08-21',
     momentum: 3, momentum_history: [{ week: '2026-W33', momentum: 3 }],
     day_span_total: 7, source_count_total: 4, story_count: 9, provenance: 'lived', decision: null,
