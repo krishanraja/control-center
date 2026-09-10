@@ -15,7 +15,31 @@ import type { RoomProposal, RoomState } from '../../hooks/useRoom'
 // because that is where the work waits; every other state is one chip away
 // so a sent approach can be moved along when the reply comes.
 
-const SUBTITLE = 'Mindmake sales list: up to 25 leaders you already know at PE or VC backed media, adtech and data companies. The OS finds a news hook and drafts the note. You send.'
+// What the page is, why it matters, what to do next — the three questions the
+// lane failed to answer on a phone, where the explanation never rendered at all.
+// The offer is the door from `api/_mission.ts`, restated in the second person;
+// `api/` is server-only so the constant cannot be imported here.
+export const ROOM_PURPOSE = 'People you already know who could pay for a three week private diagnostic.'
+export const ROOM_OFFER = 'What you are selling: a confidential room. Three weeks, a fixed fee, and they come out knowing where they stand, what is coming for their business, and what to do first.'
+/** Short enough for the phone header, which truncates. */
+export const ROOM_SUBTITLE = '25 leaders you already know'
+
+/** Anyone who has been written to, at any point along the ladder. */
+const ASKED_STATES: RoomState[] = [
+  'sent', 'replied', 'call_booked', 'call_taken', 'room_booked', 'room_paid',
+]
+
+/**
+ * The arithmetic from the charter, against the real counts: 25 approaches buy
+ * 5 calls buy 1 paid room by 5 December (docs/plans/one-swing/CHARTER.md).
+ * Saying it here is the whole answer to "why am I looking at these people".
+ */
+function progressLine(counts: Record<string, number>): string {
+  const onList = ROOM_STATES.reduce((n, s) => n + (s === 'not_now' ? 0 : (counts[s] || 0)), 0)
+  const asked = ASKED_STATES.reduce((n, s) => n + (counts[s] || 0), 0)
+  const list = onList === 1 ? '1 person on the list' : `${onList} people on the list`
+  return `${list}, ${asked} asked so far. The plan needs about 25 asks to get 5 calls and one paid room by 5 December.`
+}
 
 /** Plain words for the search stages the server reports as skipped. */
 function degradedWords(stages: string[]): string {
@@ -112,7 +136,6 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
         <Users size={20} className="text-violet-300" />
         The Room
       </h1>
-      <p className="text-body text-white/55 mt-1">{SUBTITLE}</p>
       <FreshnessLine lane="room" />
     </header>
   )
@@ -130,9 +153,15 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
       {header}
 
+      <section data-testid="room-purpose" className="space-y-1.5">
+        <p className="text-body text-white/75 leading-snug">{ROOM_PURPOSE}</p>
+        <p className="text-label text-white/50 leading-snug">{ROOM_OFFER}</p>
+        <p className="text-label text-white/50 leading-snug">{progressLine(stateCounts)}</p>
+      </section>
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p data-testid="room-counts" className="text-label text-white/55">
-          {counts || (error ? 'The Room could not be read.' : 'Nobody listed yet.')}
+          {counts || (error ? 'The Room could not be read.' : 'Nobody is on the list yet.')}
         </p>
         <button
           type="button"
@@ -178,7 +207,7 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
       {proposals && proposals.length > 0 && (
         <section aria-label="Proposed leaders" className="space-y-2">
           <p className="text-label text-white/55">
-            Found in your network. Accept puts them on the list; nothing is added on its own.
+            These come from your own contacts. Nothing is added until you tap Accept.
           </p>
           {proposals.map(p => (
             <div
@@ -235,10 +264,10 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
           {view
             ? `Nobody is ${ROOM_STATE_LABEL[view].toLowerCase()} right now.`
             : proposals?.length
-              ? 'Accept the ones who fit. The Monday run drafts a note for everyone listed.'
+              ? 'Keep the ones who fit. The Monday run drafts a note for everyone on the list.'
               : seeding
                 ? 'Looking through your network for five who fit the face.'
-                : 'Nobody listed yet. Find five to start.'}
+                : 'Nobody is on the list yet. Find five to start, then the Monday run drafts a note for each one.'}
         </p>
       ) : (
         <div className={narrow ? 'space-y-3' : 'grid grid-cols-1 xl:grid-cols-2 gap-4'}>

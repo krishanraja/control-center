@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
@@ -36,7 +36,21 @@ const QUIET_CLASS =
 export function RoomCard({ target: t, onChanged }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'primary' | 'quiet' | 'save' | 'draft'>(null)
+  // `body` is a local draft buffer over a row that refetches every 60s and
+  // changes under us the moment "Draft it" lands. Seeding it once and never
+  // resyncing meant a freshly generated draft rendered as an EMPTY box, which
+  // then made "Save draft" appear (body !== draft_body) and write '' straight
+  // over the draft the model had just produced. So: track what the server last
+  // told us, and adopt a new server value whenever there is nothing unsaved to
+  // lose.
   const [body, setBody] = useState(t.draft_body || '')
+  const serverBody = useRef(t.draft_body || '')
+  useEffect(() => {
+    const next = t.draft_body || ''
+    if (next === serverBody.current) return
+    setBody(prev => (prev === serverBody.current ? next : prev))
+    serverBody.current = next
+  }, [t.draft_body])
   const [payOpen, setPayOpen] = useState(false)
   const [cash, setCash] = useState('')
 
@@ -165,7 +179,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
             className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-white/85 focus:border-violet-500/40 focus:outline-none resize-y"
           />
           <div className="mt-1 flex items-center gap-2 flex-wrap">
-            {body !== (t.draft_body || '') && (
+            {body !== (t.draft_body || '') && !(body.trim() === '' && (t.draft_body || '') !== '') && (
               <button
                 type="button"
                 onClick={saveDraft}
