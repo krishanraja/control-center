@@ -42,14 +42,19 @@ interface Props<T extends string> {
 }
 
 const TRAY: Record<NonNullable<Props<string>['variant']>, string> = {
-  pill: 'flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 flex-shrink-0',
+  // Wraps rather than scrolls. A horizontal scroller with no affordance hid
+  // the last two of Growth's five pills off the right edge of a 390px phone,
+  // and a pill the reader cannot see is a section they do not know exists.
+  // Every caller passes three to five short labels, so two rows is the worst
+  // case and nothing is ever out of reach.
+  pill: 'flex flex-wrap gap-1.5 -mx-1 px-1 flex-shrink-0',
   bordered: 'flex gap-1',
   segmented: 'flex gap-1 rounded-xl border border-white/10 bg-command-surface p-1 shadow-e1',
 }
 
 const TAB: Record<NonNullable<Props<string>['variant']>, { base: string; on: string; off: string }> = {
   pill: {
-    base: 'min-h-[40px] px-3.5 py-1.5 rounded-full text-body whitespace-nowrap border transition-colors',
+    base: 'min-h-[40px] px-3 py-1.5 rounded-full text-body whitespace-nowrap border transition-colors',
     on: 'btn-contrast border-violet-400 font-semibold shadow-[0_6px_18px_-12px_rgba(127,227,180,.65)]',
     off: 'border-white/10 text-muted hover:text-strong hover:bg-white/[0.06]',
   },

@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 import { Modal } from '../shared/Modal'
-import { draftRoom, patchRoom, ROOM_STATE_LABEL } from '../../hooks/useRoom'
+import { ASK_LABEL, draftRoom, patchRoom, ROOM_STATE_LABEL } from '../../hooks/useRoom'
 import type { RoomRow, RoomState } from '../../hooks/useRoom'
 
 // One leader in the Room. The card carries who they are, why they fit the
@@ -36,7 +36,21 @@ const QUIET_CLASS =
 export function RoomCard({ target: t, onChanged }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'primary' | 'quiet' | 'save' | 'draft'>(null)
+  // `body` is a local draft buffer over a row that refetches every 60s and
+  // changes under us the moment "Draft it" lands. Seeding it once and never
+  // resyncing meant a freshly generated draft rendered as an EMPTY box, which
+  // then made "Save draft" appear (body !== draft_body) and write '' straight
+  // over the draft the model had just produced. So: track what the server last
+  // told us, and adopt a new server value whenever there is nothing unsaved to
+  // lose.
   const [body, setBody] = useState(t.draft_body || '')
+  const serverBody = useRef(t.draft_body || '')
+  useEffect(() => {
+    const next = t.draft_body || ''
+    if (next === serverBody.current) return
+    setBody(prev => (prev === serverBody.current ? next : prev))
+    serverBody.current = next
+  }, [t.draft_body])
   const [payOpen, setPayOpen] = useState(false)
   const [cash, setCash] = useState('')
 
@@ -135,6 +149,26 @@ export function RoomCard({ target: t, onChanged }: Props) {
 
       <p className="text-label text-white/70 mt-2">{t.why_face}</p>
 
+      {/* What to ask THIS person. The lane ranked on warmth and never said what
+          the ask was, so a close collaborator and a stranger read identically
+          and neither card answered "what am I supposed to do with them". */}
+      {t.ask_line && (
+        <p data-testid="room-ask" className="text-label text-white/80 mt-1.5">
+          {t.ask_kind && (
+            <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
+              t.ask_kind === 'buyer'
+                ? 'bg-emerald-500/15 text-emerald-200'
+                : t.ask_kind === 'collaborator'
+                  ? 'bg-amber-500/15 text-amber-200'
+                  : 'bg-sky-500/15 text-sky-200'
+            }`}>
+              {ASK_LABEL[t.ask_kind]}
+            </span>
+          )}
+          {t.ask_line}
+        </p>
+      )}
+
       {t.trigger_signal && t.trigger_source_url ? (
         <p className="text-label text-white/70 mt-1.5">
           Why now: {t.trigger_signal}
@@ -165,7 +199,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
             className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-white/85 focus:border-violet-500/40 focus:outline-none resize-y"
           />
           <div className="mt-1 flex items-center gap-2 flex-wrap">
-            {body !== (t.draft_body || '') && (
+            {body !== (t.draft_body || '') && !(body.trim() === '' && (t.draft_body || '') !== '') && (
               <button
                 type="button"
                 onClick={saveDraft}

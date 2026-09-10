@@ -32,6 +32,7 @@ export function BottomNav({ active, onChange }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const ultraNarrow = useNarrowViewport(360)
   const reducedMotion = useReducedMotion()
+  const drawerActive = MOBILE_DRAWER_TABS.some(t => t.id === active)
 
   return (
     <>
@@ -51,10 +52,20 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               onClick={() => { h.select(); setDrawerOpen(true) }}
               aria-label="More"
-              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 min-h-[68px] sm:min-h-[72px] text-muted ${reducedMotion ? '' : 'transition-all duration-200 active:scale-95'}`}
+              aria-current={drawerActive ? 'page' : undefined}
+              className={`${NAV_BUTTON_CLS} ${
+                reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
+              } ${drawerActive ? 'text-accent' : 'text-muted'}`}
             >
-              <MoreHorizontal size={24} />
-              <span className="text-label font-medium leading-none tracking-tight">More</span>
+              {/* More is a real tab button now. It used to be the one control in
+                  the bar with no active treatment, so opening OS, Focus or
+                  Subscriptions left the whole bar looking as though nothing was
+                  selected. */}
+              <NavIndicator active={drawerActive} reducedMotion={reducedMotion} />
+              <div className={`relative ${reducedMotion ? '' : `transition-transform duration-200 ${drawerActive ? 'scale-110' : 'scale-100'}`}`}>
+                <MoreHorizontal size={24} strokeWidth={drawerActive ? 2.25 : undefined} />
+              </div>
+              <span className="relative w-full text-center text-label font-medium leading-none tracking-tight truncate">More</span>
             </button>
           )}
         </div>
@@ -71,6 +82,40 @@ export function BottomNav({ active, onChange }: Props) {
   )
 }
 
+/**
+ * The one active indicator: a pill behind the whole icon-and-label column.
+ *
+ * It used to be two unrelated marks. A pill lived INSIDE the icon wrapper that
+ * carries `scale-110`, so it was itself scaled: an 8px radius became ~8.8px and
+ * its hairline border blurred to ~1.1px, and it animated its own size on every
+ * change. A separate 40px top line was positioned on the BUTTON, so the two
+ * were centred on different boxes and disagreed by a fraction of a pixel as you
+ * moved across the bar. Both mounted with a bare `{active && …}` and no
+ * transition while the colour and scale around them eased over 200ms, so the
+ * marks popped while everything else glided. On the first tab the top line ran
+ * into the container's own 16px `rounded-2xl overflow-hidden` corner and was
+ * clipped, so Home never looked like the other four.
+ *
+ * Now: one pill, always mounted so it can fade rather than pop, inset far
+ * enough that it never reaches the container's corner radius, outside the
+ * scaled wrapper, and drawn in `accent` — the theme-aware channel — instead of
+ * `violet-500` plus `text-accent` plus a hardcoded mint glow that stayed mint
+ * on paper while the ramp around it flipped to deep green.
+ */
+function NavIndicator({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`absolute inset-x-2 inset-y-1.5 rounded-xl border border-accent/25 bg-accent/10 ${
+        reducedMotion ? '' : 'transition-opacity duration-200'
+      } ${active ? 'opacity-100' : 'opacity-0'}`}
+    />
+  )
+}
+
+const NAV_BUTTON_CLS =
+  'relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 min-h-[68px] sm:min-h-[72px]'
+
 function NavButton({ tab, active, ultraNarrow: _ultraNarrow, reducedMotion, onClick }: { tab: TabDef; active: boolean; ultraNarrow?: boolean; reducedMotion: boolean; onClick: () => void }) {
   const Icon: LucideIcon = tab.mobileIcon
   // Always prefer mobileShortLabel when set: at the 5-tab + More layout, even
@@ -82,26 +127,21 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, reducedMotion, onCl
       onClick={onClick}
       aria-label={tab.label}
       aria-current={active ? 'page' : undefined}
-      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 min-h-[68px] sm:min-h-[72px] ${
+      className={`${NAV_BUTTON_CLS} ${
         reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
       } ${active ? 'text-accent' : 'text-muted'}`}
     >
+      <NavIndicator active={active} reducedMotion={reducedMotion} />
       <div className={`relative ${reducedMotion ? '' : `transition-transform duration-200 ${active ? 'scale-110' : 'scale-100'}`}`}>
-        {active && (
-          <span aria-hidden className="absolute -inset-2 rounded-lg border border-violet-400/15 bg-violet-500/[0.12]" />
-        )}
         <Icon
           size={24}
-          className={`relative ${reducedMotion ? '' : 'transition-colors'} ${active ? 'text-accent' : ''}`}
+          className={reducedMotion ? '' : 'transition-colors'}
           strokeWidth={active ? 2.25 : undefined}
         />
       </div>
-      <span className={`w-full text-center text-label font-medium leading-none tracking-tight truncate ${reducedMotion ? '' : 'transition-colors'} ${active ? 'text-accent' : ''}`}>
+      <span className={`relative w-full text-center text-label font-medium leading-none tracking-tight truncate ${reducedMotion ? '' : 'transition-colors'}`}>
         {label}
       </span>
-      {active && (
-        <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2px] bg-violet-400 rounded-full shadow-[0_0_14px_rgba(127,227,180,.34)]" />
-      )}
     </button>
   )
 }

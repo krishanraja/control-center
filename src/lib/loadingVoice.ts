@@ -56,6 +56,14 @@ export const WORK = {
   'content.likelyReasons': { agent: 'cleo', doing: 'working out why this landed the way it did', expectedMs: 20_000 },
   'brief.revise':        { agent: 'cleo', doing: 'revising the brief', sub: 'Applying your instruction', expectedMs: 40_000 },
   'brief.assemble':      { agent: 'zara', doing: 'assembling the week', sub: 'Reading everything that moved', expectedMs: 60_000 },
+
+  // ── Growth, the creative board ─────────────────────────────────────────
+  // Both waits sit behind model calls that the board never used to make: every
+  // title and every script was typed by hand, which is why the board stayed
+  // empty. The script one runs two calls in series (build the argument, then
+  // cut it into beats), so it is long enough to need its stages named.
+  'growth.clipIdeas':    { agent: 'zara', doing: 'proposing titles', sub: 'Reading the place on the map and what you sell', expectedMs: 25_000 },
+  'growth.clipScript':   { agent: 'zara', doing: 'writing the script', sub: 'You still read it before you film it', stages: ['Building the argument', 'Cutting it into beats', 'Checking the figures'], expectedMs: 90_000 },
   'skills.draft':        { agent: 'cleo', doing: 'drafting skills', sub: 'Building them from the transcript', expectedMs: 60_000 },
   'skills.refine':       { agent: 'cleo', doing: 'refining this skill', sub: 'Applying your instruction', expectedMs: 40_000 },
   'skills.regenerate':   { agent: 'cleo', doing: 'rebuilding the skills', expectedMs: 60_000 },

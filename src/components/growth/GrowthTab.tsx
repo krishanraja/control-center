@@ -11,6 +11,8 @@ import { GrowthScoreboard } from './GrowthScoreboard'
 import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
+import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
+import { Film, Gavel, HelpCircle } from '@/lib/icons'
 import { useQuickCreateListener } from '../../lib/quickCreate'
 
 /**
@@ -45,17 +47,110 @@ export type GrowthSectionId = 'map' | 'work' | 'signals' | 'council' | 'governan
  */
 export const GROWTH_PURPOSE = 'Find buyers where they already are, make them something each week, and see whether it worked.'
 
+/**
+ * The five sections, in the order one CAUSES the next.
+ *
+ * They used to run Map, Work, Signals, Council, described as "the order of the
+ * weekly loop". It is not that order. The council runs on Sunday and its "Make
+ * it a clip" action writes the creative board, so the review is what PRODUCES
+ * the week's work; it sat fourth, two pills to the right of the thing it feeds.
+ * Krish, reading it on a phone: "not very guided and not very sequential, just
+ * loads of random things to do everywhere".
+ *
+ * So: the three steps of the week first, in sequence, then the two references
+ * that are not steps at all. The ids are unchanged, so deep links and the e2e
+ * test ids keep working.
+ */
 const SECTIONS: Array<{ id: GrowthSectionId; label: string; what: string }> = [
-  // Krish: "I find the laguage used over complicated and hard to understand
-  // what everything actually is, full of jargon". Section names now say what
-  // the section IS, not what the subsystem behind it is called. The ids are
-  // unchanged so nothing downstream breaks.
-  { id: 'map', label: 'Where they are', what: 'The places your buyers already go, per product. Add one, answer the open questions, mark what is covered.' },
+  // The week, in order.
+  { id: 'council', label: 'Review', what: 'Every Sunday, one verdict per product: what to stop, what to do next, and your ruling on it. This is where the week\'s clips come from.' },
   { id: 'work', label: 'To do', what: 'The 3 to 5 clips to make this week, from brief to posted. You film. The card holds the script.' },
   { id: 'signals', label: "What's moving", what: 'Whether anyone is finding you: do AI answers mention you, and where do you rank on Google.' },
-  { id: 'council', label: 'Weekly review', what: 'Every Sunday, one verdict per product: what to stop, what to do next, and your ruling on it.' },
+  // Reference, not steps.
+  { id: 'map', label: 'Where they are', what: 'The places your buyers already go, per product. Add one, answer the open questions, mark what is covered.' },
   { id: 'governance', label: 'Spend limits', what: 'The money and freedom each product\'s agents get: the budget, how much they may do alone, what they may say.' },
 ]
+
+/**
+ * The one thing to do next on this tab.
+ *
+ * Growth is the only tab that never went through the all-tabs rebuild
+ * (docs/plans/all-tabs-rebuild/STATE.md ledgers Pipeline, Network, Visibility,
+ * Subscriptions, Today, Intel, Org, Home and Content as done; Growth is not in
+ * it). Seven surfaces render through the shared DoThisNextHero and this one
+ * rendered five equal pills and left Krish to work out which mattered. The
+ * charter's own consistency mandate says a finished tab's hero, counts, actions
+ * and empty states must be indistinguishable in grammar from Content's.
+ *
+ * Order follows the week: a ruling that is owed blocks the clips it produces,
+ * so it comes first. An unfilled batch is next, because that is the actual
+ * output. Then the map's open questions, which sharpen everything downstream.
+ * When none of that is true it says so plainly rather than inventing a chore.
+ */
+function nextGrowthAction(
+  counts: Record<GrowthSectionId, number>,
+  overCap: boolean,
+  weekLabel: string,
+): { descriptor: HeroDescriptor; go: GrowthSectionId; compose?: 'clip' } {
+  if (counts.council > 0) {
+    return {
+      descriptor: {
+        headline: counts.council === 1 ? 'Rule on Sunday\'s review' : `Rule on ${counts.council} reviews`,
+        sub: 'Your ruling turns each move into a clip.',
+        actionLabel: 'Read the review',
+        icon: <Gavel size={14} />,
+        tone: 'amber',
+      },
+      go: 'council',
+    }
+  }
+  if (overCap) {
+    return {
+      descriptor: {
+        headline: 'Drop one before you start filming',
+        sub: `Over the agreed run of ${BATCH_MAX}. Cut one back.`,
+        actionLabel: 'Open the board',
+        icon: <Film size={14} />,
+        tone: 'amber',
+      },
+      go: 'work',
+    }
+  }
+  if (counts.work === 0) {
+    return {
+      descriptor: {
+        headline: 'Pick this week\'s clips',
+        sub: `Nothing queued for the week of ${weekLabel}.`,
+        actionLabel: 'Start one',
+        icon: <Film size={14} />,
+        tone: 'violet',
+      },
+      go: 'work',
+      compose: 'clip',
+    }
+  }
+  if (counts.map > 0) {
+    return {
+      descriptor: {
+        headline: counts.map === 1 ? 'Answer one open question' : `Answer ${counts.map} open questions`,
+        sub: 'The map is still guessing on these.',
+        actionLabel: 'Open the map',
+        icon: <HelpCircle size={14} />,
+        tone: 'sky',
+      },
+      go: 'map',
+    }
+  }
+  return {
+    descriptor: {
+      headline: 'Nothing is waiting on you',
+      sub: 'Clips queued, map answered, review ruled on.',
+      clear: true,
+      tone: 'neutral',
+    },
+    go: 'work',
+  }
+}
 
 export function GrowthTab({
   variant,
@@ -70,7 +165,9 @@ export function GrowthTab({
   lane?: string | null
   onNavigate?: (tab: string, params?: Record<string, string>) => void
 }) {
-  const [section, setSection] = useState<GrowthSectionId>(initialSection || 'map')
+  // The landing section is the week's work, not the reference map: opening
+  // Growth is almost always about what to make this week.
+  const [section, setSection] = useState<GrowthSectionId>(initialSection || 'work')
   // Adjust on prop change during render rather than in an Effect: a deep link
   // that arrives while the tab is already mounted still moves the section, but
   // clicking a pill afterwards never gets overwritten (the prop has not changed,
@@ -103,6 +200,14 @@ export function GrowthTab({
 
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
+  const weekLabel = useMemo(
+    () => new Date(mondayOf(new Date())).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }),
+    [],
+  )
+  const next = useMemo(
+    () => nextGrowthAction(counts, overCap, weekLabel),
+    [counts, overCap, weekLabel],
+  )
 
   return (
     <div className="flex flex-col gap-3 min-h-0 h-full">
@@ -113,13 +218,32 @@ export function GrowthTab({
             has the room. The old phone line ("3 questions to answer when you
             have a minute") named a chore without saying what the tab was. */}
         <p className="text-xs md:text-body text-white/60 mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
-        {variant === 'desktop' && !g.loading && (
-          <p className="text-label text-white/40 mt-0.5 tabular-nums">
-            {g.touchpoints.length} touchpoints · {counts.map} open questions · {counts.work} in this week's batch · {counts.council} reviews waiting on you · {pct(geoRate)} of AI answers mention you
+        {/* The house count line, on the phone too. It was desktop-only, so the
+            device that actually gets used opened on a purpose sentence and five
+            pills with no sense of scale. It wraps rather than truncating. */}
+        {!g.loading && (
+          <p className="text-label text-white/40 mt-0.5 tabular-nums leading-snug">
+            {g.touchpoints.length} places mapped · {counts.work} of {BATCH_MAX} clips this week
+            {counts.council > 0 ? ` · ${counts.council} to rule on` : ''}
+            {variant === 'desktop' ? ` · ${pct(geoRate)} of AI answers mention you` : ''}
           </p>
         )}
         {g.error && <p className="text-label text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
+
+      {/* The one next thing, in the same component every other tab uses. */}
+      {!g.loading && !g.error && (
+        <div className="flex-shrink-0" data-testid="growth-hero">
+          <DoThisNextHero
+            descriptor={next.descriptor}
+            narrow={variant === 'mobile'}
+            onAct={next.descriptor.clear ? undefined : () => {
+              setSection(next.go)
+              if (next.compose === 'clip') setClipCompose(n => n + 1)
+            }}
+          />
+        </div>
+      )}
 
       <SegmentedNav<GrowthSectionId>
         segments={SECTIONS.map((sec): Segment<GrowthSectionId> => ({

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Search, Users, X } from '@/lib/icons'
+import { Search, Users } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'
 import { RoomCard } from '../room/RoomCard'
+import { TriageDeck } from '../shared/TriageDeck'
+import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { buildRoomTriageConfig } from '../../lib/triageConfig'
 import {
   addRoomTarget, ROOM_STATE_LABEL, ROOM_STATES, seedRoom, useRoom,
 } from '../../hooks/useRoom'
@@ -15,7 +18,31 @@ import type { RoomProposal, RoomState } from '../../hooks/useRoom'
 // because that is where the work waits; every other state is one chip away
 // so a sent approach can be moved along when the reply comes.
 
-const SUBTITLE = 'Mindmake sales list: up to 25 leaders you already know at PE or VC backed media, adtech and data companies. The OS finds a news hook and drafts the note. You send.'
+// What the page is, why it matters, what to do next — the three questions the
+// lane failed to answer on a phone, where the explanation never rendered at all.
+// The offer is the door from `api/_mission.ts`, restated in the second person;
+// `api/` is server-only so the constant cannot be imported here.
+export const ROOM_PURPOSE = 'People you already know who could pay for a three week private diagnostic.'
+export const ROOM_OFFER = 'What you are selling: a confidential room. Three weeks, a fixed fee, and they come out knowing where they stand, what is coming for their business, and what to do first.'
+/** Short enough for the phone header, which truncates. */
+export const ROOM_SUBTITLE = '25 leaders you already know'
+
+/** Anyone who has been written to, at any point along the ladder. */
+const ASKED_STATES: RoomState[] = [
+  'sent', 'replied', 'call_booked', 'call_taken', 'room_booked', 'room_paid',
+]
+
+/**
+ * The arithmetic from the charter, against the real counts: 25 approaches buy
+ * 5 calls buy 1 paid room by 5 December (docs/plans/one-swing/CHARTER.md).
+ * Saying it here is the whole answer to "why am I looking at these people".
+ */
+function progressLine(counts: Record<string, number>): string {
+  const onList = ROOM_STATES.reduce((n, s) => n + (s === 'not_now' ? 0 : (counts[s] || 0)), 0)
+  const asked = ASKED_STATES.reduce((n, s) => n + (counts[s] || 0), 0)
+  const list = onList === 1 ? '1 person on the list' : `${onList} people on the list`
+  return `${list}, ${asked} asked so far. The plan needs about 25 asks to get 5 calls and one paid room by 5 December.`
+}
 
 /** Plain words for the search stages the server reports as skipped. */
 function degradedWords(stages: string[]): string {
@@ -90,7 +117,13 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     if (accepting) return
     setAccepting(p.contact_id)
     try {
-      await addRoomTarget({ contact_id: p.contact_id, why_face: p.why_face, sourced_by: 'os' })
+      await addRoomTarget({
+        contact_id: p.contact_id,
+        why_face: p.why_face,
+        sourced_by: 'os',
+        ask_kind: p.ask_kind,
+        ask_line: p.ask_line,
+      })
       setProposals(prev => (prev || []).filter(x => x.contact_id !== p.contact_id))
       toast(`${p.full_name || 'Added'} is on the list.`, 'success')
       refetch()
@@ -102,9 +135,52 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     }
   }
 
-  const skip = (p: RoomProposal) => {
+  /**
+   * A skip is a verdict, so it is written down.
+   *
+   * It used to filter the local array and write nothing. `/api/room/seed`
+   * excludes only people who already have a row, and it ranks with the
+   * deterministic scorer (`rerank: false`), so the same query over the same
+   * corpus returned the identical five on every call: skip Rio, reload, Rio is
+   * back at the top. Recording the skip as a `not_now` row both suppresses the
+   * person from the next seed and carries a coded feedback vote, which is the
+   * only way anything Krish decides about the Room reaches Vera.
+   */
+  const skip = async (p: RoomProposal, reasonCode?: string) => {
     setProposals(prev => (prev || []).filter(x => x.contact_id !== p.contact_id))
+    try {
+      await addRoomTarget({
+        contact_id: p.contact_id,
+        why_face: p.why_face,
+        sourced_by: 'os',
+        state: 'not_now',
+        reason_code: reasonCode,
+      })
+      refetch()
+    } catch (err) {
+      const msg = (err as Error)?.message || ''
+      // already_listed means the row exists, so the person stays suppressed and
+      // there is nothing to put back. Anything else loses the verdict, and a
+      // silently dropped verdict is the bug this replaced.
+      if (msg !== 'already_listed') {
+        setProposals(prev => [p, ...(prev || []).filter(x => x.contact_id !== p.contact_id)])
+        toast(`Could not skip: ${msg || 'try again'}`, 'error')
+      }
+    }
   }
+
+  // Both verdicts are writes here, because a proposal has no row until one is
+  // made. accept() and skip() already own the toasts and the optimistic list
+  // removal, so the deck's own commit just reports success.
+  const proposalConfig = useMemo(() => buildRoomTriageConfig(
+    proposals || [],
+    { toast },
+    {
+      accept: async p => { await accept(p as RoomProposal); return true },
+      reject: async (p, code) => { await skip(p as RoomProposal, code); return true },
+    },
+    seeding,
+  ), [proposals, seeding])
 
   const header = !narrow && (
     <header>
@@ -112,7 +188,6 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
         <Users size={20} className="text-violet-300" />
         The Room
       </h1>
-      <p className="text-body text-white/55 mt-1">{SUBTITLE}</p>
       <FreshnessLine lane="room" />
     </header>
   )
@@ -130,9 +205,15 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
       {header}
 
+      <section data-testid="room-purpose" className="space-y-1.5">
+        <p className="text-body text-white/75 leading-snug">{ROOM_PURPOSE}</p>
+        <p className="text-label text-white/50 leading-snug">{ROOM_OFFER}</p>
+        <p className="text-label text-white/50 leading-snug">{progressLine(stateCounts)}</p>
+      </section>
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p data-testid="room-counts" className="text-label text-white/55">
-          {counts || (error ? 'The Room could not be read.' : 'Nobody listed yet.')}
+          {counts || (error ? 'The Room could not be read.' : 'Nobody is on the list yet.')}
         </p>
         <button
           type="button"
@@ -178,49 +259,23 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
       {proposals && proposals.length > 0 && (
         <section aria-label="Proposed leaders" className="space-y-2">
           <p className="text-label text-white/55">
-            Found in your network. Accept puts them on the list; nothing is added on its own.
+            These come from your own contacts. Nothing is added until you keep one.
           </p>
-          {proposals.map(p => (
-            <div
-              key={p.contact_id}
-              data-testid="room-proposal"
-              className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex items-start justify-between gap-3 flex-wrap"
-            >
-              <div className="min-w-0 basis-40 grow">
-                <p className="text-ui font-semibold text-white">
-                  {p.linkedin_url ? (
-                    <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="hover:text-violet-200 transition-colors">
-                      {p.full_name || 'Unnamed contact'}
-                    </a>
-                  ) : (p.full_name || 'Unnamed contact')}
-                </p>
-                {(p.title || p.company) && (
-                  <p className="text-label text-white/55 mt-0.5">{[p.title, p.company].filter(Boolean).join(' at ')}</p>
-                )}
-                <p className="text-label text-white/70 mt-1">{p.why_face}</p>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => accept(p)}
-                  disabled={accepting !== null}
-                  className="min-h-[32px] inline-flex items-center gap-1 rounded-full border border-violet-400/50 bg-violet-500/15 px-3 py-1 text-label text-violet-100 disabled:opacity-40 transition-colors"
-                >
-                  {accepting === p.contact_id ? <Working size={12} /> : <Check size={12} />}
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  onClick={() => skip(p)}
-                  disabled={accepting !== null}
-                  className="min-h-[32px] inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-label text-white/55 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
-                >
-                  <X size={12} />
-                  Skip
-                </button>
-              </div>
+          {/* The shared deck, not a bespoke chip pair: it brings the reason
+              chips, the "why am I seeing this" badge and the undo that the
+              Room's own Accept/Skip buttons never had. */}
+          {/* The deck needs a real height. Visibility gives it the whole screen
+              (MobileShell scroll="none" plus flex-1), but the Room's purpose
+              block above is the thing that was missing from this lane, so it
+              stays on screen and the deck takes a fixed slice under it. Without
+              one it collapses to the height of its own badge row. */}
+          {narrow ? (
+            <div className="h-[540px]">
+              <TriageDeck config={proposalConfig} onExit={() => setProposals(null)} />
             </div>
-          ))}
+          ) : (
+            <SwipeCockpit config={proposalConfig} onExit={() => setProposals(null)} />
+          )}
         </section>
       )}
 
@@ -235,10 +290,10 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
           {view
             ? `Nobody is ${ROOM_STATE_LABEL[view].toLowerCase()} right now.`
             : proposals?.length
-              ? 'Accept the ones who fit. The Monday run drafts a note for everyone listed.'
+              ? 'Keep the ones who fit. The Monday run drafts a note for everyone on the list.'
               : seeding
                 ? 'Looking through your network for five who fit the face.'
-                : 'Nobody listed yet. Find five to start.'}
+                : 'Nobody is on the list yet. Find five to start, then the Monday run drafts a note for each one.'}
         </p>
       ) : (
         <div className={narrow ? 'space-y-3' : 'grid grid-cols-1 xl:grid-cols-2 gap-4'}>

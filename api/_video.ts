@@ -116,7 +116,29 @@ import {
   callClaude, corpusForChannel, loadCorpus, loadVoiceBlock, materialsContext,
   robustJson, sanitizeVoice, type Material,
 } from './_content.js'
+import { BRIT_AUS_HUMOUR, HUMOUR_GUARDRAILS, HUMOUR_GUIDE, type HumourRegister } from './_humor.js'
 import { UTILITY_MODEL } from './_models.js'
+
+/**
+ * The comic register, as a prompt fragment.
+ *
+ * Humour is the one thing a one-line "be funny" steer reliably fails at, which
+ * is why api/_humor.ts carries a real definition, the craft behind it and the
+ * failure modes per register. A spoken script wants all of that and none of the
+ * rewrite scaffolding around it.
+ */
+function humourBlock(register: HumourRegister): string {
+  const entry = HUMOUR_GUIDE[register]
+  return [
+    `COMIC REGISTER: ${entry.label}. This is a humour pass as well as a cut.`,
+    BRIT_AUS_HUMOUR,
+    `What it is: ${entry.def}`,
+    `How to do it: ${entry.craft}`,
+    `Avoid: ${entry.avoid}`,
+    HUMOUR_GUARDRAILS,
+    'The comedy lives in the delivery. It never comes from a fact the source did not earn, and the length ceiling above still binds: a joke that overruns the format is cut.',
+  ].join('\n')
+}
 
 export interface VideoBeat { t: string; say: string; shot: string }
 
@@ -148,6 +170,15 @@ export async function buildVideoScript(o: {
   citations?: string[]
   materials?: Material[]
   hint?: string | null
+  /** Cut the script in one of the house comic registers.
+   *
+   *  The registers, the British/Australian sensibility and the guardrails were
+   *  written for the Content composer's humour pass and nothing outside it ever
+   *  used them. This splices the vocabulary in rather than restating it, and
+   *  deliberately takes the fragments rather than `buildHumourSystem()`: that
+   *  builds a whole REWRITE prompt ending "Return ONLY the rewritten text",
+   *  which would contradict this call's JSON contract. */
+  humour?: HumourRegister | null
 }): Promise<VideoScript> {
   const citations = (o.citations || []).filter(Boolean).slice(0, 8)
   const materials = o.materials || []
@@ -168,6 +199,7 @@ export async function buildVideoScript(o: {
     `This is a hard ceiling, not a style note: ${f.words} words is what fits in ${f.seconds} seconds at an unhurried pace. Going over does not produce a longer ${f.label}, it produces a script that overruns, and at the short lengths that is the difference between a hook and a rambling clip. If the material will not fit, cut material. Do not speed up the delivery to make room.`,
     `STRUCTURE FOR THIS LENGTH (not a suggestion, this is what this length can carry):\n${f.shape}`,
     SPOKEN_RULES,
+    ...(o.humour ? [humourBlock(o.humour)] : []),
     'You may cut, compress, reorder and re-voice. You may NOT add a claim the source piece did not earn. EVERY NUMBER MUST APPEAR VERBATIM IN THE SOURCE. Do not compute totals, differences, percentages or rates, even when the arithmetic looks obvious.',
     'Return JSON only: {"beats":[{"t":string,"say":string,"shot":string}],"title":string,"hook":string,"notes":string|null}',
     '"t" is an approximate timecode for the start of the beat, as m:ss (for example "0:00", "0:12"). "say" is the spoken words for that beat, verbatim, ready to read. "shot" is what is on screen during it: framing, b-roll, on-screen text, or a cut instruction. Keep "shot" concrete and short.',

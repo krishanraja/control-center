@@ -488,6 +488,120 @@ export function buildGuestsTriageConfig(
   }
 }
 
+// ── The Room (People · Room) ──────────────────────────────────────────────
+
+/**
+ * Room proposals, judged one at a time.
+ *
+ * The Room used to carry its own Accept/Skip chip pair, which was the only
+ * proposal surface in the app not running on the shared deck. It cost the lane
+ * three things the deck gives away for free: reason chips on a refusal, the
+ * "why am I seeing this" badge that Visibility has had for months, and the undo
+ * that lives in the reason bar. Worse, its Skip wrote nothing at all.
+ *
+ * Note the asymmetry with every other config here: a proposal has no row yet,
+ * so BOTH verdicts are writes. Accept lists the person, and a refusal records
+ * them as `not_now` with a coded vote rather than dropping them on the floor.
+ */
+export interface RoomProposalItem {
+  contact_id: string
+  full_name: string | null
+  title: string | null
+  company: string | null
+  why_face: string
+  score: number
+  ask_kind?: 'buyer' | 'intro' | 'collaborator'
+  ask_line?: string
+}
+
+const ROOM_ASK_TONE: Record<string, string> = {
+  buyer: 'bg-emerald-500/15 text-emerald-200',
+  intro: 'bg-sky-500/15 text-sky-200',
+  collaborator: 'bg-amber-500/15 text-amber-200',
+}
+const ROOM_ASK_LABEL: Record<string, string> = {
+  buyer: 'Can sign',
+  intro: 'Can introduce',
+  collaborator: 'You work together',
+}
+
+function renderRoomBody(p: RoomProposalItem): React.ReactNode {
+  const role = [p.title, p.company].filter(Boolean).join(' at ')
+  return (
+    <>
+      <div className="flex items-center gap-1.5 flex-wrap mb-3">
+        <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
+          p.ask_kind ? ROOM_ASK_TONE[p.ask_kind] : 'bg-violet-500/15 text-violet-200'
+        }`}>
+          {p.ask_kind ? ROOM_ASK_LABEL[p.ask_kind] : 'In your network'}
+        </span>
+        {typeof p.score === 'number' && (
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">Fit {p.score}</span>
+        )}
+      </div>
+      <p className="text-ui font-semibold text-white leading-snug">{p.full_name || 'Unnamed contact'}</p>
+      {role && <p className="text-label text-white/55 leading-snug mt-0.5">{role}</p>}
+      <p className="text-label text-white/70 leading-snug mt-2">
+        <span className="text-white/40">Why them: </span>{p.why_face}
+      </p>
+      {p.ask_line && (
+        <p className="text-label text-white/85 leading-snug mt-2">
+          <span className="text-white/40">Ask them: </span>{p.ask_line}
+        </p>
+      )}
+    </>
+  )
+}
+
+export function buildRoomTriageConfig(
+  proposals: RoomProposalItem[],
+  ctx: TriageConfigCtx,
+  handlers: {
+    accept: (p: RoomProposalItem) => Promise<boolean>
+    reject: (p: RoomProposalItem, code?: string) => Promise<boolean>
+  },
+  loading?: boolean,
+): TriageConfig<RoomProposalItem> {
+  const { toast } = ctx
+
+  const onAccept = async (p: RoomProposalItem): Promise<CommitResult> => {
+    const ok = await handlers.accept(p)
+    if (ok) toast(`${p.full_name || 'Added'} is on the list.`, 'success')
+    return ok
+  }
+  const onReject = async (p: RoomProposalItem, code?: string): Promise<CommitResult> => {
+    const ok = await handlers.reject(p, code)
+    if (ok) toast('Not this one. Vera will learn from that.', 'success')
+    return ok
+  }
+
+  return {
+    items: proposals,
+    loading,
+    getId: p => p.contact_id,
+    title: 'People to judge',
+    reasonsTable: 'room_targets',
+    renderBody: renderRoomBody,
+    ariaLabel: p => `Room proposal: ${p.full_name || 'unnamed contact'}`,
+    leftLabel: 'Skip',
+    rightLabel: 'Keep',
+    rightIntent: () => 'advance',
+    onAccept,
+    onReject,
+    renderDetail: p => <div className="text-label text-white/70 leading-relaxed">{renderRoomBody(p)}</div>,
+    renderRow: (p, active) => (
+      <div className="min-w-0">
+        <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>
+          {p.full_name || 'Unnamed contact'}
+        </p>
+        <p className="text-micro text-white/40 truncate">
+          {[p.company, typeof p.score === 'number' ? `fit ${p.score}` : null].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+    ),
+  }
+}
+
 // ── Visibility targets (Visibility · outbound) ────────────────────────────
 
 function renderTargetBody(t: VisibilityTargetRow): React.ReactNode {

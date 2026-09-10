@@ -46,7 +46,12 @@ async function gapBelow(page: Page, testId: string): Promise<number> {
   })
 }
 
-for (const [tab, panel] of [['growth', 'growth-panel-map'], ['content?room=built', 'content-room-scroll']] as const) {
+// Growth's landing section is `work` (the week's clips), not `map`: the
+// sections are ordered by what causes what, and the two reference sections sit
+// after the loop. The panel test id follows the mounted section, and it is the
+// scroller itself (GrowthTab.tsx), so measuring the landing one is both honest
+// and stable.
+for (const [tab, panel] of [['growth', 'growth-panel-work'], ['content?room=built', 'content-room-scroll']] as const) {
   test(`the ${tab.split('?')[0]} scroller reaches the bottom of a phone screen`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
     const page = await ctx.newPage()
