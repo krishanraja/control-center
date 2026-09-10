@@ -1,11 +1,11 @@
 import { OptionChips } from '../goals/GoalPickers'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Film, Plus, X } from '@/lib/icons'
+import { ChevronLeft, ChevronRight, Film, Plus, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead } from './atoms'
 import { Ask, ComposerShell, LINE_CLS, More, PARA_CLS } from './Composer'
 import { VoiceField } from '../pilot/controls'
-import { failureMessage } from '../../lib/apiFetch'
+import { failureMessage, requestJson } from '../../lib/apiFetch'
 import {
   BATCH_MAX, BATCH_MIN, BOARD_STAGES, PRODUCTS, PRODUCT_LABEL, STAGE_LABEL,
   mondayOf, shortDate,
@@ -13,6 +13,8 @@ import {
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
 
 /**
  * B) THE CREATIVE BOARD: the Higgsfield kanban.
@@ -90,12 +92,18 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
   return (
     <div className={`space-y-4 pb-8 min-h-0 flex flex-col ${phone ? '' : 'h-full'}`}>
       <SectionHead
-        title={phone ? undefined : 'Creative board'}
+        title={phone ? undefined : 'This week\'s clips'}
         sub={phone ? undefined : 'Brief to posted. Drag a card, or use the arrows. The script and shot notes live on the card because you are the one filming.'}
         action={
-          <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
-            <Plus size={13} className="inline -mt-0.5 mr-1" />{adding && variant === 'desktop' ? 'Close' : 'New clip'}
-          </button>
+          // The desk gets an inline create; a phone does not. The + create sheet
+          // already carries "Add a clip" through src/lib/quickCreate.ts, so an
+          // inline button beside it was a second door to one room and the house
+          // rule forbids it on a narrow viewport.
+          phone ? undefined : (
+            <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
+              <Plus size={13} className="inline -mt-0.5 mr-1" />{adding ? 'Close' : 'New clip'}
+            </button>
+          )
         }
       />
 
@@ -106,10 +114,10 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
         <span className={`text-label ${over ? 'text-rose-300 font-semibold' : 'text-white/45'}`}>
           {over
             ? `Over the cap by ${batch.length - BATCH_MAX}. Drop one before you start producing.`
-            : under
-              ? `The agreed run is ${BATCH_MIN} to ${BATCH_MAX} a week. Room for ${BATCH_MIN - batch.length} more.`
-              : batch.length === 0
-                ? `Nothing queued for this week. The agreed run is ${BATCH_MIN} to ${BATCH_MAX} script candidates.`
+            : batch.length === 0
+              ? `Nothing queued yet. The agreed run is ${BATCH_MIN} to ${BATCH_MAX} a week.`
+              : under
+                ? `The agreed run is ${BATCH_MIN} to ${BATCH_MAX} a week. Room for ${BATCH_MIN - batch.length} more.`
                 : `Inside the agreed ${BATCH_MIN} to ${BATCH_MAX} run.`}
         </span>
         {dropped.length > 0 && (
@@ -121,10 +129,16 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
 
       <AddCard g={g} variant={variant} open={adding} thisWeek={thisWeek} onDone={() => setAdding(false)} />
 
+      {/* One empty state. The strip above already says the week and the count,
+          so the note that repeated both and then admitted emptiness a second
+          time was the "two cards saying the same thing" on an empty board. This
+          one says where a card actually comes from. */}
       {g.cards.length === 0 && (
         <EmptyNote>
-          No clips yet. Nothing here is generated for you: a card exists once you or an agent writes one,
-          and the board stays empty until then. Start one with New clip, capped at {BATCH_MIN} to {BATCH_MAX} a week.
+          <span data-testid="board-empty">
+            No clips yet. Sunday&rsquo;s review is where most of them start: rule on it and each move can
+            become a card. {phone ? 'The + button' : 'New clip'} starts one from scratch.
+          </span>
         </EmptyNote>
       )}
       {phone ? (
@@ -275,9 +289,56 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
     posted_url: card.posted_url || '',
   })
   const [saving, setSaving] = useState(false)
+  const [writing, setWriting] = useState(false)
+  const scriptWork = useWork('growth.clipScript')
+  const [scriptNote, setScriptNote] = useState<string | null>(null)
+  const [duration, setDuration] = useState('60s')
+  const [humour, setHumour] = useState('deadpan')
   const touchpoint = g.touchpoints.find(t => t.id === card.touchpoint_id) || null
   const set = (k: keyof typeof draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setDraft(d => ({ ...d, [k]: e.target.value }))
+
+  /**
+   * Write the script onto the card.
+   *
+   * Two stages behind this, because api/_video.ts CUTS an existing piece and
+   * cannot write from nothing: the route builds the argument from the buyer's
+   * question and the offer, then cuts that into beats so the length ceiling,
+   * the spoken rules and the number check all still apply. What comes back is
+   * grounded in rows the OS already holds; it is not a live web sweep, and the
+   * hint under the button says so rather than implying otherwise.
+   */
+  const writeScript = async () => {
+    if (writing) return
+    setWriting(true)
+    setScriptNote(null)
+    try {
+      const { json } = await requestJson<{
+        ok?: boolean; error?: string; detail?: string
+        script?: string; shot_notes?: string
+        word_count?: number; target_words?: number; unsupported_numbers?: string[]
+      }>('/api/growth/clip-script', {
+        method: 'POST',
+        body: { card_id: card.id, duration, humour },
+        // Two model calls in series. The default 15s abandons a good request.
+        timeoutMs: 115_000,
+      })
+      if (!json?.ok) throw new Error(json?.detail || json?.error || 'could not write it')
+      setDraft(d => ({ ...d, script: json.script || d.script, shot_notes: json.shot_notes || d.shot_notes }))
+      // A figure the check could not find in the argument is the one thing
+      // worth reading before filming, so it is said rather than swallowed.
+      const unsupported = json.unsupported_numbers || []
+      setScriptNote(unsupported.length
+        ? `${json.word_count} words. Check these figures before you film: ${unsupported.join(', ')}.`
+        : `${json.word_count} words against a target of ${json.target_words}.`)
+      toast('Script written. Read it before you film it.', 'success')
+      g.refresh?.()
+    } catch (e) {
+      setScriptNote(failureMessage(e, 'Could not write the script.'))
+    } finally {
+      setWriting(false)
+    }
+  }
 
   const save = async () => {
     setSaving(true)
@@ -351,6 +412,46 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
             <textarea value={draft.brief} onChange={set('brief')} rows={3} className={INPUT_CLS} placeholder="What this piece is for" />
           </Field>
           <Field label="Script">
+            {/* The verdict sits where the action is: the control, its two
+                choices and what came back all live against the field they
+                fill, not in a panel somewhere else. */}
+            <div className="mb-2 space-y-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <OptionChips
+                  options={[
+                    { value: '30s', label: '30 sec' },
+                    { value: '60s', label: '60 sec' },
+                    { value: '3min', label: '3 min' },
+                  ]}
+                  value={duration}
+                  onChange={setDuration}
+                />
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <OptionChips
+                  options={[
+                    { value: 'deadpan', label: 'Deadpan' },
+                    { value: 'witty', label: 'Witty' },
+                    { value: 'sarcastic', label: 'Sarcastic' },
+                    { value: 'satirical', label: 'Satirical' },
+                  ]}
+                  value={humour}
+                  onChange={setHumour}
+                />
+              </div>
+              <button type="button" onClick={writeScript} disabled={writing} className={BTN_PRIMARY}>
+                {writing ? <Working size={12} className="inline mr-1" /> : <Sparkles size={12} className="inline -mt-0.5 mr-1" />}
+                {writing ? scriptWork.label : draft.script ? 'Write it again' : 'Write the script'}
+              </button>
+              <p className="text-micro text-white/40 leading-snug">
+                Built from this card, the place on the map and what you sell. It reads what the OS already holds,
+                not the live web, so check any figure before you film.
+              </p>
+              {writing && scriptWork.sub && (
+                <p className="text-label text-white/45 leading-snug">{scriptWork.sub}</p>
+              )}
+              {scriptNote && <p className="text-label text-amber-100/80 leading-snug">{scriptNote}</p>}
+            </div>
             <textarea
               value={draft.script}
               onChange={set('script')}
@@ -407,6 +508,13 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
     batch_week: thisWeek,
   })
   const [saving, setSaving] = useState(false)
+  // Title candidates from /api/growth/clip-ideas. Krish picks one rather than
+  // starting at a blank field, which is what the board asked for and never had:
+  // its own empty state used to admit "nothing here is generated for you".
+  const [ideas, setIdeas] = useState<Array<{ title: string; why: string }> | null>(null)
+  const [ideasNote, setIdeasNote] = useState<string | null>(null)
+  const [suggesting, setSuggesting] = useState(false)
+  const ideasWork = useWork('growth.clipIdeas')
   const set = <K extends keyof typeof form>(k: K) => (v: (typeof form)[K]) => setForm(f => ({ ...f, [k]: v }))
   const onText = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -415,6 +523,34 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
   // native <select> of 70-character options, which a phone renders as a wheel
   // of truncated sentences.
   const places = g.touchpoints.filter(t => t.product_slug === form.product_slug && t.coverage_status !== 'retired')
+
+  const suggest = async () => {
+    if (suggesting) return
+    setSuggesting(true)
+    setIdeasNote(null)
+    try {
+      const { json } = await requestJson<{ ok?: boolean; error?: string; note?: string; ideas?: Array<{ title: string; why: string }> }>(
+        '/api/growth/clip-ideas',
+        {
+          method: 'POST',
+          body: { product_slug: form.product_slug, touchpoint_id: form.touchpoint_id || null },
+          // The route runs two model calls behind it at worst; the default 15s
+          // would abandon a request that was going to succeed.
+          timeoutMs: 60_000,
+        },
+      )
+      if (!json?.ok) throw new Error(json?.error || 'could not suggest')
+      setIdeas(json.ideas || [])
+      // An honest empty answer, not five invented titles: with no buyer
+      // question and no ruling there is nothing to ground one in.
+      if (json.note) setIdeasNote(json.note)
+      else if (!json.ideas?.length) setIdeasNote('Nothing came back. Write the title yourself.')
+    } catch (e) {
+      setIdeasNote(failureMessage(e, 'Could not suggest titles.'))
+    } finally {
+      setSuggesting(false)
+    }
+  }
 
   const submit = async () => {
     if (!form.title.trim()) { toast('Say what the clip is.', 'error'); return }
@@ -441,15 +577,58 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
       busy={saving}
       canSubmit={Boolean(form.title.trim())}
     >
-      <Ask label="What is the clip?" hint="One line. The title on the card.">
-        <VoiceField value={form.title} onChange={set('title')} rows={2} placeholder="Why 0 of 114 signups ever activated" autoFocus={variant === 'desktop'} />
-      </Ask>
+      {/* Which venture, then which place, then what it is. That order is the
+          one Krish asked for and it is also the only order that works: the
+          title suggestions below are grounded in the product and the place, so
+          asking for the title first meant asking him to write the thing the OS
+          could have proposed. */}
       <Ask label="Which product?">
         <OptionChips
           options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
           value={form.product_slug}
-          onChange={v => { set('product_slug')(v as ProductSlug); set('touchpoint_id')('') }}
+          onChange={v => { set('product_slug')(v as ProductSlug); set('touchpoint_id')(''); setIdeas(null); setIdeasNote(null) }}
         />
+      </Ask>
+      {places.length > 0 && (
+        <Ask label="Which place on the map is it for?" hint="Optional, but it is what the title suggestions are built from.">
+          <OptionChips
+            // The buyer's question in full. It used to be cut at 46 characters
+            // with an ellipsis, which hid the half that says what they want.
+            options={[{ value: '', label: 'Not tied to one' }, ...places.map(t => ({ value: t.id, label: t.icp_trigger }))]}
+            value={form.touchpoint_id}
+            onChange={v => { set('touchpoint_id')(v); setIdeas(null); setIdeasNote(null) }}
+          />
+        </Ask>
+      )}
+      <Ask label="What is the clip?" hint="One line. The title on the card.">
+        <VoiceField value={form.title} onChange={set('title')} rows={2} placeholder="Why 0 of 114 signups ever activated" autoFocus={variant === 'desktop'} />
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <button type="button" onClick={suggest} disabled={suggesting} className={BTN_GHOST}>
+            {suggesting ? <Working size={12} className="inline mr-1" /> : <Sparkles size={12} className="inline -mt-0.5 mr-1" />}
+            {suggesting ? ideasWork.label : ideas ? 'Suggest again' : 'Suggest titles'}
+          </button>
+          {ideasNote && <span className="text-label text-white/45">{ideasNote}</span>}
+        </div>
+        {ideas && ideas.length > 0 && (
+          <ul className="mt-2 space-y-1.5">
+            {ideas.map(i => (
+              <li key={i.title}>
+                <button
+                  type="button"
+                  onClick={() => set('title')(i.title)}
+                  className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
+                    form.title === i.title
+                      ? 'border-violet-400/50 bg-violet-500/10'
+                      : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
+                  }`}
+                >
+                  <span className="block text-label font-medium text-white/85 leading-snug">{i.title}</span>
+                  {i.why && <span className="block text-micro text-white/45 leading-snug mt-0.5">{i.why}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Ask>
       <Ask label="Which week?">
         <OptionChips
@@ -461,15 +640,6 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
           onChange={set('batch_week')}
         />
       </Ask>
-      {places.length > 0 && (
-        <Ask label="Which place on the map is it for?" hint="Optional. Ties the clip to where the buyers are.">
-          <OptionChips
-            options={[{ value: '', label: 'Not tied to one' }, ...places.map(t => ({ value: t.id, label: t.icp_trigger.length > 48 ? `${t.icp_trigger.slice(0, 46)}...` : t.icp_trigger }))]}
-            value={form.touchpoint_id}
-            onChange={set('touchpoint_id')}
-          />
-        </Ask>
-      )}
 
       <More label="The line, the account, the script">
         <Ask label="The one line it has to land">

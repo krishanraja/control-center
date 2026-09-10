@@ -117,11 +117,14 @@ async function mockGrowthApis(
 // rendered. Selection goes through data-testid; the labels are only asserted as
 // content. The previous version clicked visible text and went red the moment
 // those labels were rewritten (AGENTS.md documented 7 of 9 specs failing on it).
+// In the order they render, which is the order one causes the next: the Sunday
+// review produces the week's clips, the clips produce the signals. The two
+// references sit after the loop rather than inside it.
 const SECTIONS = [
-  { id: 'map', label: 'Where they are' },
+  { id: 'council', label: 'Review' },
   { id: 'work', label: 'To do' },
   { id: 'signals', label: "What's moving" },
-  { id: 'council', label: 'Weekly review' },
+  { id: 'map', label: 'Where they are' },
   { id: 'governance', label: 'Spend limits' },
 ] as const
 
@@ -134,7 +137,7 @@ async function openSection(page: Page, id: SectionId, hash = '/#/growth') {
   await page.getByTestId(`growth-section-${id}`).click()
 }
 
-test('one Growth tab, five sections, Map first', async ({ page }) => {
+test('one Growth tab, five sections, the week first', async ({ page }) => {
   await mockGrowthApis(page)
   await page.goto('/#/growth')
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
@@ -146,11 +149,12 @@ test('one Growth tab, five sections, Map first', async ({ page }) => {
     await expect(tab).toBeVisible()
     await expect(tab).toHaveText(new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
-  // Map is the landing section. Asserted by which panel mounted, not by a word
-  // inside it: the previous assertion looked for "Touchpoint map", which was
-  // renamed out of existence along with the section labels.
-  await expect(page.getByTestId('growth-panel-map')).toBeVisible()
-  await expect(page.getByTestId('growth-section-map')).toHaveAttribute('aria-current', 'true')
+  // The week's work is the landing section. The sections are ordered by what
+  // causes what (the Sunday review produces the clips), and opening Growth is
+  // almost always about what to make this week rather than reference data.
+  // Asserted by which panel mounted, not by a word inside it.
+  await expect(page.getByTestId('growth-panel-work')).toBeVisible()
+  await expect(page.getByTestId('growth-section-work')).toHaveAttribute('aria-current', 'true')
 })
 
 test('the #/acquisition bookmark lands on Growth, on Governance', async ({ page }) => {
@@ -173,12 +177,17 @@ test('the retired outbound machinery is not on the tab', async ({ page }) => {
   }
 })
 
-test('work says plainly that the board is empty', async ({ page }) => {
+test('work says plainly that the board is empty, once', async ({ page }) => {
   await mockGrowthApis(page)
   await openSection(page, 'work')
-  await expect(page.getByText('Creative board')).toBeVisible()
-  await expect(page.getByText(/No clips yet/)).toBeVisible()
-  await expect(page.getByText(/Nothing queued for this week/)).toBeVisible()
+  // Selected by test id, not by the words. This spec asserted three literal
+  // strings and broke the moment the copy moved, which is how the suite went
+  // from 9 of 9 to 2 of 9 the last time these labels were renamed.
+  await expect(page.getByTestId('growth-panel-work')).toBeVisible()
+  await expect(page.getByTestId('board-empty')).toBeVisible()
+  // One empty state, not two. The batch strip already carries the week and the
+  // count, so the note used to repeat both and admit emptiness a second time.
+  await expect(page.getByTestId('board-empty')).toHaveCount(1)
 })
 
 test('promote shows the mechanical 422 criteria checklist', async ({ page }) => {
@@ -306,9 +315,12 @@ test('on a phone, adding a place opens a sheet with the action on screen', async
     morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
   } }))
   await page.goto('/#/growth')
-  await expect(page.getByTestId('growth-panel-map')).toBeVisible()
   // The tab says what it is for, in words, before any control.
   await expect(page.getByText(/Find buyers where they already are/)).toBeVisible()
+  // The map is a reference section now, after the three steps of the week, so
+  // this reaches it by its pill rather than assuming it is where Growth opens.
+  await page.getByTestId('growth-section-map').click()
+  await expect(page.getByTestId('growth-panel-map')).toBeVisible()
   await page.getByRole('button', { name: 'Add a place' }).click()
   const sheet = page.getByRole('dialog', { name: 'Add a place' })
   await expect(sheet).toBeVisible()

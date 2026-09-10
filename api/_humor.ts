@@ -83,7 +83,7 @@ after: "What once took a chartered team, a procurement cycle, two reorgs and the
 
 // Humour-pass guardrails: keep the hard voice rules but DROP the "end on a hard
 // verdict / no rhetorical question" rule, which flattens comedy.
-const HUMOUR_GUARDRAILS = [
+export const HUMOUR_GUARDRAILS = [
   'HARD RULES (never violate): No em dashes anywhere, use commas, periods, or parentheses.',
   'No AI tells ("here\'s the thing", "the truth is", "let\'s dive in", "delve", "unpack", "deep dive").',
   'No synthetic enthusiasm, no "leverage", "utilise", "seamless", "empower", "journey", "landscape", "robust", "synergy".',
