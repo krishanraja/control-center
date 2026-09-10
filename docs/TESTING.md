@@ -9,7 +9,7 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 | Lint | `npm run lint` (`--max-warnings 0`) | yes |
 | Types | `npx tsc --noEmit` + `npm run typecheck:api` + `npm run typecheck:scripts` | yes |
 | Structural guards | `npx tsx scripts/check-<name>.mts` | yes (seventeen of them) |
-| e2e (Playwright) | `npx playwright test` | **no** |
+| e2e (Playwright) | `npx playwright test` | **five specs only** (see below) |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
 | COMPOUND full verification | `npm run verify` from `compound/` | no |
@@ -170,9 +170,13 @@ Run it against any database with the two network migrations applied.
 
 ## Known gaps
 
-- **CI runs no browser tests.** Playwright and the compound vitest suite are
-  local-only; the CI gate is lint + types + the structural guards. Run the
-  e2e suite yourself before merging UI work.
+- **CI runs five browser tests, not the suite** (corrected 2026-09-10; this
+  file and `AGENTS.md` previously said CI runs no browser tests at all, which
+  was wrong). The `e2e` job in `.github/workflows/ci.yml` runs
+  `content-rooms.spec.ts`, `content-queue-window.spec.ts`, `composer.spec.ts`,
+  `video-engine-mobile.spec.ts` and `growth-scroll.spec.ts`. Everything else,
+  plus the compound vitest suite, is local-only. Run the full e2e suite
+  yourself before merging UI work.
 - **e2e coverage is broad but not total.** Growth, Network (search +
   add-person), Home's no-scroll contract, the pilot gate, the brief
   composer, Focus, the loading ladder, and the queue relocation are covered.

@@ -94,8 +94,13 @@ This repo contains **two independent frontends**, each with its own
   VITE_SUPABASE_ANON_KEY=placeholder
   VITE_UI_V2_ENABLED=true
   ```
-  Note this repo's CI does not run Playwright at all (see `.github/workflows/ci.yml`),
-  so a broken spec will not be caught for you.
+  Note this repo's CI runs only five specs, not the full suite (2026-09-10
+  correction: this file previously said "no Playwright in CI at all", which
+  was wrong): the `e2e` job in `.github/workflows/ci.yml` runs
+  `content-rooms.spec.ts`, `content-queue-window.spec.ts`, `composer.spec.ts`,
+  `video-engine-mobile.spec.ts` and `growth-scroll.spec.ts`. Every other spec,
+  including `growth.spec.ts` and `room.spec.ts`, is caught only by whoever
+  runs the full local list before pushing.
 - **`.env.production.local` silently wins over `.env`, and its values are masked.**
   `vercel env pull` writes every secret as the literal string `[SENSITIVE]`, and
   Vite loads `.env.production.local` *after* `.env` in a production build, so a
@@ -150,7 +155,8 @@ This repo contains **two independent frontends**, each with its own
 `check-fleet-classifier`, `check-no-secrets`, `check-theme-tokens`
 (all `scripts/check-*.mts`, run with `npx tsx`). Each guard encodes an
 invariant that already shipped broken once; run them locally before pushing.
-No Playwright in CI (see Tests above). The repo also works on newer Node
+A separate `e2e` job runs five Playwright specs (see Tests above); the rest of
+the suite is not gated by CI. The repo also works on newer Node
 (tested on Node 22); `engines` requires `>=18`.
 
 More `check-*.mts` guards exist outside CI (`check-edit-palette`,

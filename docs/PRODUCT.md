@@ -274,14 +274,23 @@ dropped with the reason, and the oldest queued targets with no research in
 
 ### Layout
 - Header "The Room", a counts line by state (listed, drafted, sent, replied,
-  call booked, call taken, room booked, paid), and **Find five more**, which
-  proposes candidates from network tiers 1 and 2 (founder, C-suite, VP at
-  media, adtech, publishing and data businesses) as Accept / Skip chips.
-  Nothing is added without a tap.
-- One `RoomCard` per target: name (LinkedIn), title at company, why they fit
-  the face, then **Why now** with the cited trigger and its source link, or
-  the literal *No live trigger found*. When drafted: the subject, the
-  editable body, and **Open in Gmail** when the draft landed there.
+  call booked, call taken, room booked, paid). **Both device classes now say
+  what the list is, what is being sold, and the charter's arithmetic against
+  the live counts** (2026-09-10, `RoomBody`), previously desktop-only, so a
+  phone opened on "The OS drafts, you send" with no context.
+- Proposals run through the shared `TriageDeck` (2026-09-10), the narrow
+  counterpart to `SwipeCockpit`, rather than a local Accept/Skip chip pair:
+  reason chips, a "why am I seeing this" badge, undo, and swipe labels that
+  are verbs (Skip / Keep). The deck takes a fixed 540px slice under the
+  purpose block on a phone so a full card never clips the ask.
+- One `RoomCard` per target: name (LinkedIn), title at company, **ask_kind**
+  (buyer / intro / collaborator, classified by the seed route) and
+  **ask_line**, one plain sentence saying what to ask this person, then
+  **Why now** with the cited trigger and its source link, or the literal
+  *No live trigger found*. When drafted: the subject, the editable body
+  (now resynced against the live server value so a "Save draft" tap can no
+  longer overwrite a freshly generated draft with an empty buffer), and
+  **Open in Gmail** when the draft landed there.
 - One primary action per state: Draft it → I sent it → They replied → Call
   booked → Call taken → Room booked → Paid (a GBP amount in a Modal). Every
   state has a quiet *Not now*.
@@ -295,9 +304,20 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 - `PATCH /api/room/:id` state transitions, each stamped. **sent** writes a
   `ships` row, channel `approach`, dedup `room:<id>`; that is what the
   scorecard's Sent column counts.
+- **Skip now writes**, rather than only filtering a local array
+  (2026-09-10): a `not_now` row plus a coded `feedback_queue` vote so the
+  same person stops being reproposed and the correction loop has something
+  to cluster. Previously a skip did not reach `/api/room/seed`'s dedupe, so
+  the same five candidates returned on every reload.
 - `POST /api/room/:id/draft` finds the trigger and drafts. Never sends.
 - Monday 06:00 operator time, `/api/room/monday` drafts the five listed
   targets with the freshest trigger and tells Telegram.
+- `/api/room/seed` classifies `ask_kind`/`ask_line` in one metered call,
+  grounded only in fields the network search already returns (roles,
+  `reachable_via`, `best_channel`, seniority, stored judgment). It degrades
+  to unclassified rather than failing when the call is slow, missing a key,
+  or returns unparseable JSON. Ambiguous cases default to `intro`, never
+  `buyer`: asking for a door is never the wrong ask.
 
 ### Behaviour rules
 - Cited or silent: a draft without a source URL says "No live trigger found"
@@ -305,6 +325,9 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 - Approval wall: no route under `/api/room` can send. The Gmail draft is the
   hand-off.
 - The list is 25 until the 25 are worked (gate G4), then 100.
+- **`ask_kind`/`ask_line` are written by migration `20260910120000_room_ask_kind.sql`,
+  not yet applied to production as of 2026-09-10**: accepting a classified
+  proposal fails until it runs. Existing rows will default to `buyer`.
 
 ---
 
@@ -479,9 +502,36 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 
 ## Tab: Growth
 
-One tab, five sections in the order of the weekly loop (Map, Work, Signals,
-Council, Governance), both device classes via `growth/GrowthTab`. Full spec
+One tab, five sections, both device classes via `growth/GrowthTab`. Full spec
 and runbook: [`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+
+**Sections run in the order one causes the next (2026-09-10), not the map-first
+order they used to.** The council's Sunday verdict produces the week's clips,
+so it leads; the tab lands on the work it produced rather than the reference
+map:
+
+1. **Review** (`council`): the Sunday verdict per product, what to stop, what
+   to do next, your ruling. Source of the week's clips.
+2. **To do** (`work`, the landing section): the 3 to 5 clips to make this
+   week, from brief to posted.
+3. **What's moving** (`signals`): whether AI answers mention you and where
+   you rank on Google.
+4. **Where they are** (`map`): the places your buyers already go; add one,
+   answer the open questions, mark what is covered. Reference, not a step.
+5. **Spend limits** (`governance`): budget, autonomy, what agents may say.
+   Reference, not a step.
+
+**The creative board writes scripts, not just titles (2026-09-10).**
+`POST /api/growth/clip-ideas` proposes five titles grounded in a touchpoint's
+`icp_trigger`, the venture's positioning and the council's last verdict.
+`POST /api/growth/clip-script` writes the script in two stages: build the
+argument from what the OS holds, then cut it to the length ceiling, spoken
+rules and shot-note shape, because there is no rewrite without a source.
+Figures the number-check can't verify surface on the card rather than being
+swallowed. An optional humour register splices fragments from `api/_humor.ts`
+(the same six registers the Content composer uses). Neither route has run
+against a live Supabase/Anthropic call yet; the output shape is typechecked
+and grounding is read-only.
 
 **It says what it is for (2026-09-08).** The header carries the purpose in
 one sentence ("Find buyers where they already are, make them something each

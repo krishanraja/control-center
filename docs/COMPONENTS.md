@@ -288,6 +288,17 @@ Save that rides above the keyboard (the dialog layer applies
 that arms on the first tap and runs on the second. Mobile only — desktop
 edits inline. `GoalLadder` uses it; every future mobile text edit should.
 
+### `TriageDeck` - the narrow swipe-triage shell (2026-09-10)
+
+`shared/TriageDeck`: the phone counterpart to `SwipeCockpit` (which spends a
+desktop's landscape on rails around `SwipeDeck`). One `useSwipeTriage` config,
+picked by viewport, so a narrow surface gets the shared deck (reason chips,
+the "why am I seeing this" badge, undo) instead of restating accept/reject
+handlers and toasts by hand. People → Room's proposal lane is the first
+adopter, replacing a local Accept/Skip chip pair that wrote nothing on skip.
+`MobileGuests` still hand-rolls the same logic against
+`buildGuestsTriageConfig` and is a migration candidate, not yet moved.
+
 ### `GoalPickers` — chips over dropdowns
 
 `components/goals/GoalPickers.tsx`: `ServesPicker` (the parent OS goal as

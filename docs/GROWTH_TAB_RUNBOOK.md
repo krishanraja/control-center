@@ -11,6 +11,16 @@ levers, and the standing rules.
 > lane figures with a line saying what each counts. The autonomy rungs are
 > said in words on the card. See `docs/PRODUCT.md`, Tab: Growth.
 
+> **Surface note (2026-09-10).** Growth is the last tab through the all-tabs
+> rebuild (`docs/plans/all-tabs-rebuild/STATE.md`): it now renders through the
+> shared `DoThisNextHero` and its five sections run Review, To do, What's
+> moving, then the two references (Where they are, Spend limits), landing on
+> To do rather than the map. The creative board writes real scripts now
+> (`/api/growth/clip-ideas`, `/api/growth/clip-script`), two calls in series:
+> build the argument, then cut it to length and shot notes, with an optional
+> humour register from `api/_humor.ts`. Neither route has taken a live call
+> yet. See `docs/PRODUCT.md`, Tab: Growth.
+
 ## Standing rules (locked 2026-07-16)
 
 1. **No personal brand in public — ever.** Every outbound surface is

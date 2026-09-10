@@ -605,9 +605,15 @@ Service role only (RLS enabled and forced, no anon policy), reached through
 | `listed_at`, `sent_at`, `replied_at`, `call_booked_at`, `call_taken_at`, `room_booked_at`, `room_paid_at`, `not_now_at` | timestamptz | One stamp per step; the scorecard reads them |
 | `cash_gbp` | numeric | Invoiced value of the room. Required at `room_paid` |
 | `sourced_by` | text | `krish` or `os` |
+| `ask_kind` | text | `buyer` (can sign a fixed fee) / `intro` (opens a door) / `collaborator` (already works with Krish). Default `buyer`. Classified by `/api/room/seed`, never inferred at render time |
+| `ask_line` | text | One plain sentence saying what to ask this person, grounded only in stored fields; null when nothing classified them |
 
 Marking a target `sent` writes a `ships` row, channel `approach`, dedup key
 `room:<id>`.
+
+`ask_kind` / `ask_line` are added by migration `20260910120000_room_ask_kind.sql`,
+**not yet applied to production as of 2026-09-10**; accepting a classified
+proposal fails until it runs.
 
 ### `scorecard_weeks` / `build_activity_weeks`
 
