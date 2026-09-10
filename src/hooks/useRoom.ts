@@ -34,10 +34,22 @@ export interface RoomContact {
   linkedin_url: string | null
 }
 
+/** Who a person is to the door: can they sign, open a door, or do you already
+ *  work with them. Written by /api/room/seed. */
+export type AskKind = 'buyer' | 'intro' | 'collaborator'
+
+export const ASK_LABEL: Record<AskKind, string> = {
+  buyer: 'Can sign',
+  intro: 'Can introduce',
+  collaborator: 'You work together',
+}
+
 export interface RoomRow {
   id: string
   contact_id: string
   why_face: string
+  ask_kind: AskKind | null
+  ask_line: string | null
   trigger_signal: string | null
   trigger_source_url: string | null
   trigger_found_at: string | null
@@ -68,6 +80,8 @@ export interface RoomProposal {
   linkedin_url: string | null
   why_face: string
   score: number
+  ask_kind?: AskKind
+  ask_line?: string
 }
 
 /** The lane's rows. With no state the route returns listed and drafted
@@ -167,7 +181,14 @@ export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; 
 export async function addRoomTarget(input: {
   contact_id: string
   why_face: string
+  ask_kind?: AskKind
+  ask_line?: string
   sourced_by?: 'krish' | 'os'
+  /** 'listed' keeps them; 'not_now' is a skip, which is recorded rather than
+   *  discarded so the next seed stops proposing them and Vera sees the verdict. */
+  state?: 'listed' | 'not_now'
+  /** A code from src/lib/servedSurfaces.ts. Omitted falls back to room_other. */
+  reason_code?: string
 }): Promise<RoomRow> {
   const r = await fetch('/api/room', {
     method: 'POST',

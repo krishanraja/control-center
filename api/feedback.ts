@@ -26,6 +26,9 @@ const ALLOWED_TABLES = new Set([
   'content_ideas',
   'nova_target_conferences',
   'visibility_targets',
+  // The Room (job 1). Mirrors src/lib/servedSurfaces.ts; check-served-surfaces
+  // fails the build if the two drift.
+  'room_targets',
   'guests',
   'tasks',
   'customers',
@@ -59,7 +62,7 @@ const ALLOWED_TABLES = new Set([
 // or correction wrote through as an unknown code and Vera clustered it as
 // 'other'. Codes are append-only -- 389 feedback rows reference the existing
 // ones, and renaming a code orphans its history.
-const REASON_OPTIONS = new Set([
+export const REASON_OPTIONS = new Set([
   // tasks
   'task_not_a_priority',
   'task_wrong_framing',
@@ -113,6 +116,14 @@ const REASON_OPTIONS = new Set([
   'visibility_too_technical',
   'visibility_off_vertical',
   'visibility_other',
+  // room_targets
+  'room_not_a_buyer',
+  'room_already_work_with',
+  'room_no_budget_say',
+  'room_wrong_sector',
+  'room_bad_timing',
+  'room_not_close_enough',
+  'room_other',
   // nova_target_conferences
   'visibility_wrong_audience',
   'visibility_bad_timing',

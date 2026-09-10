@@ -3,7 +3,7 @@ import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 import { Modal } from '../shared/Modal'
-import { draftRoom, patchRoom, ROOM_STATE_LABEL } from '../../hooks/useRoom'
+import { ASK_LABEL, draftRoom, patchRoom, ROOM_STATE_LABEL } from '../../hooks/useRoom'
 import type { RoomRow, RoomState } from '../../hooks/useRoom'
 
 // One leader in the Room. The card carries who they are, why they fit the
@@ -148,6 +148,26 @@ export function RoomCard({ target: t, onChanged }: Props) {
       </div>
 
       <p className="text-label text-white/70 mt-2">{t.why_face}</p>
+
+      {/* What to ask THIS person. The lane ranked on warmth and never said what
+          the ask was, so a close collaborator and a stranger read identically
+          and neither card answered "what am I supposed to do with them". */}
+      {t.ask_line && (
+        <p data-testid="room-ask" className="text-label text-white/80 mt-1.5">
+          {t.ask_kind && (
+            <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
+              t.ask_kind === 'buyer'
+                ? 'bg-emerald-500/15 text-emerald-200'
+                : t.ask_kind === 'collaborator'
+                  ? 'bg-amber-500/15 text-amber-200'
+                  : 'bg-sky-500/15 text-sky-200'
+            }`}>
+              {ASK_LABEL[t.ask_kind]}
+            </span>
+          )}
+          {t.ask_line}
+        </p>
+      )}
 
       {t.trigger_signal && t.trigger_source_url ? (
         <p className="text-label text-white/70 mt-1.5">
