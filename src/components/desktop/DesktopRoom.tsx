@@ -264,8 +264,15 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
           {/* The shared deck, not a bespoke chip pair: it brings the reason
               chips, the "why am I seeing this" badge and the undo that the
               Room's own Accept/Skip buttons never had. */}
+          {/* The deck needs a real height. Visibility gives it the whole screen
+              (MobileShell scroll="none" plus flex-1), but the Room's purpose
+              block above is the thing that was missing from this lane, so it
+              stays on screen and the deck takes a fixed slice under it. Without
+              one it collapses to the height of its own badge row. */}
           {narrow ? (
-            <TriageDeck config={proposalConfig} onExit={() => setProposals(null)} />
+            <div className="h-[540px]">
+              <TriageDeck config={proposalConfig} onExit={() => setProposals(null)} />
+            </div>
           ) : (
             <SwipeCockpit config={proposalConfig} onExit={() => setProposals(null)} />
           )}
