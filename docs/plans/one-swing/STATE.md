@@ -2,7 +2,7 @@
 
 Charter in `CHARTER.md`. Decision in `docs/DECISIONS/016-ikigai-v4-one-swing.md`.
 
-- Last updated: 2026-09-10 (all six packages shipped 2026-09-06 on branch `claude/control-center-evolution-sp6hiu`; Room extended 2026-09-10)
+- Last updated: 2026-09-11 (all six packages shipped 2026-09-06 on branch `claude/control-center-evolution-sp6hiu`; Room extended 2026-09-10 and again 2026-09-11)
 - Gate open: G1 (jobs 1 and 2). G2, G3, G4 closed.
 
 ## Ledger
@@ -10,7 +10,7 @@ Charter in `CHARTER.md`. Decision in `docs/DECISIONS/016-ikigai-v4-one-swing.md`
 | Package | Status | Notes |
 |---|---|---|
 | P1 Canon repoint | DONE 2026-09-06 | Migration `20260906100000_one_swing_canon` applied to production. `goal:os:mission` active, three OS goals dropped by status, `north_star` mirror updated, three dated tasks seeded (12 Sep rerun, 5 Oct stop rule, 5 Dec review). `job` tag on goals, tasks, daily_focus. `api/_mission.ts` feeds every canon prompt. Rules v2 and v4 purpose lines on the Focus tab. `room_face` ICP lane first, three lanes parked. |
-| P2 The Room (job 1) | DONE 2026-09-06, extended 2026-09-10 | Migration `20260906110000_room_targets` applied. `/api/room` (list, add, seed, draft, transitions, Monday cron 06:00 New York). People → Room lane; Home RoomStrip when drafts wait. `e2e/room.spec.ts` green. 2026-09-10: the lane now runs on the shared `TriageDeck`, Skip writes a `not_now` row plus a coded `feedback_queue` vote, and `ask_kind`/`ask_line` split buyers from intros (migration `20260910120000_room_ask_kind`, **not yet applied**). |
+| P2 The Room (job 1) | DONE 2026-09-06, extended 2026-09-10 and 2026-09-11 | Migration `20260906110000_room_targets` applied. `/api/room` (list, add, seed, draft, transitions, Monday cron 06:00 New York). People → Room lane; Home RoomStrip when drafts wait. `e2e/room.spec.ts` green. 2026-09-10: the lane now runs on the shared `TriageDeck`, Skip writes a `not_now` row plus a coded `feedback_queue` vote, and `ask_kind`/`ask_line` split buyers from intros (migration `20260910120000_room_ask_kind`, **not yet applied**). 2026-09-11 (Krish's phone pass, no migration): the phone deck owns the whole screen instead of a fixed box, known collaborators sort to the bottom rather than the top (Krish's call), thin candidates are enriched or dropped with the count said out loud, and self-referential judgment text no longer survives into a card. |
 | P3 The scorecard (job 2) | DONE 2026-09-06 | Migration `20260906120000_scorecard` applied. `/api/scorecard` (read, override), `github-sync` (Sat 04:00 UTC), `friday` (Sat 04:30 UTC, freeze, variance, tripwire), `monday` (10:30 UTC, Telegram, partner Gmail draft). Home vitals line is the scorecard; ScorecardPanel in a SlideOver. Unasked hours reads 'not measured yet' until `GITHUB_TOKEN` and `GITHUB_REPOS` are set. |
 | P4 Feed the demand engine (job 4) | DONE 2026-09-06 | Friday brief carries the face block and cuts uncited claims. Published ideas, sent and pushed briefs record a `publish` ship (dedup `idea:<id>`, `brief:<week>`). |
 | P5 Compound runway | DONE 2026-09-06 | Migration `20260906130000_compound_cash_balances` applied. Settings → Cash on hand; Spend tab opens with the runway sentence. 150 Vitest tests, boundary checks green. |

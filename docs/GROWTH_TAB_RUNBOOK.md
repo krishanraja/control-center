@@ -21,6 +21,13 @@ levers, and the standing rules.
 > humour register from `api/_humor.ts`. Neither route has taken a live call
 > yet. See `docs/PRODUCT.md`, Tab: Growth.
 
+> **Surface note (2026-09-11).** The "Do this next" hero now acts even when
+> its own section is already open, pointing at the first review still owing
+> a ruling instead of no-opping. On a phone the purpose sentence and the
+> section-purpose line are gone, since the hero already says what to do and
+> the two lines were costing more than half the screen before any content;
+> the desk keeps both. See `docs/PRODUCT.md`, Tab: Growth.
+
 ## Standing rules (locked 2026-07-16)
 
 1. **No personal brand in public — ever.** Every outbound surface is

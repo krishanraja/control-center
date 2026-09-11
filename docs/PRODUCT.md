@@ -277,12 +277,20 @@ dropped with the reason, and the oldest queued targets with no research in
   call booked, call taken, room booked, paid). **Both device classes now say
   what the list is, what is being sold, and the charter's arithmetic against
   the live counts** (2026-09-10, `RoomBody`), previously desktop-only, so a
-  phone opened on "The OS drafts, you send" with no context.
+  phone opened on "The OS drafts, you send" with no context. **2026-09-11:**
+  that block is one line (the purpose sentence) with the offer and the
+  arithmetic folded behind a "Why these people" disclosure, because the
+  three-paragraph version pushed the first card below the fold on a 390x844
+  phone.
 - Proposals run through the shared `TriageDeck` (2026-09-10), the narrow
   counterpart to `SwipeCockpit`, rather than a local Accept/Skip chip pair:
   reason chips, a "why am I seeing this" badge, undo, and swipe labels that
-  are verbs (Skip / Keep). The deck takes a fixed 540px slice under the
-  purpose block on a phone so a full card never clips the ask.
+  are verbs (Skip / Keep). **2026-09-11: on a phone the deck owns the whole
+  screen** rather than taking a fixed 540px slice inside the page's own
+  scroller - `MobileRoom` switches its shell to `scroll="none"` while the
+  deck is up, the way `MobileGuests` already does, because a drag across a
+  card and a drag down the page were competing for the same gesture. The
+  desk keeps `SwipeCockpit` inline; only the narrow shell changed.
 - One `RoomCard` per target: name (LinkedIn), title at company, **ask_kind**
   (buyer / intro / collaborator, classified by the seed route) and
   **ask_line**, one plain sentence saying what to ask this person, then
@@ -291,6 +299,21 @@ dropped with the reason, and the oldest queued targets with no research in
   (now resynced against the live server value so a "Save draft" tap can no
   longer overwrite a freshly generated draft with an empty buffer), and
   **Open in Gmail** when the draft landed there.
+- **Collaborators sort to the bottom of the deck (2026-09-11), not the top.**
+  Krish's ruling on 2026-09-11, after seeing all three options: known
+  collaborators (`Rio Longacre`, `Brett House`) still appear, but after
+  everyone who could actually sign a fee, via a stable sort in
+  `api/room/seed.ts` (`collaboratorsLast`) that preserves the scorer's order
+  inside each group.
+- **A card with no company and no role is not proposed (2026-09-11).**
+  `/api/room/seed` runs candidates missing both through `enrichPerson`
+  (People Data Labs / Apollo, web research off) before they reach the deck,
+  capped at two enrichment calls per press since the path spends on paid
+  providers. What comes back writes onto `contacts` (blanks only, so the
+  next press does not pay again for the same person). Whoever is still
+  unidentifiable afterwards is dropped, and the lane says how many
+  (`useRoom.seedRoom`'s `heldBack` count) rather than quietly returning four
+  cards out of five.
 - One primary action per state: Draft it → I sent it → They replied → Call
   booked → Call taken → Room booked → Paid (a GBP amount in a Modal). Every
   state has a quiet *Not now*.
@@ -322,6 +345,11 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 ### Behaviour rules
 - Cited or silent: a draft without a source URL says "No live trigger found"
   on its face and opens on the relationship. The OS never invents news.
+- **A judgment never cites the OS as evidence for itself (2026-09-11).**
+  `whyFace` in `api/room/seed.ts` drops any sentence naming Control Center or
+  "Krish's contacts" as the reason someone is on the shortlist - everyone on
+  it is in the contacts, because the shortlist is drawn from them, so the
+  line said nothing about the person.
 - Approval wall: no route under `/api/room` can send. The Gmail draft is the
   hand-off.
 - The list is 25 until the 25 are worked (gate G4), then 100.
@@ -533,11 +561,23 @@ swallowed. An optional humour register splices fragments from `api/_humor.ts`
 against a live Supabase/Anthropic call yet; the output shape is typechecked
 and grounding is read-only.
 
-**It says what it is for (2026-09-08).** The header carries the purpose in
-one sentence ("Find buyers where they already are, make them something each
-week, and see whether it worked") and a second line under the pills says what
-the open section is for. Krish had asked, in so many words, why the tab did
-not just say that.
+**It says what it is for, on the desk (2026-09-08; phone scope narrowed
+2026-09-11).** The header carries the purpose in one sentence ("Find buyers
+where they already are, make them something each week, and see whether it
+worked") and a second line under the pills says what the open section is
+for. Krish had asked, in so many words, why the tab did not just say that.
+On a phone both lines are gone: "more than half the screen is fixed, which
+is ridiculous" (Krish, 2026-09-11) - the title, purpose, counts, hero, pills
+and section line filled the top half of the screen before any content, and
+the hero already says what to do. The desk keeps both lines.
+
+**The "Do this next" hero now acts even when its own section is already open
+(2026-09-11).** It used to only call `setSection`, so pressing "Read the
+review" while Review was already the open section was a no-op at the one
+moment it was most likely to be pressed. It now bumps a `focusSignal` that
+`CouncilFeed` uses to scroll the first review still owing a ruling into
+view and open its ruling box - the same signal pattern the clip and place
+composers already used.
 
 **Read first, rows second.** Every section that shows evidence opens on a
 sentence that says what the evidence means, with the rows folded under it:
