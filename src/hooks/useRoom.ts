@@ -165,7 +165,7 @@ export async function draftRoom(id: string): Promise<RoomRow> {
  *  `degraded` names any search stage that did not run (for example
  *  'embedding:unavailable' when no embedding key is configured), so an empty
  *  result can say why instead of "nobody fits". */
-export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; degraded: string[] }> {
+export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; degraded: string[]; heldBack: number }> {
   const r = await fetch('/api/room/seed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -175,6 +175,10 @@ export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; 
   return {
     proposals: (j.proposals as RoomProposal[]) || [],
     degraded: Array.isArray(j.degraded) ? (j.degraded as unknown[]).map(String) : [],
+    // People the search found but could not identify well enough to judge.
+    // They are dropped rather than shown as a bare first name, and the lane
+    // says so instead of quietly returning four cards out of five.
+    heldBack: typeof j.held_back === 'number' ? j.held_back : 0,
   }
 }
 

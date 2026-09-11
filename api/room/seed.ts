@@ -5,6 +5,7 @@ import { runNetworkSearch } from '../_networkSearch.js'
 import type { QueryPlan } from '../_networkQuery.js'
 import { FACE, DOOR } from '../_mission.js'
 import { callClaude, robustJson } from '../_content.js'
+import { enrichPerson } from '../_personEnrich.js'
 
 // POST /api/room/seed  { limit? }
 //
@@ -65,10 +66,29 @@ const KNOWN_COLLABORATORS = ['Rio Longacre', 'Brett House']
  * card already renders the role, so the body is the judgment alone.
  */
 function whyFace(r: { title: string | null; company: string | null; who: string | null; why_them: string | null }): string {
-  const judgment = (r.why_them || r.who || '').replace(/\s*[\u2014\u2013]\s*/g, ', ').trim()
+  const judgment = dropSelfReference((r.why_them || r.who || '').replace(/\s*[\u2014\u2013]\s*/g, ', ').trim())
   if (judgment) return judgment.slice(0, 600)
   const role = [r.title, r.company].filter(Boolean).join(' at ')
   return role ? `${role}.` : 'In your network, no stored judgment yet.'
+}
+
+/**
+ * Cut the sentences where the OS cites itself as evidence.
+ *
+ * A stored judgment for a thin contact often ends "already in Krish's Control
+ * Center contacts", which says nothing about the person: everyone on this
+ * shortlist is in the contacts, because the shortlist is drawn from them. It
+ * reads as a reason and carries none, so it does not survive into `why_face`.
+ */
+function dropSelfReference(text: string): string {
+  if (!text) return ''
+  const SELF = /(control\s*cent(re|er)|krish'?s (own )?(contacts|network|crm|database)|already in (his|krish'?s) contacts)/i
+  const kept = text
+    .split(/(?<=[.!?])\s+/)
+    .filter(sentence => !SELF.test(sentence))
+    .join(' ')
+    .trim()
+  return kept
 }
 
 interface Candidate {
@@ -158,6 +178,97 @@ async function classify(candidates: Candidate[]): Promise<Map<string, { ask_kind
   return out
 }
 
+/**
+ * How many thin candidates one press may enrich.
+ *
+ * `enrichPerson` calls paid providers (People Data Labs, Apollo, and the
+ * Perplexity/Exa/Brave cascade behind web research), so a press that fanned out
+ * across the whole shortlist would spend real money on people Krish may skip in
+ * a second. Two is the cap: enough to rescue the usual one or two bare names in
+ * a batch of five, small enough that the worst case is bounded and predictable.
+ */
+const ENRICH_CAP = 2
+
+interface ThinRow {
+  contact_id: string
+  full_name: string | null
+  title: string | null
+  company: string | null
+  linkedin_url: string | null
+}
+
+/**
+ * Give a bare first name a company and a role before it is proposed.
+ *
+ * A card that reads "Matthew", with no employer and no title, cannot be judged:
+ * there is nothing on it to say yes or no to. The scorer still ranks such a row
+ * highly when the relationship is warm, so the thin ones reached the top of the
+ * deck and the deck stopped meaning anything.
+ *
+ * Web research is off. What a card needs is the employer and the title, which
+ * People Data Labs and Apollo return directly; the slow half of the cascade buys
+ * prose that the card has no room for.
+ *
+ * What comes back is written onto `contacts`, blanks only, exactly as
+ * `api/network/enrich-person.ts` does it. Enrichment adds, it never overwrites a
+ * curated value, and persisting means the next press does not pay again for the
+ * same person.
+ *
+ * Returns the ids that are still unjudgeable, which the caller drops. A
+ * half-described card is worse than four cards.
+ */
+async function enrichThin(rows: ThinRow[]): Promise<Set<string>> {
+  const stillThin = new Set<string>()
+  const targets = rows.filter(r => !r.title && !r.company && r.full_name).slice(0, ENRICH_CAP)
+  for (const r of rows) if (!r.title && !r.company) stillThin.add(r.contact_id)
+  if (!targets.length) return stillThin
+
+  await Promise.all(targets.map(async r => {
+    try {
+      const result = await enrichPerson(
+        { name: r.full_name as string, linkedinUrl: r.linkedin_url },
+        { skipWeb: true, timeoutMs: 20_000 },
+      )
+      // The two-terminal-state rule from api/network/enrich-person.ts: a run
+      // with a blocked provider is not an enrichment, however many fields it
+      // happened to fill. Such a candidate stays dropped rather than being
+      // shown as if the OS had looked them up.
+      if (result.summary.blocked.length) return
+      const { title, company, location, linkedinUrl } = result.facts
+      if (!title && !company) return
+
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+      if (title) patch.title = title
+      if (company) patch.company = company
+      if (location && !r.linkedin_url) patch.location = location
+      if (linkedinUrl && !r.linkedin_url) patch.linkedin_url = linkedinUrl
+      await supabase.from('contacts').update(patch).eq('id', r.contact_id)
+
+      r.title = title ?? r.title
+      r.company = company ?? r.company
+      stillThin.delete(r.contact_id)
+    } catch {
+      // Leave the id in stillThin. The caller drops it and says how many.
+    }
+  }))
+
+  return stillThin
+}
+
+/** Collaborators keep their place on the deck, at the bottom of it. Krish still
+ *  wants to see them, after everyone who could actually sign. A stable sort, so
+ *  the scorer's order survives inside each group. */
+function collaboratorsLast(proposals: RoomProposal[]): RoomProposal[] {
+  return proposals
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => {
+      const ac = a.p.ask_kind === 'collaborator' ? 1 : 0
+      const bc = b.p.ask_kind === 'collaborator' ? 1 : 0
+      return ac - bc || a.i - b.i
+    })
+    .map(x => x.p)
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['POST'])) return
 
@@ -192,7 +303,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .filter(r => !taken.has(r.contact_id))
       .slice(0, limit)
 
-    const proposals: RoomProposal[] = shortlist.map(r => ({
+    // A bare first name is not a proposal. Look up the ones with neither a
+    // company nor a title before they reach the deck, and drop whoever is still
+    // unidentifiable afterwards rather than showing a card nobody can judge.
+    // The count is its own field rather than a `degraded` stage, because it is
+    // not a degradation of the ranking: the search worked, and some of what it
+    // found is not ready to be shown.
+    let heldBack = 0
+    try {
+      const stillThin = await enrichThin(shortlist as unknown as ThinRow[])
+      if (stillThin.size) {
+        heldBack = stillThin.size
+        for (let i = shortlist.length - 1; i >= 0; i--) {
+          if (stillThin.has(shortlist[i].contact_id)) shortlist.splice(i, 1)
+        }
+      }
+    } catch {
+      // enrichThin returns rather than throws per candidate, so reaching here
+      // means the whole pass failed. Nothing is dropped on that account: the
+      // thin cards go through unenriched rather than the deck coming back empty.
+    }
+
+    let proposals: RoomProposal[] = shortlist.map(r => ({
       contact_id: r.contact_id,
       full_name: r.full_name,
       title: r.title,
@@ -225,7 +357,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       out.degraded.push(`ask:${(e as Error)?.message?.slice(0, 60) || 'error'}`)
     }
 
-    return res.status(200).json({ ok: true, proposals, degraded: out.degraded, inserted: 0 })
+    // Krish's ruling on 2026-09-11: the people he already works with keep
+    // showing up, but underneath everyone who could actually sign. The label was
+    // never the problem; the position was.
+    proposals = collaboratorsLast(proposals)
+
+    return res.status(200).json({ ok: true, proposals, degraded: out.degraded, held_back: heldBack, inserted: 0 })
   } catch (e: unknown) {
     return res.status(500).json({ ok: false, error: (e as Error)?.message?.slice(0, 200) || 'seed_failed' })
   }

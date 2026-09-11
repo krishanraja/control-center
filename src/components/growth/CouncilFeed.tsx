@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Gavel } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
@@ -36,12 +36,17 @@ import { requestOk, failureMessage } from '../../lib/apiFetch'
  * review to make the tab look alive.
  */
 
-export function CouncilFeed({ g, variant, onNavigate }: {
+export function CouncilFeed({ g, variant, onNavigate, focusSignal = 0 }: {
   g: GrowthData
   variant: 'desktop' | 'mobile'
   onNavigate?: (tab: string, params?: Record<string, string>) => void
+  /** Bumped by the tab's "Do this next" button. Scrolls the first review that
+   *  still owes a ruling into view and opens its box, the same way
+   *  `composeSignal` opens the clip composer on the board. */
+  focusSignal?: number
 }) {
   const undecided = g.reviews.filter(r => !r.krish_decision).length
+  const firstWaiting = g.reviews.find(r => !r.krish_decision)?.id || null
 
   if (g.loading) {
     return <div className="space-y-4 pb-8"><SkeletonList rows={3} /></div>
@@ -64,7 +69,17 @@ export function CouncilFeed({ g, variant, onNavigate }: {
           the AI answer probes and the map. Nothing shows here until a real one exists.
         </EmptyNote>
       ) : (
-        g.reviews.map(r => <ReviewCard key={r.id} review={r} g={g} variant={variant} onNavigate={onNavigate} />)
+        g.reviews.map(r => (
+          <ReviewCard
+            key={r.id}
+            review={r}
+            g={g}
+            variant={variant}
+            onNavigate={onNavigate}
+            firstWaiting={r.id === firstWaiting}
+            focusSignal={r.id === firstWaiting ? focusSignal : 0}
+          />
+        ))
       )}
     </div>
   )
@@ -75,11 +90,15 @@ function keyLabel(k: string): string {
   return k.replace(/_/g, ' ').replace(/^#/, 'finding ')
 }
 
-function ReviewCard({ review, g, variant, onNavigate }: {
+function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focusSignal = 0 }: {
   review: CouncilReviewRow
   g: GrowthData
   variant: 'desktop' | 'mobile'
   onNavigate?: (tab: string, params?: Record<string, string>) => void
+  /** The one review the tab's hero points at. Carries the test id so there is
+   *  exactly one, however many reviews still owe a ruling. */
+  firstWaiting?: boolean
+  focusSignal?: number
 }) {
   const { toast } = useToast()
   const { today, refresh: refreshFocus } = useDailyFocus()
@@ -89,6 +108,18 @@ function ReviewCard({ review, g, variant, onNavigate }: {
   const [saving, setSaving] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
   const [acting, setActing] = useState<string | null>(null)
+
+  // The tab's "Do this next" button used to only set the section, so pressing
+  // "Read the review" while Review was already the open section did nothing at
+  // all: the one moment it was most likely to be pressed was the one moment it
+  // was dead. Now it points at this card, which brings itself into view and
+  // opens the box the ruling is typed into.
+  const cardRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (focusSignal <= 0) return
+    setRuling(true)
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [focusSignal])
 
   // `degraded` is a marker, not a finding: it says the writing pass never ran,
   // which is why the kill and double-down columns below are empty. Left in the
@@ -163,7 +194,11 @@ function ReviewCard({ review, g, variant, onNavigate }: {
   }
 
   return (
-    <article className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 flex flex-col gap-3 min-w-0">
+    <article
+      ref={cardRef}
+      data-testid={firstWaiting ? 'growth-review-waiting' : undefined}
+      className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 flex flex-col gap-3 min-w-0"
+    >
       <header className="flex items-center gap-2 flex-wrap">
         <ProductChip slug={review.product_slug} />
         <span className="text-label font-semibold text-white/85">Week of {shortDate(review.week_start)}</span>
