@@ -141,6 +141,10 @@ test('one Growth tab, five sections, the week first', async ({ page }) => {
   await mockGrowthApis(page)
   await page.goto('/#/growth')
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
+  // The desk says what the tab is for, in words, before any control. The phone
+  // does not: there it costs the top of the screen and the hero already says
+  // what to do (see the phone spec at the foot of this file).
+  await expect(page.getByText(/Find buyers where they already are/)).toBeVisible()
   // Exactly one sidebar entry reads "Growth". The old "Growth map" twin is gone.
   await expect(page.getByRole('navigation').getByText('Growth', { exact: true })).toHaveCount(1)
   await expect(page.getByText('Growth map')).toHaveCount(0)
@@ -300,6 +304,46 @@ test('weekly review leads with the headline and puts a move on today', async ({ 
 })
 
 /**
+ * The hero's button has to do something when the section it names is already
+ * open. It used to only call setSection, so pressing "Read the review" while
+ * Review was the open section set the section to the section it was already on:
+ * a no-op, at the one moment the button is most likely to be pressed (Krish,
+ * 2026-09-11, "the Do this next, read the review button doesn't actually work").
+ * It now points at the first review that still owes a ruling and opens the box
+ * the ruling is typed into.
+ */
+test('the hero acts even when its own section is already open', async ({ browser }) => {
+  // On a phone, because that is where it was reported and where the ruling box
+  // starts closed. On the desk the box is open from the start, so the press has
+  // nothing visible left to do there.
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await ctx.newPage()
+  await mockGrowthApis(page)
+  await page.route('**/rest/v1/growth_council_reviews*', r => r.fulfill({ json: [REVIEW] }))
+  await page.route('**/api/daily-focus/today*', r => r.fulfill({ json: { ok: true, today: null, carry_over: null } }))
+  await page.route('**/api/pilot/timezone', r => r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
+  await page.route('**/api/pilot/checkin*', r => r.fulfill({ json: {
+    ok: true, evening_done_today: true, last_evening: null, yesterday: null, timezone: 'America/New_York',
+    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()),
+    morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
+  } }))
+  await page.goto('/#/growth')
+  await page.getByTestId('growth-section-council').click()
+  await expect(page.getByTestId('growth-panel-council')).toBeVisible()
+
+  const waiting = page.getByTestId('growth-review-waiting')
+  await expect(waiting).toHaveCount(1)
+  // The section the hero names is already the open one, which is exactly the
+  // case that used to be dead, and the ruling box is still shut.
+  await expect(page.getByTestId('growth-section-council')).toHaveAttribute('aria-current', 'true')
+  await expect(waiting.getByRole('textbox')).toHaveCount(0)
+
+  await page.getByTestId('growth-hero').getByRole('button').first().click()
+  await expect(waiting.getByRole('textbox')).toBeVisible()
+  await ctx.close()
+})
+
+/**
  * Adding a place on a phone opens a sheet with one question and chips, not
  * the desktop grid inline. The Add action rides the sheet's footer, so it is
  * on screen without scrolling the tab.
@@ -315,8 +359,12 @@ test('on a phone, adding a place opens a sheet with the action on screen', async
     morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
   } }))
   await page.goto('/#/growth')
-  // The tab says what it is for, in words, before any control.
-  await expect(page.getByText(/Find buyers where they already are/)).toBeVisible()
+  // On a phone the purpose sentence is gone: the title, the purpose, the counts,
+  // the hero, the pills and the section line filled the top half of the screen
+  // before any content. The hero is what tells you what to do, so it is what is
+  // pinned here; the purpose line stays asserted on the desk (see above).
+  await expect(page.getByTestId('growth-hero')).toBeVisible()
+  await expect(page.getByText(/Find buyers where they already are/)).toHaveCount(0)
   // The map is a reference section now, after the three steps of the week, so
   // this reaches it by its pill rather than assuming it is where Growth opens.
   await page.getByTestId('growth-section-map').click()

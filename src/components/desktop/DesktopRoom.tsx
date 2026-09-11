@@ -60,7 +60,7 @@ function countsLine(counts: Record<string, number>): string {
     .join(', ')
 }
 
-export function RoomBody({ narrow }: { narrow: boolean }) {
+export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActive?: (active: boolean) => void }) {
   const { toast } = useToast()
   const [view, setView] = useState<RoomState | null>(null)
   const { targets, stateCounts, loading, error, refetch } = useRoom(view)
@@ -87,14 +87,25 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     setSeeding(true)
     setFindNote(null)
     try {
-      const { proposals: found, degraded } = await seedRoom(5)
+      const { proposals: found, degraded, heldBack } = await seedRoom(5)
       setProposals(found)
+      // A held-back person is one the search found and could not identify: no
+      // company, no role, and the lookup did not fill them in. Showing a bare
+      // first name is worse than showing four cards, so they are dropped, and
+      // the drop is said out loud rather than looking like a thin search.
+      const held = heldBack
+        ? heldBack === 1
+          ? 'One more came back with no company or job title, so it is not on the deck.'
+          : `${heldBack} more came back with no company or job title, so they are not on the deck.`
+        : ''
       if (!found.length) {
         setFindNote(degraded.length
           ? `Nobody came back. The search ran without ${degradedWords(degraded)}, so it could not rank properly.`
-          : 'Nobody new fits closely enough right now.')
+          : held || 'Nobody new fits closely enough right now.')
       } else if (degraded.length) {
-        setFindNote(`Ranked without ${degradedWords(degraded)}. The order is rougher than usual.`)
+        setFindNote(`Ranked without ${degradedWords(degraded)}. The order is rougher than usual. ${held}`.trim())
+      } else if (held) {
+        setFindNote(held)
       }
     } catch (err) {
       setFindNote(`Could not search: ${(err as Error)?.message || 'try again'}`)
@@ -182,6 +193,14 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     seeding,
   ), [proposals, seeding])
 
+  // The deck owns the phone screen when proposals are up. Visibility already
+  // does this (`MobileGuests` returns a `scroll="none"` shell while triaging);
+  // the Room gave the deck a fixed 540px box inside the page scroller instead,
+  // so the page and the cards fought each other under the thumb. The shell is
+  // owned by `MobileRoom`, so the lane reports the mode and the shell reacts.
+  const deckOwnsScreen = narrow && !!proposals && proposals.length > 0
+  useEffect(() => { onDeckActive?.(deckOwnsScreen) }, [deckOwnsScreen, onDeckActive])
+
   const header = !narrow && (
     <header>
       <h1 className="text-title font-semibold text-white tracking-tight flex items-center gap-2">
@@ -191,6 +210,14 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
       <FreshnessLine lane="room" />
     </header>
   )
+
+  if (deckOwnsScreen) {
+    return (
+      <div className="flex-1 min-h-0">
+        <TriageDeck config={proposalConfig} onExit={() => setProposals(null)} />
+      </div>
+    )
+  }
 
   if (loading && targets.length === 0) {
     return (
@@ -205,10 +232,23 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
     <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
       {header}
 
-      <section data-testid="room-purpose" className="space-y-1.5">
+      {/* One line, not three. The first pass put the purpose, the offer and the
+          charter arithmetic on screen together and pushed the first card below
+          the fold on a 390 by 844 phone. The purpose stays out loud because it
+          is the answer to "what am I looking at"; the reasoning folds shut. */}
+      <section data-testid="room-purpose" className="space-y-2">
         <p className="text-body text-white/75 leading-snug">{ROOM_PURPOSE}</p>
-        <p className="text-label text-white/50 leading-snug">{ROOM_OFFER}</p>
-        <p className="text-label text-white/50 leading-snug">{progressLine(stateCounts)}</p>
+        <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]">
+          <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2">
+            <span className="text-label text-white/55">Why these people</span>
+            <span className="ml-auto text-micro text-white/35 group-open:hidden">Show</span>
+            <span className="ml-auto hidden text-micro text-white/35 group-open:inline">Hide</span>
+          </summary>
+          <div className="space-y-1.5 px-3 pb-3">
+            <p className="text-label text-white/50 leading-snug">{ROOM_OFFER}</p>
+            <p className="text-label text-white/50 leading-snug">{progressLine(stateCounts)}</p>
+          </div>
+        </details>
       </section>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -263,19 +303,9 @@ export function RoomBody({ narrow }: { narrow: boolean }) {
           </p>
           {/* The shared deck, not a bespoke chip pair: it brings the reason
               chips, the "why am I seeing this" badge and the undo that the
-              Room's own Accept/Skip buttons never had. */}
-          {/* The deck needs a real height. Visibility gives it the whole screen
-              (MobileShell scroll="none" plus flex-1), but the Room's purpose
-              block above is the thing that was missing from this lane, so it
-              stays on screen and the deck takes a fixed slice under it. Without
-              one it collapses to the height of its own badge row. */}
-          {narrow ? (
-            <div className="h-[540px]">
-              <TriageDeck config={proposalConfig} onExit={() => setProposals(null)} />
-            </div>
-          ) : (
-            <SwipeCockpit config={proposalConfig} onExit={() => setProposals(null)} />
-          )}
+              Room's own Accept/Skip buttons never had. The narrow half of the
+              pair is handled above, where the deck takes the whole screen. */}
+          <SwipeCockpit config={proposalConfig} onExit={() => setProposals(null)} />
         </section>
       )}
 

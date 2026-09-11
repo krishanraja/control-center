@@ -197,6 +197,9 @@ export function GrowthTab({
   useQuickCreateListener('touchpoint', () => { setSection('map'); setMapCompose(n => n + 1) })
   const [clipCompose, setClipCompose] = useState(0)
   useQuickCreateListener('clip', () => { setSection('work'); setClipCompose(n => n + 1) })
+  // Same signal pattern as the two composers above: the hero points at the
+  // first review that owes a ruling, and CouncilFeed brings it into view.
+  const [councilFocus, setCouncilFocus] = useState(0)
 
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
@@ -213,11 +216,14 @@ export function GrowthTab({
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
         <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Growth</h1>
-        {/* The purpose, not a readout. The counts live on the pills, and the
-            desk keeps its one line of numbers under the purpose because it
-            has the room. The old phone line ("3 questions to answer when you
-            have a minute") named a chore without saying what the tab was. */}
-        <p className="text-xs md:text-body text-white/60 mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
+        {/* The purpose, on the desk only. On a phone the title, the purpose,
+            the counts, the hero, the pills and the section line took the top
+            half of the screen before any content: "more than half the screen
+            is fixed, which is ridiculous" (Krish, 2026-09-11). The hero says
+            what to do, which is what this sentence was standing in for. */}
+        {variant === 'desktop' && (
+          <p className="text-xs md:text-body text-white/60 mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
+        )}
         {/* The house count line, on the phone too. It was desktop-only, so the
             device that actually gets used opened on a purpose sentence and five
             pills with no sense of scale. It wraps rather than truncating. */}
@@ -237,9 +243,13 @@ export function GrowthTab({
           <DoThisNextHero
             descriptor={next.descriptor}
             narrow={variant === 'mobile'}
+            // Setting the section was all this used to do, so on the common
+            // case (the hero naming the section already under the pills) the
+            // button was a no-op. It now points at the actual waiting thing.
             onAct={next.descriptor.clear ? undefined : () => {
               setSection(next.go)
               if (next.compose === 'clip') setClipCompose(n => n + 1)
+              if (next.go === 'council') setCouncilFocus(n => n + 1)
             }}
           />
         </div>
@@ -264,10 +274,14 @@ export function GrowthTab({
         testIdPrefix="growth-section"
       />
 
-      {/* What the open section is for. One sentence, changes with the pill. */}
-      <p className="text-label text-white/45 leading-snug flex-shrink-0" data-testid="growth-section-what">
-        {SECTIONS.find(s => s.id === section)?.what}
-      </p>
+      {/* What the open section is for. One sentence, changes with the pill.
+          Desk only: on a phone it restates the pill directly above it, and the
+          room it costs comes straight out of the content below. */}
+      {variant === 'desktop' && (
+        <p className="text-label text-white/45 leading-snug flex-shrink-0" data-testid="growth-section-what">
+          {SECTIONS.find(s => s.id === section)?.what}
+        </p>
+      )}
 
       {/* The scroll container announces which section is mounted. Asserting on a
           heading meant the specs broke when "Touchpoint map" was renamed along
@@ -292,7 +306,7 @@ export function GrowthTab({
             {/* The Friday retro, relocated from Home's ambient fold; the weekly
                 review is where a retro belongs. */}
             <DailyBriefBanner blocking={false} variant={variant === 'mobile' ? 'mobile' : 'desktop'} retroOnly />
-            <CouncilFeed g={g} variant={variant} onNavigate={onNavigate} />
+            <CouncilFeed g={g} variant={variant} onNavigate={onNavigate} focusSignal={councilFocus} />
           </div>
         ) : (
           <GovernancePanel

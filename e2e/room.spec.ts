@@ -111,3 +111,55 @@ test('every card has exactly one primary action', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Open in Gmail' })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Send$/ })).toHaveCount(0)
 })
+
+/**
+ * On a phone the swipe deck owns the screen.
+ *
+ * It used to sit in a fixed 540px box inside the tab's own scroller, so a drag
+ * across a card and a drag down the page competed for the same gesture and the
+ * page moved under the cards: "the swipe cards get in the way of the rest of the
+ * user experience on mobile" (Krish, 2026-09-11). Visibility already solved this
+ * by returning a `scroll="none"` shell while triaging (MobileGuests), and the
+ * Room now does the same. The page scroller is what this pins: while the deck is
+ * up, there is no scrolling region behind it.
+ */
+test('on a phone the proposal deck owns the screen', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await ctx.newPage()
+  await mock(page)
+  // An empty Room, so the lane auto-finds, and a seed that returns two people.
+  await page.route('**/api/room', (r: Route) => r.fulfill({ json: { ok: true, targets: [], stateCounts: {} } }))
+  await page.route('**/api/room?*', (r: Route) => r.fulfill({ json: { ok: true, targets: [], stateCounts: {} } }))
+  await page.route('**/api/room/seed', (r: Route) => r.fulfill({ json: {
+    ok: true,
+    degraded: [],
+    held_back: 0,
+    inserted: 0,
+    proposals: [
+      {
+        contact_id: 'c1', full_name: 'Alex Morgan', title: 'CEO', company: 'Northline Media',
+        linkedin_url: null, score: 82,
+        why_face: 'Runs a PE backed adtech business and has not said out loud what the next two quarters do to it.',
+        ask_kind: 'buyer', ask_line: 'Ask him to sit a three week paid diagnostic.',
+      },
+      {
+        contact_id: 'c2', full_name: 'Sam Patel', title: 'Chief Data Officer', company: 'Eastcast',
+        linkedin_url: null, score: 71,
+        why_face: 'Chief data officer at a broadcaster mid restructure.',
+        ask_kind: 'intro', ask_line: 'He does not buy this himself. Ask him who he would point you at.',
+      },
+    ],
+  } }))
+
+  await page.goto('/#/people?lane=pipeline')
+  await page.getByTestId('people-lane-room').click()
+  await expect(page.getByLabel('Room proposal: Alex Morgan')).toBeVisible()
+  // MobileShell drops the `tab-scroll` region entirely when scroll is 'none'.
+  // Its presence is the bug: a scroller behind the cards.
+  await expect(page.getByTestId('tab-scroll')).toHaveCount(0)
+  // And the page itself does not scroll: nothing is hidden below a fold.
+  const overflow = await page.evaluate(() =>
+    document.documentElement.scrollHeight - document.documentElement.clientHeight)
+  expect(overflow).toBeLessThanOrEqual(1)
+  await ctx.close()
+})
