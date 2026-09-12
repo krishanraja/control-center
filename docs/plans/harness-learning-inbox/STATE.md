@@ -7,9 +7,10 @@ Every capable AI work surface can submit one small redacted event to a shared HT
 ## Current phase
 
 Production inbox infrastructure and the governed GitHub import loop are live
-and verified. The stateless MCP emitter is a tested release candidate. Client
-activation remains behind database migration, deployment, credential
-provisioning, and governed harness release gates.
+and verified. The stateless MCP emitter is live in production. Codex, Claude
+Code, and Cursor on the primary Windows machine each have a separately
+revocable identity and an accepted canary. The intermittently connected second
+workstation remains explicitly pending and is not a runtime dependency.
 
 ## Source layers
 
@@ -44,13 +45,17 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
 - Applying the migration, deploying the API, creating the two runtime bearers,
   configuring the GitHub importer, committing, merging, and running one
   synthetic canary: approved by Krish on 2026-09-12.
-- Activating event emission on each client surface remains a separate release
-  gate because the active adapters are governed harness surfaces.
+- Krish approved the hosted MCP design and current-machine client activation on
+  2026-09-12. The governed operating contract records the narrow standing write
+  authority and keeps `ctrl-capture` as the promotion owner.
 
 ## Verification
 
 - Envelope suite: 14 passed, including secret, personal-data, path, size,
   duplicate and conflict cases.
+- MCP suite: 12 passed, including fail-closed auth, one-tool discovery,
+  server-owned attribution, daily limits, conflict detection, and a retry that
+  remains idempotent at the daily limit.
 - GitHub importer suite: 8 passed, including retry idempotency, pagination,
   private-path rejection and false HTTP success.
 - API and script TypeScript checks, ESLint, environment-variable coverage and
@@ -81,10 +86,31 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
   `contract/`, `skills/`, or `brain/`.
 - Import-only run `34700860119` passed against the final Control Center
   deployment and produced no duplicate observation or ledger commit.
+- MCP source pull request 312 merged as `0b41c0e0513f`. Production deployment
+  `dpl_uVU66uYXxkehb7Gn4gRXmiKrQUsY` is ready on the canonical Control Center
+  domain. Unauthenticated POST returned 401; authenticated discovery returned
+  exactly `record_harness_observation`; a repeated stable payload returned the
+  original inbox 4 receipt with `duplicate: true`.
+- Three hashed emitter identities are enabled with a daily limit of 30. Codex
+  produced a fresh-session write at inbox 6. Claude Code and Cursor produced
+  isolated identity writes at inbox 7 and 8. Their server-owned surface stamps
+  read back correctly from Supabase.
+- A second fresh Codex session received only a synthetic correction, with no
+  instruction to call the MCP tool. It loaded the canonical Observation capture
+  rule automatically and recorded inbox 9, proving the behavioral trigger as
+  well as transport reachability.
+- Import-only harness run `34707672938` then advanced the governed cursor from 1
+  to 9 in `cafbfae`, appending five MCP observations and changing only
+  `state/observations`. No contract, skill, rule, or canonical memory changed.
+- The governed capture contract merged in `ai-harness` pull request 36 as
+  `840ad04b6845`. Deployment evidence and the second-workstation pending state
+  merged in pull request 37 as `592df63ea23d`.
 
 ## Next action
 
-Design and admit one remote client emitter, preferably a hosted remote MCP tool
-that keeps the ingest bearer server-side. Canary one client, then configure the
-remaining capable surfaces through the harness release gate. Do not install a
-per-machine script or scheduler.
+Provision the second workstation only during a session on that machine, because
+a mounted filesystem cannot safely set its Windows user credential or prove a
+client runtime is active. Reauthenticate Claude Code and Cursor Agent if
+headless model canaries are needed. Rotate the unrelated raw third-party
+credential discovered in Cursor's existing MCP config under a separate
+provider-approved action.
