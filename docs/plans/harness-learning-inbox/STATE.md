@@ -6,8 +6,10 @@ Every capable AI work surface can submit one small redacted event to a shared HT
 
 ## Current phase
 
-Production infrastructure and the governed GitHub import loop are live and
-verified. Client event emission remains behind a separate harness release gate.
+Production inbox infrastructure and the governed GitHub import loop are live
+and verified. The stateless MCP emitter is a tested release candidate. Client
+activation remains behind database migration, deployment, credential
+provisioning, and governed harness release gates.
 
 ## Source layers
 
@@ -18,7 +20,7 @@ verified. Client event emission remains behind a separate harness release gate.
 ## Locked architecture
 
 ```text
-AI surface -> POST /api/harness/events -> harness_event_inbox
+AI surface -> POST /api/harness/mcp -> harness_event_inbox
                                              |
 GitHub Action <- GET /api/harness/export <----+
       |
@@ -33,6 +35,7 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
 - No transcript, prompt, customer record, credential, machine name, or local absolute path is an event payload.
 - No n8n dependency.
 - No per-machine collector or scheduler.
+- No dependency on another workstation or mapped drive being online.
 - No replacement of client-native memory. Native memory remains scratch and non-authoritative.
 
 ## Authority
