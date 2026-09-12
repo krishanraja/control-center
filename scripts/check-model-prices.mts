@@ -19,8 +19,8 @@ import { MODEL_PRICES, isPriced } from '../api/_prices.js'
 
 const ROOTS = ['api', 'scripts', 'src']
 const SELF = 'check-model-prices.mts'
-/** Model ids appear in code as string literals; a dated suffix prices by family. */
-const MODEL = /claude-[a-z0-9]+(?:-[a-z0-9]+)*/g
+/** Model ids include a numeric version. Surface names such as claude-code do not. */
+const MODEL = /claude-(?=[a-z0-9-]*\d)[a-z0-9]+(?:-[a-z0-9]+)*/g
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {

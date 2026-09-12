@@ -2118,6 +2118,22 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 - All callers (RPCs, edge functions, agent code, future workflows) set `app.changed_by` and `app.source` before any status UPDATE so the AFTER UPDATE trigger writes a properly-attributed `status_change_log` row.
 - The `concept_decisions` table is append-only-by-convention (UPSERT updates `decided_at` / `reason` but never DELETEs); `audit_log` entries are immutable.
 
+### 15.17 Harness learning uses one remote inbox, not machine collectors
+
+Control Center owns the operational intake for redacted harness observations;
+`krishanraja/ai-harness` owns accepted doctrine and releases. Capable clients
+submit one strict event envelope to a machine-authenticated Vercel route. A
+separate read-only route lets the GitHub observer import unseen events using a
+monotonic cursor. The importer appends evidence only and has no write path to a
+skill, contract, registry or rule.
+
+There is no local daemon, scheduled local collector or n8n workflow in this
+path. n8n can emit evidence about its own work like any other surface, but it
+does not schedule, classify, propose or promote harness learning. The staged
+implementation and its release gate are recorded in ADR-020 and
+`docs/plans/harness-learning-inbox/STATE.md`; it is not live until the migration,
+deployment, secrets and end-to-end canary are separately applied and verified.
+
 ---
 
 ## 16. Krish's ideal day - what "working" looks like

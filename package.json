@@ -14,7 +14,8 @@
     "check:editorial-text": "tsx scripts/check-editorial-text-integrity.mts",
     "check:content-spine": "tsx scripts/check-unified-content-spine.mts",
     "check:aeo-read": "tsx scripts/check-aeo-read.mts",
-    "check:cache-metering": "tsx scripts/check-cache-metering.mts"
+    "check:cache-metering": "tsx scripts/check-cache-metering.mts",
+    "check:harness-events": "tsx scripts/test-harness-events.ts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.8",

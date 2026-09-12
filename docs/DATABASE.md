@@ -963,3 +963,16 @@ The first band was guessed at `[0.55, 0.95]`, which sat above the 99th
 percentile of every real query and disabled the entire semantic tier.
 **Re-measure with `cosine_probe` if the embedding model or the `intel_doc` shape
 changes; both move this band.**
+
+## Harness learning inbox
+
+`harness_event_inbox` is the raw, append-only intake for redacted observations
+from AI work surfaces. It is not a standards table and nothing reads it as live
+doctrine. Anonymous and authenticated roles have no privileges. Server-side
+code using the service role can insert and select, but cannot update or delete.
+
+`POST /api/harness/events` accepts the strict version 1 envelope using
+`HARNESS_EVENT_INGEST_TOKEN`. `GET /api/harness/export` provides cursor-based,
+read-only export using the separate `HARNESS_EVENT_EXPORT_TOKEN`. The
+`ai-harness` GitHub observer imports that export into its evidence ledger. A
+human-reviewed pull request remains the only route from evidence to canon.

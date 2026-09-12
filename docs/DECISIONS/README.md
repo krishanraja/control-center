@@ -33,6 +33,8 @@
 | [016](./016-ikigai-v4-one-swing.md) | Ikigai v4 canon: the Control Center is the engine under one swing | Accepted |
 | [017](./017-portable-studio-session-gateway.md) | Portable Studio session gateway | Accepted |
 | [018](./018-weekly-cadence-and-manual-today.md) | Weekly cadence, one writer for tomorrow, and a manual-first Today | Accepted |
+| [019](./019-content-engine-owns-the-control-plane.md) | The Content Engine repository owns the control plane | Accepted |
+| [020](./020-governed-harness-event-inbox.md) | Governed harness event inbox | Accepted |
 
 ---
 
