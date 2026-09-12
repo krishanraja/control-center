@@ -29,6 +29,10 @@ jobs:
       # Every AI surface writes the same small event envelope. Hold that
       # boundary to strict fields, deterministic hashes and secret rejection.
       - run: npm run check:harness-events
+      # Remote clients get separate revocable identities and one write-only
+      # MCP tool. Hold auth, server-owned attribution, idempotency, redaction
+      # and the per-emitter safety limit as executable contracts.
+      - run: npm run check:harness-mcp
       # Video Engine commands cross an authenticated cloud-to-runner boundary.
       # Keep fail-closed auth, exact lineage, recovery and media-separation
       # invariants executable on every change rather than relying on review.

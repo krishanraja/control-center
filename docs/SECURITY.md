@@ -171,3 +171,10 @@ stays inside the server runtime. Event bodies are allowlisted, size-bounded and
 rejected when they contain common credential shapes or unknown fields such as a
 raw transcript. The database revokes anonymous and authenticated access, and
 the service role has no update or delete grant on the inbox table.
+
+Remote MCP emitters authenticate with separate bearer credentials. Only token
+digests are stored in `harness_emitter_clients`; a revoked or disabled client
+fails closed without affecting other surfaces. The MCP server owns surface
+attribution, enforces a per-emitter daily limit, and exposes no read, mutation,
+or canon-management tool. A client credential can only submit the same strict,
+redacted event envelope accepted by the existing ingest boundary.

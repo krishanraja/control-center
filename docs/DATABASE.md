@@ -976,3 +976,12 @@ code using the service role can insert and select, but cannot update or delete.
 read-only export using the separate `HARNESS_EVENT_EXPORT_TOKEN`. The
 `ai-harness` GitHub observer imports that export into its evidence ledger. A
 human-reviewed pull request remains the only route from evidence to canon.
+
+`POST /api/harness/mcp` is the preferred client boundary. It exposes one
+write-only MCP tool, `record_harness_observation`. Each client and machine has
+an independently revocable row in `harness_emitter_clients`; Supabase stores
+only the SHA-256 token digest. The server derives the surface from that row,
+enforces its daily limit, and attaches `emitter_id` to the inbox row for audit
+without exporting machine identity in the event envelope. The older event
+endpoint remains the compatibility path for the GitHub importer canary, not a
+reason to run a machine-local collector.
