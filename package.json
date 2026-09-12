@@ -14,6 +14,8 @@
     "check:editorial-text": "tsx scripts/check-editorial-text-integrity.mts",
     "check:content-spine": "tsx scripts/check-unified-content-spine.mts",
     "check:aeo-read": "tsx scripts/check-aeo-read.mts",
+    "check:model-routing": "tsx scripts/check-model-routing.mts",
+    "check:proxy-auth": "tsx scripts/test-sonnet-proxy-auth.mts",
     "check:cache-metering": "tsx scripts/check-cache-metering.mts",
     "check:harness-events": "tsx scripts/test-harness-events.ts",
     "check:harness-mcp": "tsx scripts/test-harness-mcp.ts"

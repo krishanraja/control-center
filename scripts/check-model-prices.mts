@@ -26,7 +26,7 @@ function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
     if (statSync(p).isDirectory()) walk(p, out)
-    else if (/\.(ts|tsx|mts)$/.test(e) && e !== SELF) out.push(p)
+    else if (/\.(ts|tsx|mts|json)$/.test(e) && e !== SELF) out.push(p)
   }
   return out
 }

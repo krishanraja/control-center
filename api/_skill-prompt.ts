@@ -1,3 +1,5 @@
+import { OPENAI_GENERATION_MODEL } from './_models.js'
+
 /**
  * Skill Forge — shared LLM prompt, quality gate, and ZIP assembly.
  *
@@ -583,7 +585,7 @@ export async function callSkillLLM(input: {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_SKILL_MODEL || process.env.OPENAI_MODEL || OPENAI_GENERATION_MODEL,
       response_format: { type: 'json_object' },
       temperature: 0.3,
       messages: [
@@ -640,7 +642,7 @@ export async function reviseSkill(input: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_SKILL_MODEL || process.env.OPENAI_MODEL || OPENAI_GENERATION_MODEL,
       response_format: { type: 'json_object' },
       temperature: 0.3,
       messages: [

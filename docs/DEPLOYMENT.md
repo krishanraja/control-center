@@ -133,8 +133,11 @@ The full list lives in `.env.example`. Two scopes:
 | `N8N_API_KEY` | Auth for the N8N API (`/api/status`) |
 | `N8N_API_BASE_URL` | Base URL for the N8N API |
 | `N8N_FEEDBACK_URL` | Server-side mirror of the feedback webhook |
+| `N8N_PROXY_SECRET` | Dedicated bearer for n8n calls to `/api/internal/sonnet-proxy` |
 | `OPENAI_API_KEY` | Skill Forge (`/api/skills/*`) |
-| `OPENAI_MODEL` | Defaults to `gpt-4o` |
+| `OPENAI_JUDGE_MODEL` | Goal Gate override; defaults to `gpt-5.4-nano` |
+| `OPENAI_SKILL_MODEL` | Skill Forge override; defaults to `gpt-5.4-mini` |
+| `OPENAI_MODEL` | Legacy global override used only when a task-specific override is absent |
 | `SKILL_DELIVERY_WEBHOOK_URL` | Skill Forge delivery target |
 | `ANTHROPIC_API_KEY` | Claude — research briefs, email drafts, ICP scoring |
 | `AGATHA_WEBHOOK_SECRET` | `X-Agatha-Secret` gate on server→server endpoints |

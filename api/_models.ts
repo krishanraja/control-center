@@ -4,11 +4,9 @@
  * Before this, the model identity was 49 string literals scattered across
  * api/ and scripts/, so "what are we running?" was a grep and "move the
  * synthesis surfaces up a tier" was 29 edits with no way to tell whether you
- * had missed one. Two of the literals were also wrong in a way nothing could
- * catch: `claude-haiku-4-5-20251001` carries a date suffix that is not part of
- * the model ID, and it only worked because the price lookup matches on
- * `startsWith`. A typo in a model name fails at request time, in production,
- * on whichever route nobody ran that week.
+ * had missed one. A typo in a model name fails at request time, in production,
+ * on whichever route nobody ran that week. Both the dated Haiku snapshot and
+ * its alias are valid; api/_prices.ts intentionally prices either by family.
  *
  * The names are jobs, not tiers, so a model change is a value change here
  * rather than a search-and-replace everywhere:
@@ -39,6 +37,12 @@ export const JUDGE_MODEL = 'claude-haiku-4-5'
 
 /** The investigation ladder — the one deliberate opus-tier spend. */
 export const LADDER_MODEL = 'claude-opus-4-8'
+
+/** OpenAI is used only where the implementation is OpenAI-specific. Nano is
+ * for extraction/ranking; mini is for bounded structured generation. These
+ * are API models and are billed as API usage. */
+export const OPENAI_JUDGE_MODEL = 'gpt-5.4-nano'
+export const OPENAI_GENERATION_MODEL = 'gpt-5.4-mini'
 
 // Prices are NOT here. api/_prices.ts owns them, and owns them better: an
 // unknown model prices at zero and says so through isPriced(), rather than a

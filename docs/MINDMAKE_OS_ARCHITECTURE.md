@@ -1453,7 +1453,8 @@ Lock today's 3 → POST /api/daily-focus/calibrate { date, targets[3] }
         → Krish | mind/make OS | Focus Calibrator (workflow id zEA4wGECQdqBpDmO)
             → fetch candidate pool from 6 tables in parallel
               (decisions_waiting + tasks + bets + leads + visibility_targets + customers)
-            → Sonnet 4.6 via /api/internal/sonnet-proxy assigns
+            → Sonnet 5 (thinking disabled) via the bearer-authenticated
+              /api/internal/sonnet-proxy assigns
               <table:id> → { target: 1|2|3|null, score: 0.0-1.0 }
             → PATCH daily_focus.relevance_index, status='calibrated', calibrated_at
             → workflow_runs heartbeat + lane sizes (no push)
@@ -1479,7 +1480,7 @@ Drop a task → POST /api/tasks-inbox { raw_text, source }
     → INSERT tasks_inbox row (status='raw')
     → await POST /webhook/idea-classify
         → Krish | mind/make OS | Inbox Classifier (K8GJw4T2NFjXFXXC)
-            → Sonnet 4.6 via internal sonnet-proxy decides
+            → Haiku 4.5 via the bearer-authenticated internal sonnet-proxy decides
               { task_type, primary_agent, target_table, first_action,
                 expected_completion_state, needs_clarification[],
                 suggested_concept_id, confidence }

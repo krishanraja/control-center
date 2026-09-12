@@ -1,4 +1,5 @@
 import { loadGoalMetrics, metricsPrompt, type GoalMetrics } from './_goalMetrics.js'
+import { OPENAI_JUDGE_MODEL } from './_models.js'
 
 // The goal gate: does this text belong at this rung, and is it a goal at all?
 //
@@ -245,7 +246,7 @@ async function callOnce(
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_JUDGE_MODEL || process.env.OPENAI_MODEL || OPENAI_JUDGE_MODEL,
       response_format: { type: 'json_object' },
       temperature: 0,
       messages: [

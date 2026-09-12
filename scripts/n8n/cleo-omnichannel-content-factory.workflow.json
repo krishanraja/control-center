@@ -980,7 +980,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model: \"gpt-4o\", max_tokens: 4000, messages: [{ role: \"user\", content: \"HOOK: \" + $(\"Merge All Branches\").item.json.hook + \"\\nAUDIENCE: \" + $(\"Merge All Branches\").item.json.target_audience + \"\\nANGLE: \" + $(\"Merge All Branches\").item.json.contrarian_angle + \"\\nCHANNEL: \" + $(\"Merge All Branches\").item.json.target_channel + \"\\nDILIGENCE: \" + $(\"Merge All Branches\").item.json.diligence + \"\\n\\nWrite a full draft for this channel following appropriate formatting. Output the content only.\" }] } }}",
+        "jsonBody": "={{ { model: \"gpt-5.4-mini\", max_tokens: 4000, messages: [{ role: \"user\", content: \"HOOK: \" + $(\"Merge All Branches\").item.json.hook + \"\\nAUDIENCE: \" + $(\"Merge All Branches\").item.json.target_audience + \"\\nANGLE: \" + $(\"Merge All Branches\").item.json.contrarian_angle + \"\\nCHANNEL: \" + $(\"Merge All Branches\").item.json.target_channel + \"\\nDILIGENCE: \" + $(\"Merge All Branches\").item.json.diligence + \"\\n\\nWrite a full draft for this channel following appropriate formatting. Output the content only.\" }] } }}",
         "options": {}
       },
       "name": "OpenAI Fallback Assembly",

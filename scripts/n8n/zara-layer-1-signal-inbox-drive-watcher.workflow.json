@@ -66,9 +66,9 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "gpt-4.1-nano",
+          "value": "gpt-5.4-nano",
           "mode": "list",
-          "cachedResultName": "GPT-4.1-NANO"
+          "cachedResultName": "GPT-5.4-NANO"
         },
         "messages": {
           "values": [
@@ -84,7 +84,6 @@
         },
         "options": {
           "maxTokens": 4000,
-          "temperature": 0.2,
           "responseFormat": "json_object"
         }
       },

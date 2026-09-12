@@ -80,7 +80,8 @@ incident.
 | `/api/*` | Not gated by the edge middleware (see `matcher` in `middleware.ts`); most write methods now re-check the same `ACCESS_CODE` cookie at the route (`guard()` in `api/_auth.ts`), since 2026-09-09 (PR #308). |
 | `/api/sync` | Shared-secret header `x-sync-secret` (optional in dev when `SYNC_SECRET` is unset). |
 | `/api/trigger-agent` | `guard()`, same cookie as the web UI, since 2026-09-09. |
-| `/api/health`, `/api/sonnet-proxy`, `/api/tasks-inbox/digest` | None (intentionally: used by external monitors and n8n). |
+| `/api/health`, `/api/tasks-inbox/digest` | None (intentionally: used by external monitors and n8n). |
+| `/api/internal/sonnet-proxy` | Fail-closed `Authorization: Bearer $N8N_PROXY_SECRET`; `X-Internal-Caller` is an audit/metering identity, not authentication. |
 | 18 dual-method routes (e.g. `/api/data`, `/api/goals`) | `GET` stays open by Krish's ruling (PR #308); non-`GET` methods call `guard()`. |
 | Other `/api/*` write routes | `guard()`, same cookie, since 2026-09-09 (PR #308). `guard()` fails open only if `ACCESS_CODE` itself is unset, matching the edge gate. `scripts/test-guard.ts` covers the cookie, method and CORS-origin cases. |
 

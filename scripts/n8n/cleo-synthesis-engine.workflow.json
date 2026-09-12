@@ -474,7 +474,7 @@
     },
     {
       "id": "e598589d-2466-4878-a727-b4ba619f0e00",
-      "name": "Opus Synthesize",
+      "name": "Sonnet Synthesize",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
@@ -1014,14 +1014,14 @@
       "main": [
         [
           {
-            "node": "Opus Synthesize",
+            "node": "Sonnet Synthesize",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Opus Synthesize": {
+    "Sonnet Synthesize": {
       "main": [
         [
           {

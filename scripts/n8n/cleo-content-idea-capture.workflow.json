@@ -24,9 +24,9 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "gpt-5-nano",
+          "value": "gpt-5.4-nano",
           "mode": "list",
-          "cachedResultName": "GPT-5-NANO"
+          "cachedResultName": "GPT-5.4-NANO"
         },
         "messages": {
           "values": [
@@ -44,7 +44,7 @@
         }
       },
       "id": "extract-idea",
-      "name": "Claude: Extract Idea",
+      "name": "OpenAI: Extract Idea",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.7,
       "position": [
@@ -60,7 +60,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $('Webhook').item.json.body || {};\nconst ex = JSON.parse($('Claude: Extract Idea').item.json.message.content);\nreturn [{ json: {\n  idea: ex.idea || body.raw_text.slice(0, 280),\n  thesis: ex.thesis || null,\n  distribution: Array.isArray(ex.distribution) ? ex.distribution : null,\n  confidence: typeof ex.confidence === 'number' ? ex.confidence : null,\n  source_type: body.source_type || 'manual',\n  source_ref: body.source_ref || null,\n  source_url: body.source_url || null,\n  source_snippet: body.source_snippet || body.raw_text.slice(0, 280),\n  source_captured_at: body.captured_at || new Date().toISOString(),\n  state: 'seeded',\n  assigned_to: 'cleo',\n} }];"
+        "jsCode": "const body = $('Webhook').item.json.body || {};\nconst ex = JSON.parse($('OpenAI: Extract Idea').item.json.message.content);\nreturn [{ json: {\n  idea: ex.idea || body.raw_text.slice(0, 280),\n  thesis: ex.thesis || null,\n  distribution: Array.isArray(ex.distribution) ? ex.distribution : null,\n  confidence: typeof ex.confidence === 'number' ? ex.confidence : null,\n  source_type: body.source_type || 'manual',\n  source_ref: body.source_ref || null,\n  source_url: body.source_url || null,\n  source_snippet: body.source_snippet || body.raw_text.slice(0, 280),\n  source_captured_at: body.captured_at || new Date().toISOString(),\n  state: 'seeded',\n  assigned_to: 'cleo',\n} }];"
       },
       "id": "shape-row",
       "name": "Shape row",
@@ -113,14 +113,14 @@
       "main": [
         [
           {
-            "node": "Claude: Extract Idea",
+            "node": "OpenAI: Extract Idea",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Claude: Extract Idea": {
+    "OpenAI: Extract Idea": {
       "main": [
         [
           {

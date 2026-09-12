@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardBearerExport } from '../_auth.js'
 import { PROXY_ALLOWED_MODELS } from '../_models.js'
 import * as meter from '../_meter.js'
 
@@ -7,8 +8,9 @@ import * as meter from '../_meter.js'
 // POST here instead and the Vercel function forwards to Anthropic with
 // the ANTHROPIC_API_KEY env var.
 //
-// Loose internal-only protection:
-//   - Requires X-Internal-Caller header
+// Fail-closed machine authentication:
+//   - Requires Authorization: Bearer $N8N_PROXY_SECRET
+//   - Requires X-Internal-Caller as the metering/audit identity
 //   - Requires body.model to be a known Anthropic model
 //   - Caps max_tokens
 //
@@ -32,10 +34,10 @@ interface AnthropicBody {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', 'https://controlcenter.krishraja.com')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Internal-Caller')
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Internal-Caller')
   res.setHeader('Cache-Control', 'no-store')
   if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'POST')    return res.status(405).json({ ok: false, error: 'Method not allowed' })
+  if (guardBearerExport(req, res, 'N8N_PROXY_SECRET', ['POST'])) return
 
   const caller = (req.headers['x-internal-caller'] || '').toString()
   if (!caller || caller.length < 4) {

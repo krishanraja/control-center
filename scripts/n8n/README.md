@@ -41,7 +41,12 @@ GITHUB_TOKEN                GITHUB_TOKEN_2           # two DIFFERENT tokens
 RESEND_API_KEY              RESEND_API_KEY_2         RESEND_API_KEY_3
 STRIPE_RESTRICTED_KEY       ANTHROPIC_API_KEY
 PERPLEXITY_API_KEY          APIFY_API_TOKEN
+N8N_PROXY_SECRET
 ```
+
+`N8N_PROXY_SECRET` is the dedicated bearer used by the Focus Calibrator and
+Inbox Classifier when they call `/api/internal/sonnet-proxy`. Set the same
+value in the n8n sync environment and Vercel. Do not reuse `CRON_SECRET`.
 
 Nine of these were added 2026-09-07: a faithful export of all 109 live workflows
 failed `check-no-secrets`, and then GitHub's push protection rejected the result

@@ -38,6 +38,7 @@ export const PLACEHOLDERS = {
   // the n8n API itself.
   '{{TELEGRAM_BOT_TOKEN_OPS}}': 'TELEGRAM_BOT_TOKEN_OPS',
   '{{N8N_API_JWT}}': 'N8N_API_JWT',
+  '{{N8N_PROXY_SECRET}}': 'N8N_PROXY_SECRET',
   '{{ANTHROPIC_API_KEY}}': 'ANTHROPIC_API_KEY',
   // Added 2026-09-07. GitHub push protection rejected the parity commit on
   // three more classes this map and check-no-secrets both missed: GitHub PATs,
