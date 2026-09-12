@@ -162,3 +162,12 @@ is the security team. Treat report quality accordingly.
 
 CI does not yet run a secrets diff on every PR. When it does, document it
 here and link the workflow.
+
+## Harness event boundary
+
+The harness event endpoints are machine-only and fail closed when their bearer
+is unset. Ingest and export use separate secrets. The service-role database key
+stays inside the server runtime. Event bodies are allowlisted, size-bounded and
+rejected when they contain common credential shapes or unknown fields such as a
+raw transcript. The database revokes anonymous and authenticated access, and
+the service role has no update or delete grant on the inbox table.
