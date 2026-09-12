@@ -6,8 +6,8 @@ Every capable AI work surface can submit one small redacted event to a shared HT
 
 ## Current phase
 
-Phase 9 production API activation complete. The GitHub importer is configured
-and awaiting its merge plus import-only canary.
+Production infrastructure and the governed GitHub import loop are live and
+verified. Client event emission remains behind a separate harness release gate.
 
 ## Source layers
 
@@ -62,18 +62,26 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
   `service_role` has only `INSERT` and `SELECT`. A first readback caught default
   `REFERENCES` and `TRIGGER` grants; the least-privilege repair migration removed
   them and the second readback passed.
-- Vercel production deployment `dpl_GPdfS3Y3NUDQ8S1eDssXEjWHNu4f` is ready and
-  aliased to `controlcenter.krishraja.com` with separate sensitive ingest and
-  export bearers. The export bearer is also configured as the GitHub repository
-  secret, and the canonical export URL is configured as a repository variable.
+- The production canary ran against Vercel deployment
+  `dpl_GPdfS3Y3NUDQ8S1eDssXEjWHNu4f`. The merged source deployment
+  `dpl_Anc3WQ62dZratekyodZ7TocbhbFd` is ready and aliased to
+  `controlcenter.krishraja.com` with separate sensitive ingest and export
+  bearers. The export bearer is also configured as the GitHub repository secret,
+  and the canonical export URL is configured as a repository variable. Final
+  unauthenticated readback returned the expected JSON 401 response.
 - Production canary `canary:activation:1789224519152`: unauthenticated export
   401, accepted write 201, exact duplicate 200, conflicting replay 409,
   synthetic secret rejection 400, export 200 with exactly one event.
-- Still required: merge the GitHub importer, run its import-only workflow,
-  verify one ledger row and cursor commit, and verify no canon file changed.
+- `ai-harness` pull request 35 merged as `4b6a73c8b52b573a92ac94ac6bdd8146b113a0ec`.
+  Import-only run `34700431080` appended exactly one observation and cursor 1 in
+  commit `b4478846c6669ff2efccdfa660edd33aad1b9087`, with no changes under
+  `contract/`, `skills/`, or `brain/`.
+- Import-only run `34700860119` passed against the final Control Center
+  deployment and produced no duplicate observation or ledger commit.
 
 ## Next action
 
-Merge both reviewed pull requests, run the harness steward in import-only mode,
-then verify one canary observation landed in `state/observations/` and no canon
-file changed.
+Design and admit one remote client emitter, preferably a hosted remote MCP tool
+that keeps the ingest bearer server-side. Canary one client, then configure the
+remaining capable surfaces through the harness release gate. Do not install a
+per-machine script or scheduler.
