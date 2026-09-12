@@ -95,6 +95,10 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
   produced a fresh-session write at inbox 6. Claude Code and Cursor produced
   isolated identity writes at inbox 7 and 8. Their server-owned surface stamps
   read back correctly from Supabase.
+- A second fresh Codex session received only a synthetic correction, with no
+  instruction to call the MCP tool. It loaded the canonical Observation capture
+  rule automatically and recorded inbox 9, proving the behavioral trigger as
+  well as transport reachability.
 - The governed capture contract merged in `ai-harness` pull request 36 as
   `840ad04b6845`. Deployment evidence and the second-workstation pending state
   merged in pull request 37 as `592df63ea23d`.
