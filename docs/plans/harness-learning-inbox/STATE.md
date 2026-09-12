@@ -99,6 +99,9 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
   instruction to call the MCP tool. It loaded the canonical Observation capture
   rule automatically and recorded inbox 9, proving the behavioral trigger as
   well as transport reachability.
+- Import-only harness run `34707672938` then advanced the governed cursor from 1
+  to 9 in `cafbfae`, appending five MCP observations and changing only
+  `state/observations`. No contract, skill, rule, or canonical memory changed.
 - The governed capture contract merged in `ai-harness` pull request 36 as
   `840ad04b6845`. Deployment evidence and the second-workstation pending state
   merged in pull request 37 as `592df63ea23d`.
