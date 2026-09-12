@@ -6,7 +6,8 @@ Every capable AI work surface can submit one small redacted event to a shared HT
 
 ## Current phase
 
-Phase 8 local implementation complete. Phase 9 production activation was approved by Krish on 2026-09-12 and is in progress.
+Phase 9 production API activation complete. The GitHub importer is configured
+and awaiting its merge plus import-only canary.
 
 ## Source layers
 
@@ -53,12 +54,26 @@ The API accepts a versioned allowlisted envelope and rejects unknown fields, ove
   value-free secret scan pass.
 - Existing harness structure, render, brain, canary and judge checks pass.
 - Supabase local database lint is not run because the Docker database runtime
-  is unavailable. Migration apply and authoritative schema readback remain in
-  the production gate.
-- A deployed canary must prove accepted write, duplicate receipt, rejected secret, paginated export, GitHub ledger import, and zero direct canon mutation.
+  is unavailable. The production migration was applied through the Supabase
+  migration API because the repository's local migration history is incomplete
+  and `db push --dry-run` correctly refused to replay unrelated history.
+- Production schema readback: table exists, RLS is enabled, row count was zero
+  before the canary, `anon` and `authenticated` have no table privileges, and
+  `service_role` has only `INSERT` and `SELECT`. A first readback caught default
+  `REFERENCES` and `TRIGGER` grants; the least-privilege repair migration removed
+  them and the second readback passed.
+- Vercel production deployment `dpl_GPdfS3Y3NUDQ8S1eDssXEjWHNu4f` is ready and
+  aliased to `controlcenter.krishraja.com` with separate sensitive ingest and
+  export bearers. The export bearer is also configured as the GitHub repository
+  secret, and the canonical export URL is configured as a repository variable.
+- Production canary `canary:activation:1789224519152`: unauthenticated export
+  401, accepted write 201, exact duplicate 200, conflicting replay 409,
+  synthetic secret rejection 400, export 200 with exactly one event.
+- Still required: merge the GitHub importer, run its import-only workflow,
+  verify one ledger row and cursor commit, and verify no canon file changed.
 
 ## Next action
 
-Apply the migration to the Control Center Supabase project, read back table
-privileges and constraints, deploy the two Vercel routes, configure their
-bearers plus the GitHub export secret and URL, then run the end-to-end canary.
+Merge both reviewed pull requests, run the harness steward in import-only mode,
+then verify one canary observation landed in `state/observations/` and no canon
+file changed.
