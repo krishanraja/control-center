@@ -48,8 +48,9 @@ revoke all on sequence public.harness_event_inbox_inbox_id_seq from anon, authen
 
 -- Service-side API code needs insert and select only. No application role gets
 -- update or delete, which keeps retries idempotent and history append-only.
-revoke update, delete, truncate on table public.harness_event_inbox from service_role;
+revoke all on table public.harness_event_inbox from service_role;
 grant select, insert on table public.harness_event_inbox to service_role;
+revoke all on sequence public.harness_event_inbox_inbox_id_seq from service_role;
 grant usage, select on sequence public.harness_event_inbox_inbox_id_seq to service_role;
 
 commit;
