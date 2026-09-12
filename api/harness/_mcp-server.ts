@@ -53,6 +53,7 @@ export function createHarnessMcpServer({ emitter, store, now = () => new Date() 
     ].join(' '),
     inputSchema: {
       client_event_id: clientEventId.describe('Stable retry key for this one observation, not a machine or user identifier.'),
+      occurred_at: z.string().min(20).max(35).describe('ISO 8601 time when the observation occurred. Keep unchanged on retry.'),
       kind,
       summary: z.string().min(12).max(800).describe('Self-contained redacted observation.'),
       evidence_ref: z.string().min(3).max(300).describe('Privacy-safe reference such as a commit, issue, test, or session-local opaque ID.'),
@@ -63,18 +64,10 @@ export function createHarnessMcpServer({ emitter, store, now = () => new Date() 
     },
   }, async (input) => {
     const observedAt = now()
-    const usage = await store.countToday(emitter.emitter_id, startOfUtcDay(observedAt))
-    if (usage.errorCode || usage.count == null) {
-      return { isError: true, content: [{ type: 'text', text: 'Observation was not stored because the rate-limit readback failed.' }] }
-    }
-    if (usage.count >= emitter.daily_limit) {
-      return { isError: true, content: [{ type: 'text', text: 'Observation was not stored because this emitter reached its daily safety limit.' }] }
-    }
-
     const parsed = parseHarnessEvent({
       event_id: mcpEventId(emitter.emitter_id, input.client_event_id),
       schema_version: 1,
-      occurred_at: observedAt.toISOString(),
+      occurred_at: input.occurred_at,
       surface: emitter.surface,
       kind: input.kind,
       summary: input.summary,
@@ -86,6 +79,26 @@ export function createHarnessMcpServer({ emitter, store, now = () => new Date() 
     })
     if ('error' in parsed) {
       return { isError: true, content: [{ type: 'text', text: `Observation was not stored: ${parsed.error}.` }] }
+    }
+
+    const usage = await store.countToday(emitter.emitter_id, startOfUtcDay(observedAt))
+    if (usage.errorCode || usage.count == null) {
+      return { isError: true, content: [{ type: 'text', text: 'Observation was not stored because the rate-limit readback failed.' }] }
+    }
+    if (usage.count >= emitter.daily_limit) {
+      const existing = await store.findByEventId(parsed.event.event_id)
+      if (!existing.errorCode && existing.data?.payload_sha256 === parsed.event.payload_sha256) {
+        return {
+          content: [{ type: 'text', text: `Observation already recorded as inbox ${existing.data.inbox_id}.` }],
+          structuredContent: {
+            ok: true,
+            duplicate: true,
+            inbox_id: existing.data.inbox_id,
+            event_id: existing.data.event_id,
+          },
+        }
+      }
+      return { isError: true, content: [{ type: 'text', text: 'Observation was not stored because this emitter reached its daily safety limit.' }] }
     }
 
     const result = await persistHarnessEvent({

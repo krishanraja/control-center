@@ -74,6 +74,7 @@ test('publishes exactly one write-only tool', listed.tools.length === 1 && liste
 
 const args = {
   client_event_id: 'fixture:event:00000001',
+  occurred_at: '2026-09-12T16:00:00.000Z',
   kind: 'explicit_correction',
   summary: 'Krish corrected a claimed success because the expected row was absent.',
   evidence_ref: 'session-local:fixture-1',
@@ -112,6 +113,10 @@ await limitedServer.connect(limitedServerTransport)
 await limitedClient.connect(limitedClientTransport)
 const limited = await limitedClient.callTool({ name: 'record_harness_observation', arguments: { ...args, client_event_id: 'fixture:event:00000003' } })
 test('daily safety limit fails closed', limited.isError === true && stored.length === 1)
+
+const limitedRetry = await limitedClient.callTool({ name: 'record_harness_observation', arguments: args })
+const limitedRetryContent = limitedRetry.structuredContent as { duplicate?: boolean } | undefined
+test('idempotent retry still succeeds at the daily limit', limitedRetry.isError !== true && limitedRetryContent?.duplicate === true && stored.length === 1)
 
 await client.close()
 await server.close()
