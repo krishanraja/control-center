@@ -24,6 +24,7 @@ import {
   returnVideoStudioToParent,
   videoStudioIdempotencyKey,
   videoStudioReviewIsWellFormed,
+  videoStudioArtDirection,
   videoStudioSubmittedAt,
   type VideoStudioComparison,
   type VideoStudioReview,
@@ -35,6 +36,7 @@ import { Skeleton } from '../shared/Skeleton'
 import { MagicDirectionSheet } from './MagicDirectionSheet'
 import { VideoBrandLockup } from './VideoBrandLockup'
 import { VideoCompareStage } from './VideoCompareStage'
+import { ArtDirectionReview } from './ArtDirectionReview'
 
 const GATE_KEYS = ['truth', 'rights', 'confidentiality', 'transcript_fidelity', 'naming'] as const
 type BlockingGateKey = typeof GATE_KEYS[number]
@@ -304,6 +306,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
     review?.status === 'approved',
   )
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetSeed, setSheetSeed] = useState<string | undefined>()
   const [sheetHost, setSheetHost] = useState<HTMLElement | null>(null)
   const [gatesOpen, setGatesOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -355,6 +358,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
     setQueuedCommandId(null)
     setLocalRecoveryBridge(null)
     setGatesOpen(false)
+    setSheetSeed(undefined)
     setNotice(null)
     setMutationError(null)
     setStale(false)
@@ -476,6 +480,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
   }
 
   const copy = reviewCopy(review)
+  const artDirection = videoStudioArtDirection(review)
   const gates = blockingGates(review)
   const malformed = !videoStudioReviewIsWellFormed(review)
   const passed = gates.filter(gate => gate.status === 'passed').length
@@ -730,6 +735,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
     setQueuedCommandId(null)
     setNotice(null)
     setMutationError(null)
+    setSheetSeed(undefined)
     setSheetOpen(true)
   }
   const gateSummary = allPassed
@@ -875,7 +881,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
               <p className="mt-2 text-micro leading-relaxed text-amber-100/70">No automatic treatment has been presented as a finished answer.</p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Pressable variant="secondary" onPress={() => { void submitDecision('keep_current') }} disabled={!canKeep || busyAction}>Keep current</Pressable>
-                <Pressable variant="primary" onPress={() => setSheetOpen(true)} disabled={busyAction}><Mic size={14} /> Direct it</Pressable>
+                <Pressable variant="primary" onPress={() => { setSheetSeed(undefined); setSheetOpen(true) }} disabled={busyAction}><Mic size={14} /> Direct it</Pressable>
               </div>
             </div>
           ) : review.status !== 'pending' ? (
@@ -1018,6 +1024,16 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 </div>
               )}
 
+              {artDirection && (review.gate === 'treatment' || review.gate === 'final') && (
+                <ArtDirectionReview
+                  direction={artDirection}
+                  onDirect={instruction => {
+                    setSheetSeed(instruction)
+                    setSheetOpen(true)
+                  }}
+                />
+              )}
+
               <button
                 type="button"
                 data-testid="video-gates-toggle"
@@ -1135,7 +1151,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
               ) : (
                 <Pressable
                   variant="ghost"
-                  onPress={() => setSheetOpen(true)}
+                  onPress={() => { setSheetSeed(undefined); setSheetOpen(true) }}
                   className="mt-2 min-h-[46px] w-full rounded-xl text-label font-semibold text-violet-200/80 transition-colors hover:bg-violet-300/[0.05] [@media(max-height:760px)]:hidden"
                 >
                   <Mic size={14} /> Direct another change
@@ -1160,6 +1176,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
         }}
         onStale={() => { setStale(true); setMutationError('A newer version exists. Refresh before sending this direction.') }}
         onRefresh={refreshReview}
+        initialInstruction={sheetSeed}
       />
     </div>
   )

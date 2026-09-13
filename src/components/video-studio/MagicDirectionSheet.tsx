@@ -28,6 +28,7 @@ export function MagicDirectionSheet({
   onQueued,
   onStale,
   onRefresh,
+  initialInstruction,
 }: {
   open: boolean
   onClose: () => void
@@ -36,6 +37,7 @@ export function MagicDirectionSheet({
   onQueued: (instruction: string, commandId: string) => void
   onStale: (error: VideoStudioApiError) => void
   onRefresh: () => void | Promise<void>
+  initialInstruction?: string
 }) {
   const [instruction, setInstruction] = useState('')
   const [chosen, setChosen] = useState<string | null>(null)
@@ -57,14 +59,14 @@ export function MagicDirectionSheet({
   const canSubmit = cleanInstruction.length >= 3 && cleanInstruction.length <= 600 && Boolean(target && semanticHash)
 
   useEffect(() => {
-    setInstruction('')
+    setInstruction(initialInstruction || '')
     setChosen(null)
     setError(null)
     setErrorCode(null)
     setBusy(false)
     submission.current = null
     inFlight.current = false
-  }, [review.id])
+  }, [review.id, initialInstruction])
 
   const chooseRecipe = (label: string, value: string) => {
     setChosen(label)

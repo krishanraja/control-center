@@ -14,6 +14,7 @@ commit, plus the two surfaces as they rendered before this change.
 | Feature | Landed | Where it was | Where it is now | Surfaced |
 |---|---|---|---|---|
 | Magic edits: direction sheet, before and after compare, use this version or keep current, return to parent | #260 to #266, 4 to 5 Sep | `components/video-studio/*`, opened only from the phone deck | Unchanged. Also opened from the desktop obligation strip (`ObligationStrip`, video review rows) | Both |
+| Art director device review: per-beat choice, alternatives, simplify and governed invention | 13 Sep, engine branch `codex/art-director-repertoire` | New capability in the existing Studio review projection | `ArtDirectionReview` inside `VideoEngineReviewer`; alternative actions open the existing magic direction sheet, and sharp alternatives say that styleframes and an animatic are required | Both |
 | Video review queue | #260 | Mobile deck only (`useVideoStudioReviews(mobile && ...)`) | Mobile deck, and desktop strip | Both |
 | Editorial radar: two independent lenses, opportunity list, angle decisions | #274, #276, 7 Sep | `LaneRoom` list, `ContentComposer` gate | The single opportunity model in the lane, unchanged | Both |
 | Production brief bridge to Studio | #278, 7 Sep | Composer Outputs panel | Composer Produce stage (same panel, opens by default for approved pieces) | Desktop |
@@ -45,6 +46,7 @@ commit, plus the two surfaces as they rendered before this change.
 | Portable session contracts | #37 | Unchanged; every gate now accepts the portable prefix the doc promised |
 | Drive inbox discovery, runner recovery, remount identity | #29, #35 | Unchanged |
 | Visual story director, evidence overlays, kinetic captions, official wordmarks, treatment presets | #13 to #23 | Unchanged |
+| Art director repertoire and sharp alternative | 13 Sep, awaiting engine PR | The same technique registry gains eligibility, deterministic selection traces, recipes, analysis-only observations and inactive learning proposals. No second effects registry or UI is introduced |
 | Radar ranking | #9 | Removed. It returned `editorial_eligible: false` for every input; editorial judgement lives in Control Center |
 | `cadence` config | #1 | Removed. Nothing read it |
 | Three same-day carousel docs | 7 Sep | Folded into `CAROUSEL_ENGINE_STATE.md` as appendices, verbatim |
