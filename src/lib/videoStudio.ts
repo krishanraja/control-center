@@ -141,6 +141,36 @@ export interface VideoStudioReview extends VideoStudioReviewListItem {
   recovery: VideoStudioRecoveryState
 }
 
+export interface VideoStudioArtDirectionDevice {
+  technique_id: string
+  name: string
+  rationale: string
+  experimental: boolean
+}
+
+export interface VideoStudioArtDirectionBeat {
+  beat_id: string
+  beat_label: string
+  primary: VideoStudioArtDirectionDevice | null
+  supporting: VideoStudioArtDirectionDevice[]
+  alternatives: VideoStudioArtDirectionDevice[]
+  invention: null | {
+    proposal_id: string
+    name: string
+    gap: string
+    mechanism: string
+    approval_state: 'proposed' | 'approved' | 'rejected'
+    requires_styleframes: true
+    requires_animatic: true
+  }
+}
+
+export interface VideoStudioArtDirection {
+  policy_version: 'art-director-v1'
+  registry_version: number
+  beats: VideoStudioArtDirectionBeat[]
+}
+
 const REVIEW_LIST_KEYS = [
   'id', 'job_id', 'gate', 'status', 'series', 'mode', 'platform', 'safe_title',
   'safe_summary', 'revision_hash', 'parent_revision_hash', 'parent_artifact_hash',
@@ -442,9 +472,11 @@ export function videoStudioReviewIsWellFormed(value: unknown): value is VideoStu
     'direction', 'change_title', 'change_summary', 'range_label', 'changes',
     'blocking_gates', 'target', 'semantic_target_map_hash',
   ]
-  const allowedPayloadKeys = payload.editorial_note === undefined
-    ? requiredPayloadKeys
-    : [...requiredPayloadKeys, 'editorial_note']
+  const allowedPayloadKeys = [
+    ...requiredPayloadKeys,
+    ...(payload.editorial_note === undefined ? [] : ['editorial_note']),
+    ...(payload.art_direction === undefined ? [] : ['art_direction']),
+  ]
   if (!exactObjectKeys(payload, allowedPayloadKeys)
     || !boundedText(payload.direction, 600)
     || !boundedText(payload.change_title, 200)
@@ -453,7 +485,8 @@ export function videoStudioReviewIsWellFormed(value: unknown): value is VideoStu
     || (payload.editorial_note !== undefined && !boundedText(payload.editorial_note, 600))
     || !Array.isArray(payload.changes)
     || payload.changes.length > 4
-    || payload.changes.some(change => !boundedText(change, 240))) return false
+    || payload.changes.some(change => !boundedText(change, 240))
+    || (payload.art_direction !== undefined && !videoStudioArtDirectionIsWellFormed(payload.art_direction))) return false
   const gates = recordValue(payload?.blocking_gates)
   if (!gates || !videoStudioTargetIsWellFormed(payload?.target) || !exactHash(payload?.semantic_target_map_hash)) return false
   const keys = Object.keys(gates)
@@ -521,6 +554,58 @@ export function videoStudioReviewIsWellFormed(value: unknown): value is VideoStu
   return comparison.alignment === 'unavailable'
     && comparison.start_ms === null
     && comparison.end_ms === null
+}
+
+function artDirectionDeviceIsWellFormed(value: unknown): value is VideoStudioArtDirectionDevice {
+  const device = recordValue(value)
+  return Boolean(device
+    && exactObjectKeys(device, ['technique_id', 'name', 'rationale', 'experimental'])
+    && exactIdentifier(device.technique_id)
+    && boundedText(device.name, 120)
+    && boundedText(device.rationale, 300)
+    && typeof device.experimental === 'boolean')
+}
+
+export function videoStudioArtDirectionIsWellFormed(value: unknown): value is VideoStudioArtDirection {
+  const direction = recordValue(value)
+  if (!direction
+    || !exactObjectKeys(direction, ['policy_version', 'registry_version', 'beats'])
+    || direction.policy_version !== 'art-director-v1'
+    || !Number.isSafeInteger(direction.registry_version)
+    || Number(direction.registry_version) < 1
+    || !Array.isArray(direction.beats)
+    || direction.beats.length < 1
+    || direction.beats.length > 20) return false
+  return direction.beats.every(value => {
+    const beat = recordValue(value)
+    if (!beat
+      || !exactObjectKeys(beat, ['beat_id', 'beat_label', 'primary', 'supporting', 'alternatives', 'invention'])
+      || !exactIdentifier(beat.beat_id)
+      || !boundedText(beat.beat_label, 120)
+      || (beat.primary !== null && !artDirectionDeviceIsWellFormed(beat.primary))
+      || !Array.isArray(beat.supporting)
+      || beat.supporting.length > 2
+      || !beat.supporting.every(artDirectionDeviceIsWellFormed)
+      || !Array.isArray(beat.alternatives)
+      || beat.alternatives.length > 2
+      || !beat.alternatives.every(artDirectionDeviceIsWellFormed)) return false
+    const invention = beat.invention === null ? null : recordValue(beat.invention)
+    if (beat.invention !== null && (!invention
+      || !exactObjectKeys(invention, ['proposal_id', 'name', 'gap', 'mechanism', 'approval_state', 'requires_styleframes', 'requires_animatic'])
+      || !exactIdentifier(invention.proposal_id)
+      || !boundedText(invention.name, 120)
+      || !boundedText(invention.gap, 300)
+      || !boundedText(invention.mechanism, 500)
+      || !inSet(['proposed', 'approved', 'rejected'], invention.approval_state)
+      || invention.requires_styleframes !== true
+      || invention.requires_animatic !== true)) return false
+    return Boolean((beat.primary && !invention) || (!beat.primary && invention))
+  })
+}
+
+export function videoStudioArtDirection(review: VideoStudioReview): VideoStudioArtDirection | null {
+  const value = review.review_payload.art_direction
+  return videoStudioArtDirectionIsWellFormed(value) ? value : null
 }
 
 export function videoStudioActiveJobIsWellFormed(value: unknown): value is VideoStudioActiveJob {

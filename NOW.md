@@ -1,8 +1,8 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-09-12
-head: a671b053
+as_of: 2026-09-13
+head: fd56b790
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet.
 
-## Where it is right now (as of 2026-09-12)
+## Where it is right now (as of 2026-09-13)
 
 - **Live** at `controlcenter.krishraja.com`, auto-deployed from `main` on Vercel, Supabase behind it. CI runs lint, three typechecks, seventeen structural guards and a five-spec Playwright job on every push (`.github/workflows/ci.yml`).
 - **API write routes are guarded.** As of 9 September, 75 of 141 `/api/*` routes that accepted a write with no credential now call the same access-code cookie check the web UI uses; a handful (health, sync, tasks-inbox digest, and reads on 18 dual-method routes) stay open by design for monitors and n8n. `/api/internal/sonnet-proxy` closed the same hole on 12 September (below). `docs/SECURITY.md` and `docs/DB_HEALTH.md` carry the full breakdown.
@@ -46,6 +46,8 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 - **Parked**: the hunter job-search lane is hidden behind `VITE_BRIDGES_LANE_ENABLED` and the agent row is left active by Krish's choice.
 
 ## What changed recently
+
+- 2026-09-13 **Studio art direction is reviewable inside the one Content Engine UI** (`codex/art-director-repertoire`, awaiting PR). Why: a deterministic art director is only useful if Krish can see the visual choice without entering a second dashboard. Treatment and final review cards now show compact beat-level choreography, no more than two alternatives and a simplify action. Either edit opens the existing magic direction sheet with the exact instruction prefilled. A genuinely new mechanism is labelled as the sharp alternative and cannot pass as an ordinary effect: the card states that styleframes and an animatic are required. Long text wraps at phone and desktop widths, and the cloud projection still excludes transcripts, local paths, source media and private artifacts.
 
 - 2026-09-12 **The internal Anthropic proxy accepted any four-character `X-Internal-Caller` value, so any caller who found the URL could spend the server's Anthropic balance; it now fails closed.** Why: `/api/internal/sonnet-proxy` requires `Authorization: Bearer $N8N_PROXY_SECRET`, keeping the caller header for attribution only. The same audit right-sized the two highest-volume n8n routes: the Inbox Classifier moved from Sonnet 4.6 to Haiku 4.5 (a classifier, not synthesis) and the Task Lever Rater moved from Opus 5 at a 16k output cap to Sonnet 5 with thinking disabled and a 2k cap, for at most 20 short rows a run. Twenty-seven other active workflow files still call Sonnet 4.6 and stay there until each route is scored on at least 30 historical inputs, because Sonnet 5's tokenizer produces roughly 30% more tokens for the same input and non-default sampling parameters now return HTTP 400. `docs/MODEL_ROUTING_AUDIT.md`. `a671b053`.
 - 2026-09-12 **The harness now has one remote inbox instead of per-machine collectors, and it went from code to a verified production loop the same day.** Why: most interactive AI surfaces wrote nothing back to `ai-harness`'s learning loop, and a per-machine daemon would have multiplied operating systems, schedulers and credentials. `harness_event_inbox` is append-only with no anon or authenticated privileges and no update/delete grant even for the service role; a first production readback caught default `REFERENCES` and `TRIGGER` grants slipping through, fixed by a same-day least-privilege repair migration. `POST /api/harness/mcp` is now the preferred client boundary: three hashed emitter identities (Codex, Claude Code, Cursor) each get an independently revocable credential and a 30-event daily limit, and a second fresh Codex session picked up the capture rule with no explicit instruction, which is the behavioural trigger proving itself rather than just the transport. The GitHub importer advanced the observation ledger's cursor from 1 to 9, touching only `state/observations` and no contract, skill or rule. ADR-020, `docs/plans/harness-learning-inbox/STATE.md`. PRs #310, #311, #312, #313; `47179b4b`, `a6115f70`, `0b41c0e0`, `a7d0595b`.

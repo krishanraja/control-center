@@ -678,6 +678,75 @@ test.describe('Video Engine mobile reviewer', () => {
     expect(box?.height).toBeGreaterThanOrEqual(843)
   })
 
+  test('reviews deterministic visual devices in the existing reviewer without mobile overflow', async ({ page }) => {
+    const review = cloneReview()
+    review.gate = 'treatment'
+    review.editorial_state = 'needs_visual_review'
+    review.review_payload.art_direction = {
+      policy_version: 'art-director-v1',
+      registry_version: 2,
+      beats: [
+        {
+          beat_id: 'beat-one',
+          beat_label: 'Beat 1: evidence with a deliberately long label that must wrap rather than truncate',
+          primary: {
+            technique_id: 'noun-to-proof-cut',
+            name: 'Noun to proof cut',
+            rationale: 'The exact approved artifact answers the spoken noun immediately while preserving Krish as the visual anchor.',
+            experimental: false,
+          },
+          supporting: [{
+            technique_id: 'stable-semantic-crop',
+            name: 'Stable semantic crop',
+            rationale: 'Keep Krish visible while the evidence remains legible.',
+            experimental: false,
+          }],
+          alternatives: [{
+            technique_id: 'guided-evidence-pan',
+            name: 'Guided evidence pan and magnifier',
+            rationale: 'Use when the viewer must inspect one decisive region inside a dense source.',
+            experimental: false,
+          }],
+          invention: null,
+        },
+        {
+          beat_id: 'beat-two',
+          beat_label: 'Beat 2: payoff',
+          primary: null,
+          supporting: [],
+          alternatives: [],
+          invention: {
+            proposal_id: 'invent-receipt-constellation',
+            name: 'Receipt constellation',
+            gap: 'No current device explains the relationship among several approved receipts without flattening the argument.',
+            mechanism: 'Arrange the approved receipts around Krish only as their causal relationships are spoken, then collapse them into one verdict frame.',
+            approval_state: 'proposed',
+            requires_styleframes: true,
+            requires_animatic: true,
+          },
+        },
+      ],
+    }
+    await openReview(page, review)
+
+    const direction = page.getByTestId('art-direction-review')
+    await expect(direction).toBeVisible()
+    await expect(direction.getByText('Noun to proof cut', { exact: true })).toBeVisible()
+    await expect(direction.getByText('Stable semantic crop', { exact: true })).toBeVisible()
+    await direction.getByRole('button', { name: /Beat 2: payoff/ }).click()
+    await expect(page.getByTestId('art-direction-invention')).toContainText('Sharp alternative')
+    await expect(page.getByTestId('art-direction-invention')).toContainText('Styleframes + animatic required')
+    await direction.getByRole('button', { name: /Beat 1: evidence/ }).click()
+    await direction.getByRole('button', { name: /Try Guided evidence pan and magnifier/ }).click()
+    await expect(page.getByPlaceholder('Say or type what should change')).toHaveValue(/replace the current visual device with Guided evidence pan and magnifier/)
+
+    const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(mobileOverflow).toBeLessThanOrEqual(1)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const desktopOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(desktopOverflow).toBeLessThanOrEqual(1)
+  })
+
   for (const series of ['money_of_ai', 'built_with_ai'] as const) {
     const label = series === 'money_of_ai' ? 'The Money of AI' : 'Built With AI'
     test(`${label} uses a contained high-contrast official wordmark in every responsive placement`, async ({ page }, testInfo) => {
