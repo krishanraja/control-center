@@ -12,7 +12,7 @@
 >
 > **Kept current by the engine.** `api/architecture/weekly.ts` (Vercel cron, Sunday 13:00 UTC) writes one dated entry at the top of section 20 from the week's build signals and stamps the line below. The Monday note reads the stamp back and says so when it is older than ten days, so a dark cron reads as stale, never as silence. People write rulings (section 0a); the engine writes the record (section 20).
 >
-> **Last engine refresh:** never
+> **Last engine refresh:** 2026-09-13
 >
 > **Update procedure.** Edit this file on GitHub `main`, by PR or by direct push, and that is the whole procedure. The VPS clone at `/root/Projects/control-center` follows with `git pull --ff-only`; it is a checkout, not a surface.
 >
@@ -2346,6 +2346,13 @@ docs/audits/                                                 # Closure architect
 ---
 
 ## 20. Recent architectural changes - rolling changelog
+
+### 2026-09-13: the week's builds, written by the engine <!-- engine-week:2026-09-11 -->
+
+Week ending Friday 2026-09-11. Written by `api/architecture/weekly.ts` from the `build_signal` rows the Saturday ingest wrote (`docs/CONTENT-ENGINE-BUILD-SIGNALS.md`). Named products are named; every other repo folds into one line because this document is public. This entry is the engine's record, not a ruling: a ruling goes in section 0a, by a person.
+
+- **Control Center**: 94 commits, 43 merged PRs, 300 files, +5652 -12358. Merged: The detector for silent failures was itself failing silently | Guard the write routes. The API was open to the internet | Content tab: stop the two halves fighting, and filter the noise | Close the anonymous write holes, and stop the alarm writing into a void | Run again: make the obligation strip actionable | Sync the canon block | The outermost clock, outside the thing it watches | An advisory that remembers to re-measure, and the measurement itself | Make prompt-cache spend visible, and guard it | Sync the canon block | A push is a validation run, not a Claude run | Point Control Center at the Content Engine and stop hosting it and 31 more. Content radar: Built with AI not judged yet, The Money of AI not judged yet.
+- **the Mindmake site**: 23 commits, 13 merged PRs, 76 files, +4569 -2985. Merged: Sync the canon block | Sync the canon block | Repair the four answer files that broke the build | Answer: how do adtech companies compete once AI can build targeting models without them | Answer: how do I build an AI center of excellence without a dedicated engineering budget | Answer: how do I calculate the total addressable revenue opportunity for AI products in publishing | Publish /answers, the surface written to be quoted | Sync the canon block | Carry the shared canon block in AGENTS.md | Swap the media CRO's story for one that fits the quote | The testimonials as revised, on the rail and in the story deck | Record the promotion, the function deploys and the synthetic lead and 1 more. Content radar: Built with AI not judged yet, The Money of AI not judged yet.
 
 ### 2026-09-09: the AEO research machine, for the ventures, the buyers and the benchmarks
 
