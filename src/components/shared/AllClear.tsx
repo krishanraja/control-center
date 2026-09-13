@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useDeviceClass, useReducedMotion } from './motion'
 import { useHaptics } from '../../hooks/useHaptics'
 import { DrawnCheck } from './DrawnCheck'
+import { Claim } from './Claim'
 
 /**
  * AllClear — the "you're done" moment. Replaces the old low-contrast "nothing
@@ -55,8 +56,8 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
             <DrawnCheck size={40} stroke={t.stroke} />
           </div>
         </div>
-        <p className="text-title font-serif text-white/92 tracking-tight">{title}</p>
-        {sub && <p className="font-body text-body text-muted mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
+        <Claim>{title}</Claim>
+        {sub && <p className="font-body text-body text-ink-muted mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
       </div>
     )
   }
@@ -71,8 +72,8 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
           <DrawnCheck size={30} stroke={t.stroke} />
         </div>
       </div>
-      <p className="text-title font-serif text-white/92 tracking-tight">{title}</p>
-      {sub && <p className="font-body text-label text-muted mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
+      <Claim>{title}</Claim>
+      {sub && <p className="font-body text-label text-ink-muted mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
       {nextHint && (
         <button
           type="button"

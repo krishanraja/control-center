@@ -4,6 +4,7 @@ import { callClaude, preamble, robustJson, sanitizeVoice } from '../_content.js'
 import { PRODUCT_SLUGS, text } from '../_growth.js'
 import { LANE_SLUG } from '../_growth.js'
 import { ventureOffer } from '../_venturePositioning.js'
+import { proposalPlay } from '../_humor.js'
 
 // POST /api/growth/clip-ideas  { product_slug, touchpoint_id? }
 //
@@ -28,11 +29,19 @@ const MAX = 5
 export interface ClipIdea {
   title: string
   why: string
+  /** The one deliberate swing in the batch. See `proposalPlay` in _humor.ts. */
+  play?: boolean
 }
 
+// The prompt used to be a claim rule followed by fifteen prohibitions, which
+// is a reliable recipe for correct and joyless titles. `proposalPlay` adds the
+// half that was missing: what to reach for, and one wildcard per batch. The
+// truth rules below are untouched and the wildcard obeys all of them.
 const SYSTEM = `You are proposing short video titles for Krish Raja, a British-Australian founder-operator. He films these himself, to camera, and posts them where his buyers already are.
 
 A good title here STATES THE CLAIM rather than teasing it. "Why 0 of 114 signups ever activated" is the shape. "The truth about activation" is not: it promises a reveal and says nothing.
+
+${proposalPlay(MAX)}
 
 RULES
 - Ground every title in the supplied buyer question, place and offer. Never invent a statistic, a customer, a company or an outcome.
@@ -41,7 +50,7 @@ RULES
 - No "the truth about", "here's the thing", "let's dive in", "unpack", "deep dive", "leverage", "journey", "landscape".
 - Each title is one line, under 80 characters, and different from the others in ANGLE, not just wording.
 - "why" is one short sentence saying who this is for and what it argues.
-- Return JSON only: {"ideas":[{"title":string,"why":string}]}`
+- Return JSON only: {"ideas":[{"title":string,"why":string,"play":boolean}]}`
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (preamble(req, res, 'POST, OPTIONS')) return
@@ -108,22 +117,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       system: SYSTEM,
       user: `${grounding}\n\nPropose ${MAX} titles.`,
       maxTokens: 1200,
-      temperature: 0.7,
+      // Nudged up from 0.7 with the play block: the wildcard needs room to be
+      // an actual swing, and at 0.7 five titles tended to converge on one safe
+      // shape. The truth rules are enforced in the prompt and by grounding,
+      // not by keeping the model cold.
+      temperature: 0.85,
       timeoutMs: 45_000,
     })
     const parsed = robustJson(txt)
     const ideas: ClipIdea[] = Array.isArray(parsed?.ideas)
       ? parsed.ideas
           .map((i: unknown) => {
-            const row = i as { title?: unknown; why?: unknown }
+            const row = i as { title?: unknown; why?: unknown; play?: unknown }
             return {
               title: sanitizeVoice(String(row?.title ?? '')).trim().slice(0, 120),
               why: sanitizeVoice(String(row?.why ?? '')).trim().slice(0, 240),
+              play: row?.play === true,
             }
           })
           .filter((i: ClipIdea) => i.title)
           .slice(0, MAX)
       : []
+
+    // One swing per batch, not several. A model that marks four of five as the
+    // wildcard has misread the brief, and a list where everything is the
+    // exception reads exactly as flat as a list where nothing is.
+    let seenPlay = false
+    for (const i of ideas) {
+      if (i.play && seenPlay) i.play = false
+      else if (i.play) seenPlay = true
+    }
 
     return res.status(200).json({ ok: true, ideas })
   } catch (e: unknown) {

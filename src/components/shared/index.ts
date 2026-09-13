@@ -1,4 +1,5 @@
 export { AgentAvatar } from './AgentAvatar'
+export { Claim } from './Claim'
 export { StatusPill } from './StatusPill'
 export { PodChip } from './PodChip'
 export { ToastProvider, useToast } from './Toast'

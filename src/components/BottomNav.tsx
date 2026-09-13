@@ -55,7 +55,7 @@ export function BottomNav({ active, onChange }: Props) {
               aria-current={drawerActive ? 'page' : undefined}
               className={`${NAV_BUTTON_CLS} ${
                 reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
-              } ${drawerActive ? 'text-accent' : 'text-muted'}`}
+              } ${drawerActive ? 'text-accent' : 'text-ink-muted'}`}
             >
               {/* More is a real tab button now. It used to be the one control in
                   the bar with no active treatment, so opening OS, Focus or
@@ -129,7 +129,7 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, reducedMotion, onCl
       aria-current={active ? 'page' : undefined}
       className={`${NAV_BUTTON_CLS} ${
         reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
-      } ${active ? 'text-accent' : 'text-muted'}`}
+      } ${active ? 'text-accent' : 'text-ink-muted'}`}
     >
       <NavIndicator active={active} reducedMotion={reducedMotion} />
       <div className={`relative ${reducedMotion ? '' : `transition-transform duration-200 ${active ? 'scale-110' : 'scale-100'}`}`}>

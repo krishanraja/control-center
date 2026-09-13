@@ -511,7 +511,7 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
   // Title candidates from /api/growth/clip-ideas. Krish picks one rather than
   // starting at a blank field, which is what the board asked for and never had:
   // its own empty state used to admit "nothing here is generated for you".
-  const [ideas, setIdeas] = useState<Array<{ title: string; why: string }> | null>(null)
+  const [ideas, setIdeas] = useState<Array<{ title: string; why: string; play?: boolean }> | null>(null)
   const [ideasNote, setIdeasNote] = useState<string | null>(null)
   const [suggesting, setSuggesting] = useState(false)
   const ideasWork = useWork('growth.clipIdeas')
@@ -529,7 +529,7 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
     setSuggesting(true)
     setIdeasNote(null)
     try {
-      const { json } = await requestJson<{ ok?: boolean; error?: string; note?: string; ideas?: Array<{ title: string; why: string }> }>(
+      const { json } = await requestJson<{ ok?: boolean; error?: string; note?: string; ideas?: Array<{ title: string; why: string; play?: boolean }> }>(
         '/api/growth/clip-ideas',
         {
           method: 'POST',
@@ -624,6 +624,15 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
                 >
                   <span className="block text-label font-medium text-white/85 leading-snug">{i.title}</span>
                   {i.why && <span className="block text-micro text-white/45 leading-snug mt-0.5">{i.why}</span>}
+                  {/* The one swing in the batch, marked so it reads as a dare
+                      rather than as the odd one out. See proposalPlay in
+                      api/_humor.ts: four grounded titles and one you would be
+                      slightly nervous to publish. */}
+                  {i.play && (
+                    <span className="mt-1.5 inline-flex items-center rounded-full bg-amber-400/15 px-2 py-0.5 text-micro font-semibold text-amber-200">
+                      The wild one
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

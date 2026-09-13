@@ -8,6 +8,7 @@ import { ShutdownModal } from '../pilot/EveningShutdown'
 import { VoiceField } from '../pilot/controls'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { Eyebrow } from '../shared/Eyebrow'
+import { Claim } from '../shared/Claim'
 import { useQuickCreateListener } from '../../lib/quickCreate'
 import {
   purposeFor, TRAPS, SITUATIONS, DECISION_RULES, rulesVerdict,
@@ -95,12 +96,11 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
       {/* The purpose anchor: one line of his own record, per day. Never more. */}
       <header className={compact ? 'pt-0' : 'pt-2'}>
         <Eyebrow>Focus &amp; Purpose</Eyebrow>
-        {/* Never clamped: the line is the point. Short phone viewports step the
-            line down a type rung and tighten rhythm (the same height-gated
-            compression Home uses) so the whole tab still fits; only genuinely
-            tiny screens fall back to the wrapper's scroll. Never "…". */}
-        <p className={`mt-2 font-serif leading-[1.4] text-ink ${compact ? 'text-title [@media(max-height:860px)]:text-lede' : 'text-title'}`}>{purpose.line}</p>
-        <p className="mt-1 text-micro tracking-wide text-ink-faint">{purpose.source}</p>
+        {/* The house claim recipe, now a primitive. Never clamped: the line is
+            the point. Short phone viewports step it down a type rung rather
+            than cut it, so the whole tab still fits; only genuinely tiny
+            screens fall back to the wrapper's scroll. Never "…". */}
+        <Claim source={purpose.source} compact={compact} className="mt-2">{purpose.line}</Claim>
       </header>
 
       {/* The spine: one clean ask a day. */}

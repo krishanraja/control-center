@@ -10,6 +10,7 @@ import { MicButton, browserCanRecord } from '../shared/VoiceCapture'
 import { ThumbSlider, ENERGY_NOTCHES, ANXIETY_NOTCHES } from './ThumbSlider'
 import { Tap } from './controls'
 import { Working } from '../shared/Working'
+import { Claim } from '../shared/Claim'
 import { Pending } from '../shared/Pending'
 import { useElapsed } from '../../hooks/useAsyncAction'
 import { useWork } from '../../lib/loadingVoice'
@@ -226,9 +227,7 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
               </div>
               {answered && mode && (
                 <div className="mt-7">
-                  <p className="font-serif text-title leading-snug text-ink">
-                    {mode === 'red' ? 'One action today.' : 'Full dashboard today.'}
-                  </p>
+                  <Claim>{mode === 'red' ? 'One action today.' : 'Full dashboard today.'}</Claim>
                   <button
                     type="button"
                     onPointerDown={() => h.impactRigid()}
@@ -348,10 +347,7 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
               <p className="text-label uppercase tracking-[0.14em] text-ink-faint">
                 {readingFor(energy as number, anxiety as number)}
               </p>
-              <blockquote className="mt-4 font-serif text-title leading-[1.35] text-ink">
-                {stoic.quote}
-              </blockquote>
-              <p className="mt-3 text-label tracking-wide text-ink-faint">{stoic.source}</p>
+              <Claim source={stoic.source} className="mt-4">{stoic.quote}</Claim>
               <p className="mt-7 text-ui leading-relaxed text-ink-muted">{stoic.so}</p>
               {intent && (
                 <p className="mt-5 text-body text-ink-faint">{intent.blurb}</p>

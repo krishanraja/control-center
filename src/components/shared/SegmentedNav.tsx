@@ -56,19 +56,19 @@ const TAB: Record<NonNullable<Props<string>['variant']>, { base: string; on: str
   pill: {
     base: 'min-h-[40px] px-3 py-1.5 rounded-full text-body whitespace-nowrap border transition-colors',
     on: 'btn-contrast border-violet-400 font-semibold shadow-[0_6px_18px_-12px_rgba(127,227,180,.65)]',
-    off: 'border-white/10 text-muted hover:text-strong hover:bg-white/[0.06]',
+    off: 'border-white/10 text-ink-muted hover:text-ink hover:bg-white/[0.06]',
   },
   bordered: {
     base: 'min-h-[40px] px-3 py-1.5 rounded-lg text-label font-semibold border transition-colors',
-    on: 'border-violet-400/35 bg-violet-500/10 text-strong shadow-[inset_0_-2px_0_#7fe3b4]',
-    off: 'border-white/[0.06] text-muted hover:text-strong hover:border-white/15',
+    on: 'border-violet-400/35 bg-violet-500/10 text-ink shadow-[inset_0_-2px_0_#7fe3b4]',
+    off: 'border-white/[0.06] text-ink-muted hover:text-ink hover:border-white/15',
   },
   segmented: {
     // flex-1 so segments split the width evenly and each is a real tap target
     // rather than a 10px pill.
     base: 'flex-1 min-h-[40px] rounded-lg text-label font-semibold transition-colors',
-    on: 'bg-violet-500/[0.12] text-strong shadow-[inset_0_-2px_0_#7fe3b4]',
-    off: 'text-muted hover:text-strong',
+    on: 'bg-violet-500/[0.12] text-ink shadow-[inset_0_-2px_0_#7fe3b4]',
+    off: 'text-ink-muted hover:text-ink',
   },
 }
 

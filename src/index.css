@@ -282,7 +282,16 @@
 
 @layer components {
   /* Semantic foreground roles. Actionable copy never relies on an arbitrary
-     opacity; these three channels are verified on both ink and paper. */
+     opacity; these three channels are verified on both ink and paper.
+
+     DEPRECATED SPELLING, kept only so an unswept file cannot render colourless.
+     These were a second name for `text-ink` / `text-ink-muted` /
+     `text-ink-faint`, which is the same three channels as real Tailwind tokens
+     that also take opacity modifiers. Two names for one job is why neither was
+     adopted: 185 of 257 component files stayed on `text-white/NN` opacity soup
+     while the documented hierarchy split its own vote. Swept 2026-09-13; the
+     token spelling is the only one in src/ now and
+     `scripts/check-type-tokens.mts` fails a new use of these three. */
   .text-strong { color: rgb(var(--ink)); }
   .text-muted { color: rgb(var(--ink-muted)); }
   .text-faint { color: rgb(var(--ink-faint)); }

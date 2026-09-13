@@ -11,6 +11,15 @@
 // size, and no uppercase label carries a tracking other than 0.14em. New
 // sizes belong in the fontSize scale, not inline.
 //
+// The second invariant, added 2026-09-13: ONE spelling of the text hierarchy.
+// `.text-strong / .text-muted / .text-faint` (component classes in index.css)
+// and `text-ink / text-ink-muted / text-ink-faint` (Tailwind tokens) were the
+// same three colour channels under two names, which is why neither won and
+// most of src/ stayed on `text-white/NN` opacity soup. The tokens win: they
+// take opacity modifiers and variants like any other utility. The three class
+// spellings remain defined in index.css so an unswept file cannot render
+// colourless, but nothing in src/ may use them again.
+//
 //   npx tsx scripts/check-type-tokens.mts
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -29,9 +38,19 @@ function walk(dir: string, out: string[] = []): string[] {
 
 const SIZE = /text-\[\d+(?:\.\d+)?px\]/g
 const TRACK = /tracking-\[(0\.\d+)em\]/g
+// Matches the deprecated spelling only: `text-muted` but not `text-ink-muted`,
+// and only where it is used as a class (start of string, whitespace, or a
+// variant colon before it).
+const LEGACY_INK = /(?:^|[\s'"`:{])(text-(?:strong|muted|faint))\b/g
 
 let sizeHits = 0
 let trackHits = 0
+let inkHits = 0
+const INK_FIX: Record<string, string> = {
+  'text-strong': 'text-ink',
+  'text-muted': 'text-ink-muted',
+  'text-faint': 'text-ink-faint',
+}
 
 for (const file of walk('src')) {
   const text = readFileSync(file, 'utf8')
@@ -40,6 +59,10 @@ for (const file of walk('src')) {
     for (const m of line.matchAll(SIZE)) {
       bad(`${file}:${i + 1} bracket text size ${m[0]} — use a role token (text-micro…text-hero)`)
       sizeHits++
+    }
+    for (const m of line.matchAll(LEGACY_INK)) {
+      bad(`${file}:${i + 1} ${m[1]} is the retired spelling of the hierarchy — use ${INK_FIX[m[1]]}`)
+      inkHits++
     }
     if (line.includes('uppercase')) {
       for (const m of line.matchAll(TRACK)) {
@@ -56,4 +79,4 @@ if (fail) {
   console.log(`${fail} FAILURE(S)`)
   process.exit(1)
 }
-console.log('PASS  no bracket text sizes, uppercase tracking uniform at 0.14em')
+console.log('PASS  no bracket text sizes, uppercase tracking uniform at 0.14em, one spelling of the text hierarchy')

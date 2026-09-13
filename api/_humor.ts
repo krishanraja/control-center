@@ -122,3 +122,45 @@ export function buildHumourSystem(o: {
     `Rewrite the passage so it reads as genuinely ${entry.label.toLowerCase()}, in the dry British/Australian register above. Keep every fact and the core argument intact; change only the delivery. Hold roughly the same length. Return ONLY the rewritten text — no preamble, no explanation, no quotes around it.`,
   ].filter(Boolean).join('\n')
 }
+
+// ── The play block, for prompts that PROPOSE work ───────────────────────────
+//
+// Everything above runs on text that already exists: Krish presses a Humor
+// chip and the passage comes back funnier. Nothing above ever touches the
+// prompts that hand him work to do, and that is the whole problem with how the
+// OS reads (Krish, 2026-09-13: "the content suggestions are so serious and
+// intense").
+//
+// Look at what a proposal prompt is made of. `growth/clip-ideas` carried one
+// sentence about what a good title is and then fifteen prohibitions: never
+// invent, no em dashes, no exclamation marks, no colons, no "the truth about",
+// no "deep dive". Every one of those rules is right and none of them asks for
+// anything. A model given a wall of bans and a single flat instruction returns
+// exactly what it was asked for: correct, safe, joyless work, every time, and
+// a list of five of those is not something anyone opens twice.
+//
+// So this block is the missing half. It says what to reach FOR, not only what
+// to avoid, and it spends one of every batch on a real swing. The swing is the
+// point: four grounded proposals and one that made him laugh is a list he will
+// come back to, and habit is the thing being built here, not compliance.
+//
+// It never relaxes a truth rule. The wildcard is a different ANGLE on the same
+// evidence, never a different set of facts.
+
+export const PROPOSAL_PLAY = `THE REGISTER (this is what makes a list worth opening):
+- Write these the way you would say them to a smart friend at a bar, not the way you would file them. Specific beats sweeping. A real number, a real name, a real moment.
+- Dry, deadpan, British/Australian. Understatement lands harder than emphasis. The joke, where there is one, is in the restraint.
+- Have a POINT OF VIEW. A proposal that could have come from anyone is worse than one that is arguably wrong. Take the side.
+- Aim any barb at hype, at institutions, at the work, or at yourself. Never at a person or a group.
+- Be interesting first. If a line is accurate and dull, it has failed the brief. Dull is the failure mode here, not wrong.
+
+THE WILDCARD (exactly one per batch):
+- Make ONE of these a genuine swing: the angle nobody else would propose, the contrarian read, the joke that happens to be true, the one you would be slightly nervous to publish.
+- Mark it with "play": true. Every other proposal has "play": false.
+- The wildcard obeys every truth rule above it. It is a different ANGLE on the same evidence, never different evidence. Do not invent a number, a person or an outcome to make it land.
+- If a swing would need a fact you were not given, do not take it. Return the batch with no wildcard rather than a made-up one.`
+
+/** The play block plus one line naming the batch size, for a proposal prompt. */
+export function proposalPlay(count: number): string {
+  return `${PROPOSAL_PLAY}\n- Of the ${count} proposals, exactly one carries "play": true.`
+}

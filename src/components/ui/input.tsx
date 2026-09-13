@@ -25,14 +25,14 @@ const Input = React.forwardRef<
   return (
     <div className="relative flex w-full items-center">
       {icon && iconPosition === 'left' && (
-        <div className="pointer-events-none absolute left-3 flex text-faint">{icon}</div>
+        <div className="pointer-events-none absolute left-3 flex text-ink-faint">{icon}</div>
       )}
       <input
         ref={ref}
         type={type}
         data-slot="input"
         className={cn(
-          'flex w-full rounded-form border border-white/10 bg-sunk text-body text-strong',
+          'flex w-full rounded-form border border-white/10 bg-sunk text-body text-ink',
           'min-h-[44px] px-3 py-2 transition-colors',
           'placeholder:text-ink-faint',
           'focus:outline-none focus:ring-1 focus:ring-violet-400/50',
@@ -43,7 +43,7 @@ const Input = React.forwardRef<
         {...props}
       />
       {icon && iconPosition === 'right' && (
-        <div className="pointer-events-none absolute right-3 flex text-faint">{icon}</div>
+        <div className="pointer-events-none absolute right-3 flex text-ink-faint">{icon}</div>
       )}
     </div>
   )

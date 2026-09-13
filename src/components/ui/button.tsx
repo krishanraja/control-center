@@ -31,11 +31,11 @@ const buttonVariants = cva(
         primary: 'aurora-btn',
         // The inverted high-emphasis CTA. Never `bg-white text-black`.
         contrast: 'btn-contrast',
-        secondary: 'bg-white/[0.07] text-strong hover:bg-white/[0.10] active:bg-white/[0.12]',
-        outline: 'border border-white/10 text-strong hover:border-white/20 hover:bg-white/[0.04]',
-        ghost: 'bg-transparent text-muted hover:text-strong active:bg-white/[0.06]',
+        secondary: 'bg-white/[0.07] text-ink hover:bg-white/[0.10] active:bg-white/[0.12]',
+        outline: 'border border-white/10 text-ink hover:border-white/20 hover:bg-white/[0.04]',
+        ghost: 'bg-transparent text-ink-muted hover:text-ink active:bg-white/[0.06]',
         danger: 'bg-rose-500/15 text-rose-200 hover:bg-rose-500/20 active:bg-rose-500/25',
-        link: 'gap-1.5 p-0 text-muted underline underline-offset-4 hover:text-strong',
+        link: 'gap-1.5 p-0 text-ink-muted underline underline-offset-4 hover:text-ink',
         none: '',
       },
       size: {
