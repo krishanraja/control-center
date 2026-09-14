@@ -16,28 +16,23 @@ scripts/n8n/
   README.md         this file
 ```
 
-## Applied to cloud on 2026-09-14, with six exceptions
+## Applied to cloud on 2026-09-14
 
-The Anthropic fallback repair was pushed to n8n Cloud through the n8n MCP
-server rather than `sync.sh --apply`, node by node, so no placeholder ever
-went near a live credential. Thirty-one workflows were updated and published.
+The Anthropic fallback repair reached every active workflow. Thirty-three went
+through the n8n MCP server node by node; the last four went through the public
+API the same way, fetching the live copy, changing only the named nodes, and
+writing it back. Neither path uploads a file from this directory, so no
+`{{PLACEHOLDER}}` ever went near a live credential.
 
-Six could not be: the MCP server refuses a workflow whose **MCP access** toggle
-is off, and these have it off. Their repo copies carry the repair and their
-cloud copies do not, which `audit.sh` will report as drift until someone either
-flips "Enable MCP access" on the workflow card or runs `sync.sh --apply` with
-the full credential set:
+Six workflows had to wait for their **MCP access** toggle, which the MCP server
+requires: Acquisition Reply Intake, Cleo Content Lane Sourcing, Krish Inbox
+Classifier, Nell Guest Pitch Draft, Nell Guest Pitch Enrich (Exa), Nova
+Podchaser -> Visibility. All six are now done and verified live (retry settings
+present, Priya out of the classifier enum, `versionId == activeVersionId`).
 
-- Acquisition | Reply Intake
-- Cleo | Mindmaker OS | Content Lane Sourcing
-- Krish | Mindmaker OS | Inbox Classifier
-- Nell | Mindmaker OS | Guest Pitch Draft
-- Nell | Mindmaker OS | Guest Pitch Enrich (Exa)
-- Nova | Mindmaker OS | Podchaser -> Visibility (Outbound)
-
-One more known divergence, older than this change: `cleo-synthesis-engine`'s
+One known divergence remains, older than this change: `cleo-synthesis-engine`'s
 cloud copy still names its Anthropic node `Opus Synthesize` where this file says
-`Sonnet Synthesize` (both send `claude-sonnet-4-6`). The fallback builder is now
+`Sonnet Synthesize` (both send `claude-sonnet-4-6`). The fallback builder is
 identical on both sides; the node name is not. Reconcile it deliberately, in
 whichever direction is right, rather than letting the next `--apply` rename it
 silently.
