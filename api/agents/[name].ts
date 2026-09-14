@@ -21,8 +21,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (error || !agent) {
     // Fallback roster for the 404 payload: mirrors `agents` table ids, not active status.
-    // felix + hunter were RETIRED 2026-07-10 and priya 2026-09-14 (agents.active=false)
-    // but their rows persist in the table for history, so their ids stay valid lookups here.
+    // felix (2026-07-10), kai (2026-09-07) and priya (2026-09-14) are retired
+    // (agents.active=false) but their rows persist in the table for history, so
+    // their ids stay valid lookups here. hunter is NOT retired: it was re-armed
+    // in August 2026 and still runs from GitHub Actions, parked in the UI only.
     return res.status(404).json({
       error: `Agent not found: ${agentName}`,
       available_agents: ['agatha', 'arlo', 'cleo', 'felix', 'hunter', 'kai', 'leo', 'marcus', 'maya', 'nell', 'nova', 'priya', 'vera', 'zara']
