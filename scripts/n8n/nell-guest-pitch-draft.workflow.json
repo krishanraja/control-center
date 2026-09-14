@@ -189,7 +189,10 @@
           "id": "w8sWwz8EfYc1JA7G",
           "name": "Anthropic Header 2026-05-21"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "Parse_Pitch",

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardBearerExport } from '../_auth.js'
 import { PROXY_ALLOWED_MODELS } from '../_models.js'
 import * as meter from '../_meter.js'
+import { fetchWithRetry, RETRY_STATUS } from '../_retry.js'
 
 // Internal-only Anthropic proxy. n8n workflows that can't share the
 // Anthropic credential (workflow-level credential scoping in n8n Cloud)
@@ -62,7 +63,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    // An overload forwarded verbatim becomes an n8n node failure, and the
+    // workflow behind it then falls back to a second provider for something
+    // that would have answered on the next attempt. Absorb it here, once.
+    const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -70,6 +74,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'content-type': 'application/json',
       },
       body: JSON.stringify(body),
+    }, {
+      onRetry: ({ attempt, status, waitMs }) =>
+        console.warn(`sonnet_proxy_retry caller=${caller} model=${body.model} attempt=${attempt} status=${status} wait=${waitMs}ms`),
     })
     const text = await r.text()
     // The X-Internal-Caller the proxy already demands is the agent stamp: this
@@ -78,6 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const j = JSON.parse(text) as { usage?: unknown }
       await meter.anthropicCall({ agent: caller, model: body.model, usage: j?.usage, failed: !r.ok })
+      if (!r.ok && RETRY_STATUS.has(r.status)) {
+        console.warn(`sonnet_proxy_exhausted caller=${caller} model=${body.model} status=${r.status}`)
+      }
     } catch { /* an unparseable body is Anthropic's problem, not the meter's */ }
     res.status(r.status).setHeader('Content-Type', 'application/json').send(text)
   } catch (e) {

@@ -242,7 +242,10 @@
           "id": "eoursuitt7vHBbP6",
           "name": "Anthropic Header"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "db79ab71-9e10-48c8-9e8d-41947b45ae1c",

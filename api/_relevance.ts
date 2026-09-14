@@ -15,6 +15,7 @@
 
 import { JUDGE_MODEL } from './_models.js'
 import * as meter from './_meter.js'
+import { fetchWithRetry } from './_retry.js'
 
 export type Verdict = 'keep' | 'off_vertical' | 'too_technical'
 
@@ -116,7 +117,7 @@ async function classifyBatch(items: RelevanceItem[], opts: ClassifyOpts): Promis
     .map(it => `- id ${it.id}: ${String(it.title || '').slice(0, 200)}${it.text ? ` — ${String(it.text).slice(0, 400)}` : ''}`)
     .join('\n')
 
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': opts.apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({

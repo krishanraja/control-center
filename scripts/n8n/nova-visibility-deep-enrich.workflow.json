@@ -161,7 +161,10 @@
           "name": "Anthropic Header 2026-05-21"
         }
       },
-      "id": "sonnet-enrich-01"
+      "id": "sonnet-enrich-01",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Parse + Validate",

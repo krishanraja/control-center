@@ -2,6 +2,7 @@ import type { VercelResponse } from '@vercel/node'
 import { supportsSampling } from './_content.js'
 import { thinkingParam } from './_models.js'
 import * as meter from './_meter.js'
+import { fetchWithRetry } from './_retry.js'
 
 /**
  * Server-sent events for the model calls a human sits and waits on.
@@ -84,7 +85,9 @@ export interface StreamClaudeOpts {
  * payload. Streaming is an addition to those, never a replacement.
  */
 export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  // Only the opening request is retried. Once a byte has been written to the
+  // client there is no honest retry: it would replay a partial answer.
+  const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'x-api-key': opts.apiKey,
@@ -101,7 +104,7 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
       stream: true,
     }),
     signal: opts.signal,
-  })
+  }, { onRetry: ({ attempt, status, waitMs }) => console.warn(`anthropic_stream_retry attempt=${attempt} status=${status} wait=${waitMs}ms`) })
 
   if (!r.ok || !r.body) {
     const text = await r.text().catch(() => '')

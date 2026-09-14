@@ -162,7 +162,10 @@
           "name": "Anthropic account"
         }
       },
-      "id": "02d7d4ee-0a1f-4305-82eb-edc301d3e755"
+      "id": "02d7d4ee-0a1f-4305-82eb-edc301d3e755",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {

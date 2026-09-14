@@ -109,7 +109,10 @@
           "name": "Anthropic Header 2026-05-21"
         }
       },
-      "id": "0b963e87-d4cf-4b66-8a62-5f3707db92e7"
+      "id": "0b963e87-d4cf-4b66-8a62-5f3707db92e7",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Parse Sonnet",

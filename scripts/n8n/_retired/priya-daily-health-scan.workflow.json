@@ -1,6 +1,6 @@
 {
   "name": "Priya | Mindmaker OS | Daily Health Scan",
-  "active": true,
+  "active": false,
   "nodes": [
     {
       "parameters": {

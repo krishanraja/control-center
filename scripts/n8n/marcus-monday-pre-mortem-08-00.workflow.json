@@ -72,7 +72,10 @@
           "name": "Anthropic Header 2026-05-21"
         }
       },
-      "id": "494049d6-de92-47a1-9764-40de925b5f89"
+      "id": "494049d6-de92-47a1-9764-40de925b5f89",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Parse + write",

@@ -320,7 +320,10 @@
           "name": "Anthropic Header 2026-05-21"
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "9ac7e0b1-082f-4fce-87c7-35d4a482633e",

@@ -279,7 +279,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "6a9e2302-5975-4fed-a24a-d333f96def7c"
+      "id": "6a9e2302-5975-4fed-a24a-d333f96def7c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -390,7 +393,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "a21fef06-7271-4884-b332-4852b8f8f03c"
+      "id": "a21fef06-7271-4884-b332-4852b8f8f03c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -644,7 +650,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "0c265d25-d544-4967-9d1c-80b2911a0b5c"
+      "id": "0c265d25-d544-4967-9d1c-80b2911a0b5c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {

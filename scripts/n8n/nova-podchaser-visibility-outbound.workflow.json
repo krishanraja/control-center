@@ -134,7 +134,10 @@
         },
         "options": {}
       },
-      "id": "706c451d-8bdd-4554-b304-2f680bc07fe0"
+      "id": "706c451d-8bdd-4554-b304-2f680bc07fe0",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Map Visibility Rows",

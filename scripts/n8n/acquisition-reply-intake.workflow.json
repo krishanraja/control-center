@@ -85,7 +85,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueRegularOutput",
-      "id": "bec7fb5d-e5db-426e-b2e9-2482cf5cfa89"
+      "id": "bec7fb5d-e5db-426e-b2e9-2482cf5cfa89",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Build reply row",

@@ -72,7 +72,10 @@
         "options": {
           "timeout": 60000
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "parse-draft",

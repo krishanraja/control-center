@@ -170,7 +170,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "56bbf7c3-5996-4e0d-9759-d67cab49bc13"
+      "id": "56bbf7c3-5996-4e0d-9759-d67cab49bc13",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
