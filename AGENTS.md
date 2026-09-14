@@ -168,10 +168,10 @@ More `check-*.mts` guards exist outside CI (`check-edit-palette`,
 change. Known: `check-content-taxonomy` has a failing baseline on main —
 fix the baseline before wiring it into CI.
 
-<!-- krish-canon:start release=v2026.09.08.2 sha=facad33becb1 rendered=2026-09-08 -->
+<!-- krish-canon:start release=v2026.09.13.8 sha=c4e9b0c955d1 rendered=2026-09-13 -->
 ## Krish canon
 
-Rendered from `krishanraja/ai-harness` at release v2026.09.08.2. Nothing inside these
+Rendered from `krishanraja/ai-harness` at release v2026.09.13.8. Nothing inside these
 markers is hand-maintained: an edit here is detected and proposed back to the canon,
 never silently overwritten, and never lost. Everything outside the markers belongs to
 this repository and is never read or rewritten by the harness.
