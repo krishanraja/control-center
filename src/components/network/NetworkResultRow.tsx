@@ -1,8 +1,9 @@
-import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin } from '@/lib/icons'
+import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin, Search } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { geoLabel } from '../../hooks/useNetworkGeo'
-import { resolveReach, type ChannelId } from '../../lib/networkReach'
+import { resolveReach, type ChannelId, type ReachOption } from '../../lib/networkReach'
+import { contactProvenance } from '../../lib/contactProvenance'
 import type { NetworkResult } from '../../hooks/useNetworkSearch'
 
 // One person in a result list. Structure referenced from Relume's stacked-list6,
@@ -26,6 +27,9 @@ const TIER_VARIANT: Record<string, 'accent' | 'solid' | 'default' | 'outline'> =
 }
 const CHANNEL_ICON: Record<ChannelId, typeof Mail> = {
   email: Mail, linkedin_dm: Linkedin, phone: Phone, instagram_dm: Instagram, twitter: AtSign,
+  // A magnifier, not the LinkedIn glyph. The icon is the only thing some people
+  // will read before tapping, and it has to say "this is a search" on its own.
+  linkedin_search: Search,
 }
 
 export function NetworkResultRow({ r, onOpen, weak }: {
@@ -41,11 +45,18 @@ export function NetworkResultRow({ r, onOpen, weak }: {
   // nothing about location is honest, a row that asserts unknown is noise on
   // most of the corpus.
   const place = r.geo_code ? geoLabel(r.geo_code, r.country || undefined) : null
+  // Where he knows them from. On the row, because the whole point is not having
+  // to open anything to remember who this is.
+  const prov = contactProvenance(r)
   // The best channel that can actually be ACTED on, which is not always the one
   // on file: 368 people are recorded as best-reached by phone and this database
   // has no phone column at all. See lib/networkReach.
-  const reach = resolveReach(r).best
-  const Channel = reach ? CHANNEL_ICON[reach.channel] : null
+  const reach = resolveReach(r)
+  // Two buttons, and the order is deliberate. LinkedIn is unconditional — the
+  // profile when we hold one, a pre-filled people-search when we do not — so
+  // the row never renders a person with no way through to them. The second is
+  // whatever else can actually be acted on, which is usually email.
+  const second = reach.best && reach.best.channel !== 'linkedin_dm' ? reach.best : null
   // why_match is the reranker answering THIS question. why_them is the stored
   // judgment. Prefer the former; fall back so a row is never reasonless.
   const reason = r.why_match || r.why_them
@@ -79,6 +90,18 @@ export function NetworkResultRow({ r, onOpen, weak }: {
           )}
         </div>
 
+        <p className="mt-1 flex flex-wrap items-center gap-1.5">
+          <span
+            className={`inline-flex items-center rounded border px-1 py-0.5 text-micro font-medium ${prov.tone}`}
+            title={prov.known ? `Source: ${prov.full}` : 'No recorded source for this contact'}
+          >
+            {prov.label}
+          </span>
+          {prov.detail && (
+            <span className="truncate text-micro text-white/35" title={prov.detail}>{prov.detail}</span>
+          )}
+        </p>
+
         {(sub || place) && (
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-label text-white/50">
             {sub && <span className="truncate">{sub}</span>}
@@ -104,22 +127,44 @@ export function NetworkResultRow({ r, onOpen, weak }: {
       </button>
 
       {/* One tap to the person, without opening anything. The row still opens
-          the sheet; this is the shortcut for when the name alone was enough. It
-          renders only when there is an address a tap can complete, so it is
-          never a button that looks live and does nothing. */}
-      {reach && Channel && (
-        <a
-          href={reach.href}
-          {...(reach.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-          onClick={e => e.stopPropagation()}
-          title={`${reach.label}: ${reach.address}`}
-          aria-label={`${reach.label} ${name}`}
-          data-testid="network-row-reach"
-          className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border border-white/10 text-white/40 transition-colors hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
-        >
-          <Channel size={14} aria-hidden />
-        </a>
-      )}
+          the sheet; these are the shortcuts for when the name alone was enough.
+          A button renders only when the tap completes somewhere real, so this
+          is never a control that looks live and does nothing. */}
+      <div className="flex shrink-0 items-center gap-1.5 self-center">
+        {reach.linkedin && <RowReach option={reach.linkedin} name={name} primary />}
+        {second && <RowReach option={second} name={name} />}
+      </div>
     </div>
+  )
+}
+
+function RowReach({ option, name, primary }: {
+  option: ReachOption
+  name: string
+  primary?: boolean
+}) {
+  const Icon = CHANNEL_ICON[option.channel]
+  // The speculative search is visibly quieter and dashed. It has to be possible
+  // to tell, at a glance down a list of forty, which of these land on the person
+  // and which land on a search for someone who might be them.
+  const tone = option.speculative
+    ? 'border-dashed border-white/12 text-white/30 hover:border-white/25 hover:text-white/60'
+    : primary
+      ? 'border-white/10 text-white/50 hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100'
+      : 'border-white/10 text-white/40 hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100'
+  return (
+    <a
+      href={option.href}
+      {...(option.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+      onClick={e => e.stopPropagation()}
+      title={option.speculative
+        ? `No profile URL on file — search LinkedIn for ${option.address}`
+        : `${option.label}: ${option.address}${option.unverified ? ' (unverified)' : ''}`}
+      aria-label={`${option.label} ${name}`}
+      data-testid={`network-row-reach-${option.channel}`}
+      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${tone}`}
+    >
+      <Icon size={14} aria-hidden />
+    </a>
   )
 }

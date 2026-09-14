@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Mail, Linkedin, Phone, Instagram, AtSign, Copy, Check, ExternalLink,
-  AlertTriangle, MapPin,
+  AlertTriangle, MapPin, Search,
 } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -9,6 +9,7 @@ import { useToast } from '../shared/Toast'
 import { ContactEditChips } from '../shared/ContactEditChips'
 import { useHaptics } from '../../hooks/useHaptics'
 import { resolveReach, type ReachOption, type ChannelId } from '../../lib/networkReach'
+import { contactProvenance } from '../../lib/contactProvenance'
 import { geoLabel } from '../../hooks/useNetworkGeo'
 import type { NetworkResult } from '../../hooks/useNetworkSearch'
 import { Working } from '../shared/Working'
@@ -29,6 +30,7 @@ import { Working } from '../shared/Working'
 
 const ICON: Record<ChannelId, typeof Mail> = {
   email: Mail, linkedin_dm: Linkedin, phone: Phone, instagram_dm: Instagram, twitter: AtSign,
+  linkedin_search: Search,
 }
 
 const TIER_LABEL: Record<string, string> = {
@@ -80,12 +82,25 @@ export function NetworkPersonSheet({ person, onClose }: {
 
   if (!person) return null
 
+  // The row carries the X handle now, so the sheet no longer waits on the
+  // detail fetch to render a complete reach block. `detail` is still preferred
+  // when it lands, because it is the fresher read.
   const reach = resolveReach({
     email: person.email,
     linkedin_url: person.linkedin_url,
-    twitter_handle: detail?.contact?.twitter_handle,
+    twitter_handle: detail?.contact?.twitter_handle ?? person.twitter_handle,
     best_channel: person.best_channel,
     reachable_via: person.reachable_via,
+    full_name: person.full_name,
+    company: person.company,
+  })
+
+  // Where he knows them from, read with the name rather than found at the
+  // bottom of the sheet after a round-trip.
+  const prov = contactProvenance({
+    origin_channel: person.origin_channel,
+    origin_campaign: person.origin_campaign,
+    first_met_context: detail?.contact?.first_met_context ?? person.first_met_context,
   })
 
   const sub = [person.title, person.company].filter(Boolean).join(' · ')
@@ -114,6 +129,15 @@ export function NetworkPersonSheet({ person, onClose }: {
               {TIER_LABEL[person.network_tier] || person.network_tier}
             </Badge>
           </div>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-0.5 text-micro font-medium ${prov.tone}`}
+              title={prov.known ? `Source: ${prov.full}` : 'No recorded source for this contact'}
+            >
+              {prov.label}
+            </span>
+            {prov.detail && <span className="text-label text-white/40">{prov.detail}</span>}
+          </p>
           {(sub || place) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-white/55">
               {sub && <span>{sub}</span>}
@@ -128,17 +152,13 @@ export function NetworkPersonSheet({ person, onClose }: {
 
         {/* Reach. First, because this is what the sheet is for. */}
         <div className="space-y-2 border-t border-white/[0.07] pt-3">
-          {reach.best ? (
-            <>
-              <ReachButton option={reach.best} primary
-                           onCopy={() => copy(reach.best!.address)}
-                           copied={copied === reach.best.address} />
-              {reach.options.slice(1).map(o => (
-                <ReachButton key={o.channel} option={o}
-                             onCopy={() => copy(o.address)} copied={copied === o.address} />
-              ))}
-            </>
-          ) : (
+          {/* Nothing we can actually act on. This warning is NOT conditional on
+              the options list being empty: once the LinkedIn search fallback
+              exists, a person with no address at all still renders a button,
+              and dropping the warning at that point would let a guess at who
+              they might be pass for contact details. It is keyed off `best`,
+              which is never speculative. */}
+          {!reach.best && (
             <div className="flex items-start gap-2 rounded-card border border-amber-400/20 bg-amber-500/[0.06] px-3 py-2.5">
               <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-200" aria-hidden />
               <p className="text-label leading-relaxed text-amber-100/85">
@@ -146,6 +166,11 @@ export function NetworkPersonSheet({ person, onClose }: {
               </p>
             </div>
           )}
+
+          {reach.options.map(o => (
+            <ReachButton key={o.channel} option={o} primary={o === reach.best}
+                         onCopy={() => copy(o.address)} copied={copied === o.address} />
+          ))}
 
           {/* The recorded best channel is not always one we hold an address for.
               Saying which, rather than quietly showing a different button. */}
@@ -175,11 +200,6 @@ export function NetworkPersonSheet({ person, onClose }: {
           {person.risk && (
             <p className="text-label leading-relaxed text-amber-200/85">
               <span className="text-white/30">Risk</span> {person.risk}
-            </p>
-          )}
-          {detail?.contact?.first_met_context && (
-            <p className="text-label leading-relaxed text-white/45">
-              <span className="text-white/30">First met</span> {detail.contact.first_met_context}
             </p>
           )}
           {person.thin_evidence && (
@@ -233,9 +253,11 @@ function ReachButton({ option, primary, onCopy, copied }: {
         {...(option.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
         data-testid={`network-reach-${option.channel}`}
         className={`flex min-h-[44px] min-w-0 flex-1 items-center gap-2.5 rounded-form border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
-          primary
-            ? 'border-violet-400/40 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25'
-            : 'border-white/10 text-white/70 hover:border-white/20 hover:bg-white/[0.03]'}`}
+          option.speculative
+            ? 'border-dashed border-white/12 text-white/45 hover:border-white/25 hover:bg-white/[0.03]'
+            : primary
+              ? 'border-violet-400/40 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25'
+              : 'border-white/10 text-white/70 hover:border-white/20 hover:bg-white/[0.03]'}`}
       >
         <Icon size={15} className="shrink-0" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -246,6 +268,16 @@ function ReachButton({ option, primary, onCopy, copied }: {
                 best channel
               </span>
             )}
+            {/* Two different kinds of "we are not certain", and conflating them
+                would be the whole problem. `unverified` means the address is a
+                pattern guess and may bounce. `speculative` means we hold no
+                profile at all and this is a search for someone by that name. */}
+            {option.unverified && (
+              <span className="ml-1.5 text-micro font-medium text-amber-200/70">unverified — may bounce</span>
+            )}
+            {option.speculative && (
+              <span className="ml-1.5 text-micro font-medium text-white/35">no profile on file</span>
+            )}
           </span>
           <span className={`block truncate text-label leading-tight ${primary ? 'text-violet-100/60' : 'text-white/40'}`}>
             {option.address}
@@ -254,8 +286,10 @@ function ReachButton({ option, primary, onCopy, copied }: {
         {option.external && <ExternalLink size={12} className="shrink-0 opacity-40" aria-hidden />}
       </a>
       {/* Copy is a peer of the action, not a menu item under it. Half of what
-          this sheet gets used for is pasting an address somewhere else. */}
-      <button
+          this sheet gets used for is pasting an address somewhere else. Not
+          offered for the search fallback: `address` there is a name and a
+          company, not something anyone wants on their clipboard. */}
+      {!option.speculative && <button
         type="button"
         onClick={onCopy}
         aria-label={`Copy ${option.label.toLowerCase()} address`}
@@ -263,7 +297,7 @@ function ReachButton({ option, primary, onCopy, copied }: {
         className="flex min-h-[44px] w-11 shrink-0 items-center justify-center rounded-form border border-white/10 text-white/45 transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
       >
         {copied ? <Check size={14} className="text-emerald-300" aria-hidden /> : <Copy size={14} aria-hidden />}
-      </button>
+      </button>}
     </div>
   )
 }
