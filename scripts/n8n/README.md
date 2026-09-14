@@ -37,6 +37,36 @@ identical on both sides; the node name is not. Reconcile it deliberately, in
 whichever direction is right, rather than letting the next `--apply` rename it
 silently.
 
+## The repo being clean says nothing about the runtime
+
+`check-no-secrets` proves no credential is committed here, and it does that
+well: the mirrors carry `{{PLACEHOLDER}}` tokens and `sync` injects the real
+values. That is also exactly what hid the other half of the question.
+
+On 2026-09-14, seven live nodes turned out to be carrying real keys as header
+literals while showing as clean placeholders in git. They are fixed (Acquisition
+Reply Intake and Nova Podchaser now use the shared `supabaseApi` and
+`anthropicApi` credentials), and `scan-live-secrets.mjs` now asks the question
+of the runtime:
+
+```
+N8N_API_KEY=... node scripts/n8n/scan-live-secrets.mjs
+N8N_API_KEY=... node scripts/n8n/scan-live-secrets.mjs --json
+```
+
+Same rules as `check-no-secrets.mts`, read from the live workflows instead of
+these files. Deliberately NOT a CI step: it needs a key that can read every
+credential-bearing workflow in the account, and CI has no business holding one.
+Run it from an operator shell, the way `audit.sh` is run.
+
+The first full run reported **217 secret literals across 66 workflows, 16
+distinct live credentials** (Supabase service_role JWTs, Telegram bot tokens,
+two GitHub PATs, four live Stripe restricted keys, three Resend keys, one OAuth
+client secret). Most are inside Code nodes that call `helpers.httpRequest` with
+the key inline, so moving them means rewriting those nodes onto credential-bearing
+HTTP nodes rather than flipping a setting. Moving a key is only half the fix:
+the old value stays in the workflow version history, so each one needs rotating.
+
 ## The rule
 
 **Edits land in git first.** Open a PR, get review, merge, then run `sync.sh

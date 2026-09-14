@@ -119,10 +119,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "{{ANTHROPIC_API_KEY}}"
-            },
-            {
               "name": "anthropic-version",
               "value": "2023-06-01"
             },
@@ -132,12 +128,20 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi"
       },
       "id": "706c451d-8bdd-4554-b304-2f680bc07fe0",
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 5000
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      }
     },
     {
       "name": "Map Visibility Rows",

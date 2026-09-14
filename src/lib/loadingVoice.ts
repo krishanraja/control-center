@@ -14,7 +14,7 @@ import { useAgentsContext } from '../contexts/AgentsContext'
  *
  * THE ATTRIBUTION. A model-backed wait should say who is doing the work, so a
  * long pause reads as delegation rather than latency. But agents get renamed
- * and retired (Felix and Hunter already have, see docs/AGENTS.md), and a wait
+ * and retired (Felix, Kai and Priya already have, see docs/AGENTS.md), and a wait
  * that confidently names a retired agent is worse than one that says nothing.
  * So no display name is written here. Each operation stores a SLUG, and the
  * name is resolved live through the agents roster at render time, with a

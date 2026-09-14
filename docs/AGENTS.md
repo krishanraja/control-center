@@ -96,8 +96,11 @@ check.
 
 ## Roster
 
-The canonical fleet is 14 tracked production agents, 12 active (Felix and
-Hunter retired 2026-07-10, `active = false`; rows kept for history).
+The canonical fleet is 14 tracked production agents, 11 active. Three are
+retired with `active = false` and their rows kept for history: Felix
+(2026-07-10), Kai (2026-09-07) and Priya (2026-09-14). Hunter is NOT retired
+despite older notes in this file saying so: it was re-armed in August 2026 and
+still runs from GitHub Actions, parked in the UI only (see its row below).
 Supabase `agents` (where `active = true`) is authoritative; the roster
 below mirrors that list and is the definitive product reference. The same list is hard-coded as a
 fallback in `api/agents/[name].ts:available_agents` — **the table and the
@@ -118,7 +121,7 @@ fallback list must agree.**
 | `leo` | Leo | Chief Revenue Officer |
 | `priya` | Priya | Product Strategy. RETIRED 2026-09-14 (health scan + weekly rollup produced Google Doc bug reports and Telegram alerts nobody acted on; `active = false`, both workflows unpublished and moved to `scripts/n8n/_retired/`) |
 | `arlo` | Arlo | Technical Operations & Infrastructure |
-| `kai` | Kai | Technical Architecture / Integrations |
+| `kai` | Kai | Technical Architecture / Integrations. RETIRED 2026-09-07 (superseded by `/api/health/fleet-reconcile` and `/api/health/connections-sweep`; workflows archived, `active = false` set 2026-09-14 after the row was found still live with `expected_runs_per_day = 6` and no run since the retirement) |
 
 ### Growth
 

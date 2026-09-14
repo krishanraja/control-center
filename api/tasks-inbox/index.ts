@@ -27,7 +27,8 @@ function guessAgent(text: string): string {
   if (/\b(customer|churn|maya|cs)\b/.test(t))                       return 'maya'
   if (/\b(bet|hypothesis|experiment)\b/.test(t))                    return 'marcus'
   if (/\b(infra|build|deploy|arlo|ops|incident)\b/.test(t))         return 'arlo'
-  if (/\b(felix|sales|deal|enterprise)\b/.test(t))                  return 'felix'
+  // felix RETIRED 2026-07-10: advisory sales dropped, so this goes to the COO.
+  if (/\b(sales|deal|enterprise)\b/.test(t))                        return 'agatha'
   // priya RETIRED 2026-09-14: product and roadmap work goes to the COO.
   if (/\b(strategy|product|roadmap)\b/.test(t))                     return 'agatha'
   return 'agatha'
