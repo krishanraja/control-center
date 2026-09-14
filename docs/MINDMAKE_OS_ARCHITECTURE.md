@@ -454,7 +454,7 @@ These are the agents the OS itself tracks via `agents.brief_content` (identity) 
 | **Arlo** | Technical Ops & Infrastructure | scheduled | System uptime, sync lag, deploy health |
 | ~~**Kai**~~ | ~~Technical Architecture / Integrations~~ | **RETIRED 2026-09-07** | Superseded by `/api/health/fleet-reconcile` (workflow health) and `/api/health/connections-sweep` (credential health), both Vercel crons every 6h. Kai was an n8n workflow monitoring n8n, which shares the blind spot it existed to close. |
 | **Leo** | Chief Revenue Officer | scheduled (weekly) | Revenue MTD, runway clarity, 3-venture funnel maps |
-| **Priya** | Product Strategy | scheduled (1×/day) | Per-product health score, weekly rollup |
+| ~~**Priya**~~ | ~~Product Strategy~~ | **RETIRED 2026-09-14** | The twice-daily scan wrote a `product_health` row, opened a task, created a Google Doc bug report and sent three Telegram messages per run; none of it changed a decision. Health of the live apps is already covered by `/api/health/fleet-reconcile` and the Vercel deploy checks. |
 | **Vera** | Chief of Staff & Quality | scheduled (2×/day + Fri deep + Sun feedback + Sun failure-pattern + Sun success-induction sweep) | Standards compliance, drift detection, audit closure, skills induced from wins |
 
 The roster lives in three places that must agree: Supabase `agents` (authoritative), `docs/AGENTS.md` in this repo, and `api/agents/[name].ts:available_agents` (fallback list). If the table grows or shrinks, all three change in the same commit.
@@ -488,7 +488,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Marcus** | 4 | Synthesis + Home Intelligence (Mon + Wed/Fri + Sun deep), Daily Brief 06:30, Friday Retro 17:00, Monday Pre-mortem 08:00 |
 | **Zara** | 3 | Content Pipeline (Zara→Cleo→Maya; interval set to daily 08:00 on 2026-07-01), Layer 1 Signal Inbox, OS - Zara Signal Sweep (Mon–Fri 10:00 EST) |
 | **Maya** | 2 | Closed-Loop Revenue Engine, Customer Acquisition Sweeper. (Churn → Exit Interview **disabled 2026-07-01** - broken; §3.4.1) |
-| **Priya** | 2 | Daily Health Scan, Weekly Product Rollup |
+| ~~**Priya**~~ | 0 | **RETIRED AND UNPUBLISHED 2026-09-14.** `Daily Health Scan` (`dm2CccS71EVO8kJY`) and `Weekly Product Rollup` (`jpii0fEFmNTk2jCt`) are unpublished in n8n and moved to `scripts/n8n/_retired/`. Their Google Doc bug reports and Telegram alerts are gone with them. |
 | ~~**Kai**~~ | 0 | **RETIRED AND ARCHIVED 2026-09-07.** Both `Dependency Mapper + Credential Health` (`fBgBwoAg0YdkabtU`) and its `Slim Workflows Fetch` helper are archived. It had returned `issues_detected` 83 consecutive times into a void, and nothing read `kai_workflow_snapshots` (29,320 rows, zero consumers). |
 | **Acquisition** | 3 | **NEW 2026-07-07**: CTRL Capture Intake (webhook `/webhook/ctrl-capture`), CTRL Nurture Scheduler (daily 14:00 UTC; L1 approvals via `send-<id>` tasks), CTRL Unsubscribe (webhook `/webhook/ctrl-unsub`). See §11.5 |
 | **Fleet** | 1 | **NEW** - Attribution & Product-Truth Health (daily 06:15 UTC) |
@@ -2165,7 +2165,6 @@ deployment, secrets and end-to-end canary are separately applied and verified.
 
 - Zara sweeps signals.
 - Maya runs SEO intel + nightly customer sweep.
-- Priya monitors product health.
 - `/api/health/connections-sweep` live-probes every keyed vendor and `/api/health/fleet-reconcile` reconciles every workflow against the n8n API, both every 6 hours on Vercel cron. Neither is an n8n workflow, deliberately.
 - Arlo syncs Control Center every 5 minutes.
 - Vera audits standards compliance daily, deep audit Fridays, feedback aggregation and success induction Sundays.

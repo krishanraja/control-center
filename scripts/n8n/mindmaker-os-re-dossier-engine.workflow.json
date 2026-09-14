@@ -253,7 +253,10 @@
           "id": "eoursuitt7vHBbP6",
           "name": "Anthropic Header"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "24da32a6-6165-403b-8113-3c6d442fcee8",
@@ -315,7 +318,10 @@
           "id": "eoursuitt7vHBbP6",
           "name": "Anthropic Header"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "659482ed-fa86-49b0-91b3-28eea687c6d6",

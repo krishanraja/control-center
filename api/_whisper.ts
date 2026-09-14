@@ -19,7 +19,7 @@ const TIMEOUT_MS = 45_000
 const VOCAB_PROMPT = [
   'Mindmaker, Mindmaker Live, Mindmaker OS, Krish Raja, CTRL, Fractionl,',
   'Legibility, Techonomic, Maven, Substack, Signal and Noise, COMPOUND.',
-  'Agents: Cleo, Marcus, Vera, Agatha, Nell, Nova, Zara, Kai, Priya, Leo,',
+  'Agents: Cleo, Marcus, Vera, Agatha, Nell, Nova, Zara, Kai, Leo,',
   'Felix, Hunter, Arlo, Maya. Formats: Built, Paid, Teardown, field learning.',
 ].join(' ')
 

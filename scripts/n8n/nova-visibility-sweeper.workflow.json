@@ -122,7 +122,10 @@
           "id": "WbRjNMJrAbQGjvUg",
           "name": "Anthropic x-api-key (TOOLS.md) 2026-07-07"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "Parse_+_Validate",
@@ -604,7 +607,10 @@
           "id": "WbRjNMJrAbQGjvUg",
           "name": "Anthropic x-api-key (TOOLS.md) 2026-07-07"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "Parse_+_Validate_Product",

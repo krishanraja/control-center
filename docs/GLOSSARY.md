@@ -282,7 +282,7 @@ Sweeper (Mon 11:00 UTC, Perplexity sonar-pro → Sonnet 4.6).
 
 **Operations (pod)** — One of the three primary pods. Runs the machine —
 infrastructure, quality, product, revenue ops. Members: Vera, Leo,
-Priya, Arlo, Kai.
+Arlo, Kai. (Priya retired 2026-09-14.)
 
 **Orchestrator** — Central N8N webhook router
 (`u0kIULJBJL4dGcuR`, `/webhook/mindmaker-orchestrator`) that dispatches

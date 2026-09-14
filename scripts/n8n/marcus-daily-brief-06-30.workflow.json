@@ -78,7 +78,10 @@
           "name": "Anthropic Header 2026-05-21"
         }
       },
-      "id": "f00e1c4e-5186-4dad-a9ea-5754f4f90861"
+      "id": "f00e1c4e-5186-4dad-a9ea-5754f4f90861",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Parse + stamp",

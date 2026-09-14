@@ -279,7 +279,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "d1f7db84-f9c5-4c9a-a6cd-1e7630f3107d"
+      "id": "d1f7db84-f9c5-4c9a-a6cd-1e7630f3107d",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -542,7 +545,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "9cb5ad22-c638-48e1-af54-3b1db81210d7"
+      "id": "9cb5ad22-c638-48e1-af54-3b1db81210d7",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -827,7 +833,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "bdf8b4d4-a039-451d-8923-abf16a2de768"
+      "id": "bdf8b4d4-a039-451d-8923-abf16a2de768",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1041,7 +1050,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "92784e82-9a39-44bb-92cb-f495fd062a8c"
+      "id": "92784e82-9a39-44bb-92cb-f495fd062a8c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1431,7 +1443,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "48cf1499-d2bc-4bc6-8cfd-5658854813e9"
+      "id": "48cf1499-d2bc-4bc6-8cfd-5658854813e9",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1864,7 +1879,10 @@
           "name": "Anthropic account"
         }
       },
-      "id": "38bcaccf-c3d4-4718-9870-35ac8d522d5d"
+      "id": "38bcaccf-c3d4-4718-9870-35ac8d522d5d",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -2232,7 +2250,10 @@
         }
       },
       "onError": "continueErrorOutput",
-      "id": "852d4678-2c92-44c1-92fa-3bf770bf8de4"
+      "id": "852d4678-2c92-44c1-92fa-3bf770bf8de4",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {

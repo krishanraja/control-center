@@ -7,6 +7,7 @@ import * as meter from './_meter.js'
 
 
 import { UTILITY_MODEL, MODEL_PRICES, thinkingParam } from './_models.js'
+import { fetchWithRetry, RETRY_STATUS } from './_retry.js'
 
 /** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
  *  replacing them with the comma/period Krish would actually use. Safe to run
@@ -377,7 +378,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
   const ctrl = new AbortController()
   const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -389,7 +390,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
         messages: [{ role: 'user', content: userContent(opts) }],
       }),
       signal: opts.timeoutMs ? ctrl.signal : undefined,
-    })
+    }, { onRetry: ({ attempt, status, waitMs }) => console.warn(`anthropic_retry attempt=${attempt} status=${status} wait=${waitMs}ms agent=${opts.agent || 'unattributed'}`) })
     const j: any = await r.json().catch(() => ({}))
     if (!r.ok) {
       // The status and body ride along on the Error so a caller can tell a
@@ -448,7 +449,7 @@ export async function callClaudeMessages(
     .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
     .slice(-16)
   if (!clean.length || clean[0].role !== 'user') clean.unshift({ role: 'user', content: 'Help me with this draft.' })
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -461,7 +462,12 @@ export async function callClaudeMessages(
     }),
   })
   const j: any = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+  if (!r.ok) {
+    // RETRY_STATUS was already exhausted by fetchWithRetry; anything reaching
+    // here is either terminal or an overload that outlasted three attempts.
+    const transient = RETRY_STATUS.has(r.status) ? ' (transient, retried)' : ''
+    throw new Error(`anthropic_${r.status}${transient}:${(j?.error?.message || '').slice(0, 120)}`)
+  }
   await meter.anthropicCall({ agent: opts.agent, model, usage: j?.usage })
   return firstText(j)
 }

@@ -116,7 +116,7 @@ fallback list must agree.**
 |---|---|---|
 | `vera` | Vera | Chief of Staff & Quality |
 | `leo` | Leo | Chief Revenue Officer |
-| `priya` | Priya | Product Strategy |
+| `priya` | Priya | Product Strategy. RETIRED 2026-09-14 (health scan + weekly rollup produced Google Doc bug reports and Telegram alerts nobody acted on; `active = false`, both workflows unpublished and moved to `scripts/n8n/_retired/`) |
 | `arlo` | Arlo | Technical Operations & Infrastructure |
 | `kai` | Kai | Technical Architecture / Integrations |
 

@@ -122,7 +122,10 @@
           "id": "NqmXYF7Q7sJg5Iog",
           "name": "Anthropic account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "Parse_and_Validate",

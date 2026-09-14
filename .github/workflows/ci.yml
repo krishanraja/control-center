@@ -190,6 +190,12 @@ jobs:
       # the meter was built, and every synthesis call would have metered real
       # tokens against $0.00.
       - run: npx tsx scripts/check-model-prices.mts
+      # A cross-provider fallback is the one piece of resilience that fails
+      # silently by construction: the run stays green, the output just goes
+      # empty. Nine of the eleven Gemini branches in scripts/n8n could not have
+      # worked — wrong prompt key, unparseable response shape — and no
+      # execution list would ever have said so.
+      - run: npx tsx scripts/check-anthropic-fallback.mts
       # NOW.md is the one file agents are promised is current, and
       # docs/history/LOG.md is where superseded material goes instead of being
       # deleted. Both have a schema (docs/steward/SCHEMA.md). A branch can

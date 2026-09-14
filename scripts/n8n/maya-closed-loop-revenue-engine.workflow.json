@@ -317,7 +317,10 @@
           "name": "Anthropic account"
         }
       },
-      "id": "43c61fae-dbcd-4cf8-a7ac-41b58d20dabb"
+      "id": "43c61fae-dbcd-4cf8-a7ac-41b58d20dabb",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -512,7 +515,10 @@
           "name": "Anthropic account"
         }
       },
-      "id": "9e896309-2ac0-4e12-967f-026fc46b4d18"
+      "id": "9e896309-2ac0-4e12-967f-026fc46b4d18",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -698,7 +704,10 @@
           "name": "Anthropic account"
         }
       },
-      "id": "bb5abb47-e4e7-4131-b381-edd326e0ca1b"
+      "id": "bb5abb47-e4e7-4131-b381-edd326e0ca1b",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1153,7 +1162,10 @@
           "name": "Anthropic account"
         }
       },
-      "id": "f0db57a5-f519-4e4f-bfde-14db1f1e29e6"
+      "id": "f0db57a5-f519-4e4f-bfde-14db1f1e29e6",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1575,7 +1587,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+        "jsCode": "// Gemini fallback body, built from the prompt node rather than the error item.\n//\n// The previous auto-inserted version read `src.anthropic_body` off the error\n// branch item. Every workflow keys its request differently (anthropicBody,\n// claudeBody, extract_body, assembly_body) and n8n's error output does not\n// carry the input item's json anyway, so the builder produced an EMPTY prompt\n// and Gemini answered a blank question. Pin the prompt node instead: it ran,\n// so its output is always reachable.\nconst PROMPT_NODES = [\"B2B Skip Gate\"];\n\nconst PROMPT_KEYS = ['prompt', 'promptText', 'user_prompt', 'text'];\n\n// A request body under any key: anthropic_body, anthropicBody, claudeBody,\n// extract_body, assembly_body. Shape is what identifies it, not the name.\nfunction findBody(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of Object.keys(src)) {\n    let v = src[key];\n    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { continue; } }\n    if (v && typeof v === 'object' && Array.isArray(v.messages)) return v;\n  }\n  return null;\n}\n\n// Or a bare prompt string, for the nodes that inline the body in the HTTP node\n// and pass only the text.\nfunction findPrompt(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of PROMPT_KEYS) {\n    if (typeof src[key] === 'string' && src[key].trim()) return src[key];\n  }\n  return null;\n}\n\nconst sources = [];\nfor (const nodeName of PROMPT_NODES) {\n  try { sources.push($(nodeName).first().json || {}); } catch (e) { /* did not run */ }\n}\ntry { sources.push($input.first().json || {}); } catch (e) { /* no input */ }\n\nlet body = null;\nlet bare = null;\nfor (const src of sources) {\n  if (!body) body = findBody(src);\n  if (!bare) bare = findPrompt(src);\n}\n\nconst messages = body && Array.isArray(body.messages) ? body.messages : [];\nconst maxTokens = (body && body.max_tokens) || 1024;\nconst systemPrompt = (body && body.system) || null;\n\nlet promptText = '';\nif (systemPrompt) promptText += (typeof systemPrompt === 'string' ? systemPrompt : JSON.stringify(systemPrompt)) + '\\n\\n';\nfor (const m of messages) {\n  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n}\npromptText = promptText.trim();\nif (!promptText && bare) promptText = bare.trim();\n\n// A fallback that cannot see the prompt must say so rather than ask Gemini\n// nothing and pass the answer off as an answer.\nif (!promptText) {\n  return [{ json: { _llm_error: 'gemini_fallback_prompt_missing', _error_source: 'fallback-builder', gemini_body: null } }];\n}\n\nreturn [{ json: {\n  gemini_body: {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  }\n} }];\n"
       },
       "name": "Build Gemini Body for Anthropic Score B2B",
       "type": "n8n-nodes-base.code",
@@ -1630,7 +1642,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+        "jsCode": "// Gemini fallback body, built from the prompt node rather than the error item.\n//\n// The previous auto-inserted version read `src.anthropic_body` off the error\n// branch item. Every workflow keys its request differently (anthropicBody,\n// claudeBody, extract_body, assembly_body) and n8n's error output does not\n// carry the input item's json anyway, so the builder produced an EMPTY prompt\n// and Gemini answered a blank question. Pin the prompt node instead: it ran,\n// so its output is always reachable.\nconst PROMPT_NODES = [\"B2C Skip Gate\"];\n\nconst PROMPT_KEYS = ['prompt', 'promptText', 'user_prompt', 'text'];\n\n// A request body under any key: anthropic_body, anthropicBody, claudeBody,\n// extract_body, assembly_body. Shape is what identifies it, not the name.\nfunction findBody(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of Object.keys(src)) {\n    let v = src[key];\n    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { continue; } }\n    if (v && typeof v === 'object' && Array.isArray(v.messages)) return v;\n  }\n  return null;\n}\n\n// Or a bare prompt string, for the nodes that inline the body in the HTTP node\n// and pass only the text.\nfunction findPrompt(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of PROMPT_KEYS) {\n    if (typeof src[key] === 'string' && src[key].trim()) return src[key];\n  }\n  return null;\n}\n\nconst sources = [];\nfor (const nodeName of PROMPT_NODES) {\n  try { sources.push($(nodeName).first().json || {}); } catch (e) { /* did not run */ }\n}\ntry { sources.push($input.first().json || {}); } catch (e) { /* no input */ }\n\nlet body = null;\nlet bare = null;\nfor (const src of sources) {\n  if (!body) body = findBody(src);\n  if (!bare) bare = findPrompt(src);\n}\n\nconst messages = body && Array.isArray(body.messages) ? body.messages : [];\nconst maxTokens = (body && body.max_tokens) || 1024;\nconst systemPrompt = (body && body.system) || null;\n\nlet promptText = '';\nif (systemPrompt) promptText += (typeof systemPrompt === 'string' ? systemPrompt : JSON.stringify(systemPrompt)) + '\\n\\n';\nfor (const m of messages) {\n  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n}\npromptText = promptText.trim();\nif (!promptText && bare) promptText = bare.trim();\n\n// A fallback that cannot see the prompt must say so rather than ask Gemini\n// nothing and pass the answer off as an answer.\nif (!promptText) {\n  return [{ json: { _llm_error: 'gemini_fallback_prompt_missing', _error_source: 'fallback-builder', gemini_body: null } }];\n}\n\nreturn [{ json: {\n  gemini_body: {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  }\n} }];\n"
       },
       "name": "Build Gemini Body for Anthropic Draft B2C",
       "type": "n8n-nodes-base.code",
@@ -1685,7 +1697,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+        "jsCode": "// Gemini fallback body, built from the prompt node rather than the error item.\n//\n// The previous auto-inserted version read `src.anthropic_body` off the error\n// branch item. Every workflow keys its request differently (anthropicBody,\n// claudeBody, extract_body, assembly_body) and n8n's error output does not\n// carry the input item's json anyway, so the builder produced an EMPTY prompt\n// and Gemini answered a blank question. Pin the prompt node instead: it ran,\n// so its output is always reachable.\nconst PROMPT_NODES = [\"Sunday Synthesis\"];\n\nconst PROMPT_KEYS = ['prompt', 'promptText', 'user_prompt', 'text'];\n\n// A request body under any key: anthropic_body, anthropicBody, claudeBody,\n// extract_body, assembly_body. Shape is what identifies it, not the name.\nfunction findBody(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of Object.keys(src)) {\n    let v = src[key];\n    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { continue; } }\n    if (v && typeof v === 'object' && Array.isArray(v.messages)) return v;\n  }\n  return null;\n}\n\n// Or a bare prompt string, for the nodes that inline the body in the HTTP node\n// and pass only the text.\nfunction findPrompt(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of PROMPT_KEYS) {\n    if (typeof src[key] === 'string' && src[key].trim()) return src[key];\n  }\n  return null;\n}\n\nconst sources = [];\nfor (const nodeName of PROMPT_NODES) {\n  try { sources.push($(nodeName).first().json || {}); } catch (e) { /* did not run */ }\n}\ntry { sources.push($input.first().json || {}); } catch (e) { /* no input */ }\n\nlet body = null;\nlet bare = null;\nfor (const src of sources) {\n  if (!body) body = findBody(src);\n  if (!bare) bare = findPrompt(src);\n}\n\nconst messages = body && Array.isArray(body.messages) ? body.messages : [];\nconst maxTokens = (body && body.max_tokens) || 1024;\nconst systemPrompt = (body && body.system) || null;\n\nlet promptText = '';\nif (systemPrompt) promptText += (typeof systemPrompt === 'string' ? systemPrompt : JSON.stringify(systemPrompt)) + '\\n\\n';\nfor (const m of messages) {\n  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n}\npromptText = promptText.trim();\nif (!promptText && bare) promptText = bare.trim();\n\n// A fallback that cannot see the prompt must say so rather than ask Gemini\n// nothing and pass the answer off as an answer.\nif (!promptText) {\n  return [{ json: { _llm_error: 'gemini_fallback_prompt_missing', _error_source: 'fallback-builder', gemini_body: null } }];\n}\n\nreturn [{ json: {\n  gemini_body: {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  }\n} }];\n"
       },
       "name": "Build Gemini Body for Anthropic Sunday",
       "type": "n8n-nodes-base.code",
@@ -1740,7 +1752,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Auto-inserted: rebuild gemini_body from anthropic request context\n// The error branch passes through input. We need the original anthropic messages.\n// Strategy: look at the immediately-preceding Anthropic node input via $json\n// and fall back to walking upstream nodes.\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  // item.json typically contains either the Build Prompt output or error context\n  const src = item.json || {};\n  let messages = [];\n  let maxTokens = 1024;\n  let systemPrompt = null;\n\n  // Try common shapes\n  if (src.anthropic_body && src.anthropic_body.messages) {\n    messages = src.anthropic_body.messages;\n    maxTokens = src.anthropic_body.max_tokens || 1024;\n    systemPrompt = src.anthropic_body.system || null;\n  } else if (src.messages) {\n    messages = src.messages;\n    maxTokens = src.max_tokens || 1024;\n    systemPrompt = src.system || null;\n  }\n\n  // Build Gemini-compatible body\n  let promptText = '';\n  if (systemPrompt) promptText += systemPrompt + '\\n\\n';\n  for (const m of messages) {\n    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n    promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n  }\n  const gemini_body = {\n    contents: [{ parts: [{ text: promptText.trim() }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  };\n  out.push({ json: { ...src, gemini_body } });\n}\nreturn out;\n"
+        "jsCode": "// Gemini fallback body, built from the prompt node rather than the error item.\n//\n// The previous auto-inserted version read `src.anthropic_body` off the error\n// branch item. Every workflow keys its request differently (anthropicBody,\n// claudeBody, extract_body, assembly_body) and n8n's error output does not\n// carry the input item's json anyway, so the builder produced an EMPTY prompt\n// and Gemini answered a blank question. Pin the prompt node instead: it ran,\n// so its output is always reachable.\nconst PROMPT_NODES = [\"Atomize Skip Gate\"];\n\nconst PROMPT_KEYS = ['prompt', 'promptText', 'user_prompt', 'text'];\n\n// A request body under any key: anthropic_body, anthropicBody, claudeBody,\n// extract_body, assembly_body. Shape is what identifies it, not the name.\nfunction findBody(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of Object.keys(src)) {\n    let v = src[key];\n    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { continue; } }\n    if (v && typeof v === 'object' && Array.isArray(v.messages)) return v;\n  }\n  return null;\n}\n\n// Or a bare prompt string, for the nodes that inline the body in the HTTP node\n// and pass only the text.\nfunction findPrompt(src) {\n  if (!src || typeof src !== 'object') return null;\n  for (const key of PROMPT_KEYS) {\n    if (typeof src[key] === 'string' && src[key].trim()) return src[key];\n  }\n  return null;\n}\n\nconst sources = [];\nfor (const nodeName of PROMPT_NODES) {\n  try { sources.push($(nodeName).first().json || {}); } catch (e) { /* did not run */ }\n}\ntry { sources.push($input.first().json || {}); } catch (e) { /* no input */ }\n\nlet body = null;\nlet bare = null;\nfor (const src of sources) {\n  if (!body) body = findBody(src);\n  if (!bare) bare = findPrompt(src);\n}\n\nconst messages = body && Array.isArray(body.messages) ? body.messages : [];\nconst maxTokens = (body && body.max_tokens) || 1024;\nconst systemPrompt = (body && body.system) || null;\n\nlet promptText = '';\nif (systemPrompt) promptText += (typeof systemPrompt === 'string' ? systemPrompt : JSON.stringify(systemPrompt)) + '\\n\\n';\nfor (const m of messages) {\n  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? content : '[assistant]: ' + content) + '\\n\\n';\n}\npromptText = promptText.trim();\nif (!promptText && bare) promptText = bare.trim();\n\n// A fallback that cannot see the prompt must say so rather than ask Gemini\n// nothing and pass the answer off as an answer.\nif (!promptText) {\n  return [{ json: { _llm_error: 'gemini_fallback_prompt_missing', _error_source: 'fallback-builder', gemini_body: null } }];\n}\n\nreturn [{ json: {\n  gemini_body: {\n    contents: [{ parts: [{ text: promptText }] }],\n    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 }\n  }\n} }];\n"
       },
       "name": "Build Gemini Body for Anthropic Atomize",
       "type": "n8n-nodes-base.code",
@@ -2134,6 +2146,58 @@
           "name": "Supabase OS (service_role, verified)"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const GEMINI_MODEL = \"gemini-2.5-flash\";\n// Gemini answered. Put it in the shape the rest of this workflow parses.\n//\n// Downstream nodes read Anthropic's `content[0].text`. Gemini returns\n// `candidates[0].content.parts[0].text`, so without this the fallback \"works\",\n// the parse finds nothing, and the run completes with empty output and no\n// alert. The fallback node also runs with neverError, so a Gemini 4xx arrives\n// here as a success item carrying an `error` object: that is a failure and is\n// stamped as one, not passed on as content.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n\n  if (Array.isArray(j.content)) { out.push({ json: j }); continue; }\n\n  const cand = Array.isArray(j.candidates) ? j.candidates[0] : null;\n  const parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];\n  const text = parts.map(p => (p && typeof p.text === 'string') ? p.text : '').join('').trim();\n\n  if (!text) {\n    const msg = (j.error && (j.error.message || JSON.stringify(j.error)))\n      || j._llm_error\n      || (cand && cand.finishReason ? 'gemini_finish_' + cand.finishReason : 'gemini_empty_response');\n    out.push({ json: { content: [], usage: {}, _llm_provider: 'gemini', _error_source: 'both-providers', _llm_error: String(msg).slice(0, 400) } });\n    continue;\n  }\n\n  const usage = j.usageMetadata || {};\n  out.push({ json: {\n    content: [{ type: 'text', text: text }],\n    usage: { input_tokens: usage.promptTokenCount || 0, output_tokens: usage.candidatesTokenCount || 0 },\n    model: GEMINI_MODEL,\n    _llm_provider: 'gemini',\n    _degraded: true\n  } });\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3108,
+        552
+      ],
+      "id": "adapt-gemini-397107562017",
+      "name": "Adapt Gemini: Anthropic Score B2B"
+    },
+    {
+      "parameters": {
+        "jsCode": "const GEMINI_MODEL = \"gemini-2.5-flash\";\n// Gemini answered. Put it in the shape the rest of this workflow parses.\n//\n// Downstream nodes read Anthropic's `content[0].text`. Gemini returns\n// `candidates[0].content.parts[0].text`, so without this the fallback \"works\",\n// the parse finds nothing, and the run completes with empty output and no\n// alert. The fallback node also runs with neverError, so a Gemini 4xx arrives\n// here as a success item carrying an `error` object: that is a failure and is\n// stamped as one, not passed on as content.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n\n  if (Array.isArray(j.content)) { out.push({ json: j }); continue; }\n\n  const cand = Array.isArray(j.candidates) ? j.candidates[0] : null;\n  const parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];\n  const text = parts.map(p => (p && typeof p.text === 'string') ? p.text : '').join('').trim();\n\n  if (!text) {\n    const msg = (j.error && (j.error.message || JSON.stringify(j.error)))\n      || j._llm_error\n      || (cand && cand.finishReason ? 'gemini_finish_' + cand.finishReason : 'gemini_empty_response');\n    out.push({ json: { content: [], usage: {}, _llm_provider: 'gemini', _error_source: 'both-providers', _llm_error: String(msg).slice(0, 400) } });\n    continue;\n  }\n\n  const usage = j.usageMetadata || {};\n  out.push({ json: {\n    content: [{ type: 'text', text: text }],\n    usage: { input_tokens: usage.promptTokenCount || 0, output_tokens: usage.candidatesTokenCount || 0 },\n    model: GEMINI_MODEL,\n    _llm_provider: 'gemini',\n    _degraded: true\n  } });\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3108,
+        856
+      ],
+      "id": "adapt-gemini-906503035498",
+      "name": "Adapt Gemini: Anthropic Draft B2C"
+    },
+    {
+      "parameters": {
+        "jsCode": "const GEMINI_MODEL = \"gemini-2.5-flash\";\n// Gemini answered. Put it in the shape the rest of this workflow parses.\n//\n// Downstream nodes read Anthropic's `content[0].text`. Gemini returns\n// `candidates[0].content.parts[0].text`, so without this the fallback \"works\",\n// the parse finds nothing, and the run completes with empty output and no\n// alert. The fallback node also runs with neverError, so a Gemini 4xx arrives\n// here as a success item carrying an `error` object: that is a failure and is\n// stamped as one, not passed on as content.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n\n  if (Array.isArray(j.content)) { out.push({ json: j }); continue; }\n\n  const cand = Array.isArray(j.candidates) ? j.candidates[0] : null;\n  const parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];\n  const text = parts.map(p => (p && typeof p.text === 'string') ? p.text : '').join('').trim();\n\n  if (!text) {\n    const msg = (j.error && (j.error.message || JSON.stringify(j.error)))\n      || j._llm_error\n      || (cand && cand.finishReason ? 'gemini_finish_' + cand.finishReason : 'gemini_empty_response');\n    out.push({ json: { content: [], usage: {}, _llm_provider: 'gemini', _error_source: 'both-providers', _llm_error: String(msg).slice(0, 400) } });\n    continue;\n  }\n\n  const usage = j.usageMetadata || {};\n  out.push({ json: {\n    content: [{ type: 'text', text: text }],\n    usage: { input_tokens: usage.promptTokenCount || 0, output_tokens: usage.candidatesTokenCount || 0 },\n    model: GEMINI_MODEL,\n    _llm_provider: 'gemini',\n    _degraded: true\n  } });\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3108,
+        1144
+      ],
+      "id": "adapt-gemini-919664108077",
+      "name": "Adapt Gemini: Anthropic Sunday"
+    },
+    {
+      "parameters": {
+        "jsCode": "const GEMINI_MODEL = \"gemini-2.5-flash\";\n// Gemini answered. Put it in the shape the rest of this workflow parses.\n//\n// Downstream nodes read Anthropic's `content[0].text`. Gemini returns\n// `candidates[0].content.parts[0].text`, so without this the fallback \"works\",\n// the parse finds nothing, and the run completes with empty output and no\n// alert. The fallback node also runs with neverError, so a Gemini 4xx arrives\n// here as a success item carrying an `error` object: that is a failure and is\n// stamped as one, not passed on as content.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n\n  if (Array.isArray(j.content)) { out.push({ json: j }); continue; }\n\n  const cand = Array.isArray(j.candidates) ? j.candidates[0] : null;\n  const parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];\n  const text = parts.map(p => (p && typeof p.text === 'string') ? p.text : '').join('').trim();\n\n  if (!text) {\n    const msg = (j.error && (j.error.message || JSON.stringify(j.error)))\n      || j._llm_error\n      || (cand && cand.finishReason ? 'gemini_finish_' + cand.finishReason : 'gemini_empty_response');\n    out.push({ json: { content: [], usage: {}, _llm_provider: 'gemini', _error_source: 'both-providers', _llm_error: String(msg).slice(0, 400) } });\n    continue;\n  }\n\n  const usage = j.usageMetadata || {};\n  out.push({ json: {\n    content: [{ type: 'text', text: text }],\n    usage: { input_tokens: usage.promptTokenCount || 0, output_tokens: usage.candidatesTokenCount || 0 },\n    model: GEMINI_MODEL,\n    _llm_provider: 'gemini',\n    _degraded: true\n  } });\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        2152
+      ],
+      "id": "adapt-gemini-337930845874",
+      "name": "Adapt Gemini: Anthropic Atomize"
     }
   ],
   "connections": {
@@ -2857,7 +2921,7 @@
       "main": [
         [
           {
-            "node": "Merge B2B LLM",
+            "node": "Adapt Gemini: Anthropic Score B2B",
             "type": "main",
             "index": 0
           }
@@ -2879,7 +2943,7 @@
       "main": [
         [
           {
-            "node": "Merge B2C LLM",
+            "node": "Adapt Gemini: Anthropic Draft B2C",
             "type": "main",
             "index": 0
           }
@@ -2901,7 +2965,7 @@
       "main": [
         [
           {
-            "node": "Merge Sunday LLM",
+            "node": "Adapt Gemini: Anthropic Sunday",
             "type": "main",
             "index": 0
           }
@@ -2923,7 +2987,7 @@
       "main": [
         [
           {
-            "node": "Merge Atom LLM",
+            "node": "Adapt Gemini: Anthropic Atomize",
             "type": "main",
             "index": 0
           }
@@ -3090,6 +3154,50 @@
             "node": "Atom Identity Merge",
             "type": "main",
             "index": 3
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic Score B2B": {
+      "main": [
+        [
+          {
+            "node": "Merge B2B LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic Draft B2C": {
+      "main": [
+        [
+          {
+            "node": "Merge B2C LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic Sunday": {
+      "main": [
+        [
+          {
+            "node": "Merge Sunday LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt Gemini: Anthropic Atomize": {
+      "main": [
+        [
+          {
+            "node": "Merge Atom LLM",
+            "type": "main",
+            "index": 0
           }
         ]
       ]

@@ -75,8 +75,10 @@
           "name": "Anthropic account"
         }
       },
-      "onError": "continueErrorOutput",
-      "id": "b4968618-ea0d-4649-8389-e3697f97a41e"
+      "id": "b4968618-ea0d-4649-8389-e3697f97a41e",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
