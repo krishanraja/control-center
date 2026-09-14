@@ -5,6 +5,10 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-09-14
+
+- reconciled at `d015491b`: eight non-steward commits since the last reconciliation (`9df9bef9`) had documentation consequences, and every one of them was already fixed in the same commit by the PR that made the change (`docs/AGENTS.md`, `docs/GLOSSARY.md` and `docs/MINDMAKE_OS_ARCHITECTURE.md` all correct against the roster and fallback work). `NOW.md` was the one file left stale, re-headed to `d015491b` with three new bullets: the Anthropic fallback repair and Priya's retirement (PR #316), the n8n Cloud reconciliation that followed it (PRs #317, #318), and the Kai row fix, the Hunter correction and the first runtime secrets scan (PR #320: 217 secret literals across 66 workflows, 16 distinct live credentials, rotation now recorded under "waiting on Krish"). `docs/steward/fleet.json`'s `content-engine` rename (from `mindmake-video-studio`) was made by the repo's own maintainers (PR #319), not this run.
+
 ## 2026-09-09
 
 - reconciled at `74a9c76e`: six commits since the last reconciliation (`caa34027`) had documentation consequences. `docs/SECURITY.md`, `docs/DB_HEALTH.md` and `docs/DATABASE.md` were stale on two points: the "Today" auth table said `/api/*` write routes carried no auth (75 of 141 now call `guard()`, PR #308), and the `USING(true)` write-policy row said tightening was blocked on the ADR-008 auth cutover (24 tables were narrowed directly on 2026-09-09 without it, PR #306, because they had no anon caller in the codebase at all). `docs/OBSERVABILITY.md`'s tier-4 row said a failure cluster still wrote a `corrections` row; it is report only since Krish's ruling the same day. `docs/CONTENT-ENGINE-V2-SPEC.md` gained a dated addendum for the Content tab layout and routing fix (PR #307) and the obligation strip's Run again button (PR #305). `NOW.md` re-headed to `74a9c76e` with six new bullets.
