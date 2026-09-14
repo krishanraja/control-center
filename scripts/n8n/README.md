@@ -16,6 +16,32 @@ scripts/n8n/
   README.md         this file
 ```
 
+## Applied to cloud on 2026-09-14, with six exceptions
+
+The Anthropic fallback repair was pushed to n8n Cloud through the n8n MCP
+server rather than `sync.sh --apply`, node by node, so no placeholder ever
+went near a live credential. Thirty-one workflows were updated and published.
+
+Six could not be: the MCP server refuses a workflow whose **MCP access** toggle
+is off, and these have it off. Their repo copies carry the repair and their
+cloud copies do not, which `audit.sh` will report as drift until someone either
+flips "Enable MCP access" on the workflow card or runs `sync.sh --apply` with
+the full credential set:
+
+- Acquisition | Reply Intake
+- Cleo | Mindmaker OS | Content Lane Sourcing
+- Krish | Mindmaker OS | Inbox Classifier
+- Nell | Mindmaker OS | Guest Pitch Draft
+- Nell | Mindmaker OS | Guest Pitch Enrich (Exa)
+- Nova | Mindmaker OS | Podchaser -> Visibility (Outbound)
+
+One more known divergence, older than this change: `cleo-synthesis-engine`'s
+cloud copy still names its Anthropic node `Opus Synthesize` where this file says
+`Sonnet Synthesize` (both send `claude-sonnet-4-6`). The fallback builder is now
+identical on both sides; the node name is not. Reconcile it deliberately, in
+whichever direction is right, rather than letting the next `--apply` rename it
+silently.
+
 ## The rule
 
 **Edits land in git first.** Open a PR, get review, merge, then run `sync.sh
