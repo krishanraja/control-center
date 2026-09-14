@@ -156,7 +156,7 @@
       "bootstrap_head": "adddf64"
     },
     {
-      "name": "mindmake-video-studio",
+      "name": "content-engine",
       "product": "Mindmake Video and Carousel Studio",
       "docs_roots": [
         "docs",
