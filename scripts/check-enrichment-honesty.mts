@@ -57,25 +57,47 @@ function blockAt(src: string, open: number): string {
   if (!/skipped_no_key/.test(src)) bad(`${QUOTA}: skipped_no_key is gone — an unset key would then read as a fault and alert on every run.`)
 }
 
-// 2. The enrichment route must check `blocked` and return BEFORE it can write
-//    'enriched'.
+// 2. A blocked provider must reach Krish on BOTH paths, and must never leave the
+//    row claiming a clean enrichment.
 //
-//    Checked by SHAPE, not just by presence. An earlier version of this guard
-//    only asserted that the string appeared before the write, which
-//    `if (false && result.summary.blocked.length)` satisfies — so it passed a
-//    deliberately disabled guard. The conditional is now matched exactly, and
-//    its body must contain the 402 return: a check that does not return is not
-//    a check.
+//    There are two paths now, and that is deliberate. A run where a provider
+//    refused but enough was found anyway is worth keeping, so it no longer throws
+//    the work away; what it must not do is hide that a provider refused.
+//
+//      blocked and no evidence  stop, 402, blocked_quota, alert
+//      blocked with evidence    keep it, row reads 'enriched_degraded', alert
+//
+//    Checked by SHAPE, not by presence. An earlier version of this guard only
+//    asserted that the string appeared before the write, which
+//    `if (false && result.summary.blocked.length)` satisfies, so it passed a
+//    deliberately disabled guard. The conditional is still matched exactly,
+//    including its `&& !result.hasEvidence`, so widening it again is a visible
+//    edit to this file and not a quiet one to the route.
+//
+//    The second half is what caught the real defect: the route told the CALLER
+//    'enriched_degraded' in its response while writing a flat 'enriched' to the
+//    row, so every surface that reads the row believed a partial enrichment was
+//    complete. A status written unconditionally is now a failure here.
 {
   const src = read(ENRICH_ROUTE)
-  const GUARD = 'if (result.summary.blocked.length) {'
+  const GUARD = 'if (result.summary.blocked.length && !result.hasEvidence) {'
   const guard = src.indexOf(GUARD)
-  const enriched = src.indexOf(`enrichment_status: 'enriched'`)
+  const enriched = src.indexOf(`enrichment_status: result.summary.blocked.length ? 'enriched_degraded' : 'enriched'`)
 
   if (guard < 0) {
-    bad(`${ENRICH_ROUTE}: the blocked guard is missing or reshaped. It must read exactly \`${GUARD}\` — anything else (an && , a negation, a flag) can disable it without looking disabled.`)
+    bad(`${ENRICH_ROUTE}: the blocked guard is missing or reshaped. It must read exactly \`${GUARD}\` — any other condition (a further && , a negation, a flag) can disable it without looking disabled.`)
   }
-  if (enriched < 0) bad(`${ENRICH_ROUTE}: expected an enrichment_status: 'enriched' write to guard.`)
+  if (enriched < 0) {
+    bad(`${ENRICH_ROUTE}: the success path does not write enrichment_status conditionally on blocked.length. A flat 'enriched' makes the row claim a clean enrichment for a person enriched without a provider, and the row is what every other surface reads.`)
+  }
+  // The degraded path has to be noisy too. Stopping quietly was the original
+  // failure; succeeding quietly on a partial run is the same failure, later.
+  {
+    const tail = enriched >= 0 ? src.slice(enriched - 3000, enriched + 3000) : ''
+    if (tail && !/raiseQuotaAlert\(/.test(tail)) {
+      bad(`${ENRICH_ROUTE}: the degraded success path does not raise an alert, so a provider refusing would be recorded and never mentioned.`)
+    }
+  }
   if (guard >= 0 && enriched >= 0) {
     if (guard > enriched) {
       bad(`${ENRICH_ROUTE}: the blocked check appears AFTER the 'enriched' write, so a credit wall would be recorded as a completed enrichment.`)
@@ -186,6 +208,6 @@ for (const route of [ADD_ROUTE, SCAN_ROUTE]) {
 }
 
 console.log(fail === 0
-  ? 'check-enrichment-honesty: OK — a blocked provider stops the run and alerts.'
+  ? 'check-enrichment-honesty: OK, a blocked provider stops the run or degrades the row, and alerts either way.'
   : `check-enrichment-honesty: ${fail} problem(s)`)
 process.exit(fail === 0 ? 0 : 1)

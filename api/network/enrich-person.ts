@@ -301,8 +301,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Backfill the identity columns the screenshot could not supply. Only blanks
   // are filled: enrichment adds, it does not overwrite curated values.
+  //
+  // 'enriched_degraded' when a provider refused and the run kept what it found
+  // anyway. The response below has said that all along; the row said a flat
+  // 'enriched', so the contacts table claimed a clean enrichment for a person
+  // enriched without LinkedIn, or without the judgment layer, and every surface
+  // that reads the row rather than this one response believed it.
   const patch: Record<string, unknown> = {
-    enrichment_status: 'enriched',
+    enrichment_status: result.summary.blocked.length ? 'enriched_degraded' : 'enriched',
     deep_enriched_at: now,
     updated_at: now,
     dossier: {
