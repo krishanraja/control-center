@@ -38,6 +38,14 @@ export interface NetworkResult {
   origin_channel: string | null
   origin_campaign: string | null
   first_met_context: string | null
+  /** Hub and record-quality signals, typed columns on contact_intelligence as
+   *  of 20260915140000. `followers` is LinkedIn follower count (NOT
+   *  connections_count, which LinkedIn caps at 500 and which therefore
+   *  separates nobody); NULL means we have never read a profile.
+   *  `completeness` is 0-100, computed by public.contact_completeness, and is
+   *  what thin_evidence is now derived from. */
+  followers: number | null
+  completeness: number
   who: string | null
   why_them: string | null
   hook: string | null

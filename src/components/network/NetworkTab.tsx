@@ -15,6 +15,7 @@ import { LeadImportDropzone } from '../LeadImportDropzone'
 import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { RepairNamesPanel } from './RepairNamesPanel'
+import { NetworkHealthPanel } from './NetworkHealthPanel'
 
 // The Network surface.
 //
@@ -148,6 +149,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           <div className="relative flex items-center justify-between gap-3 px-4 pb-1">
             <FreshnessLine lane="network" className="mt-0" />
             <div className="flex items-center gap-2">
+              <NetworkHealthPanel />
               <RepairNamesPanel />
               <button
                 type="button"

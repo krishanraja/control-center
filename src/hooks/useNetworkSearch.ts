@@ -29,6 +29,11 @@ export interface NetworkResult extends ScoreBreakdown {
   origin_channel: string | null
   origin_campaign: string | null
   first_met_context: string | null
+  /** LinkedIn follower count; NULL when no profile has been read. Hub signal,
+   *  used by the ranker and shown as a density cue, never as a score. */
+  followers: number | null
+  /** 0-100 record completeness. thin_evidence is derived from it. */
+  completeness: number
   who: string | null
   why_them: string | null
   hook: string | null

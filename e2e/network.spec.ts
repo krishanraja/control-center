@@ -496,3 +496,42 @@ test('missing surnames can be previewed and applied without leaving the tab', as
   await expect(page.getByText(/2 names written/)).toBeVisible()
   expect(calls[1].dry).toBe(false)
 })
+
+test('network health reads per tier, and names what is invisible', async ({ page }) => {
+  await mockNetworkApis(page)
+  await page.route('**/api/network/health', r =>
+    r.fulfill({
+      json: {
+        ok: true,
+        total: 11755,
+        invisible: 119,
+        stale_embedding: 0,
+        tiers: [
+          { tier: 'warm', people: 366, linkedin: 207, email: 285, invisible: 7,
+            avg_completeness: 55, weak: 160, strong: 74,
+            apify_due: 132, coresignal_due: 152, apify_usd: 0.4, coresignal_credits: 1520 },
+          { tier: 'permissioned', people: 1046, linkedin: 682, email: 144, invisible: 1,
+            avg_completeness: 38, weak: 902, strong: 0,
+            apify_due: 680, coresignal_due: 364, apify_usd: 2.04, coresignal_credits: 3640 },
+        ],
+        rates: { apify_usd_per_profile: 0.003, coresignal_credits_per_profile: 10 },
+      },
+    }))
+
+  await openNetwork(page)
+  await page.getByTestId('network-health').click()
+
+  // Invisibility is the one total failure on this panel: a contact with no
+  // intelligence row cannot be reached by any query. It must be stated, not
+  // left to be inferred from a coverage bar.
+  await expect(page.getByTestId('network-health-panel')).toContainText('119')
+  await expect(page.getByTestId('network-health-panel')).toContainText('invisible to search')
+
+  // Per tier, with the cost of the outstanding work attached to the tier rather
+  // than to the network: the decision is always "is THIS tier worth it".
+  const tiers = page.getByTestId('network-health-tiers')
+  await expect(tiers).toContainText('Warm')
+  await expect(tiers).toContainText('Communities')
+  await expect(tiers).toContainText('$2.04')
+  await expect(tiers).toContainText('3,640 Coresignal credits')
+})
