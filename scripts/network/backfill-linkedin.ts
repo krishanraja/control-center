@@ -226,7 +226,14 @@ async function main() {
   // A dry account refuses everyone; one bad profile URL refuses one person.
   // This is the number that tells them apart.
   const BLOCK_STREAK = 8
+  // How many people may fail before a run that has never once succeeded gives
+  // up. Larger than the streak because this is the last resort, not the normal
+  // path, and stopping a healthy run is the expensive mistake.
+  const COLD_START_GIVE_UP = 25
   let consecutiveBlocked = 0
+  // Providers that have actually produced something during THIS run. A refusal
+  // from a provider not in this set says nothing about the account's health.
+  const servedThisRun = new Set<string>()
   // A shared cursor rather than pre-sliced chunks: people take wildly different
   // amounts of time (a profile with fifty posts against one with none), and
   // fixed chunks would leave workers idle waiting for the slowest.
@@ -274,11 +281,35 @@ async function main() {
     const blockedWrite = r.status === 402 || r.status === 429 ||
       (j?.ok === false && (j?.error === 'api_credits' || j?.error === 'blocked_quota'))
     if (blockedWrite) {
-      const names = Array.isArray(j?.blocked) ? j.blocked.map((x: { api?: string }) => x?.api).join(', ') : ''
-      consecutiveBlocked++
+      const blocked = (Array.isArray(j?.blocked) ? j.blocked : []) as { api?: string }[]
+      const names = blocked.map(x => x?.api).filter(Boolean).join(', ')
       console.log(`  ! ${p.full_name} — nothing written (${names || j?.error || r.status})`)
-      if (consecutiveBlocked >= BLOCK_STREAK) {
-        console.log(`\nSTOPPED after ${ran}: ${BLOCK_STREAK} in a row wrote nothing — ${names || j?.error || r.status}`)
+
+      // Whether this counts toward stopping depends on WHICH provider refused.
+      //
+      // The streak rule was written for a dry account and fired twice on
+      // something else. PeopleDataLabs has been exhausted all day, so every
+      // person whose LinkedIn scrape happens to return nothing — dead profile,
+      // private account, changed slug, which is common in the cold tail —
+      // produces a 402 that looks identical to the account falling over. Eight
+      // such people in a row stopped a 1,300-person run while Apify was
+      // serving normally, verified by hand one minute later.
+      //
+      // So a refusal only counts if it comes from a provider that HAS worked
+      // during this run. A provider that has never served has nothing to say
+      // about whether the run can continue.
+      const meaningful = blocked.some(b => b?.api && servedThisRun.has(b.api))
+      if (meaningful) consecutiveBlocked++
+
+      // The exception that keeps the original protection: if nothing at all has
+      // succeeded yet, no provider can have "worked this run", and a genuinely
+      // dry account would otherwise grind through every remaining person.
+      const nothingHasWorked = servedThisRun.size === 0 && ran >= COLD_START_GIVE_UP
+
+      if ((meaningful && consecutiveBlocked >= BLOCK_STREAK) || nothingHasWorked) {
+        console.log(`\nSTOPPED after ${ran}: ${nothingHasWorked
+          ? 'nothing has succeeded at all'
+          : `${BLOCK_STREAK} in a row wrote nothing`} — ${names || j?.error || r.status}`)
         console.log('Every provider appears to be refusing. Fix the credit/auth problem, then re-run. Nothing partial was written.')
         // Stops every worker, not just this one. In-flight calls finish; no new
         // person is started against a provider that has said no.
@@ -287,6 +318,7 @@ async function main() {
       return
     }
     consecutiveBlocked = 0
+    for (const api of (Array.isArray(j?.used) ? j.used : []) as string[]) servedThisRun.add(api)
     if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); return }
     if (Array.isArray(j?.blocked) && j.blocked.length) {
       for (const b of j.blocked as Array<{ api?: string; status?: string }>) {
