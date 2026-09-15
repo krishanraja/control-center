@@ -47,6 +47,7 @@
 //   npx tsx scripts/network/backfill-linkedin.ts --limit 200 --commit --use-apify
 //   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 50 --commit --use-apify
 //   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 50 --commit --use-apify --posts
+//   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 400 --commit --use-apify --concurrency 8
 //
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CC_BASE_URL, ACCESS_CODE.
 
@@ -72,6 +73,18 @@ const USE_APIFY = args.includes('--use-apify')
 // Krish would actually message and wasted on the cold tail: what a scraped lead
 // posted last month is not a reason to do anything.
 const WITH_POSTS = args.includes('--posts')
+// How many people are in flight at once.
+//
+// One at a time is roughly 15 seconds per person — profile scrape, posts
+// scrape, PDL, and a Claude judgment — which is 23 hours for the network and
+// therefore not a plan. The work is one independent HTTP call per person
+// against a platform that scales them, so the only real limits are the
+// providers' rate limits and the blast radius of getting it wrong. Eight is
+// chosen to stay well inside both: a rate-limited provider returns 429, which
+// this runner treats as a stop rather than a retry, so being conservative here
+// costs an hour and being greedy could cost the whole run.
+const concArg = args.indexOf('--concurrency')
+const CONCURRENCY = Math.min(Math.max(concArg >= 0 ? Number(args[concArg + 1]) || 1 : 1, 1), 12)
 const modeArg = args.indexOf('--mode')
 const MODE = modeArg >= 0 && args[modeArg + 1] === 'profiles' ? 'profiles' : 'urls'
 const limitArg = args.indexOf('--limit')
@@ -157,7 +170,7 @@ async function main() {
   console.log(MODE === 'profiles'
     ? `\nunread profiles: ${gap ?? '?'} contacts hold a URL nobody has read`
     : `\nnetwork LinkedIn gap: ${gap ?? '?'} contacts with no profile URL`)
-  console.log(`this batch: ${people.length} (limit ${LIMIT}, apify ${USE_APIFY ? 'ON — paid' : 'off'}${WITH_POSTS ? ', posts ON — second paid run each' : ''})`)
+  console.log(`this batch: ${people.length} (limit ${LIMIT}, ${CONCURRENCY} at a time, apify ${USE_APIFY ? 'ON — paid' : 'off'}${WITH_POSTS ? ', posts ON — second paid run each' : ''})`)
   const byTier = new Map<string, number>()
   for (const p of people) byTier.set(p.consent_tier, (byTier.get(p.consent_tier) || 0) + 1)
   for (const t of TIER_ORDER) if (byTier.get(t)) console.log(`  ${t.padEnd(14)} ${byTier.get(t)}`)
@@ -173,7 +186,22 @@ async function main() {
   // reported once at the end rather than shouted per person.
   const degradedBy = new Map<string, number>()
   let intent = 0
-  for (const p of people) {
+  // A shared cursor rather than pre-sliced chunks: people take wildly different
+  // amounts of time (a profile with fifty posts against one with none), and
+  // fixed chunks would leave workers idle waiting for the slowest.
+  let next = 0
+  let halted = false
+
+  const worker = async () => {
+    while (!halted) {
+      const i = next++
+      if (i >= people.length) return
+      const p = people[i]
+      await one(p)
+    }
+  }
+
+  const one = async (p: Candidate) => {
     const r = await fetch(`${BASE}/api/network/enrich-person`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: accessCookie() },
@@ -193,9 +221,12 @@ async function main() {
       const names = Array.isArray(j?.blocked) ? j.blocked.map((x: { api?: string }) => x?.api).join(', ') : ''
       console.log(`\nSTOPPED after ${ran}: nothing could be written — ${names || j?.error || r.status}`)
       console.log('Fix the credit/auth problem, then re-run. Nothing partial was written.')
-      break
+      // Stops every worker, not just this one. In-flight calls finish; no new
+      // person is started against a provider that has said no.
+      halted = true
+      return
     }
-    if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); continue }
+    if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); return }
     if (Array.isArray(j?.blocked) && j.blocked.length) {
       for (const b of j.blocked as Array<{ api?: string; status?: string }>) {
         if (b?.api) degradedBy.set(b.api, (degradedBy.get(b.api) || 0) + 1)
@@ -227,6 +258,8 @@ async function main() {
       else console.log(`  · ${p.full_name} — enriched, no profile found`)
     }
   }
+
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, people.length) }, worker))
 
   console.log(MODE === 'profiles'
     ? `\n${resolved}/${ran} profiles came back with something to store.`
