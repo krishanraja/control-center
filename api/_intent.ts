@@ -87,7 +87,7 @@ export const STANCE_LABEL: Record<Stance, string> = {
 
 /** Does this post concern AI at all? Deliberately broad — the filter that
  *  matters is the stance ladder, not this gate. */
-const AI_RE = /\b(ai|a\.i\.|artificial intelligence|llms?|large language models?|genai|gen ai|generative ai|agentic|ai agents?|machine learning|deep learning|chatgpt|claude|gemini|copilot|openai|anthropic|perplexity|midjourney|prompt engineering|rag|fine-?tun\w*|vibe cod\w*)\b/i
+const AI_RE = /\b(ai|a\.i\.|artificial intelligence|llms?|large language models?|genai|gen ai|generative ai|agentic|ai agents?|machine learning|deep learning|chatgpt|claude|gemini|copilot|openai|anthropic|perplexity|midjourney|prompt engineering|rag|fine-?tun\w*|vibe cod\w*|evals?|post-?training|foundation models?|copilots?)\b/i
 
 /** Subjects, for the chip and for search. Specific first: the label shown is
  *  the first that matched, so "AI agents" should win over the bare "AI". */
@@ -125,7 +125,12 @@ const STANCE_RULES: { stance: Stance; re: RegExp; needsFirstPerson: boolean }[] 
   {
     stance: 'struggling',
     needsFirstPerson: true,
-    re: /\b(struggl\w+|stuck|(can'?t|cannot|couldn'?t) (seem to|figure|get|work out|crack|stop|make)|haven'?t (cracked|figured|solved)|hard(est)? (part|problem|thing)|biggest (challenge|blocker|problem|headache)|pain(ful| point)|falling (short|over)|didn'?t work|failed|frustrat\w+|blocked on|bottleneck|messy|nightmare|wasted (weeks|months|days)|keeps? breaking|not working)\b/i,
+    // Deliberately narrow. Every loose term that used to be here — "problem",
+    // "messy", "failed", "hardest part" — matched commentary far more often
+    // than it matched a person with a live problem, and a false positive on
+    // this stance is the most expensive one available: it puts hot air at the
+    // top of the list.
+    re: /\b(struggl(e|ing) (with|to)|(are|is|am|'?re|'?m) stuck|(can'?t|cannot|couldn'?t) (seem to |figure|get|work out|crack|stop|make)|still (haven'?t|can'?t)|haven'?t (cracked|figured|solved|managed)|keeps? (breaking|failing|hallucinating)|doesn'?t work|isn'?t working|blocked on|burned? (weeks|months|days)|wasted (weeks|months|days)|our biggest (challenge|blocker|headache))\b/i,
   },
   {
     stance: 'hiring',
@@ -206,19 +211,48 @@ function sentences(text: string): string[] {
     .filter(s => s.length > 12)
 }
 
+/** Talking about what OTHER people do. A post can be specific, first-person in
+ *  grammar and still be commentary: "anyone currently assuming they're the only
+ *  one struggling" was read as somebody struggling, and it is a LinkedIn post
+ *  about struggle. The high stances all claim something about the author's own
+ *  current work, so a sentence generalising about the world cannot support one. */
+const ABOUT_OTHERS_RE = /\b(anyone|everyone|most people|many people|companies|organi[sz]ations|the industry|people (are|who)|if you|founders|teams are|leaders are|nobody|no one)\b/i
+
+/** Reporting a finished thing. A success story is building or teaching; it is
+ *  never a live problem, however much difficulty it describes on the way. */
+/** Struggling has to be struggling WITH something you are working on. Without
+ *  this, "we're stuck comparing AI to almonds" scored 64: the grammar of a
+ *  problem with none of the substance. */
+const WORK_OBJECT_RE = /\b(pipeline|model|models|agent|agents|rollout|roll-?out|deployment|project|integration|eval|evals|dataset|data|workflow|workflows|automation|tool|tooling|stack|system|prompt|prompts|api|implementation|migration|adoption|pilot|poc|use case|team|process)\b/i
+
+const RESOLVED_RE = /\b(here'?s how (we|i)|lesson|what (i|we) learned|in the end|we solved|turned out|ended up|now (it|we) (works?|can)|the fix was|takeaway)\b/i
+
 function classifyPost(text: string): { stance: Stance; quote: string } | null {
   const sents = sentences(text)
   // Whole-post fallback for posts written without punctuation, which is most
   // of LinkedIn.
   const units = sents.length ? sents : [text.slice(0, 400)]
 
+  // Stances that assert something about the author's own current work. For
+  // these the QUOTED SENTENCE must itself be about AI — letting the whole post
+  // vouch for it is how "in my 20s I was sad I'd just missed that era, but
+  // we've been struggling with a certain image" became an AI intent signal.
+  const SELF_CLAIM: ReadonlySet<Stance> = new Set<Stance>(['asking', 'struggling', 'evaluating', 'building'])
+
   for (const rule of STANCE_RULES) {
     for (const s of units) {
       if (!rule.re.test(s)) continue
       if (rule.needsFirstPerson && !FIRST_PERSON_RE.test(s)) continue
-      // The sentence must itself be about AI, or sit in a post that is. The
-      // former is stronger and is what gets quoted.
-      if (AI_RE.test(s) || AI_RE.test(text)) return { stance: rule.stance, quote: s }
+      if (SELF_CLAIM.has(rule.stance)) {
+        if (!AI_RE.test(s)) continue
+        if (ABOUT_OTHERS_RE.test(s)) continue
+        if (rule.stance === 'struggling') {
+          if (RESOLVED_RE.test(text)) continue
+          // The problem must be with a thing they are working on.
+          if (!WORK_OBJECT_RE.test(s)) continue
+        }
+      } else if (!AI_RE.test(s) && !AI_RE.test(text)) continue
+      return { stance: rule.stance, quote: s }
     }
   }
   return { stance: 'commenting', quote: units[0] }
@@ -277,8 +311,11 @@ export function readIntent(posts: Post[], now = new Date()): IntentSignal {
 
   // Sustained beats one-off, but only a little: three posts of hot air must not
   // add up to one person with a problem.
+  // Volume is a nudge, not a lift. With a 0.12 bonus every struggling post
+  // landed on 95 and the stance stopped discriminating within itself, which
+  // defeats the point of scoring at all.
   const strong = all.filter(e => e.score > 0).length
-  const volume = 1 + Math.min(0.12, 0.04 * Math.max(0, strong - 1))
+  const volume = 1 + Math.min(0.06, 0.02 * Math.max(0, strong - 1))
   const score = top ? Math.min(100, Math.round(top.score * volume)) : 0
 
   return {
