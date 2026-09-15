@@ -265,6 +265,84 @@ dropped with the reason, and the oldest queued targets with no research in
 
 ---
 
+## Lane: People → Network (default lane since 2026-08-22; rebuilt 2026-09-14/15, ADR-011, ADR-021, ADR-022)
+
+### Purpose
+> *The whole graph, one place: who Krish knows, how sure the app is of that,
+> what has been read about them, and one click to reach them - never a
+> promise the data cannot back up.*
+
+### Layout
+- `NetworkTab` renders `network_search` result rows (`NetworkResultRow`),
+  each carrying a provenance chip (`contactProvenance`, prefers a
+  human-typed campaign name over a machine slug, falls back to the channel
+  in words, or says "Unknown source") and up to two reach buttons.
+- **The LinkedIn button is unconditional** (ADR-021): the real profile when
+  a URL is on file, otherwise a dashed, last-sorted, `speculative`-labelled
+  pre-filled LinkedIn people-search on name + company, captioned "Find on
+  LinkedIn" and never the primary action. Pattern-guessed email addresses
+  from a Circle import render the same way: "unverified - may bounce",
+  ranked below a verified LinkedIn profile, excluded from `email_normalized`.
+- `NetworkPersonSheet` opens the full row, including the `contact_intelligence`
+  columns (`followers`, `headline`, `summary`, `current_title`,
+  `current_company`, `experience_count`, `enriched_source`, `enriched_at`)
+  and the `completeness` score (0-100, weighted toward what is actionable -
+  a clickable profile URL outweighs a bio).
+- `NetworkHealthPanel` surfaces `network_health()`: contacts invisible to
+  any query, `apify_due` / `coresignal_due` counts, and the completeness
+  distribution by tier.
+- `RepairNamesPanel` runs surname recovery from the mailbox in-tab, paged by
+  a real cursor.
+- Contacting a result is one click and channel-aware (`src/lib/contactAction.ts`,
+  shared with `BridgeCard`): mail client pre-filled, profile-plus-clipboard,
+  or clipboard-only, disclosed before the click. The `mindmake_wedge` tier
+  ("their call either way") is a `contactAction` outcome, not a separate UI.
+
+### Inputs
+- `network_search` (Postgres function): lexical (`intel_tsv` on `intel_doc`)
+  plus semantic (`embedding`) ranking, `intent_stance` as a soft-matched,
+  live-only constraint (decays past a quarter), plus `twitter_handle`,
+  `origin_channel`, `origin_campaign`, `first_met_context` as projection-only
+  columns (ADR-021).
+- `contact_intelligence` (sibling table to `contacts`, ADR-011): the typed
+  enrichment columns above, `intent_score` / `intent_stance` (an eight-tier
+  ladder: asking, struggling, hiring, evaluating, building, teaching,
+  commenting, selling; NULL, not 0, when unknown - a CHECK constraint
+  requires stance and score together), and `embed_stale` (set by a trigger
+  when signal-bearing text changes; cleared only in the same write as a
+  fresh embedding, never nulled).
+
+### Writes
+- Import doors (Apollo file, Circle export, add-person) all pass through a
+  mandatory contact-import gate (`checkLinkedIn` / `classifyEmail` /
+  `gateContact`) after an Apollo file was found to carry 1,381 wrong
+  LinkedIn URLs out of 4,105 (370 provably swapped between named rows).
+- Enrichment (Apify, Coresignal, PeopleDataLabs) writes the typed columns
+  above; a trigger (`ci_rebuild_doc_and_score`) rebuilds `intel_doc` and
+  flags `embed_stale` so ranking cannot silently drift from what was paid
+  for. `scripts/network/reembed-stale.ts` clears the flag.
+- Re-judging intent from already-scraped posts (no new scraping) is a
+  reviewable, dry-by-default route, since scrapers hit hard usage limits
+  mid-run and the classifier has changed more than once in a day.
+
+### Behaviour rules
+- A speculative LinkedIn link or an unverified email must never read as
+  confirmed; the failure that matters is Krish believing an identity was
+  verified when it was inferred from a name (ADR-021).
+- `contacts.raw` (provider jsonb) is provenance only; nothing reads it for
+  ranking, filtering or rendering - the typed columns and `intel_doc` are
+  the only source of truth for search (ADR-022).
+- Circle-community imports land at `consent_tier = 'permissioned'`
+  (Krish's ruling: shared community membership counts as opt-in context).
+
+### States
+- A thin row (`intel_method = 'rules_v1'`, no profile ever read) is badged
+  as such and must not carry a completeness score that implies otherwise.
+- A stale embedding still returns the person on their prior text rather
+  than dropping them from semantic recall for the gap.
+
+---
+
 ## Lane: People → Room (2026-09-06, job 1 of the one swing)
 
 ### Purpose
