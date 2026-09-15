@@ -41,6 +41,13 @@ export const CONSTRAINT_FIELDS = [
   'seniority', 'geo', 'country', 'industry', 'company', 'title',
   'roles', 'surface_when', 'reachable_via', 'best_channel',
   'network_tier', 'confidence', 'primary_venture', 'mindmake_buyer_family',
+  // What someone is publicly DOING about AI, from their own recent posts. This
+  // is the field that makes "who is stuck on AI" and "who is hiring for AI"
+  // answerable by asking rather than by scrolling: the stance is on the row and
+  // in the retrieval text already, but relationship value dominates the score,
+  // so without a constraint to match on, the five people who are actually stuck
+  // never reach the top of a list of eleven thousand.
+  'intent_stance',
 ] as const
 
 // The live portfolio only. AdFixus (retired July 2026) is deliberately absent:
@@ -97,7 +104,7 @@ Rules:
 - "constraints" are SOFT. They are weighted boosts, never filters, so include one whenever the question implies it even if you are unsure — a wrong constraint costs a little ranking, a missing one costs the right answer. Weight 1.0 for something stated outright, 0.5-0.7 for something implied.
 - Allowed "field" values, and nothing else: ${JSON.stringify(CONSTRAINT_FIELDS)}
 - Geography goes in a "geo" constraint. Emit the ISO-3166 alpha-2 country code where you know it: GB for the UK, Britain, England, Scotland or a British city; AU for Australia or an Australian city; US for the USA, America or an American city. Otherwise emit the plain English country name. A city is fine as a value ("London"), it resolves to its country. Add a geo constraint whenever a place is named. His three markets are the United States, the United Kingdom and Australia, so those are the ones that come up; do not invent a location he did not mention.
-- Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ["email","linkedin_dm","instagram_dm","phone"].
+- Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ["email","linkedin_dm","instagram_dm","phone"]. intent_stance: ["asking","struggling","hiring","evaluating","building","teaching","commenting","selling"] — what they are publicly doing about AI right now, read from their own recent posts. Use it when the question is about who is stuck, hiring, piloting, building or asking for help with AI. "asking" and "struggling" are the buying signals; "selling" means a vendor, never a buyer.
 - "industry", "company" and "title" match on substring, so prefer a short distinctive fragment: "media agency", not "independent media agency group".
 - Set "venture" only when the question is actually about one of his ventures. It re-ranks everyone, so a wrong guess is expensive.
 - Never invent a person, a company, or a filter he did not imply.
