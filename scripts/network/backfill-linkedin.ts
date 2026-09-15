@@ -86,7 +86,9 @@ const WITH_POSTS = args.includes('--posts')
 const concArg = args.indexOf('--concurrency')
 const CONCURRENCY = Math.min(Math.max(concArg >= 0 ? Number(args[concArg + 1]) || 1 : 1, 1), 12)
 const modeArg = args.indexOf('--mode')
-const MODE = modeArg >= 0 && args[modeArg + 1] === 'profiles' ? 'profiles' : 'urls'
+const MODE_ARG = modeArg >= 0 ? args[modeArg + 1] : ''
+const MODE: 'urls' | 'profiles' | 'posts' =
+  MODE_ARG === 'profiles' ? 'profiles' : MODE_ARG === 'posts' ? 'posts' : 'urls'
 const limitArg = args.indexOf('--limit')
 const LIMIT = limitArg >= 0 ? Number(args[limitArg + 1]) : 50
 
@@ -111,6 +113,33 @@ async function candidates(): Promise<Candidate[]> {
   const out: Candidate[] = []
   for (const tier of TIER_ORDER) {
     if (out.length >= LIMIT) break
+    if (MODE === 'posts') {
+      // People whose posts have never been classified under the CURRENT model.
+      // posts_sample is the marker because it is what makes a rescore free: the
+      // first intent model stored a score and threw the text away, so those 307
+      // flags could not be re-read when the model changed the next day.
+      //
+      // Scoped to the tiers where an intent signal is worth acting on. What a
+      // scraped cold lead posted last month is not a reason to do anything.
+      if (tier !== 'customer' && tier !== 'warm' && tier !== 'permissioned') continue
+      const { data, error } = await sb
+        .from('contact_intelligence')
+        .select('contact_id, contacts!inner(id, full_name, company, consent_tier, email)')
+        .is('posts_sample', null)
+        .eq('contacts.consent_tier', tier)
+        .not('contacts.linkedin_url', 'is', null)
+        .not('contacts.full_name', 'is', null)
+        .not('contacts.enrichment_status', 'in', '("blocked_quota","failed")')
+        .order('contact_id', { ascending: true })
+        .limit(LIMIT - out.length)
+      if (error) throw new Error(`candidate read failed: ${error.message}`)
+      for (const r of (data || []) as unknown as Array<{ contacts: Candidate | Candidate[] }>) {
+        const c = Array.isArray(r.contacts) ? r.contacts[0] : r.contacts
+        if (c) out.push(c)
+      }
+      continue
+    }
+
     if (MODE === 'profiles') {
       // Driven from contact_intelligence, not from contacts, because
       // `enriched_at` there is the only field that records a profile having
@@ -158,7 +187,13 @@ async function candidates(): Promise<Candidate[]> {
 async function main() {
   const people = await candidates()
 
-  const { count: gap } = MODE === 'profiles'
+  const { count: gap } = MODE === 'posts'
+    ? await sb.from('contact_intelligence')
+        .select('contact_id, contacts!inner(id)', { count: 'exact', head: true })
+        .is('posts_sample', null)
+        .in('contacts.consent_tier', ['customer', 'warm', 'permissioned'])
+        .not('contacts.linkedin_url', 'is', null)
+    : MODE === 'profiles'
     ? await sb.from('contact_intelligence')
         .select('contact_id, contacts!inner(id)', { count: 'exact', head: true })
         .is('enriched_at', null)
@@ -167,8 +202,9 @@ async function main() {
         .select('id', { count: 'exact', head: true })
         .is('linkedin_url', null)
 
-  console.log(MODE === 'profiles'
-    ? `\nunread profiles: ${gap ?? '?'} contacts hold a URL nobody has read`
+  console.log(
+    MODE === 'posts' ? `\nunclassified posts: ${gap ?? '?'} reachable contacts whose posts have never been read under the current model`
+    : MODE === 'profiles' ? `\nunread profiles: ${gap ?? '?'} contacts hold a URL nobody has read`
     : `\nnetwork LinkedIn gap: ${gap ?? '?'} contacts with no profile URL`)
   console.log(`this batch: ${people.length} (limit ${LIMIT}, ${CONCURRENCY} at a time, apify ${USE_APIFY ? 'ON — paid' : 'off'}${WITH_POSTS ? ', posts ON — second paid run each' : ''})`)
   const byTier = new Map<string, number>()
@@ -186,6 +222,7 @@ async function main() {
   // reported once at the end rather than shouted per person.
   const degradedBy = new Map<string, number>()
   let intent = 0
+  const stances = new Map<string, number>()
   // A dry account refuses everyone; one bad profile URL refuses one person.
   // This is the number that tells them apart.
   const BLOCK_STREAK = 8
@@ -209,7 +246,12 @@ async function main() {
     const r = await fetch(`${BASE}/api/network/enrich-person`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: accessCookie() },
-      body: JSON.stringify({ contact_id: p.id, use_apify: USE_APIFY, skip_web: true, with_posts: WITH_POSTS }),
+      body: JSON.stringify({
+        contact_id: p.id,
+        use_apify: USE_APIFY,
+        skip_web: true,
+        with_posts: WITH_POSTS || MODE === 'posts',
+      }),
     })
     const j: any = await r.json().catch(() => null)
     ran++
@@ -255,20 +297,25 @@ async function main() {
     // Did this actually produce the thing the run is for? Asked of the
     // database rather than of the route's response, because the route reports
     // that it ran and this run is only worth anything if a fact landed.
-    if (MODE === 'profiles') {
+    if (MODE === 'profiles' || MODE === 'posts') {
       const { data } = await sb.from('contact_intelligence')
-        .select('completeness, followers, headline, intent_score, intent_topics')
+        .select('completeness, followers, headline, intent_score, intent_stance, intent_evidence')
         .eq('contact_id', p.id).single()
       const d = data as {
         completeness?: number; followers?: number; headline?: string
-        intent_score?: number | null; intent_topics?: string[] | null
+        intent_score?: number | null; intent_stance?: string | null
+        intent_evidence?: string | null
       } | null
       if (d && (d.followers != null || d.headline)) {
         resolved++
         if ((d.intent_score ?? 0) > 0) intent++
+        // The stance and the quote, because a score alone cannot be checked.
         const flag = (d.intent_score ?? 0) > 0
-          ? ` — posting about ${(d.intent_topics || []).slice(0, 2).join(', ')}`
+          ? ` — ${d.intent_stance} (${d.intent_score}): "${(d.intent_evidence || '').slice(0, 90)}"`
           : ''
+        if ((d.intent_score ?? 0) > 0 && d.intent_stance) {
+          stances.set(d.intent_stance, (stances.get(d.intent_stance) || 0) + 1)
+        }
         console.log(`  ✓ ${p.full_name} — completeness ${d.completeness ?? '?'}${flag}`)
       } else console.log(`  · ${p.full_name} — read, nothing usable came back`)
     } else {
@@ -285,8 +332,13 @@ async function main() {
     : `\n${resolved}/${ran} resolved to a real LinkedIn URL.`)
   if (MODE === 'urls') console.log(`${ran - resolved} keep the search fallback, which still works.`)
   for (const [api, n] of degradedBy) console.log(`${api} refused on ${n} of them; the rest of the providers covered it.`)
-  if (WITH_POSTS) console.log(`${intent} of them are posting about AI right now.`)
-  if (MODE === 'profiles') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
+  if (WITH_POSTS || MODE === 'posts') {
+    console.log(`${intent} of them are active on AI right now:`)
+    for (const [st, n] of [...stances.entries()].sort((a, b) => b[1] - a[1])) {
+      console.log(`  ${st.padEnd(11)} ${n}`)
+    }
+  }
+  if (MODE === 'profiles' || MODE === 'posts') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
   console.log('Report the cost of this batch before running the next one.')
 }
 

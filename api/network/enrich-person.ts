@@ -254,10 +254,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // like a person with nothing to say.
   if (result.intent) {
     intelRow.intent_score = result.intent.score
+    intelRow.intent_stance = result.intent.stance
     intelRow.intent_topics = result.intent.topics.length ? result.intent.topics : null
     intelRow.intent_summary = result.intent.summary
+    intelRow.intent_evidence = result.intent.evidence
+    intelRow.intent_evidence_url = result.intent.evidenceUrl
     intelRow.last_post_at = result.intent.lastPostAt
     intelRow.posts_checked_at = now
+    // Kept so the scoring model can change without paying to scrape anyone
+    // again. It already changed twice in a day, and the first 307 flags could
+    // not be rescored because the text had been thrown away.
+    intelRow.posts_sample = result.intent.all.length ? result.intent.all : null
   }
   if (vector) intelRow.embedding = vectorLiteral(vector)
 
