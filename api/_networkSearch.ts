@@ -233,27 +233,26 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     p_roles: hard ? uiRoles : null,
     p_countries: hard ? uiCountries : null,
     p_limit: poolSize,
-    // ── Recall depth, chosen by measurement ─────────────────────────────────
+    // ── Recall depth ───────────────────────────────────────────────────────
     //
-    // The RPC defaults to 400 per path and 200 for the relationship floor, and
-    // that combination timed out in production: "canceling statement due to
-    // statement timeout" on a real question in the Network tab.
+    // 250 rather than the RPC's default 400, because 250 returns the IDENTICAL
+    // top twenty — same people, same order, same leader — while scoring fewer
+    // candidates. 150 is where the results start to change (18 of 20, and a
+    // different leader once constraints are present), so 250 is the floor worth
+    // having.
     //
-    // Timed against the live corpus on the same query and vector:
+    // A correction, recorded because the wrong version of it was committed
+    // first: an earlier benchmark showed 400 at 8.0s against 250 at 1.3s and
+    // called it a plan flip. That was measured while a bulk re-embed was
+    // saturating the same database. On an idle instance both are 0.5-1.1s, and
+    // the difference between them is noise. Depth was not what timed out.
     //
-    //   pool 400 / floor 200   8.02s
-    //   pool 250 / floor 150   1.34s
-    //   pool 150 / floor 100   0.81s
-    //   pool 100 / floor  60   0.50s
-    //
-    // The cliff between 250 and 400 is a plan flip, not a gradient. And 250
-    // returns the IDENTICAL top twenty as 400 — same order, same leader — so
-    // the extra 150 candidates per path bought nothing at six times the cost.
-    // 150 already drops two of the twenty, which is a real if small loss, so
-    // 250 is the point where speed stops being free.
-    //
-    // Re-measure this when the corpus grows substantially: the number that
-    // matters is where the plan flips, and that moves with the table.
+    // What timed out was the retrieval text: enrichment had tripled intel_doc,
+    // the lexical path measured 3.49s on its own, and the whole search came to
+    // 7.8s against an 8s statement timeout. Capping the doc fixed that. The
+    // load from the backfill jobs is what turned a slow search into a failing
+    // one, which is worth knowing before running the next bulk job against a
+    // database someone is reading from.
     p_pool: 250,
     p_floor: 150,
   })
