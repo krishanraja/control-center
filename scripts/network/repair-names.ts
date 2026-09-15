@@ -34,11 +34,11 @@ function cookie(): string {
   return ACCESS_CODE ? `cc_access=${createHash('sha256').update(ACCESS_CODE).digest('hex')}` : ''
 }
 
-async function batch() {
+async function batch(afterId: string | null) {
   const r = await fetch(`${BASE}/api/network/repair-names`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: cookie() },
-    body: JSON.stringify({ limit: LIMIT, dry: !COMMIT }),
+    body: JSON.stringify({ limit: LIMIT, dry: !COMMIT, after_id: afterId }),
   })
   const j: any = await r.json().catch(() => null)
   if (!r.ok || !j?.ok) throw new Error(`HTTP ${r.status}: ${j?.error || 'unknown'}`)
@@ -50,8 +50,10 @@ async function main() {
   let examined = 0, repaired = 0
   const skipped: Record<string, number> = {}
 
+  let cursor: string | null = null
   for (let round = 1; ; round++) {
-    const j = await batch()
+    const j = await batch(cursor)
+    cursor = j.next_after_id ?? null
     examined += j.examined
     repaired += j.repaired
     for (const [k, v] of Object.entries(j.skipped || {})) skipped[k] = (skipped[k] || 0) + (v as number)
@@ -59,9 +61,10 @@ async function main() {
     console.log(`round ${round}: examined ${j.examined}, repaired ${j.repaired}`)
     for (const s of (j.sample || []).slice(0, 8)) console.log(`   ${s.from}  →  ${s.to}`)
 
-    // A dry run always re-reads the same unrepaired rows, so it would loop for
-    // ever. Only a committing run makes progress worth paging through.
-    if (!ALL || !COMMIT || j.examined < LIMIT || j.repaired === 0) break
+    // Stop only when the BACKLOG is exhausted, never when a batch merely
+    // repaired nothing. Those are different facts: a run of people with no mail
+    // on file returns zero and the next page is still full of candidates.
+    if (!ALL || !cursor) break
   }
 
   console.log(`\nexamined ${examined}, repaired ${repaired}`)
