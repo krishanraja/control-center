@@ -52,6 +52,7 @@
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CC_BASE_URL, ACCESS_CODE.
 
 import { createClient } from '@supabase/supabase-js'
+import { loadPrices, quote, peopleWithin, money, type MeterRow } from '../../api/_apifyCost'
 import { createHash } from 'node:crypto'
 
 const SUPA_URL = process.env.SUPABASE_URL
@@ -83,6 +84,16 @@ const WITH_POSTS = args.includes('--posts')
 // chosen to stay well inside both: a rate-limited provider returns 429, which
 // this runner treats as a stop rather than a retry, so being conservative here
 // costs an hour and being greedy could cost the whole run.
+// A hard money ceiling, in dollars, enforced BEFORE anything is spent.
+//
+// This exists because a day's backfill ran on an estimate of $0.0013 per
+// profile when the real figure was $0.0090, and the first honest signal was
+// Apify's monthly hard limit tripping at $58. An estimate that cannot be
+// checked against the meter is how that happens; a ceiling is how it stays
+// cheap when it happens again.
+const budgetArg = args.indexOf('--budget')
+const BUDGET_USD = budgetArg >= 0 ? Number(args[budgetArg + 1]) || 0 : 5
+
 const concArg = args.indexOf('--concurrency')
 const CONCURRENCY = Math.min(Math.max(concArg >= 0 ? Number(args[concArg + 1]) || 1 : 1, 1), 12)
 const modeArg = args.indexOf('--mode')
@@ -93,6 +104,18 @@ const limitArg = args.indexOf('--limit')
 const LIMIT = limitArg >= 0 ? Number(args[limitArg + 1]) : 50
 
 const TIER_ORDER = ['customer', 'warm', 'permissioned', 'cold_engaged', 'cold_scraped']
+
+/** Observed Apify prices come from meter_daily, which apify-sync fills from
+ *  Apify's own per-run records. */
+async function meterRows(sinceDay: string): Promise<MeterRow[]> {
+  const { data, error } = await sb
+    .from('meter_daily')
+    .select('unit_label, usd, runs, day')
+    .eq('provider', 'apify')
+    .gte('day', sinceDay)
+  if (error) throw new Error(`price lookup failed: ${error.message}`)
+  return (data || []) as MeterRow[]
+}
 
 interface Candidate {
   id: string
@@ -211,6 +234,46 @@ async function main() {
   for (const p of people) byTier.set(p.consent_tier, (byTier.get(p.consent_tier) || 0) + 1)
   for (const t of TIER_ORDER) if (byTier.get(t)) console.log(`  ${t.padEnd(14)} ${byTier.get(t)}`)
 
+  // ── What this will cost, from Apify's own per-run records ────────────────
+  //
+  // Never from a constant and never from a balance: meter_daily is the only
+  // place the money is real. api_call_log logs est_cost_usd 0 for every Apify
+  // call, and api_usage_state.balance_usd is an hourly aggregate that lagged
+  // by two orders of magnitude on the day this was needed.
+  const actors: string[] = []
+  if (USE_APIFY && (MODE === 'profiles' || MODE === 'urls')) actors.push('dev_fusion/linkedin-profile-scraper')
+  if (USE_APIFY && (WITH_POSTS || MODE === 'posts')) actors.push('harvestapi/linkedin-profile-posts')
+
+  if (actors.length) {
+    const prices = await loadPrices(meterRows)
+    const q = quote(prices, people.length, actors)
+
+    for (const part of q.parts) {
+      console.log(`  ${part.actor}  ${money(part.usdPerRun)}/run  (observed over ${part.runs.toLocaleString()} runs to ${part.lastDay})`)
+    }
+    // An unpriced actor makes the total a lie by omission, so it is named and
+    // the run refuses rather than quoting a number that is missing a component.
+    if (q.unpriced.length) {
+      console.log(`\n  NOT PRICED: ${q.unpriced.join(', ')} — no runs in the meter yet.`)
+      console.log('  Run a small batch with --budget to establish a price, or sync the meter first:')
+      console.log('    POST /api/meter/apify-sync?days=2')
+      if (COMMIT) { console.log('\nRefusing to spend against an incomplete quote.'); return }
+    }
+
+    if (q.parts.length) {
+      console.log(`\n  ${people.length} people x ${money(q.usdPerPerson)} = ${money(q.usdTotal)}`)
+      if (COMMIT && q.usdTotal > BUDGET_USD) {
+        const fits = peopleWithin(BUDGET_USD, q.usdPerPerson)
+        console.log(`\nREFUSED: ${money(q.usdTotal)} exceeds the ${money(BUDGET_USD)} ceiling.`)
+        console.log(`${fits.toLocaleString()} people fit. Re-run with --limit ${fits}, or raise it with --budget <usd>.`)
+        // Deliberately NOT truncated to fit. Silently doing less than asked
+        // reads as "done" when it is not, and this is the exact place a
+        // half-finished backfill would look finished.
+        return
+      }
+    }
+  }
+
   if (!COMMIT) {
     console.log('\nDRY RUN. Nothing called, nothing spent. Re-run with --commit.')
     return
@@ -226,7 +289,14 @@ async function main() {
   // A dry account refuses everyone; one bad profile URL refuses one person.
   // This is the number that tells them apart.
   const BLOCK_STREAK = 8
+  // How many people may fail before a run that has never once succeeded gives
+  // up. Larger than the streak because this is the last resort, not the normal
+  // path, and stopping a healthy run is the expensive mistake.
+  const COLD_START_GIVE_UP = 25
   let consecutiveBlocked = 0
+  // Providers that have actually produced something during THIS run. A refusal
+  // from a provider not in this set says nothing about the account's health.
+  const servedThisRun = new Set<string>()
   // A shared cursor rather than pre-sliced chunks: people take wildly different
   // amounts of time (a profile with fifty posts against one with none), and
   // fixed chunks would leave workers idle waiting for the slowest.
@@ -274,11 +344,35 @@ async function main() {
     const blockedWrite = r.status === 402 || r.status === 429 ||
       (j?.ok === false && (j?.error === 'api_credits' || j?.error === 'blocked_quota'))
     if (blockedWrite) {
-      const names = Array.isArray(j?.blocked) ? j.blocked.map((x: { api?: string }) => x?.api).join(', ') : ''
-      consecutiveBlocked++
+      const blocked = (Array.isArray(j?.blocked) ? j.blocked : []) as { api?: string }[]
+      const names = blocked.map(x => x?.api).filter(Boolean).join(', ')
       console.log(`  ! ${p.full_name} — nothing written (${names || j?.error || r.status})`)
-      if (consecutiveBlocked >= BLOCK_STREAK) {
-        console.log(`\nSTOPPED after ${ran}: ${BLOCK_STREAK} in a row wrote nothing — ${names || j?.error || r.status}`)
+
+      // Whether this counts toward stopping depends on WHICH provider refused.
+      //
+      // The streak rule was written for a dry account and fired twice on
+      // something else. PeopleDataLabs has been exhausted all day, so every
+      // person whose LinkedIn scrape happens to return nothing — dead profile,
+      // private account, changed slug, which is common in the cold tail —
+      // produces a 402 that looks identical to the account falling over. Eight
+      // such people in a row stopped a 1,300-person run while Apify was
+      // serving normally, verified by hand one minute later.
+      //
+      // So a refusal only counts if it comes from a provider that HAS worked
+      // during this run. A provider that has never served has nothing to say
+      // about whether the run can continue.
+      const meaningful = blocked.some(b => b?.api && servedThisRun.has(b.api))
+      if (meaningful) consecutiveBlocked++
+
+      // The exception that keeps the original protection: if nothing at all has
+      // succeeded yet, no provider can have "worked this run", and a genuinely
+      // dry account would otherwise grind through every remaining person.
+      const nothingHasWorked = servedThisRun.size === 0 && ran >= COLD_START_GIVE_UP
+
+      if ((meaningful && consecutiveBlocked >= BLOCK_STREAK) || nothingHasWorked) {
+        console.log(`\nSTOPPED after ${ran}: ${nothingHasWorked
+          ? 'nothing has succeeded at all'
+          : `${BLOCK_STREAK} in a row wrote nothing`} — ${names || j?.error || r.status}`)
         console.log('Every provider appears to be refusing. Fix the credit/auth problem, then re-run. Nothing partial was written.')
         // Stops every worker, not just this one. In-flight calls finish; no new
         // person is started against a provider that has said no.
@@ -287,6 +381,7 @@ async function main() {
       return
     }
     consecutiveBlocked = 0
+    for (const api of (Array.isArray(j?.used) ? j.used : []) as string[]) servedThisRun.add(api)
     if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); return }
     if (Array.isArray(j?.blocked) && j.blocked.length) {
       for (const b of j.blocked as Array<{ api?: string; status?: string }>) {
@@ -338,6 +433,17 @@ async function main() {
       console.log(`  ${st.padEnd(11)} ${n}`)
     }
   }
+  // What it ACTUALLY cost, re-read from the meter after the fact. The quote is
+  // only trustworthy if it is checked against the bill every time.
+  if (actors.length && COMMIT) {
+    try {
+      await fetch(`${BASE}/api/meter/apify-sync?days=1`, { method: 'POST', headers: { Cookie: accessCookie() } })
+      const after = await loadPrices(meterRows, 1)
+      const spent = actors.reduce((sum, a) => sum + (after.get(a)?.usdPerRun ?? 0) * ran, 0)
+      if (spent > 0) console.log(`\nActual: about ${money(spent)} for ${ran} people, at today's observed rates.`)
+    } catch { /* reporting must never fail a completed run */ }
+  }
+
   if (MODE === 'profiles' || MODE === 'posts') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
   console.log('Report the cost of this batch before running the next one.')
 }

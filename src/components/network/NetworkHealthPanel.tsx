@@ -28,9 +28,15 @@ interface Tier {
   avg_completeness: number
   weak: number
   strong: number
+  posts_read: number
+  signalling: number
+  hot_intent: number
   apify_due: number
   coresignal_due: number
-  apify_usd: number
+  posts_due: number
+  /** Null when the actor has no observed price. Never 0: zero reads as free. */
+  apify_usd: number | null
+  posts_usd: number | null
   coresignal_credits: number
 }
 
@@ -39,7 +45,16 @@ interface Health {
   total: number
   invisible: number
   stale_embedding: number
+  posts_read: number
+  signalling: number
+  generated_at?: string
   tiers: Tier[]
+  rates?: {
+    apify_usd_per_profile: number | null
+    apify_usd_per_posts_read: number | null
+    priced_from_runs: number
+    priced_to: string | null
+  }
   error?: string
 }
 
@@ -69,16 +84,20 @@ export function NetworkHealthPanel() {
   useEffect(() => {
     // Fetched on open, not on mount. This tab's job is search; a health read on
     // every page load is a query nobody asked for.
-    if (!open || data) return
+    //
+    // Re-fetched on EVERY open rather than once per mount: these numbers move
+    // whenever a backfill runs, and a panel that caches for the life of the tab
+    // shows arbitrarily old figures in the present tense. The read is cheap.
+    if (!open) return
     let live = true
     setBusy(true)
     fetch('/api/network/health')
       .then(r => r.json())
       .then((j: Health) => { if (live) setData(j) })
-      .catch(() => { if (live) setData({ ok: false, total: 0, invisible: 0, stale_embedding: 0, tiers: [], error: 'Could not read the network.' }) })
+      .catch(() => { if (live) setData({ ok: false, total: 0, invisible: 0, stale_embedding: 0, posts_read: 0, signalling: 0, tiers: [], error: 'Could not read the network.' }) })
       .finally(() => { if (live) setBusy(false) })
     return () => { live = false }
-  }, [open, data])
+  }, [open])
 
   return (
     <>
@@ -111,17 +130,29 @@ export function NetworkHealthPanel() {
             <>
               <p className="text-label leading-relaxed text-white/55">
                 {data.total.toLocaleString()} people.
-                {' '}Completeness is the same score the ranker uses: a record under 50 is shown
-                with a thin-evidence warning in results, so these counts and the badges agree
-                by construction.
+                {' '}{data.posts_read.toLocaleString()} have had their posts read;
+                {' '}{data.signalling.toLocaleString()} are signalling live intent right now.
+                {' '}Completeness is the same score the ranker thresholds for its thin-evidence
+                warning, so the counts below and the badges in results move together — except
+                for the invisible, who score 0 here and never appear in results at all.
               </p>
+              {data.rates?.apify_usd_per_profile != null && (
+                <p className="mt-1 text-micro text-white/35">
+                  Prices below are measured, not estimated: ${data.rates.apify_usd_per_profile.toFixed(4)} per profile
+                  {data.rates.apify_usd_per_posts_read != null
+                    && `, $${data.rates.apify_usd_per_posts_read.toFixed(4)} per posts read`}
+                  , averaged over {data.rates.priced_from_runs.toLocaleString()} runs
+                  {data.rates.priced_to && ` to ${data.rates.priced_to}`}.
+                  {data.generated_at && ` Read ${new Date(data.generated_at).toLocaleTimeString()}.`}
+                </p>
+              )}
 
               {/* Invisible is first because it is the only failure that is total:
                   a contact with no intelligence row cannot be found at all, no
                   matter what is typed. Everything else on this panel is degree. */}
               {data.invisible > 0 && (
                 <p className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-label text-amber-100">
-                  {data.invisible} {data.invisible === 1 ? 'person is' : 'people are'} invisible to search:
+                  {data.invisible.toLocaleString()} {data.invisible === 1 ? 'person is' : 'people are'} invisible to search:
                   they have a contact record but no intelligence row, so no query can reach them.
                 </p>
               )}
@@ -161,13 +192,29 @@ export function NetworkHealthPanel() {
                     <p className="mt-2 text-label text-white/45">
                       {t.weak.toLocaleString()} thin, {t.strong.toLocaleString()} strong.
                       {' '}
+                      {t.posts_read > 0
+                        ? <>{t.posts_read.toLocaleString()} read, <span className="text-emerald-300/80">{t.signalling.toLocaleString()} signalling</span>{t.hot_intent > 0 && <> ({t.hot_intent.toLocaleString()} asking, stuck, hiring or piloting)</>}. </>
+                        : <>No posts read here. </>}
+                    </p>
+                    <p className="mt-1 text-label text-white/35">
+                      {/* A null price is not a free one. An actor with no runs in
+                          the meter has no observed price, and saying "$0.00"
+                          would be the same class of lie as the hardcoded
+                          estimate this replaced. */}
                       {t.apify_due > 0 && (
-                        <>Scraping the {t.apify_due.toLocaleString()} with a profile URL costs about ${t.apify_usd.toFixed(2)}. </>
+                        <>{t.apify_due.toLocaleString()} profiles to read{t.apify_usd != null
+                          ? <> — ${t.apify_usd.toFixed(2)}</>
+                          : ' — not yet priced'}. </>
+                      )}
+                      {t.posts_due > 0 && (
+                        <>{t.posts_due.toLocaleString()} posts to re-read{t.posts_usd != null
+                          ? <> — ${t.posts_usd.toFixed(2)}</>
+                          : ' — not yet priced'}. </>
                       )}
                       {t.coresignal_due > 0 && (
-                        <>Finding the {t.coresignal_due.toLocaleString()} without one costs {t.coresignal_credits.toLocaleString()} Coresignal credits.</>
+                        <>{t.coresignal_due.toLocaleString()} have no URL — {t.coresignal_credits.toLocaleString()} Coresignal credits. </>
                       )}
-                      {t.apify_due === 0 && t.coresignal_due === 0 && 'Nothing outstanding.'}
+                      {t.apify_due === 0 && t.posts_due === 0 && t.coresignal_due === 0 && 'Nothing outstanding.'}
                     </p>
                   </li>
                 ))}

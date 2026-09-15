@@ -72,7 +72,16 @@ export function NetworkResultRow({ r, onOpen, weak }: {
   // profile when we hold one, a pre-filled people-search when we do not — so
   // the row never renders a person with no way through to them. The second is
   // whatever else can actually be acted on, which is usually email.
-  const second = reach.best && reach.best.channel !== 'linkedin_dm' ? reach.best : null
+  //
+  // Pick the best NON-LinkedIn option rather than testing only the best one and
+  // giving up. resolveReach sorts the recommended channel first, so for anyone
+  // whose best_channel is linkedin_dm and who has a profile URL, reach.best IS
+  // the LinkedIn option — and the old test then nulled the second button and
+  // silently dropped a real email address off the row. That broke the one thing
+  // this row promises: one click to the profile, one click to an address where
+  // one exists. Speculative options are excluded because the LinkedIn search
+  // fallback is already rendered as the first button.
+  const second = reach.options.find(o => !o.speculative && o.channel !== 'linkedin_dm') || null
   // why_match is the reranker answering THIS question. why_them is the stored
   // judgment. Prefer the former; fall back so a row is never reasonless.
   const reason = r.why_match || r.why_them

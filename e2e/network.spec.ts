@@ -42,6 +42,15 @@ function person(i: number, over: Record<string, unknown> = {}) {
     industry: 'Financial services',
     venture_scores: { mindmake: 80 },
     thin_evidence: false,
+    followers: 4200,
+    completeness: 90,
+    intent_score: 0,
+    intent_stance: null,
+    intent_evidence: null,
+    intent_evidence_url: null,
+    intent_topics: null,
+    intent_summary: null,
+    last_post_at: null,
     match_score: 90 - i,
     query_relevance: 0.7,
     s_semantic: 0.6, s_lexical: 0.4, s_constraint: 0.5,
@@ -50,7 +59,7 @@ function person(i: number, over: Record<string, unknown> = {}) {
   }
 }
 
-async function mockNetworkApis(page: Page, onSearch?: (body: any) => void) {
+async function mockNetworkApis(page: Page, onSearch?: (body: any) => void, results?: any[]) {
   await page.route('**/api/network/search', r => {
     onSearch?.(r.request().postDataJSON())
     return r.fulfill({
@@ -60,7 +69,7 @@ async function mockNetworkApis(page: Page, onSearch?: (body: any) => void) {
         weak: false,
         degraded: [],
         geo: { countries: [], hard: false },
-        results: [person(1), person(2), person(3)],
+        results: results ?? [person(1), person(2), person(3)],
       },
     })
   })
@@ -110,10 +119,12 @@ async function openNetwork(page: Page) {
   await expect(input(page)).toBeVisible()
 }
 
-async function runSearch(page: Page, q = 'CMOs at banks who care about AI governance') {
+async function runSearch(page: Page, q = 'CMOs at banks who care about AI governance', settles = 'Person 1') {
   await input(page).fill(q)
   await page.getByTestId('network-search-submit').click()
-  await expect(page.getByText('Person 1')).toBeVisible()
+  // Wait on a name from the result set this test actually mocked, not on the
+  // default fixture's.
+  await expect(page.getByText(settles)).toBeVisible()
 }
 
 test('search renders the restated question and the ranked people', async ({ page }) => {
@@ -506,15 +517,28 @@ test('network health reads per tier, and names what is invisible', async ({ page
         total: 11755,
         invisible: 119,
         stale_embedding: 0,
+        posts_read: 849,
+        signalling: 36,
+        generated_at: '2026-09-15T20:00:00.000Z',
         tiers: [
           { tier: 'warm', people: 366, linkedin: 207, email: 285, invisible: 7,
             avg_completeness: 55, weak: 160, strong: 74,
-            apify_due: 132, coresignal_due: 152, apify_usd: 0.4, coresignal_credits: 1520 },
+            posts_read: 340, signalling: 21, hot_intent: 9,
+            apify_due: 132, coresignal_due: 152, posts_due: 26,
+            apify_usd: 1.2, posts_usd: 0.41, coresignal_credits: 1520 },
           { tier: 'permissioned', people: 1046, linkedin: 682, email: 144, invisible: 1,
             avg_completeness: 38, weak: 902, strong: 0,
-            apify_due: 680, coresignal_due: 364, apify_usd: 2.04, coresignal_credits: 3640 },
+            posts_read: 509, signalling: 15, hot_intent: 4,
+            apify_due: 680, coresignal_due: 364, posts_due: 173,
+            apify_usd: 6.19, posts_usd: 2.73, coresignal_credits: 3640 },
         ],
-        rates: { apify_usd_per_profile: 0.003, coresignal_credits_per_profile: 10 },
+        rates: {
+          apify_usd_per_profile: 0.0091,
+          apify_usd_per_posts_read: 0.0158,
+          priced_from_runs: 5195,
+          priced_to: '2026-09-15',
+          coresignal_credits_per_profile: 10,
+        },
       },
     }))
 
@@ -529,9 +553,107 @@ test('network health reads per tier, and names what is invisible', async ({ page
 
   // Per tier, with the cost of the outstanding work attached to the tier rather
   // than to the network: the decision is always "is THIS tier worth it".
+  // Intent coverage is on the panel, because "nobody is signalling" and
+  // "nobody has been read" look identical on one number and mean the opposite.
+  await expect(page.getByTestId('network-health-panel')).toContainText('849')
+  await expect(page.getByTestId('network-health-panel')).toContainText('36')
+
+  // The prices are stated as measured, with the run count they came from. The
+  // panel hardcoded $0.003 when the meter said $0.0090 and called it measured.
+  await expect(page.getByTestId('network-health-panel')).toContainText('0.0091')
+  await expect(page.getByTestId('network-health-panel')).toContainText('5,195 runs')
+
+  // Per tier, and asserted AGAINST THE TIER rather than against the whole list,
+  // so cost-to-tier attribution is actually covered.
   const tiers = page.getByTestId('network-health-tiers')
-  await expect(tiers).toContainText('Warm')
-  await expect(tiers).toContainText('Communities')
-  await expect(tiers).toContainText('$2.04')
-  await expect(tiers).toContainText('3,640 Coresignal credits')
+  const warm = tiers.getByRole('listitem').filter({ hasText: 'Warm' }).first()
+  const communities = tiers.getByRole('listitem').filter({ hasText: 'Communities' }).first()
+
+  await expect(warm).toContainText('366')
+  await expect(warm).toContainText('Complete 55/100')
+  await expect(warm).toContainText('160 thin, 74 strong')
+  await expect(warm).toContainText('21 signalling')
+  await expect(warm).toContainText('$1.20')
+
+  await expect(communities).toContainText('$6.19')
+  await expect(communities).toContainText('3,640 Coresignal credits')
+  // The warm tier's figures must not leak into the communities row.
+  await expect(communities).not.toContainText('$1.20')
+})
+
+// ── Intent ─────────────────────────────────────────────────────────────────
+// The chip and the evidence quote were both invisible to this suite: deleting
+// either block entirely left every test green. They are the newest and least
+// obvious surface in the tab, which is exactly the kind that rots unwatched.
+
+const POSTING = {
+  intent_score: 72,
+  intent_stance: 'struggling',
+  intent_summary: 'hitting problems, rollout stalled on evals',
+  intent_evidence: "We're three months in and our agents still can't handle tier-1 tickets.",
+  intent_evidence_url: 'https://www.linkedin.com/posts/ada-lovelace_activity-123',
+  intent_topics: ['AI agents', 'LLMs'],
+  last_post_at: '2026-09-05T00:00:00.000Z',
+}
+
+test('a row says what someone is DOING about AI, not just that they mention it', async ({ page }) => {
+  await mockNetworkApis(page, undefined, [
+    person(1, { full_name: 'Stuck Person', ...POSTING }),
+    person(2, { full_name: 'Quiet Person' }),
+  ])
+  await openNetwork(page)
+  await runSearch(page, 'who is stuck on AI', 'Stuck Person')
+
+  // The stance, not the subject. "Posting about AI" flagged 45% of the warm
+  // network, which is the true answer to a useless question.
+  await expect(page.getByText('stuck on AI')).toBeVisible()
+  await expect(page.getByText('posting about AI')).toHaveCount(0)
+  // Someone with no live signal gets no chip at all.
+  await expect(page.getByText('Quiet Person')).toBeVisible()
+})
+
+// A vendor is never a buyer, and a green chip on one is a lie about what the
+// row is for.
+test('a row does not badge someone who is selling AI', async ({ page }) => {
+  await mockNetworkApis(page, undefined, [
+    person(1, { full_name: 'Vendor Person', ...POSTING, intent_stance: 'selling' }),
+  ])
+  await openNetwork(page)
+  await runSearch(page, 'anything', 'Vendor Person')
+  await expect(page.getByText(/selling AI/i)).toHaveCount(0)
+})
+
+test('the sheet shows the sentence the intent score was read from', async ({ page }) => {
+  await mockNetworkApis(page, undefined, [person(1, { full_name: 'Stuck Person', ...POSTING })])
+  await page.route('**/api/network/person/**', r =>
+    r.fulfill({ json: { ok: true, contact: {}, intelligence: {} } }))
+  await openNetwork(page)
+  await runSearch(page, 'who is stuck on AI', 'Stuck Person')
+  await page.getByText('Stuck Person').click()
+
+  // A score is arguable; a quote can be overruled at a glance. That is the
+  // whole reason the evidence is stored and shown.
+  await expect(page.getByText(/tier-1 tickets/)).toBeVisible()
+  await expect(page.getByRole('link', { name: /read the post/i }))
+    .toHaveAttribute('href', POSTING.intent_evidence_url)
+})
+
+// A row whose best channel is LinkedIn used to drop the email button entirely:
+// the code tested only the best option and nulled it instead of looking past
+// it, which silently broke the one promise the row makes.
+test('a real email stays one click away even when LinkedIn is the recommended channel', async ({ page }) => {
+  await mockNetworkApis(page, undefined, [
+    person(1, {
+      full_name: 'Both Ways',
+      email: 'ada@example.com',
+      linkedin_url: 'https://www.linkedin.com/in/ada-lovelace',
+      best_channel: 'linkedin_dm',
+      reachable_via: ['linkedin_dm', 'email'],
+    }),
+  ])
+  await openNetwork(page)
+  await runSearch(page, 'anything', 'Both Ways')
+
+  await expect(page.getByTestId('network-row-reach-linkedin_dm').first()).toBeVisible()
+  await expect(page.getByTestId('network-row-reach-email').first()).toBeVisible()
 })
