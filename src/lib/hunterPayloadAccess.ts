@@ -17,8 +17,11 @@ export type ApprovalRow = {
 
 export function sameSecret(a: string, b: string): boolean {
   // Constant time. A timing oracle on a secret is still a way to read it.
-  const left = Buffer.from(a || '', 'utf8')
-  const right = Buffer.from(b || '', 'utf8')
+  // Uint8Array rather than Buffer: this file is typechecked against the DOM
+  // lib as well as node, where Buffer's ArrayBufferLike does not satisfy
+  // ArrayBufferView.
+  const left = new TextEncoder().encode(a || '')
+  const right = new TextEncoder().encode(b || '')
   if (left.length !== right.length || left.length === 0) return false
   return timingSafeEqual(left, right)
 }
