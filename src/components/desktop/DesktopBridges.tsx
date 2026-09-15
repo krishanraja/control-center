@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { CheckCircle2, ExternalLink, FileText, Target } from '@/lib/icons'
+import { CheckCircle2, ExternalLink, FileText, Mail, Target } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { Eyebrow } from '../shared/Eyebrow'
 import { BridgeCard } from '../BridgeCard'
@@ -7,6 +7,8 @@ import { HunterStatus } from '../HunterStatus'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { useBridges } from '../../hooks/useBridges'
 import { useHuntRoles, type HuntRole } from '../../hooks/useHuntRoles'
+import { contactAction, copyText } from '../../lib/contactAction'
+import { useToast } from '../shared/Toast'
 
 // The Hunt lane: the roles Krish said Yes to on the Pipeline sheet, each with
 // its package and the person who can get him in. Verdicts are given on the
@@ -38,8 +40,24 @@ function packageLine(r: HuntRole): string {
 }
 
 function RoleRow({ r }: { r: HuntRole }) {
+  const { toast } = useToast()
   const built = !!(r.cv_url && r.letter_url)
   const applied = appliedLine(r)
+  // Krish 2026-09-15: every network suggestion is one click to contact. The name
+  // used to be a link to a profile and nothing more, so the drafted opener stayed
+  // on the card he was not looking at.
+  const action = r.person
+    ? contactAction(r.person, r.bridge?.ask || '', { role: r.title, company: r.company })
+    : null
+
+  const contactNow = async () => {
+    if (!action) return
+    let copied = true
+    if (action.copies) copied = await copyText(r.bridge?.ask || '')
+    if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
+    toast(copied ? action.note
+      : 'Could not reach the clipboard. Open the Hunt card to copy the draft by hand.')
+  }
   return (
     <li className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3" data-testid="hunt-role">
       <div className="flex items-start justify-between gap-3">
@@ -87,6 +105,19 @@ function RoleRow({ r }: { r: HuntRole }) {
               : <span className="font-medium text-white/85">{r.person.name}</span>}
             {r.person.title && <span className="text-white/55">, {r.person.title}</span>}
             {r.person.company && <span className="text-white/55"> at {r.person.company}</span>}
+            {action && (
+              <button
+                type="button"
+                onClick={contactNow}
+                data-testid="hunt-contact"
+                title={action.note}
+                className="ml-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-micro font-medium
+                           bg-violet-500/15 text-violet-200 hover:bg-violet-500/25 transition-colors"
+              >
+                {action.kind === 'email' ? <Mail size={10} /> : <ExternalLink size={10} />}
+                {action.label}
+              </button>
+            )}
             {r.bridge?.evidence && (
               <p className="text-micro text-white/40 mt-1">{r.bridge.evidence}</p>
             )}

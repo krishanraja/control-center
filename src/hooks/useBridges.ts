@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type BridgeState = 'proposed' | 'reached_out' | 'snoozed' | 'not_a_path'
 
-export type BridgeTier = 'current_employee' | 'newsletter_move' | 'ex_employee' | 'headhunter' | 'cold_target' | 'peer_transition'
+export type BridgeTier = 'current_employee' | 'newsletter_move' | 'ex_employee' | 'headhunter' | 'mindmake_wedge' | 'cold_target' | 'peer_transition'
 
 export interface BridgeContact {
   contact_key: string
@@ -16,6 +16,9 @@ export interface BridgeContact {
   strength_score: number
   linkedin_url?: string | null
   strength_evidence?: Record<string, unknown> | null
+  // Carried so a suggestion can be contacted in one click rather than through a
+  // server round trip that produces nothing when there is no address.
+  email?: string | null
 }
 
 export interface BridgeRole {

@@ -9,12 +9,16 @@ export interface HuntPerson {
   title: string | null
   company: string | null
   linkedin_url: string | null
+  // One click to contact needs an address; without it the lane could only ever
+  // show a name and leave him to go looking.
+  email: string | null
 }
 
 export interface HuntBridge {
   bridge_id: string
   tier: string
   evidence: string
+  /** The drafted opener, carried so the contact click takes it along. */
   ask: string
   state: string
 }

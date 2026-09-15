@@ -11,7 +11,7 @@ export const config = { maxDuration: 30 }
 // Mirrors router.py GO_WORDS.
 const GO_WORDS = new Set(['go', 'y', 'yes', 'build'])
 
-interface Person { name: string; title: string | null; company: string | null; linkedin_url: string | null }
+interface Person { name: string; title: string | null; company: string | null; linkedin_url: string | null; email: string | null }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['GET'])) return
@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (plain.length) {
       const { data } = await supabase
         .from('network_contacts')
-        .select('contact_key, full_name, current_title, current_company, linkedin_url')
+        .select('contact_key, full_name, current_title, current_company, linkedin_url, email')
         .in('contact_key', plain)
       for (const c of data || []) {
         people.set(c.contact_key as string, {
@@ -57,14 +57,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // lookup: a cold target's key is "cold:<name>", so the URL 404s. The card
           // already renders a plain name when there is no link.
           linkedin_url: (c.linkedin_url as string | null) || null,
+          email: (c.email as string | null) ?? null,
         })
       }
     }
     const ids = keys.filter(k => k.startsWith('contact:')).map(k => k.slice('contact:'.length))
     if (ids.length) {
-      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url').in('id', ids)
+      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url, email').in('id', ids)
       for (const c of data || []) {
-        people.set(`contact:${c.id}`, { name: c.full_name as string, title: c.title as string | null, company: c.company as string | null, linkedin_url: c.linkedin_url as string | null })
+        people.set(`contact:${c.id}`, { name: c.full_name as string, title: c.title as string | null, company: c.company as string | null, linkedin_url: c.linkedin_url as string | null, email: (c.email as string | null) ?? null })
       }
     }
 
@@ -75,9 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const key = b.contact_key as string
         if (key.startsWith('headhunter:')) {
           const m = /HEADHUNTER PATH: (.+?) at (.+?) \(/.exec(String(b.path_evidence || ''))
-          person = { name: m ? m[1] : key.slice('headhunter:'.length).replace(/-/g, ' '), title: 'headhunter', company: m ? m[2] : null, linkedin_url: null }
+          person = { name: m ? m[1] : key.slice('headhunter:'.length).replace(/-/g, ' '), title: 'headhunter', company: m ? m[2] : null, linkedin_url: null, email: null }
         } else {
-          person = people.get(key) || { name: key, title: null, company: null, linkedin_url: null }
+          person = people.get(key) || { name: key, title: null, company: null, linkedin_url: null, email: null }
         }
       }
       return {

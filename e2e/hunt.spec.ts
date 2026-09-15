@@ -18,7 +18,7 @@ const ROLES = {
       cv_url: 'https://docs.google.com/document/d/cv/edit', letter_url: 'https://docs.google.com/document/d/cl/edit',
       rejection_reason: null, why_it_fits: 'x',
       bridge: { bridge_id: 'b1', tier: 'current_employee', evidence: 'Ada Nguyen is VP GTM at Legora now; strength 70', ask: '15 minutes?', state: 'proposed' },
-      person: { name: 'Ada Nguyen', title: 'VP GTM', company: 'Legora', linkedin_url: 'https://www.linkedin.com/in/ada' },
+      person: { name: 'Ada Nguyen', title: 'VP GTM', company: 'Legora', linkedin_url: 'https://www.linkedin.com/in/ada', email: null },
       application_state: null, applied_at: null,
     },
     {
@@ -43,7 +43,7 @@ const ROLES = {
       // No stored LinkedIn URL: the name renders as plain text, never as an invented
       // linkedin.com/in/<contact_key> link, which is the bug that put eight dead
       // links on the Pipeline sheet.
-      person: { name: 'Sam Okafor', title: 'RevOps Lead', company: 'Anthropic', linkedin_url: null },
+      person: { name: 'Sam Okafor', title: 'RevOps Lead', company: 'Anthropic', linkedin_url: null, email: 'sam@anthropic.com' },
       application_state: 'Applied', applied_at: '2026-09-02T09:00:00Z',
     },
   ],
@@ -175,3 +175,41 @@ for (const [label, viewport] of [
   })
 }
 
+
+
+// Krish 2026-09-15: "every network suggestion in controlcenter should be oneclick to
+// contact them." Before this the name was a profile link and the drafted opener
+// stayed on a card he was not looking at.
+test('every suggested person is one click to contact, by the best channel known', async ({ page }) => {
+  await openHunt(page)
+  const rows = page.getByTestId('hunt-role')
+
+  // An address on record: mail client, message already in the body.
+  const anthropic = rows.filter({ hasText: 'Anthropic' })
+  await expect(anthropic.getByTestId('hunt-contact')).toHaveText(/Email Sam/)
+
+  // No address, a real profile: the profile opens and the draft is copied.
+  const legora = rows.filter({ hasText: 'Legora' })
+  await expect(legora.getByTestId('hunt-contact')).toHaveText(/LinkedIn Ada/)
+
+  // Nobody found: nothing to click, rather than a button that goes nowhere.
+  const fleek = rows.filter({ hasText: 'Fleek' })
+  await expect(fleek.getByTestId('hunt-contact')).toHaveCount(0)
+})
+
+test('the contact click opens the channel and never sends', async ({ page, context }) => {
+  await openHunt(page)
+  // The suite is offline, so the real profile would resolve to a chrome error page
+  // and hide whether the right URL was requested. Stub the destination instead.
+  await context.route('**://*.linkedin.com/**', (r: Route) =>
+    r.fulfill({ contentType: 'text/html', body: '<title>profile</title>' }))
+  const legora = page.getByTestId('hunt-role').filter({ hasText: 'Legora' })
+  const popup = page.waitForEvent('popup')
+  await legora.getByTestId('hunt-contact').click()
+  const opened = await popup
+  await opened.waitForLoadState('domcontentloaded')
+  expect(opened.url()).toContain('linkedin.com/in/ada')
+  // Nothing on this page can send. The profile is opened, the draft is copied.
+  await expect(page.getByRole('button', { name: /^Send$/ })).toHaveCount(0)
+  await opened.close()
+})
