@@ -14,6 +14,7 @@ import { AddPersonFromImage } from './AddPersonFromImage'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { FreshnessLine } from '../shared/FreshnessLine'
+import { RepairNamesPanel } from './RepairNamesPanel'
 
 // The Network surface.
 //
@@ -144,9 +145,10 @@ export function NetworkTab({ narrow, onOpenPerson }: {
             extra right-aligned button here was chrome the thumb never asked
             for. (Before either existed, the v2 surface was read-only.) */}
         {!narrow && (
-          <div className="flex items-center justify-between gap-3 px-4 pb-1">
+          <div className="relative flex items-center justify-between gap-3 px-4 pb-1">
             <FreshnessLine lane="network" className="mt-0" />
             <div className="flex items-center gap-2">
+              <RepairNamesPanel />
               <button
                 type="button"
                 onClick={() => setAddOpen(v => !v)}

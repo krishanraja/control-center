@@ -459,3 +459,40 @@ test('a failed edit reverts the chip rather than leaving it lit', async ({ page 
   await expect(page.getByTestId('contact-status-active')).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByTestId('contact-status-closed')).toHaveAttribute('aria-pressed', 'false')
 })
+
+test('missing surnames can be previewed and applied without leaving the tab', async ({ page }) => {
+  // The whole point of this panel: the repair used to need a cloned repo, a
+  // node install and two env vars copied out of Vercel before a single name
+  // could be seen. Krish is already authenticated here.
+  const calls: any[] = []
+  await mockNetworkApis(page)
+  await page.route('**/api/network/repair-names', async r => {
+    const body = r.request().postDataJSON()
+    calls.push(body)
+    await r.fulfill({
+      json: body.dry
+        ? { ok: true, dry: true, examined: 200, repaired: 2, skipped: { no_messages: 190, no_display_name: 8 },
+            sample: [{ id: 'a', from: 'Bill', to: 'Bill Simmons' }, { id: 'b', from: 'James', to: 'James Harrabin' }] }
+        : { ok: true, dry: false, examined: 200, repaired: 2, skipped: {}, sample: [] },
+    })
+  })
+
+  await openNetwork(page)
+  await page.getByTestId('network-repair-names').click()
+
+  // Apply must not exist before a preview: a button that writes an unknown
+  // number of changes to real people's names is not one anyone should trust.
+  await expect(page.getByTestId('network-repair-apply')).toHaveCount(0)
+
+  await page.getByTestId('network-repair-preview').click()
+  await expect(page.getByText('Bill Simmons')).toBeVisible()
+  await expect(page.getByText('James Harrabin')).toBeVisible()
+  expect(calls[0].dry).toBe(true)
+
+  // Only now, and it says how many.
+  const apply = page.getByTestId('network-repair-apply')
+  await expect(apply).toHaveText(/Apply these 2/)
+  await apply.click()
+  await expect(page.getByText(/2 names written/)).toBeVisible()
+  expect(calls[1].dry).toBe(false)
+})
