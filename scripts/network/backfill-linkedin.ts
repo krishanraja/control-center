@@ -186,6 +186,10 @@ async function main() {
   // reported once at the end rather than shouted per person.
   const degradedBy = new Map<string, number>()
   let intent = 0
+  // A dry account refuses everyone; one bad profile URL refuses one person.
+  // This is the number that tells them apart.
+  const BLOCK_STREAK = 8
+  let consecutiveBlocked = 0
   // A shared cursor rather than pre-sliced chunks: people take wildly different
   // amounts of time (a profile with fifty posts against one with none), and
   // fixed chunks would leave workers idle waiting for the slowest.
@@ -215,17 +219,32 @@ async function main() {
     // successful enrichment also reports which providers refused, and testing
     // truthiness on that list halted a 20-person batch after one person who had
     // in fact been enriched. A run stops when the route says it wrote nothing.
-    const stopped = r.status === 402 || r.status === 429 ||
+    // The route reports that nothing could be written. That is not by itself a
+    // reason to stop the run, and treating it as one cost a 400-person batch
+    // after 47: PeopleDataLabs had run dry, and any person whose LinkedIn
+    // scrape also came back empty then produced a 402 — a per-person failure
+    // wearing the clothes of an account-wide one. Meanwhile Apify was serving
+    // profiles at completeness 90.
+    //
+    // So a blocked write halts the run only when it happens repeatedly with no
+    // success in between, which is what a genuinely dry account looks like. A
+    // single unlucky profile no longer stops the other five thousand.
+    const blockedWrite = r.status === 402 || r.status === 429 ||
       (j?.ok === false && (j?.error === 'api_credits' || j?.error === 'blocked_quota'))
-    if (stopped) {
+    if (blockedWrite) {
       const names = Array.isArray(j?.blocked) ? j.blocked.map((x: { api?: string }) => x?.api).join(', ') : ''
-      console.log(`\nSTOPPED after ${ran}: nothing could be written — ${names || j?.error || r.status}`)
-      console.log('Fix the credit/auth problem, then re-run. Nothing partial was written.')
-      // Stops every worker, not just this one. In-flight calls finish; no new
-      // person is started against a provider that has said no.
-      halted = true
+      consecutiveBlocked++
+      console.log(`  ! ${p.full_name} — nothing written (${names || j?.error || r.status})`)
+      if (consecutiveBlocked >= BLOCK_STREAK) {
+        console.log(`\nSTOPPED after ${ran}: ${BLOCK_STREAK} in a row wrote nothing — ${names || j?.error || r.status}`)
+        console.log('Every provider appears to be refusing. Fix the credit/auth problem, then re-run. Nothing partial was written.')
+        // Stops every worker, not just this one. In-flight calls finish; no new
+        // person is started against a provider that has said no.
+        halted = true
+      }
       return
     }
+    consecutiveBlocked = 0
     if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); return }
     if (Array.isArray(j?.blocked) && j.blocked.length) {
       for (const b of j.blocked as Array<{ api?: string; status?: string }>) {
