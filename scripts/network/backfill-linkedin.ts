@@ -164,6 +164,9 @@ async function main() {
   if (!BASE) { console.error('CC_BASE_URL is required to call the enrichment route'); process.exit(1) }
 
   let resolved = 0, ran = 0
+  // Providers that refused while the run still produced something. Counted and
+  // reported once at the end rather than shouted per person.
+  const degradedBy = new Map<string, number>()
   for (const p of people) {
     const r = await fetch(`${BASE}/api/network/enrich-person`, {
       method: 'POST',
@@ -173,15 +176,25 @@ async function main() {
     const j: any = await r.json().catch(() => null)
     ran++
 
-    // The route's own terminal states. `blocked` is not a failure of this
-    // person; it is the providers saying stop, and continuing past it just
-    // converts the rest of the batch into blocked_quota rows.
-    if (j?.blocked || j?.error === 'blocked_quota' || r.status === 429) {
-      console.log(`\nSTOPPED after ${ran}: providers are blocked — ${j?.message || j?.error || r.status}`)
+    // The route's own terminal states. Read from the OUTCOME, not from the
+    // presence of a `blocked` list: since the credit wall was narrowed, a
+    // successful enrichment also reports which providers refused, and testing
+    // truthiness on that list halted a 20-person batch after one person who had
+    // in fact been enriched. A run stops when the route says it wrote nothing.
+    const stopped = r.status === 402 || r.status === 429 ||
+      (j?.ok === false && (j?.error === 'api_credits' || j?.error === 'blocked_quota'))
+    if (stopped) {
+      const names = Array.isArray(j?.blocked) ? j.blocked.map((x: { api?: string }) => x?.api).join(', ') : ''
+      console.log(`\nSTOPPED after ${ran}: nothing could be written — ${names || j?.error || r.status}`)
       console.log('Fix the credit/auth problem, then re-run. Nothing partial was written.')
       break
     }
     if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); continue }
+    if (Array.isArray(j?.blocked) && j.blocked.length) {
+      for (const b of j.blocked as Array<{ api?: string; status?: string }>) {
+        if (b?.api) degradedBy.set(b.api, (degradedBy.get(b.api) || 0) + 1)
+      }
+    }
 
     // Did this actually produce the thing the run is for? Asked of the
     // database rather than of the route's response, because the route reports
@@ -205,6 +218,7 @@ async function main() {
     ? `\n${resolved}/${ran} profiles came back with something to store.`
     : `\n${resolved}/${ran} resolved to a real LinkedIn URL.`)
   if (MODE === 'urls') console.log(`${ran - resolved} keep the search fallback, which still works.`)
+  for (const [api, n] of degradedBy) console.log(`${api} refused on ${n} of them; the rest of the providers covered it.`)
   if (MODE === 'profiles') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
   console.log('Report the cost of this batch before running the next one.')
 }
