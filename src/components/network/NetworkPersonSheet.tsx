@@ -50,6 +50,16 @@ interface PersonDetail {
     primary_venture?: string | null
     status?: string | null
   } | null
+  // api/network/person/[id].ts returns the whole contact_intelligence row beside
+  // the contact, minus the embedding columns. It was read here and never
+  // declared, so tsc rejected the file and every pull request against main went
+  // red on a type error in code none of them touched.
+  //
+  // Left as the open row rather than a field list: the table gains columns
+  // faster than this component reads them, and a partial list that looks
+  // complete is worse than one that says it is not. The single read below
+  // narrows what it needs.
+  intelligence?: Record<string, unknown> | null
 }
 
 export function NetworkPersonSheet({ person, onClose }: {
