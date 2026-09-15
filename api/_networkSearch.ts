@@ -233,6 +233,29 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     p_roles: hard ? uiRoles : null,
     p_countries: hard ? uiCountries : null,
     p_limit: poolSize,
+    // ── Recall depth, chosen by measurement ─────────────────────────────────
+    //
+    // The RPC defaults to 400 per path and 200 for the relationship floor, and
+    // that combination timed out in production: "canceling statement due to
+    // statement timeout" on a real question in the Network tab.
+    //
+    // Timed against the live corpus on the same query and vector:
+    //
+    //   pool 400 / floor 200   8.02s
+    //   pool 250 / floor 150   1.34s
+    //   pool 150 / floor 100   0.81s
+    //   pool 100 / floor  60   0.50s
+    //
+    // The cliff between 250 and 400 is a plan flip, not a gradient. And 250
+    // returns the IDENTICAL top twenty as 400 — same order, same leader — so
+    // the extra 150 candidates per path bought nothing at six times the cost.
+    // 150 already drops two of the twenty, which is a real if small loss, so
+    // 250 is the point where speed stops being free.
+    //
+    // Re-measure this when the corpus grows substantially: the number that
+    // matters is where the plan flips, and that moves with the table.
+    p_pool: 250,
+    p_floor: 150,
   })
   mark('rpc', tRpc)
   if (error) throw new Error(`network_search: ${error.message}`)
