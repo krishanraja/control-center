@@ -45,7 +45,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 - **Agent roster is 11 of 14 active.** Felix (2026-07-10), Kai (2026-09-07) and Priya (2026-09-14) are retired, rows kept for history. Hunter is not retired despite older notes in this repo saying so: it runs from GitHub Actions and is parked in the UI only, by Krish's choice. `docs/AGENTS.md`.
 - **The n8n Anthropic fallbacks work now, and the runtime has been checked for secrets, not just the repo.** Gemini fallback branches were silently broken on 9 of 11 workflows (empty prompt in, unparsed reply out); every active Anthropic node now retries 3x with backoff, gated by `scripts/check-anthropic-fallback.mts` in CI. A first `scripts/n8n/scan-live-secrets.mjs` run (not a CI step; it needs a key that can read every credential-bearing workflow) found seven live nodes carrying real credentials behind clean git placeholders and, across the whole fleet, 217 secret literals in 66 workflows from 16 distinct live credentials, still owed a rotation.
 - **Waiting on evidence, not code**: the scorecard's "hours building unasked" reads "not measured yet" until a Saturday GitHub read has written a week.
-- **Parked**: the hunter job-search lane is hidden behind `VITE_BRIDGES_LANE_ENABLED` and the agent row is left active by Krish's choice.
+- **Live**: the hunter job-search lane (Hunt, on People) is always on as of 2026-09-15. It was hidden behind `VITE_BRIDGES_LANE_ENABLED=false` in production from the 2026-09-06 parking, and stayed hidden after the 09-07 un-parking because only the code default changed. The flag is gone.
 
 ## What changed recently
 

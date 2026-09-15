@@ -12,10 +12,10 @@ import { SegmentedNav } from '../shared/SegmentedNav'
 // components are the existing tab components, untouched; each stays its own
 // lazy chunk.
 //
-// Bridges (hunter's warm paths into open roles) is parked under the ikigai v4
-// and only appears when VITE_BRIDGES_LANE_ENABLED is on (src/lib/bridgesLane.ts).
-// Its deep links (`lane=bridges`, `?bridge=`) still resolve either way, so a
-// saved link never lands on the wrong lane.
+// Hunt (id `bridges`: hunter's roles, packages and warm paths into open roles) is
+// always on as of 2026-09-15. It was parked under the ikigai v4 and un-parked two
+// days later, but production kept VITE_BRIDGES_LANE_ENABLED=false, so the lane was
+// invisible while this file's default said otherwise. See src/lib/bridgesLane.ts.
 
 const DesktopLeads = lazy(() => import('../desktop/DesktopLeads').then(m => ({ default: m.DesktopLeads })))
 const DesktopLeadsRE = lazy(() => import('../desktop/DesktopLeadsRE').then(m => ({ default: m.DesktopLeadsRE })))

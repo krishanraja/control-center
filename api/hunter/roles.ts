@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { data: roles, error } = await supabase
       .from('hunter_seen_roles')
-      .select('job_id, company, title, url, job_url, score, location, comp, status, krish_verdict, package_status, package_built_at, package_cv_url, package_letter_url, rejection_reason, why_it_fits')
+      .select('job_id, company, title, url, job_url, score, location, comp, status, krish_verdict, package_status, package_built_at, package_cv_url, package_letter_url, rejection_reason, why_it_fits, application_state, applied_at')
       .not('krish_verdict', 'is', null)
       .neq('status', 'duplicate')
       .order('score', { ascending: false, nullsFirst: false })
@@ -52,7 +52,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         people.set(c.contact_key as string, {
           name: c.full_name as string, title: c.current_title as string | null,
           company: c.current_company as string | null,
-          linkedin_url: (c.linkedin_url as string | null) || `https://www.linkedin.com/in/${c.contact_key}`,
+          // No stored URL means no URL. Building one out of contact_key put eight
+          // dead links on Krish's Pipeline sheet from the same bug in hunter's own
+          // lookup: a cold target's key is "cold:<name>", so the URL 404s. The card
+          // already renders a plain name when there is no link.
+          linkedin_url: (c.linkedin_url as string | null) || null,
         })
       }
     }
@@ -81,6 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         location: r.location, comp: r.comp, status: r.status, package_status: r.package_status,
         package_built_at: r.package_built_at, cv_url: r.package_cv_url, letter_url: r.package_letter_url,
         rejection_reason: r.rejection_reason, why_it_fits: r.why_it_fits,
+        // Mirrored onto hunter_seen_roles by hunter from Krish's own column A and
+        // from its approval ledger. Null means not applied.
+        application_state: r.application_state, applied_at: r.applied_at,
         bridge: b ? { bridge_id: b.bridge_id, tier: b.path_tier, evidence: b.path_evidence, ask: b.draft_ask, state: b.state } : null,
         person,
       }
