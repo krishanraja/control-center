@@ -269,6 +269,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: `intelligence write failed: ${intelErr.message}` })
   }
 
+  // ── Reconcile the vector against the text that was actually stored ────────
+  //
+  // This route embeds the doc it composed, but the database composes its own
+  // from the columns (20260915140000) and that one wins. The two diverge the
+  // moment the trigger knows something the route's builder does not — which is
+  // exactly what intent did: two people came back flagged "Posting about AI
+  // agents", the stored text said so, and the row still claimed its embedding
+  // was current. A vector that does not match the text it is supposed to
+  // represent is worse than a missing one, because nothing goes looking for it.
+  //
+  // So the freshness claim is made against what was stored, never against what
+  // was sent. A mismatch marks the row stale and reembed-stale.ts picks it up;
+  // the old vector keeps finding the person in the meantime, which is a
+  // degradation rather than a disappearance.
+  if (vector) {
+    const { data: stored } = await supabase
+      .from('contact_intelligence').select('intel_doc').eq('contact_id', id).single()
+    const finalDoc = (stored as { intel_doc?: string } | null)?.intel_doc ?? null
+    if ((finalDoc || '') !== (intelDoc || '')) {
+      await supabase.from('contact_intelligence').update({ embed_stale: true }).eq('contact_id', id)
+    }
+  }
+
   // Backfill the identity columns the screenshot could not supply. Only blanks
   // are filled: enrichment adds, it does not overwrite curated values.
   const patch: Record<string, unknown> = {
