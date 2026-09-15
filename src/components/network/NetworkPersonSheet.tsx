@@ -205,8 +205,35 @@ export function NetworkPersonSheet({ person, onClose }: {
           {person.thin_evidence && (
             <p className="flex items-start gap-1.5 text-label leading-relaxed text-amber-200/70">
               <AlertTriangle size={11} className="mt-0.5 shrink-0" aria-hidden />
-              Thin evidence: their title and company were pattern-matched and no profile was ever read.
+              Thin evidence: large gaps in this record. Usually no profile was ever read, so the
+              title and company were pattern-matched and the rest is inference.
             </p>
+          )}
+
+          {/* The evidence behind the intent chip, in their own words.
+              This is the payoff of classifying posts rather than summarising
+              them: the row makes a claim, and here is the sentence it made it
+              from. Krish can disagree with the classifier in one glance, which
+              he cannot do with a score. */}
+          {(person.intent_score ?? 0) > 0 && person.intent_evidence && (
+            <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/[0.07] px-3 py-2">
+              <p className="text-micro uppercase tracking-wide text-emerald-300/70">
+                {person.intent_summary || 'Recent activity'}
+              </p>
+              <p className="mt-1 text-label italic leading-relaxed text-white/80">
+                &ldquo;{person.intent_evidence}&rdquo;
+              </p>
+              {person.intent_evidence_url && (
+                <a
+                  href={person.intent_evidence_url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="mt-1 inline-block text-micro text-emerald-300/80 underline underline-offset-2 hover:text-emerald-200"
+                >
+                  Read the post
+                </a>
+              )}
+            </div>
           )}
         </div>
 

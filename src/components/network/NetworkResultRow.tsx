@@ -32,6 +32,22 @@ const CHANNEL_ICON: Record<ChannelId, typeof Mail> = {
   linkedin_search: Search,
 }
 
+// What the chip says for each stance. Written as the thing Krish would say to
+// himself, not as the classifier's category name.
+const STANCE_CHIP: Record<string, string> = {
+  asking: 'asking for help with AI',
+  struggling: 'stuck on AI',
+  hiring: 'hiring for AI',
+  evaluating: 'evaluating AI',
+  building: 'shipping AI',
+  teaching: 'teaching AI',
+  commenting: 'posting about AI',
+}
+
+// The stances worth interrupting your day for. Everything else renders in the
+// neutral outline so the eye is not drawn to commentary.
+const HOT_STANCE = new Set(['asking', 'struggling', 'hiring', 'evaluating'])
+
 export function NetworkResultRow({ r, onOpen, weak }: {
   r: NetworkResult
   onOpen?: (r: NetworkResult) => void
@@ -89,14 +105,23 @@ export function NetworkResultRow({ r, onOpen, weak }: {
               <AlertTriangle size={9} aria-hidden /> thin evidence
             </Badge>
           )}
-          {/* Intent. Shown only while it is live — the score already decays to
-              zero past a quarter, so this badge cannot describe someone's 2023
-              posts as a reason to call them today. It names the subject rather
-              than saying "active", because "posting about AI agents" is what
-              makes the next message write itself. */}
-          {(r.intent_score ?? 0) > 0 && r.intent_topics?.length && (
-            <Badge variant="success" className="gap-1" title={r.intent_summary || undefined}>
-              <Radio size={9} aria-hidden /> posting about {r.intent_topics.slice(0, 2).join(', ')}
+          {/* Intent, as a STANCE rather than a subject.
+              "Posting about AI" flagged 45% of the warm network, which is true
+              and useless. What makes the next message write itself is knowing
+              they are stuck, or hiring, or asking — and the badge only earns
+              its place if it says which.
+              Shown while the signal is live; the score decays to zero past a
+              quarter, so this can never describe someone's 2023 posts as a
+              reason to call them today. Someone SELLING AI is deliberately not
+              badged: they are a vendor, not a buyer, and a green chip on them
+              would be a lie about what the row is for. */}
+          {(r.intent_score ?? 0) > 0 && r.intent_stance && r.intent_stance !== 'selling' && (
+            <Badge
+              variant={HOT_STANCE.has(r.intent_stance) ? 'success' : 'outline'}
+              className="gap-1"
+              title={r.intent_evidence || r.intent_summary || undefined}
+            >
+              <Radio size={9} aria-hidden /> {STANCE_CHIP[r.intent_stance] || 'active on AI'}
             </Badge>
           )}
         </div>

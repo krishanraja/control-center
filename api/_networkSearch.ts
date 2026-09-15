@@ -50,6 +50,12 @@ export interface NetworkResult {
    *  means posts were never read; 0 means read and nothing there. The two are
    *  different claims and the row says so. */
   intent_score: number | null
+  /** asking | struggling | hiring | evaluating | building | teaching |
+   *  commenting | selling — ordered by what it is worth to this business. */
+  intent_stance: string | null
+  /** The sentence that produced the score. A score is arguable; a quote is not. */
+  intent_evidence: string | null
+  intent_evidence_url: string | null
   intent_topics: string[] | null
   intent_summary: string | null
   last_post_at: string | null

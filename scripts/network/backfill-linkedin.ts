@@ -47,6 +47,7 @@
 //   npx tsx scripts/network/backfill-linkedin.ts --limit 200 --commit --use-apify
 //   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 50 --commit --use-apify
 //   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 50 --commit --use-apify --posts
+//   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 400 --commit --use-apify --concurrency 8
 //
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CC_BASE_URL, ACCESS_CODE.
 
@@ -72,8 +73,22 @@ const USE_APIFY = args.includes('--use-apify')
 // Krish would actually message and wasted on the cold tail: what a scraped lead
 // posted last month is not a reason to do anything.
 const WITH_POSTS = args.includes('--posts')
+// How many people are in flight at once.
+//
+// One at a time is roughly 15 seconds per person — profile scrape, posts
+// scrape, PDL, and a Claude judgment — which is 23 hours for the network and
+// therefore not a plan. The work is one independent HTTP call per person
+// against a platform that scales them, so the only real limits are the
+// providers' rate limits and the blast radius of getting it wrong. Eight is
+// chosen to stay well inside both: a rate-limited provider returns 429, which
+// this runner treats as a stop rather than a retry, so being conservative here
+// costs an hour and being greedy could cost the whole run.
+const concArg = args.indexOf('--concurrency')
+const CONCURRENCY = Math.min(Math.max(concArg >= 0 ? Number(args[concArg + 1]) || 1 : 1, 1), 12)
 const modeArg = args.indexOf('--mode')
-const MODE = modeArg >= 0 && args[modeArg + 1] === 'profiles' ? 'profiles' : 'urls'
+const MODE_ARG = modeArg >= 0 ? args[modeArg + 1] : ''
+const MODE: 'urls' | 'profiles' | 'posts' =
+  MODE_ARG === 'profiles' ? 'profiles' : MODE_ARG === 'posts' ? 'posts' : 'urls'
 const limitArg = args.indexOf('--limit')
 const LIMIT = limitArg >= 0 ? Number(args[limitArg + 1]) : 50
 
@@ -98,6 +113,33 @@ async function candidates(): Promise<Candidate[]> {
   const out: Candidate[] = []
   for (const tier of TIER_ORDER) {
     if (out.length >= LIMIT) break
+    if (MODE === 'posts') {
+      // People whose posts have never been classified under the CURRENT model.
+      // posts_sample is the marker because it is what makes a rescore free: the
+      // first intent model stored a score and threw the text away, so those 307
+      // flags could not be re-read when the model changed the next day.
+      //
+      // Scoped to the tiers where an intent signal is worth acting on. What a
+      // scraped cold lead posted last month is not a reason to do anything.
+      if (tier !== 'customer' && tier !== 'warm' && tier !== 'permissioned') continue
+      const { data, error } = await sb
+        .from('contact_intelligence')
+        .select('contact_id, contacts!inner(id, full_name, company, consent_tier, email)')
+        .is('posts_sample', null)
+        .eq('contacts.consent_tier', tier)
+        .not('contacts.linkedin_url', 'is', null)
+        .not('contacts.full_name', 'is', null)
+        .not('contacts.enrichment_status', 'in', '("blocked_quota","failed")')
+        .order('contact_id', { ascending: true })
+        .limit(LIMIT - out.length)
+      if (error) throw new Error(`candidate read failed: ${error.message}`)
+      for (const r of (data || []) as unknown as Array<{ contacts: Candidate | Candidate[] }>) {
+        const c = Array.isArray(r.contacts) ? r.contacts[0] : r.contacts
+        if (c) out.push(c)
+      }
+      continue
+    }
+
     if (MODE === 'profiles') {
       // Driven from contact_intelligence, not from contacts, because
       // `enriched_at` there is the only field that records a profile having
@@ -145,7 +187,13 @@ async function candidates(): Promise<Candidate[]> {
 async function main() {
   const people = await candidates()
 
-  const { count: gap } = MODE === 'profiles'
+  const { count: gap } = MODE === 'posts'
+    ? await sb.from('contact_intelligence')
+        .select('contact_id, contacts!inner(id)', { count: 'exact', head: true })
+        .is('posts_sample', null)
+        .in('contacts.consent_tier', ['customer', 'warm', 'permissioned'])
+        .not('contacts.linkedin_url', 'is', null)
+    : MODE === 'profiles'
     ? await sb.from('contact_intelligence')
         .select('contact_id, contacts!inner(id)', { count: 'exact', head: true })
         .is('enriched_at', null)
@@ -154,10 +202,11 @@ async function main() {
         .select('id', { count: 'exact', head: true })
         .is('linkedin_url', null)
 
-  console.log(MODE === 'profiles'
-    ? `\nunread profiles: ${gap ?? '?'} contacts hold a URL nobody has read`
+  console.log(
+    MODE === 'posts' ? `\nunclassified posts: ${gap ?? '?'} reachable contacts whose posts have never been read under the current model`
+    : MODE === 'profiles' ? `\nunread profiles: ${gap ?? '?'} contacts hold a URL nobody has read`
     : `\nnetwork LinkedIn gap: ${gap ?? '?'} contacts with no profile URL`)
-  console.log(`this batch: ${people.length} (limit ${LIMIT}, apify ${USE_APIFY ? 'ON — paid' : 'off'}${WITH_POSTS ? ', posts ON — second paid run each' : ''})`)
+  console.log(`this batch: ${people.length} (limit ${LIMIT}, ${CONCURRENCY} at a time, apify ${USE_APIFY ? 'ON — paid' : 'off'}${WITH_POSTS ? ', posts ON — second paid run each' : ''})`)
   const byTier = new Map<string, number>()
   for (const p of people) byTier.set(p.consent_tier, (byTier.get(p.consent_tier) || 0) + 1)
   for (const t of TIER_ORDER) if (byTier.get(t)) console.log(`  ${t.padEnd(14)} ${byTier.get(t)}`)
@@ -173,11 +222,36 @@ async function main() {
   // reported once at the end rather than shouted per person.
   const degradedBy = new Map<string, number>()
   let intent = 0
-  for (const p of people) {
+  const stances = new Map<string, number>()
+  // A dry account refuses everyone; one bad profile URL refuses one person.
+  // This is the number that tells them apart.
+  const BLOCK_STREAK = 8
+  let consecutiveBlocked = 0
+  // A shared cursor rather than pre-sliced chunks: people take wildly different
+  // amounts of time (a profile with fifty posts against one with none), and
+  // fixed chunks would leave workers idle waiting for the slowest.
+  let next = 0
+  let halted = false
+
+  const worker = async () => {
+    while (!halted) {
+      const i = next++
+      if (i >= people.length) return
+      const p = people[i]
+      await one(p)
+    }
+  }
+
+  const one = async (p: Candidate) => {
     const r = await fetch(`${BASE}/api/network/enrich-person`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: accessCookie() },
-      body: JSON.stringify({ contact_id: p.id, use_apify: USE_APIFY, skip_web: true, with_posts: WITH_POSTS }),
+      body: JSON.stringify({
+        contact_id: p.id,
+        use_apify: USE_APIFY,
+        skip_web: true,
+        with_posts: WITH_POSTS || MODE === 'posts',
+      }),
     })
     const j: any = await r.json().catch(() => null)
     ran++
@@ -187,15 +261,33 @@ async function main() {
     // successful enrichment also reports which providers refused, and testing
     // truthiness on that list halted a 20-person batch after one person who had
     // in fact been enriched. A run stops when the route says it wrote nothing.
-    const stopped = r.status === 402 || r.status === 429 ||
+    // The route reports that nothing could be written. That is not by itself a
+    // reason to stop the run, and treating it as one cost a 400-person batch
+    // after 47: PeopleDataLabs had run dry, and any person whose LinkedIn
+    // scrape also came back empty then produced a 402 — a per-person failure
+    // wearing the clothes of an account-wide one. Meanwhile Apify was serving
+    // profiles at completeness 90.
+    //
+    // So a blocked write halts the run only when it happens repeatedly with no
+    // success in between, which is what a genuinely dry account looks like. A
+    // single unlucky profile no longer stops the other five thousand.
+    const blockedWrite = r.status === 402 || r.status === 429 ||
       (j?.ok === false && (j?.error === 'api_credits' || j?.error === 'blocked_quota'))
-    if (stopped) {
+    if (blockedWrite) {
       const names = Array.isArray(j?.blocked) ? j.blocked.map((x: { api?: string }) => x?.api).join(', ') : ''
-      console.log(`\nSTOPPED after ${ran}: nothing could be written — ${names || j?.error || r.status}`)
-      console.log('Fix the credit/auth problem, then re-run. Nothing partial was written.')
-      break
+      consecutiveBlocked++
+      console.log(`  ! ${p.full_name} — nothing written (${names || j?.error || r.status})`)
+      if (consecutiveBlocked >= BLOCK_STREAK) {
+        console.log(`\nSTOPPED after ${ran}: ${BLOCK_STREAK} in a row wrote nothing — ${names || j?.error || r.status}`)
+        console.log('Every provider appears to be refusing. Fix the credit/auth problem, then re-run. Nothing partial was written.')
+        // Stops every worker, not just this one. In-flight calls finish; no new
+        // person is started against a provider that has said no.
+        halted = true
+      }
+      return
     }
-    if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); continue }
+    consecutiveBlocked = 0
+    if (!r.ok) { console.log(`  ${p.full_name}: HTTP ${r.status}`); return }
     if (Array.isArray(j?.blocked) && j.blocked.length) {
       for (const b of j.blocked as Array<{ api?: string; status?: string }>) {
         if (b?.api) degradedBy.set(b.api, (degradedBy.get(b.api) || 0) + 1)
@@ -205,20 +297,25 @@ async function main() {
     // Did this actually produce the thing the run is for? Asked of the
     // database rather than of the route's response, because the route reports
     // that it ran and this run is only worth anything if a fact landed.
-    if (MODE === 'profiles') {
+    if (MODE === 'profiles' || MODE === 'posts') {
       const { data } = await sb.from('contact_intelligence')
-        .select('completeness, followers, headline, intent_score, intent_topics')
+        .select('completeness, followers, headline, intent_score, intent_stance, intent_evidence')
         .eq('contact_id', p.id).single()
       const d = data as {
         completeness?: number; followers?: number; headline?: string
-        intent_score?: number | null; intent_topics?: string[] | null
+        intent_score?: number | null; intent_stance?: string | null
+        intent_evidence?: string | null
       } | null
       if (d && (d.followers != null || d.headline)) {
         resolved++
         if ((d.intent_score ?? 0) > 0) intent++
+        // The stance and the quote, because a score alone cannot be checked.
         const flag = (d.intent_score ?? 0) > 0
-          ? ` — posting about ${(d.intent_topics || []).slice(0, 2).join(', ')}`
+          ? ` — ${d.intent_stance} (${d.intent_score}): "${(d.intent_evidence || '').slice(0, 90)}"`
           : ''
+        if ((d.intent_score ?? 0) > 0 && d.intent_stance) {
+          stances.set(d.intent_stance, (stances.get(d.intent_stance) || 0) + 1)
+        }
         console.log(`  ✓ ${p.full_name} — completeness ${d.completeness ?? '?'}${flag}`)
       } else console.log(`  · ${p.full_name} — read, nothing usable came back`)
     } else {
@@ -228,13 +325,20 @@ async function main() {
     }
   }
 
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, people.length) }, worker))
+
   console.log(MODE === 'profiles'
     ? `\n${resolved}/${ran} profiles came back with something to store.`
     : `\n${resolved}/${ran} resolved to a real LinkedIn URL.`)
   if (MODE === 'urls') console.log(`${ran - resolved} keep the search fallback, which still works.`)
   for (const [api, n] of degradedBy) console.log(`${api} refused on ${n} of them; the rest of the providers covered it.`)
-  if (WITH_POSTS) console.log(`${intent} of them are posting about AI right now.`)
-  if (MODE === 'profiles') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
+  if (WITH_POSTS || MODE === 'posts') {
+    console.log(`${intent} of them are active on AI right now:`)
+    for (const [st, n] of [...stances.entries()].sort((a, b) => b[1] - a[1])) {
+      console.log(`  ${st.padEnd(11)} ${n}`)
+    }
+  }
+  if (MODE === 'profiles' || MODE === 'posts') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
   console.log('Report the cost of this batch before running the next one.')
 }
 
