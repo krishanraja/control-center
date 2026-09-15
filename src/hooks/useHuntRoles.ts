@@ -36,6 +36,10 @@ export interface HuntRole {
   why_it_fits: string | null
   bridge: HuntBridge | null
   person: HuntPerson | null
+  // Null means not applied. Set by hunter from Krish's column A verdict or from a
+  // recorded submission, never authored in the app.
+  application_state: string | null
+  applied_at: string | null
 }
 
 export function useHuntRoles() {

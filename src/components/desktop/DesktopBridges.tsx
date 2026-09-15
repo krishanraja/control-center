@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ExternalLink, FileText, Target } from '@/lib/icons'
+import { CheckCircle2, ExternalLink, FileText, Target } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { Eyebrow } from '../shared/Eyebrow'
 import { BridgeCard } from '../BridgeCard'
@@ -17,6 +17,19 @@ const MAX_CARDS = 5
 
 export const HUNT_LINE = 'The roles you said Yes to, and the person who can get you in. Change column A in the sheet, press Process, and everything else lands here.'
 
+// Krish's own column A verdict, mirrored onto the role by hunter: "Applied",
+// "Already applied", or null for not applied. Shown because the lane could name the
+// role and the person but not say whether he had already gone in, which is the first
+// thing you need before reaching out to anyone about it.
+function appliedLine(r: HuntRole): string | null {
+  if (!r.application_state) return null
+  const when = r.applied_at ? new Date(r.applied_at) : null
+  const day = when && !Number.isNaN(when.getTime())
+    ? when.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    : null
+  return day ? `${r.application_state} ${day}` : r.application_state
+}
+
 function packageLine(r: HuntRole): string {
   if (r.cv_url && r.letter_url) return r.package_status || 'Materials staged'
   if (r.status === 'dead') return 'Posting dead, cannot build. Your call on the sheet.'
@@ -26,6 +39,7 @@ function packageLine(r: HuntRole): string {
 
 function RoleRow({ r }: { r: HuntRole }) {
   const built = !!(r.cv_url && r.letter_url)
+  const applied = appliedLine(r)
   return (
     <li className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3" data-testid="hunt-role">
       <div className="flex items-start justify-between gap-3">
@@ -45,6 +59,12 @@ function RoleRow({ r }: { r: HuntRole }) {
         )}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-label">
+        {applied && (
+          <span className="text-emerald-300" data-testid="hunt-applied">
+            <CheckCircle2 size={11} className="inline mr-1 align-[-1px]" />
+            {applied}
+          </span>
+        )}
         <span className={built ? 'text-emerald-300' : 'text-white/55'}>
           <FileText size={11} className="inline mr-1 align-[-1px]" />
           {packageLine(r)}
@@ -59,7 +79,9 @@ function RoleRow({ r }: { r: HuntRole }) {
       <div className="mt-2 text-label text-white/70" data-testid="hunt-person">
         {r.person ? (
           <>
-            <span className="text-white/45">Reach out to </span>
+            <span className="text-white/45">
+              {applied ? 'Already in, so follow up with ' : 'Reach out to '}
+            </span>
             {r.person.linkedin_url
               ? <a href={r.person.linkedin_url} target="_blank" rel="noreferrer" className="text-violet-200 hover:text-violet-100 font-medium">{r.person.name}</a>
               : <span className="font-medium text-white/85">{r.person.name}</span>}

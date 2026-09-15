@@ -23,7 +23,7 @@ looks identical to a dead one from here. Each needs a decision, not a sweep.
 > section as superseded.
 
 > **2026-09-07.** The Bridges lane is the Hunt lane and is on by default
-> (`VITE_BRIDGES_LANE_ENABLED=false` hides it). `DesktopBridges`,
+> (always on as of 2026-09-15; the flag is retired). `DesktopBridges`,
 > `MobileBridges`, `BridgeCard`, `HunterStatus`, `useBridges` and
 > `useHuntRoles` are live. The Pipeline lane (`DesktopLeads`, `MobileLeads`)
 > left the nav but still renders on `#/people?lane=pipeline`; its import

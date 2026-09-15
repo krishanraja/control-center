@@ -250,7 +250,7 @@ column A of the sheet and does everything that follows: builds, finds the
 person, archives the decided, sorts), Find roles, Build packages. A press
 queues a `hunter_commands` row and fires a GitHub `repository_dispatch` on
 `krishanraja/hunter`, so the run starts within a minute; the hourly drain is
-the fallback. Hidden again with `VITE_BRIDGES_LANE_ENABLED=false`.
+the fallback. Always on as of 2026-09-15; `VITE_BRIDGES_LANE_ENABLED` is retired and no longer read.
 
 **Pipeline (deal leads) left the nav** the same day: it was 8 live leads and
 143 buried ones. Its two import doors moved to Network, next to the

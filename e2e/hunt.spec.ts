@@ -19,12 +19,32 @@ const ROLES = {
       rejection_reason: null, why_it_fits: 'x',
       bridge: { bridge_id: 'b1', tier: 'current_employee', evidence: 'Ada Nguyen is VP GTM at Legora now; strength 70', ask: '15 minutes?', state: 'proposed' },
       person: { name: 'Ada Nguyen', title: 'VP GTM', company: 'Legora', linkedin_url: 'https://www.linkedin.com/in/ada' },
+      application_state: null, applied_at: null,
     },
     {
       job_id: 'fleek:chief-of-staff', company: 'Fleek', title: 'Chief of Staff', url: 'https://jobs.ashbyhq.com/fleek/1',
       score: 9, location: 'New York', comp: null, status: 'staging', package_status: 'Not started',
       package_built_at: null, cv_url: null, letter_url: null, rejection_reason: null, why_it_fits: 'x',
       bridge: null, person: null,
+      application_state: null, applied_at: null,
+    },
+    // Applied, with a person: hunter mirrors Krish's own column A verdict onto the
+    // role, and the lane could previously name the role and the person without
+    // saying whether he had already gone in.
+    {
+      job_id: 'anthropic:head-of-enterprise-sales', company: 'Anthropic',
+      title: 'Head of Enterprise Sales', url: 'https://boards.greenhouse.io/anthropic/1',
+      score: 9, location: 'New York', comp: null, status: 'staging',
+      package_status: 'Materials staged', package_built_at: '2026-09-04T10:00:00Z',
+      cv_url: 'https://docs.google.com/document/d/cv2/edit',
+      letter_url: 'https://docs.google.com/document/d/cl2/edit',
+      rejection_reason: null, why_it_fits: 'x',
+      bridge: { bridge_id: 'b2', tier: 'current_employee', evidence: 'x', ask: 'y', state: 'proposed' },
+      // No stored LinkedIn URL: the name renders as plain text, never as an invented
+      // linkedin.com/in/<contact_key> link, which is the bug that put eight dead
+      // links on the Pipeline sheet.
+      person: { name: 'Sam Okafor', title: 'RevOps Lead', company: 'Anthropic', linkedin_url: null },
+      application_state: 'Applied', applied_at: '2026-09-02T09:00:00Z',
     },
   ],
 }
@@ -74,7 +94,7 @@ test('the Hunt lane is in the nav and the Pipeline lane is not', async ({ page }
 test('every Yes role shows its package and the person, or says nobody yet', async ({ page }) => {
   await openHunt(page)
   const rows = page.getByTestId('hunt-role')
-  await expect(rows).toHaveCount(2)
+  await expect(rows).toHaveCount(3)
   const legora = rows.filter({ hasText: 'Legora' })
   await expect(legora.getByRole('link', { name: 'CV' })).toHaveAttribute('href', 'https://docs.google.com/document/d/cv/edit')
   await expect(legora.getByRole('link', { name: 'Ada Nguyen' })).toHaveAttribute('href', 'https://www.linkedin.com/in/ada')
@@ -98,3 +118,60 @@ test('Process my verdicts is the one primary button, and nothing can send', asyn
   await expect.poll(() => posted).toBe('process')
   await expect(page.getByRole('button', { name: /^Send$/ })).toHaveCount(0)
 })
+
+
+test('an applied role says so, and one not applied does not', async ({ page }) => {
+  await openHunt(page)
+  const rows = page.getByTestId('hunt-role')
+  const anthropic = rows.filter({ hasText: 'Anthropic' })
+  await expect(anthropic.getByTestId('hunt-applied')).toContainText('Applied')
+  await expect(anthropic.getByTestId('hunt-applied')).toContainText(/Sep 2|2 Sep/)
+  // Reaching out about a role he is already in is a follow-up, not an approach.
+  await expect(anthropic.getByTestId('hunt-person')).toContainText('Already in, so follow up with')
+  const legora = rows.filter({ hasText: 'Legora' })
+  await expect(legora.getByTestId('hunt-applied')).toHaveCount(0)
+  await expect(legora.getByTestId('hunt-person')).toContainText('Reach out to')
+})
+
+test('a person with no stored profile URL renders as a name, never a made-up link', async ({ page }) => {
+  await openHunt(page)
+  const anthropic = page.getByTestId('hunt-role').filter({ hasText: 'Anthropic' })
+  await expect(anthropic.getByTestId('hunt-person')).toContainText('Sam Okafor')
+  await expect(anthropic.getByRole('link', { name: 'Sam Okafor' })).toHaveCount(0)
+})
+
+test('the Hunt lane cannot be switched off by a stale environment variable', async ({ page }) => {
+  // Production carried VITE_BRIDGES_LANE_ENABLED=false from the 2026-09-06 parking
+  // while this code was un-parked on the 7th, so the lane Krish asked for back was
+  // invisible on every device for eight days. The flag is gone, not defaulted.
+  await mock(page)
+  await page.goto('/#/people')
+  await expect(page.getByTestId('people-lane-bridges')).toBeVisible()
+})
+
+// Krish 2026-09-15: "make sure the Hunt tab actually shows in my control center on
+// all devices and is uniform in UX UI to the rest of the tab." PeopleTab renders
+// MobileBridges below the narrow breakpoint and DesktopBridges above it, two
+// different shells around one BridgesBody, so both need proving.
+for (const [label, viewport] of [
+  ['phone', { width: 390, height: 844 }],
+  ['tablet', { width: 820, height: 1180 }],
+  ['desktop', { width: 1440, height: 900 }],
+] as const) {
+  test(`the Hunt lane renders on ${label}`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await mock(page)
+    await page.goto('/#/people?lane=bridges')
+    await expect(page.getByTestId('people-lane-bridges')).toBeVisible()
+    await expect(page.getByTestId('hunt-roles')).toBeVisible()
+    await expect(page.getByTestId('hunt-role')).toHaveCount(3)
+    // The applied marker and the person line survive both shells.
+    await expect(page.getByTestId('hunt-applied')).toHaveCount(1)
+    await expect(page.getByTestId('hunt-person')).toHaveCount(3)
+    // A phone regression that reads as broken rather than tight.
+    const overflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1)
+    expect(overflows).toBe(false)
+  })
+}
+
