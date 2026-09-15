@@ -301,6 +301,67 @@ export const apifyError = (detail: string): ProviderOutcome => errored('apify', 
 
 // ── LinkedIn posts ──────────────────────────────────────────────────────────
 
+/** A post's date, as the registered actor actually reports it.
+ *
+ *  harvestapi returns postedAt as an OBJECT — {timestamp, date, postedAgoText}
+ *  — not a string, and the first implementation read it with a string helper
+ *  and silently got nothing. Eight people were scraped, every post came back
+ *  undated, and because an undated post can never be recent, every intent score
+ *  was a structural zero while the run reported success.
+ *
+ *  Relative text ("2mo", "3 weeks ago") is accepted as a last resort and
+ *  deliberately rounded DOWN in age — it is only ever used to answer "is this
+ *  within the last month", and rounding the other way would let a two-month-old
+ *  post read as current. Returns ISO, or null when the value cannot be dated at
+ *  all, because guessing a date here manufactures intent that does not exist. */
+export function parsePostedAt(v: unknown): string | null {
+  if (v === null || v === undefined) return null
+
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    return parsePostedAt(o.date) ?? parsePostedAt(o.timestamp)
+      ?? parsePostedAt(o.postedAgoText) ?? parsePostedAt(o.text) ?? null
+  }
+
+  // Epoch seconds or milliseconds. Below the threshold it is seconds: a
+  // millisecond timestamp from this decade is ~1.7e12.
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v) || v <= 0) return null
+    const ms = v < 1e11 ? v * 1000 : v
+    const d = new Date(ms)
+    return Number.isNaN(d.getTime()) ? null : d.toISOString()
+  }
+
+  if (typeof v !== 'string') return null
+  const t = v.trim()
+  if (!t) return null
+
+  // A numeric string is a timestamp, not a date string: Date.parse('1719')
+  // yields the year 1719.
+  if (/^\d+$/.test(t)) return parsePostedAt(Number(t))
+
+  const direct = Date.parse(t)
+  if (Number.isFinite(direct)) return new Date(direct).toISOString()
+
+  const rel = t.match(/^(\d+)\s*(s|sec|second|m|min|minute|h|hr|hour|d|day|w|wk|week|mo|month|y|yr|year)s?\b/i)
+  if (rel) {
+    const n = Number(rel[1])
+    const unit = rel[2].toLowerCase()
+    const DAY = 86_400_000
+    const ms =
+      /^(s|sec|second)$/.test(unit) ? n * 1000
+      : /^(m|min|minute)$/.test(unit) ? n * 60_000
+      : /^(h|hr|hour)$/.test(unit) ? n * 3_600_000
+      : /^(d|day)$/.test(unit) ? n * DAY
+      : /^(w|wk|week)$/.test(unit) ? n * 7 * DAY
+      : /^(mo|month)$/.test(unit) ? n * 30 * DAY
+      : n * 365 * DAY
+    return new Date(Date.now() - ms).toISOString()
+  }
+
+  return null
+}
+
 export interface LinkedInPost {
   text?: string | null
   postedAt?: string | null
@@ -355,8 +416,9 @@ export async function linkedInPosts(profileUrl: string, limit = 10, source = 'ne
     const d = (raw || {}) as Record<string, any>
     return {
       text: str(d.text) || str(d.content) || str(d.postText) || str(d.commentary) || null,
-      postedAt: str(d.postedAt) || str(d.postedDate) || str(d.publishedAt) || str(d.date)
-        || str(d.postedAtISO) || str(d.time) || null,
+      postedAt: parsePostedAt(d.postedAt) || parsePostedAt(d.postedDate)
+        || parsePostedAt(d.publishedAt) || parsePostedAt(d.date)
+        || parsePostedAt(d.postedAtISO) || parsePostedAt(d.time) || null,
       url: str(d.url) || str(d.postUrl) || str(d.link) || null,
     }
   }).filter(p => p.text)
