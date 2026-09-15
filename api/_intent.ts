@@ -163,6 +163,15 @@ export interface IntentEvidence {
   stance: Stance
   /** The sentence that produced the classification, trimmed. */
   quote: string
+  /** The post this came from, truncated.
+   *
+   *  Stored because the quote alone is NOT enough to re-judge from, and the
+   *  first version of this field learned that the expensive way: it kept the
+   *  sentence and threw the post away, so when the classifier gained a model
+   *  layer the day after, 503 people could only be re-read from one line of
+   *  context — which is precisely the input that produced the false positives.
+   *  A stance is a claim about a whole post. Keep the whole post. */
+  text: string
   postedAt: string | null
   url: string | null
   firstPerson: boolean
@@ -298,6 +307,7 @@ export function readIntent(posts: Post[], now = new Date()): IntentSignal {
     all.push({
       stance: c.stance,
       quote: c.quote.replace(/\s+/g, ' ').slice(0, 300),
+      text: p.text.replace(/\s+/g, ' ').slice(0, 1500),
       postedAt: p.at === null ? null : new Date(p.at).toISOString(),
       url: p.url,
       firstPerson,
