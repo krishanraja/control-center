@@ -21,7 +21,7 @@ import { lookupName, splitName } from '../_gmailNames.js'
 
 export const config = { maxDuration: 60 }
 
-interface Body { limit?: number; dry?: boolean }
+interface Body { limit?: number; dry?: boolean; after_id?: string }
 
 interface Row { id: string; full_name: string; email: string }
 
@@ -37,7 +37,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // import scripts enforce with --commit.
   const dry = b.dry !== false
 
-  const { data, error } = await supabase
+  // Ordered by id and paged with a cursor, NOT a bare limit.
+  //
+  // The first version had neither, and the bug it caused is worth recording: a
+  // repaired row gains a space and drops out of this filter, so the window
+  // "advances" only by however many were fixed. Once the leading rows were all
+  // people with no mail on file — 184 of the first 200 — every subsequent run
+  // re-read the same dead window, spent 400 Gmail calls, and returned zero. It
+  // looked exactly like "the backlog is finished" while 1,167 candidates had
+  // never been examined once.
+  //
+  // Ordering by id makes the sequence stable, and a cursor makes progress
+  // independent of how many rows leave the set behind us.
+  let q = supabase
     .from('contacts')
     .select('id, full_name, email')
     .not('email', 'is', null)
@@ -45,7 +57,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // PostgREST has no "contains a space" filter, so the cheap side is done here
     // and the exact test below. `like` with a space pattern is negatable.
     .not('full_name', 'like', '% %')
+    .order('id', { ascending: true })
     .limit(limit)
+  const after = (b.after_id || '').trim()
+  if (after) q = q.gt('id', after)
+  const { data, error } = await q
   if (error) return res.status(500).json({ ok: false, error: error.message })
 
   const rows = (data || []) as Row[]
@@ -73,6 +89,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ok: true,
     dry,
     examined: rows.length,
+    /** Pass back as `after_id` to continue. Null when the backlog is genuinely
+     *  exhausted, which is a different fact from "this batch repaired none". */
+    next_after_id: rows.length === limit ? rows[rows.length - 1].id : null,
     repaired: repaired.length,
     skipped,
     // Returned so a run can be eyeballed before the next batch. These are real
