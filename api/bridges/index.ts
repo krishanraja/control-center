@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contactKeys.length
         ? supabase
           .from('network_contacts')
-          .select('contact_key, full_name, current_title, current_company, strength_score, linkedin_url, strength_evidence')
+          .select('contact_key, full_name, current_title, current_company, strength_score, linkedin_url, strength_evidence, email')
           .in('contact_key', contactKeys)
         : Promise.resolve({ data: [], error: null }),
       jobIds.length
@@ -61,22 +61,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .filter((k): k is string => !!k && k.startsWith('contact:')))]
     const ccIds = ccKeys.map(k => k.slice('contact:'.length))
     if (ccIds.length) {
-      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url').in('id', ccIds)
+      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url, email').in('id', ccIds)
       for (const c of data || []) {
         byContact.set(`contact:${c.id}`, {
           contact_key: `contact:${c.id}`, full_name: c.full_name, current_title: c.title,
-          current_company: c.company, strength_score: 0, linkedin_url: c.linkedin_url, strength_evidence: null,
+          current_company: c.company, strength_score: 0, linkedin_url: c.linkedin_url,
+          strength_evidence: null, email: c.email,
         })
       }
     }
     for (const slug of missing.slice(0, 25)) {
-      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url')
+      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url, email')
         .ilike('linkedin_url_norm', `%/in/${slug}%`).limit(1)
       const c = (data || [])[0]
       if (c) {
         byContact.set(slug, {
           contact_key: slug, full_name: c.full_name, current_title: c.title, current_company: c.company,
-          strength_score: 0, linkedin_url: c.linkedin_url || `https://www.linkedin.com/in/${slug}`, strength_evidence: null,
+          strength_score: 0, linkedin_url: c.linkedin_url || `https://www.linkedin.com/in/${slug}`,
+          strength_evidence: null, email: c.email,
         })
       }
     }

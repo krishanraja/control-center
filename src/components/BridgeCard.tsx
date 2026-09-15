@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import {
-  Check, Clock, ExternalLink, HeartHandshake, History, Inbox, Megaphone, Compass, Newspaper, Save, X,
+  Check, Clock, ExternalLink, HeartHandshake, History, Inbox, Mail, Megaphone, Compass,
+  Newspaper, Save, Target, X,
 } from '@/lib/icons'
 import type { LucideIcon } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { Working } from './shared/Working'
 import { patchBridge } from '../hooks/useBridges'
+import { contactAction, copyText } from '../lib/contactAction'
 import type { BridgeRow, BridgeState, BridgeTier } from '../hooks/useBridges'
 
 // One warm path into one target role. The card carries its own evidence and
@@ -21,6 +23,9 @@ const TIER_META: Record<BridgeTier, { label: string; Icon: LucideIcon; chip: str
   newsletter_move: { label: 'Just joined, per a16z newsletter', Icon: Newspaper, chip: 'bg-sky-500/10 text-sky-300' },
   ex_employee: { label: 'Worked there', Icon: History, chip: 'bg-violet-500/15 text-violet-200' },
   headhunter: { label: 'Headhunter path', Icon: Megaphone, chip: 'bg-amber-500/10 text-amber-300' },
+  // The leader of a company with a seat open. Peer to peer, about their GTM model,
+  // and it converts either to an engagement or to the role.
+  mindmake_wedge: { label: 'Their call either way', Icon: Target, chip: 'bg-rose-500/10 text-rose-200' },
   cold_target: { label: 'Outside your network, named', Icon: Compass, chip: 'bg-sky-500/10 text-sky-200' },
   peer_transition: { label: 'Outside network', Icon: Compass, chip: 'bg-white/[0.08] text-white/60' },
 }
@@ -32,7 +37,7 @@ interface Props {
 
 export function BridgeCard({ bridge: b, onChanged }: Props) {
   const { toast } = useToast()
-  const [busy, setBusy] = useState<null | 'reached' | 'snooze' | 'drop' | 'draft' | 'mail'>(null)
+  const [busy, setBusy] = useState<null | 'reached' | 'snooze' | 'drop' | 'draft' | 'mail' | 'contact'>(null)
   const [draft, setDraft] = useState(b.draft_ask)
   const meta = TIER_META[b.path_tier] || TIER_META.peer_transition
   const TierIcon = meta.Icon
@@ -84,6 +89,34 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
       onChanged()
     } catch (err) {
       toast(`Could not update: ${(err as Error)?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // One click, whatever is known about them: mailto with the message waiting, or
+  // the profile open with the draft copied, or the draft copied when neither is on
+  // record. The draft travels every time, which the old name-link never did.
+  const action = contactAction(
+    { name: b.contact?.full_name, email: b.contact?.email, linkedin_url: b.contact?.linkedin_url },
+    draft,
+    { role: b.role?.title, company: b.role?.company },
+  )
+
+  const contactNow = async () => {
+    if (busy) return
+    setBusy('contact')
+    try {
+      // Save an edit first, so the message he sends is the one on screen.
+      if (draft !== b.draft_ask) await patchBridge(b.bridge_id, { draft_ask: draft })
+      let copied = true
+      if (action.copies) copied = await copyText(draft)
+      if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
+      toast(copied ? action.note
+        : 'Could not reach the clipboard, so the draft is still in the box. Copy it by hand.')
+      onChanged()
+    } catch (err) {
+      toast(`Could not open: ${(err as Error)?.message || 'try again'}`, 'error')
     } finally {
       setBusy(null)
     }
@@ -193,6 +226,19 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
           my inbox" alone on a line, then two, then one, which reads as an
           accident rather than a layout. */}
       <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:flex-wrap">
+        <button
+          type="button"
+          onClick={contactNow}
+          disabled={busy !== null || !draft.trim()}
+          data-testid="bridge-contact"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
+          title={action.note}
+        >
+          {busy === 'contact' ? <Working size={12} />
+            : action.kind === 'email' ? <Mail size={12} />
+            : action.kind === 'linkedin' ? <ExternalLink size={12} /> : <Save size={12} />}
+          {action.label}
+        </button>
         <button
           type="button"
           onClick={mailToSelf}
