@@ -2,7 +2,8 @@ import { callClaude } from './_content.js'
 import { embed } from './_embeddings.js'
 import { linkedInProfile, linkedInPosts, type LinkedInProfile } from './_apify.js'
 import { logApiCall } from './_alert.js'
-import { readIntent, type IntentSignal } from './_intent.js'
+import { readIntent, STANCE_VALUE, STANCE_LABEL, type IntentSignal } from './_intent.js'
+import { classifyIntent } from './_intentModel.js'
 import {
   outcomeFrom, skipped, empty, errored, ok,
   summarise, type OutcomeSummary, type ProviderOutcome,
@@ -509,12 +510,50 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     }
   }
 
+  // ── Intent: patterns first, then judgment ────────────────────────────────
+  //
+  // The pattern pass is free and runs always; it is also the fallback whenever
+  // the model is unavailable. The model only sees people the patterns already
+  // think are doing something, which keeps the spend proportional to the
+  // signal, and its answer is only accepted when the quote it returns is
+  // verbatim in the posts.
+  //
+  // The model is trusted over the patterns on STANCE because that is the
+  // judgment it is here for: telling "I have this problem" from "here is a
+  // problem people have" is exactly what a regex cannot do. Recency and
+  // concreteness stay with the deterministic side, because those are facts
+  // about the post rather than readings of it.
+  let intent = posts.outcome.status === 'ok' ? readIntent(posts.posts) : null
+  if (intent && intent.all.length) {
+    const verdict = await classifyIntent(posts.posts)
+    if (verdict) {
+      const top = intent.all[0]
+      // Keep the deterministic multipliers, swap the stance. A model that
+      // disagrees downward matters as much as one that disagrees upward: most
+      // of its corrections turn hot air back into commentary.
+      const ratio = STANCE_VALUE[verdict.stance] / Math.max(STANCE_VALUE[top.stance], 1)
+      const rescored = Math.round(top.score * ratio * (verdict.confidence === 'low' ? 0.7 : 1))
+      intent = {
+        ...intent,
+        stance: rescored > 0 ? verdict.stance : null,
+        score: Math.max(0, Math.min(100, rescored)),
+        evidence: rescored > 0 ? verdict.quote : null,
+        summary: rescored > 0
+          ? `${STANCE_LABEL[verdict.stance]}${verdict.reason ? ` — ${verdict.reason}` : ''}`
+          : null,
+        all: intent.all.map((e, i) => (i === 0
+          ? { ...e, stance: verdict.stance, quote: verdict.quote, score: rescored }
+          : e)),
+      }
+    }
+  }
+
   return {
     facts, judgment, sources: web.sources, outcomes,
     summary: summarise(outcomes), hasEvidence,
     profileKeys: li.profile?.raw ? Object.keys(li.profile.raw).sort() : [],
     postKeys: posts.keys,
-    intent: posts.outcome.status === 'ok' ? readIntent(posts.posts) : null,
+    intent,
   }
 }
 

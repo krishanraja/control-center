@@ -150,3 +150,60 @@ test('the ladder is ordered the way the comment claims it is', () => {
   assert.ok(STANCE_VALUE.teaching > STANCE_VALUE.commenting)
   assert.ok(STANCE_VALUE.commenting > STANCE_VALUE.selling)
 })
+
+// ── Regressions from the first live run ────────────────────────────────────
+// These are real posts, lightly trimmed, that the first pattern classifier
+// called "struggling with AI" and put at 95 out of 100. They are the reason
+// the model layer exists, and the pattern layer must not produce them either,
+// because it is still the fallback whenever the model is unavailable.
+
+test('a narrative use of struggle is not an AI problem', () => {
+  const s = readIntent([post(
+    "Sure, in my 20s I was sad I'd just missed that era, but because of it, we've been struggling with a certain image. Anyway, AI is everywhere now.",
+  )], NOW)
+  assert.notEqual(s.stance, 'struggling')
+})
+
+test('writing about the fact that people struggle is commentary', () => {
+  const s = readIntent([post(
+    "Building with AI is actually much harder than it looks, and that's worth saying out loud so that anyone currently assuming they're the only one struggling knows they are not.",
+  )], NOW)
+  assert.notEqual(s.stance, 'struggling')
+})
+
+test('a job ad that mentions hard problems is hiring, not struggling', () => {
+  const s = readIntent([post(
+    "We're hiring an AI engineer. If you like messy technical problems and building across agents, evals and post-training, we'd love to talk.",
+  )], NOW)
+  assert.equal(s.stance, 'hiring')
+})
+
+test('a success story is not a live problem, however hard it was', () => {
+  const s = readIntent([post(
+    "I used Claude Code across the whole process, from researching hundreds of sources and structuring messy information to designing, coding, testing and debugging. Here's how we did it.",
+  )], NOW)
+  assert.notEqual(s.stance, 'struggling')
+})
+
+test('an industry take about AI discourse is commentary', () => {
+  const s = readIntent([post(
+    "The problem isn't that nobody is sounding the alarm about AI, it's that every warning is treated as an isolated controversy.",
+  )], NOW)
+  assert.equal(s.stance, 'commenting')
+})
+
+test('rhetoric about AI is not a problem with AI', () => {
+  const s = readIntent([post("Yet somehow we're stuck comparing AI to almonds atm??")], NOW)
+  assert.notEqual(s.stance, 'struggling')
+})
+
+// And the true positive this must keep catching.
+test('a real live problem still reads as one', () => {
+  const s = readIntent([post(
+    "Three months in and our RAG pipeline still can't stop hallucinating on customer docs. We're stuck.",
+  )], NOW)
+  assert.equal(s.stance, 'struggling')
+  // 85 for the stance, full marks for first person, discounted for carrying no
+  // number or named tool. The band is honest rather than flattering.
+  assert.ok(s.score > 60, `scored ${s.score}`)
+})
