@@ -277,7 +277,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     updated_at: now,
     dossier: {
       pass5_meeting_weapon: { who_they_are: judgment?.who || null, why_them: judgment?.why_them || null, hook: judgment?.hook || null },
-      _direct: { sources: result.sources, facts, providers: result.summary, profile_keys: result.profileKeys, at: now },
+      _direct: { sources: result.sources, facts, providers: result.summary, profile_keys: result.profileKeys, post_keys: result.postKeys, at: now },
     },
   }
   if (!c.title && facts.title) patch.title = facts.title

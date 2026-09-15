@@ -92,6 +92,8 @@ export interface EnrichResult {
    *  we had stopped reading it. Keys are cheap, they are not personal data, and
    *  they make provider drift visible without a deploy to find out. */
   profileKeys: string[]
+  /** The field names the posts actor returned. See LinkedInPosts.keys. */
+  postKeys: string[]
   /** What this person has been publishing, and whether it is a reason to talk
    *  to them now. Null when posts were not requested or could not be read —
    *  which is NOT the same as a score of zero, and must not be stored as one. */
@@ -456,7 +458,7 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
   // inside a 60s function budget.
   const postsP = opts.withPosts && opts.useApify && input.linkedinUrl
     ? linkedInPosts(input.linkedinUrl)
-    : Promise.resolve({ posts: [], outcome: skipped('apify'), tried: [] })
+    : Promise.resolve({ posts: [], outcome: skipped('apify'), tried: [], keys: [] as string[] })
 
   const [li, posts, pdl, apollo, web] = await Promise.all([
     apifyP,
@@ -511,6 +513,7 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     facts, judgment, sources: web.sources, outcomes,
     summary: summarise(outcomes), hasEvidence,
     profileKeys: li.profile?.raw ? Object.keys(li.profile.raw).sort() : [],
+    postKeys: posts.keys,
     intent: posts.outcome.status === 'ok' ? readIntent(posts.posts) : null,
   }
 }

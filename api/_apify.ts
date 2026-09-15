@@ -324,6 +324,12 @@ export async function linkedInPosts(profileUrl: string, limit = 10, source = 'ne
   posts: LinkedInPost[]
   outcome: ProviderOutcome
   tried: ActorAttempt[]
+  /** The field names the posts actor returned, never the values. Same reason
+   *  the profile actor records them: the first run came back with eight posts
+   *  and no parseable date on any of them, and a post that cannot be dated
+   *  cannot be called recent, which makes the whole intent signal structurally
+   *  zero. Keys say whether the field is missing or merely misnamed. */
+  keys: string[]
 }> {
   const run = await runActor({
     taskCategory: 'linkedin_profile_posts',
@@ -340,7 +346,7 @@ export async function linkedInPosts(profileUrl: string, limit = 10, source = 'ne
     source,
   })
 
-  if (run.outcome.status !== 'ok') return { posts: [], outcome: run.outcome, tried: run.tried }
+  if (run.outcome.status !== 'ok') return { posts: [], outcome: run.outcome, tried: run.tried, keys: [] }
 
   // Post actors disagree about field names as much as profile actors do, and
   // the date matters more here than anywhere else: an undated post cannot be
@@ -355,5 +361,10 @@ export async function linkedInPosts(profileUrl: string, limit = 10, source = 'ne
     }
   }).filter(p => p.text)
 
-  return { posts, outcome: posts.length ? run.outcome : empty('apify', 'posts actor returned no readable posts'), tried: run.tried }
+  return {
+    posts,
+    outcome: posts.length ? run.outcome : empty('apify', 'posts actor returned no readable posts'),
+    tried: run.tried,
+    keys: Object.keys((run.items[0] || {}) as Record<string, unknown>).sort(),
+  }
 }
