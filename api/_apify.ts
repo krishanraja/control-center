@@ -194,6 +194,20 @@ export interface LinkedInProfile {
  *  whose `required_input_shape` in the registry is {"profileUrls": []}. */
 const PROFILE_FALLBACKS = ['dev_fusion/linkedin-profile-scraper']
 
+/** Counts as actors actually emit them: a number, "12,345", or "1.2K".
+ *  Returns undefined rather than 0 for anything unparseable, because a hub
+ *  score of zero and "we never learned" are different claims. */
+export function parseCount(v: unknown): number | undefined {
+  if (typeof v === 'number') return Number.isFinite(v) ? Math.round(v) : undefined
+  if (typeof v !== 'string') return undefined
+  const m = v.trim().replace(/,/g, '').match(/^([\d.]+)\s*([KkMm])?/)
+  if (!m) return undefined
+  const n = Number(m[1])
+  if (!Number.isFinite(n)) return undefined
+  const mult = m[2] ? (m[2].toLowerCase() === 'k' ? 1_000 : 1_000_000) : 1
+  return Math.round(n * mult)
+}
+
 function str(v: unknown): string | undefined {
   const s = typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : ''
   return s || undefined
@@ -246,8 +260,13 @@ export async function linkedInProfile(profileUrl: string, source = 'network-add-
     title: str(d.jobTitle) || positions[0]?.title,
     location: str(d.addressWithCountry) || str(d.location) || str(d.geoLocationName) || str(d.locationName),
     publicIdentifier: str(d.publicIdentifier) || str(d.username),
-    followerCount: typeof d.followers === 'number' ? d.followers
-      : typeof d.followerCount === 'number' ? d.followerCount : undefined,
+    // Followers is the one field here that was read strictly while every other
+    // field probed spellings, and it cost us the signal: 22 profiles enriched
+    // through this actor, Alexis Ohanian among them, all came back with no
+    // follower count at all. Actors return it as "12,345", as "1.2K", and under
+    // four different key names. It is the hub term in the ranker, so it is
+    // parsed as defensively as everything else on this row.
+    followerCount: parseCount(d.followers) ?? parseCount(d.followerCount) ?? parseCount(d.followersCount) ?? parseCount(d.followersCountText),
     experience: positions,
     skills: (Array.isArray(d.skills) ? d.skills : [])
       .map((s: unknown) => (typeof s === 'string' ? s : str((s as Record<string, unknown>)?.title)))
