@@ -46,6 +46,13 @@ export interface NetworkResult {
    *  what thin_evidence is now derived from. */
   followers: number | null
   completeness: number
+  /** What this person is publishing about, and whether it is live. NULL score
+   *  means posts were never read; 0 means read and nothing there. The two are
+   *  different claims and the row says so. */
+  intent_score: number | null
+  intent_topics: string[] | null
+  intent_summary: string | null
+  last_post_at: string | null
   who: string | null
   why_them: string | null
   hook: string | null

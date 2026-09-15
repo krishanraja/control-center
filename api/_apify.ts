@@ -185,6 +185,16 @@ export interface LinkedInProfile {
   location?: string
   publicIdentifier?: string
   followerCount?: number
+  /** Hub markers. The registered profile actor returns no follower or
+   *  connection count at all — confirmed against its own field list on 45
+   *  enriched profiles — so these are what stands in for reach. LinkedIn grants
+   *  the influencer badge sparingly and the creator flag marks people who
+   *  actually publish, which is closer to "is this person a node" than a raw
+   *  follower number anyway. */
+  isInfluencer?: boolean
+  isCreator?: boolean
+  recommendationsReceived?: number
+  experienceCount?: number
   experience: { title?: string; company?: string; dates?: string }[]
   skills: string[]
   raw: Record<string, unknown>
@@ -267,6 +277,10 @@ export async function linkedInProfile(profileUrl: string, source = 'network-add-
     // four different key names. It is the hub term in the ranker, so it is
     // parsed as defensively as everything else on this row.
     followerCount: parseCount(d.followers) ?? parseCount(d.followerCount) ?? parseCount(d.followersCount) ?? parseCount(d.followersCountText),
+    isInfluencer: d.isInfluencer === true,
+    isCreator: d.isCreator === true,
+    recommendationsReceived: parseCount(d.totalRecommendationsReceived),
+    experienceCount: parseCount(d.experiencesCount) ?? (positions.length || undefined),
     experience: positions,
     skills: (Array.isArray(d.skills) ? d.skills : [])
       .map((s: unknown) => (typeof s === 'string' ? s : str((s as Record<string, unknown>)?.title)))
@@ -284,3 +298,62 @@ export async function linkedInProfile(profileUrl: string, source = 'network-add-
 
 /** Exported for the error path in callers that want a uniform shape. */
 export const apifyError = (detail: string): ProviderOutcome => errored('apify', detail)
+
+// ── LinkedIn posts ──────────────────────────────────────────────────────────
+
+export interface LinkedInPost {
+  text?: string | null
+  postedAt?: string | null
+  url?: string | null
+}
+
+/** Registered primary: harvestapi/linkedin-profile-posts, whose
+ *  required_input_shape in the registry is {"targetUrls": []}. */
+const POSTS_FALLBACKS = ['harvestapi/linkedin-profile-posts']
+
+/** Read a person's recent public posts.
+ *
+ *  Separate from linkedInProfile because it is a separate paid actor run and
+ *  because it is worth doing for far fewer people: what someone published last
+ *  month is a reason to message them, and that only matters for people Krish
+ *  would actually message. The caller decides who; this just reads.
+ *
+ *  maxItems is small on purpose. Intent lives in the last handful of posts, and
+ *  every extra item is charged for. */
+export async function linkedInPosts(profileUrl: string, limit = 10, source = 'network-enrich-person'): Promise<{
+  posts: LinkedInPost[]
+  outcome: ProviderOutcome
+  tried: ActorAttempt[]
+}> {
+  const run = await runActor({
+    taskCategory: 'linkedin_profile_posts',
+    fallbackSlugs: POSTS_FALLBACKS,
+    buildInput: (_slug, shape) => {
+      if (shape && typeof shape === 'object') {
+        const key = Object.keys(shape).find(k => /targeturls?|profileurls?|urls?/i.test(k))
+        if (key) return { [key]: [profileUrl], maxPosts: limit }
+      }
+      return { targetUrls: [profileUrl], maxPosts: limit }
+    },
+    timeoutSec: 45,
+    maxItems: limit,
+    source,
+  })
+
+  if (run.outcome.status !== 'ok') return { posts: [], outcome: run.outcome, tried: run.tried }
+
+  // Post actors disagree about field names as much as profile actors do, and
+  // the date matters more here than anywhere else: an undated post cannot be
+  // called recent, and recency is the entire value of this signal.
+  const posts: LinkedInPost[] = run.items.slice(0, limit).map(raw => {
+    const d = (raw || {}) as Record<string, any>
+    return {
+      text: str(d.text) || str(d.content) || str(d.postText) || str(d.commentary) || null,
+      postedAt: str(d.postedAt) || str(d.postedDate) || str(d.publishedAt) || str(d.date)
+        || str(d.postedAtISO) || str(d.time) || null,
+      url: str(d.url) || str(d.postUrl) || str(d.link) || null,
+    }
+  }).filter(p => p.text)
+
+  return { posts, outcome: posts.length ? run.outcome : empty('apify', 'posts actor returned no readable posts'), tried: run.tried }
+}

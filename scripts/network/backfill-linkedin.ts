@@ -46,6 +46,7 @@
 //   npx tsx scripts/network/backfill-linkedin.ts --limit 50 --commit
 //   npx tsx scripts/network/backfill-linkedin.ts --limit 200 --commit --use-apify
 //   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 50 --commit --use-apify
+//   npx tsx scripts/network/backfill-linkedin.ts --mode profiles --limit 50 --commit --use-apify --posts
 //
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CC_BASE_URL, ACCESS_CODE.
 
@@ -67,6 +68,10 @@ const COMMIT = args.includes('--commit')
 // Off by default. Every Apify run is a paid actor invocation, and a 200-person
 // batch with it on is a bill nobody approved in advance.
 const USE_APIFY = args.includes('--use-apify')
+// A second paid actor run per person, so it is opt-in. Worth it for people
+// Krish would actually message and wasted on the cold tail: what a scraped lead
+// posted last month is not a reason to do anything.
+const WITH_POSTS = args.includes('--posts')
 const modeArg = args.indexOf('--mode')
 const MODE = modeArg >= 0 && args[modeArg + 1] === 'profiles' ? 'profiles' : 'urls'
 const limitArg = args.indexOf('--limit')
@@ -152,7 +157,7 @@ async function main() {
   console.log(MODE === 'profiles'
     ? `\nunread profiles: ${gap ?? '?'} contacts hold a URL nobody has read`
     : `\nnetwork LinkedIn gap: ${gap ?? '?'} contacts with no profile URL`)
-  console.log(`this batch: ${people.length} (limit ${LIMIT}, apify ${USE_APIFY ? 'ON — paid' : 'off'})`)
+  console.log(`this batch: ${people.length} (limit ${LIMIT}, apify ${USE_APIFY ? 'ON — paid' : 'off'}${WITH_POSTS ? ', posts ON — second paid run each' : ''})`)
   const byTier = new Map<string, number>()
   for (const p of people) byTier.set(p.consent_tier, (byTier.get(p.consent_tier) || 0) + 1)
   for (const t of TIER_ORDER) if (byTier.get(t)) console.log(`  ${t.padEnd(14)} ${byTier.get(t)}`)
@@ -167,11 +172,12 @@ async function main() {
   // Providers that refused while the run still produced something. Counted and
   // reported once at the end rather than shouted per person.
   const degradedBy = new Map<string, number>()
+  let intent = 0
   for (const p of people) {
     const r = await fetch(`${BASE}/api/network/enrich-person`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: accessCookie() },
-      body: JSON.stringify({ contact_id: p.id, use_apify: USE_APIFY, skip_web: true }),
+      body: JSON.stringify({ contact_id: p.id, use_apify: USE_APIFY, skip_web: true, with_posts: WITH_POSTS }),
     })
     const j: any = await r.json().catch(() => null)
     ran++
@@ -201,11 +207,19 @@ async function main() {
     // that it ran and this run is only worth anything if a fact landed.
     if (MODE === 'profiles') {
       const { data } = await sb.from('contact_intelligence')
-        .select('completeness, followers, headline').eq('contact_id', p.id).single()
-      const d = data as { completeness?: number; followers?: number; headline?: string } | null
+        .select('completeness, followers, headline, intent_score, intent_topics')
+        .eq('contact_id', p.id).single()
+      const d = data as {
+        completeness?: number; followers?: number; headline?: string
+        intent_score?: number | null; intent_topics?: string[] | null
+      } | null
       if (d && (d.followers != null || d.headline)) {
         resolved++
-        console.log(`  ✓ ${p.full_name} — completeness ${d.completeness ?? '?'}`)
+        if ((d.intent_score ?? 0) > 0) intent++
+        const flag = (d.intent_score ?? 0) > 0
+          ? ` — posting about ${(d.intent_topics || []).slice(0, 2).join(', ')}`
+          : ''
+        console.log(`  ✓ ${p.full_name} — completeness ${d.completeness ?? '?'}${flag}`)
       } else console.log(`  · ${p.full_name} — read, nothing usable came back`)
     } else {
       const { data } = await sb.from('contacts').select('linkedin_url').eq('id', p.id).single()
@@ -219,6 +233,7 @@ async function main() {
     : `\n${resolved}/${ran} resolved to a real LinkedIn URL.`)
   if (MODE === 'urls') console.log(`${ran - resolved} keep the search fallback, which still works.`)
   for (const [api, n] of degradedBy) console.log(`${api} refused on ${n} of them; the rest of the providers covered it.`)
+  if (WITH_POSTS) console.log(`${intent} of them are posting about AI right now.`)
   if (MODE === 'profiles') console.log('Run scripts/network/reembed-stale.ts afterwards, or none of this reaches search.')
   console.log('Report the cost of this batch before running the next one.')
 }

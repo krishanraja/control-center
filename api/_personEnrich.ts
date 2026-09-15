@@ -1,7 +1,8 @@
 import { callClaude } from './_content.js'
 import { embed } from './_embeddings.js'
-import { linkedInProfile, type LinkedInProfile } from './_apify.js'
+import { linkedInProfile, linkedInPosts, type LinkedInProfile } from './_apify.js'
 import { logApiCall } from './_alert.js'
+import { readIntent, type IntentSignal } from './_intent.js'
 import {
   outcomeFrom, skipped, empty, errored, ok,
   summarise, type OutcomeSummary, type ProviderOutcome,
@@ -47,6 +48,12 @@ export interface PersonFacts {
   about?: string
   linkedinUrl?: string
   followerCount?: number
+  /** Hub markers from the profile page, used where a follower count does not
+   *  exist. See LinkedInProfile for why the registered actor has none. */
+  isInfluencer?: boolean
+  isCreator?: boolean
+  recommendationsReceived?: number
+  experienceCount?: number
   career: { title?: string; company?: string; dates?: string }[]
   skills: string[]
   /** Providers that actually contributed a fact, for contact_intelligence.source_list. */
@@ -85,6 +92,10 @@ export interface EnrichResult {
    *  we had stopped reading it. Keys are cheap, they are not personal data, and
    *  they make provider drift visible without a deploy to find out. */
   profileKeys: string[]
+  /** What this person has been publishing, and whether it is a reason to talk
+   *  to them now. Null when posts were not requested or could not be read —
+   *  which is NOT the same as a score of zero, and must not be stored as one. */
+  intent: IntentSignal | null
 }
 
 const ROLE_VOCAB = ['buyer', 'partner', 'introducer', 'guest', 'operator_peer', 'investor', 'hire', 'none']
@@ -336,6 +347,10 @@ function mergeFacts(
     about: li?.about,
     linkedinUrl: pick(input.linkedinUrl ?? undefined, li?.publicIdentifier ? `https://www.linkedin.com/in/${li.publicIdentifier}` : undefined, pdl.linkedinUrl, apollo.linkedinUrl),
     followerCount: li?.followerCount,
+    isInfluencer: li?.isInfluencer,
+    isCreator: li?.isCreator,
+    recommendationsReceived: li?.recommendationsReceived,
+    experienceCount: li?.experienceCount,
     career,
     skills,
     sourceList: contributors,
@@ -415,6 +430,11 @@ export interface EnrichOptions {
   useApify?: boolean
   /** Skip web research (Perplexity/Exa/Brave) — faster, cheaper. */
   skipWeb?: boolean
+  /** Also read the person's recent LinkedIn posts. A second paid actor run, so
+   *  it is opt-in per person rather than on by default: what someone published
+   *  last month is a reason to message them, which only matters for people the
+   *  operator would actually message. */
+  withPosts?: boolean
   timeoutMs?: number
 }
 
@@ -431,8 +451,16 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     ? linkedInProfile(input.linkedinUrl)
     : Promise.resolve({ profile: null, outcome: skipped('apify'), tried: [] })
 
-  const [li, pdl, apollo, web] = await Promise.all([
+  // Posts run in parallel with the profile rather than after it: they are two
+  // independent actors and serialising them would put a second 45s timeout
+  // inside a 60s function budget.
+  const postsP = opts.withPosts && opts.useApify && input.linkedinUrl
+    ? linkedInPosts(input.linkedinUrl)
+    : Promise.resolve({ posts: [], outcome: skipped('apify'), tried: [] })
+
+  const [li, posts, pdl, apollo, web] = await Promise.all([
     apifyP,
+    postsP,
     peopleDataLabs(input),
     apolloPerson(input),
     opts.skipWeb
@@ -440,6 +468,10 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
       : webResearch(query),
   ])
 
+  // The posts outcome is recorded but deliberately NOT counted as a
+  // contributor: a person with nothing to say is not thereby enriched, and
+  // letting an empty posts read satisfy hasEvidence would mark records complete
+  // on the strength of silence.
   const outcomes: ProviderOutcome[] = [li.outcome, pdl.outcome, apollo.outcome, ...web.outcomes]
   const contributors = outcomes.filter(o => o.status === 'ok').map(o => o.api)
   const facts = mergeFacts(input, li.profile, pdl.fields, apollo.fields, contributors)
@@ -479,6 +511,7 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     facts, judgment, sources: web.sources, outcomes,
     summary: summarise(outcomes), hasEvidence,
     profileKeys: li.profile?.raw ? Object.keys(li.profile.raw).sort() : [],
+    intent: posts.outcome.status === 'ok' ? readIntent(posts.posts) : null,
   }
 }
 

@@ -39,6 +39,9 @@ interface Body {
   use_apify?: boolean
   /** Skip Perplexity/Exa/Brave — faster and cheaper when the profile is enough. */
   skip_web?: boolean
+  /** Also read recent LinkedIn posts and derive the intent signal. A second
+   *  paid actor run per person. */
+  with_posts?: boolean
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -95,6 +98,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }, {
       useApify: b.use_apify !== false,
       skipWeb: b.skip_web === true,
+      // Off unless asked. A second paid actor run per person, and only worth it
+      // for people Krish would actually message.
+      withPosts: b.with_posts === true,
       // Leave headroom inside the 60s ceiling for the embedding and two writes.
       timeoutMs: 25000,
     })
@@ -233,6 +239,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     experience_count: facts.career.length || null,
     enriched_source: facts.sourceList.join(',') || null,
     enriched_at: now,
+
+    // Hub markers, used where a follower count does not exist. The registered
+    // profile actor returns none — confirmed against its own field list across
+    // 45 enrichments — so reach is read from the badges LinkedIn does expose.
+    is_influencer: facts.isInfluencer ?? null,
+    is_creator: facts.isCreator ?? null,
+    recommendations_received: facts.recommendationsReceived ?? null,
+  }
+
+  // Intent is written only when posts were actually read. A null score means
+  // "never looked", a zero means "looked and there was nothing there", and
+  // collapsing those two would let a person who has never been checked look
+  // like a person with nothing to say.
+  if (result.intent) {
+    intelRow.intent_score = result.intent.score
+    intelRow.intent_topics = result.intent.topics.length ? result.intent.topics : null
+    intelRow.intent_summary = result.intent.summary
+    intelRow.last_post_at = result.intent.lastPostAt
+    intelRow.posts_checked_at = now
   }
   if (vector) intelRow.embedding = vectorLiteral(vector)
 
@@ -287,6 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     network_tier: tier,
     used: result.summary.used,
     skipped: result.summary.skipped,
+    intent: result.intent,
     // Reported even on the happy path: "ran and found nothing" is information
     // the operator should have before trusting a thin brief.
     degraded: result.summary.degraded,
