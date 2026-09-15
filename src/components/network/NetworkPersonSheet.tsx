@@ -103,7 +103,14 @@ export function NetworkPersonSheet({ person, onClose }: {
     first_met_context: detail?.contact?.first_met_context ?? person.first_met_context,
   })
 
-  const sub = [person.title, person.company].filter(Boolean).join(' · ')
+  // Enrichment wins over import. current_title and current_company were read off
+  // the profile; person.title and person.company come from contacts, which is
+  // whatever the sheet or lead file said whenever it was written. Showing the
+  // stale pair while holding the fresh one is the exact failure ADR-022 was
+  // about, one layer up.
+  const intel = detail?.intelligence as { current_title?: string | null; current_company?: string | null } | undefined
+  const sub = [intel?.current_title || person.title, intel?.current_company || person.company]
+    .filter(Boolean).join(' · ')
   const place = person.geo_code ? geoLabel(person.geo_code, person.country || undefined) : null
 
   const copy = async (text: string) => {
@@ -184,7 +191,13 @@ export function NetworkPersonSheet({ person, onClose }: {
           )}
         </div>
 
-        {/* Judgment. Why this person, and what to open with. */}
+        {/* Judgment. Why this person, and what to open with.
+            Rendered only when there is something to say: every child here is
+            conditional, so an unenriched person used to draw a bare divider
+            with padding and nothing beneath it. */}
+        {(person.why_match || person.why_them || person.who || person.move || person.hook
+          || person.risk || person.thin_evidence
+          || ((person.intent_score ?? 0) > 0 && person.intent_evidence)) && (
         <div className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
           {(person.why_match || person.why_them) && (
             <p className="text-body leading-relaxed text-white/80">{person.why_match || person.why_them}</p>
@@ -192,9 +205,14 @@ export function NetworkPersonSheet({ person, onClose }: {
           {person.who && person.who !== person.why_them && (
             <p className="text-label leading-relaxed text-white/50">{person.who}</p>
           )}
-          {person.hook && (
+          {/* Same precedence the row uses one line down: `move` is the explain
+              pass answering "so how do I open THIS conversation", `hook` is the
+              stored generic. Rendering only the hook meant opening a row
+              DOWNGRADED the opening line from the query-specific move back to
+              the generic one. */}
+          {(person.move || person.hook) && (
             <p className="text-label leading-relaxed text-white/60">
-              <span className="text-white/30">Open with</span> {person.hook}
+              <span className="text-white/30">Open with</span> {person.move || person.hook}
             </p>
           )}
           {person.risk && (
@@ -215,10 +233,19 @@ export function NetworkPersonSheet({ person, onClose }: {
               them: the row makes a claim, and here is the sentence it made it
               from. Krish can disagree with the classifier in one glance, which
               he cannot do with a score. */}
-          {(person.intent_score ?? 0) > 0 && person.intent_evidence && (
+          {/* Gated on stance the same way the row is. Without it a person whose
+              stance is `selling` — a vendor, never a buyer — got a green panel
+              here that the row deliberately suppresses. */}
+          {(person.intent_score ?? 0) > 0 && person.intent_stance
+            && person.intent_stance !== 'selling' && person.intent_evidence && (
             <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/[0.07] px-3 py-2">
               <p className="text-micro uppercase tracking-wide text-emerald-300/70">
                 {person.intent_summary || 'Recent activity'}
+                {/* The card asserts this is recent, so it says WHEN. Claiming
+                    freshness without showing a date is asking to be trusted. */}
+                {person.last_post_at && (
+                  <span className="text-emerald-300/45"> · {new Date(person.last_post_at).toLocaleDateString()}</span>
+                )}
               </p>
               <p className="mt-1 text-label italic leading-relaxed text-white/80">
                 &ldquo;{person.intent_evidence}&rdquo;
@@ -236,6 +263,7 @@ export function NetworkPersonSheet({ person, onClose }: {
             </div>
           )}
         </div>
+        )}
 
         {/* What you can change. The edits wait for the detail fetch because
             venture and status live on the contact row, not on the search
