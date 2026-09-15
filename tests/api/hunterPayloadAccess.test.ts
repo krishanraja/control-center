@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mayRead, sameSecret } from '../../src/lib/hunterPayloadAccess.ts'
+import { mayRead, sameSecret, verdict } from '../../src/lib/hunterPayloadAccess.ts'
 
 // The payload carries Krish's CV and every answer he gave on one application.
 // These are the ways in that must stay shut.
@@ -52,4 +52,21 @@ test('sameSecret is length safe in both directions', () => {
   assert.equal(sameSecret('abc', 'abc'), true)
   assert.equal(sameSecret('abc', 'abcd'), false)
   assert.equal(sameSecret('', ''), false)
+})
+
+test('the right key on a superseded application says so', () => {
+  // Krish opened an older email and got "the server said 404". Someone holding
+  // the right key IS the person the email was sent to, so telling them it was
+  // replaced gives nothing away.
+  assert.equal(verdict(row({ state: 'cancelled' }), KEY), 'superseded')
+  assert.equal(verdict(row({ state: 'submitted' }), KEY), 'superseded')
+})
+
+test('a wrong key on a superseded application still says nothing', () => {
+  assert.equal(verdict(row({ state: 'cancelled' }), 'f'.repeat(32)), 'no')
+  assert.equal(verdict(null, KEY), 'no')
+})
+
+test('a row with no payload never reveals its state', () => {
+  assert.equal(verdict(row({ state: 'cancelled', fill_payload: null }), KEY), 'no')
 })

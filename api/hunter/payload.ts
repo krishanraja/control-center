@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { mayRead } from '../../src/lib/hunterPayloadAccess.js'
+import { verdict } from '../../src/lib/hunterPayloadAccess.js'
 
 // What the Hunter browser extension fetches to fill one application.
 //
@@ -45,7 +45,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // One answer for every failure: a wrong key, an unknown token and a token
   // that has been cancelled all read the same from outside, so this cannot be
   // used to find out which applications exist.
-  if (error || !mayRead(data, key)) {
+  const allowed = error ? 'no' : verdict(data, key)
+  if (allowed === 'superseded') {
+    return res.status(410).json({
+      error: 'superseded',
+      message: 'This application was replaced by a newer one. Open the most '
+        + 'recent email for this role and press the button there.',
+    })
+  }
+  if (allowed !== 'ok') {
     return res.status(404).json({ error: 'not found' })
   }
 

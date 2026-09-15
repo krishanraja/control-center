@@ -30,8 +30,20 @@ export function sameSecret(a: string, b: string): boolean {
 // application and one with no payload all read the same from outside, so this
 // cannot be used to find out which applications exist.
 export function mayRead(row: ApprovalRow, key: string): boolean {
-  if (!row) return false
-  if (!sameSecret(String(row.open_key || ''), key)) return false
-  if (!OPEN_STATES.includes(String(row.state))) return false
-  return Boolean(row.fill_payload)
+  return verdict(row, key) === 'ok'
+}
+
+// Someone holding the right key for a superseded application is the person the
+// email was sent to, not a stranger probing for job ids, so telling them it was
+// superseded gives nothing away and saves them a bare 404 on a link they were
+// told to press. Krish opened an older email and got "the server said 404".
+// Every OTHER failure stays indistinguishable.
+export type Verdict = 'ok' | 'superseded' | 'no'
+
+export function verdict(row: ApprovalRow, key: string): Verdict {
+  if (!row) return 'no'
+  if (!sameSecret(String(row.open_key || ''), key)) return 'no'
+  if (!row.fill_payload) return 'no'
+  if (OPEN_STATES.includes(String(row.state))) return 'ok'
+  return 'superseded'
 }
