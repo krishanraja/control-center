@@ -153,7 +153,24 @@ jobs:
       # Behaviour tests for the pure halves of the content-to-production
       # bridge and the run ledger. The structural guards above assert that
       # lines exist; these assert what the functions do.
+      #
+      # The two fake credentials are what makes the job honest rather than green.
+      # api/_supabase.ts throws at MODULE LOAD when they are absent, so any test
+      # file whose import graph reaches it dies before a single assertion runs,
+      # and node:test reports that as one failed subtest per file. Two files hit
+      # it, apifyCounts and postedAt, and the whole job went red while the rest
+      # of the suite passed, which reads like a broken test rather than a missing
+      # variable.
+      #
+      # These values are deliberately not secrets and are never reached: every
+      # test here exercises a pure function, and a real request with them would
+      # fail. The deeper fix is for that module to throw on first USE rather than
+      # on import, which would make every route testable without it; that is a
+      # change to every route's module graph and does not belong in this commit.
       - run: npx tsx --test tests/api/*.test.ts
+        env:
+          SUPABASE_URL: https://ci.invalid
+          SUPABASE_SERVICE_ROLE_KEY: not-a-real-key-tests-never-call-out
       # Krish's own builds as Content Engine supply: five named products,
       # everything else anonymous, no figure in a Money of AI candidate, one
       # source type declared in three places, the Saturday cron wired.
