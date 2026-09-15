@@ -104,7 +104,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── The credit wall ──────────────────────────────────────────────────────
-  if (result.summary.blocked.length) {
+  //
+  // It closes only when the run has nothing to show for itself. A provider that
+  // refused AND left no evidence behind is the case this was written for: stop,
+  // alert, write nothing, re-run after the top-up.
+  //
+  // A provider that refused while OTHERS answered is a different thing, and
+  // treating it the same was costing real money. Measured on the first profile
+  // batch: Apollo's key had been revoked, Apify and PDL both ran and returned a
+  // full profile, and the route threw all of it away and marked the contact
+  // blocked_quota. Every person in that batch would have been a paid Apify call
+  // whose result was discarded, repeatedly, for a provider this enrichment did
+  // not need. The alert still fires either way, so the bad key is still visible;
+  // what changes is that evidence already paid for gets written.
+  if (result.summary.blocked.length && !result.hasEvidence) {
     await supabase.from('contacts').update({ enrichment_status: 'blocked_quota' }).eq('id', id)
     const alert = await raiseQuotaAlert({
       blocked: result.summary.blocked,
@@ -203,6 +216,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     name_quality: name.trim().includes(' ') ? 'full' : 'partial',
     intel_doc: intelDoc || null,
     updated_at: now,
+
+    // The typed enrichment columns (20260915140000, ADR-022). Without these the
+    // facts this route just paid for exist only inside the dossier jsonb, where
+    // nothing ranks on them, the completeness score cannot see them, and a
+    // profiles backfill selecting on enriched_at would buy the same person's
+    // profile again on every run.
+    //
+    // followers, not connections_count: LinkedIn caps the latter at 500 for its
+    // "500+" display, so everyone consequential reports the same figure.
+    followers: facts.followerCount ?? null,
+    headline: facts.headline || null,
+    summary: facts.about ? facts.about.slice(0, 2000) : null,
+    current_title: facts.title || null,
+    current_company: facts.company || null,
+    experience_count: facts.career.length || null,
+    enriched_source: facts.sourceList.join(',') || null,
+    enriched_at: now,
   }
   if (vector) intelRow.embedding = vectorLiteral(vector)
 
@@ -231,10 +261,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!c.linkedin_url && facts.linkedinUrl) patch.linkedin_url = facts.linkedinUrl
   await supabase.from('contacts').update(patch).eq('id', id)
 
+  // The alert the credit wall used to raise. It still fires when a provider
+  // refused: a revoked key is worth knowing about even on a run that succeeded
+  // without that provider. What it no longer does is discard the run.
+  const degradedAlert = result.summary.blocked.length
+    ? await raiseQuotaAlert({
+        blocked: result.summary.blocked,
+        subject: `${name}${c.company ? ` (${c.company})` : ''} — enriched without ${result.summary.blocked.map(b => b.api).join(', ')}`,
+        source: 'network-enrich-person',
+      })
+    : null
+
   return res.status(200).json({
     ok: true,
     contact_id: id,
-    status: 'enriched',
+    status: result.summary.blocked.length ? 'enriched_degraded' : 'enriched',
+    blocked: result.summary.blocked,
+    alert: result.summary.blocked.length ? blockedMessage(result.summary.blocked) : undefined,
+    alert_sent: degradedAlert?.notified,
     searchable: Boolean(vector),
     who: judgment?.who || null,
     why_them: judgment?.why_them || null,
