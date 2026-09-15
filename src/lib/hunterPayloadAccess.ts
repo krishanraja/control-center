@@ -47,3 +47,34 @@ export function verdict(row: ApprovalRow, key: string): Verdict {
   if (OPEN_STATES.includes(String(row.state))) return 'ok'
   return 'superseded'
 }
+
+// Whether a press may be RECORDED, which is a different question from whether a
+// payload may be read, and must not borrow verdict()'s answer.
+//
+// verdict()'s 'superseded' means "not awaiting or approved", and that includes
+// 'cancelled'. A cancelled token is one approval.supersede() killed so a stale
+// APPROVE could not land later, for the one reason it is ever used: Krish asked
+// for the application to be amended. Recording a submit on it would flip it back
+// to submitted, archive the role off his Pipeline tab into Applied, and make
+// hunter skip the APPROVE he sends for the rebuilt application. The role would
+// read applied for a package he rejected, and never be hunted again.
+//
+//   record   mark it submitted
+//   already  it is already closed, so do nothing and say so. Pressing twice, or
+//            the employer's receipt landing first, is not an error
+//   gone     the right key on a token that is no longer open. He is the person
+//            the email went to, so he is told, exactly as a superseded read is
+//   no       indistinguishable from every other failure
+export type SubmitVerdict = 'record' | 'already' | 'gone' | 'no'
+
+export function maySubmit(
+  row: (ApprovalRow & { submitted_at?: string | null }) | null,
+  key: string,
+): SubmitVerdict {
+  if (!row) return 'no'
+  if (!sameSecret(String(row.open_key || ''), key)) return 'no'
+  // Before the state gate: a submitted row is itself outside OPEN_STATES.
+  if (row.submitted_at) return 'already'
+  if (!OPEN_STATES.includes(String(row.state))) return 'gone'
+  return 'record'
+}
