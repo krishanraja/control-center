@@ -34,6 +34,12 @@ export interface NetworkResult extends ScoreBreakdown {
   followers: number | null
   /** 0-100 record completeness. thin_evidence is derived from it. */
   completeness: number
+  /** What this person is publishing about, and whether it is live. NULL score
+   *  means posts were never read; 0 means read and nothing there. */
+  intent_score: number | null
+  intent_topics: string[] | null
+  intent_summary: string | null
+  last_post_at: string | null
   who: string | null
   why_them: string | null
   hook: string | null

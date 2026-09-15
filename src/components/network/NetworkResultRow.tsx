@@ -1,4 +1,4 @@
-import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin, Search } from '@/lib/icons'
+import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin, Search, Radio } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { geoLabel } from '../../hooks/useNetworkGeo'
@@ -80,12 +80,23 @@ export function NetworkResultRow({ r, onOpen, weak }: {
           <span className="truncate text-ui font-semibold text-white">{name}</span>
           <Badge variant={TIER_VARIANT[r.network_tier] || 'outline'}>{TIER_LABEL[r.network_tier] || r.network_tier}</Badge>
           {r.thin_evidence && (
-            // Never hidden, always labelled. rules_v1 means nobody read a
-            // profile: the title and company were pattern-matched and the rest
-            // is inference. Saying so is the difference between a ranked list
-            // and a confident wrong answer.
+            // Never hidden, always labelled. A record under 50 completeness has
+            // large gaps: typically nobody read a profile, so the title and
+            // company were pattern-matched and the rest is inference. Saying so
+            // is the difference between a ranked list and a confident wrong
+            // answer.
             <Badge variant="warning" className="gap-1">
               <AlertTriangle size={9} aria-hidden /> thin evidence
+            </Badge>
+          )}
+          {/* Intent. Shown only while it is live — the score already decays to
+              zero past a quarter, so this badge cannot describe someone's 2023
+              posts as a reason to call them today. It names the subject rather
+              than saying "active", because "posting about AI agents" is what
+              makes the next message write itself. */}
+          {(r.intent_score ?? 0) > 0 && r.intent_topics?.length && (
+            <Badge variant="success" className="gap-1" title={r.intent_summary || undefined}>
+              <Radio size={9} aria-hidden /> posting about {r.intent_topics.slice(0, 2).join(', ')}
             </Badge>
           )}
         </div>
