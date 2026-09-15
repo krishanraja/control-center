@@ -77,6 +77,14 @@ export interface EnrichResult {
    *  "nothing was blocked": a run where every key is unset is not blocked and
    *  is also not enrichment. */
   hasEvidence: boolean
+  /** The field names the profile actor actually returned, never the values.
+   *
+   *  Diagnostic, and it earned its place: 40 profiles enriched at an average
+   *  completeness of 86 and not one carried a follower count, and there was no
+   *  way to tell from here whether the actor had stopped returning the field or
+   *  we had stopped reading it. Keys are cheap, they are not personal data, and
+   *  they make provider drift visible without a deploy to find out. */
+  profileKeys: string[]
 }
 
 const ROLE_VOCAB = ['buyer', 'partner', 'introducer', 'guest', 'operator_peer', 'investor', 'hire', 'none']
@@ -467,7 +475,11 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     }
   }
 
-  return { facts, judgment, sources: web.sources, outcomes, summary: summarise(outcomes), hasEvidence }
+  return {
+    facts, judgment, sources: web.sources, outcomes,
+    summary: summarise(outcomes), hasEvidence,
+    profileKeys: li.profile?.raw ? Object.keys(li.profile.raw).sort() : [],
+  }
 }
 
 /** Embed the retrieval text, reporting WHY rather than returning a bare null.
