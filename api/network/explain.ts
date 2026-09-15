@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { data, error } = await supabase
       .from('contact_intelligence')
-      .select('contact_id, who, why_them, risk, roles, network_tier, intel_method, contacts(full_name, title, company)')
+      .select('contact_id, who, why_them, risk, roles, network_tier, completeness, contacts(full_name, title, company)')
       .in('contact_id', ids)
     if (error) throw new Error(error.message)
 
@@ -67,7 +67,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: c.full_name, title: c.title, company: c.company,
         tier: r.network_tier, roles: r.roles,
         who: r.who, why_them: r.why_them, risk: r.risk,
-        thin_evidence: r.intel_method === 'rules_v1',
+        // Same test network_search uses, for the same reason: thinness is a
+        // property of the record, not of the importer that wrote it. Keeping
+        // intel_method here told the model "no profile was ever read" about
+        // people we had just bought a full profile for.
+        thin_evidence: Number(r.completeness ?? 0) < 50,
       }
     })
 
