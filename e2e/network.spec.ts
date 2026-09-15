@@ -21,6 +21,10 @@ function person(i: number, over: Record<string, unknown> = {}) {
     title: 'Chief Marketing Officer',
     email: `p${i}@example.com`,
     linkedin_url: null,
+    twitter_handle: null,
+    origin_channel: 'community',
+    origin_campaign: 'ai_circle',
+    first_met_context: 'AI Circle member, imported Sep 2026',
     who: 'CMO at a large bank.',
     why_them: 'Owns the martech budget.',
     hook: 'Spoke about AI governance last month.',
@@ -356,10 +360,46 @@ test('a person with no contact details at all is not offered a button that does 
   await openNetwork(page)
   await runSearch(page)
 
-  // No shortcut on the row either, because there is nothing to shortcut to.
-  await expect(page.getByTestId('network-row-reach')).toHaveCount(0)
+  // No ADDRESS shortcut on the row, because there is nothing to shortcut to.
+  await expect(page.getByTestId('network-row-reach-email')).toHaveCount(0)
+  await expect(page.getByTestId('network-row-reach-twitter')).toHaveCount(0)
+  // But the LinkedIn route is still there, as a search rather than a profile.
+  // "One click to their LinkedIn" is unconditional; what it is honest about is
+  // WHICH kind of click it is.
+  const fallback = page.getByTestId('network-row-reach-linkedin_search').first()
+  await expect(fallback).toHaveAttribute('href', /linkedin\.com\/search\/results\/people/)
   await page.getByText('Person 1').click()
   await expect(page.getByText(/no address for it is recorded/)).toBeVisible()
+  await expect(page.getByText('no profile on file')).toBeVisible()
+})
+
+test('every row says where he knows the person from', async ({ page }) => {
+  await mockNetworkApis(page)
+  await openNetwork(page)
+  await runSearch(page)
+
+  // The campaign, not the pipeline that loaded it, and without opening the
+  // sheet — which is the entire point.
+  await expect(page.getByText('AI Circle').first()).toBeVisible()
+})
+
+test('a contact with no recorded source says so rather than implying one', async ({ page }) => {
+  await page.route('**/api/network/search', r =>
+    r.fulfill({
+      json: {
+        ok: true, restated: 'x', weak: false, degraded: [], geo: { countries: [], hard: false },
+        results: [person(1, { origin_channel: null, origin_campaign: null, first_met_context: null })],
+      },
+    }))
+  await page.route('**/api/network/geo', r => r.fulfill({ json: { ok: true, countries: [], unknown: 0, known: 0, total: 0 } }))
+  await page.route('**/api/network/person/**', r => r.fulfill({ json: { ok: true, contact: {}, intelligence: {} } }))
+  await page.route('**/api/network/explain', r => r.fulfill({ json: { ok: true, explanations: [] } }))
+  await page.route('**/rest/v1/**', r => r.fulfill({ json: [] }))
+  await page.route('**/realtime/**', r => r.abort())
+
+  await openNetwork(page)
+  await runSearch(page)
+  await expect(page.getByText('Unknown source').first()).toBeVisible()
 })
 
 test('the row itself reaches someone without opening the sheet', async ({ page }) => {
@@ -367,7 +407,7 @@ test('the row itself reaches someone without opening the sheet', async ({ page }
   await openNetwork(page)
   await runSearch(page)
 
-  const shortcut = page.getByTestId('network-row-reach').first()
+  const shortcut = page.getByTestId('network-row-reach-email').first()
   await expect(shortcut).toHaveAttribute('href', 'mailto:p1@example.com')
   // It must not also open the sheet: the whole point is skipping it.
   await shortcut.click()

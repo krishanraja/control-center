@@ -23,6 +23,12 @@ export interface NetworkResult extends ScoreBreakdown {
   title: string | null
   email: string | null
   linkedin_url: string | null
+  twitter_handle: string | null
+  /** Provenance, carried on the row rather than fetched per person. See
+   *  lib/contactProvenance for why the raw columns are not printable as-is. */
+  origin_channel: string | null
+  origin_campaign: string | null
+  first_met_context: string | null
   who: string | null
   why_them: string | null
   hook: string | null
