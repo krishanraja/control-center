@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mayRead, sameSecret, verdict } from '../../src/lib/hunterPayloadAccess.ts'
+import { mayRead, maySubmit, sameSecret, verdict } from '../../src/lib/hunterPayloadAccess.ts'
 
 // The payload carries Krish's CV and every answer he gave on one application.
 // These are the ways in that must stay shut.
@@ -69,4 +69,53 @@ test('a wrong key on a superseded application still says nothing', () => {
 
 test('a row with no payload never reveals its state', () => {
   assert.equal(verdict(row({ state: 'cancelled', fill_payload: null }), KEY), 'no')
+})
+
+// Recording a press is a WRITE, so it asks a different question from a read.
+// These are the cases that made it a separate function.
+
+const subRow = (over = {}) => ({
+  state: 'awaiting', open_key: KEY, submitted_at: null, ...over,
+})
+
+test('a press on an open application is recorded', () => {
+  assert.equal(maySubmit(subRow(), KEY), 'record')
+  assert.equal(maySubmit(subRow({ state: 'approved' }), KEY), 'record')
+})
+
+test('a press on a cancelled application is refused, not recorded', () => {
+  // verdict() calls this row 'superseded' and the payload route answers 410.
+  // Recording a submit on it would undo the cancellation: approval.supersede()
+  // sets CANCELLED for exactly one reason, that Krish asked for an amend, and
+  // flipping it to submitted would archive the role off his Pipeline tab into
+  // Applied and make hunter skip the APPROVE he sends for the rebuilt one.
+  assert.equal(maySubmit(subRow({ state: 'cancelled' }), KEY), 'gone')
+  assert.equal(maySubmit(subRow({ state: 'failed' }), KEY), 'gone')
+  assert.equal(maySubmit(subRow({ state: 'amending' }), KEY), 'gone')
+})
+
+test('pressing twice is not an error', () => {
+  // The employer's receipt email can also land first. Checked before the state
+  // gate, because a submitted row is itself outside OPEN_STATES.
+  assert.equal(maySubmit(subRow({ submitted_at: '2026-09-15T20:00:00Z' }), KEY), 'already')
+  assert.equal(
+    maySubmit(subRow({ state: 'submitted', submitted_at: '2026-09-15T20:00:00Z' }), KEY),
+    'already')
+})
+
+test('a wrong key or unknown token gives one answer for every failure', () => {
+  assert.equal(maySubmit(subRow(), 'f'.repeat(32)), 'no')
+  assert.equal(maySubmit(subRow(), 'short'), 'no')
+  assert.equal(maySubmit(subRow(), ''), 'no')
+  assert.equal(maySubmit(null, KEY), 'no')
+  assert.equal(maySubmit(subRow({ open_key: null }), ''), 'no')
+  // Even on a cancelled row, a wrong key learns nothing.
+  assert.equal(maySubmit(subRow({ state: 'cancelled' }), 'f'.repeat(32)), 'no')
+})
+
+test('a press does not need a payload the way a read does', () => {
+  // verdict() refuses a row with no fill_payload because there is nothing to
+  // serve. He can still have submitted it.
+  assert.equal(maySubmit({ state: 'awaiting', open_key: KEY, submitted_at: null }, KEY),
+    'record')
 })
