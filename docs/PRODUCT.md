@@ -77,7 +77,7 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 3. **DueTestsCard** - renders nothing unless a worry-test is due.
 3a. **PilotStrip** (2026-09-06) - one line, present only when drafted
    approaches are waiting: "n drafted approaches waiting to send", tapping
-   opens People → Room. Absent otherwise, so a quiet week costs the canon
+   opens People → Pilots. Absent otherwise, so a quiet week costs the canon
    nothing.
 4. **GoalLadder** - the top two layers of the canon: **OS** (the single
    mission line since ADR-016, inline edit, quiet stale markers; the OS
@@ -232,7 +232,7 @@ Inline action surface (`InlineActions`):
 
 ### Purpose
 > *Every human pipeline behind one nav entry: Pipeline (deal leads), Network
-> (the 10k-contact pool), Visibility (podcast guests + PR targets), Room (the
+> (the 10k-contact pool), Visibility (podcast guests + PR targets), Pilots (the
 > 25 leaders who fit the face).*
 
 The lanes are rendered by `people/PeopleTab` behind one `SegmentedNav` (test
@@ -343,7 +343,7 @@ dropped with the reason, and the oldest queued targets with no research in
 
 ---
 
-## Lane: People → Room (2026-09-06, job 1 of the one swing)
+## Lane: People → Pilots (2026-09-06, job 1 of the one swing; renamed from Room 2026-09-16, ADR-023)
 
 ### Purpose
 > *The 25 (then 100) named leaders who fit the face. The OS drafts the
@@ -351,10 +351,10 @@ dropped with the reason, and the oldest queued targets with no research in
 > itself.*
 
 ### Layout
-- Header "The Room", a counts line by state (listed, drafted, sent, replied,
-  call booked, call taken, room booked, paid). **Both device classes now say
+- Header "Pilots", a counts line by state (listed, drafted, sent, replied,
+  call booked, call taken, pilot booked, paid). **Both device classes now say
   what the list is, what is being sold, and the charter's arithmetic against
-  the live counts** (2026-09-10, `RoomBody`), previously desktop-only, so a
+  the live counts** (2026-09-10, `PilotsBody`), previously desktop-only, so a
   phone opened on "The OS drafts, you send" with no context. **2026-09-11:**
   that block is one line (the purpose sentence) with the offer and the
   arithmetic folded behind a "Why these people" disclosure, because the
@@ -369,6 +369,23 @@ dropped with the reason, and the oldest queued targets with no research in
   deck is up, the way `MobileGuests` already does, because a drag across a
   card and a drag down the page were competing for the same gesture. The
   desk keeps `SwipeCockpit` inline; only the narrow shell changed.
+- **2026-09-16: the deck took over the listed *and* drafted lanes too**, on
+  Krish's ruling that the lane should be a swipe experience like the other
+  four tabs, overruling the pager the previous round had built and argued
+  for. Right swipe is the named next rung from `PRIMARY` (`hooks/usePilots.ts`,
+  moved off `PilotCard` so the card and the deck can never read a different
+  ladder), labelled per card rather than a bare "Advance"; left swipe is
+  *Not now* through the same reason chips. Drafting is the one rung that
+  spends money (web research plus an LLM, about ten seconds), so it goes
+  behind a five-second Undo toast via `enrichWithGrace` - the same idiom the
+  Leads deck already uses for its paid enrich - and the card leaves the deck
+  immediately while the spend does not, until Undo restores it having
+  requested nothing. **Paid** needs a cash amount a gesture cannot supply, so
+  it bounces: opens the full card and returns false, the way the content deck
+  bounces to its composer. A tap still opens the full `PilotCard` in a sheet
+  for the draft, the contact button and the cash modal, so the deck never
+  grows a second copy of any of them, and the deck holds while a draft is in
+  flight so a second swipe cannot land on a card still being acted on.
 - One `PilotCard` per target: name (LinkedIn), title at company, **ask_kind**
   (buyer / intro / collaborator, classified by the seed route) and
   **ask_line**, one plain sentence saying what to ask this person, then
@@ -376,7 +393,13 @@ dropped with the reason, and the oldest queued targets with no research in
   *No live trigger found*. When drafted: the subject, the editable body
   (now resynced against the live server value so a "Save draft" tap can no
   longer overwrite a freshly generated draft with an empty buffer), and
-  **Open in Gmail** when the draft landed there.
+  exactly one contact action (2026-09-16 fix): a deep-linked Gmail draft when
+  Google created one (addressed by message id, not the hardcoded drafts
+  folder), otherwise `contactAction()` - a mailto carrying the draft, or the
+  LinkedIn profile with the draft copied, or the clipboard alone - the same
+  helper and click shape `BridgeCard.contactNow` uses. Previously a contact
+  with no email got a written draft, a null `draft_url`, no rendered action,
+  and a toast that still claimed "It is in your Gmail drafts too."
 - **Collaborators sort to the bottom of the deck (2026-09-11), not the top.**
   Krish's ruling on 2026-09-11, after seeing all three options: known
   collaborators (`Rio Longacre`, `Brett House`) still appear, but after
@@ -393,7 +416,7 @@ dropped with the reason, and the oldest queued targets with no research in
   (`usePilots.seedRoom`'s `heldBack` count) rather than quietly returning four
   cards out of five.
 - One primary action per state: Draft it → I sent it → They replied → Call
-  booked → Call taken → Room booked → Paid (a GBP amount in a Modal). Every
+  booked → Call taken → Pilot booked → Paid (a GBP amount in a Modal). Every
   state has a quiet *Not now*.
 
 ### Inputs
@@ -403,8 +426,9 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 
 ### Writes
 - `PATCH /api/pilot-deals/:id` state transitions, each stamped. **sent** writes a
-  `ships` row, channel `approach`, dedup `room:<id>`; that is what the
-  scorecard's Sent column counts.
+  `ships` row, channel `approach`, dedup `pilot:<id>` (renamed from `room:<id>`
+  by migration `20260916100000`); that is what the scorecard's Sent column
+  counts.
 - **Skip now writes**, rather than only filtering a local array
   (2026-09-10): a `not_now` row plus a coded `feedback_queue` vote so the
   same person stops being reproposed and the correction loop has something
@@ -428,8 +452,8 @@ person, `network_search` for proposals, `webResearch` for the trigger,
   "Krish's contacts" as the reason someone is on the shortlist - everyone on
   it is in the contacts, because the shortlist is drawn from them, so the
   line said nothing about the person.
-- Approval wall: no route under `/api/room` can send. The Gmail draft is the
-  hand-off.
+- Approval wall: no route under `/api/pilot-deals` can send. The Gmail draft
+  is the hand-off.
 - The list is 25 until the 25 are worked (gate G4), then 100.
 - **`ask_kind`/`ask_line` are written by migration `20260910120000_room_ask_kind.sql`,
   not yet applied to production as of 2026-09-10**: accepting a classified
@@ -704,7 +728,7 @@ recommendations with their target query and evidence, a watch list, the
 biggest competitor gap, and for a prospect one opening line, for a benchmark
 the pages that win. Recommendations also arrive as `aeo_signal` ideas in the
 Content rooms. On the tab each recommendation is one tap from today's list, a
-clip, the idea, the Room or the map; Run now fires the engine and says
+clip, the idea, Pilots or the map; Run now fires the engine and says
 whether it started. The Signals surface is being rebuilt around this read
 (one rendered mock, then code; `docs/AEO-ENGINE.md`); until it ships the
 data lands and the council reads it.

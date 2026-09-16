@@ -44,7 +44,7 @@ database and no spec spends an embedding or a model call.
 | `e2e/network-add-person.spec.ts` | add-a-person from a screenshot: scan, confirm, provenance honesty, blocked providers | 1280x800 |
 | `e2e/pilot-gate.spec.ts` | when the morning check-in appears, skipping, and the device clock | per-test `timezoneId` + fixed clock |
 | `e2e/home-noscroll.spec.ts` | Home's structural no-scroll contract | 1440x900 / 1280x800 / 390x844 / 360x800 |
-| `e2e/pilots-noscroll.spec.ts` | Pilots' structural no-scroll contract, the draft sheet, the stored-intent trigger, the pager, and the short-viewport degradation | 390x844 / 360x800 (strict); 360x640 (degrades) |
+| `e2e/pilots-noscroll.spec.ts` | Pilots' structural no-scroll contract, the draft sheet, the stored-intent trigger, the `TriageDeck` swipe verdicts (driven via `ArrowLeft`/`ArrowRight`, 2026-09-16, replacing the pager this spec drove before), and the short-viewport degradation | 390x844 / 360x800 (strict); 360x640 (degrades) |
 | `e2e/composer.spec.ts` | the brief editor: canvas, citations toggle, the mobile edits sheet, the edit palette | default + one at 390x844 |
 | `e2e/focus-purpose.spec.ts` | the Focus tab: tools, the daily ask flow | default |
 | `e2e/loading.spec.ts` | the loading ladder's restraint rules | default |

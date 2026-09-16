@@ -589,10 +589,13 @@ The learning loop.
 
 ### `pilot_deals`
 
-The Room list: job 1 of the five. One row per named leader who fits the face.
+The Pilots list: job 1 of the five. One row per named leader who fits the face.
 Service role only (RLS enabled and forced, no anon policy), reached through
-`/api/pilot-deals/*` behind the cookie gate. Migration
-`20260906110000_room_targets.sql`.
+`/api/pilot-deals/*` behind the cookie gate. Created as `room_targets` by
+migration `20260906110000_room_targets.sql`; renamed table, states and
+scorecard column to `pilot_deals` / `pilot_booked` / `pilot_paid` by
+migration `20260916100000_pilots_not_rooms.sql` (ADR-023, "the room is a
+pilot").
 
 | Column | Type | Description |
 |---|---|---|
@@ -602,14 +605,14 @@ Service role only (RLS enabled and forced, no anon policy), reached through
 | `trigger_signal` / `trigger_source_url` / `trigger_found_at` | text / text / timestamptz | The cited live signal. Never a signal without a URL |
 | `draft_subject` / `draft_body` / `draft_url` / `drafted_at` | | The approach, and the Gmail draft when Google is configured |
 | `state` | text | `listed` → `drafted` → `sent` → `replied` → `call_booked` → `call_taken` → `pilot_booked` → `pilot_paid`; `not_now` is the side exit |
-| `listed_at`, `sent_at`, `replied_at`, `call_booked_at`, `call_taken_at`, `room_booked_at`, `room_paid_at`, `not_now_at` | timestamptz | One stamp per step; the scorecard reads them |
-| `cash_gbp` | numeric | Invoiced value of the room. Required at `pilot_paid` |
+| `listed_at`, `sent_at`, `replied_at`, `call_booked_at`, `call_taken_at`, `pilot_booked_at`, `pilot_paid_at`, `not_now_at` | timestamptz | One stamp per step; the scorecard reads them |
+| `cash_gbp` | numeric | Invoiced value of the pilot. Required at `pilot_paid` |
 | `sourced_by` | text | `krish` or `os` |
 | `ask_kind` | text | `buyer` (can sign a fixed fee) / `intro` (opens a door) / `collaborator` (already works with Krish). Default `buyer`. Classified by `/api/pilot-deals/seed`, never inferred at render time |
 | `ask_line` | text | One plain sentence saying what to ask this person, grounded only in stored fields; null when nothing classified them |
 
 Marking a target `sent` writes a `ships` row, channel `approach`, dedup key
-`room:<id>`.
+`pilot:<id>` (renamed from `room:<id>` by migration `20260916100000`).
 
 `ask_kind` / `ask_line` are added by migration `20260910120000_room_ask_kind.sql`,
 **not yet applied to production as of 2026-09-10**; accepting a classified

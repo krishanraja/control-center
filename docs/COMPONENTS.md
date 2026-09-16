@@ -83,12 +83,16 @@ lane that must fit one screen when its content is a list.
 - The lane owns the frame: `flex h-full min-h-0 flex-col` with
   `pb-[calc((env(safe-area-inset-bottom,0px)+96px)/var(--z,1))]` for the nav,
   `shrink-0` chrome bands, and one `flex-1 min-h-0` stage.
-- **One person on the stage, a pager to move between them.** Not a swipe deck:
-  the proposals deck swipes because accept and skip are the only two verdicts,
-  while a listed deal is on a nine rung ladder whose actions are explicit
-  buttons, and a mis-swipe would move someone's state.
-- The pager row carries `pr-[68px]` to clear the floating create button, which
-  is fixed outside the zoom root. Without it the FAB eats the tap on Next.
+- **One person on the stage, the shared `TriageDeck` to move between them
+  (2026-09-16, superseding the pager this section described earlier the same
+  day).** The pager's rationale - that a nine rung ladder needs explicit
+  buttons because a mis-swipe would move someone's state - was overruled by
+  Krish: "the room should be a swipe experience like the other tabs." The
+  mis-swipe risk is answered where it bites instead: right swipe is the named
+  next rung read from `PRIMARY` (never a bare "Advance"), left swipe is *Not
+  now* through the existing reason chips, and the one rung that spends money
+  (drafting) sits behind a five-second Undo toast, so a wrong swipe costs a
+  tap to reverse, not a state. No scroll, no pager - the deck owns the stage.
 - Density comes from disclosure, never clipping: `index.css` neutralises
   `.truncate` and every `.line-clamp-*` on purpose. The long judgment (`why_face`)
   folds behind "Why them" on a phone and stays open on the desk.
@@ -320,7 +324,7 @@ edits inline. `GoalLadder` uses it; every future mobile text edit should.
 desktop's landscape on rails around `SwipeDeck`). One `useSwipeTriage` config,
 picked by viewport, so a narrow surface gets the shared deck (reason chips,
 the "why am I seeing this" badge, undo) instead of restating accept/reject
-handlers and toasts by hand. People → Room's proposal lane is the first
+handlers and toasts by hand. People → Pilots' proposal lane is the first
 adopter, replacing a local Accept/Skip chip pair that wrote nothing on skip.
 `MobileGuests` still hand-rolls the same logic against
 `buildGuestsTriageConfig` and is a migration candidate, not yet moved.
@@ -328,7 +332,10 @@ adopter, replacing a local Accept/Skip chip pair that wrote nothing on skip.
 fixed-height box inside the page's own scroller - `MobilePilots` switches its
 shell to `scroll="none"` while the deck is up, the pattern `MobileGuests`
 already used, because a swipe and a page scroll were competing for the same
-drag.
+drag. **2026-09-16:** the deck took over the listed and drafted lanes too
+(previously a pager plus explicit buttons), reading the next verdict off
+`PRIMARY` per card rather than a fixed accept/reject pair - see
+`MobilePilots` / `PilotsBody` above.
 
 ### `GoalPickers` — chips over dropdowns
 
