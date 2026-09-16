@@ -221,7 +221,7 @@
       "schedule": "35 */6 * * *"
     },
     {
-      "path": "/api/room/monday",
+      "path": "/api/pilot-deals/monday",
       "schedule": "0 10 * * 1"
     },
     {
@@ -262,7 +262,7 @@
     "api/meter/n8n-sync.ts": {
       "maxDuration": 120
     },
-    "api/room/monday.ts": {
+    "api/pilot-deals/monday.ts": {
       "maxDuration": 300
     },
     "api/discover-visibility-targets.ts": {
@@ -280,10 +280,10 @@
     "api/scorecard/friday.ts": {
       "maxDuration": 60
     },
-    "api/room/[id]/draft.ts": {
+    "api/pilot-deals/[id]/draft.ts": {
       "maxDuration": 60
     },
-    "api/room/seed.ts": {
+    "api/pilot-deals/seed.ts": {
       "maxDuration": 60
     }
   }

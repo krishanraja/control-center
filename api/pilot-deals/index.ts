@@ -1,17 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import { isState, TARGET_SELECT, type RoomTarget } from '../_room.js'
+import { isState, TARGET_SELECT, type PilotDeal } from '../_pilotDeals.js'
 import { attachRejectSignal } from '../_rejectSignal.js'
 // The one vocabulary (scripts/check-served-surfaces.mts keeps this list and
 // src/lib/servedSurfaces.ts in step). Never declare a private reason list.
 import { REASON_OPTIONS } from '../feedback.js'
 
-// GET  /api/room?state=<state>   the targets in one state, with their contact
+// GET  /api/pilot-deals?state=<state>   the targets in one state, with their contact
 //                                fields, plus counts over every state. With no
 //                                state it returns listed and drafted together:
 //                                the two states with work waiting.
-// POST /api/room                 { contact_id, why_face, sourced_by?, state?,
+// POST /api/pilot-deals                 { contact_id, why_face, sourced_by?, state?,
 //                                reason_code? } adds a target. `state` is
 //                                'listed' (kept) or 'not_now' (skipped); 409
 //                                when the person is already on the list.
@@ -19,13 +19,13 @@ import { REASON_OPTIONS } from '../feedback.js'
 //                                Network add-person flow first.
 //
 // A skip writes a row too, and that is the point. It used to filter a local
-// array and write nothing, so `/api/room/seed` (which excludes only rows that
+// array and write nothing, so `/api/pilot-deals/seed` (which excludes only rows that
 // exist) proposed the same five people on every call, forever, and no verdict
-// Krish made about the Room ever reached Vera. A 'not_now' row both suppresses
+// Krish made here ever reached Vera. A 'not_now' row both suppresses
 // the person from the next seed and carries a coded feedback_queue vote so the
 // correction loop can learn the pattern.
 //
-// room_targets carries private judgment about named people and has no anon
+// pilot_deals carries private judgment about named people and has no anon
 // policy, so this route sits behind the same cookie gate as /api/network/*
 // and /api/bridges (api/_auth.ts).
 
@@ -34,7 +34,7 @@ export const config = { maxDuration: 30 }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 async function stateCounts(): Promise<Record<string, number>> {
-  const { data } = await supabase.from('room_targets').select('state')
+  const { data } = await supabase.from('pilot_deals').select('state')
   const counts: Record<string, number> = {}
   for (const r of data || []) {
     const s = (r as { state?: string }).state || 'listed'
@@ -47,17 +47,17 @@ async function list(req: VercelRequest, res: VercelResponse) {
   const q = req.query.state
   const state = typeof q === 'string' && isState(q) ? q : null
   try {
-    let query = supabase.from('room_targets').select(TARGET_SELECT)
+    let query = supabase.from('pilot_deals').select(TARGET_SELECT)
     query = state ? query.eq('state', state) : query.in('state', ['listed', 'drafted'])
     const { data, error } = await query
       .order('trigger_found_at', { ascending: false, nullsFirst: false })
       .order('listed_at', { ascending: true })
       .limit(100)
     if (error) throw new Error(error.message)
-    const targets = (data || []) as unknown as RoomTarget[]
+    const targets = (data || []) as unknown as PilotDeal[]
     return res.status(200).json({ ok: true, targets, stateCounts: await stateCounts() })
   } catch (e: unknown) {
-    return res.status(500).json({ ok: false, error: (e as Error)?.message?.slice(0, 200) || 'room_failed' })
+    return res.status(500).json({ ok: false, error: (e as Error)?.message?.slice(0, 200) || 'pilot_failed' })
   }
 }
 
@@ -80,7 +80,7 @@ async function add(req: VercelRequest, res: VercelResponse) {
   const skipped = state === 'not_now'
   const reasonCode = typeof body.reason_code === 'string' && REASON_OPTIONS.has(body.reason_code)
     ? body.reason_code
-    : 'room_other'
+    : 'pilot_other'
   if (!UUID.test(contactId)) return res.status(400).json({ ok: false, error: 'contact_id must be a uuid' })
   if (!whyFace || whyFace.length > 600) {
     return res.status(400).json({ ok: false, error: 'why_face is required, under 600 characters' })
@@ -93,13 +93,13 @@ async function add(req: VercelRequest, res: VercelResponse) {
     if (!contact) return res.status(404).json({ ok: false, error: 'contact not found' })
 
     const { data: existing } = await supabase
-      .from('room_targets').select('id, state').eq('contact_id', contactId).maybeSingle()
+      .from('pilot_deals').select('id, state').eq('contact_id', contactId).maybeSingle()
     if (existing) {
       return res.status(409).json({ ok: false, error: 'already_listed', target_id: existing.id, state: existing.state })
     }
 
     const { data, error } = await supabase
-      .from('room_targets')
+      .from('pilot_deals')
       .insert({
         contact_id: contactId,
         why_face: whyFace,
@@ -123,7 +123,7 @@ async function add(req: VercelRequest, res: VercelResponse) {
     if (skipped) {
       const row = data as unknown as { id: string }
       const { data: fb } = await supabase.from('feedback_queue').insert({
-        source_table: 'room_targets',
+        source_table: 'pilot_deals',
         source_id: row.id,
         agent_id: 'os',
         original_agent: 'os',
@@ -137,9 +137,9 @@ async function add(req: VercelRequest, res: VercelResponse) {
       await attachRejectSignal((fb as { id?: string } | null)?.id, whyFace, whyFace)
     }
 
-    return res.status(201).json({ ok: true, target: data as unknown as RoomTarget })
+    return res.status(201).json({ ok: true, target: data as unknown as PilotDeal })
   } catch (e: unknown) {
-    return res.status(500).json({ ok: false, error: (e as Error)?.message?.slice(0, 200) || 'room_add_failed' })
+    return res.status(500).json({ ok: false, error: (e as Error)?.message?.slice(0, 200) || 'pilot_add_failed' })
   }
 }
 

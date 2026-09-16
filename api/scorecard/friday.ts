@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       week_ending: weekEnding,
       approaches_sent: derived.approaches_sent,
       calls_taken: derived.calls_taken,
-      paid_rooms: derived.paid_rooms,
+      paid_pilots: derived.paid_pilots,
       cash_invoiced_gbp: derived.cash_invoiced_gbp,
       pieces_published: derived.pieces_published,
       unasked_hours: derived.unasked_hours,

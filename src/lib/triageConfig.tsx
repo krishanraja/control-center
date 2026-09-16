@@ -14,6 +14,7 @@ import { isHandQueue } from './contactTriage'
 import { topFit, dossierMove, contactRationale, suggestedMove, ventureLabel as contactVentureLabel } from './contactSignals'
 import { ventureDisplayName } from '../components/ContactSourcePill'
 import { SuggestedMoveChip, MOVE_TONE_TEXT } from '../components/ContactCard'
+import { ASK_LABEL } from '../hooks/usePilots'
 
 /**
  * triageConfig — one place that describes how each surface drives the shared
@@ -488,12 +489,12 @@ export function buildGuestsTriageConfig(
   }
 }
 
-// ── The Room (People · Room) ──────────────────────────────────────────────
+// ── Pilots (People · Pilots) ──────────────────────────────────────────────
 
 /**
- * Room proposals, judged one at a time.
+ * Pilot proposals, judged one at a time.
  *
- * The Room used to carry its own Accept/Skip chip pair, which was the only
+ * This lane used to carry its own Accept/Skip chip pair, which was the only
  * proposal surface in the app not running on the shared deck. It cost the lane
  * three things the deck gives away for free: reason chips on a refusal, the
  * "why am I seeing this" badge that Visibility has had for months, and the undo
@@ -503,7 +504,7 @@ export function buildGuestsTriageConfig(
  * so BOTH verdicts are writes. Accept lists the person, and a refusal records
  * them as `not_now` with a coded vote rather than dropping them on the floor.
  */
-export interface RoomProposalItem {
+export interface PilotProposalItem {
   contact_id: string
   full_name: string | null
   title: string | null
@@ -514,26 +515,24 @@ export interface RoomProposalItem {
   ask_line?: string
 }
 
-const ROOM_ASK_TONE: Record<string, string> = {
+const PILOT_ASK_TONE: Record<string, string> = {
   buyer: 'bg-emerald-500/15 text-emerald-200',
   intro: 'bg-sky-500/15 text-sky-200',
   collaborator: 'bg-amber-500/15 text-amber-200',
 }
-const ROOM_ASK_LABEL: Record<string, string> = {
-  buyer: 'Can sign',
-  intro: 'Can introduce',
-  collaborator: 'You work together',
-}
+// The labels themselves live with the type, in hooks/usePilots. They were
+// duplicated here and drifted out of the one-system rule (AGENTS.md): two
+// copies of the same three strings, either of which could be edited alone.
 
-function renderRoomBody(p: RoomProposalItem): React.ReactNode {
+function renderPilotBody(p: PilotProposalItem): React.ReactNode {
   const role = [p.title, p.company].filter(Boolean).join(' at ')
   return (
     <>
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
         <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
-          p.ask_kind ? ROOM_ASK_TONE[p.ask_kind] : 'bg-violet-500/15 text-violet-200'
+          p.ask_kind ? PILOT_ASK_TONE[p.ask_kind] : 'bg-violet-500/15 text-violet-200'
         }`}>
-          {p.ask_kind ? ROOM_ASK_LABEL[p.ask_kind] : 'In your network'}
+          {p.ask_kind ? ASK_LABEL[p.ask_kind] : 'In your network'}
         </span>
         {typeof p.score === 'number' && (
           <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">Fit {p.score}</span>
@@ -553,23 +552,23 @@ function renderRoomBody(p: RoomProposalItem): React.ReactNode {
   )
 }
 
-export function buildRoomTriageConfig(
-  proposals: RoomProposalItem[],
+export function buildPilotTriageConfig(
+  proposals: PilotProposalItem[],
   ctx: TriageConfigCtx,
   handlers: {
-    accept: (p: RoomProposalItem) => Promise<boolean>
-    reject: (p: RoomProposalItem, code?: string) => Promise<boolean>
+    accept: (p: PilotProposalItem) => Promise<boolean>
+    reject: (p: PilotProposalItem, code?: string) => Promise<boolean>
   },
   loading?: boolean,
-): TriageConfig<RoomProposalItem> {
+): TriageConfig<PilotProposalItem> {
   const { toast } = ctx
 
-  const onAccept = async (p: RoomProposalItem): Promise<CommitResult> => {
+  const onAccept = async (p: PilotProposalItem): Promise<CommitResult> => {
     const ok = await handlers.accept(p)
     if (ok) toast(`${p.full_name || 'Added'} is on the list.`, 'success')
     return ok
   }
-  const onReject = async (p: RoomProposalItem, code?: string): Promise<CommitResult> => {
+  const onReject = async (p: PilotProposalItem, code?: string): Promise<CommitResult> => {
     const ok = await handlers.reject(p, code)
     if (ok) toast('Not this one. Vera will learn from that.', 'success')
     return ok
@@ -580,15 +579,15 @@ export function buildRoomTriageConfig(
     loading,
     getId: p => p.contact_id,
     title: 'People to judge',
-    reasonsTable: 'room_targets',
-    renderBody: renderRoomBody,
-    ariaLabel: p => `Room proposal: ${p.full_name || 'unnamed contact'}`,
+    reasonsTable: 'pilot_deals',
+    renderBody: renderPilotBody,
+    ariaLabel: p => `Pilot proposal: ${p.full_name || 'unnamed contact'}`,
     leftLabel: 'Skip',
     rightLabel: 'Keep',
     rightIntent: () => 'advance',
     onAccept,
     onReject,
-    renderDetail: p => <div className="text-label text-white/70 leading-relaxed">{renderRoomBody(p)}</div>,
+    renderDetail: p => <div className="text-label text-white/70 leading-relaxed">{renderPilotBody(p)}</div>,
     renderRow: (p, active) => (
       <div className="min-w-0">
         <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>

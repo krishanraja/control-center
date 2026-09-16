@@ -31,7 +31,7 @@ export interface AeoSubjectRow {
   seed_topics: string[]
   never_say: string[]
   product_slug: ProductSlug | null
-  room_target_id: string | null
+  pilot_deal_id: string | null
   active: boolean
   notes: string | null
   created_at: string
@@ -94,7 +94,7 @@ export interface AeoQueryRow {
   subject_id: string
   week_start: string
   query: string
-  source: 'transcript' | 'gap' | 'seed' | 'striking_distance' | 'watch_carry' | 'room_signal'
+  source: 'transcript' | 'gap' | 'seed' | 'striking_distance' | 'watch_carry' | 'pilot_signal'
   demand_score: number
   demand_basis: unknown
   call_evidence: unknown
@@ -138,7 +138,7 @@ export const SOURCE_LABEL: Record<AeoQueryRow['source'], string> = {
   seed: 'seed topic',
   striking_distance: 'Google keyword',
   watch_carry: 'carried from last week',
-  room_signal: 'from the Room',
+  pilot_signal: 'from the pilots',
 }
 
 /** The window the Sunday review uses, so the two never disagree. */

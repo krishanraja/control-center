@@ -20,11 +20,14 @@ export const PURPOSE =
 export const FACE =
   'A senior leader who will not admit to anyone that they are not ready for what is happening. Concretely: leaders of PE and VC backed media, adtech and data businesses Krish already knows.'
 
-/** The door: the only thing being sold this quarter. */
+/** The door: the only thing being sold this quarter. It is a pilot. The word
+ *  'room' was retired on 2026-09-16 (ADR-023): it was insider shorthand that
+ *  every generated ask line repeated back at the reader, who had no idea what
+ *  it meant. Every prompt interpolating DOOR inherits the correction here. */
 export const DOOR =
-  'A confidential room: a three week private diagnostic, fixed fee, that tells the leader where they stand, what is coming for their business, and what to do first. Sold to people he already knows. Never cold.'
+  'A paid three week pilot, fixed fee, that tells the leader where they stand, what is coming for their business, and what to do first. Sold to people he already knows. Never cold. Always call it a pilot, never a room.'
 
-export type Job = 'fill_room' | 'keep_honest' | 'run_room' | 'feed_demand' | 'keep_edge'
+export type Job = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge'
 
 export interface JobDef {
   id: Job
@@ -38,16 +41,16 @@ export interface JobDef {
 }
 
 export const JOBS: JobDef[] = [
-  { id: 'fill_room', n: 1, label: 'Fill the room', gate: 'now',
+  { id: 'fill_pilots', n: 1, label: 'Find pilot customers', gate: 'now',
     does: 'Keep the list of 25 (then 100) named leaders who fit the face. Draft warm approaches in his voice from live signals. Queue them. Never send.' },
   { id: 'keep_honest', n: 2, label: 'Keep him honest', gate: 'now',
     does: 'Track sent, calls, paid, published and hours building unasked. Monday scorecard, Friday variance note. Rule 6 tripwire when unasked build hours exceed zero.' },
-  { id: 'run_room', n: 3, label: 'Run the room', gate: 'g2',
-    does: 'Prepare the dossier before the room and draft the edge file after. Opens when the first room is booked.' },
+  { id: 'run_pilots', n: 3, label: 'Run the pilots', gate: 'g2',
+    does: 'Prepare the dossier before the pilot and draft the edge file after. Opens when the first pilot is booked.' },
   { id: 'feed_demand', n: 4, label: 'Feed the demand engine', gate: 'now',
-    does: 'Turn every room, keynote and podcast into one published piece a week aimed at the face, with sources.' },
+    does: 'Turn every pilot, keynote and podcast into one published piece a week aimed at the face, with sources.' },
   { id: 'keep_edge', n: 5, label: 'Keep the edge', gate: 'g3',
-    does: 'Run CTRL for paying leaders. Opens when two leaders ask to keep it after the room.' },
+    does: 'Run CTRL for paying leaders. Opens when two leaders ask to keep it after the pilot.' },
 ]
 
 const JOB_IDS = new Set<string>(JOBS.map(j => j.id))

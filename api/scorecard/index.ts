@@ -65,7 +65,7 @@ async function get(req: VercelRequest, res: VercelResponse) {
         variance_note: row?.variance_note ?? null,
         approaches_sent: values ? values.approaches_sent : null,
         calls_taken: values ? values.calls_taken : null,
-        paid_rooms: values ? values.paid_rooms : null,
+        paid_pilots: values ? values.paid_pilots : null,
         cash_invoiced_gbp: values ? values.cash_invoiced_gbp : null,
         pieces_published: values ? values.pieces_published : null,
         unasked_hours: values ? values.unasked_hours : null,
@@ -77,7 +77,7 @@ async function get(req: VercelRequest, res: VercelResponse) {
     const toDate = weeks.filter(w => w.approaches_sent != null).map(w => ({
       approaches_sent: w.approaches_sent as number,
       calls_taken: w.calls_taken as number,
-      paid_rooms: w.paid_rooms as number,
+      paid_pilots: w.paid_pilots as number,
       cash_invoiced_gbp: w.cash_invoiced_gbp as number,
       pieces_published: w.pieces_published as number,
       unasked_hours: w.unasked_hours as number,

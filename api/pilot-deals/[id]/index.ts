@@ -2,13 +2,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../../_auth.js'
 import { supabase } from '../../_supabase.js'
 import { recordShip } from '../../_ships.js'
-import { canMove, isState, stampFor, TARGET_SELECT, type RoomState, type RoomTarget } from '../../_room.js'
+import { canMove, isState, stampFor, TARGET_SELECT, type PilotState, type PilotDeal } from '../../_pilotDeals.js'
 
-// PATCH /api/room/:id  { state?, notes?, why_face?, cash_gbp?, draft_subject?, draft_body? }
+// PATCH /api/pilot-deals/:id  { state?, notes?, why_face?, cash_gbp?, draft_subject?, draft_body? }
 //
 // Moves a target along the ladder, or edits the words on it. A state change
 // must be one the ladder allows (api/_room.ts NEXT), stamps <state>_at, and
-// room_paid needs the invoice value. Marking a target sent records a ship on
+// pilot_paid needs the invoice value. Marking a target sent records a ship on
 // the 'approach' channel, which is what the scorecard counts; if that write
 // fails the request fails and the state does not move.
 //
@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (rawState !== undefined && !isState(rawState)) {
     return res.status(400).json({ ok: false, error: `invalid state: ${String(rawState)}` })
   }
-  const nextState: RoomState | undefined = isState(rawState) ? rawState : undefined
+  const nextState: PilotState | undefined = isState(rawState) ? rawState : undefined
 
   if (Object.keys(updates).length === 0 && !nextState) {
     return res.status(400).json({ ok: false, error: 'no updatable fields supplied' })
@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { data: current, error: readErr } = await supabase
-      .from('room_targets')
+      .from('pilot_deals')
       .select('id, state, cash_gbp, contact:contacts(full_name)')
       .eq('id', id)
       .maybeSingle()
@@ -82,21 +82,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!canMove(from, nextState)) {
         return res.status(409).json({ ok: false, error: `cannot move from ${from} to ${nextState}` })
       }
-      if (nextState === 'room_paid') {
+      if (nextState === 'pilot_paid') {
         const cash = 'cash_gbp' in updates ? Number(updates.cash_gbp) : Number(current.cash_gbp)
         if (!Number.isFinite(cash) || cash <= 0) {
-          return res.status(400).json({ ok: false, error: 'cash_gbp is required to mark a room paid' })
+          return res.status(400).json({ ok: false, error: 'cash_gbp is required to mark a pilot paid' })
         }
       }
       if (nextState === 'sent') {
         // The ship first. If the count cannot be written the state does not
         // move, so a sent approach can never be invisible to the scorecard.
         const contact = current.contact as unknown as { full_name?: string | null } | null
-        const name = (contact?.full_name || '').trim() || 'a Room target'
+        const name = (contact?.full_name || '').trim() || 'a pilot deal'
         const ship = await recordShip({
           channel: 'approach',
           description: `Approach to ${name}`,
-          dedup_key: `room:${id}`,
+          dedup_key: `pilot:${id}`,
         })
         if (!ship.ok) {
           return res.status(502).json({ ok: false, error: `ship_write_failed: ${ship.error || 'unknown'}` })
@@ -107,13 +107,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { data, error } = await supabase
-      .from('room_targets')
+      .from('pilot_deals')
       .update(updates)
       .eq('id', id)
       .select(TARGET_SELECT)
       .single()
     if (error) throw new Error(error.message)
-    return res.status(200).json({ ok: true, target: data as unknown as RoomTarget })
+    return res.status(200).json({ ok: true, target: data as unknown as PilotDeal })
   } catch (e: unknown) {
     return res.status(500).json({ ok: false, error: (e as Error)?.message?.slice(0, 200) || 'update_failed' })
   }

@@ -3,12 +3,12 @@
 // file owns what a chip says). Source: Control Center Evolution tab of the
 // Master Ikigai v4, 5 September 2026.
 
-export type Job = 'fill_room' | 'keep_honest' | 'run_room' | 'feed_demand' | 'keep_edge'
+export type Job = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge'
 
 export const JOB_OPTIONS: Array<{ value: Job; label: string }> = [
-  { value: 'fill_room', label: 'Fill the room' },
+  { value: 'fill_pilots', label: 'Find pilot customers' },
   { value: 'keep_honest', label: 'Keep me honest' },
-  { value: 'run_room', label: 'Run the room' },
+  { value: 'run_pilots', label: 'Run the pilots' },
   { value: 'feed_demand', label: 'Feed the demand engine' },
   { value: 'keep_edge', label: 'Keep the edge' },
 ]

@@ -1,30 +1,30 @@
 import { useCallback, useEffect, useState } from 'react'
 
-// room_targets is service-role only (private judgment about named people, the
+// pilot_deals is service-role only (private judgment about named people, the
 // same posture as bridge_candidates), so this hook talks to the gated
-// /api/room routes and never to PostgREST directly.
+// /api/pilot-deals routes and never to PostgREST directly.
 
-export type RoomState =
+export type PilotState =
   | 'listed' | 'drafted' | 'sent' | 'replied' | 'call_booked' | 'call_taken'
-  | 'room_booked' | 'room_paid' | 'not_now'
+  | 'pilot_booked' | 'pilot_paid' | 'not_now'
 
-export const ROOM_STATES: RoomState[] = [
-  'listed', 'drafted', 'sent', 'replied', 'call_booked', 'call_taken', 'room_booked', 'room_paid', 'not_now',
+export const PILOT_STATES: PilotState[] = [
+  'listed', 'drafted', 'sent', 'replied', 'call_booked', 'call_taken', 'pilot_booked', 'pilot_paid', 'not_now',
 ]
 
-export const ROOM_STATE_LABEL: Record<RoomState, string> = {
+export const PILOT_STATE_LABEL: Record<PilotState, string> = {
   listed: 'Listed',
   drafted: 'Drafted',
   sent: 'Sent',
   replied: 'Replied',
   call_booked: 'Call booked',
   call_taken: 'Call taken',
-  room_booked: 'Room booked',
-  room_paid: 'Paid',
+  pilot_booked: 'Pilot booked',
+  pilot_paid: 'Paid',
   not_now: 'Not now',
 }
 
-export interface RoomContact {
+export interface PilotContact {
   id: string
   full_name: string | null
   first_name: string | null
@@ -35,7 +35,7 @@ export interface RoomContact {
 }
 
 /** Who a person is to the door: can they sign, open a door, or do you already
- *  work with them. Written by /api/room/seed. */
+ *  work with them. Written by /api/pilot-deals/seed. */
 export type AskKind = 'buyer' | 'intro' | 'collaborator'
 
 export const ASK_LABEL: Record<AskKind, string> = {
@@ -44,7 +44,7 @@ export const ASK_LABEL: Record<AskKind, string> = {
   collaborator: 'You work together',
 }
 
-export interface RoomRow {
+export interface PilotDealRow {
   id: string
   contact_id: string
   why_face: string
@@ -57,22 +57,22 @@ export interface RoomRow {
   draft_body: string | null
   draft_url: string | null
   drafted_at: string | null
-  state: RoomState
+  state: PilotState
   listed_at: string
   sent_at: string | null
   replied_at: string | null
   call_booked_at: string | null
   call_taken_at: string | null
-  room_booked_at: string | null
-  room_paid_at: string | null
+  pilot_booked_at: string | null
+  pilot_paid_at: string | null
   not_now_at: string | null
   cash_gbp: number | null
   sourced_by: 'krish' | 'os'
   notes: string | null
-  contact: RoomContact | null
+  contact: PilotContact | null
 }
 
-export interface RoomProposal {
+export interface PilotProposal {
   contact_id: string
   full_name: string | null
   title: string | null
@@ -86,20 +86,20 @@ export interface RoomProposal {
 
 /** The lane's rows. With no state the route returns listed and drafted
  *  together: the two states with work waiting. */
-export function useRoom(state: RoomState | null = null) {
-  const [targets, setTargets] = useState<RoomRow[]>([])
+export function usePilots(state: PilotState | null = null) {
+  const [targets, setTargets] = useState<PilotDealRow[]>([])
   const [stateCounts, setStateCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
-  // A read that failed is not an empty Room. This used to be a bare catch, so
+  // A read that failed is not an empty list. This used to be a bare catch, so
   // a stale cookie on the phone and a genuinely empty list looked identical.
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(state ? `/api/room?state=${encodeURIComponent(state)}` : '/api/room')
+      const r = await fetch(state ? `/api/pilot-deals?state=${encodeURIComponent(state)}` : '/api/pilot-deals')
       const j = await r.json().catch(() => null)
       if (j?.ok) {
-        setTargets((j.targets as RoomRow[]) || [])
+        setTargets((j.targets as PilotDealRow[]) || [])
         setStateCounts((j.stateCounts as Record<string, number>) || {})
         setError(null)
       } else {
@@ -133,47 +133,47 @@ async function readJson(r: Response): Promise<Record<string, unknown>> {
   return j as Record<string, unknown>
 }
 
-export async function patchRoom(
+export async function patchPilot(
   id: string,
   body: {
-    state?: RoomState
+    state?: PilotState
     notes?: string
     why_face?: string
     cash_gbp?: number
     draft_subject?: string
     draft_body?: string
   },
-): Promise<RoomRow> {
-  const r = await fetch(`/api/room/${id}`, {
+): Promise<PilotDealRow> {
+  const r = await fetch(`/api/pilot-deals/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   const j = await readJson(r)
-  return j.target as RoomRow
+  return j.target as PilotDealRow
 }
 
 /** Trigger then draft. Throws 'google_not_configured' when the server has no
  *  Google service account, so the card can say so in plain words. */
-export async function draftRoom(id: string): Promise<RoomRow> {
-  const r = await fetch(`/api/room/${id}/draft`, { method: 'POST' })
+export async function draftPilot(id: string): Promise<PilotDealRow> {
+  const r = await fetch(`/api/pilot-deals/${id}/draft`, { method: 'POST' })
   const j = await readJson(r)
-  return j.target as RoomRow
+  return j.target as PilotDealRow
 }
 
 /** Proposals only. Nothing is added until Accept is pressed on one.
  *  `degraded` names any search stage that did not run (for example
  *  'embedding:unavailable' when no embedding key is configured), so an empty
  *  result can say why instead of "nobody fits". */
-export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; degraded: string[]; heldBack: number }> {
-  const r = await fetch('/api/room/seed', {
+export async function seedPilots(limit = 5): Promise<{ proposals: PilotProposal[]; degraded: string[]; heldBack: number }> {
+  const r = await fetch('/api/pilot-deals/seed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ limit }),
   })
   const j = await readJson(r)
   return {
-    proposals: (j.proposals as RoomProposal[]) || [],
+    proposals: (j.proposals as PilotProposal[]) || [],
     degraded: Array.isArray(j.degraded) ? (j.degraded as unknown[]).map(String) : [],
     // People the search found but could not identify well enough to judge.
     // They are dropped rather than shown as a bare first name, and the lane
@@ -182,7 +182,7 @@ export async function seedRoom(limit = 5): Promise<{ proposals: RoomProposal[]; 
   }
 }
 
-export async function addRoomTarget(input: {
+export async function addPilotDeal(input: {
   contact_id: string
   why_face: string
   ask_kind?: AskKind
@@ -191,14 +191,14 @@ export async function addRoomTarget(input: {
   /** 'listed' keeps them; 'not_now' is a skip, which is recorded rather than
    *  discarded so the next seed stops proposing them and Vera sees the verdict. */
   state?: 'listed' | 'not_now'
-  /** A code from src/lib/servedSurfaces.ts. Omitted falls back to room_other. */
+  /** A code from src/lib/servedSurfaces.ts. Omitted falls back to pilot_other. */
   reason_code?: string
-}): Promise<RoomRow> {
-  const r = await fetch('/api/room', {
+}): Promise<PilotDealRow> {
+  const r = await fetch('/api/pilot-deals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
   const j = await readJson(r)
-  return j.target as RoomRow
+  return j.target as PilotDealRow
 }

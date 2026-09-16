@@ -28,7 +28,7 @@ const ALLOWED_TABLES = new Set([
   'visibility_targets',
   // The Room (job 1). Mirrors src/lib/servedSurfaces.ts; check-served-surfaces
   // fails the build if the two drift.
-  'room_targets',
+  'pilot_deals',
   'guests',
   'tasks',
   'customers',
@@ -116,14 +116,14 @@ export const REASON_OPTIONS = new Set([
   'visibility_too_technical',
   'visibility_off_vertical',
   'visibility_other',
-  // room_targets
-  'room_not_a_buyer',
-  'room_already_work_with',
-  'room_no_budget_say',
-  'room_wrong_sector',
-  'room_bad_timing',
-  'room_not_close_enough',
-  'room_other',
+  // pilot_deals
+  'pilot_not_a_buyer',
+  'pilot_already_work_with',
+  'pilot_no_budget_say',
+  'pilot_wrong_sector',
+  'pilot_bad_timing',
+  'pilot_not_close_enough',
+  'pilot_other',
   // nova_target_conferences
   'visibility_wrong_audience',
   'visibility_bad_timing',

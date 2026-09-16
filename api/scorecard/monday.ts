@@ -13,7 +13,7 @@ import { buildProductFor, ANONYMOUS_PUBLIC_NAME } from '../_buildSignals.js'
 
 // The Monday scorecard (job 2, keep him honest).
 //
-// Runs Monday 10:30 UTC, after api/room/monday.ts has drafted the week's
+// Runs Monday 10:30 UTC, after api/pilot-deals/monday.ts has drafted the week's
 // approaches, so the note can list them. It says four things and nothing else:
 // last week's row, the gap to each day 90 target, the approaches drafted and
 // waiting to be sent, and the piece drafted for his voice pass.
@@ -32,15 +32,15 @@ interface Drafted { name: string }
 async function draftedApproaches(): Promise<{ count: number; names: string[] }> {
   try {
     const { data, error } = await supabase
-      .from('room_targets')
+      .from('pilot_deals')
       .select('id, contact_id, contacts(full_name)')
       .eq('state', 'drafted')
       .order('drafted_at', { ascending: false })
     if (error) {
       if (isMissingTable(error)) return { count: 0, names: [] }
       // The join is the fragile half. Fall back to a plain count.
-      const plain = await supabase.from('room_targets').select('id', { count: 'exact', head: true }).eq('state', 'drafted')
-      if (plain.error && !isMissingTable(plain.error)) throw new Error(`room_targets: ${plain.error.message}`)
+      const plain = await supabase.from('pilot_deals').select('id', { count: 'exact', head: true }).eq('state', 'drafted')
+      if (plain.error && !isMissingTable(plain.error)) throw new Error(`pilot_deals: ${plain.error.message}`)
       return { count: plain.count ?? 0, names: [] }
     }
     const rows = (data || []) as { contacts?: { full_name?: string | null } | { full_name?: string | null }[] | null }[]
@@ -203,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (drafted.count > 0) {
       lines.push(`${drafted.count} drafted ${drafted.count === 1 ? 'approach' : 'approaches'} waiting to send${drafted.names.length ? `: ${drafted.names.join(', ')}` : ''}.`)
     } else {
-      lines.push('No drafted approaches waiting. The Room has nothing queued for this week.')
+      lines.push('No drafted approaches waiting. Nothing is queued for this week.')
     }
     lines.push(piece
       ? `Drafted piece for your voice pass: ${piece.title || `brief ${isoWeekLabel()}`} (${piece.status}).`

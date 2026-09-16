@@ -13,7 +13,7 @@ const TITLE_COLUMN: Record<string, string> = {
   zara_signals: 'company_name',
   // The Room carries no name of its own (that lives on contacts); why_face is
   // the text a reject-neighbour search has to match on.
-  room_targets: 'why_face',
+  pilot_deals: 'why_face',
 }
 
 /**
@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (body.source_table === 'zara_signals') updatePayload = { status: 'declined' }
   // not_now is the Room's one side exit and the only rung that returns to the
   // list, so a refusal here is reversible by design (api/_room.ts).
-  if (body.source_table === 'room_targets') updatePayload = { state: 'not_now', not_now_at: new Date().toISOString() }
+  if (body.source_table === 'pilot_deals') updatePayload = { state: 'not_now', not_now_at: new Date().toISOString() }
 
   // Read the item BEFORE the update: for content_ideas the very next purge can
   // delete this row, and once it is gone the reject becomes an orphaned reason

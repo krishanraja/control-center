@@ -2,10 +2,10 @@ import { test, expect, type Page, type Route } from '@playwright/test'
 import { answerPilotGate } from './pilot-gate-mock'
 
 /**
- * The Room lane on People (job 1 of the one swing).
+ * The Pilots lane on People (job 1 of the one swing).
  *
  * Three things are pinned, in Krish's terms: the lane control switches to
- * the Room, a target with no cited trigger says so on its face rather than
+ * this lane, a deal with no cited trigger says so on its face rather than
  * showing invented news, and every card carries exactly one primary action
  * so the next step is never a choice between two buttons.
  */
@@ -18,11 +18,11 @@ const now = new Date().toISOString()
 
 const base = {
   sent_at: null, replied_at: null, call_booked_at: null, call_taken_at: null,
-  room_booked_at: null, room_paid_at: null, not_now_at: null, cash_gbp: null,
+  pilot_booked_at: null, pilot_paid_at: null, not_now_at: null, cash_gbp: null,
   sourced_by: 'os', notes: null, listed_at: now, created_at: now, updated_at: now,
 }
 
-const ROOM = {
+const PILOTS = {
   ok: true,
   targets: [
     {
@@ -66,27 +66,27 @@ async function mock(page: Page) {
     ok: true, horizons: ['os', 'weekly'], by_horizon: { os: [], weekly: [] }, goals: [],
     stale_count: 0, orphan_count: 0, ventures: ['mindmake'], north_star: '', week_of: 'Sep 6-12',
   } }))
-  await page.route('**/api/room', (r: Route) => r.fulfill({ json: ROOM }))
-  await page.route('**/api/room?*', (r: Route) => r.fulfill({ json: ROOM }))
+  await page.route('**/api/pilot-deals', (r: Route) => r.fulfill({ json: PILOTS }))
+  await page.route('**/api/pilot-deals?*', (r: Route) => r.fulfill({ json: PILOTS }))
 }
 
-async function openRoom(page: Page) {
+async function openPilots(page: Page) {
   await mock(page)
   await page.goto('/#/people?lane=pipeline')
-  await page.getByTestId('people-lane-room').click()
-  await expect(page.getByTestId('room-counts')).toBeVisible()
+  await page.getByTestId('people-lane-pilots').click()
+  await expect(page.getByTestId('pilot-counts')).toBeVisible()
 }
 
-test('the people-lane-room control switches to the Room', async ({ page }) => {
-  await openRoom(page)
-  await expect(page.getByTestId('people-lane-room')).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('heading', { name: 'The Room' })).toBeVisible()
-  await expect(page.getByTestId('room-counts')).toContainText('1 listed, 1 drafted')
+test('the people-lane-pilots control switches to Pilots', async ({ page }) => {
+  await openPilots(page)
+  await expect(page.getByTestId('people-lane-pilots')).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('heading', { name: 'Pilots' })).toBeVisible()
+  await expect(page.getByTestId('pilot-counts')).toContainText('1 listed, 1 drafted')
 })
 
 test('a target with no cited trigger says so, and never shows news', async ({ page }) => {
-  await openRoom(page)
-  const cards = page.getByTestId('room-card')
+  await openPilots(page)
+  const cards = page.getByTestId('pilot-card')
   await expect(cards).toHaveCount(2)
   const listed = cards.filter({ hasText: 'Alex Morgan' })
   await expect(listed.getByText('No live trigger found')).toBeVisible()
@@ -98,15 +98,15 @@ test('a target with no cited trigger says so, and never shows news', async ({ pa
 })
 
 test('every card has exactly one primary action', async ({ page }) => {
-  await openRoom(page)
-  const cards = page.getByTestId('room-card')
+  await openPilots(page)
+  const cards = page.getByTestId('pilot-card')
   const n = await cards.count()
   expect(n).toBeGreaterThan(0)
   for (let i = 0; i < n; i++) {
-    await expect(cards.nth(i).getByTestId('room-primary')).toHaveCount(1)
+    await expect(cards.nth(i).getByTestId('pilot-primary')).toHaveCount(1)
   }
-  await expect(cards.filter({ hasText: 'Alex Morgan' }).getByTestId('room-primary')).toHaveText(/Draft it/)
-  await expect(cards.filter({ hasText: 'Sam Patel' }).getByTestId('room-primary')).toHaveText(/I sent it/)
+  await expect(cards.filter({ hasText: 'Alex Morgan' }).getByTestId('pilot-primary')).toHaveText(/Draft it/)
+  await expect(cards.filter({ hasText: 'Sam Patel' }).getByTestId('pilot-primary')).toHaveText(/I sent it/)
   // And nothing on the page can send: the draft opens in Gmail, where Krish presses send.
   await expect(page.getByRole('link', { name: 'Open in Gmail' })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Send$/ })).toHaveCount(0)
@@ -120,17 +120,17 @@ test('every card has exactly one primary action', async ({ page }) => {
  * page moved under the cards: "the swipe cards get in the way of the rest of the
  * user experience on mobile" (Krish, 2026-09-11). Visibility already solved this
  * by returning a `scroll="none"` shell while triaging (MobileGuests), and the
- * Room now does the same. The page scroller is what this pins: while the deck is
+ * Pilots now does the same. The page scroller is what this pins: while the deck is
  * up, there is no scrolling region behind it.
  */
 test('on a phone the proposal deck owns the screen', async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
   const page = await ctx.newPage()
   await mock(page)
-  // An empty Room, so the lane auto-finds, and a seed that returns two people.
-  await page.route('**/api/room', (r: Route) => r.fulfill({ json: { ok: true, targets: [], stateCounts: {} } }))
-  await page.route('**/api/room?*', (r: Route) => r.fulfill({ json: { ok: true, targets: [], stateCounts: {} } }))
-  await page.route('**/api/room/seed', (r: Route) => r.fulfill({ json: {
+  // An empty list, so the lane auto-finds, and a seed that returns two people.
+  await page.route('**/api/pilot-deals', (r: Route) => r.fulfill({ json: { ok: true, targets: [], stateCounts: {} } }))
+  await page.route('**/api/pilot-deals?*', (r: Route) => r.fulfill({ json: { ok: true, targets: [], stateCounts: {} } }))
+  await page.route('**/api/pilot-deals/seed', (r: Route) => r.fulfill({ json: {
     ok: true,
     degraded: [],
     held_back: 0,
@@ -152,8 +152,8 @@ test('on a phone the proposal deck owns the screen', async ({ browser }) => {
   } }))
 
   await page.goto('/#/people?lane=pipeline')
-  await page.getByTestId('people-lane-room').click()
-  await expect(page.getByLabel('Room proposal: Alex Morgan')).toBeVisible()
+  await page.getByTestId('people-lane-pilots').click()
+  await expect(page.getByLabel('Pilot proposal: Alex Morgan')).toBeVisible()
   // MobileShell drops the `tab-scroll` region entirely when scroll is 'none'.
   // Its presence is the bug: a scroller behind the cards.
   await expect(page.getByTestId('tab-scroll')).toHaveCount(0)

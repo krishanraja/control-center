@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../../_auth.js'
 import { googleConfigured } from '../../_google.js'
-import { loadTarget, draftTarget } from '../../_room.js'
+import { loadTarget, draftTarget } from '../../_pilotDeals.js'
 
-// POST /api/room/:id/draft
+// POST /api/pilot-deals/:id/draft
 //
 // "Draft it." Finds the live trigger for this person, drafts the approach in
 // Krish's voice, lands it in his Gmail drafts, and moves the row to drafted.

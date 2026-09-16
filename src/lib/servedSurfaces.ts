@@ -28,7 +28,7 @@ export type ServedTable =
   | 'contacts'
   | 'guests'
   | 'visibility_targets'
-  | 'room_targets'
+  | 'pilot_deals'
   | 'nova_target_conferences'
   | 'content_ideas'
   | 'content_decisions'
@@ -258,21 +258,21 @@ export const SURFACES: Record<ServedTable, SurfaceContract> = {
     },
   },
 
-  // The Room (job 1, ADR-016). The highest-stakes list in the OS was the one
+  // Pilots (job 1, ADR-016). The highest-stakes list in the OS was the one
   // surface that could neither explain itself nor be refused: Skip filtered a
   // local array and wrote nothing, so the same five people came back on every
   // call and no verdict ever reached Vera.
-  room_targets: {
-    label: 'room target',
-    defaultReason: 'room_other',
+  pilot_deals: {
+    label: 'pilot deal',
+    defaultReason: 'pilot_other',
     reasons: [
-      { code: 'room_not_a_buyer',        label: 'Cannot buy this' },
-      { code: 'room_already_work_with',  label: 'We already work together' },
-      { code: 'room_no_budget_say',      label: 'No say over the budget' },
-      { code: 'room_wrong_sector',       label: 'Wrong sector' },
-      { code: 'room_bad_timing',         label: 'Bad timing' },
-      { code: 'room_not_close_enough',   label: 'Do not know them well enough' },
-      { code: 'room_other',              label: 'Other' },
+      { code: 'pilot_not_a_buyer',        label: 'Cannot buy this' },
+      { code: 'pilot_already_work_with',  label: 'We already work together' },
+      { code: 'pilot_no_budget_say',      label: 'No say over the budget' },
+      { code: 'pilot_wrong_sector',       label: 'Wrong sector' },
+      { code: 'pilot_bad_timing',         label: 'Bad timing' },
+      { code: 'pilot_not_close_enough',   label: 'Do not know them well enough' },
+      { code: 'pilot_other',              label: 'Other' },
     ],
     why: r => why(firstText(r.ask_line, r.why_face), {
       agent: 'os',
@@ -282,11 +282,11 @@ export const SURFACES: Record<ServedTable, SurfaceContract> = {
       factors: factors(
         plain('Ask', r.ask_kind === 'intro' ? 'An introduction'
           : r.ask_kind === 'collaborator' ? 'You already work together'
-          : 'The room itself'),
+          : 'The pilot itself'),
         plain('Company', firstText(r.company, r.contact?.company)),
         plain('Sourced by', r.sourced_by === 'krish' ? 'You' : 'The OS'),
       ),
-      // Cited or silent: the Room never invents news, so when there is no
+      // Cited or silent: the lane never invents news, so when there is no
       // trigger the badge says the relationship is the only reason there is.
       footnote: r.trigger_signal ? null : 'No live trigger found.',
     }),

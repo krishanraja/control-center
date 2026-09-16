@@ -11,14 +11,14 @@ import { Eyebrow } from '../shared/Eyebrow'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
-export function RoomStrip({ onNavigate }: { onNavigate?: NavigateFn }) {
+export function PilotStrip({ onNavigate }: { onNavigate?: NavigateFn }) {
   const [drafted, setDrafted] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
-        const r = await fetch('/api/room')
+        const r = await fetch('/api/pilot-deals')
         const j = await r.json()
         const n = Number(j?.stateCounts?.drafted)
         if (!cancelled) setDrafted(j?.ok && Number.isFinite(n) ? n : 0)
@@ -39,11 +39,11 @@ export function RoomStrip({ onNavigate }: { onNavigate?: NavigateFn }) {
   return (
     <button
       type="button"
-      data-testid="room-strip"
-      onClick={() => onNavigate?.('people', { lane: 'room' })}
+      data-testid="pilot-strip"
+      onClick={() => onNavigate?.('people', { lane: 'pilots' })}
       className="flex items-center gap-2 min-h-[28px] max-h-[34px] w-full text-left group"
     >
-      <Eyebrow tone="accent">Room</Eyebrow>
+      <Eyebrow tone="accent">Pilots</Eyebrow>
       <span className="text-label text-white/80 truncate">
         {drafted} drafted approach{drafted === 1 ? '' : 'es'} waiting to send
       </span>

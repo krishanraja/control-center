@@ -91,7 +91,7 @@ to agents or waiting for human review.
 | `venture_id` | text | Associated venture |
 | `lever_score` | int | 0-10 anti-busywork rating (PR #47) |
 | `est_hours_to_revenue` | numeric | Estimated path to revenue impact (PR #47) |
-| `job` | text | Which of the five jobs of the OS this serves: `fill_room`, `keep_honest`, `run_room`, `feed_demand`, `keep_edge`. Nullable (ADR-016) |
+| `job` | text | Which of the five jobs of the OS this serves: `fill_pilots`, `keep_honest`, `run_pilots`, `feed_demand`, `keep_edge`. Nullable (ADR-016) |
 
 (There is no `source` column on `tasks`; an earlier version of this table listed one.)
 
@@ -587,11 +587,11 @@ The learning loop.
 
 ## One swing tables (ADR-016, 2026-09-06)
 
-### `room_targets`
+### `pilot_deals`
 
 The Room list: job 1 of the five. One row per named leader who fits the face.
 Service role only (RLS enabled and forced, no anon policy), reached through
-`/api/room/*` behind the cookie gate. Migration
+`/api/pilot-deals/*` behind the cookie gate. Migration
 `20260906110000_room_targets.sql`.
 
 | Column | Type | Description |
@@ -601,11 +601,11 @@ Service role only (RLS enabled and forced, no anon policy), reached through
 | `why_face` | text | Why this person fits the face |
 | `trigger_signal` / `trigger_source_url` / `trigger_found_at` | text / text / timestamptz | The cited live signal. Never a signal without a URL |
 | `draft_subject` / `draft_body` / `draft_url` / `drafted_at` | | The approach, and the Gmail draft when Google is configured |
-| `state` | text | `listed` → `drafted` → `sent` → `replied` → `call_booked` → `call_taken` → `room_booked` → `room_paid`; `not_now` is the side exit |
+| `state` | text | `listed` → `drafted` → `sent` → `replied` → `call_booked` → `call_taken` → `pilot_booked` → `pilot_paid`; `not_now` is the side exit |
 | `listed_at`, `sent_at`, `replied_at`, `call_booked_at`, `call_taken_at`, `room_booked_at`, `room_paid_at`, `not_now_at` | timestamptz | One stamp per step; the scorecard reads them |
-| `cash_gbp` | numeric | Invoiced value of the room. Required at `room_paid` |
+| `cash_gbp` | numeric | Invoiced value of the room. Required at `pilot_paid` |
 | `sourced_by` | text | `krish` or `os` |
-| `ask_kind` | text | `buyer` (can sign a fixed fee) / `intro` (opens a door) / `collaborator` (already works with Krish). Default `buyer`. Classified by `/api/room/seed`, never inferred at render time |
+| `ask_kind` | text | `buyer` (can sign a fixed fee) / `intro` (opens a door) / `collaborator` (already works with Krish). Default `buyer`. Classified by `/api/pilot-deals/seed`, never inferred at render time |
 | `ask_line` | text | One plain sentence saying what to ask this person, grounded only in stored fields; null when nothing classified them |
 
 Marking a target `sent` writes a `ships` row, channel `approach`, dedup key
@@ -619,7 +619,7 @@ proposal fails until it runs.
 
 Job 2. `scorecard_weeks` is keyed by `week_ending` (Fridays from 2026-09-11 to
 2026-11-27) and carries the six derived columns (`approaches_sent`,
-`calls_taken`, `paid_rooms`, `cash_invoiced_gbp`, `pieces_published`,
+`calls_taken`, `paid_pilots`, `cash_invoiced_gbp`, `pieces_published`,
 `unasked_hours`), six nullable `override_*` twins, `plan_sent`,
 `variance_note`, `frozen_at`. The Friday cron freezes a week; the live week is
 derived on read by `api/_scorecard.ts`. `build_activity_weeks` holds the

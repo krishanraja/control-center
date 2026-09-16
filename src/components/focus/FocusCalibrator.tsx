@@ -85,9 +85,9 @@ const KIND_META: Record<string, { label: string; bg: string; text: string; Icon:
   growth:  { label: 'Growth',  bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
   risk:    { label: 'Risk',    bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
   // The five jobs of the OS, for the picks derived from this week's objectives.
-  fill_room:   { label: 'Fill the room',   bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
+  fill_pilots:   { label: 'Find pilots',     bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
   keep_honest: { label: 'Keep me honest',  bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
-  run_room:    { label: 'Run the room',    bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
+  run_pilots:    { label: 'Run the pilots',  bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
   feed_demand: { label: 'Feed the demand engine', bg: 'bg-violet-500/20', text: 'text-violet-200', Icon: SparkleIcon },
   keep_edge:   { label: 'Keep the edge',   bg: 'bg-white/10',       text: 'text-white/70',    Icon: SparkleIcon },
 }

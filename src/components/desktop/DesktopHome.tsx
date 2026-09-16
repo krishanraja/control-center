@@ -8,7 +8,7 @@ import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
-import { RoomStrip } from '../home/RoomStrip'
+import { PilotStrip } from '../home/PilotStrip'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useSpend, spendAlert } from '../../hooks/useSpend'
@@ -48,7 +48,7 @@ export function DesktopHome({ onNavigate }: {
         <CriticalAlertBanner />
         <VitalsLine onNavigate={onNavigate} />
         <DueTestsCard variant="desktop" />
-        <RoomStrip onNavigate={onNavigate} />
+        <PilotStrip onNavigate={onNavigate} />
       </div>
 
       <div className="shrink-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 pt-1">

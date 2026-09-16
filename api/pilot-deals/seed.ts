@@ -7,16 +7,16 @@ import { FACE, DOOR } from '../_mission.js'
 import { callClaude, robustJson } from '../_content.js'
 import { enrichPerson } from '../_personEnrich.js'
 
-// POST /api/room/seed  { limit? }
+// POST /api/pilot-deals/seed  { limit? }
 //
 // "Find five more." Proposes people from Krish's own network who fit the face,
 // using the same scorer as /api/network/recommend: the face is the semantic
 // query, seniority and industry are soft constraints, and the relationship
 // tier is hard because the door is sold to people he already knows, never
-// cold. People already in the Room are dropped.
+// cold. People already on the list are dropped.
 //
 // This route inserts nothing. Every proposal is accepted or skipped by hand
-// on the People, Room lane, and only an accept writes a row.
+// on the People, Pilots lane, and only an accept writes a row.
 
 export const config = { maxDuration: 60 }
 
@@ -26,7 +26,7 @@ const INDUSTRY = ['media', 'advertising', 'adtech', 'publishing', 'broadcast', '
 
 export type AskKind = 'buyer' | 'intro' | 'collaborator'
 
-export interface RoomProposal {
+export interface PilotProposal {
   contact_id: string
   full_name: string | null
   title: string | null
@@ -47,7 +47,7 @@ export interface RoomProposal {
  * closely rank highest, and it proposed his own podcast co-host as a sales
  * prospect with "already emails Krish" as the reason. The repo knew who Rio was
  * the whole time (api/_venturePositioning.ts, docs/GLOSSARY.md,
- * docs/MINDMAKE_OS_ARCHITECTURE.md); the Room lane just never asked.
+ * docs/MINDMAKE_OS_ARCHITECTURE.md); this lane just never asked.
  *
  * This is a named list rather than a lookup because there is no structured
  * collaborator field on contact_intelligence today. `roles[]` is its natural
@@ -108,17 +108,18 @@ const CLASSIFY_SYSTEM = `You are sorting people in Krish Raja's own network by w
 WHAT IS BEING SOLD: ${DOOR}
 
 For each candidate return one of three kinds:
-- "buyer": they run a business or a P&L and could personally decide to pay a fixed fee for the room. A founder, CEO, MD, GM, president, owner, or a C-level or VP with budget at a company that BUYS advice.
+- "buyer": they run a business or a P&L and could personally decide to pay a fixed fee for the pilot. A founder, CEO, MD, GM, president, owner, or a C-level or VP with budget at a company that BUYS advice.
 - "intro": senior and credible, but they sell advisory, consulting or agency services themselves, or they hold no budget over this. They do not buy this; they can open a door to someone who does. Partners and directors at consultancies, agencies and services firms are almost always "intro".
 - "collaborator": the supplied COLLABORATORS list names them. Krish already works with them.
 
-Also write "ask_line": ONE short sentence, addressed to Krish, saying what to ask this person. Plain English a twelve year old could follow. No em dashes. No exclamation marks.
+Also write "ask_line": ONE short sentence, addressed to Krish, saying what to ask this person. At most twelve words, because it is read on a phone and a longer line wraps badly. Plain English a twelve year old could follow. No em dashes. No exclamation marks.
 
 RULES
 - Ground every judgment ONLY in the fields supplied for that candidate. Never invent an employer, a role, a budget or a fact about their business.
 - If the supplied fields do not say enough to tell a buyer from an intro, answer "intro". Asking for a door is never the wrong ask; asking a non-buyer to buy is.
 - Return JSON only: {"people":[{"i":number,"ask_kind":"buyer"|"intro"|"collaborator","ask_line":string}]}
-- "i" is the candidate's given index. Include every candidate exactly once.`
+- "i" is the candidate's given index. Include every candidate exactly once.
+- Call the thing being sold a "pilot". Never call it "the room", and never assume the reader knows any insider word for it.`
 
 /**
  * Classify the shortlist and write the ask, in one metered call.
@@ -155,7 +156,7 @@ async function classify(candidates: Candidate[]): Promise<Map<string, { ask_kind
   ].join('\n\n')
 
   const txt = await callClaude({
-    agent: 'room',
+    agent: 'pilots',
     system: CLASSIFY_SYSTEM,
     user,
     maxTokens: 1200,
@@ -207,7 +208,7 @@ interface ThinRow {
  *
  * Web research is off. What a card needs is the employer and the title, which
  * People Data Labs and Apollo return directly; the slow half of the cascade buys
- * prose that the card has no room for.
+ * prose the card has no space for.
  *
  * What comes back is written onto `contacts`, blanks only, exactly as
  * `api/network/enrich-person.ts` does it. Enrichment adds, it never overwrites a
@@ -258,7 +259,7 @@ async function enrichThin(rows: ThinRow[]): Promise<Set<string>> {
 /** Collaborators keep their place on the deck, at the bottom of it. Krish still
  *  wants to see them, after everyone who could actually sign. A stable sort, so
  *  the scorer's order survives inside each group. */
-function collaboratorsLast(proposals: RoomProposal[]): RoomProposal[] {
+function collaboratorsLast(proposals: PilotProposal[]): PilotProposal[] {
   return proposals
     .map((p, i) => ({ p, i }))
     .sort((a, b) => {
@@ -287,7 +288,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { data: listed, error } = await supabase.from('room_targets').select('contact_id')
+    const { data: listed, error } = await supabase.from('pilot_deals').select('contact_id')
     if (error) throw new Error(error.message)
     const taken = new Set((listed || []).map(r => String((r as { contact_id: string }).contact_id)))
 
@@ -324,7 +325,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // thin cards go through unenriched rather than the deck coming back empty.
     }
 
-    let proposals: RoomProposal[] = shortlist.map(r => ({
+    let proposals: PilotProposal[] = shortlist.map(r => ({
       contact_id: r.contact_id,
       full_name: r.full_name,
       title: r.title,

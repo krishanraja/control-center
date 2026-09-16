@@ -299,7 +299,7 @@ adopter, replacing a local Accept/Skip chip pair that wrote nothing on skip.
 `MobileGuests` still hand-rolls the same logic against
 `buildGuestsTriageConfig` and is a migration candidate, not yet moved.
 **2026-09-11:** on a phone the deck now owns the whole screen rather than a
-fixed-height box inside the page's own scroller - `MobileRoom` switches its
+fixed-height box inside the page's own scroller - `MobilePilots` switches its
 shell to `scroll="none"` while the deck is up, the pattern `MobileGuests`
 already used, because a swipe and a page scroll were competing for the same
 drag.

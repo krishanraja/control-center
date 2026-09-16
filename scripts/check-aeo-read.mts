@@ -30,8 +30,8 @@ const CTRL = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const ACME = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
 const subjects: AeoSubjectRow[] = [
-  { id: CTRL, kind: 'venture', slug: 'ctrl', name: 'CTRL', domains: ['ctrl.mindmake.co'], competitor_domains: [], icp_line: null, seed_topics: [], never_say: [], product_slug: 'ctrl', room_target_id: null, active: true, notes: null, created_at: '', updated_at: '' },
-  { id: ACME, kind: 'prospect', slug: 'acme-media', name: 'Acme Media', domains: ['acme.example'], competitor_domains: [], icp_line: null, seed_topics: [], never_say: [], product_slug: null, room_target_id: null, active: true, notes: null, created_at: '', updated_at: '' },
+  { id: CTRL, kind: 'venture', slug: 'ctrl', name: 'CTRL', domains: ['ctrl.mindmake.co'], competitor_domains: [], icp_line: null, seed_topics: [], never_say: [], product_slug: 'ctrl', pilot_deal_id: null, active: true, notes: null, created_at: '', updated_at: '' },
+  { id: ACME, kind: 'prospect', slug: 'acme-media', name: 'Acme Media', domains: ['acme.example'], competitor_domains: [], icp_line: null, seed_topics: [], never_say: [], product_slug: null, pilot_deal_id: null, active: true, notes: null, created_at: '', updated_at: '' },
 ]
 
 const probe = (o: Partial<GeoProbeRow> & { run_at: string }): GeoProbeRow => ({

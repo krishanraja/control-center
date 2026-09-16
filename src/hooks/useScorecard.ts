@@ -8,11 +8,11 @@ import { getZone } from '../lib/civilDate'
 // listeners so a PATCH from the panel updates the line in the same tick.
 
 export type ScorecardCol =
-  | 'approaches_sent' | 'calls_taken' | 'paid_rooms'
+  | 'approaches_sent' | 'calls_taken' | 'paid_pilots'
   | 'cash_invoiced_gbp' | 'pieces_published' | 'unasked_hours'
 
 export const SCORECARD_COLS: ScorecardCol[] = [
-  'approaches_sent', 'calls_taken', 'paid_rooms', 'cash_invoiced_gbp', 'pieces_published', 'unasked_hours',
+  'approaches_sent', 'calls_taken', 'paid_pilots', 'cash_invoiced_gbp', 'pieces_published', 'unasked_hours',
 ]
 
 export type ScorecardValues = Record<ScorecardCol, number>
@@ -24,14 +24,14 @@ export interface ScorecardWeek {
   variance_note: string | null
   approaches_sent: number | null
   calls_taken: number | null
-  paid_rooms: number | null
+  paid_pilots: number | null
   cash_invoiced_gbp: number | null
   pieces_published: number | null
   unasked_hours: number | null
   unasked_measured: boolean
   override_approaches_sent: number | null
   override_calls_taken: number | null
-  override_paid_rooms: number | null
+  override_paid_pilots: number | null
   override_cash_invoiced_gbp: number | null
   override_pieces_published: number | null
   override_unasked_hours: number | null
@@ -61,7 +61,7 @@ const API = import.meta.env.VITE_API_URL ?? ''
 const withTz = (path: string) => `${API}${path}${path.includes('?') ? '&' : '?'}tz=${encodeURIComponent(getZone())}`
 
 const ZERO: ScorecardValues = {
-  approaches_sent: 0, calls_taken: 0, paid_rooms: 0, cash_invoiced_gbp: 0, pieces_published: 0, unasked_hours: 0,
+  approaches_sent: 0, calls_taken: 0, paid_pilots: 0, cash_invoiced_gbp: 0, pieces_published: 0, unasked_hours: 0,
 }
 
 function values(src: unknown): ScorecardValues {

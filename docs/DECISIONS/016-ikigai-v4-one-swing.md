@@ -37,7 +37,7 @@ parks the OS as a product.
    path reads, and closes with: name which of the five jobs this serves; refuse
    work that serves none.
 3. Every weekly objective, daily pick and task carries a nullable `job` tag:
-   `fill_room`, `keep_honest`, `run_room`, `feed_demand`, `keep_edge`. Chips,
+   `fill_pilots`, `keep_honest`, `run_pilots`, `feed_demand`, `keep_edge`. Chips,
    never selects.
 4. The weekly structure stays Krish's: one OS goal, up to three weekly
    objectives he writes, exactly three daily picks. The OS derives today's
@@ -47,7 +47,7 @@ parks the OS as a product.
    fixed fee) is the door. The face is the ICP: a senior leader who will not
    admit to anyone that they are not ready, at a PE or VC backed media, adtech
    or data business Krish already knows. `api/_icpScore.ts` gains the
-   `room_face` lane first; `fractional_network`, `mm_ctrl_buyer` and
+   `pilot_face` lane first; `fractional_network`, `mm_ctrl_buyer` and
    `ecosystem_partner` are parked (scored for the record, never the best lane).
    No cold contact, unchanged. Founder visibility on the public site remains an
    open decision and is not touched here.

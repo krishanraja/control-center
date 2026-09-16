@@ -3,10 +3,10 @@ import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 import { Modal } from '../shared/Modal'
-import { ASK_LABEL, draftRoom, patchRoom, ROOM_STATE_LABEL } from '../../hooks/useRoom'
-import type { RoomRow, RoomState } from '../../hooks/useRoom'
+import { ASK_LABEL, draftPilot, patchPilot, PILOT_STATE_LABEL } from '../../hooks/usePilots'
+import type { PilotDealRow, PilotState } from '../../hooks/usePilots'
 
-// One leader in the Room. The card carries who they are, why they fit the
+// One possible pilot customer. The card carries who they are, why they fit the
 // face, the live reason for writing now (or the honest line that there is
 // none), the draft when there is one, and exactly one primary action for
 // the state it is in.
@@ -15,17 +15,17 @@ import type { RoomRow, RoomState } from '../../hooks/useRoom'
 // Krish telling the OS what he did in Gmail.
 
 interface Props {
-  target: RoomRow
+  target: PilotDealRow
   onChanged: () => void
 }
 
 /** The one primary action per state, and the state it moves to. */
-const PRIMARY: Partial<Record<RoomState, { label: string; next: RoomState; done: string }>> = {
+const PRIMARY: Partial<Record<PilotState, { label: string; next: PilotState; done: string }>> = {
   drafted: { label: 'I sent it', next: 'sent', done: 'Marked sent. It counts on the scorecard.' },
   sent: { label: 'They replied', next: 'replied', done: 'Marked replied.' },
   replied: { label: 'Call booked', next: 'call_booked', done: 'Call booked.' },
   call_booked: { label: 'Call taken', next: 'call_taken', done: 'Call taken.' },
-  call_taken: { label: 'Room booked', next: 'room_booked', done: 'Room booked. Well done.' },
+  call_taken: { label: 'Pilot booked', next: 'pilot_booked', done: 'Pilot booked. Well done.' },
 }
 
 const PRIMARY_CLASS =
@@ -33,7 +33,7 @@ const PRIMARY_CLASS =
 const QUIET_CLASS =
   'flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors'
 
-export function RoomCard({ target: t, onChanged }: Props) {
+export function PilotCard({ target: t, onChanged }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'primary' | 'quiet' | 'save' | 'draft'>(null)
   // `body` is a local draft buffer over a row that refetches every 60s and
@@ -57,11 +57,11 @@ export function RoomCard({ target: t, onChanged }: Props) {
   const name = t.contact?.full_name || 'Unnamed contact'
   const personLine = [t.contact?.title, t.contact?.company].filter(Boolean).join(' at ')
 
-  const move = async (next: RoomState, key: 'primary' | 'quiet', done: string, extra: { cash_gbp?: number } = {}) => {
+  const move = async (next: PilotState, key: 'primary' | 'quiet', done: string, extra: { cash_gbp?: number } = {}) => {
     if (busy) return
     setBusy(key)
     try {
-      await patchRoom(t.id, { state: next, ...extra })
+      await patchPilot(t.id, { state: next, ...extra })
       toast(done, 'success')
       onChanged()
     } catch (err) {
@@ -75,7 +75,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
     if (busy) return
     setBusy('draft')
     try {
-      await draftRoom(t.id)
+      await draftPilot(t.id)
       toast('Drafted. It is in your Gmail drafts too. Nothing was sent.', 'success')
       onChanged()
     } catch (err) {
@@ -95,7 +95,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
     if (busy) return
     setBusy('save')
     try {
-      await patchRoom(t.id, { draft_body: body })
+      await patchPilot(t.id, { draft_body: body })
       toast('Draft saved. Sending stays yours.', 'success')
       onChanged()
     } catch (err) {
@@ -112,14 +112,14 @@ export function RoomCard({ target: t, onChanged }: Props) {
       return
     }
     setPayOpen(false)
-    await move('room_paid', 'primary', `Paid. ${n.toLocaleString('en-GB')} GBP on the scorecard.`, { cash_gbp: n })
+    await move('pilot_paid', 'primary', `Paid. ${n.toLocaleString('en-GB')} GBP on the scorecard.`, { cash_gbp: n })
   }
 
   const primary = PRIMARY[t.state]
 
   return (
     <article
-      data-testid="room-card"
+      data-testid="pilot-card"
       className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3.5 hover:border-violet-500/35 transition-colors"
     >
       <div className="flex items-start justify-between gap-x-3 gap-y-1.5 flex-wrap">
@@ -140,10 +140,10 @@ export function RoomCard({ target: t, onChanged }: Props) {
           {personLine && <p className="text-label text-white/55 mt-0.5">{personLine}</p>}
         </div>
         <span
-          data-testid="room-state"
+          data-testid="pilot-state"
           className="shrink-0 text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200"
         >
-          {ROOM_STATE_LABEL[t.state]}
+          {PILOT_STATE_LABEL[t.state]}
         </span>
       </div>
 
@@ -153,7 +153,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
           the ask was, so a close collaborator and a stranger read identically
           and neither card answered "what am I supposed to do with them". */}
       {t.ask_line && (
-        <p data-testid="room-ask" className="text-label text-white/80 mt-1.5">
+        <p data-testid="pilot-ask" className="text-label text-white/80 mt-1.5">
           {t.ask_kind && (
             <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
               t.ask_kind === 'buyer'
@@ -225,7 +225,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
         </div>
       )}
 
-      {t.state === 'room_paid' && typeof t.cash_gbp === 'number' && (
+      {t.state === 'pilot_paid' && typeof t.cash_gbp === 'number' && (
         <p className="text-label text-white/55 mt-2 tabular-nums">
           Invoiced {t.cash_gbp.toLocaleString('en-GB')} GBP.
         </p>
@@ -235,7 +235,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
         {t.state === 'listed' && (
           <button
             type="button"
-            data-testid="room-primary"
+            data-testid="pilot-primary"
             onClick={draftIt}
             disabled={busy !== null}
             className={PRIMARY_CLASS}
@@ -248,7 +248,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
         {primary && (
           <button
             type="button"
-            data-testid="room-primary"
+            data-testid="pilot-primary"
             onClick={() => move(primary.next, 'primary', primary.done)}
             disabled={busy !== null}
             className={PRIMARY_CLASS}
@@ -257,10 +257,10 @@ export function RoomCard({ target: t, onChanged }: Props) {
             {primary.label}
           </button>
         )}
-        {t.state === 'room_booked' && (
+        {t.state === 'pilot_booked' && (
           <button
             type="button"
-            data-testid="room-primary"
+            data-testid="pilot-primary"
             onClick={() => setPayOpen(true)}
             disabled={busy !== null}
             className={PRIMARY_CLASS}
@@ -272,7 +272,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
         {t.state === 'not_now' && (
           <button
             type="button"
-            data-testid="room-primary"
+            data-testid="pilot-primary"
             onClick={() => move('listed', 'primary', 'Back on the list.')}
             disabled={busy !== null}
             className={PRIMARY_CLASS}
@@ -281,7 +281,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
             Back to the list
           </button>
         )}
-        {t.state !== 'not_now' && t.state !== 'room_paid' && (
+        {t.state !== 'not_now' && t.state !== 'pilot_paid' && (
           <button
             type="button"
             onClick={() => move('not_now', 'quiet', 'Parked. It can come back to the list later.')}
@@ -297,7 +297,7 @@ export function RoomCard({ target: t, onChanged }: Props) {
       <Modal
         open={payOpen}
         onClose={() => setPayOpen(false)}
-        title="Room paid"
+        title="Pilot paid"
         description="How much was invoiced, in pounds?"
         variant="center"
       >

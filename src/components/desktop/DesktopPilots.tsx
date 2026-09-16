@@ -4,16 +4,16 @@ import { BoardSkeleton } from '../shared/Skeleton'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'
-import { RoomCard } from '../room/RoomCard'
+import { PilotCard } from '../pilotDeals/PilotCard'
 import { TriageDeck } from '../shared/TriageDeck'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
-import { buildRoomTriageConfig } from '../../lib/triageConfig'
+import { buildPilotTriageConfig } from '../../lib/triageConfig'
 import {
-  addRoomTarget, ROOM_STATE_LABEL, ROOM_STATES, seedRoom, useRoom,
-} from '../../hooks/useRoom'
-import type { RoomProposal, RoomState } from '../../hooks/useRoom'
+  addPilotDeal, PILOT_STATE_LABEL, PILOT_STATES, seedPilots, usePilots,
+} from '../../hooks/usePilots'
+import type { PilotProposal, PilotState } from '../../hooks/usePilots'
 
-// The Room, job 1 (docs/plans/one-swing/CHARTER.md): the 25 leaders who fit
+// Pilots, job 1 (docs/plans/one-swing/CHARTER.md): the 25 leaders who fit
 // the face. The OS drafts, Krish sends. Listed and drafted show by default
 // because that is where the work waits; every other state is one chip away
 // so a sent approach can be moved along when the reply comes.
@@ -22,26 +22,26 @@ import type { RoomProposal, RoomState } from '../../hooks/useRoom'
 // lane failed to answer on a phone, where the explanation never rendered at all.
 // The offer is the door from `api/_mission.ts`, restated in the second person;
 // `api/` is server-only so the constant cannot be imported here.
-export const ROOM_PURPOSE = 'People you already know who could pay for a three week private diagnostic.'
-export const ROOM_OFFER = 'What you are selling: a confidential room. Three weeks, a fixed fee, and they come out knowing where they stand, what is coming for their business, and what to do first.'
+export const PILOT_PURPOSE = 'People you already know who could pay for a three week private diagnostic.'
+export const PILOT_OFFER = 'What you are selling: a paid three week pilot. They come out knowing where they stand, what is coming for their business, and what to do first.'
 /** Short enough for the phone header, which truncates. */
-export const ROOM_SUBTITLE = '25 leaders you already know'
+export const PILOT_SUBTITLE = '25 leaders you already know'
 
 /** Anyone who has been written to, at any point along the ladder. */
-const ASKED_STATES: RoomState[] = [
-  'sent', 'replied', 'call_booked', 'call_taken', 'room_booked', 'room_paid',
+const ASKED_STATES: PilotState[] = [
+  'sent', 'replied', 'call_booked', 'call_taken', 'pilot_booked', 'pilot_paid',
 ]
 
 /**
  * The arithmetic from the charter, against the real counts: 25 approaches buy
- * 5 calls buy 1 paid room by 5 December (docs/plans/one-swing/CHARTER.md).
+ * 5 calls buy 1 paid pilot by 5 December (docs/plans/one-swing/CHARTER.md).
  * Saying it here is the whole answer to "why am I looking at these people".
  */
 function progressLine(counts: Record<string, number>): string {
-  const onList = ROOM_STATES.reduce((n, s) => n + (s === 'not_now' ? 0 : (counts[s] || 0)), 0)
+  const onList = PILOT_STATES.reduce((n, s) => n + (s === 'not_now' ? 0 : (counts[s] || 0)), 0)
   const asked = ASKED_STATES.reduce((n, s) => n + (counts[s] || 0), 0)
   const list = onList === 1 ? '1 person on the list' : `${onList} people on the list`
-  return `${list}, ${asked} asked so far. The plan needs about 25 asks to get 5 calls and one paid room by 5 December.`
+  return `${list}, ${asked} asked so far. The plan needs about 25 asks to get 5 calls and one paid pilot by 5 December.`
 }
 
 /** Plain words for the search stages the server reports as skipped. */
@@ -54,18 +54,18 @@ function degradedWords(stages: string[]): string {
 
 /** The counts line, in ladder order, only the states that have anyone. */
 function countsLine(counts: Record<string, number>): string {
-  return ROOM_STATES
+  return PILOT_STATES
     .filter(s => counts[s])
-    .map(s => `${counts[s]} ${ROOM_STATE_LABEL[s].toLowerCase()}`)
+    .map(s => `${counts[s]} ${PILOT_STATE_LABEL[s].toLowerCase()}`)
     .join(', ')
 }
 
-export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActive?: (active: boolean) => void }) {
+export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActive?: (active: boolean) => void }) {
   const { toast } = useToast()
-  const [view, setView] = useState<RoomState | null>(null)
-  const { targets, stateCounts, loading, error, refetch } = useRoom(view)
+  const [view, setView] = useState<PilotState | null>(null)
+  const { targets, stateCounts, loading, error, refetch } = usePilots(view)
   const [seeding, setSeeding] = useState(false)
-  const [proposals, setProposals] = useState<RoomProposal[] | null>(null)
+  const [proposals, setProposals] = useState<PilotProposal[] | null>(null)
   const [findNote, setFindNote] = useState<string | null>(null)
   const [accepting, setAccepting] = useState<string | null>(null)
 
@@ -74,10 +74,10 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
   // The default view plus any state that has someone in it. Chips, not a
   // select: the set is small and it changes with the counts.
   const views = useMemo(() => {
-    const out: Array<{ id: RoomState | null; label: string }> = [{ id: null, label: 'Listed and drafted' }]
-    for (const s of ROOM_STATES) {
+    const out: Array<{ id: PilotState | null; label: string }> = [{ id: null, label: 'Listed and drafted' }]
+    for (const s of PILOT_STATES) {
       if (s === 'listed' || s === 'drafted') continue
-      if (stateCounts[s]) out.push({ id: s, label: ROOM_STATE_LABEL[s] })
+      if (stateCounts[s]) out.push({ id: s, label: PILOT_STATE_LABEL[s] })
     }
     return out
   }, [stateCounts])
@@ -87,7 +87,7 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
     setSeeding(true)
     setFindNote(null)
     try {
-      const { proposals: found, degraded, heldBack } = await seedRoom(5)
+      const { proposals: found, degraded, heldBack } = await seedPilots(5)
       setProposals(found)
       // A held-back person is one the search found and could not identify: no
       // company, no role, and the lookup did not fill them in. Showing a bare
@@ -114,8 +114,8 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
     }
   }
 
-  // The charter says the OS drafts and Krish sends. An empty Room that waits
-  // for a button is the OS not drafting. So the first time the Room opens
+  // The charter says the OS drafts and Krish sends. An empty list that waits
+  // for a button is the OS not drafting. So the first time the lane opens
   // empty, the five are found and shown; nothing is listed until Accept.
   const autoFound = useRef(false)
   useEffect(() => {
@@ -124,11 +124,11 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
     void findMore()
   }, [loading, error, view, targets.length, proposals])
 
-  const accept = async (p: RoomProposal) => {
+  const accept = async (p: PilotProposal) => {
     if (accepting) return
     setAccepting(p.contact_id)
     try {
-      await addRoomTarget({
+      await addPilotDeal({
         contact_id: p.contact_id,
         why_face: p.why_face,
         sourced_by: 'os',
@@ -149,18 +149,18 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
   /**
    * A skip is a verdict, so it is written down.
    *
-   * It used to filter the local array and write nothing. `/api/room/seed`
+   * It used to filter the local array and write nothing. `/api/pilot-deals/seed`
    * excludes only people who already have a row, and it ranks with the
    * deterministic scorer (`rerank: false`), so the same query over the same
    * corpus returned the identical five on every call: skip Rio, reload, Rio is
    * back at the top. Recording the skip as a `not_now` row both suppresses the
    * person from the next seed and carries a coded feedback vote, which is the
-   * only way anything Krish decides about the Room reaches Vera.
+   * only way anything Krish decides here reaches Vera.
    */
-  const skip = async (p: RoomProposal, reasonCode?: string) => {
+  const skip = async (p: PilotProposal, reasonCode?: string) => {
     setProposals(prev => (prev || []).filter(x => x.contact_id !== p.contact_id))
     try {
-      await addRoomTarget({
+      await addPilotDeal({
         contact_id: p.contact_id,
         why_face: p.why_face,
         sourced_by: 'os',
@@ -183,21 +183,21 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
   // Both verdicts are writes here, because a proposal has no row until one is
   // made. accept() and skip() already own the toasts and the optimistic list
   // removal, so the deck's own commit just reports success.
-  const proposalConfig = useMemo(() => buildRoomTriageConfig(
+  const proposalConfig = useMemo(() => buildPilotTriageConfig(
     proposals || [],
     { toast },
     {
-      accept: async p => { await accept(p as RoomProposal); return true },
-      reject: async (p, code) => { await skip(p as RoomProposal, code); return true },
+      accept: async p => { await accept(p as PilotProposal); return true },
+      reject: async (p, code) => { await skip(p as PilotProposal, code); return true },
     },
     seeding,
   ), [proposals, seeding])
 
   // The deck owns the phone screen when proposals are up. Visibility already
   // does this (`MobileGuests` returns a `scroll="none"` shell while triaging);
-  // the Room gave the deck a fixed 540px box inside the page scroller instead,
+  // this lane gave the deck a fixed 540px box inside the page scroller instead,
   // so the page and the cards fought each other under the thumb. The shell is
-  // owned by `MobileRoom`, so the lane reports the mode and the shell reacts.
+  // owned by `MobilePilots`, so the lane reports the mode and the shell reacts.
   const deckOwnsScreen = narrow && !!proposals && proposals.length > 0
   useEffect(() => { onDeckActive?.(deckOwnsScreen) }, [deckOwnsScreen, onDeckActive])
 
@@ -205,9 +205,9 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
     <header>
       <h1 className="text-title font-semibold text-white tracking-tight flex items-center gap-2">
         <Users size={20} className="text-violet-300" />
-        The Room
+        Pilots
       </h1>
-      <FreshnessLine lane="room" />
+      <FreshnessLine lane="pilots" />
     </header>
   )
 
@@ -236,8 +236,8 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
           charter arithmetic on screen together and pushed the first card below
           the fold on a 390 by 844 phone. The purpose stays out loud because it
           is the answer to "what am I looking at"; the reasoning folds shut. */}
-      <section data-testid="room-purpose" className="space-y-2">
-        <p className="text-body text-white/75 leading-snug">{ROOM_PURPOSE}</p>
+      <section data-testid="pilot-purpose" className="space-y-2">
+        <p className="text-body text-white/75 leading-snug">{PILOT_PURPOSE}</p>
         <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]">
           <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2">
             <span className="text-label text-white/55">Why these people</span>
@@ -245,19 +245,19 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
             <span className="ml-auto hidden text-micro text-white/35 group-open:inline">Hide</span>
           </summary>
           <div className="space-y-1.5 px-3 pb-3">
-            <p className="text-label text-white/50 leading-snug">{ROOM_OFFER}</p>
+            <p className="text-label text-white/50 leading-snug">{PILOT_OFFER}</p>
             <p className="text-label text-white/50 leading-snug">{progressLine(stateCounts)}</p>
           </div>
         </details>
       </section>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p data-testid="room-counts" className="text-label text-white/55">
-          {counts || (error ? 'The Room could not be read.' : 'Nobody is on the list yet.')}
+        <p data-testid="pilot-counts" className="text-label text-white/55">
+          {counts || (error ? 'The list could not be read.' : 'Nobody is on the list yet.')}
         </p>
         <button
           type="button"
-          data-testid="room-find-more"
+          data-testid="pilot-find-more"
           onClick={findMore}
           disabled={seeding}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
@@ -269,7 +269,7 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
       </div>
 
       {views.length > 1 && (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Room states">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pilot states">
           {views.map(v => {
             const on = v.id === view
             return (
@@ -277,7 +277,7 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
                 key={v.id || 'working'}
                 type="button"
                 aria-pressed={on}
-                data-testid={`room-view-${v.id || 'working'}`}
+                data-testid={`pilot-view-${v.id || 'working'}`}
                 onClick={() => setView(v.id)}
                 className={`min-h-[32px] rounded-full border px-3 py-1 text-label transition-colors ${
                   on
@@ -293,7 +293,7 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
       )}
 
       {findNote && (
-        <p data-testid="room-find-note" className="text-label text-amber-100/75">{findNote}</p>
+        <p data-testid="pilot-find-note" className="text-label text-amber-100/75">{findNote}</p>
       )}
 
       {proposals && proposals.length > 0 && (
@@ -303,22 +303,22 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
           </p>
           {/* The shared deck, not a bespoke chip pair: it brings the reason
               chips, the "why am I seeing this" badge and the undo that the
-              Room's own Accept/Skip buttons never had. The narrow half of the
+              lane's own Accept/Skip buttons never had. The narrow half of the
               pair is handled above, where the deck takes the whole screen. */}
           <SwipeCockpit config={proposalConfig} onExit={() => setProposals(null)} />
         </section>
       )}
 
       {error ? (
-        <p data-testid="room-error" className="text-body text-rose-100/80" role="alert">
+        <p data-testid="pilot-error" className="text-body text-rose-100/80" role="alert">
           {error === 'not_signed_in'
-            ? 'This phone is not signed in to Control Center, so the Room cannot be read. Open it once on a signed-in browser.'
-            : `The Room could not be read (${error}). It retries every minute.`}
+            ? 'This phone is not signed in to Control Center, so the list cannot be read. Open it once on a signed-in browser.'
+            : `The list could not be read (${error}). It retries every minute.`}
         </p>
       ) : targets.length === 0 ? (
-        <p data-testid="room-empty" className="text-body text-white/45">
+        <p data-testid="pilot-empty" className="text-body text-white/45">
           {view
-            ? `Nobody is ${ROOM_STATE_LABEL[view].toLowerCase()} right now.`
+            ? `Nobody is ${PILOT_STATE_LABEL[view].toLowerCase()} right now.`
             : proposals?.length
               ? 'Keep the ones who fit. The Monday run drafts a note for everyone on the list.'
               : seeding
@@ -328,7 +328,7 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
       ) : (
         <div className={narrow ? 'space-y-3' : 'grid grid-cols-1 xl:grid-cols-2 gap-4'}>
           {targets.map(t => (
-            <RoomCard key={t.id} target={t} onChanged={refetch} />
+            <PilotCard key={t.id} target={t} onChanged={refetch} />
           ))}
         </div>
       )}
@@ -336,6 +336,6 @@ export function RoomBody({ narrow, onDeckActive }: { narrow: boolean; onDeckActi
   )
 }
 
-export function DesktopRoom() {
-  return <RoomBody narrow={false} />
+export function DesktopPilots() {
+  return <PilotsBody narrow={false} />
 }

@@ -53,7 +53,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
   const cells: { key: ScorecardCol; label: string; value: string; full: boolean }[] = [
     { key: 'approaches_sent', label: 'Sent', value: ratio('approaches_sent'), full: false },
     { key: 'calls_taken', label: 'Calls', value: ratio('calls_taken'), full: true },
-    { key: 'paid_rooms', label: 'Paid', value: ratio('paid_rooms'), full: false },
+    { key: 'paid_pilots', label: 'Paid', value: ratio('paid_pilots'), full: false },
     { key: 'pieces_published', label: 'Published', value: ratio('pieces_published'), full: true },
     // Unasked hours stay off the phone band: with the identity mark beside it
     // the band has under 240px, and a fifth cell forced it to scroll. The

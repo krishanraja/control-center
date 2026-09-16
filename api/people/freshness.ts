@@ -18,13 +18,13 @@ async function latest(table: string, column: string, filter?: (q: any) => any): 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['GET'])) return
   try {
-    const [hunterRun, hunterCommand, guestScout, targetEnrich, targetAdded, roomTrigger, contactAdded] = await Promise.all([
+    const [hunterRun, hunterCommand, guestScout, targetEnrich, targetAdded, pilotTrigger, contactAdded] = await Promise.all([
       latest('workflow_runs', 'run_at', q => q.eq('agent_id', 'hunter')),
       latest('hunter_commands', 'finished_at'),
       latest('guests', 'last_scouted_at'),
       latest('visibility_targets', 'deep_enriched_at'),
       latest('visibility_targets', 'created_at'),
-      latest('room_targets', 'trigger_found_at'),
+      latest('pilot_deals', 'trigger_found_at'),
       latest('contacts', 'created_at'),
     ])
     return res.status(200).json({
@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         by: 'the Monday guest scout, the Tuesday target refresh, or you',
         guests_scouted_at: guestScout, targets_enriched_at: targetEnrich, targets_added_at: targetAdded,
       },
-      room: { at: roomTrigger, by: 'the Monday Room run' },
+      pilots: { at: pilotTrigger, by: 'the Monday pilot run' },
       network: { at: contactAdded, by: 'you' },
     })
   } catch (e: unknown) {

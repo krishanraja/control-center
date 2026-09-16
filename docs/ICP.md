@@ -1,6 +1,6 @@
 # mind/make OS — Ideal Customer Profile (shareable)
 
-> **6 September 2026, ADR-016.** The first lane is now `room_face`: the face from
+> **6 September 2026, ADR-016.** The first lane is now `pilot_face`: the face from
 > the Master Ikigai v4. A senior leader (CEO, founder, MD, CCO, CRO, GM) at a PE or
 > VC backed media, adtech, publishing or data business Krish already knows, quietly
 > behind on what is coming and unable to say so inside their organisation.
@@ -30,7 +30,7 @@ lane correctly, it no longer decides which lane comes first.
 
 | Lane (tag) | Status | Serves |
 |---|---|---|
-| `room_face` | **Live, first.** The door this quarter | The room, job 1 of the one swing |
+| `pilot_face` | **Live, first.** The door this quarter | The room, job 1 of the one swing |
 | `mindmake_buyer` | Live, context | Advisory buyers adopting AI |
 | `signal_noise_guest` | Live | Guests for the AI-in-media show |
 | `builder_economy_guest` | Live | Guests for Built with AI |
@@ -54,7 +54,7 @@ Multi-tag is allowed (a person can fit several lanes). The single
 
 ## The six v2 lanes
 
-> Reference detail for the lanes in the table above. `room_face` (added
+> Reference detail for the lanes in the table above. `pilot_face` (added
 > 2026-09-06) is defined in the ADR-016 note at the top of this file and in
 > `docs/icp.json`; it is sourced from the network, not from Apollo.
 

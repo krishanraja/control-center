@@ -35,7 +35,7 @@ fill the room, run the room, keep the edge, keep him honest.
 |---|---|---|
 | North Star | The mission line. Every agent reads it first. | `api/_mission.ts` via `api/_goals.ts`. Any task that cannot name which of the five jobs it serves is refused. |
 | Cited or silent | No number, name or claim ships without a source. | A Room approach without a cited trigger says so on its face. Briefs cut uncited claims. |
-| Approval walls | Drafts never send. Krish or the partner sends. | No route under `api/room/*` or `api/scorecard/*` imports `sendGmail`. |
+| Approval walls | Drafts never send. Krish or the partner sends. | No route under `api/pilot-deals/*` or `api/scorecard/*` imports `sendGmail`. |
 | Public by default | Every build is shown or announced the week it exists. | The Monday note lists the week's builds. |
 | One swing | Every calendar item traces to a job above. | The `job` tag on objectives, picks and tasks. |
 

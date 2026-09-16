@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 // looking full. Krish, 2026-09-07: he wanted to know whether Visibility was
 // up to date; nothing on the screen could tell him.
 
-type Lane = 'hunt' | 'visibility' | 'room' | 'network'
+type Lane = 'hunt' | 'visibility' | 'pilots' | 'network'
 
 interface Freshness { at: string | null; by: string }
 

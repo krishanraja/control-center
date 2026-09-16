@@ -14,9 +14,9 @@ import { getOperatorTz, shiftYmd, dayStartUtcIn, dayEndUtcIn } from './_timezone
 //
 // What counts, exactly:
 //   approaches_sent    ships rows with channel 'approach' in the week
-//   calls_taken        room_targets.call_taken_at in the week
-//   paid_rooms         room_targets.room_paid_at in the week
-//   cash_invoiced_gbp  sum of room_targets.cash_gbp over those paid rows
+//   calls_taken        pilot_deals.call_taken_at in the week
+//   paid_pilots         pilot_deals.pilot_paid_at in the week
+//   cash_invoiced_gbp  sum of pilot_deals.cash_gbp over those paid rows
 //   pieces_published   ships rows with channel 'publish' in the week
 //   unasked_hours      build_activity_weeks.hours_estimate for the week
 //
@@ -46,7 +46,7 @@ if (WEEKS.length !== 12) throw new Error('WEEKS must hold twelve Fridays')
 export const TARGETS = {
   approaches_sent: 25,
   calls_taken: 5,
-  paid_rooms: 1,
+  paid_pilots: 1,
   cash_invoiced_gbp: 15000,
   pieces_published: 12,
   unasked_hours: 0,
@@ -55,7 +55,7 @@ export const TARGETS = {
 export type ScorecardCol = keyof typeof TARGETS
 
 export const COLS: ScorecardCol[] = [
-  'approaches_sent', 'calls_taken', 'paid_rooms', 'cash_invoiced_gbp', 'pieces_published', 'unasked_hours',
+  'approaches_sent', 'calls_taken', 'paid_pilots', 'cash_invoiced_gbp', 'pieces_published', 'unasked_hours',
 ]
 
 export const STOP_RULE = {
@@ -68,7 +68,7 @@ export const DAY_90 = '2026-12-05'
 export const COLUMNS: { key: ScorecardCol; label: string; unit: string }[] = [
   { key: 'approaches_sent', label: 'Sent', unit: 'approaches' },
   { key: 'calls_taken', label: 'Calls', unit: 'calls' },
-  { key: 'paid_rooms', label: 'Paid', unit: 'rooms' },
+  { key: 'paid_pilots', label: 'Paid', unit: 'rooms' },
   { key: 'cash_invoiced_gbp', label: 'Cash', unit: 'GBP' },
   { key: 'pieces_published', label: 'Published', unit: 'pieces' },
   { key: 'unasked_hours', label: 'Unasked', unit: 'hours' },
@@ -82,15 +82,15 @@ export interface DerivedWeek extends WeekValues {
   unasked_measured: boolean
   /** Commits behind the unasked estimate, 0 when not measured. */
   commits: number
-  /** room_targets currently sitting in state 'drafted': written, not sent. */
+  /** pilot_deals currently sitting in state 'drafted': written, not sent. */
   drafted_not_sent: number
-  /** room_targets drafted inside the week (drafted_at in range). */
+  /** pilot_deals drafted inside the week (drafted_at in range). */
   drafted_this_week: number
 }
 
 export function emptyValues(): WeekValues {
   return {
-    approaches_sent: 0, calls_taken: 0, paid_rooms: 0,
+    approaches_sent: 0, calls_taken: 0, paid_pilots: 0,
     cash_invoiced_gbp: 0, pieces_published: 0, unasked_hours: 0,
   }
 }
@@ -111,7 +111,7 @@ export function weekRangeUtc(weekEnding: string, tz: string): { start: Date; end
   }
 }
 
-/** True when the failure is "that table does not exist". room_targets is
+/** True when the failure is "that table does not exist". pilot_deals is
  *  built in a parallel package and may not be applied yet on a fresh
  *  database; a missing table reads as 0, never as a crashed scorecard. */
 export function isMissingTable(err: { code?: string | null; message?: string | null } | null | undefined): boolean {
@@ -153,28 +153,28 @@ export async function deriveWeek(weekEnding: string, tz?: string): Promise<Deriv
     .select('id', { count: 'exact', head: true })
     .eq('channel', 'publish').gte('occurred_at', s).lt('occurred_at', e))
 
-  const calls = await countRows('room_targets', q => q
+  const calls = await countRows('pilot_deals', q => q
     .select('id', { count: 'exact', head: true })
     .gte('call_taken_at', s).lt('call_taken_at', e))
 
-  let paidRooms = 0
+  let paidPilots = 0
   let cash = 0
   try {
-    const { data, error } = await supabase.from('room_targets')
-      .select('cash_gbp').gte('room_paid_at', s).lt('room_paid_at', e)
-    if (error && !isMissingTable(error)) throw new Error(`room_targets: ${error.message}`)
+    const { data, error } = await supabase.from('pilot_deals')
+      .select('cash_gbp').gte('pilot_paid_at', s).lt('pilot_paid_at', e)
+    if (error && !isMissingTable(error)) throw new Error(`pilot_deals: ${error.message}`)
     for (const r of (data || []) as { cash_gbp: number | string | null }[]) {
-      paidRooms += 1
+      paidPilots += 1
       cash += Number(r.cash_gbp || 0)
     }
   } catch (err) {
     if (!isMissingTable(err as { code?: string; message?: string })) throw err
   }
 
-  const draftedNotSent = await countRows('room_targets', q => q
+  const draftedNotSent = await countRows('pilot_deals', q => q
     .select('id', { count: 'exact', head: true }).eq('state', 'drafted'))
 
-  const draftedThisWeek = await countRows('room_targets', q => q
+  const draftedThisWeek = await countRows('pilot_deals', q => q
     .select('id', { count: 'exact', head: true })
     .gte('drafted_at', s).lt('drafted_at', e))
 
@@ -198,7 +198,7 @@ export async function deriveWeek(weekEnding: string, tz?: string): Promise<Deriv
     week_ending: weekEnding,
     approaches_sent: approaches,
     calls_taken: calls,
-    paid_rooms: paidRooms,
+    paid_pilots: paidPilots,
     cash_invoiced_gbp: Math.round(cash * 100) / 100,
     pieces_published: published,
     unasked_hours: Math.round(unasked * 10) / 10,
@@ -214,7 +214,7 @@ export interface ScorecardRow extends WeekValues {
   week_ending: string
   override_approaches_sent: number | null
   override_calls_taken: number | null
-  override_paid_rooms: number | null
+  override_paid_pilots: number | null
   override_cash_invoiced_gbp: number | null
   override_pieces_published: number | null
   override_unasked_hours: number | null
@@ -262,7 +262,7 @@ export function varianceNote(
     ? `${plural(slipped, 'drafted approach', 'drafted approaches')} not sent.`
     : 'Nothing drafted was left unsent.')
   lines.push(
-    `Calls taken ${row.calls_taken}, paid rooms ${row.paid_rooms}, `
+    `Calls taken ${row.calls_taken}, paid rooms ${row.paid_pilots}, `
     + `cash invoiced ${row.cash_invoiced_gbp.toLocaleString('en-GB')} GBP, `
     + `pieces published ${row.pieces_published}.`,
   )
@@ -299,7 +299,7 @@ export async function weekValues(weekEnding: string, row: ScorecardRow | undefin
       week_ending: weekEnding,
       approaches_sent: Number(row.approaches_sent || 0),
       calls_taken: Number(row.calls_taken || 0),
-      paid_rooms: Number(row.paid_rooms || 0),
+      paid_pilots: Number(row.paid_pilots || 0),
       cash_invoiced_gbp: Number(row.cash_invoiced_gbp || 0),
       pieces_published: Number(row.pieces_published || 0),
       unasked_hours: Number(row.unasked_hours || 0),

@@ -75,7 +75,7 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
    always (pilot rule: no conditional colour/copy on any number). MRR left
    this line; it stays on Growth and Subscriptions.
 3. **DueTestsCard** - renders nothing unless a worry-test is due.
-3a. **RoomStrip** (2026-09-06) - one line, present only when drafted
+3a. **PilotStrip** (2026-09-06) - one line, present only when drafted
    approaches are waiting: "n drafted approaches waiting to send", tapping
    opens People → Room. Absent otherwise, so a quiet week costs the canon
    nothing.
@@ -365,11 +365,11 @@ dropped with the reason, and the oldest queued targets with no research in
   reason chips, a "why am I seeing this" badge, undo, and swipe labels that
   are verbs (Skip / Keep). **2026-09-11: on a phone the deck owns the whole
   screen** rather than taking a fixed 540px slice inside the page's own
-  scroller - `MobileRoom` switches its shell to `scroll="none"` while the
+  scroller - `MobilePilots` switches its shell to `scroll="none"` while the
   deck is up, the way `MobileGuests` already does, because a drag across a
   card and a drag down the page were competing for the same gesture. The
   desk keeps `SwipeCockpit` inline; only the narrow shell changed.
-- One `RoomCard` per target: name (LinkedIn), title at company, **ask_kind**
+- One `PilotCard` per target: name (LinkedIn), title at company, **ask_kind**
   (buyer / intro / collaborator, classified by the seed route) and
   **ask_line**, one plain sentence saying what to ask this person, then
   **Why now** with the cited trigger and its source link, or the literal
@@ -381,39 +381,39 @@ dropped with the reason, and the oldest queued targets with no research in
   Krish's ruling on 2026-09-11, after seeing all three options: known
   collaborators (`Rio Longacre`, `Brett House`) still appear, but after
   everyone who could actually sign a fee, via a stable sort in
-  `api/room/seed.ts` (`collaboratorsLast`) that preserves the scorer's order
+  `api/pilot-deals/seed.ts` (`collaboratorsLast`) that preserves the scorer's order
   inside each group.
 - **A card with no company and no role is not proposed (2026-09-11).**
-  `/api/room/seed` runs candidates missing both through `enrichPerson`
+  `/api/pilot-deals/seed` runs candidates missing both through `enrichPerson`
   (People Data Labs / Apollo, web research off) before they reach the deck,
   capped at two enrichment calls per press since the path spends on paid
   providers. What comes back writes onto `contacts` (blanks only, so the
   next press does not pay again for the same person). Whoever is still
   unidentifiable afterwards is dropped, and the lane says how many
-  (`useRoom.seedRoom`'s `heldBack` count) rather than quietly returning four
+  (`usePilots.seedRoom`'s `heldBack` count) rather than quietly returning four
   cards out of five.
 - One primary action per state: Draft it → I sent it → They replied → Call
   booked → Call taken → Room booked → Paid (a GBP amount in a Modal). Every
   state has a quiet *Not now*.
 
 ### Inputs
-`room_targets` (service role only, through `/api/room`), `contacts` for the
+`pilot_deals` (service role only, through `/api/room`), `contacts` for the
 person, `network_search` for proposals, `webResearch` for the trigger,
 `deliverEmailDraft` (direct mode) for the draft and the Gmail draft.
 
 ### Writes
-- `PATCH /api/room/:id` state transitions, each stamped. **sent** writes a
+- `PATCH /api/pilot-deals/:id` state transitions, each stamped. **sent** writes a
   `ships` row, channel `approach`, dedup `room:<id>`; that is what the
   scorecard's Sent column counts.
 - **Skip now writes**, rather than only filtering a local array
   (2026-09-10): a `not_now` row plus a coded `feedback_queue` vote so the
   same person stops being reproposed and the correction loop has something
-  to cluster. Previously a skip did not reach `/api/room/seed`'s dedupe, so
+  to cluster. Previously a skip did not reach `/api/pilot-deals/seed`'s dedupe, so
   the same five candidates returned on every reload.
-- `POST /api/room/:id/draft` finds the trigger and drafts. Never sends.
-- Monday 06:00 operator time, `/api/room/monday` drafts the five listed
+- `POST /api/pilot-deals/:id/draft` finds the trigger and drafts. Never sends.
+- Monday 06:00 operator time, `/api/pilot-deals/monday` drafts the five listed
   targets with the freshest trigger and tells Telegram.
-- `/api/room/seed` classifies `ask_kind`/`ask_line` in one metered call,
+- `/api/pilot-deals/seed` classifies `ask_kind`/`ask_line` in one metered call,
   grounded only in fields the network search already returns (roles,
   `reachable_via`, `best_channel`, seniority, stored judgment). It degrades
   to unclassified rather than failing when the call is slow, missing a key,
@@ -424,7 +424,7 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 - Cited or silent: a draft without a source URL says "No live trigger found"
   on its face and opens on the relationship. The OS never invents news.
 - **A judgment never cites the OS as evidence for itself (2026-09-11).**
-  `whyFace` in `api/room/seed.ts` drops any sentence naming Control Center or
+  `whyFace` in `api/pilot-deals/seed.ts` drops any sentence naming Control Center or
   "Krish's contacts" as the reason someone is on the shortlist - everyone on
   it is in the contacts, because the shortlist is drawn from them, so the
   line said nothing about the person.

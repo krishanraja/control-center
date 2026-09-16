@@ -5,8 +5,8 @@ import { missionBlock, faceBlock, DOOR } from './_mission.js'
 import { loadOutboundVoice } from './_voice.js'
 import { deliverEmailDraft } from './_emailDraft.js'
 
-// The Room, job 1 (docs/plans/one-swing/CHARTER.md): the shared logic behind
-// api/room/*. The list of named leaders who fit the face, the live trigger
+// Pilots, job 1 (docs/plans/one-swing/CHARTER.md): the shared logic behind
+// api/pilot-deals/*. The list of named leaders who fit the face, the live trigger
 // that makes this week the week to write, and the draft in Krish's voice.
 //
 // Two standards are enforced by what this file can and cannot do:
@@ -16,46 +16,46 @@ import { deliverEmailDraft } from './_emailDraft.js'
 //   the draft opens on the relationship instead, saying so on its face.
 //
 //   Approval walls. This module imports deliverEmailDraft, which can land a
-//   Gmail DRAFT, and nothing that can send. No route under api/room/* imports
+//   Gmail DRAFT, and nothing that can send. No route under api/pilot-deals/* imports
 //   the send function in api/_google.ts. Krish sends.
 
 export const STATES = [
   'listed', 'drafted', 'sent', 'replied', 'call_booked', 'call_taken',
-  'room_booked', 'room_paid', 'not_now',
+  'pilot_booked', 'pilot_paid', 'not_now',
 ] as const
 
-export type RoomState = typeof STATES[number]
+export type PilotState = typeof STATES[number]
 
 /** The ladder. Each state names the states it may move to. not_now is the one
  *  side exit and the only way back to listed. */
-export const NEXT: Record<RoomState, readonly RoomState[]> = {
+export const NEXT: Record<PilotState, readonly PilotState[]> = {
   listed: ['drafted', 'not_now'],
   drafted: ['sent', 'listed', 'not_now'],
   sent: ['replied', 'not_now'],
   replied: ['call_booked', 'not_now'],
   call_booked: ['call_taken', 'not_now'],
-  call_taken: ['room_booked', 'not_now'],
-  room_booked: ['room_paid', 'not_now'],
-  room_paid: [],
+  call_taken: ['pilot_booked', 'not_now'],
+  pilot_booked: ['pilot_paid', 'not_now'],
+  pilot_paid: [],
   not_now: ['listed'],
 }
 
-export function isState(v: unknown): v is RoomState {
+export function isState(v: unknown): v is PilotState {
   return typeof v === 'string' && (STATES as readonly string[]).includes(v)
 }
 
-export function canMove(from: RoomState, to: RoomState): boolean {
+export function canMove(from: PilotState, to: PilotState): boolean {
   return NEXT[from].includes(to)
 }
 
 /** The timestamp column a state stamps when it is entered. */
-export function stampFor(state: RoomState): string {
+export function stampFor(state: PilotState): string {
   return `${state}_at`
 }
 
 export const CONTACT_COLUMNS = 'id, full_name, first_name, email, company, title, linkedin_url'
 
-export interface RoomContact {
+export interface PilotContact {
   id: string
   full_name: string | null
   first_name: string | null
@@ -65,7 +65,7 @@ export interface RoomContact {
   linkedin_url: string | null
 }
 
-export interface RoomTarget {
+export interface PilotDeal {
   id: string
   contact_id: string
   why_face: string
@@ -76,21 +76,21 @@ export interface RoomTarget {
   draft_body: string | null
   draft_url: string | null
   drafted_at: string | null
-  state: RoomState
+  state: PilotState
   listed_at: string
   sent_at: string | null
   replied_at: string | null
   call_booked_at: string | null
   call_taken_at: string | null
-  room_booked_at: string | null
-  room_paid_at: string | null
+  pilot_booked_at: string | null
+  pilot_paid_at: string | null
   not_now_at: string | null
   cash_gbp: number | null
   sourced_by: 'krish' | 'os'
   notes: string | null
   created_at: string
   updated_at: string
-  contact: RoomContact | null
+  contact: PilotContact | null
 }
 
 /** The select that joins the contact fields onto every row. */
@@ -134,7 +134,7 @@ const NOTHING = /\b(no (recent|relevant|significant|notable|public)|nothing (fou
  * the caller stores nulls and the draft says "no live trigger found" rather
  * than opening on invented news.
  */
-export async function findTrigger(contact: RoomContact): Promise<Trigger | null> {
+export async function findTrigger(contact: PilotContact): Promise<Trigger | null> {
   const name = (contact.full_name || '').trim()
   const company = (contact.company || '').trim()
   if (!name && !company) return null
@@ -171,7 +171,7 @@ export async function findTrigger(contact: RoomContact): Promise<Trigger | null>
     // sentence. Without a key this throws, and the fallback is a trimmed lead.
     try {
       const out = await callClaude({
-        agent: 'room-trigger',
+        agent: 'pilot-trigger',
         system: [
           'You compress research notes about a named business leader into ONE plain sentence.',
           'The sentence states one concrete fact from the last 60 days: funding, a leadership change, layoffs, an AI move, or results. Include the month.',
@@ -210,8 +210,8 @@ export interface Draft {
  * mode so the body comes back and a Gmail draft lands when Google is set up.
  */
 export async function draftApproach(
-  target: Pick<RoomTarget, 'id' | 'why_face'>,
-  contact: RoomContact,
+  target: Pick<PilotDeal, 'id' | 'why_face'>,
+  contact: PilotContact,
   trigger: Trigger | null,
 ): Promise<Draft> {
   const voice = await loadOutboundVoice().catch(() => '')
@@ -228,11 +228,11 @@ export async function draftApproach(
     '',
     `THE DOOR, in one line: ${DOOR}`,
     '',
-    'RULES: this is a warm note to someone Krish already knows. Ask for one short call. Do not pitch, do not attach, do not promise. Nothing in this draft is sent by the machine.',
+    'RULES: this is a warm note to someone Krish already knows. Ask for one short call. Do not pitch, do not attach, do not promise. Call what is being sold a pilot, never a room. Nothing in this draft is sent by the machine.',
   ].join('\n')
 
   const out = await deliverEmailDraft({
-    entity_type: 'room_target',
+    entity_type: 'pilot_deal',
     entity_id: target.id,
     recipient_email: (contact.email || '').trim(),
     recipient_name: contact.full_name,
@@ -242,7 +242,7 @@ export async function draftApproach(
     voice_rules: voice || null,
     linkedin_url: contact.linkedin_url,
     source_url: trigger?.url || null,
-    intent: 'private_room_invitation',
+    intent: 'pilot_invitation',
     length: 'short',
   }, { forceDirect: true })
 
@@ -253,14 +253,14 @@ export async function draftApproach(
   }
 }
 
-export async function loadTarget(id: string): Promise<RoomTarget | null> {
+export async function loadTarget(id: string): Promise<PilotDeal | null> {
   const { data, error } = await supabase
-    .from('room_targets')
+    .from('pilot_deals')
     .select(TARGET_SELECT)
     .eq('id', id)
     .maybeSingle()
   if (error) throw new Error(error.message)
-  return (data as unknown as RoomTarget) || null
+  return (data as unknown as PilotDeal) || null
 }
 
 /**
@@ -268,13 +268,13 @@ export async function loadTarget(id: string): Promise<RoomTarget | null> {
  * "Draft it" route and the Monday run. Throws on a missing contact or a
  * failed write so the caller can report it; never writes a partial row.
  */
-export async function draftTarget(target: RoomTarget): Promise<RoomTarget> {
+export async function draftTarget(target: PilotDeal): Promise<PilotDeal> {
   if (!target.contact) throw new Error('target has no contact')
   const trigger = await findTrigger(target.contact)
   const draft = await draftApproach(target, target.contact, trigger)
   const now = new Date().toISOString()
   const { data, error } = await supabase
-    .from('room_targets')
+    .from('pilot_deals')
     .update({
       trigger_signal: trigger?.signal ?? null,
       trigger_source_url: trigger?.url ?? null,
@@ -289,5 +289,5 @@ export async function draftTarget(target: RoomTarget): Promise<RoomTarget> {
     .select(TARGET_SELECT)
     .single()
   if (error) throw new Error(error.message)
-  return data as unknown as RoomTarget
+  return data as unknown as PilotDeal
 }

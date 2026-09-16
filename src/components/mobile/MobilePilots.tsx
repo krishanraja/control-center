@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
-import { RoomBody, ROOM_SUBTITLE } from '../desktop/DesktopRoom'
+import { PilotsBody, PILOT_SUBTITLE } from '../desktop/DesktopPilots'
 
 // Same shell as MobileBridges: PeopleTab puts every narrow lane inside a
 // `flex-1 min-h-0` column and expects the lane to bring its own scroll
@@ -12,7 +12,7 @@ import { RoomBody, ROOM_SUBTITLE } from '../desktop/DesktopRoom'
 // page scroller, so a swipe and a scroll competed for the same drag and the
 // page moved under the cards. A card deck is a stage, not a list.
 
-export function MobileRoom() {
+export function MobilePilots() {
   const [deck, setDeck] = useState(false)
 
   return (
@@ -20,12 +20,12 @@ export function MobileRoom() {
       scroll={deck ? 'none' : 'auto'}
       header={
         <TabHeader
-          title="The Room"
-          subtitle={deck ? 'Keep the ones worth asking' : ROOM_SUBTITLE}
+          title="Pilots"
+          subtitle={deck ? 'Keep the ones worth asking' : PILOT_SUBTITLE}
         />
       }
     >
-      <RoomBody narrow onDeckActive={setDeck} />
+      <PilotsBody narrow onDeckActive={setDeck} />
     </MobileShell>
   )
 }

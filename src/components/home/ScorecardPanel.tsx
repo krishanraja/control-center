@@ -22,7 +22,7 @@ import { useScorecard, SCORECARD_COLS, type ScorecardCol, type ScorecardWeek } f
 const LABELS: Record<ScorecardCol, string> = {
   approaches_sent: 'Sent',
   calls_taken: 'Calls',
-  paid_rooms: 'Paid',
+  paid_pilots: 'Paid',
   cash_invoiced_gbp: 'Cash GBP',
   pieces_published: 'Published',
   unasked_hours: 'Unasked',
@@ -196,7 +196,7 @@ export function ScorecardPanel() {
         {day90 && (
           <p className="text-label text-white/60">
             <span className="text-white/85">Day 90 is {fmtLong(day90)}.</span>{' '}
-            Targets: {targets.approaches_sent} sent, {targets.calls_taken} calls, {targets.paid_rooms} paid {targets.paid_rooms === 1 ? 'room' : 'rooms'},{' '}
+            Targets: {targets.approaches_sent} sent, {targets.calls_taken} calls, {targets.paid_pilots} paid {targets.paid_pilots === 1 ? 'pilot' : 'pilots'},{' '}
             {Math.round(targets.cash_invoiced_gbp).toLocaleString('en-GB')} GBP invoiced, {targets.pieces_published} pieces published,{' '}
             {targets.unasked_hours} hours building unasked.
           </p>

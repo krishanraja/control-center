@@ -7,7 +7,7 @@ import { SegmentedNav } from '../shared/SegmentedNav'
 
 // People: the one tab for every human pipeline. Network (the graph), Hunt
 // (the job search: roles Krish said Yes to and who gets him in), Visibility
-// (guests + stages) and the Room (the 25 leaders who fit the face, job 1 of
+// (guests + stages) and Pilots (the 25 leaders who fit the face, job 1 of
 // the one swing) render here as lanes behind one nav entry. The lane
 // components are the existing tab components, untouched; each stays its own
 // lazy chunk.
@@ -28,13 +28,13 @@ const MobileLeadsRE = lazy(() => import('../mobile/MobileLeadsRE').then(m => ({ 
 const MobileGuests = lazy(() => import('../mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const DesktopBridges = lazy(() => import('../desktop/DesktopBridges').then(m => ({ default: m.DesktopBridges })))
 const MobileBridges = lazy(() => import('../mobile/MobileBridges').then(m => ({ default: m.MobileBridges })))
-const DesktopRoom = lazy(() => import('../desktop/DesktopRoom').then(m => ({ default: m.DesktopRoom })))
-const MobileRoom = lazy(() => import('../mobile/MobileRoom').then(m => ({ default: m.MobileRoom })))
+const DesktopPilots = lazy(() => import('../desktop/DesktopPilots').then(m => ({ default: m.DesktopPilots })))
+const MobilePilots = lazy(() => import('../mobile/MobilePilots').then(m => ({ default: m.MobilePilots })))
 
-export type PeopleLane = 'pipeline' | 'network' | 'visibility' | 'room' | 'bridges'
+export type PeopleLane = 'pipeline' | 'network' | 'visibility' | 'pilots' | 'bridges'
 
 // One person graph, four purposes. Network is the graph and the three ways
-// people get into it; Hunt, Visibility and Room are the three reasons to
+// people get into it; Hunt, Visibility and Pilots are the three reasons to
 // talk to someone (a job, content and stages, a Mindmake conversation). The
 // Pipeline lane (deal leads) left the nav on 2026-09-07: its import doors
 // moved to Network, and `?lane=pipeline` still renders it for the old links.
@@ -42,7 +42,7 @@ const LANES: Array<{ id: PeopleLane; label: string }> = [
   { id: 'network', label: 'Network' },
   ...(isBridgesLane() ? [{ id: 'bridges' as const, label: 'Hunt' }] : []),
   { id: 'visibility', label: 'Visibility' },
-  { id: 'room', label: 'Room' },
+  { id: 'pilots', label: 'Pilots' },
 ]
 
 interface Props {
@@ -58,11 +58,13 @@ interface Props {
  * (and their deep links still land directly).
  */
 function inferLane(params: Record<string, string>): PeopleLane {
-  const lane = params.lane as PeopleLane | undefined
-  if (lane === 'pipeline' || lane === 'network' || lane === 'visibility' || lane === 'room' || lane === 'bridges') return lane
+  const lane = params.lane
+  // The lane was called Room until 2026-09-16 (ADR-023). Old links still land.
+  if (lane === 'room') return 'pilots'
+  if (lane === 'pipeline' || lane === 'network' || lane === 'visibility' || lane === 'pilots' || lane === 'bridges') return lane
   if (params.guest || params.target) return 'visibility'
   if (params.lead) return 'pipeline'
-  if (params.room) return 'room'
+  if (params.pilot || params.room) return 'pilots'
   if (params.bridge) return 'bridges'
   return 'network'
 }
@@ -127,9 +129,9 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
             : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
         </ErrorBoundary>
       )}
-      {lane === 'room' && (
-        <ErrorBoundary label="Room">
-          {narrow ? <MobileRoom /> : <DesktopRoom />}
+      {lane === 'pilots' && (
+        <ErrorBoundary label="Pilots">
+          {narrow ? <MobilePilots /> : <DesktopPilots />}
         </ErrorBoundary>
       )}
       {lane === 'bridges' && (
