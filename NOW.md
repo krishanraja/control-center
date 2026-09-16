@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet.
 
-## Where it is right now (as of 2026-09-15)
+## Where it is right now (as of 2026-09-16)
 
 - **Live** at `controlcenter.krishraja.com`, auto-deployed from `main` on Vercel, Supabase behind it. CI runs lint, three typechecks, seventeen structural guards and a five-spec Playwright job on every push (`.github/workflows/ci.yml`).
 - **API write routes are guarded.** As of 9 September, 75 of 141 `/api/*` routes that accepted a write with no credential now call the same access-code cookie check the web UI uses; a handful (health, sync, tasks-inbox digest, and reads on 18 dual-method routes) stay open by design for monitors and n8n. `/api/internal/sonnet-proxy` closed the same hole on 12 September (below). `docs/SECURITY.md` and `docs/DB_HEALTH.md` carry the full breakdown.
