@@ -44,6 +44,26 @@ export const ASK_LABEL: Record<AskKind, string> = {
   collaborator: 'You work together',
 }
 
+/**
+ * The one primary action per rung, and the rung it moves to.
+ *
+ * Lives here, not on the card, because the swipe deck advances the same ladder
+ * from a gesture and the two must not drift: a right-swipe and the button on
+ * the card have to mean the same thing and say the same word.
+ *
+ * `listed` is deliberately absent. Its forward move is "Draft it", which is a
+ * different shape of action - it calls a route that does web research and an
+ * LLM pass rather than stamping a timestamp - so both surfaces special-case it.
+ * `pilot_booked` is absent too: it needs a cash amount, so it opens a modal.
+ */
+export const PRIMARY: Partial<Record<PilotState, { label: string; next: PilotState; done: string }>> = {
+  drafted: { label: 'I sent it', next: 'sent', done: 'Marked sent. It counts on the scorecard.' },
+  sent: { label: 'They replied', next: 'replied', done: 'Marked replied.' },
+  replied: { label: 'Call booked', next: 'call_booked', done: 'Call booked.' },
+  call_booked: { label: 'Call taken', next: 'call_taken', done: 'Call taken.' },
+  call_taken: { label: 'Pilot booked', next: 'pilot_booked', done: 'Pilot booked. Well done.' },
+}
+
 export interface PilotDealRow {
   id: string
   contact_id: string

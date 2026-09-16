@@ -14,7 +14,8 @@ import { isHandQueue } from './contactTriage'
 import { topFit, dossierMove, contactRationale, suggestedMove, ventureLabel as contactVentureLabel } from './contactSignals'
 import { ventureDisplayName } from '../components/ContactSourcePill'
 import { SuggestedMoveChip, MOVE_TONE_TEXT } from '../components/ContactCard'
-import { ASK_LABEL } from '../hooks/usePilots'
+import { ASK_LABEL, PILOT_STATE_LABEL, PILOT_STATES, PRIMARY, draftPilot } from '../hooks/usePilots'
+import type { PilotState } from '../hooks/usePilots'
 
 /**
  * triageConfig — one place that describes how each surface drives the shared
@@ -649,6 +650,199 @@ export function buildPilotTriageConfig(
         </p>
       </div>
     ),
+  }
+}
+
+/**
+ * The ladder deck: listed and drafted deals, one person at a time.
+ *
+ * Krish, 2026-09-16: "The room should be a swipe experience like the other
+ * tabs." The proposals deck already swipes, because accept and skip are the
+ * only two verdicts there. This is the harder half: a deal sits on a nine rung
+ * ladder whose forward moves are named ("Draft it", "I sent it", "They
+ * replied"), so the gesture has to carry a different meaning per card.
+ *
+ * It follows the content lane's grammar, which solved the same problem:
+ *   - right = the named next rung, labelled per state from PRIMARY
+ *   - left  = Not now, through the reason chips this surface already has
+ *   - a rung that cannot be done from a gesture bounces: it opens what it
+ *     needs and returns false, which restores the card
+ *
+ * `listed` is the one rung that spends money. Its forward move drafts, which
+ * calls web research plus an LLM and takes about ten seconds, so a mis-swipe
+ * would burn it. It goes behind the same five second Undo toast the Leads deck
+ * uses for its paid enrich (`enrichWithGrace` above) - Krish's call, and the
+ * existing house answer rather than a new one.
+ */
+export interface PilotDealItem {
+  id: string
+  state: PilotState
+  contact: { full_name: string | null; title: string | null; company: string | null } | null
+  why_face: string
+  ask_kind: 'buyer' | 'intro' | 'collaborator' | null
+  ask_line: string | null
+  trigger_signal: string | null
+  intent_evidence: string | null
+  last_post_at: string | null
+  draft_subject: string | null
+}
+
+const DRAFT_GRACE_MS = 5000
+
+function dealName(d: PilotDealItem): string {
+  return d.contact?.full_name || 'This person'
+}
+
+/** What the right swipe is called on this card. Never a bare "Advance": the
+ *  word has to be the thing that is about to happen to a named human. */
+function dealRightLabel(d: PilotDealItem): string {
+  if (d.state === 'listed') return 'Draft it'
+  if (d.state === 'pilot_booked') return 'Paid'
+  return PRIMARY[d.state]?.label ?? 'Next'
+}
+
+/** The draft, deferred behind an Undo. Resolving false restores the card and
+ *  nothing is spent. Same shape as enrichWithGrace; see its comment. */
+function draftWithGrace(d: PilotDealItem, toast: Toast): Promise<CommitResult> {
+  return new Promise<CommitResult>(resolve => {
+    let settled = false
+    const fire = async () => {
+      if (settled) return
+      settled = true
+      try {
+        const updated = await draftPilot(d.id)
+        toast(
+          updated?.draft_url
+            ? `Drafted for ${dealName(d)}, and it is in your Gmail drafts. Nothing was sent.`
+            : `Drafted for ${dealName(d)}. No Gmail draft for this one, so use the contact button.`,
+          'success',
+        )
+        resolve(true)
+      } catch (err) {
+        const msg = (err as Error)?.message || ''
+        toast(
+          msg === 'google_not_configured'
+            ? 'Google is not set up on the server, so no draft can be made yet.'
+            : `Could not draft: ${msg || 'try again'}`,
+          'error',
+        )
+        resolve(false)
+      }
+    }
+    const timer = setTimeout(fire, DRAFT_GRACE_MS)
+    toast(`Drafting for ${dealName(d)}`, 'info', {
+      duration: DRAFT_GRACE_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (settled) return
+          settled = true
+          clearTimeout(timer)
+          resolve(false) // card restored, no research and no model call
+        },
+      },
+    })
+  })
+}
+
+function renderDealBody(d: PilotDealItem): React.ReactNode {
+  const role = [d.contact?.title, d.contact?.company].filter(Boolean).join(' at ')
+  const quote = liveDealQuote(d)
+  // Deliberately short. A SwipeCard is a fixed box that clips, so everything
+  // here competes for the same ~135 points on a phone: the first draft of this
+  // body carried why_them and the draft subject too and overflowed by 150.
+  // The deck answers "who is this and what happens if I swipe"; the rest is
+  // one tap away on the full card. SwipeDeck prints its own "tap to open" hint,
+  // so this does not repeat it.
+  return (
+    <>
+      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+        <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200">
+          {PILOT_STATE_LABEL[d.state]}
+        </span>
+        {d.ask_kind && (
+          <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${PILOT_ASK_TONE[d.ask_kind]}`}>
+            {ASK_LABEL[d.ask_kind]}
+          </span>
+        )}
+      </div>
+      <p className="text-ui font-semibold text-white leading-snug">{dealName(d)}</p>
+      {role && <p className="text-label text-white/55 leading-snug mt-0.5">{role}</p>}
+      {d.ask_line && (
+        <p className="text-label text-white/85 leading-snug mt-1.5">{d.ask_line}</p>
+      )}
+      {/* Why now, from whichever source has one. Cited or silent, the same rule
+          the full card keeps. */}
+      {(d.trigger_signal || quote) && (
+        <p data-testid="pilot-why-now" className="text-label text-white/70 leading-snug mt-1.5">
+          <span className="text-white/40">Why now: </span>{d.trigger_signal || quote}
+        </p>
+      )}
+    </>
+  )
+}
+
+/** The same 90-day intent cliff the card and the server both apply. */
+function liveDealQuote(d: PilotDealItem): string | null {
+  const quote = (d.intent_evidence || '').trim()
+  if (!quote || !d.last_post_at) return null
+  const age = Date.now() - new Date(d.last_post_at).getTime()
+  return Number.isFinite(age) && age <= 90 * 86_400_000 ? quote : null
+}
+
+export function buildPilotLadderConfig(
+  deals: PilotDealItem[],
+  ctx: TriageConfigCtx,
+  handlers: {
+    /** Stamp the next rung. Returns whether the write landed. */
+    advance: (d: PilotDealItem, next: PilotState, done: string) => Promise<boolean>
+    /** Park it. The reason code is a chip from the pilot_deals table. */
+    notNow: (d: PilotDealItem, code?: string) => Promise<boolean>
+    /** The rungs a gesture cannot finish: open what they need, card restored. */
+    bounce: (d: PilotDealItem) => void
+  },
+  loading?: boolean,
+): TriageConfig<PilotDealItem> {
+  const { toast } = ctx
+
+  const onAccept = async (d: PilotDealItem): Promise<CommitResult> => {
+    if (d.state === 'listed') return draftWithGrace(d, toast)
+    // Paid needs an amount, so the gesture cannot complete it. Open the modal
+    // and put the card back, the way the content deck bounces to its composer.
+    if (d.state === 'pilot_booked') { handlers.bounce(d); return false }
+    const step = PRIMARY[d.state]
+    if (!step) return false
+    const ok = await handlers.advance(d, step.next, step.done)
+    if (ok) toast(`${dealName(d)}: ${step.done}`, 'success')
+    return ok
+  }
+
+  const onReject = async (d: PilotDealItem, code?: string): Promise<CommitResult> => {
+    const ok = await handlers.notNow(d, code)
+    if (ok) toast(`${dealName(d)} parked. It can come back to the list later.`, 'success')
+    return ok
+  }
+
+  return {
+    items: deals,
+    loading,
+    getId: d => d.id,
+    // Overridden by the lane with the live counts: the deck's progress strip
+    // is already on screen, so it carries them for free and the phone does not
+    // spend a whole band on a line the strip could hold.
+    title: 'Your pilots',
+    reasonsTable: 'pilot_deals',
+    renderBody: renderDealBody,
+    ariaLabel: d => `${dealName(d)}, ${PILOT_STATE_LABEL[d.state].toLowerCase()}`,
+    leftLabel: 'Not now',
+    rightLabel: dealRightLabel,
+    rightIntent: () => 'advance',
+    onAccept,
+    onReject,
+    stageTrack: {
+      stages: PILOT_STATES.filter(s => s !== 'not_now').map(s => ({ key: s, label: PILOT_STATE_LABEL[s] })),
+      current: d => d.state,
+    },
   }
 }
 

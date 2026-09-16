@@ -4,7 +4,7 @@ import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 import { Modal } from '../shared/Modal'
 import { FocusedEditor } from '../shared/FocusedEditor'
-import { ASK_LABEL, draftPilot, patchPilot, PILOT_STATE_LABEL } from '../../hooks/usePilots'
+import { ASK_LABEL, draftPilot, patchPilot, PILOT_STATE_LABEL, PRIMARY } from '../../hooks/usePilots'
 import { contactAction, copyText } from '../../lib/contactAction'
 import type { PilotDealRow, PilotState } from '../../hooks/usePilots'
 
@@ -23,15 +23,6 @@ interface Props {
    *  body moves into a FocusedEditor sheet here; the desk keeps it inline,
    *  which is the right mechanics for a pointer and a wide row. */
   narrow?: boolean
-}
-
-/** The one primary action per state, and the state it moves to. */
-const PRIMARY: Partial<Record<PilotState, { label: string; next: PilotState; done: string }>> = {
-  drafted: { label: 'I sent it', next: 'sent', done: 'Marked sent. It counts on the scorecard.' },
-  sent: { label: 'They replied', next: 'replied', done: 'Marked replied.' },
-  replied: { label: 'Call booked', next: 'call_booked', done: 'Call booked.' },
-  call_booked: { label: 'Call taken', next: 'call_taken', done: 'Call taken.' },
-  call_taken: { label: 'Pilot booked', next: 'pilot_booked', done: 'Pilot booked. Well done.' },
 }
 
 const PRIMARY_CLASS =

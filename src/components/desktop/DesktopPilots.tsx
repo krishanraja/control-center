@@ -5,13 +5,16 @@ import { FreshnessLine } from '../shared/FreshnessLine'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'
 import { PilotCard } from '../pilotDeals/PilotCard'
+import { BottomSheet } from '../mobile/BottomSheet'
 import { TriageDeck } from '../shared/TriageDeck'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
-import { buildPilotTriageConfig } from '../../lib/triageConfig'
+import { buildPilotTriageConfig, buildPilotLadderConfig } from '../../lib/triageConfig'
+import type { PilotDealItem } from '../../lib/triageConfig'
+import { feedbackVote } from '../../lib/triageActions'
 import {
-  addPilotDeal, PILOT_STATE_LABEL, PILOT_STATES, seedPilots, usePilots,
+  addPilotDeal, patchPilot, PILOT_STATE_LABEL, PILOT_STATES, seedPilots, usePilots,
 } from '../../hooks/usePilots'
-import type { PilotProposal, PilotState } from '../../hooks/usePilots'
+import type { PilotDealRow, PilotProposal, PilotState } from '../../hooks/usePilots'
 
 // Pilots, job 1 (docs/plans/one-swing/CHARTER.md): the 25 leaders who fit
 // the face. The OS drafts, Krish sends. Listed and drafted show by default
@@ -22,7 +25,7 @@ import type { PilotProposal, PilotState } from '../../hooks/usePilots'
 // lane failed to answer on a phone, where the explanation never rendered at all.
 // The offer is the door from `api/_mission.ts`, restated in the second person;
 // `api/` is server-only so the constant cannot be imported here.
-export const PILOT_PURPOSE = 'People you already know who could pay for a three week private diagnostic.'
+export const PILOT_PURPOSE = 'People you already know who could pay for a three week pilot.'
 export const PILOT_OFFER = 'What you are selling: a paid three week pilot. They come out knowing where they stand, what is coming for their business, and what to do first.'
 
 /** Anyone who has been written to, at any point along the ladder. */
@@ -65,9 +68,10 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
   const [seeding, setSeeding] = useState(false)
   const [proposals, setProposals] = useState<PilotProposal[] | null>(null)
   const [findNote, setFindNote] = useState<string | null>(null)
-  /** Which person the phone's stage is showing. Reset whenever the list it
-   *  indexes into changes, or a chip switch would land on a stale position. */
-  const [index, setIndex] = useState(0)
+  /** True while a swiped draft is actually running, so the deck holds rather
+   *  than letting a second card take the gesture mid-flight. */
+  const [drafting, setDrafting] = useState(false)
+  const [openDeal, setOpenDeal] = useState<PilotDealRow | null>(null)
   const [accepting, setAccepting] = useState<string | null>(null)
 
   const counts = useMemo(() => countsLine(stateCounts), [stateCounts])
@@ -207,16 +211,48 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
     seeding,
   ), [proposals, seeding])
 
+  // The ladder deck: listed and drafted deals, swiped one at a time. Built
+  // here rather than inside the narrow branch so the identity of the config is
+  // stable across renders and the deck does not lose its place.
+  const ladder = useMemo(() => buildPilotLadderConfig(
+    targets as unknown as PilotDealItem[],
+    { toast },
+    {
+      advance: async (d, next) => {
+        setDrafting(true)
+        try {
+          await patchPilot(d.id, { state: next })
+          refetch()
+          return true
+        } catch (err) {
+          toast(`Could not move them on: ${(err as Error)?.message || 'try again'}`, 'error')
+          return false
+        } finally {
+          setDrafting(false)
+        }
+      },
+      notNow: async (d, code) => {
+        try {
+          await patchPilot(d.id, { state: 'not_now' })
+          if (code) await feedbackVote('pilot_deals', d.id, -1, code)
+          refetch()
+          return true
+        } catch (err) {
+          toast(`Could not park them: ${(err as Error)?.message || 'try again'}`, 'error')
+          return false
+        }
+      },
+      // Paid needs a number, so the gesture hands off to the card's modal.
+      bounce: d => setOpenDeal(targets.find(t => t.id === d.id) ?? null),
+    },
+    loading,
+  ), [targets, loading, toast, refetch])
+
   // The deck owns the phone screen when proposals are up. Visibility already
   // does this (`MobileGuests` returns a `scroll="none"` shell while triaging);
   // this lane gave the deck a fixed 540px box inside the page scroller instead,
   // so the page and the cards fought each other under the thumb. The shell is
   // owned by `MobilePilots`, so the lane reports the mode and the shell reacts.
-  // A chip switch, a refetch or an advanced deal all change what the stage
-  // indexes into. Clamping on every change beats letting the pager point past
-  // the end and render nothing.
-  useEffect(() => { setIndex(i => (i > 0 && i >= targets.length ? Math.max(0, targets.length - 1) : i)) }, [targets.length])
-
   const deckOwnsScreen = narrow && !!proposals && proposals.length > 0
   useEffect(() => { onDeckActive?.(deckOwnsScreen) }, [deckOwnsScreen, onDeckActive])
 
@@ -265,36 +301,22 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
   // once, not from clipping what is shown. Same shape as MobileHome: a
   // 100dvh/--z frame, shrink-0 chrome, and one flex-1 min-h-0 stage.
   //
-  // A pager rather than a swipe-to-commit deck. The proposals deck swipes
-  // because accept and skip are the only two verdicts. A listed deal is on a
-  // nine rung ladder where the actions are "Draft it", "I sent it", "They
-  // replied": explicit, not a direction, and a mis-swipe would move someone's
-  // state. So the swipe is navigation and the ladder stays buttons.
+  // The stage is the shared swipe deck, the same one every other lane uses.
+  //
+  // This was a pager first, and the argument for it was that a nine rung
+  // ladder with named moves is not a direction and a mis-swipe would move
+  // someone's state. Krish overruled it on 2026-09-16: "The room should be a
+  // swipe experience like the other tabs." He is right that a lane which
+  // behaves unlike its four neighbours is the worse cost. The mis-swipe worry
+  // is answered where it actually bites - the one rung that spends money goes
+  // behind a five second Undo, and the one rung that needs a number bounces to
+  // its modal. See buildPilotLadderConfig.
   if (narrow) {
-    const list = targets
-    const current = list.length ? list[Math.min(index, list.length - 1)] : null
+    // No bottom padding on the frame: SwipeDeck already reserves the nav
+    // clearance when narrow (safe-area + 120). Reserving it here as well
+    // double counted it and left the card 156 points to render 187 into.
     return (
-      <div className="flex h-full min-h-0 flex-col px-5 pt-1 pb-[calc((env(safe-area-inset-bottom,0px)+96px)/var(--z,1))]">
-        {/* One band: what this is, and where it stands. The purpose line, the
-            counts row and the disclosure used to be three separate bands. */}
-        <div className="shrink-0">
-          <p data-testid="pilot-counts" className="text-label text-white/55">
-            {counts || (error ? 'The list could not be read.' : 'Nobody is on the list yet.')}
-          </p>
-          <details data-testid="pilot-purpose" className="group mt-1">
-            <summary className="flex cursor-pointer list-none items-baseline gap-2">
-              <span className="text-label text-white/45 group-open:text-white/70">Why these people</span>
-              <span className="text-micro text-white/30 group-open:hidden">Show</span>
-              <span className="hidden text-micro text-white/30 group-open:inline">Hide</span>
-            </summary>
-            <div className="mt-1 space-y-1">
-              <p className="text-label text-white/55 leading-snug">{PILOT_PURPOSE}</p>
-              <p className="text-label text-white/45 leading-snug">{PILOT_OFFER}</p>
-              <p className="text-label text-white/45 leading-snug">{progressLine(stateCounts)}</p>
-            </div>
-          </details>
-        </div>
-
+      <div className="flex h-full min-h-0 flex-col px-5 pt-1">
         {/* The chips scroll sideways if they outgrow the line; Find five sits
             OUTSIDE that scroller so it can never be the part that is cut off,
             which is exactly what an ml-auto inside an overflow-x-auto row
@@ -309,7 +331,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
                 type="button"
                 aria-pressed={on}
                 data-testid={`pilot-view-${v.id || 'working'}`}
-                onClick={() => { setView(v.id); setIndex(0) }}
+                onClick={() => setView(v.id)}
                 className={`shrink-0 min-h-[32px] rounded-full border px-3 py-1 text-label transition-colors ${
                   on
                     ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
@@ -337,55 +359,40 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           <p data-testid="pilot-find-note" className="shrink-0 mt-2 text-label text-amber-100/75">{findNote}</p>
         )}
 
-        {/* The stage.
-            overflow-hidden is the layout: on a real phone the card fits and
-            nothing scrolls, which e2e/pilots-noscroll.spec.ts pins at 390x844
-            and 360x800 by asserting no descendant holds more than it shows.
-            Below roughly 700 CSS pixels of height - which after the 1.2 zoom
-            root is an effective 583, smaller than any current phone - the
-            drafted card genuinely cannot fit, and clipping it would hide the
-            action row. There the stage scrolls. That is graceful degradation
-            for a viewport out of range, not the layout, the same way
-            FocusPurposeTab treats its own scroller. */}
-        <div className="flex-1 min-h-0 mt-2 overflow-hidden [@media(max-height:700px)]:overflow-y-auto flex flex-col justify-center [@media(max-height:700px)]:justify-start">
-          {current ? (
-            <PilotCard key={current.id} target={current} onChanged={refetch} narrow />
+        {/* The stage: no scroll, no pager, the deck owns it. */}
+        <div className="flex-1 min-h-0 mt-2 overflow-hidden flex flex-col">
+          {ladder.items.length ? (
+            <TriageDeck
+              config={{ ...ladder, title: counts || 'Your pilots' }}
+              paused={drafting || !!openDeal}
+              onOpen={d => setOpenDeal(targets.find(t => t.id === d.id) ?? null)}
+            />
           ) : (
-            <p data-testid="pilot-empty" className="text-body text-white/45">{emptyLine}</p>
+            <p
+              data-testid="pilot-empty"
+              className="text-body text-white/45 pb-[calc((env(safe-area-inset-bottom,0px)+96px)/var(--z,1))]"
+            >{emptyLine}</p>
           )}
         </div>
 
-        {/* The pager. Only when there is more than one person to move between;
-            one person needs no controls and the row would be dead space.
-            pr reserves the floating + button's footprint, which is fixed to the
-            bottom right OUTSIDE the zoom root, the same reservation MobileHome
-            makes for its doors row. Without it the create button sits on top of
-            Next and swallows the tap. */}
-        {list.length > 1 && (
-          <div className="shrink-0 mt-2 flex items-center justify-between gap-3 pr-[68px]">
-            <button
-              type="button"
-              data-testid="pilot-prev"
-              onClick={() => setIndex(i => Math.max(0, i - 1))}
-              disabled={index <= 0}
-              className="min-h-[40px] px-4 rounded-full border border-white/10 bg-white/[0.03] text-label text-white/70 disabled:opacity-30"
-            >
-              Back
-            </button>
-            <span className="text-label text-white/45 tabular-nums">
-              {Math.min(index + 1, list.length)} of {list.length}
-            </span>
-            <button
-              type="button"
-              data-testid="pilot-next"
-              onClick={() => setIndex(i => Math.min(list.length - 1, i + 1))}
-              disabled={index >= list.length - 1}
-              className="min-h-[40px] px-4 rounded-full border border-white/10 bg-white/[0.03] text-label text-white/70 disabled:opacity-30"
-            >
-              Next
-            </button>
-          </div>
-        )}
+        {/* The whole card, one tap away.
+            The deck is for fast verdicts. Everything that needs reading or
+            typing - the draft, the contact button, the cash amount for Paid -
+            lives on PilotCard, so a tap opens it rather than the deck growing
+            a second copy of any of it. "Paid" bounces here for the same
+            reason: a gesture cannot supply a number. Same shape as
+            MobileGuests, which pauses its deck behind a detail sheet. */}
+        <BottomSheet open={!!openDeal} onClose={() => setOpenDeal(null)} ariaLabel={openDeal?.contact?.full_name || 'Pilot'}>
+          {openDeal && (
+            <div className="px-4 pb-4" data-testid="pilot-sheet">
+              <PilotCard
+                target={openDeal}
+                narrow
+                onChanged={() => { refetch(); setOpenDeal(null) }}
+              />
+            </div>
+          )}
+        </BottomSheet>
       </div>
     )
   }

@@ -17,7 +17,17 @@ import type { TriageConfig } from '../../lib/triageConfig'
  * else, so the two device classes cannot drift in what a verdict does or what
  * a card says.
  */
-export function TriageDeck<T>({ config, onExit }: { config: TriageConfig<T>; onExit?: () => void }) {
+export function TriageDeck<T>({ config, onExit, paused, onOpen }: {
+  config: TriageConfig<T>
+  onExit?: () => void
+  /** Tap or Enter on the top card. The deck is for fast verdicts; anything
+   *  that needs reading or typing belongs in what this opens. */
+  onOpen?: (t: T) => void
+  /** Freeze gestures and keys while something slow is in flight, so a second
+   *  swipe cannot land on a card that is still being acted on. SwipeDeck has
+   *  always taken this; the phone shell simply never forwarded it. */
+  paused?: boolean
+}) {
   const triage = useSwipeTriage<T>({
     items: config.items,
     getId: config.getId,
@@ -29,6 +39,7 @@ export function TriageDeck<T>({ config, onExit }: { config: TriageConfig<T>; onE
   return (
     <SwipeDeck<T>
       narrow
+      paused={paused}
       deck={triage.deck}
       getId={config.getId}
       renderBody={config.renderBody}
@@ -36,6 +47,7 @@ export function TriageDeck<T>({ config, onExit }: { config: TriageConfig<T>; onE
       // The config already names the surface for its reason chips, and the same
       // key answers "why is this here", so the badge comes for free.
       why={t => ({ table: config.reasonsTable, row: t as Record<string, unknown> })}
+      onOpen={onOpen}
       onAccept={triage.accept}
       onReject={triage.reject}
       leftLabel={config.leftLabel}

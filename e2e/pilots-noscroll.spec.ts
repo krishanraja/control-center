@@ -168,9 +168,19 @@ for (const vp of PHONES) {
       await page.goto('/#/people?lane=pilots')
 
       await expect(page.getByRole('heading', { name: 'Pilots' })).toBeVisible({ timeout: 15_000 })
-      await expect(page.getByTestId('pilot-counts')).toBeVisible({ timeout: 15_000 })
+      // The counts moved onto the deck's own progress strip rather than
+      // spending a band of their own; the empty state has no deck to carry
+      // them, so it says the empty line instead.
+      if (state === 'empty') {
+        await expect(page.getByTestId('pilot-empty')).toBeVisible({ timeout: 15_000 })
+      } else {
+        await expect(page.getByText(/drafted|listed/).first()).toBeVisible({ timeout: 15_000 })
+      }
       if (state !== 'empty') {
-        await expect(page.getByTestId('pilot-card')).toBeVisible({ timeout: 15_000 })
+        // The deck renders the person, not a PilotCard: the card now lives in
+        // the sheet a tap away.
+        await expect(page.getByText(state === 'one' ? 'Sam Patel' : 'Alex Morgan'))
+          .toBeVisible({ timeout: 15_000 })
       }
       // Let the auto-seed settle so nothing is still mounting when measured.
       await page.waitForTimeout(600)
@@ -180,26 +190,42 @@ for (const vp of PHONES) {
   }
 }
 
-test('the phone reads the draft in a sheet, not a textarea on the card', async ({ page }) => {
+test('the phone reads the draft in a sheet, not a textarea on the deck', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mock(page, 'one')
   await page.goto('/#/people?lane=pilots')
-  await expect(page.getByTestId('pilot-card')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Sam Patel')).toBeVisible({ timeout: 15_000 })
 
-  // The card itself carries no editor: that textarea was the single biggest
+  // Nothing on the stage is an editor. That textarea was the single biggest
   // consumer of vertical space on this lane.
-  await expect(page.getByTestId('pilot-card').locator('textarea')).toHaveCount(0)
+  await expect(page.locator('main textarea')).toHaveCount(0)
 
+  // Tap the card: the full PilotCard opens in a sheet, with the draft behind
+  // its own button.
+  await page.getByText('Sam Patel').click()
+  await expect(page.getByTestId('pilot-sheet')).toBeVisible({ timeout: 10_000 })
   await page.getByTestId('pilot-edit-draft').click()
   await expect(page.getByRole('textbox', { name: /draft/i }).or(page.locator('textarea')).first())
     .toBeVisible({ timeout: 10_000 })
+})
+
+test('a drafted deal always offers one way to contact the person', async ({ page }) => {
+  // The gap this closes: a contact with no email got a written draft, no
+  // Gmail link, and no action at all. Sam has an email AND a draft_url, so
+  // this asserts the Gmail deep link; contactAction covers the rest.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await mock(page, 'one')
+  await page.goto('/#/people?lane=pilots')
+  await page.getByText('Sam Patel').click()
+  await expect(page.getByTestId('pilot-sheet')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByTestId('pilot-contact')).toBeVisible()
 })
 
 test('a stored intent quote is the reason to write, not "no trigger"', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mock(page, 'full')
   await page.goto('/#/people?lane=pilots')
-  await expect(page.getByTestId('pilot-card')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Alex Morgan')).toBeVisible({ timeout: 15_000 })
 
   // LISTED has no researched trigger at all. Before the enrichment was wired
   // through it read "No live trigger found" while this quote sat in its row.
@@ -207,18 +233,70 @@ test('a stored intent quote is the reason to write, not "no trigger"', async ({ 
   await expect(page.getByText('No live trigger found')).toHaveCount(0)
 })
 
-test('the pager moves between people instead of scrolling past them', async ({ page }) => {
+/**
+ * The deck, driven by the keyboard.
+ *
+ * SwipeDeck binds ArrowLeft/ArrowRight to the identical `flyOut(dir)` the
+ * gesture uses, so the keys exercise the real commit path without having to
+ * synthesise pointer drags. That is the whole reason to assert on them.
+ */
+test('the deck shows one person and the right label names what happens next', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mock(page, 'full')
   await page.goto('/#/people?lane=pilots')
-  await expect(page.getByTestId('pilot-card')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Alex Morgan')).toBeVisible({ timeout: 15_000 })
 
-  await expect(page.getByText('1 of 2')).toBeVisible()
-  await expect(page.getByText('Alex Morgan')).toBeVisible()
-  await page.getByTestId('pilot-next').click()
-  await expect(page.getByText('2 of 2')).toBeVisible()
-  await expect(page.getByText('Sam Patel')).toBeVisible()
+  // Two people, one on the stage. The pager is gone.
+  await expect(page.getByTestId('pilot-next')).toHaveCount(0)
+  await expect(page.getByTestId('pilot-prev')).toHaveCount(0)
+  await expect(page.getByText('Sam Patel')).toHaveCount(0)
+
+  // The right action is NAMED for the rung this person is on, never "Advance".
+  // Alex is listed, so the forward move is the draft.
+  await expect(page.getByRole('button', { name: /Draft it/ })).toBeVisible()
   await assertNothingOverflows(page, 'main')
+})
+
+test('a swipe on a listed deal is undoable before it spends anything', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+
+  // Fail the draft route loudly: if the grace window is not honoured the call
+  // fires, this 500 surfaces, and the test says so.
+  let draftCalls = 0
+  await mock(page, 'full')
+  await page.route('**/api/pilot-deals/*/draft', (r: Route) => {
+    draftCalls += 1
+    return r.fulfill({ status: 500, json: { ok: false, error: 'should_not_have_fired' } })
+  })
+
+  await page.goto('/#/people?lane=pilots')
+  await expect(page.getByText('Alex Morgan')).toBeVisible({ timeout: 15_000 })
+
+  await page.locator('body').press('ArrowRight')
+  // The card goes immediately; the spend does not.
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible({ timeout: 5_000 })
+  await page.getByRole('button', { name: 'Undo' }).click()
+
+  // Undo restores the person and nothing was ever requested.
+  await expect(page.getByText('Alex Morgan')).toBeVisible({ timeout: 10_000 })
+  expect(draftCalls, 'the draft fired despite Undo').toBe(0)
+})
+
+test('a left swipe asks why before it parks anyone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await mock(page, 'full')
+  let patched = 0
+  await page.route('**/api/pilot-deals/*', (r: Route) => {
+    if (r.request().method() === 'PATCH') { patched += 1; return r.fulfill({ json: { ok: true } }) }
+    return r.fallback()
+  })
+  await page.goto('/#/people?lane=pilots')
+  await expect(page.getByText('Alex Morgan')).toBeVisible({ timeout: 15_000 })
+
+  await page.locator('body').press('ArrowLeft')
+  // The reason chips are the verdict; nothing is written until one is chosen.
+  await expect(page.getByText(/Cannot buy this|Wrong sector|Bad timing/).first()).toBeVisible({ timeout: 10_000 })
+  expect(patched, 'parked before a reason was given').toBe(0)
 })
 
 test('a viewport too short for the card degrades to a scroll, not a clip', async ({ page }) => {
@@ -228,9 +306,10 @@ test('a viewport too short for the card degrades to a scroll, not a clip', async
   await page.setViewportSize({ width: 360, height: 640 })
   await mock(page, 'one')
   await page.goto('/#/people?lane=pilots')
-  await expect(page.getByTestId('pilot-card')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Sam Patel')).toBeVisible({ timeout: 15_000 })
 
-  const primary = page.getByTestId('pilot-primary').first()
+  // The deck's own control bar is what must stay reachable here.
+  const primary = page.getByRole('button', { name: /I sent it/ }).first()
   await primary.scrollIntoViewIfNeeded()
   await expect(primary).toBeVisible()
 
