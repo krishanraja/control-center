@@ -5,6 +5,7 @@ import { Working } from '../shared/Working'
 import { Modal } from '../shared/Modal'
 import { FocusedEditor } from '../shared/FocusedEditor'
 import { ASK_LABEL, draftPilot, patchPilot, PILOT_STATE_LABEL } from '../../hooks/usePilots'
+import { contactAction, copyText } from '../../lib/contactAction'
 import type { PilotDealRow, PilotState } from '../../hooks/usePilots'
 
 // One possible pilot customer. The card carries who they are, why they fit the
@@ -110,8 +111,18 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
     if (busy) return
     setBusy('draft')
     try {
-      await draftPilot(t.id)
-      toast('Drafted. It is in your Gmail drafts too. Nothing was sent.', 'success')
+      const updated = await draftPilot(t.id)
+      // Only claim Gmail when Gmail actually answered. The old toast said
+      // "It is in your Gmail drafts too" unconditionally, including for a
+      // contact with no email address, where createGmailDraft is never even
+      // called and draft_url comes back null. The draft is still written and
+      // still useful; it just lives here and on the clipboard.
+      toast(
+        updated?.draft_url
+          ? 'Drafted, and it is in your Gmail drafts. Nothing was sent.'
+          : 'Drafted. No Gmail draft for this one, so use the contact button. Nothing was sent.',
+        'success',
+      )
       onChanged()
     } catch (err) {
       const msg = (err as Error)?.message || ''
@@ -156,6 +167,68 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
     }
     setPayOpen(false)
     await move('pilot_paid', 'primary', `Paid. ${n.toLocaleString('en-GB')} GBP on the scorecard.`, { cash_gbp: n })
+  }
+
+  /**
+   * The one way to act on a finished draft, whatever channel this person has.
+   *
+   * Before this the card rendered "Open in Gmail" only when draft_url existed,
+   * and NOTHING otherwise. A contact with no email address - four of the ten
+   * people currently eligible for this lane - got a written draft, an LLM call
+   * spent on it, and no way to reach anyone. The draft sat in the row.
+   *
+   * Order of preference:
+   *   1. A real Gmail draft, deep-linked to that draft (not the folder).
+   *   2. contactAction(): mailto carrying the draft, or the LinkedIn profile
+   *      with the draft on the clipboard, or the clipboard alone.
+   *
+   * contactAction is the PR #324 helper BridgeCard already uses; the click
+   * shape below is copied from BridgeCard.contactNow so both lanes behave
+   * identically.
+   */
+  const ContactButton = () => {
+    if (t.draft_url) {
+      return (
+        <a
+          href={t.draft_url}
+          target="_blank"
+          rel="noreferrer"
+          data-testid="pilot-contact"
+          onClick={e => e.stopPropagation()}
+          className="inline-flex items-center gap-1 text-label text-violet-300 hover:text-violet-200"
+        >
+          <Inbox size={12} />
+          Open the draft in Gmail
+        </a>
+      )
+    }
+    const action = contactAction(
+      { name: name, email: t.contact?.email ?? null, linkedin_url: t.contact?.linkedin_url ?? null },
+      body,
+      { role: t.contact?.title ?? null, company: t.contact?.company ?? null },
+    )
+    return (
+      <button
+        type="button"
+        data-testid="pilot-contact"
+        onClick={async e => {
+          e.stopPropagation()
+          if (action.copies) {
+            const ok = await copyText(body)
+            if (!ok) {
+              toast('Could not reach the clipboard. Open the draft and copy it by hand.', 'error')
+              return
+            }
+          }
+          if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
+          toast(action.note, 'success')
+        }}
+        className="inline-flex items-center gap-1 text-label text-violet-300 hover:text-violet-200"
+      >
+        <Inbox size={12} />
+        {action.label}
+      </button>
+    )
   }
 
   const primary = PRIMARY[t.state]
@@ -274,17 +347,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
               <Sparkles size={12} />
               Read the draft
             </button>
-            {t.draft_url && (
-              <a
-                href={t.draft_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-label text-violet-300 hover:text-violet-200"
-              >
-                <Inbox size={12} />
-                Open in Gmail
-              </a>
-            )}
+            <ContactButton />
           </div>
           <FocusedEditor
             open={editorOpen}
@@ -321,17 +384,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
                 Save draft
               </button>
             )}
-            {t.draft_url && (
-              <a
-                href={t.draft_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-label text-violet-300 hover:text-violet-200"
-              >
-                <Inbox size={12} />
-                Open in Gmail
-              </a>
-            )}
+            <ContactButton />
           </div>
         </div>
       )}

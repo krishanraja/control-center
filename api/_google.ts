@@ -91,7 +91,18 @@ export async function createGmailDraft(input: { to: string; subject: string; bod
     })
     const j: any = await r.json().catch(() => ({}))
     if (!r.ok || !j?.id) return null
-    return { id: j.id, url: 'https://mail.google.com/mail/u/0/#drafts' }
+    // Link to THIS draft, not to the drafts folder.
+    //
+    // drafts.create returns the draft resource id AND the underlying message
+    // id. Gmail's web UI addresses a draft by its MESSAGE id via ?compose=,
+    // so that is what the deep link needs; the draft id is kept for the API.
+    // This used to return the bare folder URL and throw the id away, which
+    // put Krish in a list of drafts and left him to find the right one.
+    const messageId = typeof j?.message?.id === 'string' ? j.message.id : null
+    const url = messageId
+      ? `https://mail.google.com/mail/u/0/#drafts?compose=${encodeURIComponent(messageId)}`
+      : 'https://mail.google.com/mail/u/0/#drafts'
+    return { id: j.id, url }
   } catch {
     return null
   }
