@@ -138,27 +138,45 @@ async function groundPeople(): Promise<string> {
     supabase.from('visibility_targets')
       .select('title, type, status, deadline_at, relevance_score, recommended_next_step')
       .is('buried_at', null).in('status', ['new', 'shortlisted', 'applied']).order('deadline_at', { ascending: true, nullsFirst: false }).limit(15),
-    supabase.from('contact_intelligence').select('network_tier').limit(2000),
+    // network_health() computes the per-tier breakdown across the whole
+    // corpus in one aggregate. This used to be a .limit(2000) scan whose
+    // .length was then printed as the corpus size, so against ~10,650 rows
+    // the model was told "Network: 2000 people with intelligence" and given
+    // a tier distribution truncated to whatever PostgREST returned first.
+    // A capped count presented as a total is the exact class of quiet lie
+    // the self-healing tiers exist to catch.
+    supabase.rpc('network_health'),
   ])
 
   const leadRows = leads.data || []
   const byStatus = leadRows.reduce<Record<string, number>>((a, r) => {
     const k = (r.status as string) || 'unknown'; a[k] = (a[k] || 0) + 1; return a
   }, {})
-  const tiers = (intel.data || []).reduce<Record<string, number>>((a, r) => {
-    const k = (r.network_tier as string) || 'untiered'; a[k] = (a[k] || 0) + 1; return a
+  const health = (intel.data || null) as NetworkHealth | null
+  const tierRows = health?.tiers || []
+  const tiers = tierRows.reduce<Record<string, number>>((a, t) => {
+    a[t.tier || 'untiered'] = Number(t.people) || 0; return a
   }, {})
+  const networkTotal = Number(health?.total) || tierRows.reduce((n, t) => n + (Number(t.people) || 0), 0)
 
   return [
     `Leads: ${leadRows.length} live. By status: ${Object.entries(byStatus).map(([k, v]) => `${k} ${v}`).join(' · ') || 'none'}.`,
     block('Top leads by ICP score', leadRows.slice(0, 8), () =>
       leadRows.slice(0, 8).map(r => `  ${r.full_name || '?'}${r.company ? ` (${r.company}${r.title ? `, ${r.title}` : ''})` : ''} — tier ${r.tier || '?'}, ICP ${r.icp_score ?? '?'}, ${r.status}${r.why_relevant ? `\n     why: ${r.why_relevant}` : ''}${r.next_step ? `\n     next step on file: ${r.next_step}` : ''}`).join('\n')),
-    `Network: ${(intel.data || []).length} people with intelligence. Tiers: ${Object.entries(tiers).map(([k, v]) => `${k} ${v}`).join(' · ') || 'none'}.`,
+    `Network: ${networkTotal} people with intelligence. Tiers: ${Object.entries(tiers).map(([k, v]) => `${k} ${v}`).join(' · ') || 'none'}.`,
     block('Guests', guests.data, () =>
       (guests.data || []).map(r => `  ${r.name} — ${r.status}, fit ${r.fit_score ?? '?'}${r.scheduled_at ? `, scheduled ${r.scheduled_at.slice(0, 10)}` : ''}`).join('\n')),
     block('Open visibility targets (soonest deadline first)', vis.data, () =>
       (vis.data || []).map(r => `  ${r.title} — ${r.type || '?'}, ${r.status}, deadline ${r.deadline_at ? r.deadline_at.slice(0, 10) : 'none'}, relevance ${r.relevance_score ?? '?'}${r.recommended_next_step ? `\n     recommended: ${r.recommended_next_step}` : ''}`).join('\n')),
   ].join('\n\n')
+}
+
+/** Only the slice of network_health() this block prints. The RPC returns
+ *  more (coverage, backlog, intent); adding fields here is cheap, and
+ *  guessing at them is what the typed shape prevents. */
+interface NetworkHealth {
+  total?: number | string
+  tiers?: Array<{ tier: string | null; people: number | string }>
 }
 
 async function groundGrowth(): Promise<string> {

@@ -3,6 +3,7 @@ import { supabase } from '../_supabase.js'
 import { emailNorm, linkedinNorm } from '../_text.js'
 import { parseDelimited } from '../_csv.js'
 import { guard } from '../_auth.js'
+import { ensureIntelligenceRows } from '../_intelStub.js'
 
 // POST /api/contacts/import — Relationship Engine CSV import with provenance.
 //
@@ -164,6 +165,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ ok: false, error: error.message })
     }
     inserted = data?.length ?? 0
+    // Without this every imported contact is invisible to network_search,
+    // which ranks on contact_intelligence. See api/_intelStub.ts.
+    await ensureIntelligenceRows((data || []).map(r => String((r as { id: string }).id)))
   }
 
   return res.json({ ok: true, inserted, duplicates, total })

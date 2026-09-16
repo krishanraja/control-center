@@ -33,6 +33,35 @@ const PRIMARY_CLASS =
 const QUIET_CLASS =
   'flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors'
 
+/**
+ * The 90-day cliff public.intent_live_score applies, in the browser.
+ *
+ * Past it the ranker scores the person zero, so a quote it no longer counts
+ * must not be shown here as a reason to write this week. Named once, pointed
+ * at the SQL definition, and duplicated in api/_pilotDeals.ts for the server
+ * side of the same rule.
+ */
+const INTENT_LIVE_DAYS = 90
+
+/** Says out loud that nothing was found, rather than implying nothing exists.
+ *  A deal listed before the intent pipeline ran has no stored quote and has
+ *  not been drafted, which is not the same as a person with nothing to say. */
+const NO_SIGNAL_LINE = 'No reason to write this week yet'
+
+function whyNowFor(t: PilotDealRow): { signal: string; url: string; kind: 'researched' | 'published' } | null {
+  // The researched trigger wins when present: it is the most recent read, and
+  // it is what the draft in the row was actually written against.
+  if (t.trigger_signal && t.trigger_source_url) {
+    return { signal: t.trigger_signal, url: t.trigger_source_url, kind: 'researched' }
+  }
+  const quote = (t.intent_evidence || '').trim()
+  const url = (t.intent_evidence_url || '').trim()
+  if (!quote || !/^https?:\/\//i.test(url) || !t.last_post_at) return null
+  const age = Date.now() - new Date(t.last_post_at).getTime()
+  if (!Number.isFinite(age) || age > INTENT_LIVE_DAYS * 86_400_000) return null
+  return { signal: quote, url, kind: 'published' }
+}
+
 export function PilotCard({ target: t, onChanged }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'primary' | 'quiet' | 'save' | 'draft'>(null)
@@ -116,6 +145,7 @@ export function PilotCard({ target: t, onChanged }: Props) {
   }
 
   const primary = PRIMARY[t.state]
+  const whyNow = whyNowFor(t)
 
   return (
     <article
@@ -169,21 +199,29 @@ export function PilotCard({ target: t, onChanged }: Props) {
         </p>
       )}
 
-      {t.trigger_signal && t.trigger_source_url ? (
-        <p className="text-label text-white/70 mt-1.5">
-          Why now: {t.trigger_signal}
+      {/* Why now, from whichever source actually has one.
+          `trigger_signal` is written by the draft run, which researches the
+          web. `intent_evidence` is a verbatim sentence the person published,
+          checked against its source before storage by the intent pipeline and
+          carried onto this deal when it was listed. Until 2026-09-16 the card
+          read only the first, so a deal that had not been drafted yet said
+          "No live trigger found" while a dated, cited quote sat in its own
+          row. Both are cited-or-silent; neither is ever invented. */}
+      {whyNow ? (
+        <p data-testid="pilot-why-now" className="text-label text-white/70 mt-1.5">
+          Why now: {whyNow.signal}
           <a
-            href={t.trigger_source_url}
+            href={whyNow.url}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-0.5 ml-1.5 text-violet-300 hover:text-violet-200"
           >
             <ExternalLink size={11} />
-            source
+            {whyNow.kind === 'published' ? 'their post' : 'source'}
           </a>
         </p>
       ) : (
-        <p className="text-label text-white/45 mt-1.5">No live trigger found</p>
+        <p className="text-label text-white/45 mt-1.5">{NO_SIGNAL_LINE}</p>
       )}
 
       {t.state === 'drafted' && (

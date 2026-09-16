@@ -90,6 +90,20 @@ export interface PilotDeal {
   notes: string | null
   created_at: string
   updated_at: string
+  /** What the enrichment knew when this person was listed. Carried onto the
+   *  deal at accept time rather than joined at read time, so the evidence
+   *  that justified the decision cannot be silently rewritten later.
+   *  Migration 20260916110000. */
+  intent_score: number | null
+  intent_stance: string | null
+  intent_evidence: string | null
+  intent_evidence_url: string | null
+  intent_topics: string[] | null
+  last_post_at: string | null
+  followers: number | null
+  is_influencer: boolean | null
+  is_creator: boolean | null
+  completeness: number | null
   contact: PilotContact | null
 }
 
@@ -126,6 +140,34 @@ function citedIndex(text: string): number | null {
 
 const NOTHING = /\b(no (recent|relevant|significant|notable|public)|nothing (found|recent|notable)|could not find|unable to find|did not find|no news|none found)\b/i
 
+/** The stored intent a deal carries, as much of it as a trigger needs. */
+export interface StoredIntent {
+  intent_evidence: string | null
+  intent_evidence_url: string | null
+  last_post_at: string | null
+}
+
+/**
+ * The same 90-day cliff public.intent_live_score applies, in TypeScript.
+ *
+ * Duplicating the number would be the bug this codebase keeps catching, so
+ * it is named once here and pointed at the SQL definition. Past the cliff the
+ * ranker scores the person zero, and a quote the ranker no longer counts must
+ * not be shown to Krish as a reason to write this week.
+ */
+const INTENT_LIVE_DAYS = 90
+
+function triggerFromIntent(stored: StoredIntent | null | undefined): Trigger | null {
+  if (!stored) return null
+  const signal = plainCopy(stored.intent_evidence || '')
+  const url = (stored.intent_evidence_url || '').trim()
+  const at = stored.last_post_at
+  if (!signal || !HTTP.test(url) || !at) return null
+  const age = Date.now() - new Date(at).getTime()
+  if (!Number.isFinite(age) || age > INTENT_LIVE_DAYS * 86_400_000) return null
+  return { signal: signal.slice(0, 300), url, found_at: at }
+}
+
 /**
  * Find one live signal about this person's business from the last 60 days:
  * funding, a leadership change, layoffs, an AI move, results.
@@ -134,7 +176,21 @@ const NOTHING = /\b(no (recent|relevant|significant|notable|public)|nothing (fou
  * the caller stores nulls and the draft says "no live trigger found" rather
  * than opening on invented news.
  */
-export async function findTrigger(contact: PilotContact): Promise<Trigger | null> {
+export async function findTrigger(
+  contact: PilotContact,
+  stored?: StoredIntent | null,
+): Promise<Trigger | null> {
+  // What we already hold beats what we would pay to find out. The intent
+  // pipeline stores a verbatim sentence, checked against its source before
+  // storage, with the URL and the date it was published. That is a trigger
+  // by this function's own definition, and it cost money in September.
+  // Reading it here is not a shortcut around the cited-or-silent contract:
+  // the same two conditions apply, a sentence and an http source, plus the
+  // 90-day freshness cliff the ranker uses, so a stale quote falls through
+  // to research rather than being presented as news.
+  const fromStore = triggerFromIntent(stored)
+  if (fromStore) return fromStore
+
   const name = (contact.full_name || '').trim()
   const company = (contact.company || '').trim()
   if (!name && !company) return null
@@ -270,7 +326,7 @@ export async function loadTarget(id: string): Promise<PilotDeal | null> {
  */
 export async function draftTarget(target: PilotDeal): Promise<PilotDeal> {
   if (!target.contact) throw new Error('target has no contact')
-  const trigger = await findTrigger(target.contact)
+  const trigger = await findTrigger(target.contact, target)
   const draft = await draftApproach(target, target.contact, trigger)
   const now = new Date().toISOString()
   const { data, error } = await supabase

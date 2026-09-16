@@ -56,6 +56,73 @@ const stripTags = (s: string): string => s.replace(/<[^>]+>/g, '').replace(/\s+/
  * Returns null when the contact has no usable dossier so the caller can stay
  * honest rather than inventing specifics.
  */
+interface IntelRow {
+  who: string | null
+  why_them: string | null
+  hook: string | null
+  risk: string | null
+  headline: string | null
+  summary: string | null
+  current_title: string | null
+  current_company: string | null
+  network_tier: string | null
+  intent_stance: string | null
+  intent_evidence: string | null
+  intent_evidence_url: string | null
+  last_post_at: string | null
+  completeness: number | null
+  intel_method: string | null
+}
+
+/**
+ * Ground the draft in the enrichment spine (ADR-022).
+ *
+ * `summary` and `headline` are deliberately capped out of `intel_doc` by
+ * migration 20260915250000 so the ranker is not swamped by them, on the
+ * stated grounds that "the sheet and the judgment model can read it". This
+ * is the judgment model. It could not read it until now.
+ *
+ * `grounded` is true only when the row carries a real judgment or a real
+ * profile, so it can stand in for the dossier's `enriched` flag rather than
+ * merely suppressing the honesty warning: a row that exists but says nothing
+ * still gets the "do not invent specifics" instruction.
+ */
+function researchFromIntelligence(intel: IntelRow | null): { lines: string[]; grounded: boolean } {
+  if (!intel) return { lines: [], grounded: false }
+  const role = [intel.current_title, intel.current_company].filter(Boolean).join(' at ')
+  const lines: string[] = []
+  if (intel.headline) lines.push(`THEIR OWN HEADLINE: ${intel.headline}`)
+  if (role) lines.push(`CURRENT ROLE, from their profile: ${role}`)
+  if (intel.who) lines.push(`WHO THEY ARE: ${intel.who}`)
+  if (intel.why_them) lines.push(`WHY THEM: ${intel.why_them}`)
+  if (intel.hook) lines.push(`THE HOOK: ${intel.hook}`)
+  if (intel.risk) lines.push(`WHAT TO AVOID: ${intel.risk}`)
+  if (intel.summary) lines.push(`FROM THEIR PROFILE, in their words: ${intel.summary.slice(0, 900)}`)
+  if (intel.network_tier) lines.push(`RELATIONSHIP: ${intel.network_tier.replace(/[_\d]/g, ' ').trim()}`)
+
+  // Cited or silent, the same standard the pilots lane holds. The quote is
+  // only offered as a reason to write while the ranker still counts it.
+  const quote = (intel.intent_evidence || '').trim()
+  const url = (intel.intent_evidence_url || '').trim()
+  const at = intel.last_post_at ? new Date(intel.last_post_at).getTime() : NaN
+  const live = Number.isFinite(at) && Date.now() - at <= 90 * 86_400_000
+  if (quote && /^https?:\/\//i.test(url) && live) {
+    lines.push(`THEY PUBLISHED THIS RECENTLY (refer to it plainly, do not go beyond it): ${quote} Source: ${url}`)
+    if (intent_stanceIsUseful(intel.intent_stance)) {
+      lines.push(`WHERE THEY ARE ON IT: ${intel.intent_stance}`)
+    }
+  }
+
+  const grounded = Boolean(intel.who || intel.why_them || intel.headline || intel.summary)
+  return { lines, grounded }
+}
+
+/** "selling" and "commenting" say nothing worth putting in front of the
+ *  model; the tiers above them are a real read on where someone stands. */
+function intent_stanceIsUseful(stance: string | null): boolean {
+  return Boolean(stance) && !['selling', 'commenting'].includes(String(stance))
+}
+
 function researchFromDossier(dossier: any, ventureSlug: string | null): { lines: string[]; enriched: boolean } {
   const lines: string[] = []
   if (!dossier || typeof dossier !== 'object') return { lines, enriched: false }
@@ -136,12 +203,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // full krish-voice skill (system_config.content_voice_block) — the same block
   // the content composer grounds in — so the email matches every other outbound
   // surface instead of a thin summary.
-  const [{ data: contact, error }, voiceRules] = await Promise.all([
+  // contact_intelligence is read alongside, not instead of, the contacts row.
+  // The dossier jsonb was the only grounding this route had, and it predates
+  // the enrichment spine: the judgment layer (who / why_them / hook / risk),
+  // the bought LinkedIn profile (headline, summary, current title and company)
+  // and the intent quote all live on contact_intelligence and were invisible
+  // here, so a contact with a complete profile could still be drafted against
+  // "NO DEEP RESEARCH ON FILE". Same join pattern as api/network/explain.ts.
+  const [{ data: contact, error }, { data: intel }, voiceRules] = await Promise.all([
     supabase
       .from('contacts')
       .select('id, full_name, first_name, email, company, title, primary_venture, origin_venture, origin_campaign, tags, linkedin_url, dossier, owner_agent')
       .eq('id', id)
       .single(),
+    supabase
+      .from('contact_intelligence')
+      .select('who, why_them, hook, risk, headline, summary, current_title, current_company, network_tier, intent_stance, intent_evidence, intent_evidence_url, last_post_at, completeness, intel_method')
+      .eq('contact_id', id)
+      .maybeSingle(),
     loadOutboundVoice(),
   ])
   if (error || !contact) return res.status(404).json({ ok: false, error: 'contact not found' })
@@ -155,6 +234,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Pull the grounded research brief out of the dossier (the real differentiator
   // between a specific email and generic filler).
   const { lines: research, enriched } = researchFromDossier(contact.dossier, ventureSlug)
+  const { lines: intelLines, grounded } = researchFromIntelligence(intel as IntelRow | null)
 
   // Assemble the context the workflow forwards to Claude. Real research first,
   // then the collaboration angle, the note, and length/tone. When the contact is
@@ -166,7 +246,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const contextLines = [
     ...research,
-    !enriched
+    ...intelLines,
+    !enriched && !grounded
       ? 'NO DEEP RESEARCH ON FILE: do not invent specifics about them or their company. Open with the genuine reason for reaching out and the value/ask; keep any claim about them general and true.'
       : null,
     tagLine,

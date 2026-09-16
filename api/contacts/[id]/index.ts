@@ -74,11 +74,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'no updatable fields supplied' })
   }
 
+  // A bare .select() returns every column, which on this table means the
+  // 1536-dimension identity_embedding and the dossier jsonb go back to the
+  // browser on every PATCH, for a response the client reads three fields of.
   const { data, error } = await supabase
     .from('contacts')
     .update(updates)
     .eq('id', id)
-    .select()
+    .select('id, full_name, first_name, last_name, email, company, title, ' +
+            'linkedin_url, consent_tier, primary_venture, heat_score, ' +
+            'triage_status, triaged_at, status, tags, owner_agent, ' +
+            'last_touch_at, next_touch_due_at, updated_at')
     .single()
 
   if (error) return res.status(500).json({ ok: false, error: error.message })

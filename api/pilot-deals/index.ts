@@ -61,6 +61,26 @@ async function list(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+/** Body validators. A request body is never trusted into a column: a bad
+ *  value becomes null rather than a 500 or a poisoned row. */
+function numOrNull(v: unknown, min: number, max: number): number | null {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : null
+}
+function strOrNull(v: unknown, max: number): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
+function httpOrNull(v: unknown): string | null {
+  const s = typeof v === 'string' ? v.trim() : ''
+  return /^https?:\/\/\S+$/i.test(s) ? s.slice(0, 500) : null
+}
+function isoOrNull(v: unknown): string | null {
+  const s = typeof v === 'string' ? v.trim() : ''
+  if (!s) return null
+  const t = new Date(s).getTime()
+  return Number.isFinite(t) ? new Date(t).toISOString() : null
+}
+
 async function add(req: VercelRequest, res: VercelResponse) {
   const body = (req.body || {}) as Record<string, unknown>
   const contactId = typeof body.contact_id === 'string' ? body.contact_id : ''
@@ -74,8 +94,28 @@ async function add(req: VercelRequest, res: VercelResponse) {
   const askLine = typeof body.ask_line === 'string' && body.ask_line.trim()
     ? body.ask_line.trim().slice(0, 240)
     : null
+  // The enrichment the proposal was judged on, carried onto the deal so the
+  // reason it was listed is part of its own record. Without this the card
+  // would have to re-read contact_intelligence at render time, and a later
+  // re-enrichment would silently rewrite the evidence behind a past decision.
+  // Every field is validated rather than trusted: this is a request body.
+  const intent = {
+    intent_score: numOrNull(body.intent_score, 0, 100),
+    intent_stance: strOrNull(body.intent_stance, 40),
+    intent_evidence: strOrNull(body.intent_evidence, 600),
+    intent_evidence_url: httpOrNull(body.intent_evidence_url),
+    intent_topics: Array.isArray(body.intent_topics)
+      ? body.intent_topics.filter(t => typeof t === 'string').slice(0, 12).map(t => String(t).slice(0, 60))
+      : null,
+    last_post_at: isoOrNull(body.last_post_at),
+    followers: numOrNull(body.followers, 0, 100_000_000),
+    is_influencer: typeof body.is_influencer === 'boolean' ? body.is_influencer : null,
+    is_creator: typeof body.is_creator === 'boolean' ? body.is_creator : null,
+    completeness: numOrNull(body.completeness, 0, 100),
+  }
+
   // Only the two entry states. Every other rung is reached through PATCH, which
-  // enforces the ladder in api/_room.ts.
+  // enforces the ladder in api/_pilotDeals.ts.
   const state = body.state === 'not_now' ? 'not_now' : 'listed'
   const skipped = state === 'not_now'
   const reasonCode = typeof body.reason_code === 'string' && REASON_OPTIONS.has(body.reason_code)
@@ -107,6 +147,7 @@ async function add(req: VercelRequest, res: VercelResponse) {
         state,
         ...(askKind ? { ask_kind: askKind } : {}),
         ...(askLine ? { ask_line: askLine } : {}),
+        ...intent,
         ...(skipped ? { not_now_at: new Date().toISOString() } : {}),
       })
       .select(TARGET_SELECT)

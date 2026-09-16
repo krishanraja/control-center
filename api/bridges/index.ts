@@ -11,6 +11,57 @@ export const config = { maxDuration: 30 }
 
 const STATES = new Set(['proposed', 'reached_out', 'snoozed', 'not_a_path'])
 
+/** How close, on a 0-100 scale, from the one tier column that is consistent.
+ *  An unknown or missing tier is null, never 0: "we never judged this person"
+ *  and "this person is cold" are different claims and the card says so. */
+const TIER_STRENGTH: Record<string, number> = {
+  '1_reciprocated': 100,
+  '2_core_network': 85,
+  '3_known_network': 70,
+  '4_owned_network': 50,
+  '5_cold_lead': 15,
+}
+
+function strengthFor(tier: string | null): number | null {
+  return tier && tier in TIER_STRENGTH ? TIER_STRENGTH[tier] : null
+}
+
+interface CcRow {
+  id: string
+  full_name: string | null
+  title: string | null
+  company: string | null
+  linkedin_url: string | null
+  email: string | null
+  intel?: { current_title: string | null; current_company: string | null; network_tier: string | null; why_them: string | null } | null
+}
+
+/** Shape a contacts row into the card's contact, preferring the enriched
+ *  role and carrying the real relationship strength instead of a hardcoded 0. */
+function enrichedContact(key: string, c: unknown, fallbackUrl: string | null) {
+  const r = c as CcRow
+  const intel = Array.isArray(r.intel) ? r.intel[0] : r.intel
+  return {
+    contact_key: key,
+    full_name: r.full_name,
+    current_title: intel?.current_title || r.title,
+    current_company: intel?.current_company || r.company,
+    // Derived from network_tier, NOT from tier_weight.
+    //
+    // tier_weight looks like the right column and is not safe to read: it
+    // carries two different scales at once. Measured 2026-09-16, the same
+    // tier appears with both values, e.g. 2_core_network = 3 and
+    // 2_core_network = 85, so some rows are on a 1-5 rank and others on a
+    // 1-100 weight. Reading it would print "Strength 3" and "Strength 85"
+    // for two equally close contacts. network_tier is consistent, so the
+    // number is derived from it here. See TIER_STRENGTH.
+    strength_score: strengthFor(intel?.network_tier ?? null),
+    linkedin_url: r.linkedin_url || fallbackUrl,
+    strength_evidence: intel?.why_them || null,
+    email: r.email,
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['GET'])) return
 
@@ -60,26 +111,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ccKeys = [...new Set(rows.map(b => b.contact_key as string | null)
       .filter((k): k is string => !!k && k.startsWith('contact:')))]
     const ccIds = ccKeys.map(k => k.slice('contact:'.length))
+    // contact_intelligence rides along on both lookups below. This lane read
+    // contacts.title/company and hardcoded strength_score: 0, so a person the
+    // enrichment spine knew well - current role from a bought profile, a real
+    // relationship tier, a stored judgment - showed up here with a stale title
+    // and no strength at all. NetworkPersonSheet already prefers the enriched
+    // role; this makes the Hunt cards agree with it.
+    const CC_SELECT = 'id, full_name, title, company, linkedin_url, email, ' +
+      'intel:contact_intelligence(current_title, current_company, network_tier, why_them)'
+
     if (ccIds.length) {
-      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url, email').in('id', ccIds)
-      for (const c of data || []) {
-        byContact.set(`contact:${c.id}`, {
-          contact_key: `contact:${c.id}`, full_name: c.full_name, current_title: c.title,
-          current_company: c.company, strength_score: 0, linkedin_url: c.linkedin_url,
-          strength_evidence: null, email: c.email,
-        })
+      const { data } = await supabase.from('contacts').select(CC_SELECT).in('id', ccIds)
+      for (const c of (data || []) as unknown as CcRow[]) {
+        byContact.set(`contact:${c.id}`, enrichedContact(`contact:${c.id}`, c, null))
       }
     }
-    for (const slug of missing.slice(0, 25)) {
-      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url, email')
-        .ilike('linkedin_url_norm', `%/in/${slug}%`).limit(1)
-      const c = (data || [])[0]
-      if (c) {
-        byContact.set(slug, {
-          contact_key: slug, full_name: c.full_name, current_title: c.title, current_company: c.company,
-          strength_score: 0, linkedin_url: c.linkedin_url || `https://www.linkedin.com/in/${slug}`,
-          strength_evidence: null, email: c.email,
-        })
+    // One query for every remaining slug, not one query per slug. This was
+    // up to 25 sequential round trips, each an `ilike` with a leading
+    // wildcard that no index can serve.
+    if (missing.length) {
+      const slugs = missing.slice(0, 25)
+      const { data } = await supabase.from('contacts').select(CC_SELECT)
+        .or(slugs.map(sl => `linkedin_url_norm.ilike.%/in/${sl}%`).join(','))
+        .limit(slugs.length * 2)
+      for (const slug of slugs) {
+        const c = (data || []).find(x => String((x as { linkedin_url?: string }).linkedin_url || '')
+          .toLowerCase().includes(`/in/${slug.toLowerCase()}`))
+        if (c) byContact.set(slug, enrichedContact(slug, c, `https://www.linkedin.com/in/${slug}`))
       }
     }
     const byJob = new Map((roles.data || []).map(r => [r.job_id as string, r]))

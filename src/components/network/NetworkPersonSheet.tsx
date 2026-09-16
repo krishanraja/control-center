@@ -62,6 +62,30 @@ interface PersonDetail {
   intelligence?: Record<string, unknown> | null
 }
 
+function profileFrom(
+  intel: Record<string, unknown> | null | undefined,
+  person: NetworkResult,
+): { headline: string | null; summary: string | null; topics: string[]; provenance: string | null } | null {
+  const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+  const headline = str(intel?.headline)
+  const summary = str(intel?.summary)
+  const topics = Array.isArray(person.intent_topics)
+    ? person.intent_topics.filter((t): t is string => typeof t === 'string' && !!t.trim()).slice(0, 6)
+    : []
+
+  // Say the source and the date together or not at all: "enriched" with no
+  // date is the kind of freshness claim this codebase has had to retract.
+  const src = str(intel?.enriched_source)
+  const at = str(intel?.enriched_at)
+  const when = at ? new Date(at) : null
+  const provenance = src && when && !Number.isNaN(when.getTime())
+    ? `Profile read from ${src} on ${when.toLocaleDateString()}`
+    : null
+
+  if (!headline && !summary && !topics.length && !provenance) return null
+  return { headline, summary, topics, provenance }
+}
+
 export function NetworkPersonSheet({ person, onClose }: {
   person: NetworkResult | null
   onClose: () => void
@@ -95,6 +119,11 @@ export function NetworkPersonSheet({ person, onClose }: {
   // The row carries the X handle now, so the sheet no longer waits on the
   // detail fetch to render a complete reach block. `detail` is still preferred
   // when it lands, because it is the fresher read.
+  // The bought profile, narrowed out of the open intelligence row. Read here
+  // rather than typed onto PersonDetail for the reason that comment gives: the
+  // table gains columns faster than this component reads them.
+  const profile = profileFrom(detail?.intelligence, person)
+
   const reach = resolveReach({
     email: person.email,
     linkedin_url: person.linkedin_url,
@@ -269,6 +298,37 @@ export function NetworkPersonSheet({ person, onClose }: {
                 >
                   Read the post
                 </a>
+              )}
+            </div>
+          )}
+
+          {/* The profile that was actually bought.
+              `headline` and `summary` are capped out of intel_doc by migration
+              20260915250000 on the stated grounds that "the sheet and the
+              judgment model can read it there". Neither did: 1,700 Coresignal
+              credits bought this text and nothing displayed a word of it.
+              `intent_topics` had the same shape of problem, returned by the
+              RPC and typed on both sides and never rendered. */}
+          {profile && (
+            <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
+              {profile.headline && (
+                <p className="text-label leading-snug text-white/80">{profile.headline}</p>
+              )}
+              {profile.summary && (
+                <p className="mt-1 text-label leading-relaxed text-white/60">{profile.summary}</p>
+              )}
+              {!!profile.topics.length && (
+                <p className="mt-1.5 flex flex-wrap gap-1">
+                  {profile.topics.map(t => (
+                    <span key={t} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-micro text-white/55">{t}</span>
+                  ))}
+                </p>
+              )}
+              {/* Where it came from and when. Without this a fresh profile and
+                  a rules-only guess look identical, which is the confusion
+                  thin_evidence alone could not resolve. */}
+              {profile.provenance && (
+                <p className="mt-1.5 text-micro text-white/35">{profile.provenance}</p>
               )}
             </div>
           )}

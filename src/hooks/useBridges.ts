@@ -13,7 +13,10 @@ export interface BridgeContact {
   full_name: string
   current_title: string | null
   current_company: string | null
-  strength_score: number
+  /** 0-100, from contact_intelligence.tier_weight. Null means we hold no
+   *  relationship judgment for them, which the card says rather than
+   *  printing "Strength 0" and implying we looked. */
+  strength_score: number | null
   linkedin_url?: string | null
   strength_evidence?: Record<string, unknown> | null
   // Carried so a suggestion can be contacted in one click rather than through a

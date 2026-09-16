@@ -63,9 +63,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const ids = keys.filter(k => k.startsWith('contact:')).map(k => k.slice('contact:'.length))
     if (ids.length) {
-      const { data } = await supabase.from('contacts').select('id, full_name, title, company, linkedin_url, email').in('id', ids)
-      for (const c of data || []) {
-        people.set(`contact:${c.id}`, { name: c.full_name as string, title: c.title as string | null, company: c.company as string | null, linkedin_url: c.linkedin_url as string | null, email: (c.email as string | null) ?? null })
+      // The enriched role wins over the contacts row, the way the person
+      // sheet already resolves it: contacts.title is whatever the import
+      // carried, contact_intelligence.current_title is what the bought
+      // profile actually says they do now.
+      const { data } = await supabase.from('contacts')
+        .select('id, full_name, title, company, linkedin_url, email, intel:contact_intelligence(current_title, current_company)')
+        .in('id', ids)
+      for (const c of (data || []) as unknown as Array<{
+        id: string; full_name: string | null; title: string | null; company: string | null
+        linkedin_url: string | null; email: string | null
+        intel?: { current_title: string | null; current_company: string | null } | Array<{ current_title: string | null; current_company: string | null }> | null
+      }>) {
+        const intel = Array.isArray(c.intel) ? c.intel[0] : c.intel
+        people.set(`contact:${c.id}`, {
+          name: c.full_name as string,
+          title: intel?.current_title || c.title,
+          company: intel?.current_company || c.company,
+          linkedin_url: c.linkedin_url,
+          email: c.email ?? null,
+        })
       }
     }
 

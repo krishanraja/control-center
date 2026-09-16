@@ -69,6 +69,20 @@ export interface PilotDealRow {
   cash_gbp: number | null
   sourced_by: 'krish' | 'os'
   notes: string | null
+  /** What the enrichment knew when this person was listed (ADR-022 columns,
+   *  carried onto the deal by migration 20260916110000). A null intent_score
+   *  means posts were never read; 0 means read and nothing there. Those are
+   *  different claims and the row keeps them apart. */
+  intent_score: number | null
+  intent_stance: string | null
+  intent_evidence: string | null
+  intent_evidence_url: string | null
+  intent_topics: string[] | null
+  last_post_at: string | null
+  followers: number | null
+  is_influencer: boolean | null
+  is_creator: boolean | null
+  completeness: number | null
   contact: PilotContact | null
 }
 
@@ -82,6 +96,16 @@ export interface PilotProposal {
   score: number
   ask_kind?: AskKind
   ask_line?: string
+  intent_score?: number | null
+  intent_stance?: string | null
+  intent_evidence?: string | null
+  intent_evidence_url?: string | null
+  intent_topics?: string[] | null
+  last_post_at?: string | null
+  followers?: number | null
+  is_influencer?: boolean | null
+  is_creator?: boolean | null
+  completeness?: number | null
 }
 
 /** The lane's rows. With no state the route returns listed and drafted
@@ -193,6 +217,19 @@ export async function addPilotDeal(input: {
   state?: 'listed' | 'not_now'
   /** A code from src/lib/servedSurfaces.ts. Omitted falls back to pilot_other. */
   reason_code?: string
+  /** The evidence the proposal was judged on, carried onto the deal so the
+   *  reason it was listed cannot be rewritten by a later re-enrichment. The
+   *  route validates every field rather than trusting the body. */
+  intent_score?: number | null
+  intent_stance?: string | null
+  intent_evidence?: string | null
+  intent_evidence_url?: string | null
+  intent_topics?: string[] | null
+  last_post_at?: string | null
+  followers?: number | null
+  is_influencer?: boolean | null
+  is_creator?: boolean | null
+  completeness?: number | null
 }): Promise<PilotDealRow> {
   const r = await fetch('/api/pilot-deals', {
     method: 'POST',

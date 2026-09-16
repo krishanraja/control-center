@@ -806,6 +806,29 @@ References to them should be updated.
 
 ---
 
+## `network_contacts` — the Hunt graph, deliberately separate
+
+Used only by the Hunter / Hunt lane (`api/bridges/*`, `api/hunter/roles.ts`).
+It carries its own `full_name`, `current_title`, `current_company`, `email`,
+`strength_score` and `strength_evidence`, keyed by `contact_key` (a LinkedIn
+slug, or `contact:<uuid>` for someone who came from `contacts`).
+
+**It is not a stale copy of `contacts` and must not be folded into it.** It is
+a different graph: paths to a job, discovered by the hunter run, including
+people who are not in Krish's network at all. The bridge between the two is
+`contact_key = 'contact:<uuid>'`, and the Hunt routes resolve those through
+`contacts` joined to `contact_intelligence`, so a person known to both is shown
+with their enriched role rather than whatever the hunt captured.
+
+It has no `CREATE TABLE` migration in this repo, which is drift worth knowing
+about rather than a defect in the table.
+
+A note on `contact_intelligence.tier_weight`: it holds **two scales at once**.
+Measured 2026-09-16, `2_core_network` appears with both `3` and `85`, so some
+rows are on a 1-5 rank and others on a 1-100 weight. Nothing user-facing should
+read it until that is reconciled; derive closeness from `network_tier`, which
+is consistent. `api/bridges/index.ts` has the mapping.
+
 ## `contact_intelligence` — the network judgment layer
 
 1:1 with `contacts` (`contact_id` is both PK and FK, `ON DELETE CASCADE`).
@@ -825,7 +848,30 @@ anon-readable (`contacts_anon_select ... USING (true)`), and `why_them` and
 | Provenance | `confidence`, `intel_method`, `evidence[]`, `source_count`, `source_list[]` |
 | Firmographic | `seniority`, `country`, `geo_code`, `industry` |
 | Hygiene | `is_person`, `name_quality`, `reciprocated_email`, `email_inbound/outbound/last` |
-| Retrieval | `intel_doc`, `intel_tsv` (generated), `embedding vector(1536)` |
+| Retrieval | `intel_doc`, `intel_tsv` (generated), `embedding vector(1536)`, `embed_stale` |
+| Profile (ADR-022) | `headline`, `summary`, `current_title`, `current_company`, `followers`, `experience_count`, `enriched_source`, `enriched_at` |
+| Reach badges | `is_influencer`, `is_creator`, `recommendations_received` |
+| Intent | `intent_score`, `intent_stance`, `intent_evidence`, `intent_evidence_url`, `intent_topics[]`, `intent_summary`, `last_post_at`, `posts_checked_at`, `posts_sample` |
+| Quality | `completeness` (0-100, `public.contact_completeness`) |
+
+The Profile, Reach, Intent and Quality groups landed on 2026-09-14/15
+(ADR-022) and were missing from this table until 2026-09-16. `intel_doc` and
+`completeness` are recomputed by the `ci_rebuild_doc_trg` trigger on insert or
+on a change to any of the columns it reads, so enrichment reaches search
+whether or not the writer remembered to rebuild it.
+
+`intent_score` is **null when posts were never read** and **0 when they were
+read and there was nothing there**. Those are different claims and nothing may
+collapse them. Read it through `public.intent_live_score(score, last_post_at)`,
+which is the one definition of "live" (a 90-day cliff) shared by the ranker and
+every surface; `api/_pilotDeals.ts` and `PilotCard.tsx` carry the same constant
+for the client and server halves of that rule.
+
+**Every contact has a row here, or it does not exist.** `network_search` ranks
+on `intel_doc`, so a `contacts` row with no sibling is invisible rather than
+low-ranked. `api/_intelStub.ts` writes a stub (`intel_method = 'pending'`,
+which is deliberately not one of the eight real methods) on every bulk write
+path, and migration `20260916120000` backfilled the 119 that predated it.
 
 `network_tier` is an **evidence** statement (how many independent sources assert
 this person). `contacts.consent_tier` is a **permission** statement (what we are

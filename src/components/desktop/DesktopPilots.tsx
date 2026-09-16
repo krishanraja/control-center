@@ -134,6 +134,19 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
         sourced_by: 'os',
         ask_kind: p.ask_kind,
         ask_line: p.ask_line,
+        // The evidence travels with the decision. Dropping it here is what
+        // made a card say "No live trigger found" about someone whose
+        // source-checked quote was already in the database.
+        intent_score: p.intent_score,
+        intent_stance: p.intent_stance,
+        intent_evidence: p.intent_evidence,
+        intent_evidence_url: p.intent_evidence_url,
+        intent_topics: p.intent_topics,
+        last_post_at: p.last_post_at,
+        followers: p.followers,
+        is_influencer: p.is_influencer,
+        is_creator: p.is_creator,
+        completeness: p.completeness,
       })
       setProposals(prev => (prev || []).filter(x => x.contact_id !== p.contact_id))
       toast(`${p.full_name || 'Added'} is on the list.`, 'success')

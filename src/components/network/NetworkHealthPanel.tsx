@@ -45,6 +45,8 @@ interface Health {
   total: number
   invisible: number
   stale_embedding: number
+  /** Summed across tiers by the route: the RPC emits it per tier only. */
+  hot_intent: number
   posts_read: number
   signalling: number
   generated_at?: string
@@ -94,7 +96,7 @@ export function NetworkHealthPanel() {
     fetch('/api/network/health')
       .then(r => r.json())
       .then((j: Health) => { if (live) setData(j) })
-      .catch(() => { if (live) setData({ ok: false, total: 0, invisible: 0, stale_embedding: 0, posts_read: 0, signalling: 0, tiers: [], error: 'Could not read the network.' }) })
+      .catch(() => { if (live) setData({ ok: false, total: 0, invisible: 0, stale_embedding: 0, hot_intent: 0, posts_read: 0, signalling: 0, tiers: [], error: 'Could not read the network.' }) })
       .finally(() => { if (live) setBusy(false) })
     return () => { live = false }
   }, [open])
@@ -131,7 +133,9 @@ export function NetworkHealthPanel() {
               <p className="text-label leading-relaxed text-white/55">
                 {data.total.toLocaleString()} people.
                 {' '}{data.posts_read.toLocaleString()} have had their posts read;
-                {' '}{data.signalling.toLocaleString()} are signalling live intent right now.
+                {' '}{data.signalling.toLocaleString()} are signalling live intent right now
+                {data.hot_intent > 0 && <>, {data.hot_intent.toLocaleString()} of them asking, stuck,
+                hiring or piloting</>}.
                 {' '}Completeness is the same score the ranker thresholds for its thin-evidence
                 warning, so the counts below and the badges in results move together — except
                 for the invisible, who score 0 here and never appear in results at all.

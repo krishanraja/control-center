@@ -38,6 +38,27 @@ export interface PilotProposal {
   ask_kind?: AskKind
   /** One plain sentence saying what to ask them. Absent for the same reason. */
   ask_line?: string
+  /**
+   * What the enrichment already knows, carried through rather than dropped.
+   *
+   * runNetworkSearch returns forty-four columns; this route used to map six.
+   * Everything the 14-15 September chain bought (ADR-022) - a verbatim
+   * source-checked quote, its URL, when it was published, the stance ladder,
+   * real reach, record completeness - was discarded at this boundary, so a
+   * card said "No live trigger found" about someone whose quote was sitting
+   * in the same database. Null means the scorer had nothing, which is a
+   * different claim from zero and is kept as null on purpose.
+   */
+  intent_score?: number | null
+  intent_stance?: string | null
+  intent_evidence?: string | null
+  intent_evidence_url?: string | null
+  intent_topics?: string[] | null
+  last_post_at?: string | null
+  followers?: number | null
+  is_influencer?: boolean | null
+  is_creator?: boolean | null
+  completeness?: number | null
 }
 
 /**
@@ -101,6 +122,11 @@ interface Candidate {
   reachable_via: string[] | null
   best_channel: string | null
   seniority: string | null
+  /** Where they sit on the stance ladder, and the sentence that put them
+   *  there. Someone at "asking" or "struggling" is a different ask from
+   *  someone at "selling", and the classifier could not tell them apart. */
+  intent_stance: string | null
+  intent_evidence: string | null
 }
 
 const CLASSIFY_SYSTEM = `You are sorting people in Krish Raja's own network by what he can realistically ask them for.
@@ -116,6 +142,7 @@ Also write "ask_line": ONE short sentence, addressed to Krish, saying what to as
 
 RULES
 - Ground every judgment ONLY in the fields supplied for that candidate. Never invent an employer, a role, a budget or a fact about their business.
+- "publishing_stance" and "published_recently", when present, say what this person has said in public lately. Use them to sharpen the ask, never to change the kind: someone asking or struggling with an AI rollout is worth approaching about that, someone selling AI services is not a buyer. Do not quote them back; Krish sees the quote on the card.
 - If the supplied fields do not say enough to tell a buyer from an intro, answer "intro". Asking for a door is never the wrong ask; asking a non-buyer to buy is.
 - Return JSON only: {"people":[{"i":number,"ask_kind":"buyer"|"intro"|"collaborator","ask_line":string}]}
 - "i" is the candidate's given index. Include every candidate exactly once.
@@ -148,6 +175,8 @@ async function classify(candidates: Candidate[]): Promise<Map<string, { ask_kind
     reachable_via: c.reachable_via,
     best_channel: c.best_channel,
     stored_judgment: c.why_face,
+    publishing_stance: c.intent_stance,
+    published_recently: c.intent_evidence,
   }))
 
   const user = [
@@ -333,7 +362,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       linkedin_url: r.linkedin_url,
       why_face: whyFace(r),
       score: Math.round(Number(r.match_score) || 0),
+      intent_score: r.intent_score ?? null,
+      intent_stance: r.intent_stance ?? null,
+      intent_evidence: r.intent_evidence ?? null,
+      intent_evidence_url: r.intent_evidence_url ?? null,
+      intent_topics: r.intent_topics ?? null,
+      last_post_at: r.last_post_at ?? null,
+      followers: r.followers ?? null,
+      completeness: typeof r.completeness === 'number' ? r.completeness : null,
     }))
+
+    // The two reach badges are the one thing the scorer does not hand back.
+    // network_search consumes is_influencer and is_creator inside its hub
+    // term and does not return them, so they have never reached a screen
+    // despite being bought and stored. Rather than redefine a four-hundred
+    // line SQL function for two booleans, read them for the shortlist only:
+    // one query, at most `limit` ids, never per candidate.
+    try {
+      const ids = proposals.map(p => p.contact_id)
+      if (ids.length) {
+        const { data: badges } = await supabase
+          .from('contact_intelligence')
+          .select('contact_id, is_influencer, is_creator')
+          .in('contact_id', ids)
+        const byId = new Map((badges || []).map(b => [String((b as { contact_id: string }).contact_id), b]))
+        for (const p of proposals) {
+          const b = byId.get(p.contact_id) as { is_influencer?: boolean; is_creator?: boolean } | undefined
+          p.is_influencer = b?.is_influencer ?? null
+          p.is_creator = b?.is_creator ?? null
+        }
+      }
+    } catch {
+      // A missing badge is a missing badge, never a missing proposal.
+    }
 
     // Who can sign, who can only open a door, and what to ask each of them.
     try {
@@ -347,6 +408,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         reachable_via: r.reachable_via ?? null,
         best_channel: r.best_channel ?? null,
         seniority: r.seniority ?? null,
+        intent_stance: r.intent_stance ?? null,
+        intent_evidence: r.intent_evidence ?? null,
       })))
       for (const p of proposals) {
         const a = asks.get(p.contact_id)

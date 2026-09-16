@@ -513,6 +513,15 @@ export interface PilotProposalItem {
   score: number
   ask_kind?: 'buyer' | 'intro' | 'collaborator'
   ask_line?: string
+  /** What the enrichment already knew. The deck is where a person is first
+   *  judged, so the evidence belongs on this card, not only after listing. */
+  intent_stance?: string | null
+  intent_evidence?: string | null
+  intent_evidence_url?: string | null
+  last_post_at?: string | null
+  followers?: number | null
+  is_influencer?: boolean | null
+  is_creator?: boolean | null
 }
 
 const PILOT_ASK_TONE: Record<string, string> = {
@@ -523,6 +532,15 @@ const PILOT_ASK_TONE: Record<string, string> = {
 // The labels themselves live with the type, in hooks/usePilots. They were
 // duplicated here and drifted out of the one-system rule (AGENTS.md): two
 // copies of the same three strings, either of which could be edited alone.
+
+/** The same 90-day intent cliff public.intent_live_score applies. */
+function livePost(p: PilotProposalItem): boolean {
+  const quote = (p.intent_evidence || '').trim()
+  const url = (p.intent_evidence_url || '').trim()
+  if (!quote || !/^https?:\/\//i.test(url) || !p.last_post_at) return false
+  const age = Date.now() - new Date(p.last_post_at).getTime()
+  return Number.isFinite(age) && age <= 90 * 86_400_000
+}
 
 function renderPilotBody(p: PilotProposalItem): React.ReactNode {
   const role = [p.title, p.company].filter(Boolean).join(' at ')
@@ -537,6 +555,21 @@ function renderPilotBody(p: PilotProposalItem): React.ReactNode {
         {typeof p.score === 'number' && (
           <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">Fit {p.score}</span>
         )}
+        {/* Reach, where we actually hold evidence of it. followers is a real
+            Coresignal count; the two badges are LinkedIn's own, and scarce.
+            They were bought, stored, used inside the ranker's hub term and
+            never shown to anyone until now. */}
+        {p.is_influencer && (
+          <span className="text-micro px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200">Influencer</span>
+        )}
+        {!p.is_influencer && p.is_creator && (
+          <span className="text-micro px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-200/80">Creator</span>
+        )}
+        {typeof p.followers === 'number' && p.followers >= 5000 && (
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
+            {p.followers >= 1000 ? `${Math.round(p.followers / 1000)}k followers` : `${p.followers} followers`}
+          </span>
+        )}
       </div>
       <p className="text-ui font-semibold text-white leading-snug">{p.full_name || 'Unnamed contact'}</p>
       {role && <p className="text-label text-white/55 leading-snug mt-0.5">{role}</p>}
@@ -546,6 +579,24 @@ function renderPilotBody(p: PilotProposalItem): React.ReactNode {
       {p.ask_line && (
         <p className="text-label text-white/85 leading-snug mt-2">
           <span className="text-white/40">Ask them: </span>{p.ask_line}
+        </p>
+      )}
+      {/* What they said, in their words, with the post to check it against.
+          Cited or silent: no quote renders without an http source and a date
+          inside the same 90-day cliff the ranker scores on. */}
+      {livePost(p) && (
+        <p className="text-label text-white/70 leading-snug mt-2">
+          <span className="text-white/40">They posted: </span>
+          {p.intent_evidence}
+          <a
+            href={p.intent_evidence_url || undefined}
+            target="_blank"
+            rel="noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="ml-1.5 text-violet-300 hover:text-violet-200"
+          >
+            their post
+          </a>
         </p>
       )}
     </>

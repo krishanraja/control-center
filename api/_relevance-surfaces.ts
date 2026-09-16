@@ -113,11 +113,20 @@ interface Drop { id: string; reason_code: string; rationale: string; agent: stri
 
 async function loadRows(sb: SupabaseClient, table: TableName, cfg: SurfaceCfg, limit: number): Promise<any[]> {
   if (table === 'contacts') {
-    const { data, error } = await sb.from('contacts').select(cfg.selectCols).limit(limit)
+    // The predicates go to Postgres, not to JS after the fact. They used to
+    // run on the rows that came back from an unordered .limit(limit), so the
+    // database returned `limit` arbitrary contacts and JS threw most of them
+    // away: the sweep judged a near-random slice and called it the eligible
+    // set. Every other table in this function already pushes its predicates
+    // down; this branch was the exception.
+    const { data, error } = await sb
+      .from('contacts')
+      .select(cfg.selectCols)
+      .or('triage_status.is.null,triage_status.neq.skipped')
+      .or('consent_tier.in.(warm,customer),heat_score.gte.75')
+      .limit(limit)
     if (error) throw new Error(error.message)
-    return (data || []).filter((c: any) =>
-      c.triage_status !== 'skipped' &&
-      (c.consent_tier === 'warm' || c.consent_tier === 'customer' || (c.heat_score ?? 0) >= 75))
+    return data || []
   }
   let q = sb.from(table).select(cfg.selectCols).in(cfg.statusCol, cfg.eligible).limit(limit)
   q = q.is('buried_at', null).is('protected_at', null)

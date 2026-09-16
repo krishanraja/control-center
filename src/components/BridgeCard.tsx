@@ -171,7 +171,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
             <TierIcon size={10} />
             {meta.label}
           </span>
-          {b.contact && (
+          {b.contact && typeof b.contact.strength_score === 'number' && (
             <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 tabular-nums">
               Strength {b.contact.strength_score}
             </span>

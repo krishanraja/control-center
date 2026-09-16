@@ -111,6 +111,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       stale_embedding: h.stale_embedding ?? 0,
       posts_read: h.posts_read ?? 0,
       signalling: h.signalling ?? 0,
+      // network_health() emits hot_intent per tier but not at the top level,
+      // so the panel's headline could only ever say how many are signalling,
+      // never how many are asking, stuck, hiring or piloting - which is the
+      // distinction the whole eight-tier stance ladder exists to draw. Summed
+      // here rather than by a fifth redefinition of the RPC; the sum over
+      // every tier is the same number the RPC would compute.
+      hot_intent: priced.reduce((n, t) => n + (Number(t.hot_intent) || 0), 0),
       tiers: priced,
       // The rates are reported with their provenance, so a number on the panel
       // can always be traced to the runs it was averaged from.

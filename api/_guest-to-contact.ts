@@ -1,5 +1,6 @@
 import { supabase } from './_supabase.js'
 import { emailNorm, linkedinNorm } from './_text.js'
+import { ensureIntelligenceRows } from './_intelStub.js'
 
 // A recorded/published podcast guest is a warm relationship, not an opportunity.
 // Promote it into the Network (contacts) under the venture its show maps to.
@@ -77,6 +78,9 @@ export async function promoteGuestToContact(guestId: string): Promise<PromoteRes
     acquired_at: g.recorded_at || g.created_at || now,
   }
   const { data, error: insErr } = await supabase.from('contacts').insert(insert).select('id').single()
+  // A promoted guest with no intelligence row cannot be found by the Network
+  // tab or proposed as a pilot. See api/_intelStub.ts.
+  if (data?.id) await ensureIntelligenceRows([String(data.id)])
   if (insErr) return { ok: false, error: insErr.message }
 
   await supabase.from('audit_log').insert({
