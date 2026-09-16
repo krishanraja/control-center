@@ -73,6 +73,32 @@ the contained region.
 </AppFrame>
 ```
 
+### `MobilePilots` / `PilotsBody` — the phone stage (2026-09-16)
+
+`components/mobile/MobilePilots.tsx` + the `narrow` branch of
+`components/desktop/DesktopPilots.tsx`. The reference implementation for a
+lane that must fit one screen when its content is a list.
+
+- Shell is `MobileShell scroll="none"` **always**, not only while a deck is up.
+- The lane owns the frame: `flex h-full min-h-0 flex-col` with
+  `pb-[calc((env(safe-area-inset-bottom,0px)+96px)/var(--z,1))]` for the nav,
+  `shrink-0` chrome bands, and one `flex-1 min-h-0` stage.
+- **One person on the stage, a pager to move between them.** Not a swipe deck:
+  the proposals deck swipes because accept and skip are the only two verdicts,
+  while a listed deal is on a nine rung ladder whose actions are explicit
+  buttons, and a mis-swipe would move someone's state.
+- The pager row carries `pr-[68px]` to clear the floating create button, which
+  is fixed outside the zoom root. Without it the FAB eats the tap on Next.
+- Density comes from disclosure, never clipping: `index.css` neutralises
+  `.truncate` and every `.line-clamp-*` on purpose. The long judgment (`why_face`)
+  folds behind "Why them" on a phone and stays open on the desk.
+- The draft body edits in `shared/FocusedEditor`, not in a card textarea.
+- Below ~700px of viewport height the stage scrolls. That is documented
+  degradation for a viewport out of range, not the layout;
+  `e2e/pilots-noscroll.spec.ts` pins the strict contract at 390x844 and
+  360x800 and pins that the short case scrolls rather than clipping the
+  action row.
+
 ### `ErrorBoundary`
 
 Per-tab catch-all. Renders an error icon + tab label + message + retry.

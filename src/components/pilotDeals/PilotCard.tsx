@@ -3,6 +3,7 @@ import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 import { Modal } from '../shared/Modal'
+import { FocusedEditor } from '../shared/FocusedEditor'
 import { ASK_LABEL, draftPilot, patchPilot, PILOT_STATE_LABEL } from '../../hooks/usePilots'
 import type { PilotDealRow, PilotState } from '../../hooks/usePilots'
 
@@ -17,6 +18,10 @@ import type { PilotDealRow, PilotState } from '../../hooks/usePilots'
 interface Props {
   target: PilotDealRow
   onChanged: () => void
+  /** A phone never edits text inside a dense layout (AGENTS.md). The draft
+   *  body moves into a FocusedEditor sheet here; the desk keeps it inline,
+   *  which is the right mechanics for a pointer and a wide row. */
+  narrow?: boolean
 }
 
 /** The one primary action per state, and the state it moves to. */
@@ -62,7 +67,7 @@ function whyNowFor(t: PilotDealRow): { signal: string; url: string; kind: 'resea
   return { signal: quote, url, kind: 'published' }
 }
 
-export function PilotCard({ target: t, onChanged }: Props) {
+export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'primary' | 'quiet' | 'save' | 'draft'>(null)
   // `body` is a local draft buffer over a row that refetches every 60s and
@@ -81,6 +86,7 @@ export function PilotCard({ target: t, onChanged }: Props) {
     serverBody.current = next
   }, [t.draft_body])
   const [payOpen, setPayOpen] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
   const [cash, setCash] = useState('')
 
   const name = t.contact?.full_name || 'Unnamed contact'
@@ -120,18 +126,26 @@ export function PilotCard({ target: t, onChanged }: Props) {
     }
   }
 
+  /** The write itself, so the inline editor and the sheet share one path.
+   *  Returns whether it landed, which is what FocusedEditor needs to decide
+   *  whether to close. */
+  const saveDraftText = async (text: string): Promise<boolean> => {
+    try {
+      await patchPilot(t.id, { draft_body: text })
+      toast('Draft saved. Sending stays yours.', 'success')
+      onChanged()
+      return true
+    } catch (err) {
+      toast(`Could not save: ${(err as Error)?.message || 'try again'}`, 'error')
+      return false
+    }
+  }
+
   const saveDraft = async () => {
     if (busy) return
     setBusy('save')
-    try {
-      await patchPilot(t.id, { draft_body: body })
-      toast('Draft saved. Sending stays yours.', 'success')
-      onChanged()
-    } catch (err) {
-      toast(`Could not save: ${(err as Error)?.message || 'try again'}`, 'error')
-    } finally {
-      setBusy(null)
-    }
+    await saveDraftText(body)
+    setBusy(null)
   }
 
   const confirmPaid = async () => {
@@ -150,7 +164,7 @@ export function PilotCard({ target: t, onChanged }: Props) {
   return (
     <article
       data-testid="pilot-card"
-      className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3.5 hover:border-violet-500/35 transition-colors"
+      className={`rounded-xl border border-violet-500/20 bg-violet-500/[0.04] hover:border-violet-500/35 transition-colors ${narrow ? 'p-3' : 'p-3.5'}`}
     >
       <div className="flex items-start justify-between gap-x-3 gap-y-1.5 flex-wrap">
         <div className="min-w-0 basis-40 grow">
@@ -177,13 +191,29 @@ export function PilotCard({ target: t, onChanged }: Props) {
         </span>
       </div>
 
-      <p className="text-label text-white/70 mt-2">{t.why_face}</p>
+      {/* "Read first, rows second" (DESIGN_SYSTEM.md): the phone opens on the
+          ask and the reason to write now, and folds the longer judgment under
+          a disclosure. why_face runs to 600 characters and is the single
+          tallest block on the card; on a 360 by 640 screen it alone pushed the
+          card past the stage. The desk, which has the room, shows it open. */}
+      {narrow ? (
+        <details className="group mt-1.5">
+          <summary className="flex cursor-pointer list-none items-baseline gap-2">
+            <span className="text-label text-white/45 group-open:text-white/70">Why them</span>
+            <span className="text-micro text-white/30 group-open:hidden">Show</span>
+            <span className="hidden text-micro text-white/30 group-open:inline">Hide</span>
+          </summary>
+          <p className="text-label text-white/70 mt-1 leading-snug">{t.why_face}</p>
+        </details>
+      ) : (
+        <p className="text-label text-white/70 mt-2">{t.why_face}</p>
+      )}
 
       {/* What to ask THIS person. The lane ranked on warmth and never said what
           the ask was, so a close collaborator and a stranger read identically
           and neither card answered "what am I supposed to do with them". */}
       {t.ask_line && (
-        <p data-testid="pilot-ask" className="text-label text-white/80 mt-1.5">
+        <p data-testid="pilot-ask" className={`text-label text-white/80 ${narrow ? 'mt-1' : 'mt-1.5'}`}>
           {t.ask_kind && (
             <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
               t.ask_kind === 'buyer'
@@ -224,7 +254,50 @@ export function PilotCard({ target: t, onChanged }: Props) {
         <p className="text-label text-white/45 mt-1.5">{NO_SIGNAL_LINE}</p>
       )}
 
-      {t.state === 'drafted' && (
+      {/* The draft, on a phone: the subject and one button, not a six row
+          textarea. That textarea was the single biggest consumer of vertical
+          space on this card and it already broke the house rule that a phone
+          edits text in a sheet, above the keyboard, with one full-width Save.
+          The desk keeps editing inline. */}
+      {t.state === 'drafted' && narrow && (
+        <div className="mt-2.5">
+          {t.draft_subject && (
+            <p className="text-label text-white/85 font-medium">{t.draft_subject}</p>
+          )}
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              data-testid="pilot-edit-draft"
+              onClick={() => setEditorOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 transition-colors"
+            >
+              <Sparkles size={12} />
+              Read the draft
+            </button>
+            {t.draft_url && (
+              <a
+                href={t.draft_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-label text-violet-300 hover:text-violet-200"
+              >
+                <Inbox size={12} />
+                Open in Gmail
+              </a>
+            )}
+          </div>
+          <FocusedEditor
+            open={editorOpen}
+            onClose={() => setEditorOpen(false)}
+            label={t.draft_subject || 'Draft email'}
+            value={body}
+            saveLabel="Save draft"
+            onSave={async text => { setBody(text); return saveDraftText(text) }}
+          />
+        </div>
+      )}
+
+      {t.state === 'drafted' && !narrow && (
         <div className="mt-3">
           {t.draft_subject && (
             <p className="text-label text-white/85 font-medium mb-1">{t.draft_subject}</p>
@@ -269,7 +342,7 @@ export function PilotCard({ target: t, onChanged }: Props) {
         </p>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:flex-wrap">
+      <div className={`grid grid-cols-2 gap-2 sm:flex sm:items-center sm:flex-wrap ${narrow ? 'mt-2' : 'mt-3'}`}>
         {t.state === 'listed' && (
           <button
             type="button"

@@ -84,12 +84,17 @@ test('the people-lane-pilots control switches to Pilots', async ({ page }) => {
   await expect(page.getByTestId('pilot-counts')).toContainText('1 listed, 1 drafted')
 })
 
-test('a target with no cited trigger says so, and never shows news', async ({ page }) => {
+test('a deal with no cited trigger says so, and never shows news', async ({ page }) => {
   await openPilots(page)
   const cards = page.getByTestId('pilot-card')
   await expect(cards).toHaveCount(2)
   const listed = cards.filter({ hasText: 'Alex Morgan' })
-  await expect(listed.getByText('No live trigger found')).toBeVisible()
+  // The wording changed on 2026-09-16 from "No live trigger found", which
+  // implied the person had nothing to say when it only meant nothing had been
+  // looked up yet. The contract is the same: no reason shown, and no news.
+  // The card now also reads a stored intent quote as a reason to write, so
+  // this fixture deliberately carries none of that either.
+  await expect(listed.getByText('No reason to write this week yet')).toBeVisible()
   await expect(listed.getByText('Why now:')).toHaveCount(0)
   // The cited one carries its source link.
   const drafted = cards.filter({ hasText: 'Sam Patel' })

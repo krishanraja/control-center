@@ -735,6 +735,16 @@ Every Mindmake property feeds one audience list, and that list flows into the Co
 
 - **URL.** `controlcenter.krishraja.com` (Vercel); repo `krishanraja/control-center`.
 - **Stack.** React 18 + TypeScript + Vite + Tailwind + Supabase JS client.
+- **Pilots is the phone reference for a lane that is a list (2026-09-16).**
+  A tab whose content is a list cannot keep the no-scroll contract by stacking
+  the list: People, Pilots was a scrolling `MobileShell` under a full
+  `TabHeader` with five bands of chrome above tall cards, magnified by the 1.2
+  zoom root, and needed a scroll before the first name was fully readable. It
+  now shows ONE person on a `flex-1 min-h-0` stage with a pager, folds the long
+  judgment behind a disclosure, and moves the draft into `FocusedEditor`.
+  Density comes from disclosure because clipping is not available: `index.css`
+  neutralises `.truncate` and every `.line-clamp-*` on purpose. Pinned by
+  `e2e/pilots-noscroll.spec.ts`. See `docs/COMPONENTS.md`.
 - **Shell - no-scroll app frame (2026-06-11).** The whole dashboard is a fixed-viewport app: the **window never scrolls**. The root is `h-[100dvh] overflow-hidden` and `main` is a non-scrolling `flex-1 overflow-hidden`; chrome (sidebar / bottom nav / tab header) stays pinned and each tab owns its own inner scroll in a contained region - desktop via a `h-full overflow-y-auto` wrapper (or the Content tab's `AppFrame` primitive), mobile via each tab's `h-[100dvh]` `MobileShell`. Replaces long scrolling web pages with an app-like surface on every device (`App.tsx`, `src/components/shared/AppFrame.tsx`).
 - **Data layer.** Direct PostgREST reads with the anon key + Postgres Realtime subscriptions. Mutations that need service-role context go through `/api/*` Vercel functions.
 - **Deploy.** Push to `main` → Vercel auto-deploys. **Never touch Vercel directly.**
