@@ -79,6 +79,10 @@ export interface NetworkResult {
   industry: string | null
   venture_scores: Record<string, number>
   thin_evidence: boolean
+  /** True when this person sells the advisory work Krish sells. NULL/absent
+   *  means nobody has judged. Demotes in the ranker (migration 20260916140000)
+   *  and shows as a chip so a low row can say why it is low. */
+  sells_competing_services: boolean | null
   match_score: number
   query_relevance: number | null
   s_semantic: number

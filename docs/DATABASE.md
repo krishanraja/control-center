@@ -823,6 +823,15 @@ with their enriched role rather than whatever the hunt captured.
 It has no `CREATE TABLE` migration in this repo, which is drift worth knowing
 about rather than a defect in the table.
 
+`sells_competing_services` is **true or NULL, never false**: NULL means nobody
+has judged this person, which is a different claim from "judged, and not a
+competitor". It demotes in `network_search` (a multiplier beside
+`venture_multiplier`, migration `20260916140000`) and never excludes, because a
+rival advisory founder is still an intro path and a podcast guest. The
+deterministic test is `public.looks_like_a_competitor`, recomputed by the
+`ci_rebuild_doc_trg` trigger; `competitor_source = 'model'` marks a verdict
+from enrichment, which the rule may never overwrite.
+
 A note on `contact_intelligence.tier_weight`: it holds **two scales at once**.
 Measured 2026-09-16, `2_core_network` appears with both `3` and `85`, so some
 rows are on a 1-5 rank and others on a 1-100 weight. Nothing user-facing should
@@ -853,6 +862,7 @@ anon-readable (`contacts_anon_select ... USING (true)`), and `why_them` and
 | Reach badges | `is_influencer`, `is_creator`, `recommendations_received` |
 | Intent | `intent_score`, `intent_stance`, `intent_evidence`, `intent_evidence_url`, `intent_topics[]`, `intent_summary`, `last_post_at`, `posts_checked_at`, `posts_sample` |
 | Quality | `completeness` (0-100, `public.contact_completeness`) |
+| Competitor | `sells_competing_services`, `competitor_source` (`rule` \| `model`) |
 
 The Profile, Reach, Intent and Quality groups landed on 2026-09-14/15
 (ADR-022) and were missing from this table until 2026-09-16. `intel_doc` and

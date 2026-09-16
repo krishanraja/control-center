@@ -9,6 +9,7 @@ import { BottomSheet } from '../mobile/BottomSheet'
 import { TriageDeck } from '../shared/TriageDeck'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildPilotTriageConfig, buildPilotLadderConfig } from '../../lib/triageConfig'
+import { degradedWords } from '../../lib/degradedWords'
 import type { PilotDealItem } from '../../lib/triageConfig'
 import { feedbackVote } from '../../lib/triageActions'
 import {
@@ -43,14 +44,6 @@ function progressLine(counts: Record<string, number>): string {
   const asked = ASKED_STATES.reduce((n, s) => n + (counts[s] || 0), 0)
   const list = onList === 1 ? '1 person on the list' : `${onList} people on the list`
   return `${list}, ${asked} asked so far. The plan needs about 25 asks to get 5 calls and one paid pilot by 5 December.`
-}
-
-/** Plain words for the search stages the server reports as skipped. */
-function degradedWords(stages: string[]): string {
-  const words = stages.map(stage => stage.startsWith('embedding') ? 'semantic matching'
-    : stage.startsWith('rerank') ? 'the reranker'
-    : stage.replace(/[:_]/g, ' '))
-  return [...new Set(words)].join(' or ')
 }
 
 /** The counts line, in ladder order, only the states that have anyone. */

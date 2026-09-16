@@ -202,6 +202,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     why_them: judgment?.why_them || null,
     hook: judgment?.hook || null,
     risk: judgment?.risk || null,
+    // The model's competitor verdict, written only when it actually answered.
+    // competitor_source = 'model' is what stops the deterministic rule from
+    // flipping it back on the next trigger pass (migration 20260916140000).
+    ...(typeof judgment?.sells_competing_services === 'boolean'
+      ? {
+          sells_competing_services: judgment.sells_competing_services || null,
+          competitor_source: judgment.sells_competing_services ? 'model' : null,
+        }
+      : {}),
     roles: judgment?.roles ?? [],
     reachable_via: judgment?.reachable_via ?? [],
     best_channel: judgment?.best_channel || null,

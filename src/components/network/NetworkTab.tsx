@@ -16,6 +16,7 @@ import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { RepairNamesPanel } from './RepairNamesPanel'
 import { NetworkHealthPanel } from './NetworkHealthPanel'
+import { degradedWords, isAuthFailure } from '../../lib/degradedWords'
 
 // The Network surface.
 //
@@ -207,7 +208,16 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         {!s.loading && s.degraded.length > 0 && (
           <div className="mx-4 mt-3 flex items-start gap-2 rounded-card border border-white/[0.08] px-3 py-2 text-label text-white/45">
             <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden />
-            <span>Ranked with less data than usual ({s.degraded.join(', ')}). The people are real, the order is just rougher.</span>
+            {/* Plain words, not the raw stage token. This printed
+                "planner:anthropic_401:API key is invalid." at Krish, which is
+                an HTTP status and a vendor's error body pasted into a sentence.
+                An auth failure also gets said out loud, because it will not
+                come right on its own and every retry fails the same way. */}
+            <span>
+              Ranked with less data than usual: {degradedWords(s.degraded)} did not run.
+              {' '}The people are real, the order is just rougher.
+              {isAuthFailure(s.degraded) && ' This one is a key that is not working, so it needs fixing rather than retrying.'}
+            </span>
           </div>
         )}
 
@@ -244,6 +254,15 @@ export function NetworkTab({ narrow, onOpenPerson }: {
                 >
                   Retry
                 </button>
+                {/* The retry replays the explain call against the rows already
+                    on screen. If the reason it failed was the key, it will fail
+                    the same way, so say so rather than letting Krish press it
+                    and watch nothing happen. */}
+                {isAuthFailure(s.degraded) && (
+                  <span className="ml-2 text-micro text-amber-200/60">
+                    A key is not working, so this will fail the same way.
+                  </span>
+                )}
               </p>
             )}
             {s.results.map(r => (

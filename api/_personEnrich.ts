@@ -73,6 +73,10 @@ export interface Judgment {
   best_channel?: string
   reachable_via: string[]
   confidence: 'low' | 'medium' | 'high'
+  /** Undefined when the model did not answer, which keeps the deterministic
+   *  rule in charge for that person. See migration 20260916140000: the model
+   *  wins where it has spoken, and a rule pass never overwrites it. */
+  sells_competing_services?: boolean
 }
 
 export interface EnrichResult {
@@ -390,8 +394,17 @@ Schema:
   "industry": "short label or null",
   "best_channel": "linkedin | email | intro | event | unknown",
   "reachable_via": ["short list of surfaces where they are actually reachable"],
-  "confidence": "low | medium | high"
+  "confidence": "low | medium | high",
+  "sells_competing_services": true | false
 }
+
+"sells_competing_services" is true when this person's own business sells the
+work the operator sells: AI advisory, AI consulting, AI transformation
+services, or an agency doing the same. It is about what their COMPANY sells,
+not what their job title says: an AI transformation lead employed inside a
+bank or a retailer is a buyer, not a competitor. A partner at a consultancy
+that does AI work is a competitor. When the evidence does not say, answer
+false; a wrong true pushes a real buyer down the operator's list.
 
 Rules:
 - Ground every claim in the supplied evidence. Invent nothing.
@@ -422,6 +435,9 @@ function parseJudgment(raw: string): Judgment | null {
       best_channel: j.best_channel && j.best_channel !== 'unknown' ? String(j.best_channel).slice(0, 40) : undefined,
       reachable_via: (Array.isArray(j.reachable_via) ? j.reachable_via : []).map((x: unknown) => String(x).slice(0, 60)).slice(0, 6),
       confidence: conf as Judgment['confidence'],
+      sells_competing_services: typeof j.sells_competing_services === 'boolean'
+        ? j.sells_competing_services
+        : undefined,
     }
   } catch { return null }
 }

@@ -65,6 +65,7 @@ export interface NetworkResult extends ScoreBreakdown {
   industry: string | null
   venture_scores: Record<string, number>
   thin_evidence: boolean
+  sells_competing_services?: boolean | null
   match_score: number
   query_relevance: number | null
   why_match?: string

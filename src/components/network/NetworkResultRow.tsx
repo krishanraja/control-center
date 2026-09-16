@@ -104,6 +104,17 @@ export function NetworkResultRow({ r, onOpen, weak }: {
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="truncate text-ui font-semibold text-white">{name}</span>
           <Badge variant={TIER_VARIANT[r.network_tier] || 'outline'}>{TIER_LABEL[r.network_tier] || r.network_tier}</Badge>
+          {/* Says why this row is low, rather than leaving Krish to work it
+              out from the risk line after he has already read the name. They
+              are demoted in the ranker, not hidden: a rival advisory founder
+              is still an intro path and still a podcast guest, which is why
+              the pilots classifier sorts these people to "can introduce"
+              instead of dropping them. */}
+          {r.sells_competing_services && (
+            <Badge variant="warning" className="gap-1" title="Sells the kind of advisory work you sell, so this row is ranked down.">
+              <AlertTriangle size={9} aria-hidden /> competitor
+            </Badge>
+          )}
           {r.thin_evidence && (
             // Never hidden, always labelled. A record under 50 completeness has
             // large gaps: typically nobody read a profile, so the title and

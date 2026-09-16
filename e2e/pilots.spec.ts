@@ -112,8 +112,12 @@ test('every card has exactly one primary action', async ({ page }) => {
   }
   await expect(cards.filter({ hasText: 'Alex Morgan' }).getByTestId('pilot-primary')).toHaveText(/Draft it/)
   await expect(cards.filter({ hasText: 'Sam Patel' }).getByTestId('pilot-primary')).toHaveText(/I sent it/)
-  // And nothing on the page can send: the draft opens in Gmail, where Krish presses send.
-  await expect(page.getByRole('link', { name: 'Open in Gmail' })).toBeVisible()
+  // And nothing on the page can send: the draft opens in Gmail, where Krish
+  // presses send. The link is named "Open the draft in Gmail" since 2026-09-16
+  // and points at that draft rather than the drafts folder; when there is no
+  // Gmail draft the same slot becomes a mailto or a LinkedIn-plus-clipboard
+  // action, so the testid is what is stable, not the words.
+  await expect(page.getByTestId('pilot-contact').first()).toBeVisible()
   await expect(page.getByRole('button', { name: /^Send$/ })).toHaveCount(0)
 })
 

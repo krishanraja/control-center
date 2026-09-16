@@ -367,8 +367,41 @@ function userContent(opts: ClaudeOpts): string | ContentBlock[] {
 }
 
 /** Single-shot Anthropic Messages call. Returns the first text block (or throws). */
+/**
+ * The Anthropic key, from the deploy env or the app_secrets fallback.
+ *
+ * api/_embeddings.ts and api/_connections.ts have both had this fallback for
+ * months; the Anthropic path never did, so a bad or rotated Vercel variable
+ * took down the query planner, the reranker and the per-person explanations
+ * with no recovery short of a redeploy. On 2026-09-16 that is exactly what
+ * happened: the Network tab showed "planner:anthropic_401:API key is invalid."
+ * and every retry failed the same way.
+ *
+ * The env still wins, so nothing changes for a healthy deploy. The anon client
+ * cannot read app_secrets (RLS), so the row is only reachable server-side.
+ * Cached per process, including the negative, so a missing key costs one query.
+ *
+ * NOTE this is a recovery mechanism, not a fix: app_secrets holds no
+ * anthropic_api_key today. Writing a working key into either place is the fix.
+ */
+let cachedAnthropicKey: string | null | undefined
+async function getAnthropicKey(): Promise<string | null> {
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY
+  if (cachedAnthropicKey !== undefined) return cachedAnthropicKey
+  try {
+    const { supabase } = await import('./_supabase.js')
+    const { data } = await supabase.from('app_secrets').select('value').eq('key', 'anthropic_api_key').maybeSingle()
+    cachedAnthropicKey = data && typeof (data as { value?: unknown }).value === 'string'
+      ? (data as { value: string }).value
+      : null
+  } catch {
+    cachedAnthropicKey = null
+  }
+  return cachedAnthropicKey
+}
+
 export async function callClaude(opts: ClaudeOpts): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = await getAnthropicKey()
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
   // A deadline, because there was none. An upstream that stalls otherwise burns
   // the entire 60s function budget and the caller gets no response at all, which
@@ -442,7 +475,7 @@ export async function callClaudeMessages(
   messages: ChatTurn[],
   opts: { model?: string; maxTokens?: number; temperature?: number; think?: boolean; agent?: string } = {},
 ): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = await getAnthropicKey()
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
   const model = opts.model || UTILITY_MODEL
   const clean = messages
