@@ -194,9 +194,18 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
               {engineHealth.scheduleDrift}
             </p>
           ) : null}
+          {/* `missingRequired` can come back empty while `ready` is false — the
+              engine knows it cannot run but not which piece is absent. The
+              sentence interpolated the empty join anyway and rendered "The
+              engine is missing , so that part of it cannot run.": a stray
+              space-comma, and a sentence that names nothing while sounding as
+              though it does. Say which piece when there is one, and say plainly
+              that it is unknown when there is not. */}
           {engineHealth.health && !engineHealth.health.ready ? (
             <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
-              The engine is missing {engineHealth.health.missingRequired.join(', ')}, so that part of it cannot run.
+              {engineHealth.health.missingRequired.length > 0
+                ? `The engine is missing ${engineHealth.health.missingRequired.join(', ')}, so that part of it cannot run.`
+                : 'The engine is not ready, and it did not say which piece is missing. That part of it cannot run.'}
             </p>
           ) : null}
         </div>

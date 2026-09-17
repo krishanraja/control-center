@@ -16,6 +16,7 @@ import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 import { NextBestActionHero } from '../content/NextBestActionHero'
 import { isActiveIdea } from '../../lib/contentEngine'
 import { routeIdea } from '../../lib/contentRouting'
+import { useMediaQuery } from '../shared/motion'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -72,6 +73,10 @@ const ROOMS: Array<{ id: RoomId; label: string }> = [
 
 export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const mobile = variant === 'mobile'
+  // Same 1400px threshold Home and Focus use. Picked in JS, not with a
+  // `min-[1400px]:hidden` pair, so the obligation strips exist once in the DOM
+  // rather than twice under the same test ids.
+  const wideDesk = useMediaQuery('(min-width: 1400px)') && !mobile
   const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'built')
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
@@ -182,34 +187,54 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
         // ONE scroller for the whole desk. Everything inside is sized by its
         // content: nothing claims a share of the viewport it has not earned.
         <div data-testid="content-room-scroll" className={`flex-1 min-h-0 overflow-y-auto ${mobile ? BOTTOM_NAV_PAD : ''}`}>
-          <div className="flex flex-col gap-5 max-w-3xl">
-            {/* 1. The action. The hero reads the WHOLE active pile, which is
-                what its own docstring always said it did, so it belongs here
-                and not inside a lane. Inside a lane it was invisible: every
-                live idea on 2026-09-09 was unrouted, so both lanes were empty
-                and the one component that hands Krish a button never rendered. */}
-            {/* Held back until the pile has actually loaded. The hero concludes
-                "You're clear" from an empty array, so during the first fetch it
-                rendered that verdict directly above the obligation strip's
-                "Checking what needs you" spinner: two contradictory answers to
-                the same question, and a false one on top. */}
-            {!mobile && !ideasLoading && <NextBestActionHero ideas={liveIdeas} />}
+          {/* Above 1400px the two obligation strips move into a rail beside the
+              work instead of sitting above and below it. Measured 2026-09-17:
+              the desk column is capped at 768px, which left 912px unused at
+              1920 while the proposals strip sat below the whole pile, off the
+              bottom of the screen on any real queue.
 
-            {/* 2. Anything genuinely broken or already assembled. One line each,
-                and nothing at all when there is nothing. */}
-            {!mobile && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />}
+              The ordering rule it shipped with still holds — a proposal is
+              something to consult and never outranks a piece in review — and
+              the rail states it more clearly than the stack did. Subordinate is
+              a narrow column at the side, read after the work; it was never the
+              same thing as "further down". */}
+          <div className={wideDesk ? 'flex gap-8 items-start' : ''}>
+            <div className={`flex flex-col gap-5 ${wideDesk ? 'min-w-0 flex-1 max-w-3xl' : 'max-w-3xl'}`}>
+              {/* 1. The action. The hero reads the WHOLE active pile, which is
+                  what its own docstring always said it did, so it belongs here
+                  and not inside a lane. Inside a lane it was invisible: every
+                  live idea on 2026-09-09 was unrouted, so both lanes were empty
+                  and the one component that hands Krish a button never rendered. */}
+              {/* Held back until the pile has actually loaded. The hero concludes
+                  "You're clear" from an empty array, so during the first fetch it
+                  rendered that verdict directly above the obligation strip's
+                  "Checking what needs you" spinner: two contradictory answers to
+                  the same question, and a false one on top. */}
+              {!mobile && !ideasLoading && <NextBestActionHero ideas={liveIdeas} />}
 
-            {/* 3. Navigation, in a stable place under two bounded blocks. */}
-            {nav}
+              {/* 2. Anything genuinely broken or already assembled. One line each,
+                  and nothing at all when there is nothing. Stacked only; on a
+                  wide desk it is in the rail, rendered once. */}
+              {!mobile && !wideDesk && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />}
 
-            {/* 4. The work. */}
-            {room === 'library'
-              ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
-              : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} />}
+              {/* 3. Navigation, in a stable place under two bounded blocks. */}
+              {nav}
 
-            {/* 5. The machine's open questions, last, because a proposal is
-                something to consult and never outranks a piece in review. */}
-            {!mobile && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />}
+              {/* 4. The work. */}
+              {room === 'library'
+                ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
+                : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} />}
+
+              {/* 5. The machine's open questions, last. In the rail on a wide desk. */}
+              {!mobile && !wideDesk && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />}
+            </div>
+
+            {!mobile && wideDesk && (
+              <aside className="w-[320px] shrink-0 flex flex-col gap-4">
+                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />
+                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />
+              </aside>
+            )}
           </div>
         </div>
       )}

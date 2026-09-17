@@ -353,6 +353,24 @@ a phone layout scaled up.
   DOM: Home's three doorways became six buttons that way, and five specs failed
   on "resolved to 2 elements". `useMediaQuery` in `shared/motion.ts` is the
   one way to pick.
+- **One threshold: 1400px.** Home, Focus and Content all widen there, so the
+  app changes shape once rather than three times as a window is dragged.
+- **Where a surface is a list of peers, the width buys columns, not a rail.**
+  Focus's three tools were a stacked accordion where opening one closed the
+  last; side by side they open independently, because closing "Steady yourself"
+  to read "Before you speak" throws away the column you were using. Grid
+  children need `items-start`, or opening one card inflates its empty
+  neighbours to match.
+- **A rail is where "consult after" belongs.** Content's two obligation strips
+  sat above and below the work, which put the machine's open proposals off the
+  bottom of the screen on any real queue. Subordinate is a narrow column at the
+  side, read after the work; it was never the same thing as "further down".
+
+| Surface | Width used at 1512 | at 1920 | Shape above 1400px |
+|---|---|---|---|
+| Home | 69% → **96%** | 52% → **79%** | 320px instrument rail |
+| Focus | 49% → **95%** | 37% → **73%** | three tool columns |
+| Content | 60% → **88%** | 46% → **67%** | 320px obligations rail |
 
 ## Read first, rows second
 

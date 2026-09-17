@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { ChevronRight, Minus, Plus, X } from '@/lib/icons'
+import { useMediaQuery } from '../shared/motion'
 import { useHaptics } from '../../hooks/useHaptics'
 import { civilYmd } from '../../lib/civilDate'
 import { AskCard } from './AskCard'
@@ -52,7 +53,12 @@ const TOOLS: Array<{ id: Exclude<Section, null>; title: string; sub: string }> =
 
 export function FocusPurposeTab({ variant, steadyEntry }: Props) {
   const h = useHaptics()
-  const [open, setOpen] = useState<Section>(steadyEntry ? 'steady' : null)
+  // A SET, not one value. Stacked, only one tool can sensibly be open at a
+  // time and the phone's bottom sheet can only show one anyway. Side by side
+  // on a wide desk that restriction is just wrong: closing "Steady yourself"
+  // to read "Before you speak" throws away the column you were using. So the
+  // desk toggles membership and the phone keeps the single-open accordion.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(steadyEntry ? ['steady'] : []))
   const [worryOpen, setWorryOpen] = useState(false)
   const [shutdownOpen, setShutdownOpen] = useState(false)
   // Bumped when a trap's counter-move is the ask; AskCard focuses compose.
@@ -61,15 +67,22 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
 
   const purpose = purposeFor(civilYmd())
   const compact = variant === 'mobile'
+  // Above 1400px the three tools sit side by side instead of stacked. Measured
+  // 2026-09-17: at 1920 this tab was a 620px ribbon with 1060px of dead width
+  // beside it, the widest waste of any surface in the app.
+  const wideDesk = useMediaQuery('(min-width: 1400px)') && !compact
 
   const toggle = (s: Exclude<Section, null>) => {
     h.tap()
-    setOpen(prev => (prev === s ? null : s))
+    setOpen(prev => {
+      if (prev.has(s)) { const next = new Set(prev); next.delete(s); return next }
+      return wideDesk ? new Set(prev).add(s) : new Set([s])
+    })
   }
 
   const toAsk = () => {
     h.impactMedium()
-    setOpen(null)
+    setOpen(new Set())
     setComposeSignal(n => n + 1)
     askRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -78,9 +91,12 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
   useQuickCreateListener('ask', toAsk)
 
   const toCompile = () => {
-    setOpen(null)
+    setOpen(new Set())
     setWorryOpen(true)
   }
+
+  /** The one tool the phone's sheet is showing, if any. */
+  const sheet = (([...open][0] as Exclude<Section, null> | undefined) ?? null)
 
   const body = (s: Exclude<Section, null>) => {
     switch (s) {
@@ -91,10 +107,18 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
   }
 
   return (
-    <div className={`w-full ${compact ? 'gap-3 [@media(max-height:860px)]:gap-2' : 'max-w-[620px] mx-auto gap-4'} flex flex-col pb-6`}>
+    // Three widths, one page. Phone: full-bleed, stacked. Desk under 1400px:
+    // the 620px reading column it has always been. Desk above it: the spine
+    // KEEPS that 620px — a purpose line and one ask are reading, and stretching
+    // them would make the tab worse — and the three tools spread into columns
+    // beneath, which is what the extra 1060px is actually good for.
+    <div className={`w-full flex flex-col pb-6 ${
+      compact ? 'gap-3 [@media(max-height:860px)]:gap-2'
+      : wideDesk ? 'max-w-[1240px] mx-auto gap-5'
+      : 'max-w-[620px] mx-auto gap-4'}`}>
 
       {/* The purpose anchor: one line of his own record, per day. Never more. */}
-      <header className={compact ? 'pt-0' : 'pt-2'}>
+      <header className={`${compact ? 'pt-0' : 'pt-2'} ${wideDesk ? 'w-full max-w-[620px]' : ''}`}>
         <Eyebrow>Focus &amp; Purpose</Eyebrow>
         {/* The house claim recipe, now a primitive. Never clamped: the line is
             the point. Short phone viewports step it down a type rung rather
@@ -104,7 +128,7 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
       </header>
 
       {/* The spine: one clean ask a day. */}
-      <div ref={askRef} className="scroll-mt-4">
+      <div ref={askRef} className={`scroll-mt-4 ${wideDesk ? 'w-full max-w-[620px]' : ''}`}>
         <AskCard variant={variant} composeSignal={composeSignal} />
       </div>
 
@@ -130,22 +154,23 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
             ))}
           </div>
 
+          {/* The phone never opens two, so the sheet reads the set's one member. */}
           <BottomSheet
-            open={open !== null}
-            onClose={() => setOpen(null)}
+            open={sheet !== null}
+            onClose={() => setOpen(new Set())}
             fullHeight={false}
-            ariaLabel={open ? TOOLS.find(t => t.id === open)?.title : undefined}
+            ariaLabel={sheet ? TOOLS.find(t => t.id === sheet)?.title : undefined}
           >
-            {open && (
+            {sheet && (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between px-5 pb-1">
                   <div>
-                    <p className="text-ui font-semibold text-ink">{TOOLS.find(t => t.id === open)!.title}</p>
-                    <p className="mt-0.5 text-label text-ink-faint">{TOOLS.find(t => t.id === open)!.sub}</p>
+                    <p className="text-ui font-semibold text-ink">{TOOLS.find(t => t.id === sheet)!.title}</p>
+                    <p className="mt-0.5 text-label text-ink-faint">{TOOLS.find(t => t.id === sheet)!.sub}</p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setOpen(null)}
+                    onClick={() => setOpen(new Set())}
                     aria-label="Close"
                     className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-ink-faint active:bg-white/[0.08]"
                   >
@@ -153,24 +178,28 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
                   </button>
                 </div>
                 <div className="max-h-[calc(66dvh/var(--z,1))] overflow-y-auto px-5 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+20px)]">
-                  {body(open)}
+                  {body(sheet)}
                 </div>
               </div>
             )}
           </BottomSheet>
         </>
       ) : (
-        TOOLS.map(t => (
-          <SectionCard
-            key={t.id}
-            title={t.title}
-            sub={t.sub}
-            open={open === t.id}
-            onToggle={() => toggle(t.id)}
-          >
-            {body(t.id)}
-          </SectionCard>
-        ))
+        // `items-start` matters: without it the grid stretches all three cards
+        // to the tallest, so opening one inflates two empty neighbours.
+        <div className={wideDesk ? 'grid grid-cols-3 gap-4 items-start' : 'flex flex-col gap-4'}>
+          {TOOLS.map(t => (
+            <SectionCard
+              key={t.id}
+              title={t.title}
+              sub={t.sub}
+              open={open.has(t.id)}
+              onToggle={() => toggle(t.id)}
+            >
+              {body(t.id)}
+            </SectionCard>
+          ))}
+        </div>
       )}
 
       {/* The two day-boundary actions, homed here instead of floating over
