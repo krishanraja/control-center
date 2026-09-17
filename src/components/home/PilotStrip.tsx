@@ -45,10 +45,10 @@ export function PilotStrip({ onNavigate }: { onNavigate?: NavigateFn }) {
       className="flex items-center gap-2 min-h-[28px] max-h-[34px] w-full text-left group"
     >
       <Eyebrow tone="accent">{ADVISORY_LABEL}</Eyebrow>
-      <span className="text-label text-white/80 truncate">
+      <span className="text-label text-ink-muted truncate">
         {drafted} drafted approach{drafted === 1 ? '' : 'es'} waiting to send
       </span>
-      <ArrowRight size={12} className="text-white/45 group-hover:text-white/80 transition-colors shrink-0" />
+      <ArrowRight size={12} className="text-ink-faint group-hover:text-ink-muted transition-colors shrink-0" />
     </button>
   )
 }

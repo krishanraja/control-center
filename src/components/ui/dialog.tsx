@@ -116,7 +116,7 @@ function DialogContent({
         {children}
         {showClose && (
           <DialogPrimitive.Close
-            className="absolute right-3 top-3 rounded-lg p-1.5 text-white/45 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+            className="absolute right-3 top-3 rounded-lg p-1.5 text-ink-faint transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             aria-label="Close"
           >
             <X size={16} />
@@ -145,7 +145,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-lede font-semibold tracking-tight text-white', className)}
+      className={cn('text-lede font-semibold tracking-tight text-ink', className)}
       {...props}
     />
   )

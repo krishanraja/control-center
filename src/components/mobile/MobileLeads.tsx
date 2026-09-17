@@ -166,7 +166,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       dotColor={fitDot(l.fit_score)}
       title={leadName(l)}
       detail={l.why_relevant || leadSubtitle(l) || undefined}
-      trailing={<span className="text-ui text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
+      trailing={<span className="text-ui text-ink-faint tabular-nums">{humanAge(l.updated_at)}</span>}
       onClick={() => openLeadFromRow(l.id)}
       feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
     />
@@ -249,9 +249,9 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       )}
 
       <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Active" value={total} color="text-white" />
-        <StatPill label="Contacted" value={contacted} color={contacted > 0 ? 'text-emerald-300' : 'text-white/45'} />
-        <StatPill label="New 24h" value={newToday} color={newToday > 0 ? 'text-amber-300' : 'text-white/45'} />
+        <StatPill label="Active" value={total} color="text-ink" />
+        <StatPill label="Contacted" value={contacted} color={contacted > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
+        <StatPill label="New 24h" value={newToday} color={newToday > 0 ? 'text-amber-300' : 'text-ink-faint'} />
       </div>
 
       {/* Swipe-triage entry for the decision queue */}
@@ -264,7 +264,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
           <Layers size={18} className="text-violet-300 flex-shrink-0" />
           <div className="min-w-0">
             <p className="text-body font-semibold text-violet-100">Swipe to triage · {triageConfig.items.length}</p>
-            <p className="text-micro text-white/45">One card at a time — right enriches or promotes, left drops with a reason.</p>
+            <p className="text-micro text-ink-faint">One card at a time — right enriches or promotes, left drops with a reason.</p>
           </div>
           <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
         </button>
@@ -310,14 +310,14 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
                   title={leadName(l)}
                   detail={l.why_relevant || leadSubtitle(l) || undefined}
                   trailing={
-                    <span className="text-ui text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
+                    <span className="text-ui text-ink-faint tabular-nums">{humanAge(l.updated_at)}</span>
                   }
                   onClick={() => openLeadFromRow(l.id)}
                   feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
                 />
               ))}
               {rows.length > 8 && (
-                <div className="px-7 py-4 text-ui text-white/35 text-center">
+                <div className="px-7 py-4 text-ui text-ink-faint text-center">
                   +{rows.length - 8} more
                 </div>
               )}

@@ -57,19 +57,19 @@ export function LearningProposals() {
     <section data-testid="learning-proposals">
       <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <Eyebrow>What the Studio learned</Eyebrow>
-        <span className="text-micro text-white/40">Confirm or reject each rule it wants to keep</span>
+        <span className="text-micro text-ink-faint">Confirm or reject each rule it wants to keep</span>
       </h3>
       <div className="flex flex-col gap-2">
         {rows.map(r => (
           <article key={r.id} className="rounded-xl border border-violet-400/20 bg-violet-400/[0.04] px-4 py-3">
             <div className="flex flex-wrap items-center gap-2 text-micro font-semibold">
               <span className="rounded-full bg-violet-400/15 px-2.5 py-1 text-violet-200">{CLASS_LABEL[r.proposal_class] || r.proposal_class}</span>
-              <span className="text-white/40 tabular-nums">
+              <span className="text-ink-faint tabular-nums">
                 {r.independent_session_count} session{r.independent_session_count === 1 ? '' : 's'}, {r.independent_job_count} job{r.independent_job_count === 1 ? '' : 's'}
               </span>
               {r.counterexamples.length ? <span className="text-amber-200/80">{r.counterexamples.length} counterexample{r.counterexamples.length === 1 ? '' : 's'}</span> : null}
             </div>
-            <p className="mt-1.5 break-words text-body leading-relaxed text-white/85">{r.assertion}</p>
+            <p className="mt-1.5 break-words text-body leading-relaxed text-ink-muted">{r.assertion}</p>
             <div className="mt-2.5 flex items-center gap-2">
               <button
                 type="button"
@@ -83,7 +83,7 @@ export function LearningProposals() {
                 type="button"
                 disabled={busy === r.id}
                 onClick={() => decide(r.id, 'rejected')}
-                className="rounded-lg border border-white/10 px-3 py-1.5 text-label font-medium text-white/65 hover:bg-white/[0.06] disabled:opacity-40"
+                className="rounded-lg border border-white/10 px-3 py-1.5 text-label font-medium text-ink-muted hover:bg-white/[0.06] disabled:opacity-40"
               >
                 Not a rule
               </button>

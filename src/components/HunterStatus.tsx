@@ -118,14 +118,14 @@ export function HunterStatus() {
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Eyebrow>Hunter</Eyebrow>
-        <span className="col-span-2 text-micro text-white/40 sm:col-auto">Next run {until(s.nextFireUtc)}</span>
+        <span className="col-span-2 text-micro text-ink-faint sm:col-auto">Next run {until(s.nextFireUtc)}</span>
       </div>
 
       <div className="flex items-center gap-1.5 mt-1.5">
         {failing
           ? <AlertTriangle size={12} className="text-rose-300 shrink-0" />
           : <CheckCircle2 size={12} className="text-emerald-300 shrink-0" />}
-        <p className="text-label text-white/75">
+        <p className="text-label text-ink-muted">
           {s.lastRun
             ? failing
               ? `Last run failed ${ago(s.lastRun.run_at)}. ${s.alert?.detail || s.lastRun.error_message || ''}`
@@ -150,8 +150,8 @@ export function HunterStatus() {
           </a>
         )}
         {s.approvedAwaitingBuild != null && s.approvedAwaitingBuild > 0 && (
-          <span className="flex items-baseline gap-1.5 text-white/60">
-            <span className="text-ui font-semibold tabular-nums text-white/80">{s.approvedAwaitingBuild}</span>
+          <span className="flex items-baseline gap-1.5 text-ink-faint">
+            <span className="text-ui font-semibold tabular-nums text-ink-muted">{s.approvedAwaitingBuild}</span>
             <span className="text-label">said Yes, package not built yet</span>
           </span>
         )}
@@ -162,7 +162,7 @@ export function HunterStatus() {
           </span>
         )}
         {s.packagesBuilt != null && (
-          <span className="flex items-baseline gap-1.5 text-white/45">
+          <span className="flex items-baseline gap-1.5 text-ink-faint">
             <Clock size={11} className="self-center" />
             <span className="text-label tabular-nums">{s.packagesBuilt} packages built to date</span>
           </span>
@@ -184,7 +184,7 @@ export function HunterStatus() {
         <button
           onClick={() => queue('source')}
           disabled={busy === 'source'}
-          className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
+          className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-ink-muted hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
         >
           {busy === 'source' ? <Working size={12} /> : <Search size={12} />}
           Find roles
@@ -192,12 +192,12 @@ export function HunterStatus() {
         <button
           onClick={() => queue('packages')}
           disabled={busy === 'packages'}
-          className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
+          className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-ink-muted hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
         >
           {busy === 'packages' ? <Working size={12} /> : <FileText size={12} />}
           Build packages
         </button>
-        <span className="text-micro text-white/40">
+        <span className="text-micro text-ink-faint">
           {inFlight
             ? inFlight.state === 'running'
               ? `${inFlight.command} running now`

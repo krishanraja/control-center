@@ -139,7 +139,7 @@ export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNa
           <button
             type="button"
             onClick={onClose}
-            className="text-white/40 hover:text-white/85"
+            className="text-ink-faint hover:text-ink-muted"
             aria-label="Close"
           >
             <X size={14} />
@@ -155,7 +155,7 @@ export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNa
           </div>
         )}
         {!resolved.loading && !resolved.row && (
-          <div className="p-6 text-body text-white/55">
+          <div className="p-6 text-body text-ink-faint">
             Could not resolve {resolved.kind} {resolved.id}. It may have been archived.
           </div>
         )}
@@ -192,14 +192,14 @@ function GenericDecisionBody({ kind, row }: { kind: DecisionKind; row: Record<st
   return (
     <div className="p-5 space-y-4">
       <div>
-        <h2 className="text-title text-white font-semibold leading-tight">{title}</h2>
+        <h2 className="text-title text-ink font-semibold leading-tight">{title}</h2>
         {row.status && (
-          <p className="text-micro uppercase tracking-[0.14em] text-white/45 mt-1.5">{row.status}</p>
+          <p className="text-micro uppercase tracking-[0.14em] text-ink-faint mt-1.5">{row.status}</p>
         )}
       </div>
 
       {description && (
-        <p className="text-body text-white/80 leading-relaxed whitespace-pre-wrap">{description}</p>
+        <p className="text-body text-ink-muted leading-relaxed whitespace-pre-wrap">{description}</p>
       )}
 
       <dl className="grid grid-cols-2 gap-3 text-label">
@@ -227,8 +227,8 @@ function GenericDecisionBody({ kind, row }: { kind: DecisionKind; row: Record<st
 function Field({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
     <div className={wide ? 'col-span-2' : ''}>
-      <dt className="text-micro uppercase tracking-wider text-white/35">{label}</dt>
-      <dd className="text-white/85 mt-0.5">{value}</dd>
+      <dt className="text-micro uppercase tracking-wider text-ink-faint">{label}</dt>
+      <dd className="text-ink-muted mt-0.5">{value}</dd>
     </div>
   )
 }

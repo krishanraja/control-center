@@ -68,16 +68,16 @@ export function DetailSheet({
           {agent && <AgentAvatar agent={agent} size="lg" />}
           <div className="flex-1 min-w-0">
             {eyebrow && (
-              <p className="text-micro font-bold uppercase tracking-widest text-white/45">
+              <p className="text-micro font-bold uppercase tracking-widest text-ink-faint">
                 {eyebrow}
               </p>
             )}
-            <h2 className="text-title font-bold text-white leading-snug mt-0.5">
+            <h2 className="text-title font-bold text-ink leading-snug mt-0.5">
               {title}
             </h2>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {status && <StatusPill status={status} />}
-              {meta && <span className="text-label text-white/40">{meta}</span>}
+              {meta && <span className="text-label text-ink-faint">{meta}</span>}
             </div>
           </div>
           <button
@@ -85,14 +85,14 @@ export function DetailSheet({
             aria-label="Close"
             className="flex-shrink-0 w-11 h-11 rounded-full bg-white/5 flex items-center justify-center active:bg-white/10"
           >
-            <X size={16} className="text-white/70" />
+            <X size={16} className="text-ink-muted" />
           </button>
         </div>
 
         {/* Body */}
         {body && (
           <div className={`px-5 py-4 max-h-[48vh] overflow-y-auto scrollbar-hide ${reduced ? '' : 'animate-rise stagger-2'}`}>
-            <p className="text-ui text-white/70 leading-relaxed whitespace-pre-wrap">{body}</p>
+            <p className="text-ui text-ink-muted leading-relaxed whitespace-pre-wrap">{body}</p>
           </div>
         )}
 
@@ -112,17 +112,17 @@ export function DetailSheet({
               href={docUrl}
               target="_blank"
               rel="noreferrer"
-              className="w-full rounded-2xl py-3.5 text-ui font-medium bg-white/[0.04] text-white/70 active:bg-white/[0.08] flex items-center justify-center gap-2"
+              className="w-full rounded-2xl py-3.5 text-ui font-medium bg-white/[0.04] text-ink-muted active:bg-white/[0.08] flex items-center justify-center gap-2"
             >
               Open in Docs
               <ExternalLink size={14} className="opacity-70" />
             </a>
           )}
           {device === 'desktop' && actions.some(a => a.variant === 'primary') && (
-            <p className="pt-1 text-center text-micro text-white/35">
-              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-micro text-white/55">Enter</kbd>
+            <p className="pt-1 text-center text-micro text-ink-faint">
+              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-micro text-ink-faint">Enter</kbd>
               {' '}to confirm{' · '}
-              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-micro text-white/55">Esc</kbd>
+              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-micro text-ink-faint">Esc</kbd>
               {' '}to close
             </p>
           )}

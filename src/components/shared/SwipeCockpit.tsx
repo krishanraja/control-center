@@ -64,12 +64,12 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
       <aside className="w-64 flex-shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] flex flex-col overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] flex-shrink-0">
           <Layers size={14} className="text-violet-300" />
-          <span className="text-label font-medium text-white/70">Up next</span>
-          <span className="ml-auto text-micro text-white/40 tabular-nums">{triage.remaining}</span>
+          <span className="text-label font-medium text-ink-muted">Up next</span>
+          <span className="ml-auto text-micro text-ink-faint tabular-nums">{triage.remaining}</span>
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           {deck.length === 0 ? (
-            <p className="px-4 py-6 text-label text-white/40">Queue cleared.</p>
+            <p className="px-4 py-6 text-label text-ink-faint">Queue cleared.</p>
           ) : (
             deck.slice(0, 40).map((t, i) => {
               const id = config.getId(t)
@@ -85,7 +85,7 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
                 >
                   {config.renderRow
                     ? config.renderRow(t, active)
-                    : <span className={`text-label truncate ${active ? 'text-white' : 'text-white/70'}`}>{config.ariaLabel?.(t) ?? id}</span>}
+                    : <span className={`text-label truncate ${active ? 'text-ink' : 'text-ink-muted'}`}>{config.ariaLabel?.(t) ?? id}</span>}
                 </button>
               )
             })
@@ -129,7 +129,7 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
         ) : detailDecision ? (
           <DecisionDetail key={detailDecision} decision={detailDecision} actionsEnabled onNavigate={onNavigate} />
         ) : (
-          <div className="h-full flex items-center justify-center text-label text-white/35 px-6 text-center">
+          <div className="h-full flex items-center justify-center text-label text-ink-faint px-6 text-center">
             Nothing focused — the deck is clear.
           </div>
         )}
@@ -151,7 +151,7 @@ function StageTrack({ stages, current }: { stages: { key: string; label: string 
                 ? 'bg-violet-500/20 text-violet-100 border border-violet-400/40'
                 : i < idx
                 ? 'text-emerald-300/70'
-                : 'text-white/30'
+                : 'text-ink-faint'
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${i === idx ? 'bg-violet-300' : i < idx ? 'bg-emerald-400/70' : 'bg-white/20'}`} />

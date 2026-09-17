@@ -135,20 +135,20 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
     >
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
-          <p className="text-ui font-semibold text-white leading-snug">{t.title}</p>
+          <p className="text-ui font-semibold text-ink leading-snug">{t.title}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="inline-flex items-center gap-1 text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200">
               <TypeIcon size={10} />
               {meta.label}
             </span>
             {t.format && (
-              <span className="inline-flex items-center gap-1 text-micro text-white/55">
+              <span className="inline-flex items-center gap-1 text-micro text-ink-faint">
                 <Globe2 size={10} />
                 {formatLabel[t.format] || t.format}
               </span>
             )}
             {t.location && (
-              <span className="inline-flex items-center gap-1 text-micro text-white/55">
+              <span className="inline-flex items-center gap-1 text-micro text-ink-faint">
                 <MapPin size={10} />
                 {t.location}
               </span>
@@ -179,11 +179,11 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
       <div className="grid grid-cols-2 gap-2 mt-3">
         {(t.audience_size || t.audience) && (
           <div>
-            <p className="text-micro uppercase tracking-[0.14em] text-white/35 mb-0.5">
+            <p className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-0.5">
               <Users size={9} className="inline mr-1" />
               Audience
             </p>
-            <p className="text-micro text-white/75 leading-snug">
+            <p className="text-micro text-ink-muted leading-snug">
               {t.audience_size != null && (
                 <span className="font-semibold tabular-nums">{t.audience_size.toLocaleString()}+ </span>
               )}
@@ -193,16 +193,16 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
         )}
         {(t.ticket_price_usd != null || t.event_start_at) && (
           <div>
-            <p className="text-micro uppercase tracking-[0.14em] text-white/35 mb-0.5">
+            <p className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-0.5">
               <Calendar size={9} className="inline mr-1" />
               When
             </p>
-            <p className="text-micro text-white/75 leading-snug">
+            <p className="text-micro text-ink-muted leading-snug">
               {t.event_start_at
                 ? new Date(t.event_start_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                 : '·'}
               {t.ticket_price_usd != null && (
-                <span className="text-white/45 ml-1">
+                <span className="text-ink-faint ml-1">
                   · <DollarSign size={9} className="inline" />{t.ticket_price_usd.toLocaleString()}
                 </span>
               )}
@@ -212,16 +212,16 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
       </div>
 
       {t.why_relevant && (
-        <p className="text-label text-white/75 leading-snug mt-3">
+        <p className="text-label text-ink-muted leading-snug mt-3">
           <Sparkles size={10} className="inline mr-1 text-violet-300" />
-          <span className="text-white/40">Why: </span>
+          <span className="text-ink-faint">Why: </span>
           {t.why_relevant}
         </p>
       )}
 
       {t.suggested_talk_title && (
-        <p className="text-label text-white/85 leading-snug mt-2">
-          <span className="text-white/40">Pitch: </span>
+        <p className="text-label text-ink-muted leading-snug mt-2">
+          <span className="text-ink-faint">Pitch: </span>
           <span className="italic">{t.suggested_talk_title}</span>
         </p>
       )}
@@ -239,7 +239,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
               type="button"
               onClick={openEnrich}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold bg-violet-500/90 text-ink hover:bg-violet-400 disabled:opacity-40 transition-colors"
               title="Research this — Nova deep enrich (n8n) or direct (web + Cleo)"
             >
               {busy === 'enrich' ? <Working size={12} /> : <Wand2 size={12} />}
@@ -261,13 +261,13 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             type="button"
             onClick={(e) => decide(e, 'dropped')}
             disabled={busy !== null}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
             title="Pass — Vera learns from the drop"
           >
             {busy === 'pass' ? <Working size={12} /> : <X size={12} />}
             Pass
           </button>
-          <span className="text-micro text-white/45 ml-auto">
+          <span className="text-micro text-ink-faint ml-auto">
             {stub ? 'Enrich first to see context.' : 'Nova enriched it — your call.'}
           </span>
         </div>
@@ -292,7 +292,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Event page

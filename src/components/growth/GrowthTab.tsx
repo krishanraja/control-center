@@ -215,20 +215,20 @@ export function GrowthTab({
   return (
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
-        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Growth</h1>
+        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Growth</h1>
         {/* The purpose, on the desk only. On a phone the title, the purpose,
             the counts, the hero, the pills and the section line took the top
             half of the screen before any content: "more than half the screen
             is fixed, which is ridiculous" (Krish, 2026-09-11). The hero says
             what to do, which is what this sentence was standing in for. */}
         {variant === 'desktop' && (
-          <p className="text-xs md:text-body text-white/60 mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
+          <p className="text-xs md:text-body text-ink-faint mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
         )}
         {/* The house count line, on the phone too. It was desktop-only, so the
             device that actually gets used opened on a purpose sentence and five
             pills with no sense of scale. It wraps rather than truncating. */}
         {!g.loading && (
-          <p className="text-label text-white/40 mt-0.5 tabular-nums leading-snug">
+          <p className="text-label text-ink-faint mt-0.5 tabular-nums leading-snug">
             {g.touchpoints.length} places mapped · {counts.work} of {BATCH_MAX} clips this week
             {counts.council > 0 ? ` · ${counts.council} to rule on` : ''}
             {variant === 'desktop' ? ` · ${pct(geoRate)} of AI answers mention you` : ''}
@@ -278,7 +278,7 @@ export function GrowthTab({
           Desk only: on a phone it restates the pill directly above it, and the
           room it costs comes straight out of the content below. */}
       {variant === 'desktop' && (
-        <p className="text-label text-white/45 leading-snug flex-shrink-0" data-testid="growth-section-what">
+        <p className="text-label text-ink-faint leading-snug flex-shrink-0" data-testid="growth-section-what">
           {SECTIONS.find(s => s.id === section)?.what}
         </p>
       )}

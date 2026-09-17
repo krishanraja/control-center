@@ -85,7 +85,7 @@ export function GovernancePanel({
   const twoUp = variant === 'desktop'
 
   if (loading && !data) {
-    return <div className="text-white/40 text-sm py-10 text-center">Reading the control plane...</div>
+    return <div className="text-ink-faint text-sm py-10 text-center">Reading the control plane...</div>
   }
 
   return (
@@ -99,7 +99,7 @@ export function GovernancePanel({
             onClick={doRefresh}
             disabled={refreshing}
             title="Refresh"
-            className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40"
+            className="text-ink-faint hover:text-ink-muted transition-colors disabled:opacity-40"
           >
             {refreshing ? <Working size={14} /> : <RefreshCw size={14} />}
           </button>
@@ -133,8 +133,8 @@ export function GovernancePanel({
                   onClick={() => selectLane(l.slug)}
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label transition-colors ${
                     isSelected
-                      ? 'border-violet-400/50 bg-violet-500/15 text-white'
-                      : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/85 hover:border-white/20'
+                      ? 'border-violet-400/50 bg-violet-500/15 text-ink'
+                      : 'border-white/[0.08] bg-white/[0.02] text-ink-faint hover:text-ink-muted hover:border-white/20'
                   } ${!l.active ? 'opacity-50' : ''}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${laneDot(l)}`} title={laneDotTitle(l)} />
@@ -159,7 +159,7 @@ export function GovernancePanel({
                   {detail ? (
                     <ProfitGovernorCard detail={detail} onChanged={refreshDetail} />
                   ) : (
-                    <p className="text-label text-white/35">Reading this lane's economics...</p>
+                    <p className="text-label text-ink-faint">Reading this lane's economics...</p>
                   )}
                   <AutonomyLadderCard lane={selected} detail={detail} onChanged={changed} />
                 </div>
@@ -205,17 +205,17 @@ function SpendContext({ lane, onNavigate }: { lane: string | null; onNavigate?: 
   const total = Math.round(spend.month_usd)
   return (
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] px-4 py-3 flex flex-col gap-1.5">
-      <p className="text-body text-white/85 leading-snug tabular-nums">
+      <p className="text-body text-ink-muted leading-snug tabular-nums">
         The whole OS has cost ${total.toLocaleString()} so far this month. That is Intel&rsquo;s number, from the bills.
       </p>
-      <p className="text-label text-white/45 leading-snug">
+      <p className="text-label text-ink-faint leading-snug">
         The figures below count only what is tagged to {lane ? `${lane}` : 'this product'}: its agents&rsquo; runs, its API calls, its own tools. Shared costs stay in Intel, so the lane number is smaller. The limits here cap what the agents may add on top.
       </p>
       {onNavigate && (
         <button
           type="button"
           onClick={() => onNavigate('os', { sub: 'intel' })}
-          className="self-start text-label font-medium text-white/60 hover:text-white/85 underline decoration-white/20 underline-offset-2 min-h-[32px]"
+          className="self-start text-label font-medium text-ink-faint hover:text-ink-muted underline decoration-white/20 underline-offset-2 min-h-[32px]"
         >
           Open the costings in Intel
         </button>

@@ -76,13 +76,13 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
           <span className={`px-1.5 py-0.5 rounded border ${pTone.bg} ${pTone.text} ${pTone.border} uppercase tracking-[0.14em]`} title={pillar.description}>{pillar.name}</span>
         )}
         {typeof meta.poster_name === 'string' && meta.poster_name && (
-          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65" title={meta.poster_handle ? `linkedin.com/in/${meta.poster_handle}` : 'Post author'}>via {meta.poster_name}</span>
+          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-muted" title={meta.poster_handle ? `linkedin.com/in/${meta.poster_handle}` : 'Post author'}>via {meta.poster_name}</span>
         )}
         {isSynthesis && (
           <span className="px-1.5 py-0.5 rounded border border-violet-400/40 bg-violet-500/15 text-violet-100 uppercase tracking-[0.14em] font-semibold">Synthesis</span>
         )}
         {typeof i.brand_fit_score === 'number' && (
-          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65 tabular-nums" title="Brand fit score (1-10)">Fit {i.brand_fit_score}</span>
+          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-muted tabular-nums" title="Brand fit score (1-10)">Fit {i.brand_fit_score}</span>
         )}
         {typeof i.confidence === 'number' && i.confidence > 0 && i.confidence < 0.7 && (
           <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-200/80 border border-amber-400/20" title="Cleo is not confident about this classification — open to confirm or correct">Cleo unsure</span>
@@ -90,18 +90,18 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
         {i.body && i.body.trim() && (
           <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80" title="Has a draft">draft</span>
         )}
-        <span className="text-white/35 tabular-nums ml-auto">{humanAge(i.updated_at)}</span>
+        <span className="text-ink-faint tabular-nums ml-auto">{humanAge(i.updated_at)}</span>
         {onClose && (
-          <button type="button" onClick={onClose} className="text-white/40 hover:text-white/80 ml-1" aria-label="Close detail"><X size={12} /></button>
+          <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink-muted ml-1" aria-label="Close detail"><X size={12} /></button>
         )}
       </header>
 
       <button type="button" onClick={open} className="text-left w-full">
-        <p className="text-body font-semibold text-white leading-snug">{i.idea}</p>
+        <p className="text-body font-semibold text-ink leading-snug">{i.idea}</p>
       </button>
 
       {i.thesis && (
-        <p className="text-micro text-white/65 leading-snug mt-1.5"><span className="text-white/35">Thesis: </span>{i.thesis}</p>
+        <p className="text-micro text-ink-muted leading-snug mt-1.5"><span className="text-ink-faint">Thesis: </span>{i.thesis}</p>
       )}
 
       {!isSynthesis && contrarian && (
@@ -113,15 +113,15 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
 
       {distribution.length > 0 && (
         <div className="flex items-center gap-1 mt-2 flex-wrap">
-          <span className="text-micro text-white/35">→</span>
-          {distribution.map(d => (<span key={d} className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/75">{d}</span>))}
+          <span className="text-micro text-ink-faint">→</span>
+          {distribution.map(d => (<span key={d} className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-muted">{d}</span>))}
         </div>
       )}
 
       {i.source_snippet && (
         <details className="mt-2">
-          <summary className="text-micro text-white/35 cursor-pointer hover:text-white/55 transition-colors">Source quote</summary>
-          <p className="text-micro text-white/55 italic mt-1 leading-snug">"{i.source_snippet}"</p>
+          <summary className="text-micro text-ink-faint cursor-pointer hover:text-ink-faint transition-colors">Source quote</summary>
+          <p className="text-micro text-ink-faint italic mt-1 leading-snug">"{i.source_snippet}"</p>
         </details>
       )}
 
@@ -135,7 +135,7 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
               <Check size={11} /> Approve
             </button>
             <button type="button" onClick={open}
-              className="flex items-center gap-1 px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors min-h-[44px]">
+              className="flex items-center gap-1 px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors min-h-[44px]">
               <Maximize2 size={11} /> Refine
             </button>
           </>
@@ -148,14 +148,14 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
 
         {i.state === 'seeded' && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setState('researching') }} disabled={busy !== null}
-            className="flex items-center gap-1 px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors min-h-[44px]">
+            className="flex items-center gap-1 px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors min-h-[44px]">
             <Search size={11} /> Research
           </button>
         )}
 
         {i.draft_link && (
           <a href={i.draft_link} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()}
-            className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors min-h-[44px]">
+            className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors min-h-[44px]">
             <ExternalLink size={11} /> Doc
           </a>
         )}
@@ -164,7 +164,7 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
           <WhyBadge table="content_ideas" row={i} />
           <FeedbackButton sourceTable="content_ideas" sourceId={i.id} agentId="cleo" compact />
           <button type="button" onClick={(e) => { e.stopPropagation(); setState('dropped') }} disabled={busy !== null}
-            className="flex items-center justify-center gap-1 px-2 py-1 rounded-md text-micro font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors min-h-[44px] min-w-[44px]" title="Drop this idea">
+            className="flex items-center justify-center gap-1 px-2 py-1 rounded-md text-micro font-medium text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] disabled:opacity-40 transition-colors min-h-[44px] min-w-[44px]" title="Drop this idea">
             <X size={11} />
           </button>
         </div>

@@ -41,11 +41,11 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
           value={q}
           onChange={e => setQ(e.target.value)}
           placeholder="Search what the engine read this week..."
-          className="flex-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-3.5 py-2 text-body text-white/85 placeholder:text-white/30 outline-none focus:border-white/25"
+          className="flex-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-3.5 py-2 text-body text-ink-muted placeholder:text-ink-faint outline-none focus:border-white/25"
         />
-        <span className="text-micro text-white/35 tabular-nums flex-shrink-0">{feed.length} items</span>
+        <span className="text-micro text-ink-faint tabular-nums flex-shrink-0">{feed.length} items</span>
       </div>
-      <p className="text-label text-white/30 mb-4">
+      <p className="text-label text-ink-faint mb-4">
         Nothing to do here. Time-limited items clear out on Monday, and anything tied to a shift is already saved with it.
         Rescue moves an item to the Library instead.
       </p>
@@ -56,12 +56,12 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
           return (
             <div key={i.id} className="flex items-center gap-3 rounded-lg border border-white/[0.05] bg-white/[0.01] px-3.5 py-2.5">
               <div className="flex-1 min-w-0">
-                <div className="text-body text-white/80 leading-snug">
+                <div className="text-body text-ink-muted leading-snug">
                   {i.source_url ? (
-                    <a href={i.source_url} target="_blank" rel="noreferrer" className="hover:text-white">{i.idea}</a>
+                    <a href={i.source_url} target="_blank" rel="noreferrer" className="hover:text-ink">{i.idea}</a>
                   ) : i.idea}
                 </div>
-                <div className="text-micro text-white/30 mt-0.5">
+                <div className="text-micro text-ink-faint mt-0.5">
                   {(i.meta as Record<string, any> | null)?.pool?.source || (i.meta as Record<string, any> | null)?.source_label || i.source_type}
                   {' · '}{new Date(i.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </div>
@@ -74,7 +74,7 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
                 <button
                   onClick={() => rescue(i.id)}
                   disabled={busy === i.id}
-                  className="flex-shrink-0 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/60 px-2.5 py-1 text-micro font-semibold disabled:opacity-40"
+                  className="flex-shrink-0 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-ink-faint px-2.5 py-1 text-micro font-semibold disabled:opacity-40"
                 >
                   Rescue
                 </button>
@@ -83,7 +83,7 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
           )
         })}
         {feed.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-5 text-white/50 text-sm">
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-5 text-ink-faint text-sm">
             The feed is empty. It refills daily at 11:30 UTC from the shared pool and your newsletters.
           </div>
         ) : null}

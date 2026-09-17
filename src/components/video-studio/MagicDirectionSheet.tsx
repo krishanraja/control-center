@@ -146,14 +146,14 @@ export function MagicDirectionSheet({
             <Sparkles size={15} />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-ui font-semibold text-white/90">Direct one change</h2>
-            <p className="text-micro text-white/40">Bound to this exact version</p>
+            <h2 className="text-ui font-semibold text-ink">Direct one change</h2>
+            <p className="text-micro text-ink-faint">Bound to this exact version</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close direction sheet"
-            className="grid h-11 w-11 place-items-center rounded-full text-white/50 active:bg-white/[0.08]"
+            className="grid h-11 w-11 place-items-center rounded-full text-ink-faint active:bg-white/[0.08]"
           >
             <X size={18} />
           </button>
@@ -170,7 +170,7 @@ export function MagicDirectionSheet({
               className={`min-h-[44px] flex-shrink-0 rounded-full border px-3.5 text-label font-semibold transition-colors ${
                 chosen === recipe.label
                   ? 'border-violet-300/40 bg-violet-400/20 text-violet-100'
-                  : 'border-white/10 bg-white/[0.035] text-white/65'
+                  : 'border-white/10 bg-white/[0.035] text-ink-muted'
               }`}
             >
               {recipe.label}
@@ -185,7 +185,7 @@ export function MagicDirectionSheet({
           placeholder="Say or type what should change"
           onEnter={() => { if (canSubmit) void submit() }}
         />
-        <p className="mt-2 flex items-center gap-1.5 text-micro leading-relaxed text-white/38">
+        <p className="mt-2 flex items-center gap-1.5 text-micro leading-relaxed text-ink-faint">
           <Mic size={12} /> Voice, typing and recipes create the same bounded edit instruction.
         </p>
         {!target || !semanticHash ? (

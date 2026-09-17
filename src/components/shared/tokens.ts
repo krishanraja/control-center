@@ -22,7 +22,7 @@ const POD_COLOR: Record<Pod, { ring: string; text: string; bg: string; hex: stri
   ops:     { ring: 'ring-pod-ops/40',     text: 'text-pod-ops',     bg: 'bg-white/[0.04]', hex: '#6ba6b5' },
   revenue: { ring: 'ring-pod-revenue/40', text: 'text-pod-revenue', bg: 'bg-white/[0.04]', hex: '#6cab8b' },
   growth:  { ring: 'ring-pod-growth/40',  text: 'text-pod-growth',  bg: 'bg-white/[0.04]', hex: '#8f88bd' },
-  unknown: { ring: 'ring-white/15',       text: 'text-white/55',    bg: 'bg-white/[0.04]', hex: '#8a94a3' },
+  unknown: { ring: 'ring-white/15',       text: 'text-ink-faint',    bg: 'bg-white/[0.04]', hex: '#8a94a3' },
 }
 
 export function podColor(pod?: string) {
@@ -40,7 +40,7 @@ export function podLabel(pod?: string) {
  * same-hue-text-on-same-hue-tint muddiness while keeping status legible at a
  * glance. Consumers that read `.dot` get the colour; `.bg`/`.text` stay neutral.
  */
-const NEUTRAL_PILL = { bg: 'bg-white/[0.05]', text: 'text-white/80' }
+const NEUTRAL_PILL = { bg: 'bg-white/[0.05]', text: 'text-ink-muted' }
 const STATUS_STYLE: Record<string, { dot: string; bg: string; text: string; label: string }> = {
   needs_you:   { dot: 'bg-status-needsYou', ...NEUTRAL_PILL, label: 'Needs you' },
   blocked:     { dot: 'bg-status-blocked',  ...NEUTRAL_PILL, label: 'Blocked' },
@@ -83,10 +83,10 @@ export function humanize(text?: string | null): string {
 export type SignalStatus = 'received' | 'routed' | 'actioned' | 'expired'
 
 const SIGNAL_STATUS_STYLE: Record<SignalStatus, { bg: string; text: string; border: string; label: string }> = {
-  received: { bg: 'bg-white/[0.06]', text: 'text-white/50',        border: 'border-white/10',        label: 'New' },
+  received: { bg: 'bg-white/[0.06]', text: 'text-ink-faint',        border: 'border-white/10',        label: 'New' },
   routed:   { bg: 'bg-white/[0.05]', text: 'text-pod-ops',         border: 'border-white/10',        label: 'Routed' },
   actioned: { bg: 'bg-white/[0.05]', text: 'text-status-active',   border: 'border-white/10',        label: 'Actioned' },
-  expired:  { bg: 'bg-white/[0.04]', text: 'text-white/30',        border: 'border-white/[0.06]',    label: 'Expired' },
+  expired:  { bg: 'bg-white/[0.04]', text: 'text-ink-faint',        border: 'border-white/[0.06]',    label: 'Expired' },
 }
 
 export function signalStatusStyle(status?: string | null) {

@@ -64,7 +64,7 @@ function Spark({ points, bar }: { points: GrowthPoint[]; bar: string }) {
 function DeltaChip({ delta, money }: { delta: number | null; money?: boolean }) {
   if (delta == null) return null
   const fmt = (v: number) => money ? `$${Math.abs(Math.round(v)).toLocaleString()}` : Math.abs(Math.round(v)).toLocaleString()
-  if (delta === 0) return <span className="text-micro tabular-nums text-white/35">±0 · 7d</span>
+  if (delta === 0) return <span className="text-micro tabular-nums text-ink-faint">±0 · 7d</span>
   const up = delta > 0
   return (
     <span className={`text-micro tabular-nums font-semibold ${up ? 'text-emerald-300' : 'text-rose-300'}`}>
@@ -158,12 +158,12 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
     <section aria-label="Growth scoreboard" className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
       <header className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <TrendingUp size={11} className="text-white/40" />
-          <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-white/45">Growth</h2>
+          <TrendingUp size={11} className="text-ink-faint" />
+          <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-ink-faint">Growth</h2>
         </div>
         <button
           onClick={() => setLogOpen(v => !v)}
-          className="flex items-center gap-1 text-micro text-white/35 hover:text-white/70 transition-colors"
+          className="flex items-center gap-1 text-micro text-ink-faint hover:text-ink-muted transition-colors"
           title="Log subscriber counts manually"
         >
           <Pencil size={10} /> log counts
@@ -184,18 +184,18 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
               </div>
               <div className="flex items-end justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="text-lg font-bold tabular-nums text-white/90 truncate">
-                    {headline ?? <span className="text-white/30 text-sm font-medium">no data yet</span>}
+                  <div className="text-lg font-bold tabular-nums text-ink truncate">
+                    {headline ?? <span className="text-ink-faint text-sm font-medium">no data yet</span>}
                   </div>
                   {def.id === 'apps' && (
-                    <div className="text-micro tabular-nums text-white/45">${Math.round(mrr).toLocaleString()}/mo</div>
+                    <div className="text-micro tabular-nums text-ink-faint">${Math.round(mrr).toLocaleString()}/mo</div>
                   )}
                   {def.id === 'content' && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {SOURCE_CHIPS.map(c => {
                         const s = series[c.key]
                         return (
-                          <span key={c.key} className="text-micro tabular-nums px-1.5 py-px rounded border border-white/[0.08] text-white/45">
+                          <span key={c.key} className="text-micro tabular-nums px-1.5 py-px rounded border border-white/[0.08] text-ink-faint">
                             {c.label} {s.latest != null ? Math.round(s.latest).toLocaleString() : '?'}
                           </span>
                         )
@@ -203,7 +203,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                     </div>
                   )}
                   {def.id === 'network' && (
-                    <div className="text-micro text-white/40 tabular-nums">
+                    <div className="text-micro text-ink-faint tabular-nums">
                       {Math.round(series.guests_confirmed_30d.latest ?? 0)} guests · {Math.round(series.visibility_accepted_30d.latest ?? 0)} visibility
                     </div>
                   )}
@@ -233,7 +233,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                   return null
                 })()}
                 {line.staleDays != null && line.staleDays > STALE_AFTER_DAYS && (
-                  <span className="text-micro uppercase tracking-wide px-1.5 py-px rounded bg-white/[0.04] text-white/40 border border-white/[0.08]">
+                  <span className="text-micro uppercase tracking-wide px-1.5 py-px rounded bg-white/[0.04] text-ink-faint border border-white/[0.08]">
                     stale {line.staleDays}d
                   </span>
                 )}
@@ -288,9 +288,9 @@ function LogCountsSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 space-y-2">
-      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-white/45">Log today's counts</div>
+      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-ink-faint">Log today's counts</div>
       {SOURCE_CHIPS.map(c => (
-        <label key={c.key} className="flex items-center justify-between gap-2 text-label text-white/70">
+        <label key={c.key} className="flex items-center justify-between gap-2 text-label text-ink-muted">
           <span>{c.label}</span>
           <input
             type="number"
@@ -298,16 +298,16 @@ function LogCountsSheet({ onClose }: { onClose: () => void }) {
             inputMode="numeric"
             value={values[c.key] ?? ''}
             onChange={e => setValues(v => ({ ...v, [c.key]: e.target.value }))}
-            className="w-28 bg-sunk border border-white/10 rounded-lg px-2 py-1 text-right tabular-nums text-white/85 focus:outline-none focus:border-white/25"
+            className="w-28 bg-sunk border border-white/10 rounded-lg px-2 py-1 text-right tabular-nums text-ink-muted focus:outline-none focus:border-white/25"
             placeholder="count"
           />
         </label>
       ))}
       <div className="flex items-center justify-between gap-2 pt-1">
-        <span className="text-micro text-white/35">{msg}</span>
+        <span className="text-micro text-ink-faint">{msg}</span>
         <div className="flex gap-2">
-          <button onClick={onClose} className="text-micro px-2.5 py-1 rounded-lg border border-white/10 text-white/55 hover:text-white/80">Cancel</button>
-          <button onClick={submit} disabled={busy} className="text-micro px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-white/85 hover:bg-white/15 disabled:opacity-50">
+          <button onClick={onClose} className="text-micro px-2.5 py-1 rounded-lg border border-white/10 text-ink-faint hover:text-ink-muted">Cancel</button>
+          <button onClick={submit} disabled={busy} className="text-micro px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-ink-muted hover:bg-white/15 disabled:opacity-50">
             {busy ? 'Saving' : 'Save'}
           </button>
         </div>

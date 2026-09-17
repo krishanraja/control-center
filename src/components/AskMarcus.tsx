@@ -86,14 +86,14 @@ export function AskMarcus() {
           {history.map(ex => (
             <div key={ex.id} className="space-y-1.5">
               <div className="flex items-start gap-2">
-                <span className="text-micro uppercase tracking-[0.14em] text-white/35 mt-0.5 flex-shrink-0">You</span>
-                <p className="text-body text-white">{ex.question}</p>
+                <span className="text-micro uppercase tracking-[0.14em] text-ink-faint mt-0.5 flex-shrink-0">You</span>
+                <p className="text-body text-ink">{ex.question}</p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-micro uppercase tracking-[0.14em] text-violet-300 mt-0.5 flex-shrink-0">M</span>
                 {ex.loading && <Pending label={marcus.label} elapsedMs={elapsed} expectedMs={marcus.expectedMs} />}
                 {ex.error   && <p className="text-label text-red-300">{ex.error}</p>}
-                {ex.reply   && <p className="font-serif text-lede text-white/85 leading-relaxed whitespace-pre-wrap">{ex.reply}</p>}
+                {ex.reply   && <p className="font-serif text-lede text-ink-muted leading-relaxed whitespace-pre-wrap">{ex.reply}</p>}
               </div>
             </div>
           ))}
@@ -118,12 +118,12 @@ export function AskMarcus() {
           rows={1}
           placeholder="Ask the sixth question…"
           disabled={busy}
-          className="flex-1 resize-none bg-transparent p-2 text-body text-white placeholder:font-serif placeholder:italic placeholder:text-white/35 focus:outline-none disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent p-2 text-body text-ink placeholder:font-serif placeholder:italic placeholder:text-ink-faint focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={busy || !question.trim()}
-          className="flex items-center gap-1.5 rounded-xl border border-white/[0.1] px-3.5 py-2 text-label font-semibold text-white/80 transition-colors hover:bg-white/[0.06] disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-xl border border-white/[0.1] px-3.5 py-2 text-label font-semibold text-ink-muted transition-colors hover:bg-white/[0.06] disabled:opacity-40"
         >
           {busy ? <Working size={12} /> : <Send size={12} />}
           Ask

@@ -76,12 +76,12 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
     >
         <header className="flex items-center gap-2 px-5 pt-4 pb-2">
           <Sparkles size={14} className="text-rose-300" />
-          <h2 className="text-body font-semibold text-white">Capture content idea</h2>
-          <span className="text-micro text-white/40 ml-1">Cleo will enrich + dedupe</span>
+          <h2 className="text-body font-semibold text-ink">Capture content idea</h2>
+          <span className="text-micro text-ink-faint ml-1">Cleo will enrich + dedupe</span>
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto text-white/40 hover:text-white/80"
+            className="ml-auto text-ink-faint hover:text-ink-muted"
             aria-label="Close"
           >
             <X size={14} />
@@ -104,11 +104,11 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
             }}
             rows={4}
             placeholder='e.g. "Why senior media leaders are abandoning Substack: platform lock-in is the new creator-economy story"'
-            className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-body text-white placeholder-white/30 focus:outline-none focus:border-rose-500/40 resize-none"
+            className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-body text-ink placeholder-white/30 focus:outline-none focus:border-rose-500/40 resize-none"
           />
 
           <div className="flex items-center justify-between mt-3">
-            <p className="text-micro text-white/40">
+            <p className="text-micro text-ink-faint">
               Enter to capture · Esc to close
             </p>
             {/* Speaking an idea is the phone-shaped way to capture one, and the

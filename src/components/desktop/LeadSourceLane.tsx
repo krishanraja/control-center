@@ -23,10 +23,10 @@ export function LeadSourceLane({ sourceType, title, description, leads, onOpen }
     return (
       <section className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-4">
         <header className="flex items-baseline justify-between mb-1">
-          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-white/55">{title}</h3>
-          <span className="text-micro text-white/30 tabular-nums">0</span>
+          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-ink-faint">{title}</h3>
+          <span className="text-micro text-ink-faint tabular-nums">0</span>
         </header>
-        <p className="text-micro text-white/35">{description}</p>
+        <p className="text-micro text-ink-faint">{description}</p>
       </section>
     )
   }
@@ -44,15 +44,15 @@ export function LeadSourceLane({ sourceType, title, description, leads, onOpen }
       >
         <ChevronRight
           size={12}
-          className={`text-white/40 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+          className={`text-ink-faint transition-transform ${collapsed ? '' : 'rotate-90'}`}
         />
         <div className="flex-1 min-w-0">
-          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-white/75 truncate">
+          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-ink-muted truncate">
             {title}
           </h3>
-          <p className="text-micro text-white/45 truncate">{description}</p>
+          <p className="text-micro text-ink-faint truncate">{description}</p>
         </div>
-        <span className="text-micro tabular-nums text-white/55 flex-shrink-0">
+        <span className="text-micro tabular-nums text-ink-faint flex-shrink-0">
           {leads.length}
         </span>
       </button>
@@ -63,7 +63,7 @@ export function LeadSourceLane({ sourceType, title, description, leads, onOpen }
             <LeadCard key={l.id} lead={l} onOpen={onOpen} />
           ))}
           {remaining > 0 && (
-            <div className="text-micro text-white/40 text-center py-1">
+            <div className="text-micro text-ink-faint text-center py-1">
               +{remaining} more
             </div>
           )}

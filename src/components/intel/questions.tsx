@@ -40,7 +40,7 @@ export const TOKEN_TONE: Record<QuestionTone, string> = {
   ok: 'text-emerald-300',
   warn: 'text-amber-300',
   bad: 'text-rose-300',
-  quiet: 'text-white/60',
+  quiet: 'text-ink-faint',
 }
 
 const usd = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`
@@ -55,7 +55,7 @@ const dollars = (cents: number): string => `$${Math.round((cents || 0) / 100).to
 
 /** A number inside an answer sentence: mono, bright, tabular. */
 function N({ children, testId }: { children: React.ReactNode; testId?: string }) {
-  return <span data-testid={testId} className="font-mono font-medium tabular-nums text-white">{children}</span>
+  return <span data-testid={testId} className="font-mono font-medium tabular-nums text-ink">{children}</span>
 }
 
 /** One act row inside an opened answer: a kind tag, the thing, its move. */
@@ -70,8 +70,8 @@ function ActRow({ tag, tone, children, sub, action }: {
     <div className="flex items-start gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-3">
       <span className={`shrink-0 pt-[3px] font-mono text-micro font-semibold tracking-[0.14em] ${TOKEN_TONE[tone]}`}>{tag}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-ui leading-snug text-white/90">{children}</p>
-        {sub && <p className="mt-0.5 text-label leading-snug text-white/40">{sub}</p>}
+        <p className="text-ui leading-snug text-ink">{children}</p>
+        {sub && <p className="mt-0.5 text-label leading-snug text-ink-faint">{sub}</p>}
         {action && <div className="mt-2 flex items-center gap-2">{action}</div>}
       </div>
     </div>
@@ -87,7 +87,7 @@ function Verb({ onClick, href, children, primary }: {
   const cls = `inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-label font-semibold transition-colors ${
     primary
       ? 'border-violet-400/50 text-violet-200 hover:bg-violet-500/10'
-      : 'border-white/[0.1] text-white/80 hover:bg-white/[0.06]'
+      : 'border-white/[0.1] text-ink-muted hover:bg-white/[0.06]'
   }`
   if (href) {
     return <a href={href} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={cls}>{children}</a>
@@ -108,8 +108,8 @@ function DoorRow({ onClick, testId, children }: {
       onClick={onClick}
       className="group flex w-full items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-left transition-colors hover:bg-white/[0.05]"
     >
-      <span className="min-w-0 flex-1 truncate text-ui font-medium text-white/85">{children}</span>
-      <ChevronRight size={14} className="shrink-0 text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
+      <span className="min-w-0 flex-1 truncate text-ui font-medium text-ink-muted">{children}</span>
+      <ChevronRight size={14} className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-faint" aria-hidden />
     </button>
   )
 }
@@ -160,10 +160,10 @@ function SpenderRow({ unit }: { unit: SpendUnit }) {
   return (
     <div className="flex items-baseline gap-3 py-1.5">
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-ui leading-snug text-white/85">{unit.label}</span>
-        <span className="block truncate text-label leading-snug text-white/40">{unitNote(unit)}</span>
+        <span className="block truncate text-ui leading-snug text-ink-muted">{unit.label}</span>
+        <span className="block truncate text-label leading-snug text-ink-faint">{unitNote(unit)}</span>
       </span>
-      <span className="shrink-0 font-mono text-ui tabular-nums text-white/90">{unitAmount(unit)}</span>
+      <span className="shrink-0 font-mono text-ui tabular-nums text-ink">{unitAmount(unit)}</span>
     </div>
   )
 }
@@ -201,13 +201,13 @@ export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => v
   )
 
   const detail = empty ? (
-    <p className="text-body leading-relaxed text-white/45">
+    <p className="text-body leading-relaxed text-ink-faint">
       Nothing to break down yet.
     </p>
   ) : (
     <div className="flex flex-col gap-3">
       <div className="flex items-end gap-3">
-        <p className="min-w-0 flex-1 text-body leading-relaxed text-white/60">
+        <p className="min-w-0 flex-1 text-body leading-relaxed text-ink-faint">
           {spend.avg_3mo_usd > 0 && <>A normal month is about <span className="font-mono tabular-nums">{usd(spend.avg_3mo_usd)}</span>. </>}
           {spend.meter && <>On the meter so far: <span className="font-mono tabular-nums">${spend.meter.usd_mtd.toFixed(0)}</span> across <span className="font-mono tabular-nums">{spend.meter.calls_mtd.toLocaleString('en-US')}</span> calls.</>}
         </p>
@@ -233,7 +233,7 @@ export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => v
 
       {top.length > 0 && (
         <div data-testid="spend-spenders">
-          <p className="mb-0.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
+          <p className="mb-0.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Where it went · 30 days
           </p>
           {top.slice(0, 3).map(u => <SpenderRow key={`${u.provider}-${u.key}`} unit={u} />)}
@@ -241,7 +241,7 @@ export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => v
       )}
 
       {spend.needs_review > 0 && (
-        <p className="text-label text-white/40" data-testid="spend-review-line">
+        <p className="text-label text-ink-faint" data-testid="spend-review-line">
           {spend.needs_review} receipt{spend.needs_review === 1 ? '' : 's'} could not be read. They are flagged in the list, not counted as zero.
         </p>
       )}
@@ -275,13 +275,13 @@ export function useIncomeQuestion(): QuestionState {
   )
 
   const detail = empty ? (
-    <p className="text-body leading-relaxed text-white/45">
+    <p className="text-body leading-relaxed text-ink-faint">
       This fills in from Stripe once there is revenue to report.
     </p>
   ) : (
     <div className="flex flex-col gap-3">
-      <p className="text-body leading-relaxed text-white/60">
-        Committed in full: <span className="font-mono tabular-nums text-white/85">{formatCommittedMrr(revenue)}</span> a month.
+      <p className="text-body leading-relaxed text-ink-faint">
+        Committed in full: <span className="font-mono tabular-nums text-ink-muted">{formatCommittedMrr(revenue)}</span> a month.
       </p>
       <div className="flex flex-col gap-1">
         {[
@@ -291,13 +291,13 @@ export function useIncomeQuestion(): QuestionState {
           ['All time, gross', revenue.collected_all_time_gross_cents],
         ].map(([label, cents]) => (
           <div key={label as string} className="flex items-baseline gap-3">
-            <span className="min-w-0 flex-1 truncate text-body text-white/60">{label}</span>
-            <span className="shrink-0 font-mono text-body tabular-nums text-white/85">{usdCents(cents as number)}</span>
+            <span className="min-w-0 flex-1 truncate text-body text-ink-faint">{label}</span>
+            <span className="shrink-0 font-mono text-body tabular-nums text-ink-muted">{usdCents(cents as number)}</span>
           </div>
         ))}
       </div>
       {revenue.one_time_share_pct != null && (
-        <p className="text-label leading-relaxed text-white/40">
+        <p className="text-label leading-relaxed text-ink-faint">
           {Math.round(revenue.one_time_share_pct)}% of everything collected came from one-off payments, which is why
           committed and collected are shown apart and never added together.
         </p>
@@ -378,7 +378,7 @@ export function useBrokenQuestion(): QuestionState {
         </ActRow>
       ))}
       {brokenSvcs.length === 0 && lowSvcs.length === 0 && checked > 0 && (
-        <p className="text-body leading-relaxed text-white/45">
+        <p className="text-body leading-relaxed text-ink-faint">
           Every checked connection answered. Nothing needs a hand.
         </p>
       )}
@@ -388,12 +388,12 @@ export function useBrokenQuestion(): QuestionState {
           data-testid="spend-check-now"
           onClick={checkNow}
           disabled={checking}
-          className="rounded-full border border-white/[0.1] px-3.5 py-1.5 text-label font-semibold text-white/80 transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+          className="rounded-full border border-white/[0.1] px-3.5 py-1.5 text-label font-semibold text-ink-muted transition-colors hover:bg-white/[0.06] disabled:opacity-50"
         >
           {checking ? 'Checking…' : 'Check now'}
         </button>
         {conns && conns.unchecked > 0 && (
-          <span className="text-label text-white/35">{conns.unchecked} unchecked</span>
+          <span className="text-label text-ink-faint">{conns.unchecked} unchecked</span>
         )}
         <span className="ml-auto"><LastUpdated date={spend?.as_of ? new Date(spend.as_of) : null} refreshing={checking} /></span>
       </div>
@@ -435,7 +435,7 @@ export function useConvertingQuestion(): QuestionState {
   )
 
   const detail = !funnel || rows.length === 0 ? (
-    <p className="text-body leading-relaxed text-white/45">
+    <p className="text-body leading-relaxed text-ink-faint">
       The fleet funnel fills in once the builder apps emit events.
     </p>
   ) : (
@@ -446,11 +446,11 @@ export function useConvertingQuestion(): QuestionState {
           <div key={r.app}>
             <div className="flex items-baseline gap-2.5">
               <span aria-hidden className={`relative top-[-1px] h-1.5 w-1.5 shrink-0 self-center rounded-full ${HEALTH_DOT[health]}`} title={HEALTH_LABEL[health]} />
-              <span className="text-ui font-semibold text-white">{appDisplayLabel(r.app, ventures)}</span>
-              <span className="text-label text-white/50"><span className="font-mono tabular-nums text-white/80">{r.landed_7d}</span> landed this week, <span className="font-mono tabular-nums text-white/80">{r.purchased_7d}</span> bought</span>
+              <span className="text-ui font-semibold text-ink">{appDisplayLabel(r.app, ventures)}</span>
+              <span className="text-label text-ink-faint"><span className="font-mono tabular-nums text-ink-muted">{r.landed_7d}</span> landed this week, <span className="font-mono tabular-nums text-ink-muted">{r.purchased_7d}</span> bought</span>
               <span className="ml-auto shrink-0 font-mono text-ui font-semibold tabular-nums text-emerald-300">{dollars(r.gross_cents)}</span>
             </div>
-            <p className="mt-0.5 pl-[16px] text-label leading-snug text-white/40">
+            <p className="mt-0.5 pl-[16px] text-label leading-snug text-ink-faint">
               All time: {r.landed.toLocaleString('en-US')} landed, {r.signed_up.toLocaleString('en-US')} signed, {r.activated.toLocaleString('en-US')} active, {r.purchased} bought.
               {' '}Events: {r.events_24h}/24h · {r.events_7d}/7d.
             </p>
@@ -459,15 +459,15 @@ export function useConvertingQuestion(): QuestionState {
       })}
       {funnel.campaigns.length > 0 && (
         <div className="border-t border-white/[0.06] pt-2.5">
-          <p className="mb-1.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/35">Top campaigns</p>
+          <p className="mb-1.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Top campaigns</p>
           <div className="flex flex-col gap-1">
             {funnel.campaigns.slice(0, 6).map((c, i) => (
               <div key={i} className="flex items-center gap-2 text-label">
-                <span className="shrink-0 uppercase tracking-wide text-white/30">{appDisplayLabel(c.app, ventures)}</span>
-                <span className="min-w-0 truncate text-white/70">{c.utm_campaign || c.utm_source || '—'}</span>
-                <span className="ml-auto shrink-0 tabular-nums text-white/50">
+                <span className="shrink-0 uppercase tracking-wide text-ink-faint">{appDisplayLabel(c.app, ventures)}</span>
+                <span className="min-w-0 truncate text-ink-muted">{c.utm_campaign || c.utm_source || '—'}</span>
+                <span className="ml-auto shrink-0 tabular-nums text-ink-faint">
                   <span className="text-emerald-300">{c.purchased}</span>
-                  <span className="text-white/25"> / {c.landed}</span>
+                  <span className="text-ink-faint/50"> / {c.landed}</span>
                 </span>
               </div>
             ))}
@@ -476,16 +476,16 @@ export function useConvertingQuestion(): QuestionState {
       )}
       {usage.latest.length > 0 && (
         <div className="border-t border-white/[0.06] pt-2.5">
-          <p className="mb-1.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/35">
+          <p className="mb-1.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Product usage · last 7 days
           </p>
           <div className="flex flex-col gap-1">
             {usage.latest.map(u => (
               <div key={u.product} className="flex items-center gap-2 text-label">
-                <span className="min-w-0 truncate text-white/70">{appDisplayLabel(u.product, ventures)}</span>
-                <span className="ml-auto shrink-0 tabular-nums text-white/50">
-                  <span className="text-white/80">{u.active_users ?? 0}</span> active
-                  <span className="text-white/25"> · {u.pageviews ?? 0} views</span>
+                <span className="min-w-0 truncate text-ink-muted">{appDisplayLabel(u.product, ventures)}</span>
+                <span className="ml-auto shrink-0 tabular-nums text-ink-faint">
+                  <span className="text-ink-muted">{u.active_users ?? 0}</span> active
+                  <span className="text-ink-faint/50"> · {u.pageviews ?? 0} views</span>
                 </span>
                 <Sparkline
                   data={usage.series[u.product] || []}
@@ -557,7 +557,7 @@ export function useDecideQuestion({ onOpenBets }: { onOpenBets: () => void }): Q
       {marcusLine && (
         <div>
           <p className="font-serif text-lede italic leading-relaxed text-violet-200/90">{marcusLine}</p>
-          <p className="mt-1 font-mono text-micro font-semibold tracking-[0.14em] text-white/35">
+          <p className="mt-1 font-mono text-micro font-semibold tracking-[0.14em] text-ink-faint">
             MARCUS{intel.generated_at ? ` · ${stampDay(intel.generated_at)}` : ''}
           </p>
         </div>
@@ -596,7 +596,7 @@ export function useDecideQuestion({ onOpenBets }: { onOpenBets: () => void }): Q
       ))}
 
       {needsCount === 0 && (
-        <p className="text-body leading-relaxed text-white/45">
+        <p className="text-body leading-relaxed text-ink-faint">
           Nothing needs a decision right now.
         </p>
       )}
@@ -604,7 +604,7 @@ export function useDecideQuestion({ onOpenBets }: { onOpenBets: () => void }): Q
       <button
         type="button"
         onClick={onOpenBets}
-        className="self-start text-label text-white/40 transition-colors hover:text-white/70"
+        className="self-start text-label text-ink-faint transition-colors hover:text-ink-muted"
       >
         <span className="font-mono tabular-nums">{live.length}</span> live bet{live.length === 1 ? '' : 's'}
         {overall && overall.total > 0 && <> · <span className="font-mono tabular-nums">{overall.pct.toFixed(0)}%</span> hit rate over 90 days</>}

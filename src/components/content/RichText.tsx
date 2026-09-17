@@ -15,7 +15,7 @@ function inline(s: string, keyBase: string): React.ReactNode[] {
     if (m.index > last) out.push(s.slice(last, m.index))
     const t = m[0]
     if (t.startsWith('**')) {
-      out.push(<strong key={`${keyBase}-${k++}`} className="font-semibold text-white">{t.slice(2, -2)}</strong>)
+      out.push(<strong key={`${keyBase}-${k++}`} className="font-semibold text-ink">{t.slice(2, -2)}</strong>)
     } else if (t.startsWith('`')) {
       out.push(<code key={`${keyBase}-${k++}`} className="px-1 py-0.5 rounded bg-white/[0.08] text-[0.9em] text-violet-200">{t.slice(1, -1)}</code>)
     } else {
@@ -63,10 +63,10 @@ export function splitBlocks(text: string): Block[] {
     if (h) {
       const lvl = h[1].length
       const cls = lvl === 1
-        ? 'text-[1.45em] font-bold text-white mt-7 mb-3 leading-snug first:mt-0'
+        ? 'text-[1.45em] font-bold text-ink mt-7 mb-3 leading-snug first:mt-0'
         : lvl === 2
-          ? 'text-[1.25em] font-semibold text-white mt-6 mb-2.5 leading-snug first:mt-0'
-          : 'text-[1.1em] font-semibold text-white/95 mt-5 mb-2 leading-snug first:mt-0'
+          ? 'text-[1.25em] font-semibold text-ink mt-6 mb-2.5 leading-snug first:mt-0'
+          : 'text-[1.1em] font-semibold text-ink mt-5 mb-2 leading-snug first:mt-0'
       const node = React.createElement(`h${lvl}`, { key: key++, className: cls }, inline(h[2], `h${key}`))
       i++
       push(start, 'h', node as React.ReactElement)
@@ -87,7 +87,7 @@ export function splitBlocks(text: string): Block[] {
         i++
       }
       push(start, 'quote', (
-        <blockquote key={key++} className="border-l-2 border-violet-400/50 pl-4 my-4 text-white/65 italic">
+        <blockquote key={key++} className="border-l-2 border-violet-400/50 pl-4 my-4 text-ink-muted italic">
           {inline(quote.join(' '), `q${key}`)}
         </blockquote>
       ))
@@ -101,7 +101,7 @@ export function splitBlocks(text: string): Block[] {
         i++
       }
       push(start, 'ul', (
-        <ul key={key++} className="list-disc pl-5 my-4 space-y-1.5 marker:text-white/35">
+        <ul key={key++} className="list-disc pl-5 my-4 space-y-1.5 marker:text-ink-faint">
           {items.map((it, j) => <li key={j}>{inline(it, `u${key}-${j}`)}</li>)}
         </ul>
       ))
@@ -115,7 +115,7 @@ export function splitBlocks(text: string): Block[] {
         i++
       }
       push(start, 'ol', (
-        <ol key={key++} className="list-decimal pl-5 my-4 space-y-1.5 marker:text-white/35">
+        <ol key={key++} className="list-decimal pl-5 my-4 space-y-1.5 marker:text-ink-faint">
           {items.map((it, j) => <li key={j}>{inline(it, `o${key}-${j}`)}</li>)}
         </ol>
       ))

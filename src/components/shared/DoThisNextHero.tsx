@@ -47,7 +47,7 @@ const TONE_BTN: Record<HeroTone, string> = {
   violet: 'bg-violet-500/20 border-violet-400/40 text-violet-100 hover:bg-violet-500/30',
   sky: 'bg-sky-500/20 border-sky-400/40 text-sky-100 hover:bg-sky-500/30',
   amber: 'bg-amber-500/20 border-amber-400/40 text-amber-100 hover:bg-amber-500/30',
-  neutral: 'bg-white/[0.06] border-white/15 text-white/80 hover:bg-white/[0.1]',
+  neutral: 'bg-white/[0.06] border-white/15 text-ink-muted hover:bg-white/[0.1]',
 }
 
 interface Props {
@@ -85,13 +85,13 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
         {!clear && (
           <p className="text-micro font-display uppercase tracking-[0.14em] text-accent/70 mb-1">Do this next</p>
         )}
-        <p className={`${narrow ? 'text-ui' : 'text-lede'} font-display font-semibold text-white leading-[1.15] tracking-tight truncate`}>
+        <p className={`${narrow ? 'text-ui' : 'text-lede'} font-display font-semibold text-ink leading-[1.15] tracking-tight truncate`}>
           {headline}
         </p>
         {/* Wraps rather than truncates: the supporting line carries the count
             or the figure, and an ellipsis there hides exactly the number the
             hero exists to state. */}
-        <p className="text-label text-white/55 leading-snug break-words mt-0.5">{sub}</p>
+        <p className="text-label text-ink-faint leading-snug break-words mt-0.5">{sub}</p>
       </div>
       {!clear && actionSlot}
       {!clear && !actionSlot && actionLabel && (
@@ -106,7 +106,7 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
           {/* Desktop is a keyboard-driven command surface: Tab to the action,
               press Enter. Hidden on touch, where it's a single tap. */}
           {!narrow && (
-            <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-micro font-mono leading-none text-white/60">
+            <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-micro font-mono leading-none text-ink-faint">
               ⏎
             </kbd>
           )}

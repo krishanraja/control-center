@@ -30,12 +30,12 @@ export function MobilePilots() {
         <div className="flex items-center gap-2.5">
           <MindmakeIdentity size={28} />
           <div className="min-w-0">
-            <h1 className="text-title font-bold leading-none tracking-tight text-white">{ADVISORY_LABEL}</h1>
+            <h1 className="text-title font-bold leading-none tracking-tight text-ink">{ADVISORY_LABEL}</h1>
             {/* Only while the deck is up. The old subtitle read "25 leaders you
                 already know" on every visit, which was both a row of chrome
                 the counts line immediately repeated and a number the list did
                 not have: it said 25 with two people on it. */}
-            {deck && <p className="text-label text-white/50 mt-0.5">Keep the ones worth asking</p>}
+            {deck && <p className="text-label text-ink-faint mt-0.5">Keep the ones worth asking</p>}
           </div>
         </div>
       }

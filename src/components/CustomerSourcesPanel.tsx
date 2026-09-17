@@ -37,7 +37,7 @@ export function CustomerSourcesPanel() {
   if (buckets.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] p-4">
-        <p className="text-micro text-white/45">
+        <p className="text-micro text-ink-faint">
           No paid customers yet. ROI breakdown will appear once Stripe webhooks land paid customers in `customers`.
         </p>
       </div>
@@ -47,8 +47,8 @@ export function CustomerSourcesPanel() {
   return (
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
       <header className="px-4 py-3 border-b border-white/[0.05]">
-        <h3 className="text-label font-semibold text-white">Revenue by source</h3>
-        <p className="text-micro text-white/45 mt-0.5">
+        <h3 className="text-label font-semibold text-ink">Revenue by source</h3>
+        <p className="text-micro text-ink-faint mt-0.5">
           Where the {formatMrr(liveMrr)}/mo of committed MRR came from.
         </p>
       </header>
@@ -56,7 +56,7 @@ export function CustomerSourcesPanel() {
         {top.map(b => (
           <li key={b.key} className="px-4 py-3">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-label font-semibold text-white truncate">{b.label}</p>
+              <p className="text-label font-semibold text-ink truncate">{b.label}</p>
               <span className="text-label tabular-nums text-emerald-300 flex-shrink-0">
                 ${Math.round(b.mrr_usd).toLocaleString()}/mo
               </span>
@@ -67,7 +67,7 @@ export function CustomerSourcesPanel() {
                 style={{ width: `${b.share_pct.toFixed(1)}%` }}
               />
             </div>
-            <div className="flex items-center justify-between mt-1.5 text-micro text-white/40">
+            <div className="flex items-center justify-between mt-1.5 text-micro text-ink-faint">
               <span>{b.paid_count} paid · ~${Math.round(b.ltv_estimate_usd).toLocaleString()} LTV</span>
               <span className="tabular-nums">{b.share_pct.toFixed(1)}%</span>
             </div>

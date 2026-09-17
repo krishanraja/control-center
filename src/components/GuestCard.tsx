@@ -21,7 +21,7 @@ const BRIEFABLE: ReadonlySet<GuestStatus> = new Set<GuestStatus>(['enriched', 'r
 function triageBand(score: number): { label: string; cls: string } {
   if (score >= 70) return { label: 'Strong', cls: 'bg-emerald-500/12 text-emerald-300 border-emerald-500/25' }
   if (score >= 45) return { label: 'Maybe', cls: 'bg-amber-500/12 text-amber-300 border-amber-500/25' }
-  return { label: 'Skip', cls: 'bg-white/[0.05] text-white/45 border-white/10' }
+  return { label: 'Skip', cls: 'bg-white/[0.05] text-ink-faint border-white/10' }
 }
 
 interface Props {
@@ -102,13 +102,13 @@ export function GuestCard({ guest: g, onOpen }: Props) {
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
           <button type="button" onClick={() => onOpen?.(g.id)} className="text-left w-full">
-            <p className="text-body font-semibold text-white leading-snug truncate">{g.name}</p>
+            <p className="text-body font-semibold text-ink leading-snug truncate">{g.name}</p>
             {g.one_liner && (
-              <p className="text-micro text-white/55 leading-snug line-clamp-2">{g.one_liner}</p>
+              <p className="text-micro text-ink-faint leading-snug line-clamp-2">{g.one_liner}</p>
             )}
           </button>
         </div>
-        <span className="text-micro tabular-nums text-white/35 flex-shrink-0">
+        <span className="text-micro tabular-nums text-ink-faint flex-shrink-0">
           {humanAge(g.updated_at)}
         </span>
       </header>
@@ -139,27 +139,27 @@ export function GuestCard({ guest: g, onOpen }: Props) {
           </span>
         )}
         {typeof g.fit_score === 'number' && (
-          <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
+          <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint tabular-nums">
             Fit {g.fit_score}
           </span>
         )}
         {typeof g.attainability_score === 'number' && (
-          <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
+          <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint tabular-nums">
             Reach {g.attainability_score}
           </span>
         )}
       </div>
 
       {g.why_fit && (
-        <p className="text-micro text-white/65 leading-snug mt-2 line-clamp-3">
-          <span className="text-white/35">Why: </span>
+        <p className="text-micro text-ink-muted leading-snug mt-2 line-clamp-3">
+          <span className="text-ink-faint">Why: </span>
           {g.why_fit}
         </p>
       )}
 
       {g.triage_reason && (
-        <p className="text-micro text-white/45 leading-snug mt-1.5 line-clamp-2">
-          <span className="text-white/30">Triage: </span>
+        <p className="text-micro text-ink-faint leading-snug mt-1.5 line-clamp-2">
+          <span className="text-ink-faint">Triage: </span>
           {g.triage_reason}
         </p>
       )}
@@ -192,7 +192,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             <Linkedin size={11} />
             LinkedIn
@@ -204,7 +204,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             <Twitter size={11} />
             X
@@ -259,7 +259,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
                 type="button"
                 onClick={(e) => { e.stopPropagation(); generateBriefing(true) }}
                 disabled={busy !== null}
-                className="text-micro text-white/40 hover:text-white/70 disabled:opacity-40 transition-colors"
+                className="text-micro text-ink-faint hover:text-ink-muted disabled:opacity-40 transition-colors"
                 title="Regenerate the briefing (updates the same Doc)"
               >
                 {busy === 'briefing' ? 'Regenerating…' : 'Regenerate'}
@@ -295,7 +295,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Site
@@ -312,7 +312,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               target="_blank"
               rel="noreferrer noopener"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-faint hover:bg-white/[0.06] hover:text-ink-muted transition-colors"
             >
               {l.icon}
               {l.label}
@@ -331,7 +331,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); patchStatus('dropped') }}
               disabled={busy !== null}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-medium text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
               title="Drop this guest"
             >
               <X size={11} />

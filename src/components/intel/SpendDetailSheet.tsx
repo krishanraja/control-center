@@ -47,10 +47,10 @@ export function SpendDetailSheet({ open, onClose, spend }: {
       <div className="flex flex-col gap-5" data-testid="spend-detail">
         <div className="flex items-end gap-3">
           <div className="min-w-0 flex-1">
-            <span className="font-mono tabular-nums text-heading font-semibold text-white">{usd(spend.month_usd)}</span>
-            <span className="ml-2 text-label text-white/45">out this month</span>
+            <span className="font-mono tabular-nums text-heading font-semibold text-ink">{usd(spend.month_usd)}</span>
+            <span className="ml-2 text-label text-ink-faint">out this month</span>
             {spend.avg_3mo_usd > 0 && (
-              <p className="mt-0.5 text-label text-white/40">
+              <p className="mt-0.5 text-label text-ink-faint">
                 A normal month is about {usd(spend.avg_3mo_usd)}.
                 {spend.meter ? <> On the meter so far: ${spend.meter.usd_mtd.toFixed(0)}.</> : null}
               </p>
@@ -77,14 +77,14 @@ export function SpendDetailSheet({ open, onClose, spend }: {
                     : c.state === 'within' ? statusStyle('active').dot
                     : 'bg-white/20'
                   }`} />
-                  <span className="min-w-0 flex-1 text-ui text-white/85">{c.name}</span>
+                  <span className="min-w-0 flex-1 text-ui text-ink-muted">{c.name}</span>
                   {c.cycle_usd != null && c.included_usd != null && (
-                    <span className="shrink-0 font-mono tabular-nums text-ui text-white/85">
-                      {usd(c.cycle_usd)}<span className="text-white/35"> / {usd(c.included_usd)}</span>
+                    <span className="shrink-0 font-mono tabular-nums text-ui text-ink-muted">
+                      {usd(c.cycle_usd)}<span className="text-ink-faint"> / {usd(c.included_usd)}</span>
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 pl-[16px] text-label leading-snug text-white/40">{cycleLine(c)}</p>
+                <p className="mt-0.5 pl-[16px] text-label leading-snug text-ink-faint">{cycleLine(c)}</p>
               </div>
             ))}
           </div>
@@ -94,7 +94,7 @@ export function SpendDetailSheet({ open, onClose, spend }: {
           <div className="flex flex-col gap-1" data-testid="spend-spenders-full">
             <div className="px-1 pb-1"><Eyebrow>Where it went · 30 days</Eyebrow></div>
             {spend.spenders.units.length === 0 ? (
-              <p className="px-2 py-1 text-label leading-relaxed text-white/40">
+              <p className="px-2 py-1 text-label leading-relaxed text-ink-faint">
                 Nothing metered in the last 30 days.
               </p>
             ) : (
@@ -103,11 +103,11 @@ export function SpendDetailSheet({ open, onClose, spend }: {
             {/* A collector that has not run is a different sentence from a
                 provider that spent nothing, and the two must never share one. */}
             {spend.spenders.silent.length > 0 && (
-              <p className="px-2 pt-1 text-label leading-relaxed text-white/35">
+              <p className="px-2 pt-1 text-label leading-relaxed text-ink-faint">
                 No {spend.spenders.silent.join(' or ')} usage recorded in this window — either nothing ran, or that collector has not run yet.
               </p>
             )}
-            <p className="px-2 pt-1 text-label leading-relaxed text-white/35">
+            <p className="px-2 pt-1 text-label leading-relaxed text-ink-faint">
               Apify reports the actor and where the run started, not which workflow called it. Anthropic totals cover calls the OS makes itself; anything an n8n node calls directly with its own key shows only on the invoice.
             </p>
           </div>
@@ -126,8 +126,8 @@ export function SpendDetailSheet({ open, onClose, spend }: {
             {spend.unmatched.map(u => (
               <div key={u.vendor} className="flex items-center gap-2.5 rounded-xl px-2 py-2">
                 <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/25" />
-                <span className="min-w-0 flex-1 truncate text-ui text-white/80">{u.vendor}</span>
-                <span className="shrink-0 font-mono tabular-nums text-ui text-white/70">{usd(u.month_usd)}</span>
+                <span className="min-w-0 flex-1 truncate text-ui text-ink-muted">{u.vendor}</span>
+                <span className="shrink-0 font-mono tabular-nums text-ui text-ink-muted">{usd(u.month_usd)}</span>
               </div>
             ))}
           </div>
@@ -141,7 +141,7 @@ export function SpendDetailSheet({ open, onClose, spend }: {
         )}
 
         {(unwired > 0 || spend.needs_review > 0) && (
-          <p className="text-label leading-relaxed text-white/35">
+          <p className="text-label leading-relaxed text-ink-faint">
             {unwired > 0 ? `${unwired} more service${unwired === 1 ? '' : 's'} tracked for invoices only (no API check). ` : ''}
             {spend.needs_review > 0 ? `${spend.needs_review} receipt${spend.needs_review === 1 ? '' : 's'} need a manual look.` : ''}
           </p>
@@ -160,11 +160,11 @@ function ServiceRow({ s }: { s: SpendServiceRow }) {
     <div className="flex flex-wrap items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.03]">
       <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotFor(s)}`} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-ui text-white/85">
+        <span className="block truncate text-ui text-ink-muted">
           {s.name}
-          {s.plan_label && <span className="ml-1.5 text-label text-white/35">{s.plan_label}</span>}
+          {s.plan_label && <span className="ml-1.5 text-label text-ink-faint">{s.plan_label}</span>}
         </span>
-        <span className="block truncate text-label text-white/40">
+        <span className="block truncate text-label text-ink-faint">
           {[
             line,
             s.cadence === 'annual' && renewDays != null && renewDays >= 0 && renewDays <= 60
@@ -174,10 +174,10 @@ function ServiceRow({ s }: { s: SpendServiceRow }) {
         </span>
       </span>
       <span className="shrink-0 text-right">
-        <span className="block font-mono tabular-nums text-ui text-white/85">
+        <span className="block font-mono tabular-nums text-ui text-ink-muted">
           {s.month_usd !== 0 ? usd(s.month_usd) : s.avg_usd !== 0 ? usd(s.avg_usd) : ''}
         </span>
-        {s.month_usd === 0 && s.avg_usd !== 0 && <span className="block text-micro text-white/30">usual</span>}
+        {s.month_usd === 0 && s.avg_usd !== 0 && <span className="block text-micro text-ink-faint">usual</span>}
       </span>
       {url && (
         <a
@@ -185,13 +185,13 @@ function ServiceRow({ s }: { s: SpendServiceRow }) {
           target="_blank"
           rel="noreferrer"
           aria-label={`Open ${s.name}`}
-          className="shrink-0 rounded p-1 text-white/30 transition-colors hover:text-white/70"
+          className="shrink-0 rounded p-1 text-ink-faint transition-colors hover:text-ink-muted"
         >
           <ExternalLink size={13} aria-hidden />
         </a>
       )}
       {flagged && (
-        <p className="w-full pl-[16px] text-label leading-snug text-white/40">{usageLine(s)}</p>
+        <p className="w-full pl-[16px] text-label leading-snug text-ink-faint">{usageLine(s)}</p>
       )}
     </div>
   )
@@ -226,13 +226,13 @@ function SpenderRow({ u }: { u: SpendUnit }) {
     <div className="flex flex-wrap items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.03]">
       <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${u.failed > 0 ? statusStyle('needs_you').dot : 'bg-white/25'}`} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-ui text-white/85">{u.label}</span>
-        <span className="block truncate text-label text-white/40">{note}</span>
+        <span className="block truncate text-ui text-ink-muted">{u.label}</span>
+        <span className="block truncate text-label text-ink-faint">{note}</span>
       </span>
       <span className="shrink-0 text-right">
-        <span className="block font-mono tabular-nums text-ui text-white/85">{amount}</span>
+        <span className="block font-mono tabular-nums text-ui text-ink-muted">{amount}</span>
         {u.usd > 0 && u.usd_7d > 0 && (
-          <span className="block text-micro text-white/30">{usd(u.usd_7d)} this week</span>
+          <span className="block text-micro text-ink-faint">{usd(u.usd_7d)} this week</span>
         )}
       </span>
     </div>

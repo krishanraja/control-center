@@ -128,14 +128,14 @@ export function SkillReviewModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
           <div className="min-w-0">
-            <h2 className="text-ui font-semibold text-white">Skill Review</h2>
-            <p className="text-label text-white/45 truncate">
+            <h2 className="text-ui font-semibold text-ink">Skill Review</h2>
+            <p className="text-label text-ink-faint truncate">
               {skills.length} skill{skills.length === 1 ? '' : 's'} ready · review and ship
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-white/[0.06] transition-colors"
             aria-label="Close"
           >
             <X size={16} />
@@ -151,8 +151,8 @@ export function SkillReviewModal({
                 onClick={() => setActiveIdx(i)}
                 className={`text-label px-3 py-1.5 rounded-t-lg whitespace-nowrap transition-colors ${
                   i === activeIdx
-                    ? 'bg-white/[0.06] text-white border-b border-violet-400'
-                    : 'text-white/45 hover:text-white/75'
+                    ? 'bg-white/[0.06] text-ink border-b border-violet-400'
+                    : 'text-ink-faint hover:text-ink-muted'
                 }`}
               >
                 {s.name}
@@ -175,11 +175,11 @@ export function SkillReviewModal({
                     onChange={e => setRefineInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') runRefine() }}
                     placeholder="Tell Cleo what to change about this skill…"
-                    className="flex-1 bg-transparent text-label text-white/85 placeholder:text-white/30 focus:outline-none"
+                    className="flex-1 bg-transparent text-label text-ink-muted placeholder:text-ink-faint focus:outline-none"
                   />
                   {undo && (
                     <button type="button" onClick={undoRefine} title="Undo last refine"
-                      className="inline-flex items-center gap-1 text-micro text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
+                      className="inline-flex items-center gap-1 text-micro text-ink-faint hover:text-ink px-2 py-1 rounded-md hover:bg-white/[0.06]">
                       <RotateCcw size={11} /> Undo
                     </button>
                   )}
@@ -191,44 +191,44 @@ export function SkillReviewModal({
               </div>
 
               <div>
-                <label className="block text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-1">Name</label>
+                <label className="block text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1">Name</label>
                 <input
                   value={active.name}
                   onChange={e => updateActive({ name: e.target.value })}
-                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-1.5 text-label text-white/85 font-mono focus:outline-none focus:border-violet-500/40"
+                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-1.5 text-label text-ink-muted font-mono focus:outline-none focus:border-violet-500/40"
                 />
               </div>
 
               <div>
-                <label className="block text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-1">Description</label>
+                <label className="block text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1">Description</label>
                 <textarea
                   value={active.description}
                   onChange={e => updateActive({ description: e.target.value })}
                   rows={4}
-                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 focus:outline-none focus:border-violet-500/40 resize-y"
+                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-ink-muted focus:outline-none focus:border-violet-500/40 resize-y"
                 />
-                <span className="text-micro text-white/30 mt-0.5 block">{active.description.length}/1024</span>
+                <span className="text-micro text-ink-faint mt-0.5 block">{active.description.length}/1024</span>
               </div>
 
               <div>
-                <label className="block text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-1">SKILL.md Body</label>
+                <label className="block text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1">SKILL.md Body</label>
                 <textarea
                   value={active.body}
                   onChange={e => updateActive({ body: e.target.value })}
                   rows={18}
-                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 font-mono leading-relaxed focus:outline-none focus:border-violet-500/40 resize-y"
+                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-ink-muted font-mono leading-relaxed focus:outline-none focus:border-violet-500/40 resize-y"
                 />
               </div>
 
               <details className="rounded-lg border border-white/[0.06] bg-white/[0.015]">
-                <summary className="cursor-pointer px-3 py-2 text-label text-white/55 hover:text-white/80">
+                <summary className="cursor-pointer px-3 py-2 text-label text-ink-faint hover:text-ink-muted">
                   Frontmatter preview
                 </summary>
-                <pre className="px-3 pb-3 text-micro text-white/55 font-mono whitespace-pre-wrap">{yamlPreview}</pre>
+                <pre className="px-3 pb-3 text-micro text-ink-faint font-mono whitespace-pre-wrap">{yamlPreview}</pre>
               </details>
 
               <details className="rounded-lg border border-white/[0.06] bg-white/[0.015]">
-                <summary className="cursor-pointer px-3 py-2 text-label text-white/55 hover:text-white/80">
+                <summary className="cursor-pointer px-3 py-2 text-label text-ink-faint hover:text-ink-muted">
                   Test prompts ({active.test_prompts?.length || 0})
                 </summary>
                 <div className="px-3 pb-3 space-y-2">
@@ -242,20 +242,20 @@ export function SkillReviewModal({
                         updateActive({ test_prompts: next })
                       }}
                       rows={2}
-                      className="w-full rounded-lg border border-white/[0.06] bg-sunk px-3 py-2 text-label text-white/80 focus:outline-none focus:border-violet-500/40 resize-y"
+                      className="w-full rounded-lg border border-white/[0.06] bg-sunk px-3 py-2 text-label text-ink-muted focus:outline-none focus:border-violet-500/40 resize-y"
                     />
                   ))}
                 </div>
               </details>
 
               <details className="rounded-lg border border-white/[0.06] bg-white/[0.015]">
-                <summary className="cursor-pointer px-3 py-2 text-label text-white/55 hover:text-white/80">
+                <summary className="cursor-pointer px-3 py-2 text-label text-ink-faint hover:text-ink-muted">
                   References ({active.references?.length || 0})
                 </summary>
                 <div className="px-3 pb-3 space-y-3">
                   {(active.references || []).map((ref, i) => (
                     <div key={i}>
-                      <p className="text-micro text-white/45 font-mono mb-1">{ref.filename}</p>
+                      <p className="text-micro text-ink-faint font-mono mb-1">{ref.filename}</p>
                       <textarea
                         value={ref.content}
                         onChange={e => {
@@ -264,7 +264,7 @@ export function SkillReviewModal({
                           updateActive({ references: next })
                         }}
                         rows={6}
-                        className="w-full rounded-lg border border-white/[0.06] bg-sunk px-3 py-2 text-label text-white/75 font-mono focus:outline-none focus:border-violet-500/40 resize-y"
+                        className="w-full rounded-lg border border-white/[0.06] bg-sunk px-3 py-2 text-label text-ink-muted font-mono focus:outline-none focus:border-violet-500/40 resize-y"
                       />
                     </div>
                   ))}
@@ -275,14 +275,14 @@ export function SkillReviewModal({
 
           {/* Quality gate (40%) */}
           <div className="lg:col-span-2 flex flex-col min-h-0 overflow-y-auto px-5 py-3">
-            <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-3">Quality gate</h3>
+            <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-3">Quality gate</h3>
             {gate ? (
               <>
                 <div className="flex items-baseline gap-1.5 mb-3">
                   <span className={`text-title font-semibold tabular-nums ${gate.passed === gate.total ? 'text-emerald-300' : 'text-amber-300'}`}>
                     {gate.passed}
                   </span>
-                  <span className="text-body text-white/40">/ {gate.total} checks passed</span>
+                  <span className="text-body text-ink-faint">/ {gate.total} checks passed</span>
                 </div>
                 <ul className="space-y-2">
                   {gate.checks.map(c => (
@@ -293,31 +293,31 @@ export function SkillReviewModal({
                         <AlertTriangle size={13} className="text-amber-400 mt-0.5 flex-shrink-0" />
                       )}
                       <div className="min-w-0">
-                        <p className={`text-label ${c.pass ? 'text-white/75' : 'text-amber-200/90'}`}>{c.label}</p>
-                        {c.detail && <p className="text-micro text-white/40 mt-0.5">{c.detail}</p>}
+                        <p className={`text-label ${c.pass ? 'text-ink-muted' : 'text-amber-200/90'}`}>{c.label}</p>
+                        {c.detail && <p className="text-micro text-ink-faint mt-0.5">{c.detail}</p>}
                       </div>
                     </li>
                   ))}
                 </ul>
               </>
             ) : (
-              <p className="text-label text-white/40">No checks available.</p>
+              <p className="text-label text-ink-faint">No checks available.</p>
             )}
           </div>
         </div>
 
         {/* Footer actions */}
         <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-3">
-          <p className="text-micro text-white/35">
+          <p className="text-micro text-ink-faint">
             {clientEmail
-              ? <>Will email <code className="text-white/65">{clientEmail}</code> on ship.</>
+              ? <>Will email <code className="text-ink-muted">{clientEmail}</code> on ship.</>
               : <span className="text-amber-300">Add a client email on the form to enable shipping.</span>}
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={onRegenerate}
               disabled={regenerating}
-              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] text-label font-medium transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-white/10 text-ink-muted hover:text-ink hover:bg-white/[0.06] text-label font-medium transition-colors disabled:opacity-40"
             >
               {regenerating ? <Working size={12} /> : <RefreshCw size={12} />}
               Regenerate

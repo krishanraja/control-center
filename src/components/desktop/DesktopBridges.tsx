@@ -62,11 +62,11 @@ function RoleRow({ r }: { r: HuntRole }) {
     <li className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3" data-testid="hunt-role">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-ui font-semibold text-white/90">
+          <p className="text-ui font-semibold text-ink">
             {r.title}
-            <span className="text-white/50 font-normal"> at {r.company}</span>
+            <span className="text-ink-faint font-normal"> at {r.company}</span>
           </p>
-          <p className="text-label text-white/50 mt-0.5">
+          <p className="text-label text-ink-faint mt-0.5">
             {[r.score != null ? `score ${r.score}` : null, r.location, r.comp].filter(Boolean).join(' | ')}
           </p>
         </div>
@@ -83,7 +83,7 @@ function RoleRow({ r }: { r: HuntRole }) {
             {applied}
           </span>
         )}
-        <span className={built ? 'text-emerald-300' : 'text-white/55'}>
+        <span className={built ? 'text-emerald-300' : 'text-ink-faint'}>
           <FileText size={11} className="inline mr-1 align-[-1px]" />
           {packageLine(r)}
         </span>
@@ -94,17 +94,17 @@ function RoleRow({ r }: { r: HuntRole }) {
           </>
         )}
       </div>
-      <div className="mt-2 text-label text-white/70" data-testid="hunt-person">
+      <div className="mt-2 text-label text-ink-muted" data-testid="hunt-person">
         {r.person ? (
           <>
-            <span className="text-white/45">
+            <span className="text-ink-faint">
               {applied ? 'Already in, so follow up with ' : 'Reach out to '}
             </span>
             {r.person.linkedin_url
               ? <a href={r.person.linkedin_url} target="_blank" rel="noreferrer" className="text-violet-200 hover:text-violet-100 font-medium">{r.person.name}</a>
-              : <span className="font-medium text-white/85">{r.person.name}</span>}
-            {r.person.title && <span className="text-white/55">, {r.person.title}</span>}
-            {r.person.company && <span className="text-white/55"> at {r.person.company}</span>}
+              : <span className="font-medium text-ink-muted">{r.person.name}</span>}
+            {r.person.title && <span className="text-ink-faint">, {r.person.title}</span>}
+            {r.person.company && <span className="text-ink-faint"> at {r.person.company}</span>}
             {action && (
               <button
                 type="button"
@@ -119,11 +119,11 @@ function RoleRow({ r }: { r: HuntRole }) {
               </button>
             )}
             {r.bridge?.evidence && (
-              <p className="text-micro text-white/40 mt-1">{r.bridge.evidence}</p>
+              <p className="text-micro text-ink-faint mt-1">{r.bridge.evidence}</p>
             )}
           </>
         ) : (
-          <span className="text-white/40">Nobody found yet. The next Process run searches your network again and looks outside it.</span>
+          <span className="text-ink-faint">Nobody found yet. The next Process run searches your network again and looks outside it.</span>
         )}
       </div>
     </li>
@@ -145,11 +145,11 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
 
   const header = !narrow && (
     <header>
-      <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+      <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
         <Target size={20} className="text-violet-300" />
         Hunt
       </h1>
-      <p className="text-body text-white/55 mt-1">{HUNT_LINE}</p>
+      <p className="text-body text-ink-faint mt-1">{HUNT_LINE}</p>
       <FreshnessLine lane="hunt" />
     </header>
   )
@@ -173,7 +173,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
       <section data-testid="hunt-roles">
         <Eyebrow>Roles you said Yes to</Eyebrow>
         {hunt.roles.length === 0 ? (
-          <p className="text-body text-white/45 mt-2">
+          <p className="text-body text-ink-faint mt-2">
             Nothing marked Yes on the sheet right now. Mark a row Yes and press Process.
           </p>
         ) : (
@@ -186,7 +186,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
       <section>
         <Eyebrow>Warmest paths, with a draft</Eyebrow>
         {top.length === 0 ? (
-          <p className="text-body text-white/45 mt-2">
+          <p className="text-body text-ink-faint mt-2">
             No paths waiting. A Process run refills this.
           </p>
         ) : (
@@ -197,7 +197,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
           </div>
         )}
         {historyLine && (
-          <p className="text-label text-white/40 mt-2">Handled so far: {historyLine}.</p>
+          <p className="text-label text-ink-faint mt-2">Handled so far: {historyLine}.</p>
         )}
       </section>
     </div>

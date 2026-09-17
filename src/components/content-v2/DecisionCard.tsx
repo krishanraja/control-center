@@ -32,7 +32,7 @@ function Btn({ children, primary, onClick, disabled }: {
       onClick={onClick}
       disabled={disabled}
       className={`px-3 py-1.5 rounded-lg text-label font-semibold whitespace-nowrap transition-colors disabled:opacity-40 ${
-        primary ? 'btn-contrast' : 'bg-white/[0.06] text-white/70 hover:bg-white/[0.1]'
+        primary ? 'btn-contrast' : 'bg-white/[0.06] text-ink-muted hover:bg-white/[0.1]'
       }`}
     >
       {children}
@@ -48,7 +48,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
   onOpenBrief: () => void
 }) {
   const p = d.payload as Record<string, any>
-  const chip = KIND_CHIP[d.kind] || { label: d.kind, cls: 'bg-white/[0.06] text-white/55' }
+  const chip = KIND_CHIP[d.kind] || { label: d.kind, cls: 'bg-white/[0.06] text-ink-faint' }
   const [rejecting, setRejecting] = useState(false)
   // Lazy here, unlike the mobile deck: the desktop room renders every card at
   // once, so prefetching all of them would embed the whole queue to shortcut
@@ -152,8 +152,8 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
             <span className={`inline-block rounded-full px-2 py-0.5 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
             <WhyBadge table="content_decisions" row={d} align="start" />
           </span>
-          <div className="text-body font-semibold text-white/90 mt-1.5 leading-snug">{title}</div>
-          <div className="text-label text-white/45 mt-0.5 leading-relaxed">{subtitle}</div>
+          <div className="text-body font-semibold text-ink mt-1.5 leading-snug">{title}</div>
+          <div className="text-label text-ink-faint mt-0.5 leading-relaxed">{subtitle}</div>
         </div>
         <div className="flex flex-wrap gap-1.5 flex-shrink-0">{actions()}</div>
       </div>

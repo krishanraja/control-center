@@ -37,8 +37,8 @@ import {
 // to someone. Those are prefilled rather than asked, so the common case is one
 // tap, but they are on screen and editable.
 
-const FIELD = 'mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none'
-const LABEL = 'text-micro text-white/45'
+const FIELD = 'mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-ink-muted placeholder:text-ink-faint focus:border-violet-400/50 focus:outline-none'
+const LABEL = 'text-micro text-ink-faint'
 
 /**
  * The flow behind one controlled modal, so it can be opened from anywhere.
@@ -126,14 +126,14 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
           {flow.step === 'scanning' ? (
             <div className="flex flex-col items-center gap-2">
               <Working size={18} />
-              <p className="text-body text-white/70">Reading the screenshot…</p>
-              <p className="text-micro text-white/40">Nothing is saved until you confirm.</p>
+              <p className="text-body text-ink-muted">Reading the screenshot…</p>
+              <p className="text-micro text-ink-faint">Nothing is saved until you confirm.</p>
             </div>
           ) : (
             <>
-              <ClipboardPaste size={22} className="mx-auto text-white/40" aria-hidden />
-              <p className="mt-2 text-body font-medium text-white/75">Paste a screenshot</p>
-              <p className="mt-0.5 text-micro text-white/45">
+              <ClipboardPaste size={22} className="mx-auto text-ink-faint" aria-hidden />
+              <p className="mt-2 text-body font-medium text-ink-muted">Paste a screenshot</p>
+              <p className="mt-0.5 text-micro text-ink-faint">
                 Or drop an image here. A LinkedIn profile works best — a badge or an email signature also reads.
               </p>
               <div className="mt-3 flex items-center justify-center gap-2">
@@ -214,7 +214,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
                 value={flow.tier}
                 onChange={flow.setTier}
               />
-              <p className="mt-1 text-micro text-white/35">
+              <p className="mt-1 text-micro text-ink-faint">
                 {TIER_OPTIONS.find(t => t.value === flow.tier)?.hint}
               </p>
             </div>
@@ -233,7 +233,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
               data-testid="field-note"
             />
           </label>
-          <p className="text-micro text-white/40">{TIER_OPTIONS.find(t => t.value === flow.tier)?.hint}</p>
+          <p className="text-micro text-ink-faint">{TIER_OPTIONS.find(t => t.value === flow.tier)?.hint}</p>
         </Card>
 
         <label className="flex items-start gap-2 rounded-card border border-white/[0.08] px-3 py-2">
@@ -244,7 +244,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
             className="mt-0.5 accent-violet-400"
             data-testid="field-apify"
           />
-          <span className="text-label leading-relaxed text-white/60">
+          <span className="text-label leading-relaxed text-ink-faint">
             Scrape the full LinkedIn profile via Apify — costs one paid actor run, and needs the URL above.
             Without it, enrichment still runs People Data Labs, Apollo and web research.
           </span>
@@ -283,7 +283,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
       {flow.step === 'enriching' && (
         <Card variant="outline" className="flex items-center gap-2 p-3">
           <Working size={14} />
-          <p className="text-label text-white/70">
+          <p className="text-label text-ink-muted">
             Enriching{flow.useApify ? ' — including the LinkedIn profile scrape, which is the slow one' : ''}…
           </p>
         </Card>
@@ -296,8 +296,8 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
           alert={flow.alert}
           alertSent={flow.alertSent}
         >
-          <p className="mt-2 text-label leading-relaxed text-white/60">
-            Nothing partial was written. {flow.person?.full_name} is saved and marked <code className="text-white/75">blocked_quota</code>,
+          <p className="mt-2 text-label leading-relaxed text-ink-faint">
+            Nothing partial was written. {flow.person?.full_name} is saved and marked <code className="text-ink-muted">blocked_quota</code>,
             so re-running enrichment after a top-up will pick them up — they will not be mistaken for a finished record.
           </p>
         </Problem>
@@ -311,14 +311,14 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
               {flow.enrichment.status === 'no_evidence' ? 'No evidence found' : `Enriched · ${flow.enrichment.confidence} confidence`}
             </Eyebrow>
           </div>
-          {flow.enrichment.who && <p className="text-body leading-relaxed text-white/85">{flow.enrichment.who}</p>}
-          {flow.enrichment.why_them && <p className="text-label leading-relaxed text-white/65">{flow.enrichment.why_them}</p>}
+          {flow.enrichment.who && <p className="text-body leading-relaxed text-ink-muted">{flow.enrichment.who}</p>}
+          {flow.enrichment.why_them && <p className="text-label leading-relaxed text-ink-muted">{flow.enrichment.why_them}</p>}
           {flow.enrichment.hook && (
-            <p className="rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-2 text-label leading-relaxed text-white/70">
-              <span className="text-white/40">Hook · </span>{flow.enrichment.hook}
+            <p className="rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-2 text-label leading-relaxed text-ink-muted">
+              <span className="text-ink-faint">Hook · </span>{flow.enrichment.hook}
             </p>
           )}
-          {flow.enrichment.detail && <p className="text-label leading-relaxed text-white/50">{flow.enrichment.detail}</p>}
+          {flow.enrichment.detail && <p className="text-label leading-relaxed text-ink-faint">{flow.enrichment.detail}</p>}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {flow.enrichment.used?.map(s => <Badge key={s} variant="outline" className="text-micro">{s}</Badge>)}
           </div>
@@ -330,7 +330,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
             <p className="text-micro leading-relaxed text-amber-200/70">Ran but returned nothing: {flow.enrichment.degraded.join('; ')}</p>
           ) : null}
           {flow.enrichment.skipped?.length ? (
-            <p className="text-micro leading-relaxed text-white/40">Not configured: {flow.enrichment.skipped.join(', ')}</p>
+            <p className="text-micro leading-relaxed text-ink-faint">Not configured: {flow.enrichment.skipped.join(', ')}</p>
           ) : null}
         </Card>
       )}
@@ -372,7 +372,7 @@ function Note({ tone, icon: Icon, children }: {
   const styles = {
     amber: 'border-amber-400/20 bg-amber-500/[0.06] text-amber-100/85',
     emerald: 'border-emerald-400/20 bg-emerald-500/[0.06] text-emerald-100/85',
-    neutral: 'border-white/[0.08] bg-white/[0.02] text-white/60',
+    neutral: 'border-white/[0.08] bg-white/[0.02] text-ink-faint',
   }[tone]
   return (
     <div className={`flex items-start gap-2 rounded-card border px-3 py-2.5 ${styles}`}>
@@ -400,7 +400,7 @@ function Problem({ title, detail, alert, alertSent, children }: {
             </pre>
           )}
           {alertSent !== undefined && (
-            <p className="mt-1.5 text-micro text-white/45">
+            <p className="mt-1.5 text-micro text-ink-faint">
               {alertSent
                 ? 'Alert sent to your Telegram.'
                 : 'Telegram alert could NOT be sent — this panel is the only notice.'}

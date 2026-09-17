@@ -22,11 +22,11 @@ export function ServesPicker({
   disabled?: boolean
 }) {
   if (os.length === 0) {
-    return <p className="text-label text-white/45">Set an OS goal first.</p>
+    return <p className="text-label text-ink-faint">Set an OS goal first.</p>
   }
   return (
     <div className="space-y-1.5">
-      <p className="text-micro text-white/40">Which OS goal does this serve?</p>
+      <p className="text-micro text-ink-faint">Which OS goal does this serve?</p>
       <div className="flex flex-col gap-1.5">
         {os.map(g => {
           const on = value === g.id
@@ -39,11 +39,11 @@ export function ServesPicker({
               onClick={() => onChange(g.id)}
               className={`flex min-h-[40px] w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-40 ${
                 on
-                  ? 'border-violet-400/50 bg-violet-500/15 text-white'
-                  : 'border-white/[0.08] bg-white/[0.02] text-white/65 hover:bg-white/[0.05]'
+                  ? 'border-violet-400/50 bg-violet-500/15 text-ink'
+                  : 'border-white/[0.08] bg-white/[0.02] text-ink-muted hover:bg-white/[0.05]'
               }`}
             >
-              <Target size={12} className={on ? 'text-violet-200' : 'text-white/35'} aria-hidden />
+              <Target size={12} className={on ? 'text-violet-200' : 'text-ink-faint'} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-body leading-snug">{g.title}</span>
             </button>
           )
@@ -64,7 +64,7 @@ export function VentureChips({
   if (ventures.length === 0) return null
   return (
     <div className="space-y-1.5">
-      <p className="text-micro text-white/40">Venture, if it belongs to one</p>
+      <p className="text-micro text-ink-faint">Venture, if it belongs to one</p>
       <div className="flex flex-wrap gap-1.5">
         <Chip label="None" on={value === ''} disabled={disabled} onClick={() => onChange('')} />
         {ventures.map(v => (
@@ -90,7 +90,7 @@ export function OptionChips({
 }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="text-micro text-white/40">{label}</p>}
+      {label && <p className="text-micro text-ink-faint">{label}</p>}
       <div className="flex flex-wrap gap-1.5">
         {options.map(o => (
           <Chip key={o.value} label={o.label} on={value === o.value} disabled={disabled} onClick={() => onChange(o.value)} />
@@ -112,7 +112,7 @@ function Chip({ label, on, onClick, disabled }: {
       className={`min-h-[32px] rounded-full border px-3 py-1 text-label transition-colors disabled:opacity-40 ${
         on
           ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
-          : 'border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]'
+          : 'border-white/10 bg-white/[0.03] text-ink-faint hover:bg-white/[0.06]'
       }`}
     >
       {label}

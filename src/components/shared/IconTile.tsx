@@ -23,7 +23,7 @@ const SIZE = {
 } as const
 
 const TONE = {
-  neutral: 'border-white/[0.10] bg-white/[0.04] text-white/70',
+  neutral: 'border-white/[0.10] bg-white/[0.04] text-ink-muted',
   accent: 'border-violet-300/30 bg-violet-500/15 text-violet-200',
 } as const
 

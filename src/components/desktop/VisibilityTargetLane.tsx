@@ -20,10 +20,10 @@ export function VisibilityTargetLane({ status, title, description, targets, onOp
     return (
       <section className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-4">
         <header className="flex items-baseline justify-between mb-1">
-          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-white/55">{title}</h3>
-          <span className="text-micro text-white/30 tabular-nums">0</span>
+          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-ink-faint">{title}</h3>
+          <span className="text-micro text-ink-faint tabular-nums">0</span>
         </header>
-        <p className="text-micro text-white/35">{description}</p>
+        <p className="text-micro text-ink-faint">{description}</p>
       </section>
     )
   }
@@ -41,15 +41,15 @@ export function VisibilityTargetLane({ status, title, description, targets, onOp
       >
         <ChevronRight
           size={12}
-          className={`text-white/40 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+          className={`text-ink-faint transition-transform ${collapsed ? '' : 'rotate-90'}`}
         />
         <div className="flex-1 min-w-0">
-          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-white/75 truncate">
+          <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-ink-muted truncate">
             {title}
           </h3>
-          <p className="text-micro text-white/45 truncate">{description}</p>
+          <p className="text-micro text-ink-faint truncate">{description}</p>
         </div>
-        <span className="text-micro tabular-nums text-white/55 flex-shrink-0">{targets.length}</span>
+        <span className="text-micro tabular-nums text-ink-faint flex-shrink-0">{targets.length}</span>
       </button>
 
       {!collapsed && (

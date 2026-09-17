@@ -21,7 +21,7 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   // lead sources
   podcast_audience:   { label: 'Podcast audience',   icon: Mic,         tone: 'text-rose-300 bg-rose-500/10 border-rose-500/20' },
   drive_import:       { label: 'Drive import',       icon: UploadCloud, tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
-  manual:             { label: 'Manual',             icon: PenLine,     tone: 'text-white/70 bg-white/[0.06] border-white/10' },
+  manual:             { label: 'Manual',             icon: PenLine,     tone: 'text-ink-muted bg-white/[0.06] border-white/10' },
   apollo:             { label: 'Apollo',             icon: Users,       tone: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
   nell_candidate:     { label: 'Nell candidate',     icon: Radar,       tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
   signal_inbox:       { label: 'Signal Inbox',       icon: FileText,    tone: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },

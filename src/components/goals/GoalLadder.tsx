@@ -178,7 +178,7 @@ export function GoalLadder({ variant = 'desktop' }: {
     <div className="mt-2.5 rounded-xl border border-violet-400/25 bg-violet-500/[0.06] p-3">
       <div className="flex items-center justify-between mb-2">
         <Eyebrow tone="accent">New OS goal</Eyebrow>
-        <button type="button" onClick={() => { setAdding(null); setGate(null) }} aria-label="Cancel" className="text-white/35 hover:text-white/70">
+        <button type="button" onClick={() => { setAdding(null); setGate(null) }} aria-label="Cancel" className="text-ink-faint hover:text-ink-muted">
           <X size={14} />
         </button>
       </div>
@@ -189,7 +189,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         onChange={e => { setTitle(e.target.value); if (gate) setGate(null) }}
         onKeyDown={e => { if (e.key === 'Enter') void save(); if (e.key === 'Escape') { setAdding(null); setGate(null) } }}
         placeholder="What is the whole system for?"
-        className="w-full min-h-[40px] px-3 rounded-lg bg-white/[0.04] border border-white/10 text-body text-white/90 placeholder:text-white/25 outline-none focus:border-violet-400/40"
+        className="w-full min-h-[40px] px-3 rounded-lg bg-white/[0.04] border border-white/10 text-body text-ink placeholder:text-ink-faint/50 outline-none focus:border-violet-400/40"
       />
 
       {/* The gate did not pass: the specific failures stay attached to the
@@ -198,14 +198,14 @@ export function GoalLadder({ variant = 'desktop' }: {
       {gate && (
         <div className="mt-2.5 rounded-lg border border-amber-400/25 bg-amber-500/[0.07] p-2.5">
           <Eyebrow className="!text-amber-200/85">{gate.verdict === 'wrong_tier' ? 'Wrong rung' : 'Not saved yet'}</Eyebrow>
-          {gate.reasoning && <p className="mt-1 text-label text-white/70 leading-snug">{gate.reasoning}</p>}
+          {gate.reasoning && <p className="mt-1 text-label text-ink-muted leading-snug">{gate.reasoning}</p>}
           {gate.issues.length > 0 && (
             <ul className="mt-2 space-y-1.5">
               {gate.issues.map((it, i) => (
                 <li key={i} className="text-label leading-snug">
                   <span className="text-amber-200/80 font-medium">{it.dimension}: </span>
-                  <span className="text-white/70">{it.problem}</span>
-                  {it.fix && <span className="text-white/45"> {it.fix}</span>}
+                  <span className="text-ink-muted">{it.problem}</span>
+                  {it.fix && <span className="text-ink-faint"> {it.fix}</span>}
                 </li>
               ))}
             </ul>
@@ -226,7 +226,7 @@ export function GoalLadder({ variant = 'desktop' }: {
                 type="button"
                 disabled={saving}
                 onClick={() => { setTitle(gate.suggested_rewrite!); setGate(null) }}
-                className="min-h-[30px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-label text-white/85 hover:bg-white/[0.12] disabled:opacity-50"
+                className="min-h-[30px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-label text-ink-muted hover:bg-white/[0.12] disabled:opacity-50"
               >
                 Use the suggested wording
               </button>
@@ -235,16 +235,16 @@ export function GoalLadder({ variant = 'desktop' }: {
               type="button"
               disabled={saving}
               onClick={() => void save({ override: true })}
-              className="min-h-[30px] px-2.5 rounded-md text-label text-white/45 hover:text-white/80 underline underline-offset-2 disabled:opacity-50"
+              className="min-h-[30px] px-2.5 rounded-md text-label text-ink-faint hover:text-ink-muted underline underline-offset-2 disabled:opacity-50"
             >
               Save as written
             </button>
           </div>
           {gate.suggested_rewrite && (
-            <p className="mt-2 text-micro text-white/45 leading-snug italic">{gate.suggested_rewrite}</p>
+            <p className="mt-2 text-micro text-ink-faint leading-snug italic">{gate.suggested_rewrite}</p>
           )}
           {!gate.model_used && (
-            <p className="mt-2 text-micro text-white/35 leading-snug">
+            <p className="mt-2 text-micro text-ink-faint leading-snug">
               Structural checks only. The judgment pass did not run, so this goal was not fully assessed.
             </p>
           )}
@@ -268,7 +268,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         <p className="text-label text-rose-300 flex items-center gap-2 flex-wrap">
           <span>{error || loadError}</span>
           {loadError && !canon && (
-            <button type="button" onClick={() => { h.tap(); refresh() }} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+            <button type="button" onClick={() => { h.tap(); refresh() }} className="underline underline-offset-2 text-ink-muted hover:text-ink">Retry</button>
           )}
         </p>
       )}
@@ -292,7 +292,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         </div>
         {os.length === 0 ? (
           <div>
-            <p className="text-body text-white/50 leading-relaxed">
+            <p className="text-body text-ink-faint leading-relaxed">
               Nothing set yet. Start with an OS goal: what the whole system is for. Everything below hangs off it.
             </p>
             {!adding && (
@@ -316,10 +316,10 @@ export function GoalLadder({ variant = 'desktop' }: {
                       value={editTitle}
                       onChange={e => setEditTitle(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') void saveEdit(g.id); if (e.key === 'Escape') setEditing(null) }}
-                      className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-white/[0.04] border border-white/10 text-ui text-white/90 outline-none focus:border-violet-400/40"
+                      className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-white/[0.04] border border-white/10 text-ui text-ink outline-none focus:border-violet-400/40"
                     />
-                    <button type="button" onClick={() => void retire(g)} disabled={saving} title="Retire this goal (reversible)" className="px-2 py-1 text-micro text-white/40 hover:text-rose-300 disabled:opacity-40">Retire</button>
-                    <button type="button" onClick={() => setEditing(null)} className="px-2 py-1 text-micro text-white/45 hover:text-white/80">Cancel</button>
+                    <button type="button" onClick={() => void retire(g)} disabled={saving} title="Retire this goal (reversible)" className="px-2 py-1 text-micro text-ink-faint hover:text-rose-300 disabled:opacity-40">Retire</button>
+                    <button type="button" onClick={() => setEditing(null)} className="px-2 py-1 text-micro text-ink-faint hover:text-ink-muted">Cancel</button>
                     <button type="button" onClick={() => void saveEdit(g.id)} disabled={saving || !editTitle.trim()} className="px-3 py-1.5 rounded-lg btn-contrast text-micro font-semibold disabled:opacity-40">
                       {saving ? <Working size={11} /> : 'Save'}
                     </button>
@@ -330,7 +330,7 @@ export function GoalLadder({ variant = 'desktop' }: {
                     onClick={() => startEdit(g)}
                     className="w-full text-left flex items-baseline gap-2 group min-w-0"
                   >
-                    <span className={`font-display ${compact ? 'text-lede' : 'text-title'} text-white/90 group-hover:text-white leading-tight break-words min-w-0 line-clamp-1 [@media(max-height:820px)]:text-lede`}>
+                    <span className={`font-display ${compact ? 'text-lede' : 'text-title'} text-ink group-hover:text-ink leading-tight break-words min-w-0 line-clamp-1 [@media(max-height:820px)]:text-lede`}>
                       {g.title}
                     </span>
                     {staleChip(g)}
@@ -348,7 +348,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         <div className="flex items-baseline gap-2 mb-2">
           <Eyebrow>This week</Eyebrow>
           {weekly.length > 0 && (
-            <span className="text-micro text-white/35 tabular-nums font-mono">{weeklyDone}/{weekly.length}</span>
+            <span className="text-micro text-ink-faint tabular-nums font-mono">{weeklyDone}/{weekly.length}</span>
           )}
           {!compact && os.length > 0 && weeklyActive < 3 && !weekend && (
             <button
@@ -362,7 +362,7 @@ export function GoalLadder({ variant = 'desktop' }: {
           )}
         </div>
         {weekly.length === 0 ? (
-          <p className="text-body text-white/40 leading-relaxed">
+          <p className="text-body text-ink-faint leading-relaxed">
             {os.length === 0
               ? 'Set an OS goal first.'
               : weekend
@@ -390,9 +390,9 @@ export function GoalLadder({ variant = 'desktop' }: {
                         value={editTitle}
                         onChange={e => setEditTitle(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') void saveEdit(g.id); if (e.key === 'Escape') setEditing(null) }}
-                        className="flex-1 min-w-0 min-h-[34px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-body text-white/90 outline-none focus:border-violet-400/40"
+                        className="flex-1 min-w-0 min-h-[34px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-body text-ink outline-none focus:border-violet-400/40"
                       />
-                      <button type="button" onClick={() => void retire(g)} disabled={saving} title="Drop this objective (reversible)" className="px-1.5 text-micro text-white/40 hover:text-rose-300 disabled:opacity-40">Drop</button>
+                      <button type="button" onClick={() => void retire(g)} disabled={saving} title="Drop this objective (reversible)" className="px-1.5 text-micro text-ink-faint hover:text-rose-300 disabled:opacity-40">Drop</button>
                       <button type="button" onClick={() => void saveEdit(g.id)} disabled={saving || !editTitle.trim()} className="px-2.5 py-1 rounded-lg btn-contrast text-micro font-semibold disabled:opacity-40">
                         {saving ? <Working size={11} /> : 'Save'}
                       </button>
@@ -400,17 +400,17 @@ export function GoalLadder({ variant = 'desktop' }: {
                   ) : (
                     <button type="button" onClick={() => startEdit(g)} className="flex-1 text-left min-w-0 pt-[1px]">
                       <span className="flex items-baseline gap-2 min-w-0">
-                        <span className={`text-body leading-snug truncate ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>
+                        <span className={`text-body leading-snug truncate ${done ? 'text-ink-faint line-through' : 'text-ink'}`}>
                           {g.title}
                         </span>
-                        {g.job && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/40">{jobLabel(g.job)}</span>}
-                        {g.venture && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/40">{g.venture}</span>}
+                        {g.job && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint">{jobLabel(g.job)}</span>}
+                        {g.venture && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint">{g.venture}</span>}
                         {staleChip(g)}
                       </span>
                       {/* The serves-chip is a second line on desktop only; on
                           mobile every row stays single-line so the canon fits. */}
                       {!compact && g.parent_id && osTitle.get(g.parent_id) && (
-                        <span className="mt-0.5 flex items-center gap-1 text-micro text-white/40 min-w-0">
+                        <span className="mt-0.5 flex items-center gap-1 text-micro text-ink-faint min-w-0">
                           <Target size={9} className="opacity-60 flex-shrink-0" /><span className="truncate">{osTitle.get(g.parent_id)}</span>
                         </span>
                       )}

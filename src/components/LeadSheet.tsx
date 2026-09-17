@@ -17,8 +17,8 @@ const TIER_LABEL: Record<string, string> = {
 function Signal({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) {
   return (
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2">
-      <p className="text-micro uppercase tracking-wider text-white/40">{label}</p>
-      <p className={`text-ui font-semibold mt-0.5 ${accent || 'text-white'}`}>{value}</p>
+      <p className="text-micro uppercase tracking-wider text-ink-faint">{label}</p>
+      <p className={`text-ui font-semibold mt-0.5 ${accent || 'text-ink'}`}>{value}</p>
     </div>
   )
 }
@@ -89,11 +89,11 @@ export function LeadSheet({
           <div className="px-5 pb-4 flex flex-col gap-4 overflow-y-auto scrollbar-hide" style={{ maxHeight: '70vh' }}>
             {/* Header */}
             <div>
-              <p className="text-title font-semibold text-white leading-tight">{name}</p>
-              {subtitle && <p className="text-ui text-white/55 mt-0.5">{subtitle}</p>}
+              <p className="text-title font-semibold text-ink leading-tight">{name}</p>
+              {subtitle && <p className="text-ui text-ink-faint mt-0.5">{subtitle}</p>}
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 {contact.consent_tier && (
-                  <span className="px-2.5 py-1 rounded-full text-label bg-white/[0.06] text-white/70">
+                  <span className="px-2.5 py-1 rounded-full text-label bg-white/[0.06] text-ink-muted">
                     {TIER_LABEL[contact.consent_tier] || contact.consent_tier}
                   </span>
                 )}
@@ -141,7 +141,7 @@ export function LeadSheet({
             </div>
 
             {(contact.origin_campaign || contact.origin_channel) && (
-              <p className="text-body text-white/45">
+              <p className="text-body text-ink-faint">
                 Source: {[contact.origin_channel, contact.origin_campaign].filter(Boolean).join(' · ')}
               </p>
             )}
@@ -149,7 +149,7 @@ export function LeadSheet({
             {Array.isArray(contact.tags) && contact.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {contact.tags.slice(0, 8).map(t => (
-                  <span key={t} className="px-2 py-0.5 rounded-md text-micro bg-white/[0.05] text-white/55">{t}</span>
+                  <span key={t} className="px-2 py-0.5 rounded-md text-micro bg-white/[0.05] text-ink-faint">{t}</span>
                 ))}
               </div>
             )}
@@ -158,18 +158,18 @@ export function LeadSheet({
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <Sparkles size={14} className="text-violet-300" />
-                <span className="text-body font-semibold text-white">
+                <span className="text-body font-semibold text-ink">
                   {enriched ? `Researched · ${humanAge(contact.deep_enriched_at || contact.updated_at)}` : 'Not researched yet'}
                 </span>
               </div>
               {enriched ? (
                 <div className="flex flex-col gap-2">
-                  {why && <p className="text-body text-white/70 leading-relaxed"><span className="text-white/45">{why.label}: </span>{why.text}</p>}
-                  {move && <p className="text-body text-violet-200/80 leading-relaxed"><span className="text-white/45">The move: </span>{move}</p>}
-                  {!why && !move && <p className="text-body text-white/45">Dossier on file.</p>}
+                  {why && <p className="text-body text-ink-muted leading-relaxed"><span className="text-ink-faint">{why.label}: </span>{why.text}</p>}
+                  {move && <p className="text-body text-violet-200/80 leading-relaxed"><span className="text-ink-faint">The move: </span>{move}</p>}
+                  {!why && !move && <p className="text-body text-ink-faint">Dossier on file.</p>}
                 </div>
               ) : (
-                <p className="text-body text-white/50 leading-relaxed">
+                <p className="text-body text-ink-faint leading-relaxed">
                   You have heat, fit and source above to judge this lead. Worth a closer look? Queue a dossier — a 5-pass research brief (public voice, prior history with you, the per-venture angle). Opt-in, so credits only go to leads you choose.
                 </p>
               )}
@@ -183,7 +183,7 @@ export function LeadSheet({
                 type="button"
                 onClick={research}
                 disabled={busy || queued}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full border border-white/15 text-white text-ui font-semibold py-3.5 active:scale-[0.98] transition-transform disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-2 rounded-full border border-white/15 text-ink text-ui font-semibold py-3.5 active:scale-[0.98] transition-transform disabled:opacity-60"
               >
                 {busy ? <><Working size={17} /> Queuing…</>
                   : queued ? <><Check size={17} className="text-emerald-300" /> Queued</>

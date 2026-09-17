@@ -187,48 +187,48 @@ export function SkillForge() {
       {/* Left: input form (60%) */}
       <div className="lg:col-span-3 space-y-3">
         <header>
-          <h2 className="text-ui font-semibold text-white flex items-center gap-2">
+          <h2 className="text-ui font-semibold text-ink flex items-center gap-2">
             <Wand2 size={14} className="text-violet-400" />
             Skill Forge
           </h2>
-          <p className="text-label text-white/45 mt-0.5">
+          <p className="text-label text-ink-faint mt-0.5">
             Paste a client transcript. Ship a custom Agent Skill in minutes.
           </p>
         </header>
 
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 space-y-3">
           <label className="block">
-            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Transcript</span>
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Transcript</span>
             <textarea
               value={transcript}
               onChange={e => setTranscript(e.target.value)}
               placeholder={PLACEHOLDER_TRANSCRIPT}
               rows={8}
-              className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
+              className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-ink-muted placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
             />
-            <span className="text-micro text-white/30 mt-1 block">
+            <span className="text-micro text-ink-faint mt-1 block">
               {transcript.length} chars · need 20+
             </span>
           </label>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Client name</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Client name</span>
               <input
                 value={clientName}
                 onChange={e => setClientName(e.target.value)}
                 placeholder="e.g. Acme Co"
-                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
+                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-ink-muted placeholder-white/25 focus:outline-none focus:border-violet-500/40"
               />
             </label>
             <label className="block">
-              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Client email</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Client email</span>
               <input
                 value={clientEmail}
                 onChange={e => setClientEmail(e.target.value)}
                 placeholder="ceo@acme.com"
                 type="email"
-                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
+                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-ink-muted placeholder-white/25 focus:outline-none focus:border-violet-500/40"
               />
             </label>
           </div>
@@ -236,7 +236,7 @@ export function SkillForge() {
           <button
             type="button"
             onClick={() => setShowAdditional(s => !s)}
-            className="text-micro text-white/45 hover:text-white/70 transition-colors"
+            className="text-micro text-ink-faint hover:text-ink-muted transition-colors"
           >
             {showAdditional ? '− Hide additional context' : '+ Add additional context (optional)'}
           </button>
@@ -246,7 +246,7 @@ export function SkillForge() {
               onChange={e => setAdditionalContext(e.target.value)}
               rows={4}
               placeholder="Extra notes, internal docs, examples…"
-              className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
+              className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-ink-muted placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
             />
           )}
 
@@ -260,7 +260,7 @@ export function SkillForge() {
           {triage && !triage.passed && (
             <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-label text-amber-200/85">
               <strong className="font-semibold text-amber-200">Triage: not a skill.</strong>
-              <span className="ml-1.5">Better as a <code className="text-white/85">{humanizeRoute(triage.result)}</code>.</span>
+              <span className="ml-1.5">Better as a <code className="text-ink-muted">{humanizeRoute(triage.result)}</code>.</span>
               {triage.reasoning && <p className="mt-1 text-amber-200/65">{triage.reasoning}</p>}
             </div>
           )}
@@ -277,7 +277,7 @@ export function SkillForge() {
             {(transcript || clientName) && !generating && (
               <button
                 onClick={resetForm}
-                className="text-label text-white/40 hover:text-white/70 transition-colors px-2"
+                className="text-label text-ink-faint hover:text-ink-muted transition-colors px-2"
               >
                 Clear
               </button>

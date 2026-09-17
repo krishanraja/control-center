@@ -36,18 +36,18 @@ export function CustomerCard({ customer: c }: Props) {
     <article className={`rounded-xl border ${isChurned ? 'border-red-500/25 bg-red-500/[0.04]' : 'border-white/[0.07] bg-white/[0.02]'} p-3 hover:border-white/[0.14] transition-colors`}>
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
-          <p className="text-body font-semibold text-white leading-snug truncate">{name}</p>
+          <p className="text-body font-semibold text-ink leading-snug truncate">{name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-micro text-white/55">
+            <span className="inline-flex items-center gap-1 text-micro text-ink-faint">
               <span className={`w-1.5 h-1.5 rounded-full ${productDot}`} />
               {productLabel}
             </span>
-            <span className="inline-flex items-center gap-1 text-micro text-white/55">
+            <span className="inline-flex items-center gap-1 text-micro text-ink-faint">
               <span className={`w-1.5 h-1.5 rounded-full ${kindDot}`} />
               {kindLabel}
             </span>
             {c.plan && (
-              <span className="text-micro text-white/45 truncate">{c.plan}</span>
+              <span className="text-micro text-ink-faint truncate">{c.plan}</span>
             )}
           </div>
         </div>
@@ -60,7 +60,7 @@ export function CustomerCard({ customer: c }: Props) {
       </header>
 
       {(c.source || when) && (
-        <div className="flex items-center justify-between gap-3 mt-2 text-micro text-white/40">
+        <div className="flex items-center justify-between gap-3 mt-2 text-micro text-ink-faint">
           <span className="break-words">{c.source ? `via ${sourceLabel(c.source)}` : ''}</span>
           <span className="tabular-nums flex-shrink-0">{when ? humanAgo(when) : ''}</span>
         </div>
@@ -71,7 +71,7 @@ export function CustomerCard({ customer: c }: Props) {
           {c.email && (
             <a
               href={`mailto:${c.email}`}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-white/60 hover:bg-white/[0.06]"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-ink-faint hover:bg-white/[0.06]"
             >
               <Mail size={10} />
               Email
@@ -82,7 +82,7 @@ export function CustomerCard({ customer: c }: Props) {
               href={`https://dashboard.stripe.com/customers/${c.stripe_customer_id}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-white/60 hover:bg-white/[0.06]"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-ink-faint hover:bg-white/[0.06]"
             >
               <ExternalLink size={10} />
               Stripe

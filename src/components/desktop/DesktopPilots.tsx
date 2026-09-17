@@ -251,7 +251,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
 
   const header = !narrow && (
     <header>
-      <h1 className="text-title font-semibold text-white tracking-tight flex items-center gap-2">
+      <h1 className="text-title font-semibold text-ink tracking-tight flex items-center gap-2">
         <Users size={20} className="text-violet-300" />
         {ADVISORY_LABEL}
       </h1>
@@ -328,7 +328,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
                 className={`shrink-0 min-h-[32px] rounded-full border px-3 py-1 text-label transition-colors ${
                   on
                     ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
-                    : 'border-white/10 bg-white/[0.03] text-white/55'
+                    : 'border-white/10 bg-white/[0.03] text-ink-faint'
                 }`}
               >
                 {v.label}
@@ -363,7 +363,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           ) : (
             <p
               data-testid="pilot-empty"
-              className="text-body text-white/45 pb-[calc((env(safe-area-inset-bottom,0px)+96px)/var(--z,1))]"
+              className="text-body text-ink-faint pb-[calc((env(safe-area-inset-bottom,0px)+96px)/var(--z,1))]"
             >{emptyLine}</p>
           )}
         </div>
@@ -399,22 +399,22 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           the fold on a 390 by 844 phone. The purpose stays out loud because it
           is the answer to "what am I looking at"; the reasoning folds shut. */}
       <section data-testid="pilot-purpose" className="space-y-2">
-        <p className="text-body text-white/75 leading-snug">{PILOT_PURPOSE}</p>
+        <p className="text-body text-ink-muted leading-snug">{PILOT_PURPOSE}</p>
         <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]">
           <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2">
-            <span className="text-label text-white/55">Why these people</span>
-            <span className="ml-auto text-micro text-white/35 group-open:hidden">Show</span>
-            <span className="ml-auto hidden text-micro text-white/35 group-open:inline">Hide</span>
+            <span className="text-label text-ink-faint">Why these people</span>
+            <span className="ml-auto text-micro text-ink-faint group-open:hidden">Show</span>
+            <span className="ml-auto hidden text-micro text-ink-faint group-open:inline">Hide</span>
           </summary>
           <div className="space-y-1.5 px-3 pb-3">
-            <p className="text-label text-white/50 leading-snug">{PILOT_OFFER}</p>
-            <p className="text-label text-white/50 leading-snug">{progressLine(stateCounts)}</p>
+            <p className="text-label text-ink-faint leading-snug">{PILOT_OFFER}</p>
+            <p className="text-label text-ink-faint leading-snug">{progressLine(stateCounts)}</p>
           </div>
         </details>
       </section>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p data-testid="pilot-counts" className="text-label text-white/55">
+        <p data-testid="pilot-counts" className="text-label text-ink-faint">
           {counts || (error ? 'The list could not be read.' : 'Nobody is on the list yet.')}
         </p>
         <button
@@ -444,7 +444,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
                 className={`min-h-[32px] rounded-full border px-3 py-1 text-label transition-colors ${
                   on
                     ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
-                    : 'border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]'
+                    : 'border-white/10 bg-white/[0.03] text-ink-faint hover:bg-white/[0.06]'
                 }`}
               >
                 {v.label}
@@ -460,7 +460,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
 
       {proposals && proposals.length > 0 && (
         <section aria-label="Proposed leaders" className="space-y-2">
-          <p className="text-label text-white/55">
+          <p className="text-label text-ink-faint">
             These come from your own contacts. Nothing is added until you keep one.
           </p>
           {/* The shared deck, not a bespoke chip pair: it brings the reason
@@ -478,7 +478,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
             : `The list could not be read (${error}). It retries every minute.`}
         </p>
       ) : targets.length === 0 ? (
-        <p data-testid="pilot-empty" className="text-body text-white/45">{emptyLine}</p>
+        <p data-testid="pilot-empty" className="text-body text-ink-faint">{emptyLine}</p>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {targets.map(t => (

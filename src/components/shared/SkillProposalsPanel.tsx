@@ -46,11 +46,11 @@ export function SkillProposalsPanel() {
         <h3 className="text-micro md:text-label font-semibold uppercase tracking-[0.14em] text-violet-300">
           Skills Vera wants to teach
         </h3>
-        <span className="text-micro font-mono tabular-nums text-white/30 ml-auto">
+        <span className="text-micro font-mono tabular-nums text-ink-faint ml-auto">
           {loading ? '…' : proposals.length}
         </span>
       </header>
-      <p className="text-micro md:text-micro text-white/45 leading-snug mb-3 px-0.5">
+      <p className="text-micro md:text-micro text-ink-faint leading-snug mb-3 px-0.5">
         Vera clustered repeated wins and drafted reusable plays. Approve to append the play to the agent's identity, reject to dismiss.
       </p>
       <div className="space-y-2">
@@ -58,27 +58,27 @@ export function SkillProposalsPanel() {
           const state = busy[p.id] || 'idle'
           const confColor = p.confidence === 'high'
             ? 'text-emerald-300'
-            : p.confidence === 'medium' ? 'text-amber-300' : 'text-white/40'
+            : p.confidence === 'medium' ? 'text-amber-300' : 'text-ink-faint'
           return (
             <div key={p.id} data-skill-proposal-id={p.id} className="rounded-lg border border-violet-500/20 bg-white/[0.02] p-3">
               <div className="flex items-start gap-2 mb-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-label font-semibold text-white">{p.skill_title}</p>
+                  <p className="text-label font-semibold text-ink">{p.skill_title}</p>
                   <p className="text-micro text-violet-200/80 mt-0.5">
                     <span className="capitalize">{p.target_agent_id || 'fleet'}</span>
-                    <span className="text-white/30"> · </span>
+                    <span className="text-ink-faint"> · </span>
                     <span className={confColor}>{p.confidence} confidence</span>
                     {p.evidence_count != null && (
-                      <span className="text-white/40"> · {p.evidence_count} wins</span>
+                      <span className="text-ink-faint"> · {p.evidence_count} wins</span>
                     )}
                   </p>
                 </div>
-                <span className="text-micro text-white/30 tabular-nums flex-shrink-0">
+                <span className="text-micro text-ink-faint tabular-nums flex-shrink-0">
                   {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
                 </span>
               </div>
               {p.skill_body && (
-                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-sunk border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
+                <pre className="text-micro text-ink-muted leading-relaxed whitespace-pre-wrap bg-sunk border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
                   {p.skill_body}
                 </pre>
               )}
@@ -97,7 +97,7 @@ export function SkillProposalsPanel() {
                 <button
                   onClick={() => act(p.id, 'reject')}
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-white/[0.04] text-ink-faint border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
                 >
                   {state === 'rejecting' ? <Working size={11} /> : <ThumbsDown size={11} />}
                   Reject

@@ -68,7 +68,7 @@ export function AutonomyLadderCard({
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <ShieldCheck size={13} className="text-emerald-400" />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           How much they may do alone
         </h2>
         <span className={`ml-auto rounded-full border px-2 py-0.5 text-micro font-semibold ${AUTONOMY_CHIP[current]}`}>
@@ -77,8 +77,8 @@ export function AutonomyLadderCard({
       </header>
 
       <div className="px-4 py-3">
-        <p className="text-body text-white/85 leading-snug">{AUTONOMY_LABEL[current]}.</p>
-        <p className="text-label text-white/45 leading-snug mt-0.5">{AUTONOMY_EXPLAIN[current]}</p>
+        <p className="text-body text-ink-muted leading-snug">{AUTONOMY_LABEL[current]}.</p>
+        <p className="text-label text-ink-faint leading-snug mt-0.5">{AUTONOMY_EXPLAIN[current]}</p>
         <div className="flex items-center gap-1.5 mt-3">
           {LEVELS.map((lvl, i) => {
             const isCurrent = lvl === current
@@ -90,7 +90,7 @@ export function AutonomyLadderCard({
                     isCurrent ? 'bg-emerald-400' : reached ? 'bg-emerald-400/40' : 'bg-white/[0.07]'
                   }`}
                 />
-                <span className={`text-micro font-semibold ${isCurrent ? 'text-emerald-300' : 'text-white/30'}`}>
+                <span className={`text-micro font-semibold ${isCurrent ? 'text-emerald-300' : 'text-ink-faint'}`}>
                   {lvl}
                 </span>
               </div>
@@ -99,12 +99,12 @@ export function AutonomyLadderCard({
         </div>
         <ul className="mt-2 flex flex-col gap-0.5">
           {LEVELS.map(lvl => (
-            <li key={lvl} className={`text-micro leading-snug ${lvl === current ? 'text-white/70' : 'text-white/35'}`}>
+            <li key={lvl} className={`text-micro leading-snug ${lvl === current ? 'text-ink-muted' : 'text-ink-faint'}`}>
               <span className="font-semibold tabular-nums mr-1.5">{lvl}</span>{AUTONOMY_LABEL[lvl]}
             </li>
           ))}
         </ul>
-        <div className="mt-2 flex items-baseline gap-3 flex-wrap text-micro text-white/25 tabular-nums">
+        <div className="mt-2 flex items-baseline gap-3 flex-wrap text-micro text-ink-faint/50 tabular-nums">
           {detail?.stats && (
             <>
               <span>{detail.stats.approved_30d} approved / {detail.stats.rejected_30d} rejected · 30d</span>
@@ -142,7 +142,7 @@ export function AutonomyLadderCard({
                 type="button"
                 disabled={busy}
                 onClick={() => act({ action: 'promote', force: true, reason: 'krish force promotion' }, 'Force-promoted (override logged).')}
-                className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-white/60 hover:text-white transition-colors disabled:opacity-40"
+                className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-ink-faint hover:text-ink transition-colors disabled:opacity-40"
               >
                 Force promote
               </button>
@@ -151,7 +151,7 @@ export function AutonomyLadderCard({
         )}
 
         {detail && (
-          <p className="mt-2 text-micro text-white/35 leading-snug">
+          <p className="mt-2 text-micro text-ink-faint leading-snug">
             Promote moves up one rung. It only goes through when the product is making money and the agents have a record of approved sends. The money gate cannot be forced.
           </p>
         )}
@@ -163,8 +163,8 @@ export function AutonomyLadderCard({
                 {c.met
                   ? <Check size={11} className="text-emerald-300 flex-shrink-0" />
                   : <X size={11} className={`flex-shrink-0 ${c.overridable ? 'text-amber-300' : 'text-rose-300'}`} />}
-                <span className={c.met ? 'text-white/55' : 'text-white/80'}>{c.label}</span>
-                <span className="ml-auto text-white/30 tabular-nums">
+                <span className={c.met ? 'text-ink-faint' : 'text-ink-muted'}>{c.label}</span>
+                <span className="ml-auto text-ink-faint tabular-nums">
                   {c.actual == null ? 'none' : String(c.actual)}
                 </span>
                 {!c.met && !c.overridable && (
@@ -180,13 +180,13 @@ export function AutonomyLadderCard({
         <div className="border-t border-white/[0.06] divide-y divide-white/[0.03]">
           {history.slice(0, 4).map((h: any, i) => (
             <div key={i} className="px-4 py-2 text-micro flex items-center gap-2">
-              <span className="text-white/60 font-medium">
+              <span className="text-ink-faint font-medium">
                 {h.from && h.to ? `${h.from} to ${h.to}` : h.to || 'changed'}
               </span>
               {h.override && <span className="text-micro uppercase tracking-wide text-amber-300/80">override</span>}
-              {h.reason && <span className="text-white/35 truncate">{String(h.reason)}</span>}
+              {h.reason && <span className="text-ink-faint truncate">{String(h.reason)}</span>}
               {h.at && (
-                <span className="ml-auto text-white/25 flex-shrink-0">
+                <span className="ml-auto text-ink-faint/50 flex-shrink-0">
                   {formatDistanceToNow(new Date(String(h.at)), { addSuffix: true })}
                 </span>
               )}

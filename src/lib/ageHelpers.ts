@@ -49,7 +49,7 @@ export function ageTone(daysOld?: number | null): AgeTone {
 }
 
 export const AGE_TONE_CLASS: Record<AgeTone, string> = {
-  fresh:  'text-white/30',
+  fresh:  'text-ink-faint',
   warm:   'text-amber-300/70',
   stale:  'text-orange-400/80',
   rotten: 'text-rose-400',

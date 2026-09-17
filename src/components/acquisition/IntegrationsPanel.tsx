@@ -18,7 +18,7 @@ import type { IntegrationRow } from '../../hooks/useAcquisition'
 const STATUS_META: Record<IntegrationRow['status'], { tone: string; Icon: typeof Check; label: string; what: string }> = {
   wired: { tone: 'text-emerald-300', Icon: Check, label: 'Connected', what: 'working for this lane now' },
   pending: { tone: 'text-amber-300', Icon: Clock, label: 'Not yet', what: 'chosen, not connected' },
-  gated: { tone: 'text-white/40', Icon: Lock, label: 'Locked', what: 'waits on a milestone' },
+  gated: { tone: 'text-ink-faint', Icon: Lock, label: 'Locked', what: 'waits on a milestone' },
 }
 
 export function IntegrationsPanel({
@@ -42,18 +42,18 @@ export function IntegrationsPanel({
       <header className="px-4 py-3 border-b border-white/[0.06] flex flex-col gap-0.5">
         <div className="flex items-center gap-2">
           <Plug size={13} className="text-cyan-400 flex-shrink-0" />
-          <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+          <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Connected tools
           </h2>
         </div>
-        <p className="text-label text-white/45 leading-snug tabular-nums">
+        <p className="text-label text-ink-faint leading-snug tabular-nums">
           {wired} connected.{' '}
           {laneMonthly > 0 ? `About $${laneMonthly.toFixed(0)} a month of tool cost lands on this lane.` : 'No tool cost lands on this lane.'}
         </p>
       </header>
 
       {grouped.length === 0 ? (
-        <div className="px-4 py-5 text-center text-label text-white/35">No tools registered for this lane.</div>
+        <div className="px-4 py-5 text-center text-label text-ink-faint">No tools registered for this lane.</div>
       ) : (
         <div className="divide-y divide-white/[0.04]">
           {grouped.map(({ status, rows }) => {
@@ -62,7 +62,7 @@ export function IntegrationsPanel({
             return (
               <div key={status} className="px-4 py-3">
                 <p className={`text-micro font-semibold uppercase tracking-[0.14em] mb-2 ${meta.tone}`}>
-                  {meta.label} <span className="text-white/25 normal-case tracking-normal font-normal">{rows.length}, {meta.what}</span>
+                  {meta.label} <span className="text-ink-faint/50 normal-case tracking-normal font-normal">{rows.length}, {meta.what}</span>
                 </p>
                 <ul className="flex flex-col gap-2.5">
                   {rows.map(i => (
@@ -70,13 +70,13 @@ export function IntegrationsPanel({
                       <Icon size={11} className={`${meta.tone} flex-shrink-0 mt-[3px]`} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-3">
-                          <span className="text-label text-white/85 font-medium break-words">{i.tool}</span>
-                          <span className="text-micro text-white/40 tabular-nums flex-shrink-0">
+                          <span className="text-label text-ink-muted font-medium break-words">{i.tool}</span>
+                          <span className="text-micro text-ink-faint tabular-nums flex-shrink-0">
                             {i.monthly_usd > 0 ? `$${Number(i.monthly_usd).toFixed(0)}/mo` : i.usage_metered ? 'pay per use' : 'free'}
                           </span>
                         </div>
                         {(i.gated_reason || i.job || i.category) && (
-                          <p className="text-micro text-white/40 leading-snug break-words mt-0.5">
+                          <p className="text-micro text-ink-faint leading-snug break-words mt-0.5">
                             {i.status === 'gated' && i.gated_reason ? `Locked: ${i.gated_reason}` : (i.job || i.category)}
                           </p>
                         )}

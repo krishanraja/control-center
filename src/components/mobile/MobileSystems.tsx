@@ -115,7 +115,7 @@ export function MobileSystems() {
             <button
               onClick={liveRefresh}
               disabled={loading || refreshing}
-              className="px-5 py-3 rounded-full bg-white/10 text-white text-ui font-semibold active:scale-95 disabled:opacity-40 transition-transform"
+              className="px-5 py-3 rounded-full bg-white/10 text-ink text-ui font-semibold active:scale-95 disabled:opacity-40 transition-transform"
             >
               {refreshing ? <Working size={11} /> : 'Refresh'}
             </button>
@@ -145,9 +145,9 @@ export function MobileSystems() {
       ) : null}
 
       <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Down"    value={down.length}  color={down.length > 0 ? 'text-red-300' : 'text-white/45'} />
-        <StatPill label="Warn"    value={warn.length}  color={warn.length > 0 ? 'text-amber-300' : 'text-white/45'} />
-        <StatPill label="Healthy" value={ok.length}    color={ok.length > 0 ? 'text-emerald-300' : 'text-white/45'} />
+        <StatPill label="Down"    value={down.length}  color={down.length > 0 ? 'text-red-300' : 'text-ink-faint'} />
+        <StatPill label="Warn"    value={warn.length}  color={warn.length > 0 ? 'text-amber-300' : 'text-ink-faint'} />
+        <StatPill label="Healthy" value={ok.length}    color={ok.length > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
       </div>
 
       {error && (
@@ -180,7 +180,7 @@ export function MobileSystems() {
                 detail={s.note || undefined}
                 trailing={
                   s.last_checked && (
-                    <span className="text-ui text-white/35 tabular-nums">{humanAgo(s.last_checked)}</span>
+                    <span className="text-ui text-ink-faint tabular-nums">{humanAgo(s.last_checked)}</span>
                   )
                 }
                 onClick={() => { h.select(); setOpenId(s.id) }}

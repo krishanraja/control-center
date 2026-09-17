@@ -37,7 +37,7 @@ export function BetsSheet({ open, onClose }: {
     <SlideOver open={open} onClose={onClose} ariaLabel="Bets detail" label="Bets">
       <div className="flex flex-col gap-4" data-testid="bets-detail">
         {!loading && ordered.length === 0 && (
-          <p className="text-body leading-relaxed text-white/45">
+          <p className="text-body leading-relaxed text-ink-faint">
             No live bets. Promote a signal, or add one from a hypothesis you
             want to hold yourself to.
           </p>
@@ -61,7 +61,7 @@ export function BetsSheet({ open, onClose }: {
         )}
 
         {overall && overall.total > 0 && (
-          <p className="text-label leading-relaxed text-white/40">
+          <p className="text-label leading-relaxed text-ink-faint">
             Last 90 days: {overall.won} won, {overall.lost} lost —
             a {overall.pct.toFixed(0)}% hit-rate.
           </p>

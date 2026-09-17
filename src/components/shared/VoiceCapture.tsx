@@ -111,7 +111,7 @@ export function MicButton({
       disabled={disabled || busy}
       aria-label={recording ? 'Stop recording' : 'Record'}
       className={`h-7 w-7 inline-flex items-center justify-center rounded transition-colors ${
-        recording ? 'bg-rose-500/30 border border-rose-400/50 text-rose-100 animate-pulse' : 'text-white/45 hover:text-white/85'
+        recording ? 'bg-rose-500/30 border border-rose-400/50 text-rose-100 animate-pulse' : 'text-ink-faint hover:text-ink-muted'
       } disabled:opacity-50`}
     >
       {icon}

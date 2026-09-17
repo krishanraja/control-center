@@ -91,11 +91,11 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
     return (
       <div className="space-y-5">
         <header>
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
             <Users size={20} className="text-emerald-300" />
             Pipeline
           </h1>
-          <p className="text-body text-white/55 mt-1">Gathering your pipeline across every venture…</p>
+          <p className="text-body text-ink-faint mt-1">Gathering your pipeline across every venture…</p>
         </header>
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
@@ -106,11 +106,11 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
     return (
       <div className="space-y-4">
         <header className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
             <Users size={20} className="text-emerald-300" />
             Pipeline · Triage
           </h1>
-          <span className="text-body text-white/45">— right enriches or promotes, left drops with a reason</span>
+          <span className="text-body text-ink-faint">— right enriches or promotes, left drops with a reason</span>
         </header>
         <SwipeCockpit
           config={triageConfig}
@@ -125,11 +125,11 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
             <Users size={20} className="text-emerald-300" />
             Pipeline
           </h1>
-          <p className="text-body text-white/55 mt-1">
+          <p className="text-body text-ink-faint mt-1">
             Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.
           </p>
         </div>
@@ -146,7 +146,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
               <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
             </button>
           )}
-          <span className="text-micro text-white/55 tabular-nums">
+          <span className="text-micro text-ink-faint tabular-nums">
             {loading ? '…' : `${totalActive} active`}
           </span>
         </div>
@@ -163,7 +163,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
             <button
               type="button"
               onClick={() => onClearDetail?.()}
-              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-label"
+              className="text-ink-faint hover:text-ink-muted inline-flex items-center gap-1 text-label"
               aria-label="Close detail"
             >
               <X size={14} /> Close
@@ -178,7 +178,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
       <div className="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1fr)_minmax(0,2fr)] gap-5">
         <aside className="space-y-4 min-w-0">
           <section>
-            <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+            <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
               Import
             </h2>
             <LeadImportDropzone />
@@ -188,7 +188,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
           </section>
 
           <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-            <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+            <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
               By source
             </h2>
             <ul className="space-y-1">
@@ -200,8 +200,8 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
                     key={src}
                     className="flex items-center justify-between gap-2 py-1 text-label"
                   >
-                    <span className="text-white/75 truncate">{meta.title}</span>
-                    <span className={`tabular-nums ${count > 0 ? 'text-white/85' : 'text-white/25'}`}>
+                    <span className="text-ink-muted truncate">{meta.title}</span>
+                    <span className={`tabular-nums ${count > 0 ? 'text-ink-muted' : 'text-ink-faint/50'}`}>
                       {count}
                     </span>
                   </li>

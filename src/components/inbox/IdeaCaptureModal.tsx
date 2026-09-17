@@ -125,7 +125,7 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
             <Inbox size={14} className="text-violet-300" />
             <span className="text-label font-semibold uppercase tracking-[0.14em] text-violet-200">Drop a task</span>
           </div>
-          <button type="button" onClick={onClose} className="text-white/40 hover:text-white/85" aria-label="Close">
+          <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink-muted" aria-label="Close">
             <X size={14} />
           </button>
         </header>
@@ -137,7 +137,7 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
             onKeyDown={onKeyDown}
             placeholder="Anything on your mind. Sonnet will figure out where it belongs and which agent owns it."
             rows={4}
-            className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 text-ui text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-y"
+            className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 text-ui text-ink placeholder:text-ink-faint focus:border-violet-400/50 focus:outline-none resize-y"
           />
           <div className="mt-3 flex items-center gap-2">
             {canRecord && (
@@ -149,13 +149,13 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
                 className={`h-9 w-9 inline-flex items-center justify-center rounded-md border transition-colors ${
                   recording
                     ? 'bg-rose-500/30 border-rose-400/50 text-rose-100 animate-pulse'
-                    : 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/90'
+                    : 'bg-white/[0.04] border-white/[0.08] text-ink-faint hover:text-ink'
                 } disabled:opacity-50`}
               >
                 {transcribing ? <Working size={13} /> : (recording ? <Square size={12} /> : <Mic size={13} />)}
               </button>
             )}
-            <span className="text-micro text-white/35 hidden sm:inline ml-auto">⌘↵ to drop</span>
+            <span className="text-micro text-ink-faint hidden sm:inline ml-auto">⌘↵ to drop</span>
             <button
               type="button"
               onClick={submit}

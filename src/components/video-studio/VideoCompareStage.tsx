@@ -176,10 +176,10 @@ export function VideoCompareStage({
       {(unavailable || activeFailed) && (
         <div className="absolute inset-0 grid place-items-center px-8 text-center" role="status">
           <div>
-            <p className="text-body font-semibold text-white/80">
+            <p className="text-body font-semibold text-ink-muted">
               {comparison.state === 'expired' ? 'This private preview expired' : activeFailed ? 'This preview could not play' : 'No preview is available yet'}
             </p>
-            <p className="mt-1 text-label leading-relaxed text-white/45">
+            <p className="mt-1 text-label leading-relaxed text-ink-faint">
               {comparison.state === 'expired'
                 ? 'The studio computer uploads a fresh one on its next pass. Your source media has not moved.'
                 : activeFailed
@@ -209,7 +209,7 @@ export function VideoCompareStage({
             onPointerDown={() => h.press()}
             onClick={togglePlay}
             aria-label={playing ? 'Pause preview' : 'Play preview'}
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/60 text-white/85 backdrop-blur-xl press-effect"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/60 text-ink-muted backdrop-blur-xl press-effect"
           >
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
@@ -219,7 +219,7 @@ export function VideoCompareStage({
             onClick={() => setMuted(value => !value)}
             aria-label={muted ? 'Turn preview sound on' : 'Mute preview'}
             aria-pressed={!muted}
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/60 text-white/85 backdrop-blur-xl press-effect"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/60 text-ink-muted backdrop-blur-xl press-effect"
           >
             {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
@@ -227,7 +227,7 @@ export function VideoCompareStage({
       )}
 
       {exact && view === 'after' && (
-        <p className="absolute bottom-[68px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/[0.08] bg-black/55 px-2.5 py-1 text-micro font-medium text-white/55 backdrop-blur-lg">
+        <p className="absolute bottom-[68px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/[0.08] bg-black/55 px-2.5 py-1 text-micro font-medium text-ink-faint backdrop-blur-lg">
           Hold the picture for Before
         </p>
       )}

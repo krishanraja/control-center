@@ -71,7 +71,7 @@ export function MarcusReadSheet({ open, onClose }: {
       <div className="flex flex-col gap-5" data-testid="marcus-read-sheet">
         <div className="flex items-center gap-2">
           <AgentAvatar agent="marcus" size="sm" />
-          <span className="text-micro text-white/50">Marcus — cross-domain synthesis</span>
+          <span className="text-micro text-ink-faint">Marcus — cross-domain synthesis</span>
           <span className="ml-auto"><LastUpdated date={intel.generated_at ? new Date(intel.generated_at) : null} /></span>
         </div>
 
@@ -82,7 +82,7 @@ export function MarcusReadSheet({ open, onClose }: {
             <Skeleton h={12} w="85%" />
           </div>
         ) : !hasAnything ? (
-          <p className="text-body leading-relaxed text-white/45">
+          <p className="text-body leading-relaxed text-ink-faint">
             Nothing written yet. Marcus runs Monday, Wednesday and Friday.
           </p>
         ) : (
@@ -91,10 +91,10 @@ export function MarcusReadSheet({ open, onClose }: {
               <p className="font-serif text-title italic leading-snug text-violet-200/90">{intel.summary.headline}</p>
             )}
             {body && (
-              <p className="font-serif text-lede leading-relaxed text-white/80 whitespace-pre-wrap">{body}</p>
+              <p className="font-serif text-lede leading-relaxed text-ink-muted whitespace-pre-wrap">{body}</p>
             )}
             {read.assessment && (
-              <p className="font-serif text-lede leading-relaxed text-white/80 whitespace-pre-wrap">{read.assessment}</p>
+              <p className="font-serif text-lede leading-relaxed text-ink-muted whitespace-pre-wrap">{read.assessment}</p>
             )}
             {read.insights.length > 0 && (
               <ul className="flex flex-col gap-2.5">
@@ -102,7 +102,7 @@ export function MarcusReadSheet({ open, onClose }: {
                   <li key={i} className="flex items-start gap-2.5">
                     <span aria-hidden className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-violet-300/70" />
                     <span className="min-w-0">
-                      <span className="block font-serif text-lede leading-relaxed text-white/75">{insight.insight}</span>
+                      <span className="block font-serif text-lede leading-relaxed text-ink-muted">{insight.insight}</span>
                       {insight.action && (
                         <span className="mt-0.5 block text-label leading-snug text-amber-200/75">
                           <span className="font-semibold uppercase tracking-[0.14em] text-amber-300/60">Do</span>{' '}
@@ -131,14 +131,14 @@ export function MarcusReadSheet({ open, onClose }: {
 
             {focus && (
               <div>
-                <p className="mb-1 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Focus this week</p>
-                <p className="font-serif text-lede leading-relaxed text-white/80">{focus}</p>
+                <p className="mb-1 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Focus this week</p>
+                <p className="font-serif text-lede leading-relaxed text-ink-muted">{focus}</p>
               </div>
             )}
 
             {intel.metrics.length > 0 && (
               <div>
-                <p className="mb-2 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/45">His scoreboard</p>
+                <p className="mb-2 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">His scoreboard</p>
                 <div className="flex flex-col gap-3">
                   {intel.metrics.map(m => {
                     const pct = Math.max(0, Math.min(100, m.progress_pct ?? 0))
@@ -149,10 +149,10 @@ export function MarcusReadSheet({ open, onClose }: {
                     return (
                       <div key={m.id}>
                         <div className="flex items-baseline justify-between gap-2">
-                          <span className="min-w-0 truncate text-ui text-white/80">{m.label}</span>
-                          <span className="shrink-0 font-mono tabular-nums text-ui text-white/85">
+                          <span className="min-w-0 truncate text-ui text-ink-muted">{m.label}</span>
+                          <span className="shrink-0 font-mono tabular-nums text-ui text-ink-muted">
                             {m.value}
-                            {m.target && <span className="text-white/35"> / {m.target}</span>}
+                            {m.target && <span className="text-ink-faint"> / {m.target}</span>}
                           </span>
                         </div>
                         {m.progress_pct != null && (
@@ -164,14 +164,14 @@ export function MarcusReadSheet({ open, onClose }: {
                     )
                   })}
                 </div>
-                <p className="mt-2 text-micro text-white/30">
+                <p className="mt-2 text-micro text-ink-faint">
                   These are Marcus's own targets, not system numbers.
                 </p>
               </div>
             )}
 
             {weekLabel(synthesis?.week_of) && (
-              <p className="text-micro text-white/30">{weekLabel(synthesis?.week_of)}</p>
+              <p className="text-micro text-ink-faint">{weekLabel(synthesis?.week_of)}</p>
             )}
           </>
         )}

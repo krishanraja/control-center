@@ -28,7 +28,7 @@ interface Props {
 const PRIMARY_CLASS =
   'flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors'
 const QUIET_CLASS =
-  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors'
+  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors'
 
 /**
  * The 90-day cliff public.intent_live_score applies, in the browser.
@@ -232,7 +232,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
     >
       <div className="flex items-start justify-between gap-x-3 gap-y-1.5 flex-wrap">
         <div className="min-w-0 basis-40 grow">
-          <h3 className="text-ui font-semibold text-white">
+          <h3 className="text-ui font-semibold text-ink">
             {t.contact?.linkedin_url ? (
               <a
                 href={t.contact.linkedin_url}
@@ -245,7 +245,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
               </a>
             ) : name}
           </h3>
-          {personLine && <p className="text-label text-white/55 mt-0.5">{personLine}</p>}
+          {personLine && <p className="text-label text-ink-faint mt-0.5">{personLine}</p>}
         </div>
         <span
           data-testid="pilot-state"
@@ -263,21 +263,21 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
       {narrow ? (
         <details className="group mt-1.5">
           <summary className="flex cursor-pointer list-none items-baseline gap-2">
-            <span className="text-label text-white/45 group-open:text-white/70">Why them</span>
-            <span className="text-micro text-white/30 group-open:hidden">Show</span>
-            <span className="hidden text-micro text-white/30 group-open:inline">Hide</span>
+            <span className="text-label text-ink-faint group-open:text-ink-muted">Why them</span>
+            <span className="text-micro text-ink-faint group-open:hidden">Show</span>
+            <span className="hidden text-micro text-ink-faint group-open:inline">Hide</span>
           </summary>
-          <p className="text-label text-white/70 mt-1 leading-snug">{t.why_face}</p>
+          <p className="text-label text-ink-muted mt-1 leading-snug">{t.why_face}</p>
         </details>
       ) : (
-        <p className="text-label text-white/70 mt-2">{t.why_face}</p>
+        <p className="text-label text-ink-muted mt-2">{t.why_face}</p>
       )}
 
       {/* What to ask THIS person. The lane ranked on warmth and never said what
           the ask was, so a close collaborator and a stranger read identically
           and neither card answered "what am I supposed to do with them". */}
       {t.ask_line && (
-        <p data-testid="pilot-ask" className={`text-label text-white/80 ${narrow ? 'mt-1' : 'mt-1.5'}`}>
+        <p data-testid="pilot-ask" className={`text-label text-ink-muted ${narrow ? 'mt-1' : 'mt-1.5'}`}>
           {t.ask_kind && (
             <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
               t.ask_kind === 'buyer'
@@ -302,7 +302,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
           "No live trigger found" while a dated, cited quote sat in its own
           row. Both are cited-or-silent; neither is ever invented. */}
       {whyNow ? (
-        <p data-testid="pilot-why-now" className="text-label text-white/70 mt-1.5">
+        <p data-testid="pilot-why-now" className="text-label text-ink-muted mt-1.5">
           Why now: {whyNow.signal}
           <a
             href={whyNow.url}
@@ -315,7 +315,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
           </a>
         </p>
       ) : (
-        <p className="text-label text-white/45 mt-1.5">{NO_SIGNAL_LINE}</p>
+        <p className="text-label text-ink-faint mt-1.5">{NO_SIGNAL_LINE}</p>
       )}
 
       {/* The draft, on a phone: the subject and one button, not a six row
@@ -326,7 +326,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
       {t.state === 'drafted' && narrow && (
         <div className="mt-2.5">
           {t.draft_subject && (
-            <p className="text-label text-white/85 font-medium">{t.draft_subject}</p>
+            <p className="text-label text-ink-muted font-medium">{t.draft_subject}</p>
           )}
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <button
@@ -354,14 +354,14 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
       {t.state === 'drafted' && !narrow && (
         <div className="mt-3">
           {t.draft_subject && (
-            <p className="text-label text-white/85 font-medium mb-1">{t.draft_subject}</p>
+            <p className="text-label text-ink-muted font-medium mb-1">{t.draft_subject}</p>
           )}
           <textarea
             value={body}
             onChange={e => setBody(e.target.value)}
             rows={6}
             aria-label="Draft body"
-            className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-white/85 focus:border-violet-500/40 focus:outline-none resize-y"
+            className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-ink-muted focus:border-violet-500/40 focus:outline-none resize-y"
           />
           <div className="mt-1 flex items-center gap-2 flex-wrap">
             {body !== (t.draft_body || '') && !(body.trim() === '' && (t.draft_body || '') !== '') && (
@@ -381,7 +381,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
       )}
 
       {t.state === 'pilot_paid' && typeof t.cash_gbp === 'number' && (
-        <p className="text-label text-white/55 mt-2 tabular-nums">
+        <p className="text-label text-ink-faint mt-2 tabular-nums">
           Invoiced {t.cash_gbp.toLocaleString('en-GB')} GBP.
         </p>
       )}
@@ -465,7 +465,7 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
           onChange={e => setCash(e.target.value)}
           placeholder="15000"
           aria-label="Amount in GBP"
-          className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-white/85 focus:border-violet-500/40 focus:outline-none tabular-nums"
+          className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-ink-muted focus:border-violet-500/40 focus:outline-none tabular-nums"
         />
         <div className="mt-3 flex items-center justify-end gap-2">
           <button type="button" onClick={() => setPayOpen(false)} className={QUIET_CLASS}>

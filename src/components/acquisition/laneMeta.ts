@@ -31,7 +31,7 @@ export const SEND_STATUS_TONE: Record<string, string> = {
   approved: 'text-cyan-300',
   sent: 'text-emerald-300',
   rejected: 'text-rose-300',
-  suppressed: 'text-white/40',
+  suppressed: 'text-ink-faint',
   failed: 'text-rose-300',
 }
 

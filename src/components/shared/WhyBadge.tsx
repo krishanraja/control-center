@@ -57,10 +57,10 @@ function Bar({ strength }: { strength: number }) {
 }
 
 function ringFor(score: number, tone: 'default' | 'weak') {
-  if (tone === 'weak') return 'border-white/12 text-white/45'
+  if (tone === 'weak') return 'border-white/12 text-ink-faint'
   if (score >= 75) return 'border-violet-400/45 text-violet-100'
-  if (score >= 50) return 'border-white/20 text-white/85'
-  return 'border-white/12 text-white/55'
+  if (score >= 50) return 'border-white/20 text-ink-muted'
+  return 'border-white/12 text-ink-faint'
 }
 
 export function WhyBadge(props: Props) {
@@ -81,7 +81,7 @@ export function WhyBadge(props: Props) {
         className={
           scored
             ? `shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full border text-body font-semibold tabular-nums transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${ringFor(why.score!, tone)} ${className}`
-            : `shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.14] text-micro font-semibold leading-none text-white/40 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white/75 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-400/60 ${className}`
+            : `shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.14] text-micro font-semibold leading-none text-ink-faint transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-400/60 ${className}`
         }
       >
         {scored ? Math.round(why.score!) : '?'}
@@ -89,22 +89,22 @@ export function WhyBadge(props: Props) {
 
       <PopoverContent align={align} className="w-72">
         <div className="mb-2 flex items-baseline justify-between gap-3">
-          <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
+          <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Why you're seeing this
           </span>
           {scored ? (
-            <span className="text-body font-semibold tabular-nums text-white">
+            <span className="text-body font-semibold tabular-nums text-ink">
               {Math.round(why.score!)}
             </span>
           ) : null}
         </div>
 
-        <p className={`text-body leading-relaxed ${why.recorded ? 'text-white/80' : 'italic text-white/40'}`}>
+        <p className={`text-body leading-relaxed ${why.recorded ? 'text-ink-muted' : 'italic text-ink-faint'}`}>
           {why.headline}
         </p>
 
         {!why.recorded ? (
-          <p className="mt-1.5 text-micro leading-relaxed text-white/30">
+          <p className="mt-1.5 text-micro leading-relaxed text-ink-faint">
             Nothing was written when this was created. That is a gap in the generator, not in the card.
           </p>
         ) : null}
@@ -114,8 +114,8 @@ export function WhyBadge(props: Props) {
             {why.factors.map(f => (
               <div key={f.label}>
                 <div className="flex items-baseline justify-between gap-2 text-micro">
-                  <span className="text-white/70">{f.label}</span>
-                  {f.value ? <span className="tabular-nums text-white/40">{f.value}</span> : null}
+                  <span className="text-ink-muted">{f.label}</span>
+                  {f.value ? <span className="tabular-nums text-ink-faint">{f.value}</span> : null}
                 </div>
                 {typeof f.strength === 'number' ? <Bar strength={f.strength} /> : null}
               </div>
@@ -124,14 +124,14 @@ export function WhyBadge(props: Props) {
         ) : null}
 
         {why.footnote ? (
-          <p className="mt-2.5 border-t border-white/[0.07] pt-2 text-micro leading-relaxed text-white/45">
+          <p className="mt-2.5 border-t border-white/[0.07] pt-2 text-micro leading-relaxed text-ink-faint">
             {why.footnote}
           </p>
         ) : null}
 
         {(why.agent || why.at || why.sourceLabel || why.sourceUrl) ? (
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-white/[0.07] pt-2 text-micro text-white/40">
-            {why.agent ? <span className="capitalize text-white/60">{why.agent}</span> : null}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-white/[0.07] pt-2 text-micro text-ink-faint">
+            {why.agent ? <span className="capitalize text-ink-faint">{why.agent}</span> : null}
             {why.agent && why.at ? <span aria-hidden>·</span> : null}
             {why.at ? <RelativeTime at={why.at} /> : null}
             {why.sourceLabel ? (

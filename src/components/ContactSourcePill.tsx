@@ -25,7 +25,7 @@ const VENTURE_META: Record<string, { label: string; tone: string }> = {
   investor:        { label: 'Investor',        tone: 'text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20' },
 }
 
-const FALLBACK_VENTURE_TONE = 'text-white/70 bg-white/[0.06] border-white/10'
+const FALLBACK_VENTURE_TONE = 'text-ink-muted bg-white/[0.06] border-white/10'
 
 export function ventureDisplayName(slug?: string | null): string {
   if (!slug) return 'Unknown'
@@ -51,7 +51,7 @@ export function ContactSourcePill({ contact, size = 'xs' }: Props) {
         <span className="truncate max-w-[120px]">{label}</span>
       </span>
       {contact.origin_campaign && (
-        <span className={`${subSize} text-white/45 truncate max-w-[160px]`} title={contact.origin_campaign}>
+        <span className={`${subSize} text-ink-faint truncate max-w-[160px]`} title={contact.origin_campaign}>
           {contact.origin_campaign}
         </span>
       )}
@@ -66,7 +66,7 @@ const TIER_META: Record<ConsentTier, { label: string; tone: string }> = {
   warm:         { label: 'Warm',      tone: 'text-rose-300 bg-rose-500/12 border-rose-500/25' },
   permissioned: { label: 'Permissioned', tone: 'text-amber-300 bg-amber-500/12 border-amber-500/25' },
   cold_engaged: { label: 'Cold · engaged', tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
-  cold_scraped: { label: 'Cold · scraped', tone: 'text-white/55 bg-white/[0.05] border-white/10' },
+  cold_scraped: { label: 'Cold · scraped', tone: 'text-ink-faint bg-white/[0.05] border-white/10' },
 }
 
 interface TierProps {

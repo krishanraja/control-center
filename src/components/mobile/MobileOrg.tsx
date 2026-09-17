@@ -196,7 +196,7 @@ export function MobileOrg() {
                     failed > 0 ? (
                       <span className="text-ui font-semibold text-red-300">{failed} err</span>
                     ) : h2?.lastRunAt ? (
-                      <span className="text-ui text-white/35 tabular-nums">{humanAgo(h2.lastRunAt)}</span>
+                      <span className="text-ui text-ink-faint tabular-nums">{humanAgo(h2.lastRunAt)}</span>
                     ) : null
                   }
                   onClick={() => { h.select(); setOpenId(a.id) }}

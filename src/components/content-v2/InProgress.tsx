@@ -19,13 +19,13 @@ const LANE_CAP = 8
 const STATE_ORDER: IdeaState[] = ['review', 'approved', 'drafting', 'researching', 'seeded']
 
 const STATE_META: Record<IdeaState, { title: string; description: string; tone: string }> = {
-  seeded:      { title: 'Seeded',      description: 'Raw idea captured, needs research.',    tone: 'text-white/60' },
+  seeded:      { title: 'Seeded',      description: 'Raw idea captured, needs research.',    tone: 'text-ink-faint' },
   researching: { title: 'Researching', description: 'Being dug into for shape.',            tone: 'text-blue-300' },
   drafting:    { title: 'Drafting',    description: 'Being written now.',                  tone: 'text-violet-300' },
   review:      { title: 'Review',      description: 'Ready for you to read and approve.',  tone: 'text-amber-300' },
   approved:    { title: 'Approved',    description: 'Approved, waiting to go out.',        tone: 'text-emerald-300' },
   published:   { title: 'Published',   description: 'Live. Now watch how it performs.',    tone: 'text-emerald-400/80' },
-  dropped:     { title: 'Dropped',     description: 'Killed before publish.',              tone: 'text-white/30' },
+  dropped:     { title: 'Dropped',     description: 'Killed before publish.',              tone: 'text-ink-faint' },
   absorbed:    { title: 'Absorbed',    description: 'Folded into a synthesized narrative.', tone: 'text-violet-300/60' },
 }
 
@@ -55,12 +55,12 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
     <section data-testid={`${testIdPrefix}-in-progress`}>
       <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <Eyebrow>In progress</Eyebrow>
-        <span className="text-micro text-white/40 tabular-nums">{inFlight} in flight</span>
+        <span className="text-micro text-ink-faint tabular-nums">{inFlight} in flight</span>
         {mergeable.length >= 2 && !merging && (
           <button
             type="button"
             onClick={() => setMerging(true)}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-micro font-medium text-white/60 hover:bg-white/[0.05] hover:text-white/85"
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-micro font-medium text-ink-faint hover:bg-white/[0.05] hover:text-ink-muted"
           >
             <GitMerge size={11} /> Fold drafts together
           </button>
@@ -70,9 +70,9 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
       {merging && (
         <div className="mb-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.05] p-3">
           <div className="flex items-center gap-2">
-            <p className="text-label text-white/85">Pick two or more to fold into one narrative{selected.size ? `, ${selected.size} chosen` : ''}.</p>
+            <p className="text-label text-ink-muted">Pick two or more to fold into one narrative{selected.size ? `, ${selected.size} chosen` : ''}.</p>
             <div className="ml-auto flex items-center gap-2">
-              <button type="button" onClick={() => { setMerging(false); setSelected(new Set()) }} className="rounded px-2 py-1 text-label text-white/60 hover:text-white/85">Cancel</button>
+              <button type="button" onClick={() => { setMerging(false); setSelected(new Set()) }} className="rounded px-2 py-1 text-label text-ink-faint hover:text-ink-muted">Cancel</button>
               <button
                 type="button"
                 disabled={selected.size < 2}
@@ -93,8 +93,8 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
                   onClick={() => toggle(i.id)}
                   className={`flex max-w-[240px] flex-shrink-0 items-start gap-2 rounded-md border px-2.5 py-1.5 text-left ${checked ? 'border-violet-400/50 bg-violet-500/15' : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05]'}`}
                 >
-                  {checked ? <CheckSquare size={12} className="mt-0.5 flex-shrink-0 text-violet-300" /> : <Square size={12} className="mt-0.5 flex-shrink-0 text-white/40" />}
-                  <span className={`min-w-0 break-words text-label ${checked ? 'text-white' : 'text-white/75'}`}>{i.idea}</span>
+                  {checked ? <CheckSquare size={12} className="mt-0.5 flex-shrink-0 text-violet-300" /> : <Square size={12} className="mt-0.5 flex-shrink-0 text-ink-faint" />}
+                  <span className={`min-w-0 break-words text-label ${checked ? 'text-ink' : 'text-ink-muted'}`}>{i.idea}</span>
                 </button>
               )
             })}
@@ -113,15 +113,15 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
             <details key={state} open={state === 'review' || state === 'approved'} className="rounded-xl border border-white/[0.06] bg-white/[0.015]">
               <summary className="flex cursor-pointer list-none items-baseline justify-between px-3 py-2.5">
                 <span className={`text-micro uppercase tracking-[0.14em] ${meta.tone}`}>
-                  {meta.title} <span className="text-white/55 tabular-nums">{rows.length}</span>
+                  {meta.title} <span className="text-ink-faint tabular-nums">{rows.length}</span>
                 </span>
-                <span className="text-micro text-white/35">{meta.description}</span>
+                <span className="text-micro text-ink-faint">{meta.description}</span>
               </summary>
               <ul className="space-y-2.5 px-3 pb-3">
                 {shown.map(i => <li key={i.id}><ContentIdeaCardActionable idea={i} /></li>)}
               </ul>
               {overflow > 0 && (
-                <p className="px-3 pb-3 text-micro text-white/45">
+                <p className="px-3 pb-3 text-micro text-ink-faint">
                   {overflow} more waiting. Clear the pile from the Queue on your phone.
                 </p>
               )}

@@ -255,7 +255,7 @@ function HeaderStrip({
   return (
     <header className="px-5 pt-5 pb-4 border-b border-white/[0.06] space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-title text-white font-semibold leading-tight">{target.title}</h2>
+        <h2 className="text-title text-ink font-semibold leading-tight">{target.title}</h2>
         <div className="flex flex-col items-end gap-1 flex-shrink-0 mt-1">
           {enriching && (
             <span className="text-micro uppercase tracking-wider px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200 inline-flex items-center gap-1.5">
@@ -287,7 +287,7 @@ function HeaderStrip({
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/75">
+    <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-ink-muted">
       {children}
     </span>
   )
@@ -308,13 +308,13 @@ function StrategicValueBlock({
         <h3 className="text-micro uppercase tracking-[0.14em] text-violet-300/80 mb-2 flex items-center gap-1">
           <Sparkles size={11} /> Strategic value
         </h3>
-        <p className="text-ui text-white/90 leading-relaxed">{target.strategic_value}</p>
+        <p className="text-ui text-ink leading-relaxed">{target.strategic_value}</p>
       </section>
     )
   }
   return (
     <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 text-center">
-      <p className="text-body text-white/65 mb-3">
+      <p className="text-body text-ink-muted mb-3">
         Not yet deep-enriched. Run Nova to get strategic value, angle, proposed talk, audience snapshot, and a real prep checklist.
       </p>
       <button
@@ -326,7 +326,7 @@ function StrategicValueBlock({
         {enriching ? 'Enriching…' : 'Deep enrich now'}
       </button>
       {target.why_relevant && (
-        <p className="text-micro text-white/50 mt-3 italic">Legacy note: {target.why_relevant}</p>
+        <p className="text-micro text-ink-faint mt-3 italic">Legacy note: {target.why_relevant}</p>
       )}
     </section>
   )
@@ -335,8 +335,8 @@ function StrategicValueBlock({
 function AngleBlock({ angle }: { angle: string }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Angle</h3>
-      <p className="text-body text-white/80 italic leading-relaxed">{angle}</p>
+      <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">Angle</h3>
+      <p className="text-body text-ink-muted italic leading-relaxed">{angle}</p>
     </section>
   )
 }
@@ -357,13 +357,13 @@ function ProposedTalkCard({
         <button
           type="button"
           onClick={onCopy}
-          className="text-micro text-white/50 hover:text-white/85 flex items-center gap-1"
+          className="text-micro text-ink-faint hover:text-ink-muted flex items-center gap-1"
         >
           {copied ? <><CheckCircle2 size={11} className="text-emerald-300" /> Copied</> : <><Copy size={11} /> Copy abstract</>}
         </button>
       </header>
-      <p className="text-ui text-white font-medium leading-snug mb-2">{talk.title}</p>
-      <p className="text-body text-white/80 leading-relaxed whitespace-pre-wrap">{talk.abstract}</p>
+      <p className="text-ui text-ink font-medium leading-snug mb-2">{talk.title}</p>
+      <p className="text-body text-ink-muted leading-relaxed whitespace-pre-wrap">{talk.abstract}</p>
       <div className="flex items-center gap-2 mt-3 text-micro">
         <Chip>{talk.format}</Chip>
         <Chip>{talk.length_min} min</Chip>
@@ -375,14 +375,14 @@ function ProposedTalkCard({
 function AudienceSnapshot({ target }: { target: VisibilityTargetDeep }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Audience</h3>
+      <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">Audience</h3>
       <div className="grid grid-cols-3 gap-3 text-label">
         <Stat label="Size" value={target.audience_size ? `${target.audience_size.toLocaleString()}+` : '-'} />
         <Stat label="Sector" value={target.audience_sector || '-'} />
         <Stat label="Seniority" value={target.audience_seniority || '-'} />
       </div>
       {target.audience && (
-        <p className="text-label text-white/65 mt-3 leading-relaxed">{target.audience}</p>
+        <p className="text-label text-ink-muted mt-3 leading-relaxed">{target.audience}</p>
       )}
     </section>
   )
@@ -391,8 +391,8 @@ function AudienceSnapshot({ target }: { target: VisibilityTargetDeep }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-micro uppercase tracking-wider text-white/35">{label}</p>
-      <p className="text-white/85 mt-0.5">{value}</p>
+      <p className="text-micro uppercase tracking-wider text-ink-faint">{label}</p>
+      <p className="text-ink-muted mt-0.5">{value}</p>
     </div>
   )
 }
@@ -402,22 +402,22 @@ function PastSpeakers({ speakers }: { speakers: NonNullable<VisibilityTargetDeep
   return (
     <details className="rounded-xl border border-white/[0.06] bg-white/[0.015]" open={defaultOpen}>
       <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-baseline justify-between hover:bg-white/[0.02] transition-colors">
-        <h3 className="text-micro uppercase tracking-[0.14em] text-white/55">Past speakers</h3>
-        <span className="text-micro text-white/45">{speakers.length}</span>
+        <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint">Past speakers</h3>
+        <span className="text-micro text-ink-faint">{speakers.length}</span>
       </summary>
       <ul className="px-4 pb-3 space-y-2">
         {speakers.map((s, i) => (
-          <li key={`${s.name}-${i}`} className="text-label text-white/75 leading-snug">
+          <li key={`${s.name}-${i}`} className="text-label text-ink-muted leading-snug">
             <a
               href={`https://www.google.com/search?q=${encodeURIComponent(s.name + ' ' + (s.role || ''))}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-white/90 hover:text-violet-300 font-medium"
+              className="text-ink hover:text-violet-300 font-medium"
             >
               {s.name}
             </a>
-            {s.role && <span className="text-white/55">, {s.role}</span>}
-            {s.talk_title && <p className="text-micro text-white/45 italic ml-0.5">{s.talk_title}</p>}
+            {s.role && <span className="text-ink-faint">, {s.role}</span>}
+            {s.talk_title && <p className="text-micro text-ink-faint italic ml-0.5">{s.talk_title}</p>}
           </li>
         ))}
       </ul>
@@ -433,23 +433,23 @@ function CfpChecklist({ req }: { req: NonNullable<VisibilityTargetDeep['cfp_requ
   ]
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">CFP requirements</h3>
+      <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">CFP requirements</h3>
       <ul className="grid grid-cols-2 gap-2 text-label">
         {items.map(it => (
           <li key={it.label} className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${it.on ? 'bg-amber-300' : 'bg-white/15'}`} />
-            <span className={it.on ? 'text-white/85' : 'text-white/40'}>{it.label}{it.on ? ' required' : ' not required'}</span>
+            <span className={it.on ? 'text-ink-muted' : 'text-ink-faint'}>{it.label}{it.on ? ' required' : ' not required'}</span>
           </li>
         ))}
         {req.abstract_max_words != null && (
-          <li className="text-white/75 col-span-2">Abstract max {req.abstract_max_words} words</li>
+          <li className="text-ink-muted col-span-2">Abstract max {req.abstract_max_words} words</li>
         )}
         {req.talk_length_min != null && (
-          <li className="text-white/75 col-span-2">Talk length {req.talk_length_min} min</li>
+          <li className="text-ink-muted col-span-2">Talk length {req.talk_length_min} min</li>
         )}
       </ul>
       {req.additional_notes && (
-        <p className="text-micro text-white/55 mt-2 italic">{req.additional_notes}</p>
+        <p className="text-micro text-ink-faint mt-2 italic">{req.additional_notes}</p>
       )}
     </section>
   )
@@ -458,7 +458,7 @@ function CfpChecklist({ req }: { req: NonNullable<VisibilityTargetDeep['cfp_requ
 function EffortStrip({ effort }: { effort: NonNullable<VisibilityTargetDeep['effort_estimate']> }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Effort estimate</h3>
+      <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">Effort estimate</h3>
       <div className="grid grid-cols-3 gap-3 text-label">
         <Stat label="Prep" value={effort.prep_hours != null ? `${effort.prep_hours}h` : '-'} />
         <Stat label="Travel" value={effort.travel_days != null ? (effort.travel_days === 0 ? 'online' : `${effort.travel_days}d`) : '-'} />
@@ -481,7 +481,7 @@ function RiskBlock({ notes }: { notes: string }) {
       <AlertTriangle size={14} className="text-amber-300 flex-shrink-0 mt-0.5" />
       <div>
         <h3 className="text-micro uppercase tracking-[0.14em] text-amber-200 mb-1">Risk</h3>
-        <p className="text-label text-white/80 leading-relaxed">{notes}</p>
+        <p className="text-label text-ink-muted leading-relaxed">{notes}</p>
       </div>
     </section>
   )
@@ -498,7 +498,7 @@ function NextActions({
 }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Next actions</h3>
+      <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">Next actions</h3>
       <ol className="space-y-1.5 text-label">
         {actions.map((a, i) => {
           const stripped = typeof a === 'string' ? a.replace(/^\[x\] /, '') : ''
@@ -511,9 +511,9 @@ function NextActions({
                 className={`mt-1 w-3.5 h-3.5 rounded border flex-shrink-0 flex items-center justify-center ${isChecked ? 'bg-emerald-400/80 border-emerald-300' : 'border-white/25 hover:border-white/55'}`}
                 aria-pressed={isChecked}
               >
-                {isChecked && <CheckCircle2 size={10} className="text-white" />}
+                {isChecked && <CheckCircle2 size={10} className="text-ink" />}
               </button>
-              <span className={`leading-snug ${isChecked ? 'line-through text-white/45' : 'text-white/85'}`}>
+              <span className={`leading-snug ${isChecked ? 'line-through text-ink-faint' : 'text-ink-muted'}`}>
                 {stripped}
               </span>
             </li>
@@ -556,14 +556,14 @@ function ActionFooter({
         type="button"
         onClick={onReEnrich}
         disabled={enriching}
-        className="px-3 py-1.5 rounded-lg border border-white/15 text-white/75 text-label hover:border-white/35 hover:text-white disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg border border-white/15 text-ink-muted text-label hover:border-white/35 hover:text-ink disabled:opacity-50"
       >
         {enriching ? 'Enriching…' : isEnriched ? 'Re-enrich' : 'Deep enrich'}
       </button>
       <button
         type="button"
         onClick={onSnooze}
-        className="px-3 py-1.5 rounded-lg border border-white/15 text-white/55 text-label hover:text-white/85"
+        className="px-3 py-1.5 rounded-lg border border-white/15 text-ink-faint text-label hover:text-ink-muted"
       >
         Tomorrow
       </button>
@@ -579,7 +579,7 @@ function ActionFooter({
           href={target.cfp_url || target.event_url || '#'}
           target="_blank"
           rel="noreferrer noopener"
-          className="px-3 py-1.5 rounded-lg border border-white/15 text-white/75 text-label hover:border-white/35 hover:text-white inline-flex items-center gap-1"
+          className="px-3 py-1.5 rounded-lg border border-white/15 text-ink-muted text-label hover:border-white/35 hover:text-ink inline-flex items-center gap-1"
         >
           Open <ExternalLink size={11} />
         </a>
@@ -597,7 +597,7 @@ function useDeadlineMeta(iso: string | null): DeadlineMeta | null {
   if (!iso) return null
   const date = parseISO(iso)
   const days = Math.floor((date.getTime() - Date.now()) / 86_400_000)
-  if (days < 0) return { label: `Passed ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-white/15 text-white/45 bg-white/[0.02]' }
+  if (days < 0) return { label: `Passed ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-white/15 text-ink-faint bg-white/[0.02]' }
   if (days < 7) return { label: `Due ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-rose-400/40 text-rose-200 bg-rose-500/[0.08]' }
   if (days < 30) return { label: `Due ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-amber-400/40 text-amber-200 bg-amber-500/[0.06]' }
   return { label: `Due ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-emerald-400/30 text-emerald-200 bg-emerald-500/[0.04]' }

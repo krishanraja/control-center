@@ -165,7 +165,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
                 onClick={() => setAddOpen(v => !v)}
                 aria-expanded={addOpen}
                 data-testid="network-add-people"
-                className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
+                className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-ink-muted transition-colors hover:bg-white/[0.04]"
               >
                 {addOpen ? 'Close' : 'Add people from a file'}
               </button>
@@ -175,7 +175,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         )}
         {!narrow && addOpen && (
           <section className="mx-4 mb-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3" data-testid="network-add-people-panel">
-            <p className="text-label text-white/55 mb-2">
+            <p className="text-label text-ink-faint mb-2">
               Drop a document or CSV of people, or a Substack subscriber export. Everyone lands in this one graph.
             </p>
             <LeadImportDropzone />
@@ -196,7 +196,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
         {s.loading && (
           <div className="px-4 pt-3">
-            <p className="pb-2 text-label text-white/35">Searching 10,670 people.</p>
+            <p className="pb-2 text-label text-ink-faint">Searching 10,670 people.</p>
             <SkeletonList rows={5} />
           </div>
         )}
@@ -214,7 +214,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         )}
 
         {!s.loading && s.degraded.length > 0 && (
-          <div className="mx-4 mt-3 flex items-start gap-2 rounded-card border border-white/[0.08] px-3 py-2 text-label text-white/45">
+          <div className="mx-4 mt-3 flex items-start gap-2 rounded-card border border-white/[0.08] px-3 py-2 text-label text-ink-faint">
             <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden />
             {/* Plain words, not the raw stage token. This printed
                 "planner:anthropic_401:API key is invalid." at Krish, which is
@@ -231,8 +231,8 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
         {!s.loading && hasRun && geoLine && (
           <div className="mx-4 mt-3 flex items-start gap-2 rounded-card border border-white/[0.08] bg-white/[0.02] px-3 py-2">
-            <MapPin size={12} className="mt-0.5 shrink-0 text-white/35" aria-hidden />
-            <p className="text-label leading-relaxed text-white/50">{geoLine}</p>
+            <MapPin size={12} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden />
+            <p className="text-label leading-relaxed text-ink-faint">{geoLine}</p>
           </div>
         )}
 
@@ -243,7 +243,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
                 the honest account of what is still happening rather than a
                 spinner over results that are already usable. */}
             {s.explaining && (
-              <p className="px-4 pb-2 text-label text-white/35">
+              <p className="px-4 pb-2 text-label text-ink-faint">
                 Ranked. Working out why each one matches.
               </p>
             )}
@@ -284,12 +284,12 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           // because "no results" with no explanation is the failure this whole
           // feature was built to remove.
           <div className="px-4 py-10 text-center">
-            <p className="text-body text-white/60">No one matches every filter you set.</p>
+            <p className="text-body text-ink-faint">No one matches every filter you set.</p>
             {filters.countries.length > 0 && geoFacets.unknown > 0 && (
               // Geography is the filter most likely to have caused this and the
               // least likely to mean what it looks like, so it gets named rather
               // than left for the operator to work out.
-              <p className="mx-auto mt-1.5 max-w-sm text-label leading-relaxed text-white/40">
+              <p className="mx-auto mt-1.5 max-w-sm text-label leading-relaxed text-ink-faint">
                 {geoFacets.unknown.toLocaleString('en-AU')} of your {geoFacets.total.toLocaleString('en-AU')} people
                 have no location on file, so a country filter cannot reach them.
               </p>
@@ -306,8 +306,8 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
         {!hasRun && !s.loading && (
           <div className="px-4 py-10 text-center">
-            <p className="text-body text-white/45">Ask a question, or pick a venture above.</p>
-            <p className="mt-1 text-label text-white/25">10,670 people. Type it how you would say it.</p>
+            <p className="text-body text-ink-faint">Ask a question, or pick a venture above.</p>
+            <p className="mt-1 text-label text-ink-faint">10,670 people. Type it how you would say it.</p>
           </div>
         )}
       </div>
@@ -316,7 +316,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
       {s.loading && narrow && (
         <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center">
-          <span className="surface inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-label text-white/70">
+          <span className="surface inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-label text-ink-muted">
             <Working size={12} /> Searching
           </span>
         </div>

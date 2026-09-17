@@ -44,7 +44,7 @@ export function FreshnessLine({ lane, className = '' }: { lane: Lane; className?
   if (!f) return null
   const stale = f.at ? (Date.now() - new Date(f.at).getTime()) > 10 * 24 * 3600 * 1000 : true
   return (
-    <p className={`text-micro mt-1 ${stale ? 'text-amber-200/80' : 'text-white/40'} ${className}`} data-testid={`freshness-${lane}`}>
+    <p className={`text-micro mt-1 ${stale ? 'text-amber-200/80' : 'text-ink-faint'} ${className}`} data-testid={`freshness-${lane}`}>
       Last refreshed {agoWords(f.at)} by {f.by}.{stale ? ' That is a while.' : ''}
     </p>
   )

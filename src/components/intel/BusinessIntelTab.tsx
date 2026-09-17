@@ -78,10 +78,10 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
         onClick={() => { h.select(); setBriefOpen(true) }}
         className="group mt-1 flex items-center gap-1 text-left"
       >
-        <span className="font-mono text-micro font-semibold tracking-[0.14em] text-white/60 transition-colors group-hover:text-white/80">
+        <span className="font-mono text-micro font-semibold tracking-[0.14em] text-ink-faint transition-colors group-hover:text-ink-muted">
           {dateline}
         </span>
-        <ChevronRight size={11} className="text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
+        <ChevronRight size={11} className="text-ink-faint transition-colors group-hover:text-ink-faint" aria-hidden />
       </button>
     </div>
   )
@@ -123,14 +123,14 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
                   className="flex w-full flex-col gap-0.5 py-3 text-left"
                 >
                   <span className="flex items-baseline gap-3">
-                    <span className="font-display text-lede font-semibold tracking-tight text-white">{q.question}</span>
+                    <span className="font-display text-lede font-semibold tracking-tight text-ink">{q.question}</span>
                     <span className={`ml-auto shrink-0 font-mono text-micro font-semibold tracking-[0.14em] ${TOKEN_TONE[q.token.tone]}`}>
                       {q.token.label}
                     </span>
                   </span>
-                  <span className="text-ui leading-snug text-white/60">
+                  <span className="text-ui leading-snug text-ink-faint">
                     {q.answer}
-                    <span aria-hidden className="ml-1.5 text-white/30">{isOpen ? '⌃' : '⌄'}</span>
+                    <span aria-hidden className="ml-1.5 text-ink-faint">{isOpen ? '⌃' : '⌄'}</span>
                   </span>
                 </button>
                 {isOpen && <div className="pb-4">{q.detail}</div>}
@@ -155,7 +155,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
   return (
     <div className="mx-auto max-w-[1080px]">
       <div>
-        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Business Intelligence</h1>
+        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Business Intelligence</h1>
         {header}
       </div>
 
@@ -175,12 +175,12 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
                 }`}
               >
                 <span className="flex items-baseline gap-3">
-                  <span className={`font-display text-ui font-semibold tracking-tight ${isOpen ? 'text-white' : 'text-white/75'}`}>{q.question}</span>
+                  <span className={`font-display text-ui font-semibold tracking-tight ${isOpen ? 'text-ink' : 'text-ink-muted'}`}>{q.question}</span>
                   <span className={`ml-auto shrink-0 font-mono text-micro font-semibold tracking-[0.14em] ${TOKEN_TONE[q.token.tone]}`}>
                     {q.token.label}
                   </span>
                 </span>
-                <span className={`text-body leading-snug ${isOpen ? 'text-white/70' : 'text-white/45'}`}>{q.answer}</span>
+                <span className={`text-body leading-snug ${isOpen ? 'text-ink-muted' : 'text-ink-faint'}`}>{q.answer}</span>
               </button>
             )
           })}
@@ -192,7 +192,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
         </div>
 
         <div className="min-w-0 flex-1 pt-1" data-testid="bi-pane">
-          <h2 className="font-display text-title font-semibold tracking-tight text-white">{active.question}</h2>
+          <h2 className="font-display text-title font-semibold tracking-tight text-ink">{active.question}</h2>
           <div className="mt-4 max-w-[560px]">{active.detail}</div>
         </div>
       </div>

@@ -24,7 +24,7 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          'surface z-50 max-w-[16rem] rounded-lg px-2.5 py-1.5 text-label leading-snug text-white/80 animate-fade-in',
+          'surface z-50 max-w-[16rem] rounded-lg px-2.5 py-1.5 text-label leading-snug text-ink-muted animate-fade-in',
           className,
         )}
         {...props}

@@ -164,13 +164,13 @@ export function DecisionsInbox({
                 key={q.kind}
                 type="button"
                 onClick={() => { h.tap(); onNavigate?.(q.tab) }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-micro text-white/70 hover:bg-white/[0.07] hover:text-white/90 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-micro text-ink-muted hover:bg-white/[0.07] hover:text-ink transition-colors"
                 title={`Open the ${q.label} triage deck`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${KIND_DOT[q.kind]}`} />
                 <span>{q.label}</span>
-                <span className="tabular-nums font-semibold text-white/85">{q.count}</span>
-                <span className="text-white/40">· triage deck</span>
+                <span className="tabular-nums font-semibold text-ink-muted">{q.count}</span>
+                <span className="text-ink-faint">· triage deck</span>
               </button>
             ))}
           </div>
@@ -201,7 +201,7 @@ export function DecisionsInbox({
                   onClick={() => select(d)}
                   trailing={
                     <div className="flex flex-col items-end gap-1">
-                      <span className="inline-flex items-center gap-1 text-micro uppercase tracking-[0.14em] text-white/45">
+                      <span className="inline-flex items-center gap-1 text-micro uppercase tracking-[0.14em] text-ink-faint">
                         <Icon size={11} /> {KIND_LABEL[d.kind]}
                         <span onClick={e => e.stopPropagation()}>
                           <WhyBadge why={whyForDecision(d)} label={KIND_LABEL[d.kind]?.toLowerCase() || 'item'} />
@@ -221,7 +221,7 @@ export function DecisionsInbox({
               <button
                 type="button"
                 onClick={() => { h.tap(); setDeckSeed(null); setDeckOpen(true) }}
-                className="w-full px-5 py-2.5 text-micro text-white/45 hover:text-white/80 text-left transition-colors"
+                className="w-full px-5 py-2.5 text-micro text-ink-faint hover:text-ink-muted text-left transition-colors"
               >
                 + {overflow} more · rule on them one at a time
               </button>
@@ -236,7 +236,7 @@ export function DecisionsInbox({
           <button
             type="button"
             onClick={() => setTailOpen(v => !v)}
-            className="inline-flex items-center gap-1.5 px-2 py-1 text-micro text-white/35 hover:text-white/65 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-micro text-ink-faint hover:text-ink-muted transition-colors"
           >
             <ChevronDown size={12} className={`transition-transform ${tailOpen ? 'rotate-180' : ''}`} />
             {stale.length > 0 ? `Hidden · ${stale.length} stale (>${STALE_DAYS}d) · backburner` : 'Backburner'}
@@ -246,12 +246,12 @@ export function DecisionsInbox({
               {stale.length > 0 && (
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-micro text-white/50">{stale.length} items untouched for {STALE_DAYS}+ days with no progress.</span>
+                    <span className="text-micro text-ink-faint">{stale.length} items untouched for {STALE_DAYS}+ days with no progress.</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => bulkStale('snooze_30d')}
                         disabled={bulkBusy}
-                        className="px-2.5 py-1 rounded-lg text-micro border border-white/10 text-white/60 hover:text-white/85 disabled:opacity-40"
+                        className="px-2.5 py-1 rounded-lg text-micro border border-white/10 text-ink-faint hover:text-ink-muted disabled:opacity-40"
                       >
                         Snooze all 30d
                       </button>
@@ -266,7 +266,7 @@ export function DecisionsInbox({
                   </div>
                   <ul className="mt-2 space-y-1 max-h-44 overflow-y-auto">
                     {stale.slice(0, 30).map(t => (
-                      <li key={t.id} className="text-micro text-white/40 truncate">{t.title}</li>
+                      <li key={t.id} className="text-micro text-ink-faint truncate">{t.title}</li>
                     ))}
                   </ul>
                 </div>

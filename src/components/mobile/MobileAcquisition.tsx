@@ -87,8 +87,8 @@ export function MobileAcquisition({
                   onClick={() => setSelectedSlug(l.slug)}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-label whitespace-nowrap transition-colors ${
                     isSelected
-                      ? 'border-violet-400/50 bg-violet-500/15 text-white'
-                      : 'border-white/[0.08] bg-white/[0.02] text-white/60'
+                      ? 'border-violet-400/50 bg-violet-500/15 text-ink'
+                      : 'border-white/[0.08] bg-white/[0.02] text-ink-faint'
                   } ${!l.active ? 'opacity-50' : ''}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${laneDot(l)}`} title={laneDotTitle(l)} />

@@ -32,11 +32,11 @@ export interface ComposerShellProps {
 
 export function ComposerShell({ onClose, eyebrow, title, meta, actions, banner, children }: ComposerShellProps) {
   return (
-    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base text-white flex flex-col">
+    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base text-ink flex flex-col">
       <header className="flex min-h-14 flex-shrink-0 items-center gap-2 border-b border-white/[0.08] px-3 py-2 sm:px-5">
         <button
           type="button" onClick={onClose} aria-label="Back to pipeline"
-          className="flex items-center justify-center w-9 h-9 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-ink-faint hover:text-ink hover:bg-white/[0.06] transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
@@ -57,7 +57,7 @@ export function ComposerShell({ onClose, eyebrow, title, meta, actions, banner, 
 
 /** One dot separator, so the status lines read the same on both surfaces. */
 export function MetaDot() {
-  return <span className="text-micro text-white/30">·</span>
+  return <span className="text-micro text-ink-faint">·</span>
 }
 
 export interface ComposerTab<T extends string> {
@@ -113,9 +113,9 @@ export function ComposerRail<T extends string>({ tabs, tab, onTab, children, sta
                   data-testid={`composer-stage-${stage.id}`}
                   aria-current={here ? 'step' : undefined}
                   aria-pressed={lit}
-                  className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-micro uppercase tracking-[0.14em] transition-colors ${lit ? 'bg-white/[0.06] text-white/85' : 'text-white/40 hover:text-white/70'}`}
+                  className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-micro uppercase tracking-[0.14em] transition-colors ${lit ? 'bg-white/[0.06] text-ink-muted' : 'text-ink-faint hover:text-ink-muted'}`}
                 >
-                  <span className={`inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-micro tabular-nums ${here ? 'bg-emerald-400/25 text-emerald-200' : lit ? 'bg-white/15 text-white/80' : 'bg-white/[0.06] text-white/40'}`}>{index + 1}</span>
+                  <span className={`inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-micro tabular-nums ${here ? 'bg-emerald-400/25 text-emerald-200' : lit ? 'bg-white/15 text-ink-muted' : 'bg-white/[0.06] text-ink-faint'}`}>{index + 1}</span>
                   <span>{stage.label}</span>
                 </button>
               )
@@ -132,7 +132,7 @@ export function ComposerRail<T extends string>({ tabs, tab, onTab, children, sta
                   aria-label={t.label} aria-pressed={tab === t.id}
                   data-testid={`composer-rail-${t.id}`}
                   className={`flex flex-shrink-0 items-center gap-1.5 rounded-t-md px-2.5 py-2 text-micro transition-colors ${
-                    tab === t.id ? 'bg-white/[0.06] text-white/90' : 'text-white/45 hover:text-white/75'
+                    tab === t.id ? 'bg-white/[0.06] text-ink' : 'text-ink-faint hover:text-ink-muted'
                   }`}
                 >
                   {t.icon}<span>{t.label}</span>
@@ -149,7 +149,7 @@ export function ComposerRail<T extends string>({ tabs, tab, onTab, children, sta
             aria-label={t.label} aria-pressed={tab === t.id}
             data-testid={`composer-rail-${t.id}`}
             className={`flex flex-shrink-0 items-center gap-1.5 px-2.5 py-2 text-micro rounded-t-md transition-colors ${
-              tab === t.id ? 'bg-white/[0.06] text-white/90' : 'text-white/45 hover:text-white/75'
+              tab === t.id ? 'bg-white/[0.06] text-ink' : 'text-ink-faint hover:text-ink-muted'
             }`}
           >
             {t.icon}<span>{t.label}</span>

@@ -64,12 +64,12 @@ export function TabHeader({
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
         {title && (
-          <h1 className={`font-bold text-white leading-[1.1] tracking-tight text-heading ${wrap ? '' : 'truncate'}`}>
+          <h1 className={`font-bold text-ink leading-[1.1] tracking-tight text-heading ${wrap ? '' : 'truncate'}`}>
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="text-ui text-white/55 mt-1.5 truncate">{subtitle}</p>
+          <p className="text-ui text-ink-faint mt-1.5 truncate">{subtitle}</p>
         )}
       </div>
       {trailing && <div className="flex-shrink-0 ml-3">{trailing}</div>}
@@ -128,22 +128,22 @@ export function HeroCard({
       {eyebrow && (
         <div className="flex items-center gap-2.5 mb-4">
           {dotColor && <span className={`w-2 h-2 rounded-full ${dotColor}`} />}
-          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/50">
+          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-ink-faint">
             {eyebrow}
           </span>
         </div>
       )}
-      <p className="text-heading font-display font-bold text-white leading-[1.15] tracking-tight">
+      <p className="text-heading font-display font-bold text-ink leading-[1.15] tracking-tight">
         {title}
       </p>
       {detail && (
-        <p className="font-body text-ui text-white/60 mt-3 leading-[1.45] line-clamp-3">
+        <p className="font-body text-ui text-ink-faint mt-3 leading-[1.45] line-clamp-3">
           {detail}
         </p>
       )}
       <div className="flex items-center justify-between mt-5">
         {meta ? (
-          <span className="text-label text-white/45">{meta}</span>
+          <span className="text-label text-ink-faint">{meta}</span>
         ) : <span />}
         {cta && (
           <span className="text-ui font-semibold rounded-full px-5 py-2.5 btn-contrast">
@@ -159,7 +159,7 @@ export function HeroCard({
 export function StatPill({
   label,
   value,
-  color = 'text-white',
+  color = 'text-ink',
   sub,
 }: {
   label: string
@@ -175,10 +175,10 @@ export function StatPill({
       <p className={`text-display font-bold leading-none font-mono tabular-nums tracking-tight ${color}`}>
         {value}
       </p>
-      <p className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/55 mt-2.5 truncate">
+      <p className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-ink-faint mt-2.5 truncate">
         {label}
       </p>
-      {sub && <p className="text-micro text-white/35 mt-1 truncate">{sub}</p>}
+      {sub && <p className="text-micro text-ink-faint mt-1 truncate">{sub}</p>}
     </div>
   )
 }
@@ -202,7 +202,7 @@ export function FeedCard({
       {(title || action) && (
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           {title && (
-            <p className="text-micro font-display font-bold uppercase tracking-[0.14em] text-white/60">
+            <p className="text-micro font-display font-bold uppercase tracking-[0.14em] text-ink-faint">
               {title}
             </p>
           )}
@@ -256,11 +256,11 @@ export function FeedRow({
           <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-lede font-semibold text-white leading-snug line-clamp-2">
+          <p className="text-lede font-semibold text-ink leading-snug line-clamp-2">
             {title}
           </p>
           {detail && (
-            <p className="font-body text-ui text-white/55 mt-1 leading-[1.45] line-clamp-2">
+            <p className="font-body text-ui text-ink-faint mt-1 leading-[1.45] line-clamp-2">
               {detail}
             </p>
           )}
@@ -285,6 +285,6 @@ export function FeedRow({
  */
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="px-5 py-16 text-center text-ui text-white/40 animate-rise">{label}</div>
+    <div className="px-5 py-16 text-center text-ui text-ink-faint animate-rise">{label}</div>
   )
 }

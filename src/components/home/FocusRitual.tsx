@@ -115,7 +115,7 @@ export function FocusRitual({
   const header = (
     <div className="flex items-center gap-2 mb-2">
       <Sparkles size={15} className="text-violet-300 flex-shrink-0" />
-      <h2 className="text-ui font-semibold text-white">{STEP_TITLE[current]}</h2>
+      <h2 className="text-ui font-semibold text-ink">{STEP_TITLE[current]}</h2>
       <span className="sr-only">Step {Math.min(stepIdx + 1, total)} of {total}</span>
     </div>
   )
@@ -134,7 +134,7 @@ export function FocusRitual({
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-1 text-label text-white/55 hover:text-white/85 px-2.5 py-2"
+          className="inline-flex items-center gap-1 text-label text-ink-faint hover:text-ink-muted px-2.5 py-2"
         >
           <ArrowLeft size={13} /> Back
         </button>
@@ -144,7 +144,7 @@ export function FocusRitual({
           <button
             type="button"
             onClick={setLater}
-            className="text-micro text-white/35 hover:text-white/60"
+            className="text-micro text-ink-faint hover:text-ink-faint"
           >
             Set later today
           </button>
@@ -267,7 +267,7 @@ function WeeklyStep() {
 
   return (
     <div className="space-y-3">
-      <p className="text-label text-white/55 leading-snug">
+      <p className="text-label text-ink-faint leading-snug">
         {weekend
           ? 'The week has closed. Anything set now is for the week that starts Monday.'
           : 'Pick up to 3 objectives for the week. Each one serves an OS goal, and today\'s 3 come from them.'}
@@ -278,7 +278,7 @@ function WeeklyStep() {
           outcome, so the history shows both. */}
       {lastWeek.length > 0 && (
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-2">
-          <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">Last week</p>
+          <p className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold">Last week</p>
           <ul className="space-y-1.5">
             {lastWeek.map(g => {
               const done = g.status === 'done'
@@ -286,8 +286,8 @@ function WeeklyStep() {
               return (
                 <li key={g.id} className="flex items-start gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
                   <span className="flex-1 min-w-0">
-                    <span className={`block text-body leading-snug break-words ${done ? 'text-white/55 line-through' : 'text-white/85'}`}>{g.title}</span>
-                    <span className={`mt-0.5 inline-block text-micro ${done ? 'text-emerald-300/80' : outcome === 'missed' ? 'text-amber-300/80' : 'text-white/40'}`}>{outcome}</span>
+                    <span className={`block text-body leading-snug break-words ${done ? 'text-ink-faint line-through' : 'text-ink-muted'}`}>{g.title}</span>
+                    <span className={`mt-0.5 inline-block text-micro ${done ? 'text-emerald-300/80' : outcome === 'missed' ? 'text-amber-300/80' : 'text-ink-faint'}`}>{outcome}</span>
                   </span>
                   {!done && (busy === `carry-${g.id}` ? (
                     <Pending label={carryWork.label} elapsedMs={busyMs} expectedMs={carryWork.expectedMs} />
@@ -297,7 +297,7 @@ function WeeklyStep() {
                       disabled={busy != null || activeCount >= 3}
                       title="Carry this into the new week"
                       onClick={() => void run(`carry-${g.id}`, () => patchGoal({ goalId: g.id, status: 'active' }), 'Carried into this week.')}
-                      className="min-h-[28px] px-2 rounded-md text-micro inline-flex items-center gap-1 text-white/60 hover:text-white/90 border border-white/[0.10] disabled:opacity-40"
+                      className="min-h-[28px] px-2 rounded-md text-micro inline-flex items-center gap-1 text-ink-faint hover:text-ink border border-white/[0.10] disabled:opacity-40"
                     >
                       <RotateCcw size={11} /> Carry
                     </button>
@@ -317,9 +317,9 @@ function WeeklyStep() {
             {proposed.map(g => (
               <li key={g.id} className="flex items-start gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2">
                 <span className="flex-1 min-w-0">
-                  <span className="block text-body text-white/90 leading-snug break-words">{g.title}</span>
+                  <span className="block text-body text-ink leading-snug break-words">{g.title}</span>
                   {g.parent_id && osTitle.get(g.parent_id) && (
-                    <span className="mt-0.5 inline-flex items-center gap-1 text-micro text-white/45">
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-micro text-ink-faint">
                       <Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}
                     </span>
                   )}
@@ -336,7 +336,7 @@ function WeeklyStep() {
                   type="button"
                   disabled={busy != null}
                   onClick={() => void run(`pass-${g.id}`, () => rejectProposed(g.id))}
-                  className="min-h-[30px] px-2 rounded-md text-label text-white/45 hover:text-white/80 disabled:opacity-50"
+                  className="min-h-[30px] px-2 rounded-md text-label text-ink-faint hover:text-ink-muted disabled:opacity-50"
                 >
                   Pass
                 </button>
@@ -348,13 +348,13 @@ function WeeklyStep() {
 
       {/* The week's set. */}
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-2">
-        <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">
+        <p className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold">
           This week · {activeCount}/3
         </p>
         {loading ? (
-          <div className="text-label text-white/45"><Working size={12} className="inline mr-2" />Loading the canon…</div>
+          <div className="text-label text-ink-faint"><Working size={12} className="inline mr-2" />Loading the canon…</div>
         ) : weekly.length === 0 ? (
-          <p className="text-label text-white/45">Nothing set yet. Write the first one below.</p>
+          <p className="text-label text-ink-faint">Nothing set yet. Write the first one below.</p>
         ) : (
           <ul className="space-y-1.5">
             {weekly.map(g => {
@@ -369,14 +369,14 @@ function WeeklyStep() {
                     className={`mt-[2px] w-4 h-4 shrink-0 rounded-[5px] border ${done ? 'bg-emerald-400/80 border-emerald-300/60' : 'border-white/25 hover:border-white/50'}`}
                   />
                   <span className="flex-1 min-w-0">
-                    <span className={`block text-body leading-snug break-words ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>{g.title}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-white/45">
+                    <span className={`block text-body leading-snug break-words ${done ? 'text-ink-faint line-through' : 'text-ink'}`}>{g.title}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-ink-faint">
                       {g.parent_id && osTitle.get(g.parent_id) && (
                         <span className="inline-flex items-center gap-1"><Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}</span>
                       )}
                       {g.job && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{jobLabel(g.job)}</span>}
                       {g.venture && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{g.venture}</span>}
-                      {g.carried_from && <span className="text-white/40">carried</span>}
+                      {g.carried_from && <span className="text-ink-faint">carried</span>}
                     </span>
                   </span>
                   <button
@@ -384,7 +384,7 @@ function WeeklyStep() {
                     aria-label="Drop this objective"
                     disabled={busy != null}
                     onClick={() => void run(`drop-${g.id}`, () => patchGoal({ goalId: g.id, status: 'dropped' }))}
-                    className="mt-[2px] text-white/30 hover:text-white/70"
+                    className="mt-[2px] text-ink-faint hover:text-ink-muted"
                   >
                     <X size={13} />
                   </button>
@@ -403,7 +403,7 @@ function WeeklyStep() {
                 onChange={e => { setText(e.target.value); if (gate) setGate(null) }}
                 placeholder="Write a weekly objective…"
                 rows={2}
-                className="w-full bg-sunk border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
+                className="w-full bg-sunk border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-ink placeholder:text-ink-faint focus:border-violet-400/40 focus:outline-none resize-none"
               />
               <div className="absolute top-1.5 right-1.5">
                 <MicButton
@@ -423,7 +423,7 @@ function WeeklyStep() {
                   onClick={() => add()}
                   disabled={!text.trim() || !servesId || busy != null}
                   aria-busy={busy === 'add'}
-                  className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
+                  className="inline-flex items-center gap-1 text-micro font-semibold text-ink-muted hover:text-ink border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
                 >
                   <Plus size={11} /> Add
                 </button>
@@ -439,13 +439,13 @@ function WeeklyStep() {
                 <p className="text-micro uppercase tracking-[0.14em] font-semibold text-amber-200/85">
                   {gate.verdict === 'wrong_tier' ? 'Wrong rung' : 'Not saved yet'}
                 </p>
-                {gate.reasoning && <p className="mt-1 text-label text-white/70 leading-snug">{gate.reasoning}</p>}
+                {gate.reasoning && <p className="mt-1 text-label text-ink-muted leading-snug">{gate.reasoning}</p>}
                 {gate.issues.length > 0 && (
                   <ul className="mt-1.5 space-y-1">
                     {gate.issues.map((it, i) => (
                       <li key={i} className="text-label leading-snug">
                         <span className="text-amber-200/80 font-medium">{it.dimension}: </span>
-                        <span className="text-white/70">{it.problem}</span>
+                        <span className="text-ink-muted">{it.problem}</span>
                       </li>
                     ))}
                   </ul>
@@ -455,7 +455,7 @@ function WeeklyStep() {
                     <button
                       type="button"
                       onClick={() => { setText(gate.suggested_rewrite!); setGate(null) }}
-                      className="min-h-[28px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-label text-white/85 hover:bg-white/[0.12]"
+                      className="min-h-[28px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-label text-ink-muted hover:bg-white/[0.12]"
                     >
                       Use the suggested wording
                     </button>
@@ -463,7 +463,7 @@ function WeeklyStep() {
                   <button
                     type="button"
                     onClick={() => add(true)}
-                    className="min-h-[28px] px-2 rounded-md text-label text-white/45 hover:text-white/80 underline underline-offset-2"
+                    className="min-h-[28px] px-2 rounded-md text-label text-ink-faint hover:text-ink-muted underline underline-offset-2"
                   >
                     Save as written
                   </button>
@@ -496,7 +496,7 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
         <p className="text-label text-emerald-200/80 leading-snug">Today's 3 are locked. Track them on the board.</p>
         <ol className="space-y-1.5">
           {targets.map((t, i) => (
-            <li key={i} className="flex items-start gap-2 text-body text-white/85">
+            <li key={i} className="flex items-start gap-2 text-body text-ink-muted">
               <span className="text-label text-violet-200 font-bold tabular-nums">{i + 1}.</span>
               <span className="break-words">{t}</span>
             </li>
@@ -528,14 +528,14 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
     <div className="space-y-4 py-2">
       <div className="flex items-center gap-2">
         <CheckCircle2 size={18} className="text-emerald-400" />
-        <p className="text-ui font-semibold text-white">You're set for today.</p>
+        <p className="text-ui font-semibold text-ink">You're set for today.</p>
       </div>
       <ul className="space-y-2">
         {altitudes.map(a => (
           <li key={a.id} className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${a.needsAttention ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            <span className="text-label font-bold uppercase tracking-[0.14em] text-white/55 w-20 flex-shrink-0">{a.label}</span>
-            <span className="text-label text-white/75 truncate">{a.summary}</span>
+            <span className="text-label font-bold uppercase tracking-[0.14em] text-ink-faint w-20 flex-shrink-0">{a.label}</span>
+            <span className="text-label text-ink-muted truncate">{a.summary}</span>
             {!a.needsAttention && <Check size={13} className="ml-auto text-emerald-400/80 flex-shrink-0" />}
           </li>
         ))}
@@ -548,7 +548,7 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
         >
           <span className="inline-flex items-center gap-2">
             <Inbox size={14} className="text-amber-400" />
-            <span className="text-body text-white/85">{waiting} still waiting on you</span>
+            <span className="text-body text-ink-muted">{waiting} still waiting on you</span>
           </span>
           <ArrowRight size={14} className="text-amber-300/80" />
         </button>
@@ -556,7 +556,7 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
       <button
         type="button"
         onClick={() => { h.tap(); setHistoryOpen(true) }}
-        className="inline-flex items-center gap-1.5 text-label text-white/45 hover:text-white/80"
+        className="inline-flex items-center gap-1.5 text-label text-ink-faint hover:text-ink-muted"
       >
         <History size={12} /> How the last weeks went
       </button>
@@ -606,22 +606,22 @@ function GoalHistory({ open, onClose }: { open: boolean; onClose: () => void }) 
   return (
     <SlideOver open={open} onClose={onClose} ariaLabel="Goal history" label="The last eight weeks">
       <div className="p-5 space-y-4">
-        <h2 className="text-ui font-semibold text-white">The last eight weeks</h2>
+        <h2 className="text-ui font-semibold text-ink">The last eight weeks</h2>
         {error && (
           <p className="text-label text-rose-300 flex items-center gap-2 flex-wrap">
             <span>{error}</span>
-            <button type="button" onClick={() => setAttempt(a => a + 1)} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+            <button type="button" onClick={() => setAttempt(a => a + 1)} className="underline underline-offset-2 text-ink-muted hover:text-ink">Retry</button>
           </p>
         )}
         {loading && <Pending variant="block" label={work.label} elapsedMs={readMs} expectedMs={work.expectedMs} />}
         {weeks && weeks.every(w => w.set === 0 && w.days_locked === 0) && (
-          <p className="text-label text-white/45">Nothing recorded yet. The first closed week lands here on Saturday.</p>
+          <p className="text-label text-ink-faint">Nothing recorded yet. The first closed week lands here on Saturday.</p>
         )}
         {weeks && weeks.map(w => (
           <section key={w.week_start} className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-1.5">
-            <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">
+            <p className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold">
               Week of {w.week_start}
-              <span className="ml-2 normal-case tracking-normal text-white/35 font-normal">
+              <span className="ml-2 normal-case tracking-normal text-ink-faint font-normal">
                 {w.set} set, {w.done} done, {w.missed} missed. {w.days_locked} {w.days_locked === 1 ? 'day' : 'days'} with a Today, {w.targets_done}/{w.targets_set} picks done.
               </span>
             </p>
@@ -629,8 +629,8 @@ function GoalHistory({ open, onClose }: { open: boolean; onClose: () => void }) 
               <ul className="space-y-1">
                 {w.objectives.map(o => (
                   <li key={o.id} className="flex items-start gap-2 text-body leading-snug">
-                    <span className={`shrink-0 text-micro mt-[3px] w-12 ${o.status === 'done' ? 'text-emerald-300/80' : o.status === 'missed' ? 'text-amber-300/80' : 'text-white/40'}`}>{o.status}</span>
-                    <span className="text-white/80 break-words">{o.title}{o.carried_from ? <span className="text-white/35"> (carried)</span> : null}</span>
+                    <span className={`shrink-0 text-micro mt-[3px] w-12 ${o.status === 'done' ? 'text-emerald-300/80' : o.status === 'missed' ? 'text-amber-300/80' : 'text-ink-faint'}`}>{o.status}</span>
+                    <span className="text-ink-muted break-words">{o.title}{o.carried_from ? <span className="text-ink-faint"> (carried)</span> : null}</span>
                   </li>
                 ))}
               </ul>

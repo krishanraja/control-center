@@ -139,16 +139,16 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         <button
           type="button"
           onClick={() => stepMonth(-1)}
-          className="px-2 py-1 rounded-md text-label text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
+          className="px-2 py-1 rounded-md text-label text-ink-faint hover:text-ink hover:bg-white/[0.06] transition-colors"
           aria-label="Previous month"
         >
           <ChevronLeft size={14} />
         </button>
-        <h2 className="text-ui font-semibold text-white tabular-nums">{monthLabel}</h2>
+        <h2 className="text-ui font-semibold text-ink tabular-nums">{monthLabel}</h2>
         <button
           type="button"
           onClick={() => stepMonth(1)}
-          className="px-2 py-1 rounded-md text-label text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
+          className="px-2 py-1 rounded-md text-label text-ink-faint hover:text-ink hover:bg-white/[0.06] transition-colors"
           aria-label="Next month"
         >
           <ChevronRight size={14} />
@@ -156,15 +156,15 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         <button
           type="button"
           onClick={() => setCursor(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })}
-          className="ml-2 px-2 py-1 rounded-md text-micro text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+          className="ml-2 px-2 py-1 rounded-md text-micro text-ink-faint hover:text-ink-muted hover:bg-white/[0.06] transition-colors"
         >
           Today
         </button>
-        <span className="ml-auto text-micro text-white/45 tabular-nums">{monthIdeas.length} scheduled this month</span>
+        <span className="ml-auto text-micro text-ink-faint tabular-nums">{monthIdeas.length} scheduled this month</span>
       </header>
 
       {monthIdeas.length === 0 && (
-        <div className="mb-3 rounded-md border border-dashed border-white/[0.10] bg-white/[0.01] px-3 py-2.5 text-micro text-white/55">
+        <div className="mb-3 rounded-md border border-dashed border-white/[0.10] bg-white/[0.01] px-3 py-2.5 text-micro text-ink-faint">
           Nothing scheduled in {monthLabel}.{' '}
           {unscheduled > 0
             ? `Click any day to drop one of your ${unscheduled} in-flight idea${unscheduled === 1 ? '' : 's'} onto the calendar.`
@@ -174,7 +174,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dayHeaders.map(h => (
-          <div key={h} className="text-micro uppercase tracking-[0.14em] text-white/35 text-center py-1">{h}</div>
+          <div key={h} className="text-micro uppercase tracking-[0.14em] text-ink-faint text-center py-1">{h}</div>
         ))}
       </div>
 
@@ -195,9 +195,9 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   : 'border-white/[0.03] bg-transparent opacity-40'
               }`}
             >
-              <div className={`flex items-center justify-between text-micro tabular-nums mb-1 ${isToday ? 'text-violet-200 font-semibold' : 'text-white/45'}`}>
+              <div className={`flex items-center justify-between text-micro tabular-nums mb-1 ${isToday ? 'text-violet-200 font-semibold' : 'text-ink-faint'}`}>
                 <span>{c.date.getDate()}</span>
-                {c.inMonth && <Plus size={11} className="opacity-0 group-hover:opacity-60 text-white/70" />}
+                {c.inMonth && <Plus size={11} className="opacity-0 group-hover:opacity-60 text-ink-muted" />}
               </div>
               <div className="space-y-0.5">
                 {c.ideas.slice(0, 3).map(i => (
@@ -214,7 +214,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                           ? 'bg-violet-500/15 text-violet-200'
                           : i.state === 'review'
                             ? 'bg-amber-500/15 text-amber-200'
-                            : 'bg-white/[0.06] text-white/75'
+                            : 'bg-white/[0.06] text-ink-muted'
                     }`}
                     title={`${i.idea} · ${i.state}`}
                   >
@@ -222,7 +222,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   </a>
                 ))}
                 {c.ideas.length > 3 && (
-                  <div className="text-micro text-white/45 px-1">+{c.ideas.length - 3}</div>
+                  <div className="text-micro text-ink-faint px-1">+{c.ideas.length - 3}</div>
                 )}
               </div>
             </div>
@@ -230,12 +230,12 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         })}
       </div>
 
-      <div className="flex items-center gap-3 mt-3 text-micro text-white/45">
+      <div className="flex items-center gap-3 mt-3 text-micro text-ink-faint">
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500/40" /> Review</span>
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-violet-500/40" /> Approved</span>
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500/40" /> Published</span>
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-white/[0.15]" /> Other</span>
-        <span className="ml-auto text-white/35">Click any day to schedule a draft</span>
+        <span className="ml-auto text-ink-faint">Click any day to schedule a draft</span>
       </div>
 
       {pickerDay && (
@@ -243,10 +243,10 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
           <button aria-label="Cancel" onClick={() => setPickerDay(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div className="relative w-full max-w-md max-h-[80vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
             <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-              <h3 className="text-ui font-semibold text-white">
+              <h3 className="text-ui font-semibold text-ink">
                 Schedule for {pickerDay.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </h3>
-              <p className="text-micro text-white/45 mt-0.5">
+              <p className="text-micro text-ink-faint mt-0.5">
                 {unscheduledIdeas.length} unscheduled idea{unscheduledIdeas.length === 1 ? '' : 's'}
               </p>
               {unscheduledIdeas.length > 8 && (
@@ -256,15 +256,15 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   value={pickerQuery}
                   onChange={e => setPickerQuery(e.target.value)}
                   placeholder="Filter ideas"
-                  className="mt-2.5 w-full bg-white/[0.04] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-label text-white placeholder:text-white/30 focus:outline-none focus:border-violet-400/40"
+                  className="mt-2.5 w-full bg-white/[0.04] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-label text-ink placeholder:text-ink-faint focus:outline-none focus:border-violet-400/40"
                 />
               )}
             </div>
             <div className="flex-1 overflow-y-auto px-2 py-2">
               {unscheduledIdeas.length === 0 ? (
-                <p className="text-label text-white/45 px-3 py-8 text-center">Everything in flight already has a date.</p>
+                <p className="text-label text-ink-faint px-3 py-8 text-center">Everything in flight already has a date.</p>
               ) : pickerMatches.length === 0 ? (
-                <p className="text-label text-white/45 px-3 py-8 text-center">No ideas match “{pickerQuery}”.</p>
+                <p className="text-label text-ink-faint px-3 py-8 text-center">No ideas match “{pickerQuery}”.</p>
               ) : (
                 pickerMatches.map(i => (
                   <button
@@ -274,15 +274,15 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                     onClick={() => schedule(i.id, pickerDay)}
                     className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/[0.05] disabled:opacity-50 flex items-center gap-2.5 transition-colors"
                   >
-                    <span className="min-w-0 flex-1 break-words text-label text-white/85">{i.idea}</span>
-                    <span className="text-micro uppercase tracking-[0.14em] text-white/40 flex-shrink-0">{i.state}</span>
+                    <span className="min-w-0 flex-1 break-words text-label text-ink-muted">{i.idea}</span>
+                    <span className="text-micro uppercase tracking-[0.14em] text-ink-faint flex-shrink-0">{i.state}</span>
                     {scheduling === i.id && <Working size={12} className="text-accent" />}
                   </button>
                 ))
               )}
             </div>
             <div className="px-5 py-3 border-t border-white/[0.06] flex justify-end">
-              <button type="button" onClick={() => setPickerDay(null)} className="text-label text-white/55 hover:text-white/85 px-3 py-1.5">
+              <button type="button" onClick={() => setPickerDay(null)} className="text-label text-ink-faint hover:text-ink-muted px-3 py-1.5">
                 Cancel
               </button>
             </div>

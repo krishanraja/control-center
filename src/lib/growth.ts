@@ -142,10 +142,10 @@ export const COVERAGE_LABEL: Record<Coverage, string> = {
 }
 
 export const COVERAGE_TONE: Record<Coverage, string> = {
-  unaddressed: 'text-white/55 border-white/12',
+  unaddressed: 'text-ink-faint border-white/12',
   in_progress: 'text-sky-300 border-sky-500/30',
   covered: 'text-emerald-300 border-emerald-500/30',
-  retired: 'text-white/30 border-white/[0.08]',
+  retired: 'text-ink-faint border-white/[0.08]',
 }
 
 /** Board columns, in the order the work actually moves. `dropped` is not a column. */

@@ -57,7 +57,7 @@ export function HomeDoor({
     >
       {!compact && <IconTile icon={icon} size="sm" />}
       <span
-        className={`min-w-0 truncate font-semibold leading-none text-white/90 ${
+        className={`min-w-0 truncate font-semibold leading-none text-ink ${
           compact ? 'text-label text-center' : 'text-ui'
         }`}
       >
@@ -66,7 +66,7 @@ export function HomeDoor({
       {!compact && (
         <ChevronRight
           size={14}
-          className="ml-auto shrink-0 text-white/30 transition-colors group-hover:text-white/60"
+          className="ml-auto shrink-0 text-ink-faint transition-colors group-hover:text-ink-faint"
           aria-hidden
         />
       )}

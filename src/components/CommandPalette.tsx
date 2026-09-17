@@ -61,22 +61,22 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
           label="Global command"
         >
           <div className="flex items-center gap-2.5 px-4 border-b border-white/[0.07]">
-            <SearchIcon size={16} className="text-white/35 flex-shrink-0" />
+            <SearchIcon size={16} className="text-ink-faint flex-shrink-0" />
             <Command.Input
               autoFocus
               placeholder="Search tasks, agents, tabs…"
-              className="w-full bg-transparent py-3.5 text-ui text-white placeholder-white/30 focus:outline-none"
+              className="w-full bg-transparent py-3.5 text-ui text-ink placeholder-white/30 focus:outline-none"
             />
-            <kbd className="hidden sm:inline-block rounded-md border border-white/12 bg-white/[0.05] px-1.5 py-0.5 text-micro font-mono text-white/40">esc</kbd>
+            <kbd className="hidden sm:inline-block rounded-md border border-white/12 bg-white/[0.05] px-1.5 py-0.5 text-micro font-mono text-ink-faint">esc</kbd>
           </div>
           <Command.List className="max-h-[60vh] overflow-y-auto p-2">
-            <Command.Empty className="px-3 py-4 text-label text-white/35">No results</Command.Empty>
+            <Command.Empty className="px-3 py-4 text-label text-ink-faint">No results</Command.Empty>
 
             <Command.Group heading="Navigate">
               {TABS.map(t => (
-                <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { h.select(); onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { h.select(); onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-ink-muted cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-ink data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>Go to {t.label}</span>
-                  <span className="text-micro text-white/30">tab</span>
+                  <span className="text-micro text-ink-faint">tab</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -88,18 +88,18 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
                 ['Use system theme', () => setMode('system')],
                 [getAmbient() ? 'Turn ambient effects off' : 'Turn ambient effects on', () => setAmbient(!getAmbient())],
               ] as [string, () => void][]).map(([label, run]) => (
-                <Command.Item key={label} value={`appearance ${label}`} onSelect={() => { h.select(); run(); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={label} value={`appearance ${label}`} onSelect={() => { h.select(); run(); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-ink-muted cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-ink data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>{label}</span>
-                  <span className="text-micro text-white/30">theme</span>
+                  <span className="text-micro text-ink-faint">theme</span>
                 </Command.Item>
               ))}
             </Command.Group>
 
             <Command.Group heading="Tasks">
               {tasks.map(t => (
-                <Command.Item key={t.id} value={`task ${t.title}`} onSelect={() => { onTab('today'); onClose() }} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={t.id} value={`task ${t.title}`} onSelect={() => { onTab('today'); onClose() }} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-body text-ink-muted cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-ink data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span className="truncate flex-1">{t.title}</span>
-                  <span className="text-micro text-white/35">{t.status}</span>
+                  <span className="text-micro text-ink-faint">{t.status}</span>
                   <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => approve(t.id)} className="text-micro text-violet-400 hover:text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/20">Approve</button>
                     <button onClick={() => markDone(t.id)} className="text-micro text-emerald-400 hover:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/20">Done</button>
@@ -110,9 +110,9 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
 
             <Command.Group heading="Agents">
               {agents.map(a => (
-                <Command.Item key={a.id} value={`agent ${a.name}`} onSelect={() => { onTab('org'); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={a.id} value={`agent ${a.name}`} onSelect={() => { onTab('org'); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-ink-muted cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-ink data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>{a.name}</span>
-                  <span className="text-micro text-white/35">{a.pod}</span>
+                  <span className="text-micro text-ink-faint">{a.pod}</span>
                 </Command.Item>
               ))}
             </Command.Group>

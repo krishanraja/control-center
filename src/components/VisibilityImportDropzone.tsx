@@ -117,8 +117,8 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
           hover ? 'border-violet-400/60 bg-violet-500/[0.05]' : 'border-white/15 bg-white/[0.015] hover:border-white/25'
         }`}
       >
-        <UploadCloud size={20} className="text-white/40 mx-auto mb-1.5" />
-        <p className="text-label text-white/75">
+        <UploadCloud size={20} className="text-ink-faint mx-auto mb-1.5" />
+        <p className="text-label text-ink-muted">
           Drop a CSV or TSV of opportunities,
           {' '}
           <button
@@ -137,7 +137,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
             <Clipboard size={11} /> paste rows
           </button>
         </p>
-        <p className="text-micro text-white/35 mt-1">
+        <p className="text-micro text-ink-faint mt-1">
           Columns: title | type | event_url | cfp_url | deadline
         </p>
         <input
@@ -157,7 +157,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
             onChange={e => setPasteText(e.target.value)}
             rows={5}
             placeholder={`SXSW\tconference\thttps://sxsw.com\nWeb Summit\tconference\thttps://websummit.com`}
-            className="w-full bg-sunk border border-white/[0.08] rounded-md p-2 text-label text-white/85 font-mono resize-y focus:border-violet-400/50 outline-none"
+            className="w-full bg-sunk border border-white/[0.08] rounded-md p-2 text-label text-ink-muted font-mono resize-y focus:border-violet-400/50 outline-none"
           />
           <div className="flex items-center gap-2">
             <button
@@ -171,7 +171,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
             <button
               type="button"
               onClick={() => { setPasteText(''); setPasteOpen(false) }}
-              className="text-label text-white/55 hover:text-white/85"
+              className="text-label text-ink-faint hover:text-ink-muted"
             >
               Cancel
             </button>
@@ -186,13 +186,13 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
               key={f.id}
               className="flex items-center gap-2 text-micro px-2 py-1 rounded bg-white/[0.02] border border-white/[0.04]"
             >
-              <FileText size={11} className="text-white/40" />
-              <span className="flex-1 truncate text-white/75">{f.name}</span>
-              {f.count != null && <span className="text-white/40 tabular-nums">{f.count} rows</span>}
+              <FileText size={11} className="text-ink-faint" />
+              <span className="flex-1 truncate text-ink-muted">{f.name}</span>
+              {f.count != null && <span className="text-ink-faint tabular-nums">{f.count} rows</span>}
               {/* Was a bare mark with no word beside it, so a file that was
                   importing and a file that had stalled looked identical. */}
               {f.state === 'sending' && (
-                <span className="flex items-center gap-1 text-white/55">
+                <span className="flex items-center gap-1 text-ink-faint">
                   <Working size={11} className="text-accent" />
                   Importing…
                 </span>

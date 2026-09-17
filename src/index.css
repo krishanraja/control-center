@@ -161,24 +161,14 @@
   --s300-cyan: 56 108 124;
 }
 
-/* Muted-tier parity on paper.
-   The faint tiers are opacities of --fg, and the same opacity does NOT buy the
-   same legibility on both grounds: white at 25% over obsidian measures 2.11:1,
-   while black at 25% over the lavender paper measures 1.82:1. The tier looks
-   deliberate at night and vanishes by day. Making --fg pure black (above) lifted
-   every tier at once and got /30 and up over the line; /25 is the one that still
-   lands under it, so it is lifted here to the opacity that reproduces exactly
-   the contrast its dark counterpart already has (2.12:1).
-
-   Scoped to the light theme, so the approved dark surface is untouched, and done
-   here rather than across 45 files for the same reason --fg is a channel: one
-   lever, no per-component edits. e2e/theme-contrast.spec.ts holds the floor.
-
-   Not lifted: text-white/20 (6 uses) measures 1.74:1 on obsidian and 1.60:1 on
-   paper, so it is faint in BOTH themes rather than a light-mode defect. Every
-   one of those is an icon, a middot separator, or a disabled label. */
-:root[data-theme='light'] .text-white\/25 { color: rgb(var(--fg) / 0.31); }
-:root[data-theme='light'] .placeholder\:text-white\/25::placeholder { color: rgb(var(--fg) / 0.31); }
+/* The light-theme lift for `.text-white/25` used to live here, hand-setting
+   that one class to 0.31 so paper matched the 2.12:1 its dark counterpart
+   already had. The 2026-09-17 sweep removed the need for it: every
+   `text-white/NN` in src/ is now one of the three ink channels, and the tier
+   below faint is spelled `text-ink-faint/50`, which resolves to 0.25 on
+   obsidian and 0.31 on paper — the same two numbers the lift was producing,
+   from the token rather than from an override keyed on a utility class.
+   e2e/theme-contrast.spec.ts still holds the floor. */
 
 /* Ambient OFF — the clean, flat adaptive light/dark with no Living Canvas. */
 :root[data-ambient='off'] .ambient-field,
@@ -295,9 +285,19 @@
      `text-ink-faint`, which is the same three channels as real Tailwind tokens
      that also take opacity modifiers. Two names for one job is why neither was
      adopted: 185 of 257 component files stayed on `text-white/NN` opacity soup
-     while the documented hierarchy split its own vote. Swept 2026-09-13; the
-     token spelling is the only one in src/ now and
-     `scripts/check-type-tokens.mts` fails a new use of these three. */
+     while the documented hierarchy split its own vote.
+
+     The 2026-09-13 sweep retired the CLASS spelling, which is what
+     `scripts/check-type-tokens.mts` guards. It did not move the opacity soup,
+     though the note here and in DESIGN_SYSTEM.md read as if it had: on
+     2026-09-17 the count was still 189 of 253 component files and 2,119 uses,
+     against 30 files on the tokens. That sweep ran on 2026-09-17: 2,367
+     `text-white/NN` call sites across 196 files, 31 distinct opacity values,
+     collapsed onto these three channels. Bands were nearest-anchor on the dark
+     theme's own figures (ink 1.000, muted 0.755, faint 0.500 as opacities of
+     --fg), so the render stayed where it was while the vocabulary collapsed.
+     Measured across 15 routes in both themes, text below the contrast floor
+     went from 47 nodes to 3, and the 3 are deliberate brand treatments. */
   .text-strong { color: rgb(var(--ink)); }
   .text-muted { color: rgb(var(--ink-muted)); }
   .text-faint { color: rgb(var(--ink-faint)); }

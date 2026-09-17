@@ -168,7 +168,7 @@ export function NetworkPersonSheet({ person, onClose }: {
         {/* Identity */}
         <div className="pb-3">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h2 className="text-title font-semibold leading-tight text-white">
+            <h2 className="text-title font-semibold leading-tight text-ink">
               {person.full_name || person.company || 'Unnamed contact'}
             </h2>
             <Badge variant={person.network_tier === '1_reciprocated' ? 'accent' : 'default'}>
@@ -182,13 +182,13 @@ export function NetworkPersonSheet({ person, onClose }: {
             >
               {prov.label}
             </span>
-            {prov.detail && <span className="text-label text-white/40">{prov.detail}</span>}
+            {prov.detail && <span className="text-label text-ink-faint">{prov.detail}</span>}
           </p>
           {(sub || place) && (
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-white/55">
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-ink-faint">
               {sub && <span>{sub}</span>}
               {place && (
-                <span className="inline-flex items-center gap-0.5 text-white/40">
+                <span className="inline-flex items-center gap-0.5 text-ink-faint">
                   <MapPin size={11} aria-hidden /> {place}
                 </span>
               )}
@@ -221,10 +221,10 @@ export function NetworkPersonSheet({ person, onClose }: {
           {/* The recorded best channel is not always one we hold an address for.
               Saying which, rather than quietly showing a different button. */}
           {reach.best && reach.note && (
-            <p className="text-label leading-relaxed text-white/40">{reach.note}</p>
+            <p className="text-label leading-relaxed text-ink-faint">{reach.note}</p>
           )}
           {loadingDetail && !detail && (
-            <p className="flex items-center gap-1.5 text-label text-white/30">
+            <p className="flex items-center gap-1.5 text-label text-ink-faint">
               <Working size={11} /> Checking for other channels.
             </p>
           )}
@@ -239,10 +239,10 @@ export function NetworkPersonSheet({ person, onClose }: {
           || ((person.intent_score ?? 0) > 0 && person.intent_evidence)) && (
         <div className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
           {(person.why_match || person.why_them) && (
-            <p className="text-body leading-relaxed text-white/80">{person.why_match || person.why_them}</p>
+            <p className="text-body leading-relaxed text-ink-muted">{person.why_match || person.why_them}</p>
           )}
           {person.who && person.who !== person.why_them && (
-            <p className="text-label leading-relaxed text-white/50">{person.who}</p>
+            <p className="text-label leading-relaxed text-ink-faint">{person.who}</p>
           )}
           {/* Same precedence the row uses one line down: `move` is the explain
               pass answering "so how do I open THIS conversation", `hook` is the
@@ -250,13 +250,13 @@ export function NetworkPersonSheet({ person, onClose }: {
               DOWNGRADED the opening line from the query-specific move back to
               the generic one. */}
           {(person.move || person.hook) && (
-            <p className="text-label leading-relaxed text-white/60">
-              <span className="text-white/30">Open with</span> {person.move || person.hook}
+            <p className="text-label leading-relaxed text-ink-faint">
+              <span className="text-ink-faint">Open with</span> {person.move || person.hook}
             </p>
           )}
           {person.risk && (
             <p className="text-label leading-relaxed text-amber-200/85">
-              <span className="text-white/30">Risk</span> {person.risk}
+              <span className="text-ink-faint">Risk</span> {person.risk}
             </p>
           )}
           {person.thin_evidence && (
@@ -286,7 +286,7 @@ export function NetworkPersonSheet({ person, onClose }: {
                   <span className="text-emerald-300/45"> · {new Date(person.last_post_at).toLocaleDateString()}</span>
                 )}
               </p>
-              <p className="mt-1 text-label italic leading-relaxed text-white/80">
+              <p className="mt-1 text-label italic leading-relaxed text-ink-muted">
                 &ldquo;{person.intent_evidence}&rdquo;
               </p>
               {person.intent_evidence_url && (
@@ -312,15 +312,15 @@ export function NetworkPersonSheet({ person, onClose }: {
           {profile && (
             <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
               {profile.headline && (
-                <p className="text-label leading-snug text-white/80">{profile.headline}</p>
+                <p className="text-label leading-snug text-ink-muted">{profile.headline}</p>
               )}
               {profile.summary && (
-                <p className="mt-1 text-label leading-relaxed text-white/60">{profile.summary}</p>
+                <p className="mt-1 text-label leading-relaxed text-ink-faint">{profile.summary}</p>
               )}
               {!!profile.topics.length && (
                 <p className="mt-1.5 flex flex-wrap gap-1">
                   {profile.topics.map(t => (
-                    <span key={t} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-micro text-white/55">{t}</span>
+                    <span key={t} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-micro text-ink-faint">{t}</span>
                   ))}
                 </p>
               )}
@@ -328,7 +328,7 @@ export function NetworkPersonSheet({ person, onClose }: {
                   a rules-only guess look identical, which is the confusion
                   thin_evidence alone could not resolve. */}
               {profile.provenance && (
-                <p className="mt-1.5 text-micro text-white/35">{profile.provenance}</p>
+                <p className="mt-1.5 text-micro text-ink-faint">{profile.provenance}</p>
               )}
             </div>
           )}
@@ -379,17 +379,17 @@ function ReachButton({ option, primary, onCopy, copied }: {
         data-testid={`network-reach-${option.channel}`}
         className={`flex min-h-[44px] min-w-0 flex-1 items-center gap-2.5 rounded-form border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
           option.speculative
-            ? 'border-dashed border-white/12 text-white/45 hover:border-white/25 hover:bg-white/[0.03]'
+            ? 'border-dashed border-white/12 text-ink-faint hover:border-white/25 hover:bg-white/[0.03]'
             : primary
               ? 'border-violet-400/40 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25'
-              : 'border-white/10 text-white/70 hover:border-white/20 hover:bg-white/[0.03]'}`}
+              : 'border-white/10 text-ink-muted hover:border-white/20 hover:bg-white/[0.03]'}`}
       >
         <Icon size={15} className="shrink-0" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-body font-semibold leading-tight">
             {option.label}
             {option.recommended && (
-              <span className={`ml-1.5 text-micro font-medium ${primary ? 'text-violet-200/70' : 'text-white/35'}`}>
+              <span className={`ml-1.5 text-micro font-medium ${primary ? 'text-violet-200/70' : 'text-ink-faint'}`}>
                 best channel
               </span>
             )}
@@ -401,10 +401,10 @@ function ReachButton({ option, primary, onCopy, copied }: {
               <span className="ml-1.5 text-micro font-medium text-amber-200/70">unverified — may bounce</span>
             )}
             {option.speculative && (
-              <span className="ml-1.5 text-micro font-medium text-white/35">no profile on file</span>
+              <span className="ml-1.5 text-micro font-medium text-ink-faint">no profile on file</span>
             )}
           </span>
-          <span className={`block truncate text-label leading-tight ${primary ? 'text-violet-100/60' : 'text-white/40'}`}>
+          <span className={`block truncate text-label leading-tight ${primary ? 'text-violet-100/60' : 'text-ink-faint'}`}>
             {option.address}
           </span>
         </span>
@@ -419,7 +419,7 @@ function ReachButton({ option, primary, onCopy, copied }: {
         onClick={onCopy}
         aria-label={`Copy ${option.label.toLowerCase()} address`}
         data-testid={`network-copy-${option.channel}`}
-        className="flex min-h-[44px] w-11 shrink-0 items-center justify-center rounded-form border border-white/10 text-white/45 transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+        className="flex min-h-[44px] w-11 shrink-0 items-center justify-center rounded-form border border-white/10 text-ink-faint transition-colors hover:border-white/20 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
       >
         {copied ? <Check size={14} className="text-emerald-300" aria-hidden /> : <Copy size={14} aria-hidden />}
       </button>}

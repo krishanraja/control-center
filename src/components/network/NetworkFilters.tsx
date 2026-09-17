@@ -177,7 +177,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
           {value.hard ? 'Matches only' : 'Matches first'}
         </Badge>
       </button>
-      <span className="text-micro text-white/40">
+      <span className="text-micro text-ink-faint">
         {value.hard
           ? 'Hides anyone who does not match, so this can return nobody.'
           : 'Puts strong matches first. Close matches still show.'}
@@ -186,7 +186,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
         type="button"
         onClick={() => onChange({ ...EMPTY_FILTERS, hard: value.hard })}
         data-testid="network-filter-clear"
-        className="ml-auto text-micro text-white/40 underline underline-offset-2 hover:text-white/70"
+        className="ml-auto text-micro text-ink-faint underline underline-offset-2 hover:text-ink-muted"
       >
         Clear {active}
       </button>
@@ -218,7 +218,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
           className={`flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
             nonGeoActive > 0 || value.hard
               ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
-              : 'border-white/10 text-white/60'}`}
+              : 'border-white/10 text-ink-faint'}`}
         >
           <SlidersHorizontal size={12} aria-hidden />
           <span>Filters</span>
@@ -262,14 +262,14 @@ export function NetworkFilters({ value, onChange, collapsible }: {
       <BottomSheet open={sheet} onClose={() => setSheet(false)} fullHeight={false} ariaLabel="Filters">
         <div className="max-h-[72vh] overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="flex items-center gap-2 pb-3">
-            <h2 className="text-ui font-semibold text-white">Filters</h2>
-            {active > 0 && <span className="text-label text-white/40">{active} on</span>}
+            <h2 className="text-ui font-semibold text-ink">Filters</h2>
+            {active > 0 && <span className="text-label text-ink-faint">{active} on</span>}
             <button
               type="button"
               onClick={() => setSheet(false)}
               aria-label="Close filters"
               data-testid="network-filters-close"
-              className="ml-auto rounded-full p-1.5 text-white/40 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              className="ml-auto rounded-full p-1.5 text-ink-faint transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
               <X size={16} aria-hidden />
             </button>

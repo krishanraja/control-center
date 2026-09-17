@@ -57,7 +57,7 @@ function Big({ children, tone = 'ghost', onClick, disabled }: {
 }) {
   const cls = tone === 'green' ? 'bg-emerald-400 text-emerald-950'
     : tone === 'primary' ? 'btn-contrast'
-    : 'bg-white/[0.06] text-white/75 border border-white/10'
+    : 'bg-white/[0.06] text-ink-muted border border-white/10'
   return (
     <button
       onClick={onClick}
@@ -301,8 +301,8 @@ export function MobileDecisionDeck({
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center" aria-busy="true" role="status">
         <Skeleton h={3} w={92} r={2} />
-        <p className="mt-4 text-body font-semibold text-white/75">Checking Video Engine reviews</p>
-        <p className="mt-1 max-w-[28ch] text-label leading-relaxed text-white/42">Content is clear. The private review queue is still loading.</p>
+        <p className="mt-4 text-body font-semibold text-ink-muted">Checking Video Engine reviews</p>
+        <p className="mt-1 max-w-[28ch] text-label leading-relaxed text-ink-faint">Content is clear. The private review queue is still loading.</p>
       </div>
     )
   }
@@ -311,10 +311,10 @@ export function MobileDecisionDeck({
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
         {videoQueueError ? null : <DrawnCheck size={44} stroke="rgb(52 211 153)" />}
-        <div className="text-white/90 font-bold text-lede">
+        <div className="text-ink font-bold text-lede">
           {videoQueueError ? 'Video reviews could not be checked' : 'All decided for this week'}
         </div>
-        <p className="text-white/45 text-body max-w-[26ch]">
+        <p className="text-ink-faint text-body max-w-[26ch]">
           {videoQueueError
             ? 'Your Content decisions are clear. Refresh before assuming the Video Engine queue is clear.'
             : 'Nothing is waiting on you. New decisions will show up here when they are ready.'}
@@ -336,7 +336,7 @@ export function MobileDecisionDeck({
   const videoNeedsSyncAttention = Boolean(video && !videoMalformed && video.status !== 'pending')
   const p = (d?.payload || {}) as Record<string, any>
   const chip = idea
-    ? { label: idea.state === 'researching' ? 'Being researched' : 'New idea', cls: 'bg-white/[0.08] text-white/70' }
+    ? { label: idea.state === 'researching' ? 'Being researched' : 'New idea', cls: 'bg-white/[0.08] text-ink-muted' }
     : video
     ? {
         label: videoMalformed ? 'Review needs repair' : videoNeedsSyncAttention ? 'Local sync attention' : VIDEO_GATE_LABEL[video.gate],
@@ -344,7 +344,7 @@ export function MobileDecisionDeck({
           ? 'bg-amber-400/15 text-amber-200'
           : 'bg-violet-400/15 text-violet-200',
       }
-    : KIND_CHIP[d!.kind] || { label: d!.kind, cls: 'bg-white/[0.06] text-white/55' }
+    : KIND_CHIP[d!.kind] || { label: d!.kind, cls: 'bg-white/[0.06] text-ink-faint' }
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -356,7 +356,7 @@ export function MobileDecisionDeck({
           ))}
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-micro text-white/40 tabular-nums">
+          <div className="text-micro text-ink-faint tabular-nums">
             {pos + 1} of {queue.length} {videoNeedsSyncAttention ? 'to resolve' : 'to decide'}{done ? ` · ${done} done` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min
           </div>
           {queue.length > 1 && (
@@ -364,14 +364,14 @@ export function MobileDecisionDeck({
               <button
                 aria-label="Previous card"
                 onClick={() => go(-1)}
-                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-white/[0.06]"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 aria-label="Next card"
                 onClick={() => go(1)}
-                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-white/[0.06]"
               >
                 <ChevronRight size={16} />
               </button>
@@ -411,14 +411,14 @@ export function MobileDecisionDeck({
           {idea ? (
             <>
               <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
-              <h3 className="text-lede font-bold text-white mt-3 leading-snug">{idea.idea}</h3>
-              {idea.thesis ? <p className="text-label text-white/60 mt-2 leading-relaxed">{idea.thesis}</p> : null}
-              {idea.source_snippet ? <p className="text-micro text-white/40 mt-2 italic leading-relaxed">{idea.source_snippet}</p> : null}
-              <p className="text-micro text-white/35 mt-3">
+              <h3 className="text-lede font-bold text-ink mt-3 leading-snug">{idea.idea}</h3>
+              {idea.thesis ? <p className="text-label text-ink-faint mt-2 leading-relaxed">{idea.thesis}</p> : null}
+              {idea.source_snippet ? <p className="text-micro text-ink-faint mt-2 italic leading-relaxed">{idea.source_snippet}</p> : null}
+              <p className="text-micro text-ink-faint mt-3">
                 {idea.source_type ? idea.source_type.replace(/_/g, ' ') : 'captured'}{idea.lane_slot ? ` · ${idea.lane_slot.replace(/_/g, ' ')}` : ''}
               </p>
               {queue.length > 1 && (
-                <p className="text-micro text-white/25 mt-3">Swipe to look through the cards. The buttons make the call.</p>
+                <p className="text-micro text-ink-faint/50 mt-3">Swipe to look through the cards. The buttons make the call.</p>
               )}
             </>
           ) : (
@@ -427,14 +427,14 @@ export function MobileDecisionDeck({
             <VideoBrandLockup series={video.series} placement="card" className="mb-3" />
           ) : null}
           <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
-          <h3 className="text-lede font-bold text-white mt-3 leading-snug">
+          <h3 className="text-lede font-bold text-ink mt-3 leading-snug">
             {video ? (videoMalformed ? 'Video review needs repair' : video.safe_title)
               : d!.kind === 'brief_review' ? (p.title || 'This week’s brief')
               : d!.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
               : d!.kind === 'purge_preview' ? `${p.expiring ?? 0} time-sensitive items expire Monday`
               : (p.title || '')}
           </h3>
-          <p className="text-label text-white/50 mt-2 leading-relaxed">
+          <p className="text-label text-ink-faint mt-2 leading-relaxed">
             {video ? (videoMalformed
                 ? 'This review projection is incomplete. Open it to see what must be repaired before any decision.'
                 : videoNeedsSyncAttention
@@ -462,7 +462,7 @@ export function MobileDecisionDeck({
             <p className="text-label text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
           ) : null}
           {queue.length > 1 && (
-            <p className="text-micro text-white/25 mt-3">Swipe to look through the cards. The buttons make the call.</p>
+            <p className="text-micro text-ink-faint/50 mt-3">Swipe to look through the cards. The buttons make the call.</p>
           )}
           </>
           )}

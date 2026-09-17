@@ -84,13 +84,13 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
       <header className="flex items-start gap-2 min-w-0">
         <span className={`w-2 h-2 rounded-full mt-1.5 ${BET_KIND_ACCENT[bet.kind]} flex-shrink-0`} />
         <div className="flex-1 min-w-0">
-          <p className="text-body font-semibold text-white leading-snug">
+          <p className="text-body font-semibold text-ink leading-snug">
             {bet.hypothesis}
           </p>
-          <p className="text-micro text-white/55 leading-snug mt-1 line-clamp-2">
-            <span className="text-white/35">Wins if: </span>{bet.success_criterion}
+          <p className="text-micro text-ink-faint leading-snug mt-1 line-clamp-2">
+            <span className="text-ink-faint">Wins if: </span>{bet.success_criterion}
           </p>
-          <div className="flex items-center gap-2 mt-1.5 text-micro text-white/45 flex-wrap">
+          <div className="flex items-center gap-2 mt-1.5 text-micro text-ink-faint flex-wrap">
             <span>{BET_KIND_LABEL[bet.kind]}</span>
             {bet.agent_owner && <span>· {bet.agent_owner}</span>}
             {typeof bet.est_mrr_impact_usd === 'number' && bet.est_mrr_impact_usd > 0 && (
@@ -102,7 +102,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
           <span className={`text-micro uppercase tracking-[0.14em] flex-shrink-0 ${
             bet.status === 'won'  ? 'text-emerald-300' :
             bet.status === 'lost' ? 'text-red-300' :
-                                    'text-white/35'
+                                    'text-ink-faint'
           }`}>
             {bet.status}
           </span>
@@ -112,7 +112,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
       {bet.status === 'live' && (
         <div className="mt-2.5">
           <div className="flex items-center justify-between text-micro mb-1">
-            <span className={overdue ? 'text-red-300 font-semibold' : 'text-white/45'}>
+            <span className={overdue ? 'text-red-300 font-semibold' : 'text-ink-faint'}>
               <Clock size={9} className="inline mr-1" />
               {overdue
                 ? `Overdue · ${Math.floor(pct - 100)}% past time-box`
@@ -156,7 +156,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
               type="button"
               onClick={() => submit('paused')}
               disabled={busy !== null}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40"
             >
               <Pause size={11} />
               Pause
@@ -175,8 +175,8 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
       )}
 
       {bet.learning && (
-        <p className="text-micro text-white/55 mt-2 leading-snug italic">
-          <span className="text-white/35">Learning: </span>{bet.learning}
+        <p className="text-micro text-ink-faint mt-2 leading-snug italic">
+          <span className="text-ink-faint">Learning: </span>{bet.learning}
         </p>
       )}
 
@@ -189,7 +189,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
       {/* Forced decision modal */}
       {modal && (
         <div className="mt-3 rounded-lg border border-white/[0.12] bg-base p-3 space-y-2">
-          <p className="text-micro font-semibold text-white">
+          <p className="text-micro font-semibold text-ink">
             {modal === 'win'   && 'What worked? (one sentence, required)'}
             {modal === 'lose'  && 'What did you learn? (one sentence, required)'}
             {modal === 'extend' && 'Why extend? Set new days from today.'}
@@ -199,7 +199,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
             onChange={e => setLearning(e.target.value)}
             rows={2}
             placeholder={modal === 'win' ? 'e.g. cold email + free trial CTA converted at 12%' : modal === 'lose' ? 'e.g. ICP wasn’t buying ABM, switched to PLG' : 'e.g. customer call slipped two weeks'}
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-ink p-2 placeholder:text-ink-faint focus:outline-none focus:border-white/[0.18]"
           />
           {modal !== 'extend' && (
             <input
@@ -207,7 +207,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
               value={actualMrr}
               onChange={e => setActualMrr(e.target.value)}
               placeholder="Actual MRR impact ($/mo) — optional"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-ink p-2 placeholder:text-ink-faint focus:outline-none focus:border-white/[0.18]"
             />
           )}
           {modal === 'extend' && (
@@ -215,7 +215,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
               type="number"
               value={extendDays}
               onChange={e => setExtendDays(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 focus:outline-none focus:border-white/[0.18]"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-ink p-2 focus:outline-none focus:border-white/[0.18]"
             />
           )}
           <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
               type="button"
               onClick={() => setModal(null)}
               disabled={busy !== null}
-              className="px-3 py-1 rounded-md text-micro font-medium text-white/55 hover:text-white/80"
+              className="px-3 py-1 rounded-md text-micro font-medium text-ink-faint hover:text-ink-muted"
             >
               Cancel
             </button>

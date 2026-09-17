@@ -83,7 +83,7 @@ export function CriticalAlertBanner() {
       <span className="flex-shrink-0 text-micro font-semibold uppercase tracking-[0.14em] text-rose-300">
         Critical
       </span>
-      <span className="min-w-0 flex-1 truncate text-body text-white/90">{line}</span>
+      <span className="min-w-0 flex-1 truncate text-body text-ink">{line}</span>
     </button>
   )
 }

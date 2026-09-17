@@ -117,7 +117,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
               onClick={clear}
               aria-label="Clear search"
               data-testid="network-search-clear"
-              className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
               <X size={14} />
             </button>
@@ -132,7 +132,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
             className={`inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-form border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-40 ${
               recording
                 ? 'animate-pulse border-rose-400/50 bg-rose-500/20 text-rose-100'
-                : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white'}`}
+                : 'border-white/10 text-ink-faint hover:border-white/20 hover:text-ink'}`}
           >
             {recording ? <Square size={14} /> : <Mic size={15} />}
           </button>
@@ -150,18 +150,18 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
       </div>
 
       {micError && <p className="mt-2 text-label text-amber-300/80">{micError}</p>}
-      {recording && <p className="mt-2 text-label text-white/50">Listening. Press stop when you are done.</p>}
+      {recording && <p className="mt-2 text-label text-ink-faint">Listening. Press stop when you are done.</p>}
 
       {/* Heard, then understood, then results. In that order, so a mis-hearing
           is caught by reading one line rather than by distrusting twenty rows. */}
       {transcript && (
-        <p className="mt-2.5 text-label text-white/45">
-          <span className="text-white/30">Heard</span> {transcript}
+        <p className="mt-2.5 text-label text-ink-faint">
+          <span className="text-ink-faint">Heard</span> {transcript}
         </p>
       )}
       {restated && (
-        <p className="mt-1.5 text-label text-white/70">
-          <span className="text-white/30">Understood</span> {restated}
+        <p className="mt-1.5 text-label text-ink-muted">
+          <span className="text-ink-faint">Understood</span> {restated}
         </p>
       )}
 
@@ -196,7 +196,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
                   key={x}
                   type="button"
                   onClick={() => { setQ(x); onSearch(x) }}
-                  className="max-w-full rounded-2xl border border-white/10 px-2.5 py-1 text-left text-label text-white/60 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+                  className="max-w-full rounded-2xl border border-white/10 px-2.5 py-1 text-left text-label text-ink-faint transition-colors hover:border-white/20 hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
                 >
                   {x}
                 </button>

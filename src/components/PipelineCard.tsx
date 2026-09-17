@@ -33,7 +33,7 @@ export function PipelineCard({ task: t, onOpen, showLink = true, meta }: Props) 
     >
       <AgentAvatar agent={t.agent || 'system'} size="xs" />
       <div className="flex-1 min-w-0">
-        <p className="text-label text-white/85 leading-snug truncate">{t.title}</p>
+        <p className="text-label text-ink-muted leading-snug truncate">{t.title}</p>
         {meta && (
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">{meta}</div>
         )}
@@ -47,7 +47,7 @@ export function PipelineCard({ task: t, onOpen, showLink = true, meta }: Props) 
           target="_blank"
           rel="noreferrer noopener"
           onClick={(e) => e.stopPropagation()}
-          className="flex-shrink-0 text-white/30 hover:text-white/70 transition-colors"
+          className="flex-shrink-0 text-ink-faint hover:text-ink-muted transition-colors"
           aria-label="Open source"
         >
           <ExternalLink size={11} />

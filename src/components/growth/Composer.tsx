@@ -59,7 +59,7 @@ export function ComposerShell({
               type="button"
               onClick={() => { h.tap(); onClose() }}
               aria-label="Close"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-white/45 active:bg-white/[0.08]"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-faint active:bg-white/[0.08]"
             >
               <X size={16} />
             </button>
@@ -106,7 +106,7 @@ export function Ask({ label, hint, children }: { label: string; hint?: string; c
     <div className="flex flex-col gap-2 min-w-0">
       <div>
         <span className="block text-body text-ink-muted">{label}</span>
-        {hint && <span className="block text-micro text-white/35 mt-0.5 leading-snug">{hint}</span>}
+        {hint && <span className="block text-micro text-ink-faint mt-0.5 leading-snug">{hint}</span>}
       </div>
       {children}
     </div>

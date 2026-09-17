@@ -97,11 +97,11 @@ export function LaneRoom({
           <h2>
             <SeriesIdentity series={lane} />
           </h2>
-          <p className="text-label text-white/50 mt-0.5">{copy.question}</p>
+          <p className="text-label text-ink-faint mt-0.5">{copy.question}</p>
           {/* Say when a card is here because the router guessed, not because
               anyone decided. Silence here is how a guess hardens into a fact. */}
           {derived > 0 && (
-            <p className="text-micro text-white/40 mt-1 tabular-nums" data-testid={`content-derived-${lane}`}>
+            <p className="text-micro text-ink-faint mt-1 tabular-nums" data-testid={`content-derived-${lane}`}>
               {derived} of {active.length} sorted here by topic, not by a decision you made. Open one to settle it.
             </p>
           )}
@@ -111,7 +111,7 @@ export function LaneRoom({
             type="button"
             onClick={() => setSupplyOpen(true)}
             data-testid={`content-supply-${lane}`}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-label font-semibold text-white/70 hover:bg-white/[0.07] hover:text-white/90"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-label font-semibold text-ink-muted hover:bg-white/[0.07] hover:text-ink"
           >
             <Layers size={12} /> Supply
           </button>
@@ -134,12 +134,12 @@ export function LaneRoom({
           className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-4"
           data-testid={`content-lane-empty-${lane}`}
         >
-          <p className="text-body text-white/70">
+          <p className="text-body text-ink-muted">
             Nothing is routed to {series.label} yet.
           </p>
           {unclassified.length > 0 ? (
             <>
-              <p className="text-label text-white/45 mt-1 leading-relaxed">
+              <p className="text-label text-ink-faint mt-1 leading-relaxed">
                 {unclassified.length} live idea{unclassified.length === 1 ? '' : 's'} {unclassified.length === 1 ? 'is' : 'are'} waiting
                 for a format. Until one is routed, this room has nothing to show
                 and the count above it is honest at zero.
@@ -149,14 +149,14 @@ export function LaneRoom({
                   type="button"
                   onClick={() => setSupplyOpen(true)}
                   data-testid={`content-lane-empty-supply-${lane}`}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-label font-semibold text-white/80 hover:bg-white/[0.08]"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-label font-semibold text-ink-muted hover:bg-white/[0.08]"
                 >
                   <Layers size={12} /> Sort the {unclassified.length} unrouted
                 </button>
               )}
             </>
           ) : (
-            <p className="text-label text-white/45 mt-1 leading-relaxed">
+            <p className="text-label text-ink-faint mt-1 leading-relaxed">
               Nothing is in flight anywhere either. Start from something you
               already have rather than waiting for the Friday sweep.
             </p>
@@ -169,11 +169,11 @@ export function LaneRoom({
       <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]" data-testid={`content-also-here-${lane}`}>
         <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2.5">
           <Eyebrow>Also here</Eyebrow>
-          <span className="text-micro text-white/40 tabular-nums">
+          <span className="text-micro text-ink-faint tabular-nums">
             {surfacedCount} surfaced this week, {shiftCount} shift{shiftCount === 1 ? '' : 's'} tracked
           </span>
-          <span className="ml-auto text-micro text-white/35 group-open:hidden">Show</span>
-          <span className="ml-auto hidden text-micro text-white/35 group-open:inline">Hide</span>
+          <span className="ml-auto text-micro text-ink-faint group-open:hidden">Show</span>
+          <span className="ml-auto hidden text-micro text-ink-faint group-open:inline">Hide</span>
         </summary>
         <div className="flex flex-col gap-5 px-3 pb-3">
           <SurfacedCards cards={v2.arcCards} shifts={v2.shifts} lane={lane} />

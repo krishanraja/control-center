@@ -63,11 +63,11 @@ export function RejectReasonBar({
       className={`rounded-2xl border border-rose-400/25 bg-rose-500/[0.06] p-3 ${className}`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-micro text-white/70 font-medium">{title}</span>
+        <span className="text-micro text-ink-muted font-medium">{title}</span>
         <button
           type="button"
           onClick={onCancel}
-          className="ml-auto text-micro text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+          className="ml-auto text-micro text-ink-faint hover:text-ink px-2 py-1 rounded-md hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
         >
           {cancelLabel}
         </button>
@@ -83,9 +83,9 @@ export function RejectReasonBar({
             onChange={e => setNote(e.target.value)}
             rows={2}
             placeholder="Say more (optional)"
-            className="w-full rounded-lg bg-white/[0.04] border border-white/[0.12] px-3 py-2 text-body text-white/85 placeholder:text-white/30 outline-none focus:border-white/30 resize-none"
+            className="w-full rounded-lg bg-white/[0.04] border border-white/[0.12] px-3 py-2 text-body text-ink-muted placeholder:text-ink-faint outline-none focus:border-white/30 resize-none"
           />
-          <p className="text-micro text-white/35 mt-1">Now pick a reason below to send it.</p>
+          <p className="text-micro text-ink-faint mt-1">Now pick a reason below to send it.</p>
         </div>
       ) : null}
 
@@ -108,7 +108,7 @@ export function RejectReasonBar({
             ))}
           </div>
           {SOURCE_LINE[likely!.source] ? (
-            <p className="text-micro text-white/35 mt-1.5">{SOURCE_LINE[likely!.source]}</p>
+            <p className="text-micro text-ink-faint mt-1.5">{SOURCE_LINE[likely!.source]}</p>
           ) : null}
         </div>
       ) : null}
@@ -119,10 +119,10 @@ export function RejectReasonBar({
             key={c.code}
             type="button"
             onClick={() => choose(c.code)}
-            className="text-label min-h-[40px] px-3 py-2 rounded-lg border border-white/[0.12] text-white/80 hover:border-white/[0.25] hover:bg-white/[0.05] active:scale-95 transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50"
+            className="text-label min-h-[40px] px-3 py-2 rounded-lg border border-white/[0.12] text-ink-muted hover:border-white/[0.25] hover:bg-white/[0.05] active:scale-95 transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50"
           >
             {showNumbers && i < 9 ? (
-              <span className="hidden md:inline text-white/35 mr-1 tabular-nums">{i + 1}</span>
+              <span className="hidden md:inline text-ink-faint mr-1 tabular-nums">{i + 1}</span>
             ) : null}
             {c.label}
           </button>
@@ -130,7 +130,7 @@ export function RejectReasonBar({
         <button
           type="button"
           onClick={() => choose(undefined)}
-          className="text-label min-h-[40px] px-3 py-2 rounded-lg text-white/50 hover:text-white/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+          className="text-label min-h-[40px] px-3 py-2 rounded-lg text-ink-faint hover:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
         >
           Skip
         </button>
@@ -140,7 +140,7 @@ export function RejectReasonBar({
         <button
           type="button"
           onClick={openNote}
-          className="mt-2 text-micro text-white/45 hover:text-white/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-md"
+          className="mt-2 text-micro text-ink-faint hover:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-md"
         >
           + Add a note
         </button>

@@ -130,7 +130,7 @@ function EditRow({ label, saving, children }: {
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] text-white/30">
+      <span className="mr-1 inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
         {label}
         {saving && <Working size={9} />}
       </span>

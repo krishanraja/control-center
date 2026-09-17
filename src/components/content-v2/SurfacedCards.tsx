@@ -62,13 +62,13 @@ export function SurfacedCards({
     <section>
       <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <Eyebrow>This week</Eyebrow>
-        <span className="text-micro text-white/40 tabular-nums">
+        <span className="text-micro text-ink-faint tabular-nums">
           {surfaced.length} of 7 chosen, {reservedFilled} in the {RESERVED} slots held for questions you are not already tracking
         </span>
       </h3>
 
       {mine.length === 0 ? (
-        <p className="text-label text-white/40">Nothing surfaced in this format this week.</p>
+        <p className="text-label text-ink-faint">Nothing surfaced in this format this week.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {mine.map(c => <Card key={c.id} card={c} />)}
@@ -79,7 +79,7 @@ export function SurfacedCards({
         <div className="mt-2 flex flex-col gap-1.5">
           {Array.from({ length: emptyReserved }, (_, i) => (
             <div key={i}
-              className="rounded border border-dashed border-white/12 px-3 py-2.5 text-label text-white/35">
+              className="rounded border border-dashed border-white/12 px-3 py-2.5 text-label text-ink-faint">
               Empty on purpose. Nothing this week matched none of your tracked questions well enough to earn this slot.
             </div>
           ))}
@@ -103,18 +103,18 @@ function Card({ card }: { card: ArcCardRow }) {
       >
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {card.reserved_slot && (
-            <span className="rounded-sm bg-white/10 px-1.5 py-0.5 text-micro uppercase tracking-wide text-white/60">
+            <span className="rounded-sm bg-white/10 px-1.5 py-0.5 text-micro uppercase tracking-wide text-ink-faint">
               Unfamiliar
             </span>
           )}
-          {card.format && <span className="text-micro text-white/45">{card.format}</span>}
+          {card.format && <span className="text-micro text-ink-faint">{card.format}</span>}
           {typeof card.score === 'number' && (
-            <span className="text-micro text-white/35 tabular-nums">{card.score.toFixed(2)}</span>
+            <span className="text-micro text-ink-faint tabular-nums">{card.score.toFixed(2)}</span>
           )}
         </span>
-        <span className="text-ui font-medium text-white/90">{card.headline}</span>
+        <span className="text-ui font-medium text-ink">{card.headline}</span>
         {card.surface_reason && (
-          <span className="text-label text-white/45">{card.surface_reason}</span>
+          <span className="text-label text-ink-faint">{card.surface_reason}</span>
         )}
       </button>
       {open && (
@@ -124,8 +124,8 @@ function Card({ card }: { card: ArcCardRow }) {
             if (typeof v !== 'string' || !v) return null
             return (
               <div key={k}>
-                <dt className="text-micro uppercase tracking-wide text-white/35">{label}</dt>
-                <dd className="text-label text-white/70">{v}</dd>
+                <dt className="text-micro uppercase tracking-wide text-ink-faint">{label}</dt>
+                <dd className="text-label text-ink-muted">{v}</dd>
               </div>
             )
           })}
@@ -143,7 +143,7 @@ function Refused({ rows }: { rows: ArcCardRow[] }) {
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="text-label text-white/40 underline-offset-2 hover:text-white/60 hover:underline"
+        className="text-label text-ink-faint underline-offset-2 hover:text-ink-faint hover:underline"
       >
         {open ? 'Hide' : 'Show'} the {rows.length} the engine passed over
       </button>
@@ -151,8 +151,8 @@ function Refused({ rows }: { rows: ArcCardRow[] }) {
         <ul className="mt-1.5 flex flex-col gap-1">
           {rows.map(r => (
             <li key={r.id} className="rounded border border-white/8 px-3 py-2 text-label">
-              <span className="text-white/60">{r.headline || 'Not composed'}</span>
-              <span className="mt-0.5 block text-micro text-white/35">{r.surface_reason}</span>
+              <span className="text-ink-faint">{r.headline || 'Not composed'}</span>
+              <span className="mt-0.5 block text-micro text-ink-faint">{r.surface_reason}</span>
             </li>
           ))}
         </ul>

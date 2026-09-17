@@ -172,7 +172,7 @@ function MobileMoreDrawer({
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
         <div className="px-4 pb-3 flex items-center gap-3">
-          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/40 flex-shrink-0">Appearance</span>
+          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-ink-faint flex-shrink-0">Appearance</span>
           <div className="flex-1 min-w-0"><ThemeToggle expanded /></div>
           <div className="flex-1 min-w-0"><TimezoneToggle expanded /></div>
         </div>
@@ -183,8 +183,8 @@ function MobileMoreDrawer({
               onClick={() => onSelect(id)}
               className={`flex flex-col items-center gap-2 py-4 rounded-xl border transition-colors ${
                 active === id
-                  ? 'border-violet-400/40 bg-violet-500/10 text-white'
-                  : 'border-white/[0.06] text-white/70 hover:bg-white/[0.04]'
+                  ? 'border-violet-400/40 bg-violet-500/10 text-ink'
+                  : 'border-white/[0.06] text-ink-muted hover:bg-white/[0.04]'
               }`}
             >
               <Icon size={24} />

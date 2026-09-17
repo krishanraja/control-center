@@ -25,13 +25,13 @@ export function CarryOverPrompt({ onContinue }: { onContinue?: (targetText: stri
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
       <header className="mb-2">
-        <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-white/75">Yesterday you didn't ship</h3>
+        <h3 className="text-label font-semibold uppercase tracking-[0.14em] text-ink-muted">Yesterday you didn't ship</h3>
       </header>
       <div className="space-y-1.5">
         {items.map(t => (
           <div key={t.n} className="flex items-start gap-3">
-            <div className="w-5 text-micro text-white/40 font-semibold pt-1">{t.n}.</div>
-            <div className="flex-1 text-body text-white/85 leading-snug">{t.text}</div>
+            <div className="w-5 text-micro text-ink-faint font-semibold pt-1">{t.n}.</div>
+            <div className="flex-1 text-body text-ink-muted leading-snug">{t.text}</div>
             <button
               type="button"
               onClick={() => onContinue?.(t.text || '')}
@@ -42,14 +42,14 @@ export function CarryOverPrompt({ onContinue }: { onContinue?: (targetText: stri
             <button
               type="button"
               onClick={() => setDismissed(true)}
-              className="text-micro text-white/40 hover:text-white/70 px-2 py-1"
+              className="text-micro text-ink-faint hover:text-ink-muted px-2 py-1"
             >
               Drop
             </button>
           </div>
         ))}
       </div>
-      <p className="text-micro text-white/45 mt-3">
+      <p className="text-micro text-ink-faint mt-3">
         Continue what's still relevant, drop what isn't.
       </p>
     </section>

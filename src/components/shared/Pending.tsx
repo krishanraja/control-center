@@ -63,20 +63,20 @@ export function Pending({
         role="status"
         aria-live="polite"
       >
-        <div className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/45">
+        <div className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-ink-faint">
           <Working size={18} />
         </div>
         <div className="space-y-1">
-          <p className="text-body font-semibold text-white/70">
+          <p className="text-body font-semibold text-ink-muted">
             {stage ? `${label}: ${stage}` : label}
           </p>
           {overdue ? (
-            <p className="text-micro text-white/35">
+            <p className="text-micro text-ink-faint">
               Taking longer than usual. Still running.
               {showElapsed && <span className="tabular-nums"> {seconds(elapsedMs)}</span>}
             </p>
           ) : showElapsed ? (
-            <p className="text-micro text-white/30 tabular-nums">{seconds(elapsedMs)}</p>
+            <p className="text-micro text-ink-faint tabular-nums">{seconds(elapsedMs)}</p>
           ) : null}
         </div>
       </div>
@@ -85,7 +85,7 @@ export function Pending({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-label text-white/55 ${className}`}
+      className={`inline-flex items-center gap-1.5 text-label text-ink-faint ${className}`}
       // Announced politely so the wait is legible to a screen reader too,
       // rather than being a purely visual spinner.
       role="status"
@@ -93,8 +93,8 @@ export function Pending({
     >
       <Working size={13} />
       <span>{stage ? `${label}: ${stage}` : label}</span>
-      {overdue && <span className="text-white/35">longer than usual</span>}
-      {showElapsed && <span className="tabular-nums text-white/35">{seconds(elapsedMs)}</span>}
+      {overdue && <span className="text-ink-faint">longer than usual</span>}
+      {showElapsed && <span className="tabular-nums text-ink-faint">{seconds(elapsedMs)}</span>}
     </span>
   )
 }

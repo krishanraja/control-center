@@ -13,7 +13,7 @@ import { publicSeriesLabel } from '../../lib/publicSeries'
 function Sparkline({ shift }: { shift: ShiftRow }) {
   const points = Array.isArray(shift.momentum_history) ? shift.momentum_history : []
   if (points.length < 2) {
-    return <span className="text-micro text-white/30">history accrues weekly</span>
+    return <span className="text-micro text-ink-faint">history accrues weekly</span>
   }
   const w = 120, h = 28, pad = 3
   const max = Math.max(...points.map(p => p.momentum), 1)
@@ -36,7 +36,7 @@ function Sparkline({ shift }: { shift: ShiftRow }) {
 
 function ProvenanceBar({ shift }: { shift: ShiftRow }) {
   if (shift.provenance === 'lived') {
-    return <div className="mt-2.5 text-micro text-white/30">lived evidence only</div>
+    return <div className="mt-2.5 text-micro text-ink-faint">lived evidence only</div>
   }
   return (
     <div className="mt-2.5">
@@ -44,7 +44,7 @@ function ProvenanceBar({ shift }: { shift: ShiftRow }) {
         <span className="bg-emerald-900/70" style={{ flex: 7 }} />
         <span className="bg-emerald-400" style={{ flex: 3 }} />
       </div>
-      <div className="flex justify-between text-micro text-white/30 mt-1">
+      <div className="flex justify-between text-micro text-ink-faint mt-1">
         <span>reconstructed</span>
         <span>lived</span>
       </div>
@@ -54,7 +54,7 @@ function ProvenanceBar({ shift }: { shift: ShiftRow }) {
 
 const VERDICT_CLS: Record<string, string> = {
   accelerating: 'bg-emerald-400/15 text-emerald-300',
-  steady: 'bg-white/[0.07] text-white/55',
+  steady: 'bg-white/[0.07] text-ink-faint',
   fading: 'bg-amber-400/15 text-amber-300',
   new: 'bg-sky-400/15 text-sky-300',
 }
@@ -82,12 +82,12 @@ function DossierBody({ shift, v2, onClose, chrome }: {
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300">Dossier · {shift.lens ? LENS_LABEL[shift.lens] : shift.category}</span>
-          <h3 className="text-lede font-bold text-white mt-1">{shift.title}</h3>
-          <p className="text-label text-white/55 mt-1 max-w-xl leading-relaxed">{shift.summary}</p>
+          <h3 className="text-lede font-bold text-ink mt-1">{shift.title}</h3>
+          <p className="text-label text-ink-faint mt-1 max-w-xl leading-relaxed">{shift.summary}</p>
           <p className="text-label text-emerald-200/80 mt-2 max-w-xl leading-relaxed"><span className="font-semibold">For your org:</span> {shift.implication}</p>
         </div>
         {chrome === 'inline' && (
-          <button onClick={onClose} aria-label="Close" className="px-1 text-white/40 hover:text-white/80"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Close" className="px-1 text-ink-faint hover:text-ink-muted"><X size={16} /></button>
         )}
       </div>
 
@@ -96,16 +96,16 @@ function DossierBody({ shift, v2, onClose, chrome }: {
           <div key={e.id} className="flex gap-3 items-baseline py-2 border-t border-emerald-400/10 text-label">
             <span className="font-mono text-micro text-emerald-200/50 flex-shrink-0 w-20">{e.week_label || monthLabel(e.occurred_on)}</span>
             {e.url ? (
-              <a href={e.url} target="_blank" rel="noreferrer" className="text-white/70 hover:text-white flex-1 min-w-0 leading-snug">{e.headline}</a>
+              <a href={e.url} target="_blank" rel="noreferrer" className="text-ink-muted hover:text-ink flex-1 min-w-0 leading-snug">{e.headline}</a>
             ) : (
-              <span className="text-white/70 flex-1 min-w-0 leading-snug">{e.headline}</span>
+              <span className="text-ink-muted flex-1 min-w-0 leading-snug">{e.headline}</span>
             )}
             <span className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-micro font-semibold ${e.provenance === 'lived' ? 'bg-emerald-400/15 text-emerald-300' : 'bg-emerald-900/50 text-emerald-200/60'}`}>
               {e.provenance}
             </span>
           </div>
         ))}
-        {!loading && evidence.length === 0 ? <div className="text-white/35 text-xs py-3">No evidence rows yet.</div> : null}
+        {!loading && evidence.length === 0 ? <div className="text-ink-faint text-xs py-3">No evidence rows yet.</div> : null}
       </div>
 
       <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-emerald-400/10">
@@ -116,10 +116,10 @@ function DossierBody({ shift, v2, onClose, chrome }: {
           <button onClick={() => v2.ruleShift(shift.id, 'accept')} className="rounded-lg px-3.5 py-2 text-label font-semibold bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/25">Accept</button>
         ) : null}
         {['active', 'fading'].includes(shift.status) ? (
-          <button onClick={() => v2.ruleShift(shift.id, 'retire')} className="rounded-lg px-3.5 py-2 text-label font-semibold bg-white/[0.06] text-white/70 hover:bg-white/[0.1]">Retire</button>
+          <button onClick={() => v2.ruleShift(shift.id, 'retire')} className="rounded-lg px-3.5 py-2 text-label font-semibold bg-white/[0.06] text-ink-muted hover:bg-white/[0.1]">Retire</button>
         ) : null}
         {shift.status === 'retired' ? (
-          <button onClick={() => v2.ruleShift(shift.id, 'library')} className="rounded-lg px-3.5 py-2 text-label font-semibold bg-white/[0.06] text-white/70 hover:bg-white/[0.1]">Move to Library</button>
+          <button onClick={() => v2.ruleShift(shift.id, 'library')} className="rounded-lg px-3.5 py-2 text-label font-semibold bg-white/[0.06] text-ink-muted hover:bg-white/[0.1]">Move to Library</button>
         ) : null}
       </div>
     </>
@@ -197,14 +197,14 @@ export function ShiftsRoom({ v2, variant, lane }: {
   if (v2.loading) return <SkeletonList rows={4} />
   if (!own.length && !crossCutting.length) {
     return (
-      <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-ink-faint text-sm max-w-xl">
         <p>
           No shifts in your six lenses yet. The detector runs every Friday and
           only counts something as a shift once it shows up over at least 3 days
           in at least 3 places.
         </p>
         {offBeat > 0 && (
-          <p className="mt-2 text-label text-white/40" data-testid="shifts-off-beat-note">
+          <p className="mt-2 text-label text-ink-faint" data-testid="shifts-off-beat-note">
             {offBeat} arc{offBeat === 1 ? '' : 's'} in the register {offBeat === 1 ? 'is' : 'are'} filed
             under the vocabulary retired on 2026-08-27 and {offBeat === 1 ? 'is' : 'are'} not shown here.
           </p>
@@ -228,12 +228,12 @@ export function ShiftsRoom({ v2, variant, lane }: {
             <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300/90">
               {s.lens ? LENS_LABEL[s.lens] : 'Shift'}{s.status === 'proposed' ? ' · awaiting your ruling' : ''}
             </span>
-            <div className="text-ui font-semibold text-white/95 mt-1.5 leading-snug">{s.title}</div>
+            <div className="text-ui font-semibold text-ink mt-1.5 leading-snug">{s.title}</div>
             <div className="flex items-center gap-2.5 mt-2.5">
               <Sparkline shift={s} />
               <span className={`rounded-md px-2 py-1 text-micro font-semibold ${VERDICT_CLS[verdict]}`}>{VERDICT_LABEL[verdict]}</span>
             </div>
-            <div className="text-micro text-white/35 mt-2 tabular-nums">
+            <div className="text-micro text-ink-faint mt-2 tabular-nums">
               {s.story_count} stories · {s.day_span_total} distinct days · first seen {monthLabel(s.first_seen_on)}
             </div>
             <ProvenanceBar shift={s} />
@@ -247,14 +247,14 @@ export function ShiftsRoom({ v2, variant, lane }: {
     <div>
       {own.length > 0 && grid(own)}
       {lane && !own.length && (
-        <p className="text-label text-white/45 max-w-xl" data-testid="shifts-own-empty">
+        <p className="text-label text-ink-faint max-w-xl" data-testid="shifts-own-empty">
           No shifts belong only to {publicSeriesLabel(lane)} yet.
         </p>
       )}
       {crossCutting.length > 0 && (
         <div className={own.length || !lane ? 'mt-5' : 'mt-3'}>
           {lane && (
-            <p className="mb-2 text-label text-white/45" data-testid="shifts-cross-cutting">
+            <p className="mb-2 text-label text-ink-faint" data-testid="shifts-cross-cutting">
               Also here: shifts that touch both {publicSeriesLabel('built')} and {publicSeriesLabel('paid')}.
             </p>
           )}

@@ -163,8 +163,8 @@ function ActionRow({ action }: { action: CreateAction }) {
     >
       <IconTile icon={Icon} size="lg" tone="accent" />
       <span className="min-w-0">
-        <span className="block text-ui font-semibold leading-tight text-white/90">{action.label}</span>
-        <span className="mt-0.5 block text-label leading-tight text-white/45">{action.hint}</span>
+        <span className="block text-ui font-semibold leading-tight text-ink">{action.label}</span>
+        <span className="mt-0.5 block text-label leading-tight text-ink-faint">{action.hint}</span>
       </span>
     </button>
   )

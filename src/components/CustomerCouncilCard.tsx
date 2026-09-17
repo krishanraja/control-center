@@ -12,7 +12,7 @@ const PRIORITY_TONE: Record<CouncilEntry['priority'], { border: string; accent: 
   new_welcome:           { border: 'border-emerald-500/30', accent: 'text-emerald-300', icon: Sparkles,     label: 'Welcome' },
   high_value_check_in:   { border: 'border-amber-500/30',   accent: 'text-amber-300',   icon: Flame,        label: 'High-value check-in' },
   long_tenure_expansion: { border: 'border-violet-500/30',  accent: 'text-violet-300',  icon: ArrowUpRight, label: 'Expansion check' },
-  stale_check_in:        { border: 'border-white/10',       accent: 'text-white/55',    icon: Calendar,     label: 'Stale — check in' },
+  stale_check_in:        { border: 'border-white/10',       accent: 'text-ink-faint',    icon: Calendar,     label: 'Stale — check in' },
 }
 
 /**
@@ -81,17 +81,17 @@ export function CustomerCouncilCard() {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
       <header className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="text-label font-semibold text-white flex items-center gap-1.5">
+          <h3 className="text-label font-semibold text-ink flex items-center gap-1.5">
             <Mic size={12} className="text-violet-300" />
             Customer Council
           </h3>
-          <p className="text-micro text-white/45 mt-0.5">
+          <p className="text-micro text-ink-faint mt-0.5">
             {council.length} customers to talk to this week
           </p>
         </div>
         <div className="flex items-center gap-1.5">
-          <Flame size={12} className={streakDays > 0 ? 'text-amber-300' : 'text-white/30'} />
-          <span className={`text-micro tabular-nums font-semibold ${streakDays > 0 ? 'text-amber-300' : 'text-white/40'}`}>
+          <Flame size={12} className={streakDays > 0 ? 'text-amber-300' : 'text-ink-faint'} />
+          <span className={`text-micro tabular-nums font-semibold ${streakDays > 0 ? 'text-amber-300' : 'text-ink-faint'}`}>
             {streakDays}d streak
           </span>
         </div>
@@ -99,7 +99,7 @@ export function CustomerCouncilCard() {
 
       {council.length === 0 ? (
         <div className="p-4 text-center">
-          <p className="text-micro text-white/45">No urgent contacts. Caught up — for now.</p>
+          <p className="text-micro text-ink-faint">No urgent contacts. Caught up — for now.</p>
         </div>
       ) : (
         <ul className="divide-y divide-white/[0.04]">
@@ -117,14 +117,14 @@ export function CustomerCouncilCard() {
                         {tone.label}
                       </span>
                     </div>
-                    <p className="text-body font-semibold text-white truncate">
+                    <p className="text-body font-semibold text-ink truncate">
                       {entry.customer.full_name || entry.customer.email || 'Customer'}
                     </p>
-                    <p className="text-micro text-white/45 mt-0.5">
+                    <p className="text-micro text-ink-faint mt-0.5">
                       {PRODUCT_LABEL[entry.customer.product]}
                       {entry.customer.mrr_usd ? ` · $${Math.round(entry.customer.mrr_usd)}/mo` : ''}
                     </p>
-                    <p className="text-micro text-white/65 mt-1">{entry.reason}</p>
+                    <p className="text-micro text-ink-muted mt-1">{entry.reason}</p>
                   </div>
                 </div>
 
@@ -157,14 +157,14 @@ export function CustomerCouncilCard() {
                       onChange={e => setDraft(d => ({ ...d, summary: e.target.value }))}
                       rows={2}
                       placeholder="What was said? (one sentence)"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-ink p-2 placeholder:text-ink-faint focus:outline-none focus:border-white/[0.18]"
                     />
                     <input
                       type="text"
                       value={draft.next_step}
                       onChange={e => setDraft(d => ({ ...d, next_step: e.target.value }))}
                       placeholder="Next step (optional)"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-ink p-2 placeholder:text-ink-faint focus:outline-none focus:border-white/[0.18]"
                     />
                     <div className="flex items-center gap-2">
                       <button
@@ -179,7 +179,7 @@ export function CustomerCouncilCard() {
                         type="button"
                         onClick={() => setLogging(null)}
                         disabled={busy}
-                        className="px-2 py-1 rounded-md text-micro text-white/55 hover:text-white/80"
+                        className="px-2 py-1 rounded-md text-micro text-ink-faint hover:text-ink-muted"
                       >
                         Cancel
                       </button>
@@ -205,7 +205,7 @@ export function CustomerCouncilCard() {
                     {entry.customer.email && (
                       <a
                         href={`mailto:${entry.customer.email}`}
-                        className="px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06]"
+                        className="px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06]"
                       >
                         Email
                       </a>

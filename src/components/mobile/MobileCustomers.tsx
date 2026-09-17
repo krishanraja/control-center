@@ -175,10 +175,10 @@ export function MobileCustomers() {
       )}
 
       <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Paid"  value={totals.paid}                                       color={totals.paid > 0 ? 'text-emerald-300' : 'text-white/45'} />
-        <StatPill label="MRR"   value={revenue ? mrrLabel : '—'}  color={revenue && revenue.committed_mrr_usd_cents > 0 ? 'text-emerald-300' : 'text-white/45'} />
-        <StatPill label="Free"  value={totals.freeSignups}                                color={totals.freeSignups > 0 ? 'text-violet-300' : 'text-white/45'} />
-        <StatPill label="Wait"  value={totals.waitlist}                                   color={totals.waitlist > 0 ? 'text-amber-300' : 'text-white/45'} />
+        <StatPill label="Paid"  value={totals.paid}                                       color={totals.paid > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
+        <StatPill label="MRR"   value={revenue ? mrrLabel : '—'}  color={revenue && revenue.committed_mrr_usd_cents > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
+        <StatPill label="Free"  value={totals.freeSignups}                                color={totals.freeSignups > 0 ? 'text-violet-300' : 'text-ink-faint'} />
+        <StatPill label="Wait"  value={totals.waitlist}                                   color={totals.waitlist > 0 ? 'text-amber-300' : 'text-ink-faint'} />
       </div>
 
       {error && (
@@ -346,10 +346,10 @@ export function MobileCustomers() {
       >
         <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="pb-4 border-b border-white/[0.06]">
-            <p className="text-micro font-bold uppercase tracking-widest text-white/45">
+            <p className="text-micro font-bold uppercase tracking-widest text-ink-faint">
               Log a call
             </p>
-            <h2 className="text-title font-bold text-white leading-snug mt-0.5">
+            <h2 className="text-title font-bold text-ink leading-snug mt-0.5">
               {open?.full_name || open?.email || 'Customer'}
             </h2>
           </div>
@@ -375,7 +375,7 @@ export function MobileCustomers() {
             // Summon the keyboard only when the mic cannot lead.
             autoFocus={!dict.supported}
             placeholder="Brief summary of the call"
-            className="mt-3 w-full rounded-2xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-ui text-white placeholder:text-white/35 leading-relaxed resize-none focus:outline-none focus:border-white/25"
+            className="mt-3 w-full rounded-2xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-ui text-ink placeholder:text-ink-faint leading-relaxed resize-none focus:outline-none focus:border-white/25"
           />
 
           <div className="mt-3 space-y-2.5">

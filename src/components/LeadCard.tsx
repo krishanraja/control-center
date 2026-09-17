@@ -269,9 +269,9 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             onClick={() => onOpen?.(l.id)}
             className="text-left w-full"
           >
-            <p className="text-body font-semibold text-white leading-snug truncate">{fullName}</p>
+            <p className="text-body font-semibold text-ink leading-snug truncate">{fullName}</p>
             {subtitle && (
-              <p className="text-micro text-white/55 leading-snug truncate">{subtitle}</p>
+              <p className="text-micro text-ink-faint leading-snug truncate">{subtitle}</p>
             )}
           </button>
         </div>
@@ -282,12 +282,12 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
             title="LinkedIn profile"
-            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-white/35 hover:text-sky-300 hover:bg-sky-500/10 transition-colors"
+            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-ink-faint hover:text-sky-300 hover:bg-sky-500/10 transition-colors"
           >
             <Linkedin size={11} />
           </a>
         )}
-        <span className="text-micro tabular-nums text-white/35 flex-shrink-0">
+        <span className="text-micro tabular-nums text-ink-faint flex-shrink-0">
           {humanAge(l.updated_at)}
         </span>
       </header>
@@ -310,15 +310,15 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           </span>
         ))}
         {l.source_document_name && (
-          <span className="text-micro text-white/45 truncate max-w-[160px]" title={l.source_document_name}>
+          <span className="text-micro text-ink-faint truncate max-w-[160px]" title={l.source_document_name}>
             {l.source_document_name}
           </span>
         )}
       </div>
 
       {l.why_relevant && (
-        <p className="text-micro text-white/65 leading-snug mt-2 line-clamp-3">
-          <span className="text-white/35">Why: </span>
+        <p className="text-micro text-ink-muted leading-snug mt-2 line-clamp-3">
+          <span className="text-ink-faint">Why: </span>
           {l.why_relevant}
         </p>
       )}
@@ -335,7 +335,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             .filter(t => t !== `${l.primary_venture}_buyer` && t !== `${l.primary_venture}_guest`)
             .slice(0, 4)
             .map(t => (
-              <span key={t} className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">
+              <span key={t} className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-faint">
                 {t.replace(/_/g, ' ')}
               </span>
             ))}
@@ -370,7 +370,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                 </span>
               )}
           {l.tier && (
-            <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/55 uppercase tracking-[0.14em]">
+            <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint uppercase tracking-[0.14em]">
               {l.tier}
             </span>
           )}
@@ -384,7 +384,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       )}
 
       {l.follow_up_at && (
-        <p className={`text-micro mt-2 leading-snug ${overdueFollowUp(l.follow_up_at) ? 'text-rose-300' : 'text-white/45'}`}>
+        <p className={`text-micro mt-2 leading-snug ${overdueFollowUp(l.follow_up_at) ? 'text-rose-300' : 'text-ink-faint'}`}>
           <Calendar size={10} className="inline mr-1" />
           {overdueFollowUp(l.follow_up_at)
             ? `Follow-up overdue (${humanAge(l.follow_up_at)})`
@@ -399,7 +399,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         </p>
       )}
       {l.deep_enriched_at && (
-        <p className="text-micro text-white/35 mt-1">
+        <p className="text-micro text-ink-faint mt-1">
           <Sparkles size={9} className="inline mr-1" />
           Deep-enriched {humanAge(l.deep_enriched_at)}
         </p>
@@ -426,7 +426,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               type="button"
               onClick={() => { h.select(); setSkipOpen(o => !o) }}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
               title="Skip this lead — Vera learns from the reason"
             >
               <X size={12} />
@@ -434,7 +434,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             </button>
             {skipOpen && (
               <div className="absolute z-30 mt-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[180px]">
-                <span className="px-2 pt-1 pb-0.5 text-micro uppercase tracking-[0.14em] text-white/40">
+                <span className="px-2 pt-1 pb-0.5 text-micro uppercase tracking-[0.14em] text-ink-faint">
                   Why skip?
                 </span>
                 {SKIP_REASONS.map(r => (
@@ -442,7 +442,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                     key={r.code}
                     type="button"
                     onClick={() => skipLead(r.code)}
-                    className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06]"
+                    className="text-left px-2 py-1 rounded text-micro text-ink-muted hover:bg-white/[0.06]"
                   >
                     {r.label}
                   </button>
@@ -450,7 +450,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               </div>
             )}
           </div>
-          <span className="text-micro text-white/45 ml-auto">
+          <span className="text-micro text-ink-faint ml-auto">
             Decide once per lead — credits are only spent on Enrich.
           </span>
         </div>
@@ -476,7 +476,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setMoreOpen(o => !o) }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/60 hover:bg-white/[0.06] transition-colors min-h-[34px]"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-faint hover:bg-white/[0.06] transition-colors min-h-[34px]"
             aria-expanded={moreOpen}
           >
             <MoreHorizontal size={13} /> More
@@ -488,7 +488,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); setStatus('superseded') }}
               disabled={busy !== null}
-              className="flex items-center justify-center w-8 h-8 rounded-md text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-md text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
               title="Drop this lead"
               aria-label="Drop this lead"
             >
@@ -528,7 +528,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={() => { h.select(); setReassignOpen(o => !o) }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
           >
             <UserCog size={11} />
             {l.assignee_agent ? `Reassign · ${l.assignee_agent}` : 'Assign'}
@@ -540,7 +540,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                   key={a}
                   type="button"
                   onClick={() => reassign(a)}
-                  className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06]"
+                  className="text-left px-2 py-1 rounded text-micro text-ink-muted hover:bg-white/[0.06]"
                 >
                   {a}
                 </button>
@@ -553,7 +553,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={() => { h.select(); setFollowUpOpen(o => !o) }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
           >
             <Calendar size={11} />
             Follow-up
@@ -565,7 +565,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                   key={d}
                   type="button"
                   onClick={() => scheduleFollowUp(d)}
-                  className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06] tabular-nums"
+                  className="text-left px-2 py-1 rounded text-micro text-ink-muted hover:bg-white/[0.06] tabular-nums"
                 >
                   {d}d
                 </button>
@@ -591,7 +591,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             <Linkedin size={11} />
             LinkedIn
@@ -612,7 +612,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             <a
               href={`mailto:${l.email}`}
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
               title="Open mailto in default client"
             >
               <ExternalLink size={11} />
@@ -626,7 +626,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Source
@@ -644,7 +644,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); setStatus('superseded') }}
             disabled={busy !== null}
-            className="flex items-center justify-center w-8 h-8 rounded-md text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
             title="Drop this lead"
             aria-label="Drop this lead"
           >

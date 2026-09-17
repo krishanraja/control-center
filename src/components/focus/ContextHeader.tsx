@@ -13,7 +13,7 @@ export function ContextHeader() {
   if (!brief) return null
 
   const delta = brief.yesterday_mrr_delta_usd ?? 0
-  const deltaColor = delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-red-300' : 'text-white/55'
+  const deltaColor = delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-red-300' : 'text-ink-faint'
 
   return (
     <section
@@ -22,7 +22,7 @@ export function ContextHeader() {
     >
       <header className="flex items-center gap-2 mb-2">
         <Sun size={13} className="text-violet-300 flex-shrink-0" />
-        <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-white/55">
+        <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-ink-faint">
           Before you pick, the frame
         </h2>
         {delta !== 0 && (
@@ -33,12 +33,12 @@ export function ContextHeader() {
       </header>
       <div className="space-y-1">
         {brief.one_bet && (
-          <p className="text-label text-white/80 leading-snug break-words">
+          <p className="text-label text-ink-muted leading-snug break-words">
             <span className="text-violet-300/80 font-semibold">Bet · </span>{brief.one_bet}
           </p>
         )}
         {brief.one_customer && (
-          <p className="text-label text-white/80 leading-snug break-words">
+          <p className="text-label text-ink-muted leading-snug break-words">
             <span className="text-emerald-300/80 font-semibold">Talk to · </span>{brief.one_customer}
           </p>
         )}
@@ -48,7 +48,7 @@ export function ContextHeader() {
           </p>
         )}
         {!brief.one_bet && brief.body && (
-          <p className="text-label text-white/70 leading-snug whitespace-pre-wrap break-words">
+          <p className="text-label text-ink-muted leading-snug whitespace-pre-wrap break-words">
             {brief.body}
           </p>
         )}

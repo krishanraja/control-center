@@ -22,9 +22,9 @@ export function ReasonChipBar({ chips, onChoose, onCancel, prompt = 'Why drop it
     <div className="pt-4 flex-shrink-0">
       <div className="rounded-2xl border border-rose-400/25 bg-rose-500/[0.06] p-3">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-micro text-white/70 font-medium">{prompt}</span>
+          <span className="text-micro text-ink-muted font-medium">{prompt}</span>
           <button type="button" onClick={onCancel}
-            className="ml-auto text-micro text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
+            className="ml-auto text-micro text-ink-faint hover:text-ink px-2 py-1 rounded-md hover:bg-white/[0.06]">
             Undo
           </button>
         </div>
@@ -34,15 +34,15 @@ export function ReasonChipBar({ chips, onChoose, onCancel, prompt = 'Why drop it
               key={c.code}
               type="button"
               onClick={() => onChoose(c.code)}
-              className="text-label px-2.5 py-1.5 rounded-lg border border-white/[0.12] text-white/80 hover:border-white/[0.25] hover:bg-white/[0.05] transition-colors"
+              className="text-label px-2.5 py-1.5 rounded-lg border border-white/[0.12] text-ink-muted hover:border-white/[0.25] hover:bg-white/[0.05] transition-colors"
             >
-              <span className="hidden md:inline text-white/35 mr-1 tabular-nums">{i + 1}</span>{c.label}
+              <span className="hidden md:inline text-ink-faint mr-1 tabular-nums">{i + 1}</span>{c.label}
             </button>
           ))}
           <button
             type="button"
             onClick={() => onChoose(undefined)}
-            className="text-label px-2.5 py-1.5 rounded-lg text-white/50 hover:text-white/80"
+            className="text-label px-2.5 py-1.5 rounded-lg text-ink-faint hover:text-ink-muted"
           >
             Skip
           </button>

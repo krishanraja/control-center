@@ -78,7 +78,7 @@ export function PendingFlagModal() {
           const secs = Math.max(0, Math.round((t - now) / 1000))
           return (
             <div key={String(f.id)} className="border border-command-border/50 rounded-lg p-3 space-y-2">
-              <div className="text-sm text-white">
+              <div className="text-sm text-ink">
                 {f.agent ? <span className="font-medium">{f.agent}</span> : null}
                 {f.agent && f.reason ? ': ' : null}
                 {f.reason || 'Pending flag'}

@@ -83,7 +83,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
         aria-label="Thumbs up"
         title="Useful"
         className={`p-1 rounded transition-colors ${
-          vote === 1 ? 'text-emerald-300' : 'text-white/30 hover:text-white/70'
+          vote === 1 ? 'text-emerald-300' : 'text-ink-faint hover:text-ink-muted'
         } disabled:opacity-60`}
       >
         <ThumbsUp size={size} />
@@ -95,7 +95,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
         aria-label="Thumbs down"
         title="Not useful"
         className={`p-1 rounded transition-colors ${
-          vote === -1 ? 'text-rose-300' : 'text-white/30 hover:text-white/70'
+          vote === -1 ? 'text-rose-300' : 'text-ink-faint hover:text-ink-muted'
         } disabled:opacity-60`}
       >
         <ThumbsDown size={size} />
@@ -105,7 +105,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
           className="absolute right-0 top-full mt-1 z-30 bg-base border border-white/[0.08] rounded-lg shadow-2xl py-1 min-w-[240px]"
           onMouseLeave={() => setShowReasons(false)}
         >
-          <div className="px-3 py-2 text-micro uppercase tracking-wider text-white/40 border-b border-white/[0.06]">
+          <div className="px-3 py-2 text-micro uppercase tracking-wider text-ink-faint border-b border-white/[0.06]">
             Why? (optional)
           </div>
           <div className="px-2 pt-2">
@@ -114,7 +114,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
               onChange={(e) => setReasonText(e.target.value)}
               placeholder="Add a short reason…"
               rows={2}
-              className="w-full resize-none rounded-md border border-white/[0.1] bg-white/[0.03] px-2 py-1.5 text-label text-white/85 placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none"
+              className="w-full resize-none rounded-md border border-white/[0.1] bg-white/[0.03] px-2 py-1.5 text-label text-ink-muted placeholder:text-ink-faint focus:border-violet-400/40 focus:outline-none"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -122,7 +122,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
             <button
               key={r.code}
               onClick={() => submit(-1, r.code)}
-              className="w-full text-left px-3 py-2 text-label text-white/80 hover:bg-white/5"
+              className="w-full text-left px-3 py-2 text-label text-ink-muted hover:bg-white/5"
             >
               {r.label}
             </button>
@@ -130,7 +130,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
           <div className="border-t border-white/[0.06] mt-1 pt-1">
             <button
               onClick={() => submit(-1, defaultReasonFor(sourceTable))}
-              className="w-full text-left px-3 py-2 text-label text-white/55 hover:bg-white/5"
+              className="w-full text-left px-3 py-2 text-label text-ink-faint hover:bg-white/5"
             >
               {reasonText.trim() ? 'Submit reason' : 'Skip and just downvote'}
             </button>

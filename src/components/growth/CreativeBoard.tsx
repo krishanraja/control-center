@@ -30,12 +30,12 @@ import { useWork } from '../../lib/loadingVoice'
  */
 
 const STAGE_TONE: Record<Stage, string> = {
-  brief: 'text-white/55 border-white/12',
+  brief: 'text-ink-faint border-white/12',
   script: 'text-violet-300 border-violet-500/30',
   producing: 'text-amber-300 border-amber-500/30',
   produced: 'text-sky-300 border-sky-500/30',
   posted: 'text-emerald-300 border-emerald-500/30',
-  dropped: 'text-white/30 border-white/[0.08]',
+  dropped: 'text-ink-faint border-white/[0.08]',
 }
 
 export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData; variant: 'desktop' | 'mobile'; composeSignal?: number }) {
@@ -108,10 +108,10 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
       />
 
       <div className={`rounded-xl border px-3.5 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 ${capTone}`}>
-        <Film size={13} className={over ? 'text-rose-300' : 'text-white/45'} />
-        <span className="text-label font-semibold text-white/85">Batch week of {shortDate(thisWeek)}</span>
-        <span className="text-label tabular-nums text-white/70">{batch.length} of {BATCH_MAX}</span>
-        <span className={`text-label ${over ? 'text-rose-300 font-semibold' : 'text-white/45'}`}>
+        <Film size={13} className={over ? 'text-rose-300' : 'text-ink-faint'} />
+        <span className="text-label font-semibold text-ink-muted">Batch week of {shortDate(thisWeek)}</span>
+        <span className="text-label tabular-nums text-ink-muted">{batch.length} of {BATCH_MAX}</span>
+        <span className={`text-label ${over ? 'text-rose-300 font-semibold' : 'text-ink-faint'}`}>
           {over
             ? `Over the cap by ${batch.length - BATCH_MAX}. Drop one before you start producing.`
             : batch.length === 0
@@ -153,7 +153,7 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
                     <span className={`text-micro font-semibold uppercase tracking-[0.14em] ${STAGE_TONE[stage].split(' ')[0]}`}>
                       {STAGE_LABEL[stage]}
                     </span>
-                    <span className="text-micro text-white/35 tabular-nums ml-auto">{inStage.length}</span>
+                    <span className="text-micro text-ink-faint tabular-nums ml-auto">{inStage.length}</span>
                   </header>
                   <div className="p-2 space-y-2">
                     {inStage.map(c => (
@@ -184,7 +184,7 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
                     <span className={`text-micro font-semibold uppercase tracking-[0.14em] ${STAGE_TONE[stage].split(' ')[0]}`}>
                       {STAGE_LABEL[stage]}
                     </span>
-                    <span className="text-micro text-white/35 tabular-nums ml-auto">{inStage.length}</span>
+                    <span className="text-micro text-ink-faint tabular-nums ml-auto">{inStage.length}</span>
                   </header>
                   <div className="p-2 space-y-2 overflow-y-auto flex-1 min-h-[120px]">
                     {inStage.map(c => (
@@ -196,7 +196,7 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
                         onMove={move}
                       />
                     ))}
-                    {inStage.length === 0 && <p className="text-micro text-white/25 px-1 py-2">Nothing here.</p>}
+                    {inStage.length === 0 && <p className="text-micro text-ink-faint/50 px-1 py-2">Nothing here.</p>}
                   </div>
                 </div>
               )
@@ -207,10 +207,10 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
 
       {showDropped && dropped.length > 0 && (
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3">
-          <h3 className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold mb-2">Dropped</h3>
+          <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold mb-2">Dropped</h3>
           <div className="space-y-1.5">
             {dropped.map(c => (
-              <div key={c.id} className="flex items-center gap-2 text-label text-white/40">
+              <div key={c.id} className="flex items-center gap-2 text-label text-ink-faint">
                 <ProductChip slug={c.product_slug} />
                 <span className="truncate">{c.title}</span>
                 <button type="button" onClick={() => g.patchCard(c.id, { stage: 'brief' })} className={`${BTN_GHOST} ml-auto`}>
@@ -244,11 +244,11 @@ function BoardCard({ card, thisWeek, onOpen, onMove }: {
     >
       <div className="flex items-center gap-1.5 mb-1">
         <ProductChip slug={card.product_slug} />
-        {otherWeek && <span className="text-micro text-white/30">{shortDate(card.batch_week)}</span>}
+        {otherWeek && <span className="text-micro text-ink-faint">{shortDate(card.batch_week)}</span>}
       </div>
-      <p className="text-label font-medium text-white/90 leading-snug">{card.title}</p>
-      {card.magic_sentence && <p className="text-micro text-white/45 leading-snug mt-1 italic">{card.magic_sentence}</p>}
-      {card.target_account && <p className="text-micro text-white/35 mt-1">to {card.target_account}</p>}
+      <p className="text-label font-medium text-ink leading-snug">{card.title}</p>
+      {card.magic_sentence && <p className="text-micro text-ink-faint leading-snug mt-1 italic">{card.magic_sentence}</p>}
+      {card.target_account && <p className="text-micro text-ink-faint mt-1">to {card.target_account}</p>}
       <div className="flex items-center gap-1 mt-1.5">
         {card.script ? <Chip tone="text-violet-300 border-violet-500/25">script</Chip> : null}
         {card.shot_notes ? <Chip tone="text-sky-300 border-sky-500/25">shots</Chip> : null}
@@ -259,7 +259,7 @@ function BoardCard({ card, thisWeek, onOpen, onMove }: {
           aria-label="Move back a stage"
           onClick={e => { e.stopPropagation(); onMove(card, -1) }}
           disabled={i <= 0}
-          className="text-white/35 hover:text-white/80 disabled:opacity-20 min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
+          className="text-ink-faint hover:text-ink-muted disabled:opacity-20 min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
         >
           <ChevronLeft size={15} />
         </button>
@@ -268,7 +268,7 @@ function BoardCard({ card, thisWeek, onOpen, onMove }: {
           aria-label="Move forward a stage"
           onClick={e => { e.stopPropagation(); onMove(card, 1) }}
           disabled={i >= BOARD_STAGES.length - 1}
-          className="text-white/35 hover:text-white/80 disabled:opacity-20 min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
+          className="text-ink-faint hover:text-ink-muted disabled:opacity-20 min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
         >
           <ChevronRight size={15} />
         </button>
@@ -364,17 +364,17 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
           <div className="flex items-center gap-2 min-w-0">
             <ProductChip slug={card.product_slug} />
             <Chip tone={STAGE_TONE[card.stage]}>{STAGE_LABEL[card.stage]}</Chip>
-            <span className="text-micro text-white/35">{shortDate(card.batch_week)}</span>
+            <span className="text-micro text-ink-faint">{shortDate(card.batch_week)}</span>
           </div>
-          <button type="button" onClick={onClose} className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-label">
+          <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink-muted inline-flex items-center gap-1 text-label">
             <X size={14} /> Close
           </button>
         </div>
 
         <div className="p-4 space-y-3">
-          <h3 className="text-lede font-semibold text-white leading-snug">{card.title}</h3>
+          <h3 className="text-lede font-semibold text-ink leading-snug">{card.title}</h3>
           {touchpoint && (
-            <p className="text-micro text-white/40 leading-snug">
+            <p className="text-micro text-ink-faint leading-snug">
               Touchpoint: {touchpoint.icp_trigger}
               {touchpoint.watering_hole ? ` (${touchpoint.watering_hole})` : ''}
             </p>
@@ -387,7 +387,7 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
                 type="button"
                 onClick={() => g.patchCard(card.id, { stage: s })}
                 className={`rounded-lg border px-2.5 py-1 text-label font-medium transition-colors ${
-                  card.stage === s ? 'btn-contrast border-white font-semibold' : 'border-white/10 text-white/60 hover:bg-white/[0.06]'
+                  card.stage === s ? 'btn-contrast border-white font-semibold' : 'border-white/10 text-ink-faint hover:bg-white/[0.06]'
                 }`}
               >
                 {STAGE_LABEL[s]}
@@ -443,12 +443,12 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
                 {writing ? <Working size={12} className="inline mr-1" /> : <Sparkles size={12} className="inline -mt-0.5 mr-1" />}
                 {writing ? scriptWork.label : draft.script ? 'Write it again' : 'Write the script'}
               </button>
-              <p className="text-micro text-white/40 leading-snug">
+              <p className="text-micro text-ink-faint leading-snug">
                 Built from this card, the place on the map and what you sell. It reads what the OS already holds,
                 not the live web, so check any figure before you film.
               </p>
               {writing && scriptWork.sub && (
-                <p className="text-label text-white/45 leading-snug">{scriptWork.sub}</p>
+                <p className="text-label text-ink-faint leading-snug">{scriptWork.sub}</p>
               )}
               {scriptNote && <p className="text-label text-amber-100/80 leading-snug">{scriptNote}</p>}
             </div>
@@ -607,7 +607,7 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
             {suggesting ? <Working size={12} className="inline mr-1" /> : <Sparkles size={12} className="inline -mt-0.5 mr-1" />}
             {suggesting ? ideasWork.label : ideas ? 'Suggest again' : 'Suggest titles'}
           </button>
-          {ideasNote && <span className="text-label text-white/45">{ideasNote}</span>}
+          {ideasNote && <span className="text-label text-ink-faint">{ideasNote}</span>}
         </div>
         {ideas && ideas.length > 0 && (
           <ul className="mt-2 space-y-1.5">
@@ -622,8 +622,8 @@ function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; varian
                       : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
                   }`}
                 >
-                  <span className="block text-label font-medium text-white/85 leading-snug">{i.title}</span>
-                  {i.why && <span className="block text-micro text-white/45 leading-snug mt-0.5">{i.why}</span>}
+                  <span className="block text-label font-medium text-ink-muted leading-snug">{i.title}</span>
+                  {i.why && <span className="block text-micro text-ink-faint leading-snug mt-0.5">{i.why}</span>}
                   {/* The one swing in the batch, marked so it reads as a dare
                       rather than as the odd one out. See proposalPlay in
                       api/_humor.ts: four grounded titles and one you would be

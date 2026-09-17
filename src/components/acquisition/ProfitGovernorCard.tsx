@@ -58,10 +58,10 @@ export function ProfitGovernorCard({
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <CircleDollarSign size={13} className={positive ? 'text-emerald-400' : 'text-rose-400'} />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           Profit governor
         </h2>
-        <span className="hidden sm:inline text-micro text-white/30">what it earns minus what its agents cost</span>
+        <span className="hidden sm:inline text-micro text-ink-faint">what it earns minus what its agents cost</span>
         <span className={`ml-auto text-body font-semibold tabular-nums ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>
           {positive ? '+' : ''}${margin.toFixed(2)}/mo
         </span>
@@ -74,7 +74,7 @@ export function ProfitGovernorCard({
             <p className="text-micro text-rose-300 font-medium">
               Lane paused by {detail.paused.by === 'governor' ? 'the budget breaker' : 'you'}
             </p>
-            <p className="text-micro text-white/40 truncate">{detail.paused.reason}</p>
+            <p className="text-micro text-ink-faint truncate">{detail.paused.reason}</p>
           </div>
           <button
             type="button"
@@ -104,8 +104,8 @@ export function ProfitGovernorCard({
               {costRows.map(([label, v]) => (
                 <div key={label}>
                   <div className="flex items-baseline justify-between mb-0.5">
-                    <span className="text-micro text-white/40">{label}</span>
-                    <span className="text-micro tabular-nums text-white/55">${v.toFixed(2)}</span>
+                    <span className="text-micro text-ink-faint">{label}</span>
+                    <span className="text-micro tabular-nums text-ink-faint">${v.toFixed(2)}</span>
                   </div>
                   <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
                     <div className="h-full rounded-full bg-white/25" style={{ width: `${(v / maxCost) * 100}%` }} />
@@ -114,14 +114,14 @@ export function ProfitGovernorCard({
               ))}
             </div>
 
-            <div className="flex items-baseline gap-x-4 gap-y-1 flex-wrap pt-1 text-micro text-white/40 tabular-nums">
+            <div className="flex items-baseline gap-x-4 gap-y-1 flex-wrap pt-1 text-micro text-ink-faint tabular-nums">
               <span>Cost per new customer {econ.cac_usd != null ? `$${Number(econ.cac_usd).toFixed(0)}` : 'none yet'}</span>
               <span>Lifetime value est. {econ.ltv_estimate_usd != null ? `$${Number(econ.ltv_estimate_usd).toFixed(0)}` : 'none yet'}</span>
               <span>{econ.new_paid_mtd} new paid MTD</span>
             </div>
           </>
         ) : (
-          <p className="text-label text-white/35">Nothing is tagged to this product yet, so there is no cost or revenue to show.</p>
+          <p className="text-label text-ink-faint">Nothing is tagged to this product yet, so there is no cost or revenue to show.</p>
         )}
 
         <BudgetBar
@@ -145,7 +145,7 @@ export function ProfitGovernorCard({
           <button
             type="button"
             onClick={() => setEditing(e => !e)}
-            className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-white/60 hover:text-white transition-colors"
+            className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-ink-faint hover:text-ink transition-colors"
           >
             {editing ? 'Close' : 'Edit budget'}
           </button>
@@ -158,18 +158,18 @@ export function ProfitGovernorCard({
               ['Monthly cap ($)', monthly, setMonthly],
               ['Paid/ads monthly ($)', paid, setPaid],
             ] as const).map(([label, val, set]) => (
-              <label key={label} className="flex items-center justify-between gap-3 text-micro text-white/50">
+              <label key={label} className="flex items-center justify-between gap-3 text-micro text-ink-faint">
                 {label}
                 <input
                   type="number"
                   min="0"
                   value={val}
                   onChange={e => set(e.target.value)}
-                  className="w-24 rounded-md bg-white/[0.05] border border-white/[0.1] px-2 py-1 text-right text-white/85 text-label tabular-nums focus:outline-none focus:border-violet-400/50"
+                  className="w-24 rounded-md bg-white/[0.05] border border-white/[0.1] px-2 py-1 text-right text-ink-muted text-label tabular-nums focus:outline-none focus:border-violet-400/50"
                 />
               </label>
             ))}
-            <p className="text-micro text-white/30">
+            <p className="text-micro text-ink-faint">
               Paid budget stays $0 until this lane has attributed revenue (Gate 4);
               all lanes' paid budgets are capped at ${detail.paid_global_cap_usd} total.
             </p>

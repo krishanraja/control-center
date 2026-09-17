@@ -78,11 +78,11 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
         <button
           type="button"
           onClick={nextHint.onClick}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-body font-medium text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-body font-medium text-ink-muted transition-colors hover:bg-white/[0.08] hover:text-ink"
         >
           {nextHint.label}
           {nextHint.shortcut && (
-            <kbd className="rounded-md border border-white/15 bg-white/[0.06] px-1.5 py-0.5 text-micro font-mono text-white/55">
+            <kbd className="rounded-md border border-white/15 bg-white/[0.06] px-1.5 py-0.5 text-micro font-mono text-ink-faint">
               {nextHint.shortcut}
             </kbd>
           )}

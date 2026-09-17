@@ -177,7 +177,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
     `px-2.5 py-1 rounded-md text-micro font-medium border transition-colors ${
       active
         ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
-        : 'border-white/10 text-white/60 hover:bg-white/[0.06]'
+        : 'border-white/10 text-ink-faint hover:bg-white/[0.06]'
     }`
 
   // Desktop loads the board's architecture at once — breadth, not a single card.
@@ -185,11 +185,11 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
     return (
       <div className="space-y-5">
         <header>
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
             <HeartHandshake size={20} className="text-rose-300" />
             Network
           </h1>
-          <p className="text-body text-white/55 mt-1">Gathering your network…</p>
+          <p className="text-body text-ink-faint mt-1">Gathering your network…</p>
         </header>
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
@@ -200,11 +200,11 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
     return (
       <div className="space-y-4">
         <header className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
             <HeartHandshake size={20} className="text-rose-300" />
             Network · Triage
           </h1>
-          <span className="text-body text-white/45">— right keeps warm, left skips with a reason</span>
+          <span className="text-body text-ink-faint">— right keeps warm, left skips with a reason</span>
         </header>
         <SwipeCockpit config={triageConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
       </div>
@@ -216,16 +216,16 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
       {/* Header */}
       <header className="flex items-end justify-between gap-4 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
             <HeartHandshake size={20} className="text-rose-300" />
             Network
           </h1>
-          <p className="text-body text-white/55 mt-1">
+          <p className="text-body text-ink-faint mt-1">
             The relationship spine — every contact, where they came from, and how warm they are.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-micro text-white/55 tabular-nums">
+          <span className="text-micro text-ink-faint tabular-nums">
             {loading ? '…' : `${total} contacts`}
           </span>
           {triageConfig.items.length > 0 && (
@@ -245,7 +245,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold border transition-colors ${
               powerMode
                 ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
-                : 'border-white/15 text-white/85 hover:bg-white/[0.06]'
+                : 'border-white/15 text-ink-muted hover:bg-white/[0.06]'
             }`}
           >
             <Table2 size={14} /> Power mode
@@ -253,7 +253,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
           <button
             type="button"
             onClick={() => setShowImport(s => !s)}
-            className="px-3 py-1.5 rounded-md text-label font-semibold border border-white/15 text-white/85 hover:bg-white/[0.06] transition-colors"
+            className="px-3 py-1.5 rounded-md text-label font-semibold border border-white/15 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             Import
           </button>
@@ -269,7 +269,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
       {/* Filter bar */}
       <div className="flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-white/[0.015] p-3 flex-shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-micro uppercase tracking-[0.14em] text-white/40 mr-1">Venture</span>
+          <span className="text-micro uppercase tracking-[0.14em] text-ink-faint mr-1">Venture</span>
           {VENTURES.map(v => (
             <button key={v.slug} type="button" className={chip(ventureIn.includes(v.slug))} onClick={() => toggleVenture(v.slug)}>
               {v.label}
@@ -277,7 +277,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-micro uppercase tracking-[0.14em] text-white/40 mr-1">Tier</span>
+          <span className="text-micro uppercase tracking-[0.14em] text-ink-faint mr-1">Tier</span>
           {TIERS.map(t => (
             <button key={t.value} type="button" className={chip(tierIn.includes(t.value))} onClick={() => toggleTier(t.value)}>
               {t.label}
@@ -286,7 +286,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="text-micro uppercase tracking-[0.14em] text-white/40 mr-1">Min heat</span>
+            <span className="text-micro uppercase tracking-[0.14em] text-ink-faint mr-1">Min heat</span>
             {HEAT_STEPS.map(step => (
               <button key={step} type="button" className={chip(minHeat === step)} onClick={() => setMinHeat(step)}>
                 {step === 0 ? 'Any' : `${step}+`}
@@ -294,13 +294,13 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
             ))}
           </div>
           <div className="relative flex-1 min-w-[160px] max-w-xs ml-auto">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/35" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name, company, campaign…"
-              className="w-full rounded-md border border-white/10 bg-base pl-7 pr-2 py-1.5 text-label text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-md border border-white/10 bg-base pl-7 pr-2 py-1.5 text-label text-ink-muted placeholder:text-ink-faint focus:border-violet-400/50 focus:outline-none"
             />
           </div>
         </div>
@@ -314,7 +314,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
             <button
               type="button"
               onClick={() => setShowImport(false)}
-              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-label"
+              className="text-ink-faint hover:text-ink-muted inline-flex items-center gap-1 text-label"
               aria-label="Close import"
             >
               <X size={14} /> Close
@@ -335,10 +335,10 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
             <h2 className="text-label font-semibold uppercase tracking-[0.14em] text-rose-200/85">
               Handle 1-by-1 — warm &amp; high-value
             </h2>
-            <span className="text-micro text-white/40 tabular-nums">{handQueue.length}</span>
+            <span className="text-micro text-ink-faint tabular-nums">{handQueue.length}</span>
           </div>
           {handQueue.length === 0 ? (
-            <p className="text-label text-white/35 px-1 py-2">No warm or high-heat contacts in this filter.</p>
+            <p className="text-label text-ink-faint px-1 py-2">No warm or high-heat contacts in this filter.</p>
           ) : (
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
@@ -363,22 +363,22 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
         {powerMode ? (
           <section>
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-label font-semibold uppercase tracking-[0.14em] text-white/55">
+              <h2 className="text-label font-semibold uppercase tracking-[0.14em] text-ink-faint">
                 Review &amp; bulk-action
               </h2>
-              <span className="text-micro text-white/40 tabular-nums">{reviewList.length}</span>
+              <span className="text-micro text-ink-faint tabular-nums">{reviewList.length}</span>
               {reviewList.length > 0 && (
                 <button
                   type="button"
                   onClick={selectAllReview}
-                  className="ml-auto text-micro text-white/45 hover:text-white/75"
+                  className="ml-auto text-micro text-ink-faint hover:text-ink-muted"
                 >
                   Select all
                 </button>
               )}
             </div>
             {reviewList.length === 0 ? (
-              <p className="text-label text-white/35 px-1 py-2">
+              <p className="text-label text-ink-faint px-1 py-2">
                 {loading ? 'Loading contacts…' : 'Nothing else to review in this filter.'}
               </p>
             ) : (
@@ -395,7 +395,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
                   ))}
                 </div>
                 {reviewList.length > REVIEW_CAP && (
-                  <p className="mt-2 text-micro text-white/40 px-1">
+                  <p className="mt-2 text-micro text-ink-faint px-1">
                     Showing the top {REVIEW_CAP} by predicted priority. {reviewList.length - REVIEW_CAP} more match this filter. Narrow with filters or search to see the rest.
                   </p>
                 )}
@@ -404,7 +404,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
           </section>
         ) : reviewList.length > 0 ? (
           <section className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3">
-            <p className="text-label text-white/55">
+            <p className="text-label text-ink-faint">
               {reviewList.length} more {reviewList.length === 1 ? 'contact' : 'contacts'} in the long tail, ranked by predicted priority.
             </p>
             <button
@@ -450,11 +450,11 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
   const closeMenu = () => setMenu(null)
 
   const btn =
-    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-micro font-medium border border-white/15 text-white/80 hover:bg-white/[0.08] disabled:opacity-40 transition-colors'
+    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-micro font-medium border border-white/15 text-ink-muted hover:bg-white/[0.08] disabled:opacity-40 transition-colors'
 
   return (
     <div className="flex-shrink-0 flex items-center gap-2 rounded-xl border border-violet-400/30 bg-sunk px-3 py-2 shadow-2xl">
-      <span className="text-label font-semibold text-white tabular-nums">{count} selected</span>
+      <span className="text-label font-semibold text-ink tabular-nums">{count} selected</span>
 
       <div className="relative" onMouseLeave={closeMenu}>
         <button type="button" disabled={busy} className={btn} onClick={() => setMenu(m => (m === 'owner' ? null : 'owner'))}>
@@ -463,7 +463,7 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
         {menu === 'owner' && (
           <div className="absolute bottom-full mb-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[110px] z-30">
             {OWNER_OPTIONS.map(o => (
-              <button key={o} type="button" onClick={() => { closeMenu(); onAction('assign_owner', o) }} className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06]">
+              <button key={o} type="button" onClick={() => { closeMenu(); onAction('assign_owner', o) }} className="text-left px-2 py-1 rounded text-micro text-ink-muted hover:bg-white/[0.06]">
                 {o}
               </button>
             ))}
@@ -478,7 +478,7 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
         {menu === 'tier' && (
           <div className="absolute bottom-full mb-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[150px] z-30">
             {TIERS.map(t => (
-              <button key={t.value} type="button" onClick={() => { closeMenu(); onAction('set_tier', t.value) }} className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06]">
+              <button key={t.value} type="button" onClick={() => { closeMenu(); onAction('set_tier', t.value) }} className="text-left px-2 py-1 rounded text-micro text-ink-muted hover:bg-white/[0.06]">
                 {t.label}
               </button>
             ))}
@@ -499,7 +499,7 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
       <button
         type="button"
         onClick={onClear}
-        className="ml-auto text-micro text-white/45 hover:text-white/80"
+        className="ml-auto text-micro text-ink-faint hover:text-ink-muted"
       >
         Clear
       </button>

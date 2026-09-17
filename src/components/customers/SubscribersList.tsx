@@ -51,7 +51,7 @@ function signedUp(c: CustomerRow): { absolute: string; relative: string } | null
 }
 
 function chipTone(product: CustomerProduct): string {
-  return PRODUCT_CHIP_TONE[product] || 'text-white/70 bg-white/[0.06] border-white/10'
+  return PRODUCT_CHIP_TONE[product] || 'text-ink-muted bg-white/[0.06] border-white/10'
 }
 
 function productLabel(product: CustomerProduct): string {
@@ -108,13 +108,13 @@ export function SubscribersList() {
   return (
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden flex-shrink-0">
       <header className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-x-1.5 gap-y-0.5 flex-wrap">
-        <Users size={12} className="text-white/45" />
-        <h3 className="text-label font-semibold text-white">Subscribers</h3>
-        <span className="text-micro text-white/40 sm:ml-auto">Every active subscriber, newest first</span>
+        <Users size={12} className="text-ink-faint" />
+        <h3 className="text-label font-semibold text-ink">Subscribers</h3>
+        <span className="text-micro text-ink-faint sm:ml-auto">Every active subscriber, newest first</span>
       </header>
 
       {active.length === 0 ? (
-        <p className="px-4 py-8 text-center text-label text-white/45">
+        <p className="px-4 py-8 text-center text-label text-ink-faint">
           No active subscribers yet. The capture lane is live.
         </p>
       ) : (
@@ -122,7 +122,7 @@ export function SubscribersList() {
           {/* Summary strip */}
           <div className="px-4 py-3 border-b border-white/[0.05] flex flex-wrap items-start gap-x-5 gap-y-2">
             <div>
-              <p className="text-micro uppercase tracking-[0.14em] text-white/35">Active MRR</p>
+              <p className="text-micro uppercase tracking-[0.14em] text-ink-faint">Active MRR</p>
               {/* Stripe's committed figure (api/_revenue.ts), the same one the
                   ticker above shows, rather than a sum over customers.mrr_usd
                   that used to disagree with it on the same screen. */}
@@ -131,15 +131,15 @@ export function SubscribersList() {
               </p>
             </div>
             <div>
-              <p className="text-micro uppercase tracking-[0.14em] text-white/35">Subscribers</p>
-              <p className="text-ui font-semibold tabular-nums text-white">{active.length}</p>
+              <p className="text-micro uppercase tracking-[0.14em] text-ink-faint">Subscribers</p>
+              <p className="text-ui font-semibold tabular-nums text-ink">{active.length}</p>
             </div>
             {newest && (
               <div className="min-w-0">
-                <p className="text-micro uppercase tracking-[0.14em] text-white/35">Newest</p>
-                <p className="text-label text-white/70 break-words">
+                <p className="text-micro uppercase tracking-[0.14em] text-ink-faint">Newest</p>
+                <p className="text-label text-ink-muted break-words">
                   {displayName(newest)}
-                  {newestWhen && <span className="text-white/40"> · {newestWhen.relative}</span>}
+                  {newestWhen && <span className="text-ink-faint"> · {newestWhen.relative}</span>}
                 </p>
               </div>
             )}
@@ -173,8 +173,8 @@ export function SubscribersList() {
                 <li key={c.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-body font-semibold text-white break-words">{displayName(c)}</p>
-                      {c.email && c.full_name && <p className="text-micro text-white/45 break-words">{c.email}</p>}
+                      <p className="text-body font-semibold text-ink break-words">{displayName(c)}</p>
+                      {c.email && c.full_name && <p className="text-micro text-ink-faint break-words">{c.email}</p>}
                     </div>
                     {mrr && (
                       <span className="text-label tabular-nums text-emerald-300 flex-shrink-0">{mrr}</span>
@@ -185,9 +185,9 @@ export function SubscribersList() {
                     <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-micro font-medium flex-shrink-0 ${chipTone(c.product)}`}>
                       {productLabel(c.product)}
                     </span>
-                    {c.plan && <span className="text-micro text-white/45 truncate">{c.plan}</span>}
+                    {c.plan && <span className="text-micro text-ink-faint truncate">{c.plan}</span>}
                     {su && (
-                      <span className="text-micro text-white/40 truncate" title={su.absolute}>
+                      <span className="text-micro text-ink-faint truncate" title={su.absolute}>
                         {su.absolute} · {su.relative}
                       </span>
                     )}
@@ -196,7 +196,7 @@ export function SubscribersList() {
                   {showInsight && (
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       {c.attribution_channel && (
-                        <span className="text-micro text-white/40 truncate">via {c.attribution_channel}</span>
+                        <span className="text-micro text-ink-faint truncate">via {c.attribution_channel}</span>
                       )}
                       {stripeVerified && (
                         <span className="inline-flex items-center rounded border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-emerald-300 flex-shrink-0">
@@ -204,7 +204,7 @@ export function SubscribersList() {
                         </span>
                       )}
                       {webhookVerified && (
-                        <span className="inline-flex items-center rounded border border-white/10 bg-white/[0.05] px-1.5 py-0.5 text-micro font-medium text-white/50 flex-shrink-0">
+                        <span className="inline-flex items-center rounded border border-white/10 bg-white/[0.05] px-1.5 py-0.5 text-micro font-medium text-ink-faint flex-shrink-0">
                           Webhook
                         </span>
                       )}

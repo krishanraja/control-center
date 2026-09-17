@@ -29,7 +29,7 @@ export function EditPalette({ groups, busy, disabled, onPick, dense }: {
     <div className={dense ? 'space-y-2' : 'space-y-3'}>
       {groups.map(g => (
         <div key={g.label}>
-          <div className="mb-1.5 px-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
+          <div className="mb-1.5 px-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             {g.label}
           </div>
           <div className="flex flex-wrap gap-1.5">

@@ -102,7 +102,7 @@ export function NetworkResultRow({ r, onOpen, weak }: {
         className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded-lg"
       >
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="truncate text-ui font-semibold text-white">{name}</span>
+          <span className="truncate text-ui font-semibold text-ink">{name}</span>
           <Badge variant={TIER_VARIANT[r.network_tier] || 'outline'}>{TIER_LABEL[r.network_tier] || r.network_tier}</Badge>
           {/* Says why this row is low, rather than leaving Krish to work it
               out from the risk line after he has already read the name. They
@@ -154,30 +154,30 @@ export function NetworkResultRow({ r, onOpen, weak }: {
             {prov.label}
           </span>
           {prov.detail && (
-            <span className="truncate text-micro text-white/35" title={prov.detail}>{prov.detail}</span>
+            <span className="truncate text-micro text-ink-faint" title={prov.detail}>{prov.detail}</span>
           )}
         </p>
 
         {(sub || place) && (
-          <p className="mt-0.5 flex items-center gap-1.5 truncate text-label text-white/50">
+          <p className="mt-0.5 flex items-center gap-1.5 truncate text-label text-ink-faint">
             {sub && <span className="truncate">{sub}</span>}
             {place && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-white/35">
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-ink-faint">
                 <MapPin size={10} aria-hidden />
                 {place}
               </span>
             )}
           </p>
         )}
-        {reason && <p className="mt-1.5 text-label leading-relaxed text-white/75">{reason}</p>}
+        {reason && <p className="mt-1.5 text-label leading-relaxed text-ink-muted">{reason}</p>}
         {opening && (
-          <p className="mt-1 text-label leading-relaxed text-white/45">
-            <span className="text-white/30">Open with</span> {opening}
+          <p className="mt-1 text-label leading-relaxed text-ink-faint">
+            <span className="text-ink-faint">Open with</span> {opening}
           </p>
         )}
         {r.risk && (
           <p className="mt-1 text-label leading-relaxed text-amber-200/85">
-            <span className="text-white/30">Risk</span> {r.risk}
+            <span className="text-ink-faint">Risk</span> {r.risk}
           </p>
         )}
       </button>
@@ -204,10 +204,10 @@ function RowReach({ option, name, primary }: {
   // to tell, at a glance down a list of forty, which of these land on the person
   // and which land on a search for someone who might be them.
   const tone = option.speculative
-    ? 'border-dashed border-white/12 text-white/30 hover:border-white/25 hover:text-white/60'
+    ? 'border-dashed border-white/12 text-ink-faint hover:border-white/25 hover:text-ink-faint'
     : primary
-      ? 'border-white/10 text-white/50 hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100'
-      : 'border-white/10 text-white/40 hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100'
+      ? 'border-white/10 text-ink-faint hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100'
+      : 'border-white/10 text-ink-faint hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100'
   return (
     <a
       href={option.href}

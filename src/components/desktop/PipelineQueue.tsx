@@ -77,7 +77,7 @@ function PipelineCard({ task, onDismiss }: { task: TaskRow; onDismiss: () => voi
   const { toast } = useToast()
   const [expanded, setExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
-  const badge = (task.group_label && GROUP_BADGE[task.group_label]) || 'bg-white/[0.04] border-white/[0.08] text-white/50'
+  const badge = (task.group_label && GROUP_BADGE[task.group_label]) || 'bg-white/[0.04] border-white/[0.08] text-ink-faint'
 
   const approve = async () => {
     if (busy) return
@@ -123,30 +123,30 @@ function PipelineCard({ task, onDismiss }: { task: TaskRow; onDismiss: () => voi
             {task.group_label}
           </span>
         )}
-        <p className="text-body font-semibold text-white leading-snug flex-1 min-w-0">{task.title}</p>
+        <p className="text-body font-semibold text-ink leading-snug flex-1 min-w-0">{task.title}</p>
       </div>
 
       {task.krish_notes && (
-        <p className="text-micro text-white/45 leading-relaxed line-clamp-2">{task.krish_notes}</p>
+        <p className="text-micro text-ink-faint leading-relaxed line-clamp-2">{task.krish_notes}</p>
       )}
 
       {task.evidence && (
         <div>
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-micro text-white/40 hover:text-white/70 transition-colors"
+            className="flex items-center gap-1 text-micro text-ink-faint hover:text-ink-muted transition-colors"
           >
             {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             {expanded ? 'Hide Draft' : 'View Draft'}
           </button>
           {expanded && (
             <div className="mt-1.5 rounded-lg border border-white/[0.08] bg-sunk p-2.5 space-y-2">
-              <pre className="text-micro text-white/75 font-mono whitespace-pre-wrap break-words leading-relaxed max-h-72 overflow-y-auto">
+              <pre className="text-micro text-ink-muted font-mono whitespace-pre-wrap break-words leading-relaxed max-h-72 overflow-y-auto">
 {task.evidence}
               </pre>
               <button
                 onClick={copyDraft}
-                className="flex items-center gap-1 px-2 py-1 rounded text-micro font-medium bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] transition-colors"
+                className="flex items-center gap-1 px-2 py-1 rounded text-micro font-medium bg-white/[0.04] border border-white/[0.08] text-ink-faint hover:bg-white/[0.08] transition-colors"
               >
                 <Copy size={10} /> Copy
               </button>

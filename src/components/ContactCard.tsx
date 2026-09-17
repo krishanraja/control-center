@@ -25,14 +25,14 @@ export function humanizePlayType(raw?: string | null): string | null {
 const MOVE_TONE_CHIP: Record<SuggestedMoveTone, string> = {
   act: 'bg-emerald-500/10 text-emerald-300',
   due: 'bg-amber-500/10 text-amber-300',
-  info: 'bg-white/[0.06] text-white/55',
+  info: 'bg-white/[0.06] text-ink-faint',
 }
 
 /** Tone-matched text classes for inline (non-chip) renderings of the move. */
 export const MOVE_TONE_TEXT: Record<SuggestedMoveTone, string> = {
   act: 'text-emerald-300/85',
   due: 'text-amber-300/85',
-  info: 'text-white/45',
+  info: 'text-ink-faint',
 }
 
 /**
@@ -60,7 +60,7 @@ function HeatMeter({ score }: { score: number }) {
   const tone =
     pct >= 75 ? 'bg-rose-400' : pct >= 60 ? 'bg-amber-400' : pct >= 40 ? 'bg-sky-400' : 'bg-white/30'
   const textTone =
-    pct >= 75 ? 'text-rose-300' : pct >= 60 ? 'text-amber-300' : pct >= 40 ? 'text-sky-300' : 'text-white/45'
+    pct >= 75 ? 'text-rose-300' : pct >= 60 ? 'text-amber-300' : pct >= 40 ? 'text-sky-300' : 'text-ink-faint'
   return (
     <span className="inline-flex items-center gap-1.5" title={`Heat score ${score}`}>
       <Flame size={11} className={textTone} />
@@ -106,7 +106,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             aria-label={selected ? `Deselect ${fullName}` : `Select ${fullName}`}
             onClick={(e) => { e.stopPropagation(); selected ? h.soft() : h.impactRigid(); onToggleSelect(c.id) }}
             className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
-              ${selected ? 'bg-violet-500 border-violet-500 text-white' : 'border-white/25 hover:border-white/45 text-transparent'}`}
+              ${selected ? 'bg-violet-500 border-violet-500 text-ink' : 'border-white/25 hover:border-white/45 text-transparent'}`}
           >
             <Check size={11} strokeWidth={2.5} aria-hidden />
           </button>
@@ -117,9 +117,9 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             onClick={() => onOpen?.(c.id)}
             className="text-left w-full"
           >
-            <p className="text-body font-semibold text-white leading-snug truncate">{fullName}</p>
+            <p className="text-body font-semibold text-ink leading-snug truncate">{fullName}</p>
             {titleCompany && (
-              <p className="text-micro text-white/55 leading-snug truncate">{titleCompany}</p>
+              <p className="text-micro text-ink-faint leading-snug truncate">{titleCompany}</p>
             )}
           </button>
         </div>
@@ -130,7 +130,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
             title="LinkedIn profile"
-            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-white/35 hover:text-sky-300 hover:bg-sky-500/10 transition-colors"
+            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-ink-faint hover:text-sky-300 hover:bg-sky-500/10 transition-colors"
           >
             <Linkedin size={11} />
           </a>
@@ -140,12 +140,12 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             href={`mailto:${c.email}`}
             onClick={(e) => e.stopPropagation()}
             title={c.email}
-            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-white/35 hover:text-violet-300 hover:bg-violet-500/10 transition-colors"
+            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-ink-faint hover:text-violet-300 hover:bg-violet-500/10 transition-colors"
           >
             <Mail size={11} />
           </a>
         )}
-        <span className="text-micro tabular-nums text-white/35 flex-shrink-0 self-center">
+        <span className="text-micro tabular-nums text-ink-faint flex-shrink-0 self-center">
           {humanAge(c.updated_at)}
         </span>
       </header>
@@ -182,12 +182,12 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             </span>
           )}
           {playLabel && (
-            <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65">
+            <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-muted">
               {playLabel}
             </span>
           )}
           {c.owner_agent && (
-            <span className="inline-flex items-center gap-1 text-micro text-white/45" title="Owner agent">
+            <span className="inline-flex items-center gap-1 text-micro text-ink-faint" title="Owner agent">
               <UserCircle2 size={10} />
               {c.owner_agent}
             </span>

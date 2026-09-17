@@ -39,7 +39,7 @@ export function SlideOver({ open, onClose, children, ariaLabel = 'Detail', label
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-base/95 px-4 py-2.5 backdrop-blur">
           <span className="text-micro uppercase tracking-[0.14em] text-violet-300/85">{label}</span>
           <DialogClose
-            className="inline-flex items-center gap-1 text-label text-white/50 transition-colors hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded"
+            className="inline-flex items-center gap-1 text-label text-ink-faint transition-colors hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded"
             aria-label="Close detail"
           >
             <X size={14} /> Close

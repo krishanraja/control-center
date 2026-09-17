@@ -100,18 +100,18 @@ export function GuestImportDropzone({ onIngested }: Props) {
             ? 'border-violet-500/40 bg-violet-500/[0.04]'
             : 'border-white/10 bg-white/[0.015] hover:border-white/20'}`}
       >
-        <UploadCloud size={20} className="mx-auto text-white/40" />
-        <p className="text-label text-white/75 mt-2 font-medium">
+        <UploadCloud size={20} className="mx-auto text-ink-faint" />
+        <p className="text-label text-ink-muted mt-2 font-medium">
           Drop a guest list or paste rows
         </p>
-        <p className="text-micro text-white/45 mt-0.5">
+        <p className="text-micro text-ink-faint mt-0.5">
           CSV, TSV, doc, sheet export , any format with name + a contact channel.
         </p>
         <div className="flex items-center justify-center gap-2 mt-3">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-white/80 hover:bg-white/[0.06] transition-colors"
+            className="px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
           >
             Pick file
           </button>
@@ -141,13 +141,13 @@ export function GuestImportDropzone({ onIngested }: Props) {
             onChange={(e) => setPasteText(e.target.value)}
             rows={6}
             placeholder="Paste rows here, in any format. Include at least name + one contact channel (email, LinkedIn, Twitter)."
-            className="w-full rounded-md border border-white/10 bg-sunk px-3 py-2 text-label text-white/85 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 font-mono"
+            className="w-full rounded-md border border-white/10 bg-sunk px-3 py-2 text-label text-ink-muted placeholder:text-ink-faint focus:outline-none focus:border-violet-500/40 font-mono"
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => { setPasteOpen(false); setPasteText('') }}
-              className="px-3 py-1 rounded-md text-micro font-medium text-white/55 hover:bg-white/[0.06]"
+              className="px-3 py-1 rounded-md text-micro font-medium text-ink-faint hover:bg-white/[0.06]"
             >
               Cancel
             </button>
@@ -169,10 +169,10 @@ export function GuestImportDropzone({ onIngested }: Props) {
               key={f.id}
               className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-micro"
             >
-              <FileText size={11} className="text-white/40 flex-shrink-0" />
-              <span className="flex-1 min-w-0 truncate text-white/75">{f.name}</span>
+              <FileText size={11} className="text-ink-faint flex-shrink-0" />
+              <span className="flex-1 min-w-0 truncate text-ink-muted">{f.name}</span>
               {f.state === 'sending' && (
-                <span className="flex items-center gap-1 text-white/55">
+                <span className="flex items-center gap-1 text-ink-faint">
                   <Working size={11} />
                   Importing…
                 </span>

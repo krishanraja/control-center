@@ -106,13 +106,13 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Search size={13} className="text-cyan-400" />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           SEO rank
         </h2>
         {rows.length > 0 && (
           <span className="ml-auto text-micro tabular-nums">
-            <span className={ranking > 0 ? 'text-emerald-300' : 'text-white/35'}>{ranking}</span>
-            <span className="text-white/25"> / {rows.length} ranking</span>
+            <span className={ranking > 0 ? 'text-emerald-300' : 'text-ink-faint'}>{ranking}</span>
+            <span className="text-ink-faint/50"> / {rows.length} ranking</span>
           </span>
         )}
       </header>
@@ -120,7 +120,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
       {!loaded ? (
         <SkeletonList rows={4} card={false} quiet={!waiting} />
       ) : rows.length === 0 ? (
-        <div className="px-4 py-5 text-center text-label text-white/35">
+        <div className="px-4 py-5 text-center text-label text-ink-faint">
           No rank sweep results yet — Maya's weekly SEO rank sweep lands owned
           Google positions and keyword volume here.
         </div>
@@ -136,7 +136,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
               <div key={r.id} className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${pos != null ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                  <span className="text-label text-white/80 truncate">{r.query}</span>
+                  <span className="text-label text-ink-muted truncate">{r.query}</span>
                   <span className="ml-auto flex-shrink-0 text-micro tabular-nums">
                     {pos != null ? (
                       <span className="text-emerald-300 inline-flex items-center gap-0.5">
@@ -146,20 +146,20 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
                           : <ArrowDown size={10} className="text-amber-400" />)}
                       </span>
                     ) : (
-                      <span className="text-white/30">not ranking</span>
+                      <span className="text-ink-faint">not ranking</span>
                     )}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 text-micro text-white/30">
-                  <span className="text-white/40">{laneLabel(r.product)}</span>
+                <div className="flex items-center gap-2 mt-0.5 text-micro text-ink-faint">
+                  <span className="text-ink-faint">{laneLabel(r.product)}</span>
                   <span>{fmtVolume(r.search_volume)}</span>
-                  <span className="ml-auto text-white/25">priority {r.priority ?? 0}</span>
+                  <span className="ml-auto text-ink-faint/50">priority {r.priority ?? 0}</span>
                 </div>
               </div>
             )
           })}
           {rows.length > VISIBLE_ROWS && (
-            <p className="px-4 py-2 text-micro text-white/25">
+            <p className="px-4 py-2 text-micro text-ink-faint/50">
               {rows.length - VISIBLE_ROWS} more keywords in the sweep, below these on priority.
             </p>
           )}

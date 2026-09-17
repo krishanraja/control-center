@@ -27,7 +27,7 @@ const TIER_META: Record<BridgeTier, { label: string; Icon: LucideIcon; chip: str
   // and it converts either to an engagement or to the role.
   mindmake_wedge: { label: 'Their call either way', Icon: Target, chip: 'bg-rose-500/10 text-rose-200' },
   cold_target: { label: 'Outside your network, named', Icon: Compass, chip: 'bg-sky-500/10 text-sky-200' },
-  peer_transition: { label: 'Outside network', Icon: Compass, chip: 'bg-white/[0.08] text-white/60' },
+  peer_transition: { label: 'Outside network', Icon: Compass, chip: 'bg-white/[0.08] text-ink-faint' },
 }
 
 interface Props {
@@ -140,7 +140,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
     <article className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3.5 hover:border-violet-500/35 transition-colors">
       <div className="flex items-start justify-between gap-x-3 gap-y-1.5 flex-wrap">
         <div className="min-w-0 basis-40 grow">
-          <h3 className="text-ui font-semibold text-white">
+          <h3 className="text-ui font-semibold text-ink">
             {b.contact?.linkedin_url ? (
               <a
                 href={b.contact.linkedin_url}
@@ -153,7 +153,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
               </a>
             ) : person}
           </h3>
-          {personLine && <p className="text-label text-white/55 mt-0.5">{personLine}</p>}
+          {personLine && <p className="text-label text-ink-faint mt-0.5">{personLine}</p>}
           {newsletterPost && (
             <a
               href={newsletterPost}
@@ -180,10 +180,10 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
       </div>
 
       {b.role && (
-        <p className="text-label text-white/70 mt-2">
+        <p className="text-label text-ink-muted mt-2">
           Why now: {b.role.title} is open at {b.role.company}
           {typeof b.role.score === 'number' && (
-            <span className="text-white/45 tabular-nums"> (fit {b.role.score}/10)</span>
+            <span className="text-ink-faint tabular-nums"> (fit {b.role.score}/10)</span>
           )}
           {b.role.url && (
             <a
@@ -199,15 +199,15 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
         </p>
       )}
 
-      <p className="text-label text-white/55 mt-1.5">{b.path_evidence}</p>
+      <p className="text-label text-ink-faint mt-1.5">{b.path_evidence}</p>
 
       <div className="mt-3">
-        <p className="text-micro uppercase tracking-[0.14em] text-white/35 mb-1">Your ask, edit freely</p>
+        <p className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-1">Your ask, edit freely</p>
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
           rows={4}
-          className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-white/85 focus:border-violet-500/40 focus:outline-none resize-y"
+          className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-ink-muted focus:border-violet-500/40 focus:outline-none resize-y"
         />
         {draft !== b.draft_ask && (
           <button
@@ -231,7 +231,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
           onClick={contactNow}
           disabled={busy !== null || !draft.trim()}
           data-testid="bridge-contact"
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-semibold bg-violet-500/90 text-ink hover:bg-violet-400 disabled:opacity-40 transition-colors"
           title={action.note}
         >
           {busy === 'contact' ? <Working size={12} />
@@ -265,7 +265,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
           type="button"
           onClick={() => setState('snoozed', 'snooze', 'Snoozed. It leaves the top five for now.')}
           disabled={busy !== null}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
         >
           {busy === 'snooze' ? <Working size={12} /> : <Clock size={12} />}
           Snooze
@@ -274,7 +274,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
           type="button"
           onClick={() => setState('not_a_path', 'drop', 'Noted. It will not come back.')}
           disabled={busy !== null}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
         >
           {busy === 'drop' ? <Working size={12} /> : <X size={12} />}
           Not a path

@@ -86,6 +86,20 @@ tested against their actual ground.
   like any other utility (`hover:text-ink`, `text-ink-muted/70`). The three
   classes stay defined so an unswept file cannot render colourless, and
   `scripts/check-type-tokens.mts` fails any new use of them.
+- **The opacity soup itself was swept on 2026-09-17**, which the 2026-09-13
+  note above did not do and read as if it had. 2,367 `text-white/NN` call
+  sites across 196 files, carrying 31 distinct opacity values, now resolve to
+  the three channels. The mapping was nearest-anchor on the dark theme's own
+  numbers — the tiers already render at 1.000 / 0.755 / 0.500 of `--fg` on
+  obsidian — so the sweep collapsed the vocabulary without moving the render.
+  Two sanctioned steps sit below faint for disabled states and separators:
+  `text-ink-faint/50` (0.25 dark, 0.31 paper, exactly what the old
+  light-theme lift for `.text-white/25` was hand-setting) and
+  `text-ink-faint/40`. Measured across 15 routes in both themes, text under
+  the contrast floor fell from 47 nodes to 3, all three deliberate brand
+  treatments (`money-text`, one accent eyebrow).
+- **`--ink-faint` on paper is `#5C6861`, not `#7C857A`.** The token table
+  below said otherwise until 2026-09-17; `src/index.css` is the authority.
 - Need text that stays **pure white on a coloured fill** (e.g. on an accent
   button)? Use `text-[#fff]`, not `text-white`.
 - Need a high-emphasis **inverted** button (white-on-dark by night,
@@ -122,7 +136,7 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
 |---|---|---|---|
 | `--bg-base` | `#0A100D` Mindmake ink | `#F2F1EA` warm paper | `bg-base` |
 | `--bg-sunk` | `#070C0A` | `#E8E6DC` | `bg-sunk` |
-| `--ink` / muted / faint | `#E6EDE8` / `#B0C0B7` / `#788C82` | `#131C17` / `#4A554E` / `#7C857A` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
+| `--ink` / muted / faint | `#E6EDE8` / `#B0C0B7` / `#788C82` | `#131C17` / `#4A554E` / `#5C6861` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
 | `--fg` (white remap) | `230 237 232` | `0 0 0` | `*-white/NN` |
 | `--accent` / `-2` | mint `#7FE3B4` / depth `#3E8E68` | paper mint `#2F6F51` | `text-accent`, `.aurora-*` |
 | `--accent-3` | amber `#E0A44A` | paper amber `#9A5A1C` | `text-accent-3` |

@@ -47,14 +47,14 @@ function Row({ r }: { r: WorkflowHealthRow }) {
     <li className="border-t border-white/[0.05] py-2 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip status={r.status} />
-        <span className="min-w-0 flex-1 truncate text-body font-medium text-white/90">
+        <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">
           {r.workflow_name || r.workflow_id}
         </span>
-        <span className="text-label tabular-nums text-white/45">
+        <span className="text-label tabular-nums text-ink-faint">
           {errs}/{runs} failed in 28d
         </span>
       </div>
-      <p className="mt-1 text-label leading-snug text-white/50">
+      <p className="mt-1 text-label leading-snug text-ink-faint">
         {/* "Never" is the honest answer for a workflow that has failed every
             run since it was created, and it is a different problem from one
             that worked until Tuesday. */}
@@ -64,14 +64,14 @@ function Row({ r }: { r: WorkflowHealthRow }) {
         {r.failure_class && (
           <>
             {' '}
-            <span className="text-white/70">{r.failure_class}</span>
+            <span className="text-ink-muted">{r.failure_class}</span>
             {CLASS_HINT[r.failure_class] ? ` — ${CLASS_HINT[r.failure_class]}` : ''}
           </>
         )}
-        {r.last_error_node && <> {' '}Failing at <span className="text-white/70">{r.last_error_node}</span>.</>}
+        {r.last_error_node && <> {' '}Failing at <span className="text-ink-muted">{r.last_error_node}</span>.</>}
       </p>
       {r.last_error_message && (
-        <p className="mt-0.5 truncate font-mono text-micro text-white/35" title={r.last_error_message}>
+        <p className="mt-0.5 truncate font-mono text-micro text-ink-faint" title={r.last_error_message}>
           {r.last_error_message}
         </p>
       )}
@@ -88,7 +88,7 @@ export function FleetHealthStrip() {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2">
         <CheckCircle2 size={13} className="shrink-0 text-emerald-300/80" />
-        <p className="text-label text-white/65">
+        <p className="text-label text-ink-muted">
           n8n reports {healthy} of {rows.length} workflows healthy, {idle} idle, none failing.
         </p>
       </div>
@@ -106,15 +106,15 @@ export function FleetHealthStrip() {
     >
       <header className="flex flex-wrap items-center gap-2">
         <AlertTriangle size={13} className="shrink-0 text-rose-300" />
-        <h3 className="text-label font-semibold text-white/90">
+        <h3 className="text-label font-semibold text-ink">
           {broken.length} of {rows.length} workflows are failing
         </h3>
-        <span className="text-micro uppercase tracking-[0.14em] text-white/35">
+        <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">
           n8n runtime, not self-reported
         </span>
       </header>
       {classes.length > 0 && (
-        <p className="mt-1 text-label text-white/55">
+        <p className="mt-1 text-label text-ink-faint">
           {classes.length === 1
             ? `All ${classes[0]}.`
             : `Causes: ${classes.join(', ')}.`}
@@ -124,7 +124,7 @@ export function FleetHealthStrip() {
         {broken.slice(0, 8).map(r => <Row key={r.workflow_id} r={r} />)}
       </ul>
       {broken.length > 8 && (
-        <p className="mt-2 text-label text-white/40">and {broken.length - 8} more.</p>
+        <p className="mt-2 text-label text-ink-faint">and {broken.length - 8} more.</p>
       )}
     </section>
   )

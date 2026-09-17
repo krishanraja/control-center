@@ -156,7 +156,7 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
   if (urgentEmpty && proposalsEmpty) {
     if (!wantUrgent) return null
     return (
-      <p className="text-label text-white/40 px-1">
+      <p className="text-label text-ink-faint px-1">
         Nothing is waiting on you right now.
       </p>
     )
@@ -174,14 +174,14 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
         >
           <div className="flex flex-wrap items-center gap-2 text-micro font-semibold">
             <span className="rounded-full bg-sky-400/15 text-sky-300 px-2.5 py-1">Weekly brief</span>
-            <span className="rounded-full bg-white/[0.06] text-white/55 px-2.5 py-1">{brief!.week}</span>
+            <span className="rounded-full bg-white/[0.06] text-ink-faint px-2.5 py-1">{brief!.week}</span>
             {brief!.sections?.stance ? (
               <span className="rounded-full bg-amber-400/10 text-amber-300 px-2.5 py-1">
                 {brief!.sections.stance}
               </span>
             ) : null}
           </div>
-          <p className="text-body text-white/80 mt-1.5">
+          <p className="text-body text-ink-muted mt-1.5">
             {brief!.title || 'This week, assembled'}
           </p>
         </button>
@@ -218,7 +218,7 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
                 type="button"
                 disabled={replaying !== null}
                 onClick={() => replay(a.job, a.label)}
-                className="shrink-0 rounded-full border border-white/15 px-3 py-1 text-micro font-semibold text-white/80 hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="shrink-0 rounded-full border border-white/15 px-3 py-1 text-micro font-semibold text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {replaying === a.job ? 'Running…' : 'Run again'}
               </button>
@@ -247,9 +247,9 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
                   <span className="rounded-full bg-violet-400/15 text-violet-200 px-2.5 py-1">
                     {ok ? `Video · ${VIDEO_GATE_LABEL[review.gate]}` : 'Video review needs repair'}
                   </span>
-                  {ok ? <span className="rounded-full bg-white/[0.06] text-white/55 px-2.5 py-1">{VIDEO_SERIES_LABEL[review.series]}</span> : null}
+                  {ok ? <span className="rounded-full bg-white/[0.06] text-ink-faint px-2.5 py-1">{VIDEO_SERIES_LABEL[review.series]}</span> : null}
                 </div>
-                <p className="text-body text-white/80 mt-1.5">{ok ? review.safe_title : 'Open it to see what must be repaired before any decision.'}</p>
+                <p className="text-body text-ink-muted mt-1.5">{ok ? review.safe_title : 'Open it to see what must be repaired before any decision.'}</p>
               </button>
             )
           })}
@@ -280,22 +280,22 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
           own output is the thing nobody can debug later. */}
       {wantProposals && offBeat.length > 0 && (
         <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]" data-testid="shift-discards">
-          <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2.5 text-label text-white/45">
+          <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2.5 text-label text-ink-faint">
             <span className="tabular-nums">{offBeat.length}</span>
             <span>
               {offBeat.length === 1 ? 'proposal fits' : 'proposals fit'} none of your six lenses, so
               {offBeat.length === 1 ? ' it is' : ' they are'} not asking for a ruling
             </span>
-            <span className="ml-auto text-micro text-white/35 group-open:hidden">Show</span>
-            <span className="ml-auto hidden text-micro text-white/35 group-open:inline">Hide</span>
+            <span className="ml-auto text-micro text-ink-faint group-open:hidden">Show</span>
+            <span className="ml-auto hidden text-micro text-ink-faint group-open:inline">Hide</span>
           </summary>
           <ul className="flex flex-col gap-1 px-3 pb-3">
             {offBeat.map(d => {
               const sh = lensOf.get(d.ref)
               return (
-                <li key={d.id} className="text-label text-white/50">
-                  <span className="text-white/65">{String((d.payload as Record<string, unknown>)?.title || sh?.title || 'Untitled')}</span>
-                  {sh?.category ? <span className="text-micro text-white/35"> · filed {sh.category} under the retired vocabulary</span> : null}
+                <li key={d.id} className="text-label text-ink-faint">
+                  <span className="text-ink-muted">{String((d.payload as Record<string, unknown>)?.title || sh?.title || 'Untitled')}</span>
+                  {sh?.category ? <span className="text-micro text-ink-faint"> · filed {sh.category} under the retired vocabulary</span> : null}
                 </li>
               )
             })}

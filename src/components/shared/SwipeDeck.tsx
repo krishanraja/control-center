@@ -184,8 +184,8 @@ export function SwipeDeck<T>({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
             <CheckCircle2 size={28} className="text-emerald-400/80 mb-3" />
-            <p className="text-ui text-white/85 font-medium">Pile cleared.</p>
-            <p className="text-label text-white/45 mt-1 max-w-xs">
+            <p className="text-ui text-ink-muted font-medium">Pile cleared.</p>
+            <p className="text-label text-ink-faint mt-1 max-w-xs">
               {triagedCount > 0 ? `You triaged ${triagedCount} this round. ` : ''}
               {'Nothing left to swipe.'}
             </p>
@@ -233,7 +233,7 @@ export function SwipeDeck<T>({
                   type="button"
                   onClick={() => onOpen(top)}
                   aria-label="Open detail"
-                  className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
+                  className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-ink-muted bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
                 >
                   <Maximize2 size={18} />
                 </button>
@@ -247,7 +247,7 @@ export function SwipeDeck<T>({
                 <RightIcon size={24} />
               </button>
             </div>
-            <p className="text-center text-micro text-white/35 mt-2.5 flex-shrink-0">
+            <p className="text-center text-micro text-ink-faint mt-2.5 flex-shrink-0">
               {narrow
                 ? <>Swipe left to {topLeft.toLowerCase()} · right to {topRight.toLowerCase()}{onOpen ? ' · tap to open' : ''}</>
                 : <>← {topLeft.toLowerCase()} · → {topRight.toLowerCase()}{onOpen ? ' · ↑ open' : ''}{canUndo ? ' · U undo' : ''}</>}

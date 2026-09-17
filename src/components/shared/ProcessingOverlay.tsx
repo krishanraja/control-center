@@ -115,7 +115,7 @@ function CancelButton({ onCancel, className = '' }: { onCancel: () => void; clas
     <button
       type="button"
       onClick={onCancel}
-      className={`inline-flex items-center gap-1 text-label text-white/40 hover:text-white/75 transition-colors ${className}`}
+      className={`inline-flex items-center gap-1 text-label text-ink-faint hover:text-ink-muted transition-colors ${className}`}
     >
       <X size={11} aria-hidden /> Stop
     </button>
@@ -135,10 +135,10 @@ function MobileThinking(props: ProcessingOverlayProps) {
       <div className="flex flex-col items-center gap-6 px-8 text-center animate-scale-in">
         <ThinkingOrbit size={84} />
         <div className="flex flex-col items-center gap-2.5">
-          <p className="text-lede font-semibold text-white/90 tracking-tight">{label}</p>
-          <p className="text-label text-white/45 leading-relaxed max-w-[15rem]">{primary}</p>
+          <p className="text-lede font-semibold text-ink tracking-tight">{label}</p>
+          <p className="text-label text-ink-faint leading-relaxed max-w-[15rem]">{primary}</p>
           <div className="mt-1.5"><IndeterminateRail width={150} /></div>
-          {clock && <p className="text-micro text-white/30 tabular-nums mt-0.5">{clock}</p>}
+          {clock && <p className="text-micro text-ink-faint tabular-nums mt-0.5">{clock}</p>}
           {onCancel && <CancelButton onCancel={onCancel} className="mt-2" />}
         </div>
       </div>
@@ -160,11 +160,11 @@ function DesktopThinking(props: ProcessingOverlayProps) {
         <ThinkingOrbit size={56} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2 mb-1">
-            <p className="text-micro uppercase tracking-[0.14em] text-white/40">Working</p>
-            {clock && <p className="text-micro text-white/30 tabular-nums ml-auto">{clock}</p>}
+            <p className="text-micro uppercase tracking-[0.14em] text-ink-faint">Working</p>
+            {clock && <p className="text-micro text-ink-faint tabular-nums ml-auto">{clock}</p>}
           </div>
-          <p className="text-ui font-semibold text-white/90 tracking-tight truncate">{label}</p>
-          <p className="text-label text-white/45 leading-snug mt-0.5 truncate">{primary}</p>
+          <p className="text-ui font-semibold text-ink tracking-tight truncate">{label}</p>
+          <p className="text-label text-ink-faint leading-snug mt-0.5 truncate">{primary}</p>
           <div className="mt-3 flex items-center gap-3">
             <IndeterminateRail width={onCancel ? 170 : 220} />
             {onCancel && <CancelButton onCancel={onCancel} />}

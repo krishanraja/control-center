@@ -139,8 +139,8 @@ export function DesktopSidebar({ active, onChange }: Props) {
               aria-label="More tabs"
               className={`w-full min-h-[42px] flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all motion-reduce:transition-none border ${
                 drawerOpen
-                  ? 'bg-white/[0.04] text-white/80 border-white/10'
-                  : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04] border-transparent'
+                  ? 'bg-white/[0.04] text-ink-muted border-white/10'
+                  : 'text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] border-transparent'
               }`}
               title={!expanded ? 'More' : undefined}
             >
@@ -179,7 +179,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
           aria-expanded={expanded}
           aria-pressed={pinnedExpanded}
           data-testid="desktop-sidebar-toggle"
-          className={`flex min-h-[42px] w-full items-center rounded-lg border border-white/[0.07] text-white/55 transition-colors motion-reduce:transition-none hover:bg-white/[0.05] hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${expanded ? 'gap-2 px-2.5' : 'justify-center'}`}
+          className={`flex min-h-[42px] w-full items-center rounded-lg border border-white/[0.07] text-ink-faint transition-colors motion-reduce:transition-none hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${expanded ? 'gap-2 px-2.5' : 'justify-center'}`}
         >
           {pinnedExpanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
           {expanded && <span className="truncate text-label font-medium">{toggleLabel}</span>}
@@ -187,18 +187,18 @@ export function DesktopSidebar({ active, onChange }: Props) {
         {expanded ? (
           <>
             <div>
-              <p className="text-micro uppercase tracking-[0.14em] text-white/40 font-semibold">MRR</p>
+              <p className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold">MRR</p>
               {mrr ? (
                 <p className="text-ui font-mono font-semibold text-emerald-400 tabular-nums mt-0.5">{mrr}</p>
               ) : (
-                <p className="text-label text-white/30 mt-1 leading-snug">Not reported yet</p>
+                <p className="text-label text-ink-faint mt-1 leading-snug">Not reported yet</p>
               )}
             </div>
             <ThemeToggle expanded />
             <TimezoneToggle expanded />
             <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
-              <span className="text-micro uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
-              <kbd className="text-micro font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
+              <span className="text-micro uppercase tracking-[0.14em] text-ink-faint font-medium">Command</span>
+              <kbd className="text-micro font-mono text-ink-faint border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
             </div>
           </>
         ) : (
@@ -238,8 +238,8 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
       className={`w-full min-h-[42px] flex items-center gap-3 px-3 py-2 rounded-xl text-body font-medium transition-all duration-200 motion-reduce:transition-none relative overflow-hidden
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50
         ${active
-          ? 'bg-violet-500/10 text-white border border-violet-500/25 shadow-[inset_3px_0_0_#7fe3b4]'
-          : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}
+          ? 'bg-violet-500/10 text-ink border border-violet-500/25 shadow-[inset_3px_0_0_#7fe3b4]'
+          : 'text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] border border-transparent'}`}
       title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
     >
       <div className="relative">

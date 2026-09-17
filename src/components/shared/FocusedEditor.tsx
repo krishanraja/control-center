@@ -92,7 +92,7 @@ export function FocusedEditor({
               aria-label="More options"
               aria-expanded={menuOpen}
               onClick={() => { h.tap(); setMenuOpen(o => !o); setArmed(false) }}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-white/45 active:bg-white/[0.08]"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-faint active:bg-white/[0.08]"
             >
               <MoreHorizontal size={16} />
             </button>

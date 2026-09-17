@@ -27,16 +27,16 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Filter size={13} className="text-violet-400" />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           Nurture funnel
         </h2>
-        <span className="ml-auto text-micro text-white/30 tabular-nums">
+        <span className="ml-auto text-micro text-ink-faint tabular-nums">
           {totals.captures} captured → {totals.paid} paid · 8w
         </span>
       </header>
 
       {weeks.length === 0 ? (
-        <div className="px-4 py-6 text-center text-label text-white/35">
+        <div className="px-4 py-6 text-center text-label text-ink-faint">
           No capture data yet for this lane — wire the capture surface and the
           weekly funnel appears here.
         </div>
@@ -49,23 +49,23 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
               : '—'
             return (
               <div key={String(w.week)} className="px-4 py-2.5 flex items-center gap-1.5 text-label tabular-nums">
-                <span className="w-14 text-white/40">{label}</span>
+                <span className="w-14 text-ink-faint">{label}</span>
                 <span className="inline-flex items-baseline gap-1">
-                  <span className="font-semibold text-white/85">{w.captures}</span>
-                  <span className="text-white/30">captured</span>
+                  <span className="font-semibold text-ink-muted">{w.captures}</span>
+                  <span className="text-ink-faint">captured</span>
                 </span>
-                <ChevronRight size={11} className="text-white/20" />
+                <ChevronRight size={11} className="text-ink-faint/40" />
                 <span className="inline-flex items-baseline gap-1">
-                  <span className={`font-semibold ${Number(w.paid_added) > 0 ? 'text-emerald-300' : 'text-white/60'}`}>
+                  <span className={`font-semibold ${Number(w.paid_added) > 0 ? 'text-emerald-300' : 'text-ink-faint'}`}>
                     {w.paid_added}
                   </span>
-                  <span className="text-white/30">paid</span>
+                  <span className="text-ink-faint">paid</span>
                 </span>
                 <span className="ml-auto flex items-baseline gap-2">
                   {Number(w.mrr_added) > 0 && (
                     <span className="text-emerald-300/90">+${Math.round(Number(w.mrr_added)).toLocaleString()}/mo</span>
                   )}
-                  <span className="text-white/25">
+                  <span className="text-ink-faint/50">
                     {w.capture_to_paid_pct != null ? `${Number(w.capture_to_paid_pct).toFixed(1)}%` : '—'}
                   </span>
                 </span>
@@ -77,7 +77,7 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
 
       {frames.length > 0 && (
         <div className="border-t border-white/[0.06]">
-          <p className="px-4 pt-2.5 pb-1 text-micro font-semibold uppercase tracking-[0.14em] text-white/35">
+          <p className="px-4 pt-2.5 pb-1 text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Frame leaderboard
           </p>
           <div className="px-4 pb-3 divide-y divide-white/[0.03]">
@@ -85,11 +85,11 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
               const conv = f.leads_touched > 0 ? (f.paid / f.leads_touched) * 100 : null
               return (
                 <div key={f.frame_version} className="py-1.5 flex items-baseline gap-2 text-micro tabular-nums">
-                  <span className="text-white/70 truncate">{f.frame_version}</span>
-                  <span className="ml-auto text-white/35">{f.sent} sent</span>
-                  <span className="text-white/35">{f.leads_touched} leads</span>
-                  <span className={f.paid > 0 ? 'text-emerald-300' : 'text-white/35'}>{f.paid} paid</span>
-                  <span className="w-12 text-right text-white/25">
+                  <span className="text-ink-muted truncate">{f.frame_version}</span>
+                  <span className="ml-auto text-ink-faint">{f.sent} sent</span>
+                  <span className="text-ink-faint">{f.leads_touched} leads</span>
+                  <span className={f.paid > 0 ? 'text-emerald-300' : 'text-ink-faint'}>{f.paid} paid</span>
+                  <span className="w-12 text-right text-ink-faint/50">
                     {conv != null ? `${conv.toFixed(1)}%` : '—'}
                   </span>
                 </div>

@@ -71,28 +71,28 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
             <span className="money-text">
               {formatMrr((revenue?.collected_30d_net_cents ?? 0) / 100)}
             </span>
-            <span className="text-white/35 text-title font-medium"> net</span>
+            <span className="text-ink-faint text-title font-medium"> net</span>
           </p>
-          <p className="text-micro text-white/40 mt-2 tabular-nums">
+          <p className="text-micro text-ink-faint mt-2 tabular-nums">
             {revenue
               ? `$${(revenue.collected_all_time_net_cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} all time`
               : <Skeleton h={14} w={72} r={4} className="inline-block align-middle" />}
             {revenue?.one_time_share_pct != null && revenue.one_time_share_pct > 0 && (
-              <span className="text-white/30"> · {revenue.one_time_share_pct}% one-off</span>
+              <span className="text-ink-faint"> · {revenue.one_time_share_pct}% one-off</span>
             )}
           </p>
         </div>
 
         <div className="text-right flex-shrink-0 flex flex-col items-end gap-1.5">
           <div>
-            <p className="text-micro font-bold uppercase tracking-[0.14em] text-white/35 mb-1">
+            <p className="text-micro font-bold uppercase tracking-[0.14em] text-ink-faint mb-1">
               Committed MRR
             </p>
-            <p className={`${isMobile ? 'text-title' : 'text-title'} font-semibold tabular-nums text-white/85`}>
+            <p className={`${isMobile ? 'text-title' : 'text-title'} font-semibold tabular-nums text-ink-muted`}>
               {formatCommittedMrr(revenue)}
-              <span className="text-white/30 text-body font-medium">/mo</span>
+              <span className="text-ink-faint text-body font-medium">/mo</span>
             </p>
-            <p className="text-micro text-white/30 mt-0.5 tabular-nums">
+            <p className="text-micro text-ink-faint mt-0.5 tabular-nums">
               {revenue ? `${revenue.active_subscriptions} live subscription${revenue.active_subscriptions === 1 ? '' : 's'}` : ''}
             </p>
           </div>
@@ -113,7 +113,7 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
           rather than presenting a stale figure as today's. Sync now is the
           on-demand backstop for the same route the cron hits. */}
       {revenue && (
-        <div className={`mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3 flex-wrap text-micro ${behind ? 'text-amber-300' : 'text-white/40'}`}>
+        <div className={`mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3 flex-wrap text-micro ${behind ? 'text-amber-300' : 'text-ink-faint'}`}>
           <span>
             {behind && ageHours != null ? 'Stripe is behind: ' : 'Stripe '}
             {syncAgeLabel(ageHours)}
@@ -122,7 +122,7 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
             type="button"
             onClick={() => { void runSync() }}
             disabled={syncing}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-micro font-medium text-white/70 hover:bg-white/[0.08] disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-micro font-medium text-ink-muted hover:bg-white/[0.08] disabled:opacity-50"
             title="Pull Stripe now"
           >
             {syncing ? <Working size={11} /> : <RefreshCw size={11} />}

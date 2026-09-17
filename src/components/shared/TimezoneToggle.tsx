@@ -46,7 +46,7 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
         onClick={cycle}
         aria-label={description}
         title={description}
-        className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+        className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-white/[0.06] transition-colors"
       >
         <Globe size={16} />
       </button>
@@ -59,7 +59,7 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
       onClick={cycle}
       aria-label={description}
       title={auto ? 'Following this device. Every day boundary follows it.' : 'Pinned. Every day boundary follows this.'}
-      className="w-full min-h-[44px] flex items-center gap-2 px-2.5 rounded-lg text-white/55 hover:text-white/85 hover:bg-white/[0.06] transition-colors touch-manipulation"
+      className="w-full min-h-[44px] flex items-center gap-2 px-2.5 rounded-lg text-ink-faint hover:text-ink-muted hover:bg-white/[0.06] transition-colors touch-manipulation"
     >
       <Globe size={16} className="shrink-0" />
       <span className="text-label truncate">{label}</span>

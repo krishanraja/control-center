@@ -20,13 +20,13 @@ export function TouchProgressPanel({ lane }: { lane: AcquisitionLane }) {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <ListOrdered size={13} className="text-cyan-400" />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           Touch progress
         </h2>
       </header>
 
       {touches.length === 0 ? (
-        <div className="px-4 py-6 text-center text-label text-white/35">
+        <div className="px-4 py-6 text-center text-label text-ink-faint">
           No sends in the ledger yet. Once the nurture scheduler queues Touch 1,
           progress shows up here per touch.
         </div>
@@ -40,21 +40,21 @@ export function TouchProgressPanel({ lane }: { lane: AcquisitionLane }) {
             const extras = Object.keys(counts).filter(s => !order.includes(s))
             return (
               <div key={touchNo} className="px-4 py-2.5 flex items-center gap-2 text-label">
-                <span className="w-8 font-semibold text-white/80">T{touchNo}</span>
+                <span className="w-8 font-semibold text-ink-muted">T{touchNo}</span>
                 <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 tabular-nums">
                   {order.concat(extras).map(status =>
                     counts[status] ? (
                       <span key={status} className="inline-flex items-baseline gap-1">
-                        <span className={`font-semibold ${SEND_STATUS_TONE[status] || 'text-white/70'}`}>
+                        <span className={`font-semibold ${SEND_STATUS_TONE[status] || 'text-ink-muted'}`}>
                           {counts[status]}
                         </span>
-                        <span className="text-white/30">{status}</span>
+                        <span className="text-ink-faint">{status}</span>
                       </span>
                     ) : null,
                   )}
                 </span>
                 {unsubPct != null && unsubPct > 0 && (
-                  <span className={`ml-auto text-micro tabular-nums ${unsubPct > 2 ? 'text-rose-300' : 'text-white/35'}`}>
+                  <span className={`ml-auto text-micro tabular-nums ${unsubPct > 2 ? 'text-rose-300' : 'text-ink-faint'}`}>
                     {unsubPct.toFixed(1)}% unsub
                   </span>
                 )}

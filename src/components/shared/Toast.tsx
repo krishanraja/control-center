@@ -29,7 +29,7 @@ const ToastContext = createContext<ToastContextValue>({ toast: () => {} })
 const VARIANT_STYLE: Record<string, { border: string; icon: typeof Info; iconColor: string }> = {
   success: { border: 'border-emerald-500/25', icon: CheckCircle2, iconColor: 'text-emerald-400' },
   error:   { border: 'border-rose-500/25',    icon: AlertCircle,  iconColor: 'text-rose-400' },
-  info:    { border: 'border-white/[0.08]',   icon: Info,         iconColor: 'text-white/40' },
+  info:    { border: 'border-white/[0.08]',   icon: Info,         iconColor: 'text-ink-faint' },
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -68,7 +68,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               className={`pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-lg border ${v.border} bg-base shadow-xl animate-[slideUp_0.2s_ease-out]`}
             >
               <Icon size={14} className={v.iconColor} />
-              <span className="text-label text-white/80">{t.message}</span>
+              <span className="text-label text-ink-muted">{t.message}</span>
               {t.action && (
                 <button
                   type="button"

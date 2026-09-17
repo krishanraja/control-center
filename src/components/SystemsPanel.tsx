@@ -30,7 +30,7 @@ const STATUS_CONFIG = {
   green:   { icon: CheckCircle2,  color: 'text-emerald-400', bg: 'bg-emerald-500/10',  border: 'border-emerald-500/20', label: 'Healthy' },
   amber:   { icon: AlertTriangle, color: 'text-amber-400',   bg: 'bg-amber-500/10',    border: 'border-amber-500/20',   label: 'Warning' },
   red:     { icon: XCircle,       color: 'text-red-400',     bg: 'bg-red-500/10',      border: 'border-red-500/20',     label: 'Down' },
-  unknown: { icon: HelpCircle,    color: 'text-white/25',    bg: 'bg-white/[0.02]',    border: 'border-white/[0.06]',   label: 'Unchecked' },
+  unknown: { icon: HelpCircle,    color: 'text-ink-faint/50',    bg: 'bg-white/[0.02]',    border: 'border-white/[0.06]',   label: 'Unchecked' },
 }
 
 function timeAgo(iso: string | null): string {
@@ -49,10 +49,10 @@ function ServiceRow({ service }: { service: Service }) {
     <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
       <Icon size={14} className={`flex-shrink-0 ${cfg.color}`} />
       <div className="flex-1 min-w-0">
-        <span className="text-body font-medium text-white/90">{service.name}</span>
-        <p className="text-micro text-white/35 truncate">{service.note}</p>
+        <span className="text-body font-medium text-ink">{service.name}</span>
+        <p className="text-micro text-ink-faint truncate">{service.note}</p>
       </div>
-      <span className="text-micro text-white/20 flex-shrink-0 font-mono">{timeAgo(service.last_checked)}</span>
+      <span className="text-micro text-ink-faint/40 flex-shrink-0 font-mono">{timeAgo(service.last_checked)}</span>
     </div>
   )
 }
@@ -65,12 +65,12 @@ function CategoryBlock({ category }: { category: Category }) {
   return (
     <div className={`rounded-2xl border ${cfg.border} overflow-hidden`}>
       <div className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
-        <p className="text-micro font-bold uppercase tracking-widest text-white/50">{category.label}</p>
+        <p className="text-micro font-bold uppercase tracking-widest text-ink-faint">{category.label}</p>
         <div className="flex items-center gap-3">
           {counts.red > 0     && <span className="text-micro text-red-400 font-semibold">{counts.red} down</span>}
           {counts.amber > 0   && <span className="text-micro text-amber-400 font-semibold">{counts.amber} warn</span>}
           {counts.green > 0   && <span className="text-micro text-emerald-400 font-semibold">{counts.green} ok</span>}
-          {counts.unknown > 0 && <span className="text-micro text-white/25 font-semibold">{counts.unknown} unk</span>}
+          {counts.unknown > 0 && <span className="text-micro text-ink-faint/50 font-semibold">{counts.unknown} unk</span>}
         </div>
       </div>
       <div className="divide-y divide-white/[0.03]">
@@ -153,8 +153,8 @@ export function SystemsPanel() {
     return (
       <div className="space-y-5">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
-          <p className="text-body text-white/30 mt-0.5">Checking every connected service…</p>
+          <h1 className="text-xl md:text-2xl font-bold text-ink">Systems</h1>
+          <p className="text-body text-ink-faint mt-0.5">Checking every connected service…</p>
         </div>
         <BoardSkeleton lanes={2} cardsPerLane={4} hero={false} />
       </div>
@@ -166,14 +166,14 @@ export function SystemsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
-          <p className="text-body text-white/30 mt-0.5">All connected services, watched by Arlo.</p>
+          <h1 className="text-xl md:text-2xl font-bold text-ink">Systems</h1>
+          <p className="text-body text-ink-faint mt-0.5">All connected services, watched by Arlo.</p>
         </div>
         <button
           onClick={liveRefresh}
           disabled={loading || refreshing}
           title="Re-poll N8N and update system_health"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-micro transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-ink-faint hover:text-ink-faint text-micro transition-colors"
         >
           {(loading || refreshing) ? <Working size={12} /> : <RefreshCw size={12} />}
           {refreshing ? 'Polling N8N…' : loading ? 'Reading services…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
@@ -191,7 +191,7 @@ export function SystemsPanel() {
               </span>
             </div>
             {overallOk && (
-              <p className="text-micro text-white/30 pl-4">Ambient surface: nothing here needs you. Real failures page Telegram and land on Home.</p>
+              <p className="text-micro text-ink-faint pl-4">Ambient surface: nothing here needs you. Real failures page Telegram and land on Home.</p>
             )}
             {downServices.length > 0 && (
               <p className="text-micro text-red-300/70 pl-4">
@@ -208,14 +208,14 @@ export function SystemsPanel() {
             {greenCount > 0    && <span className="text-emerald-400">{greenCount} healthy</span>}
             {warnServices.length > 0 && <span className="text-amber-400">{warnServices.length} warning</span>}
             {downServices.length > 0 && <span className="text-red-400">{downServices.length} down</span>}
-            {unknownCount > 0  && <span className="text-white/25">{unknownCount} unchecked</span>}
+            {unknownCount > 0  && <span className="text-ink-faint/50">{unknownCount} unchecked</span>}
           </div>
         </div>
       </div>
 
       {/* Meta */}
       {data && (
-        <div className="flex items-center gap-4 text-micro text-white/25">
+        <div className="flex items-center gap-4 text-micro text-ink-faint/50">
           <span>File updated: {timeAgo(data.updated_at)} by {data.updated_by}</span>
           <span>|</span>
           <span>Next live check: {data.next_check}</span>

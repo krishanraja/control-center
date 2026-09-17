@@ -107,10 +107,10 @@ function podOf(pod?: string): PodDef {
   return POD_DEFS[key] || {
     key: key || 'unassigned',
     label: humanize(pod) || 'Unassigned',
-    accent: 'text-white/60',
+    accent: 'text-ink-faint',
     ring: 'border-white/15',
     tint: 'from-white/[0.02] to-transparent',
-    chip: 'text-white/55 border-white/15 bg-white/[0.04]',
+    chip: 'text-ink-faint border-white/15 bg-white/[0.04]',
     icon: <Cog size={13} />,
   }
 }
@@ -302,10 +302,10 @@ export function DesktopOrg() {
     <div className="space-y-5 pr-2">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Organisation</h1>
-          <p className="text-micro md:text-label text-white/40 mt-0.5">Pod hierarchy — Executive sets direction, Ops runs day-to-day, Growth drives revenue.</p>
+          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Organisation</h1>
+          <p className="text-micro md:text-label text-ink-faint mt-0.5">Pod hierarchy — Executive sets direction, Ops runs day-to-day, Growth drives revenue.</p>
         </div>
-        <p className="text-micro md:text-label text-white/35 font-mono tabular-nums whitespace-nowrap">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
+        <p className="text-micro md:text-label text-ink-faint font-mono tabular-nums whitespace-nowrap">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
       </div>
 
       {pendingCorrections.data.length > 0 && (
@@ -320,7 +320,7 @@ export function DesktopOrg() {
 
       {groups.length === 0 && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 md:py-12 text-center">
-          <p className="text-body text-white/45">No active agents.</p>
+          <p className="text-body text-ink-faint">No active agents.</p>
         </div>
       )}
 
@@ -347,10 +347,10 @@ export function DesktopOrg() {
         <AgentAvatar agent={selected.id} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white leading-tight tracking-tight">{selected.name}</h1>
+            <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink leading-tight tracking-tight">{selected.name}</h1>
             <RunHealthDot runs={detail.runs} />
           </div>
-          {selected.role && <p className="text-xs md:text-body text-white/55 mt-1">{selected.role}</p>}
+          {selected.role && <p className="text-xs md:text-body text-ink-faint mt-1">{selected.role}</p>}
           <div className="flex items-center gap-3 mt-2">
             {selected.pod && (
               <span className={`inline-flex items-center gap-1 text-micro px-2 py-0.5 rounded-full border font-medium ${podOf(selected.pod).chip}`}>
@@ -359,7 +359,7 @@ export function DesktopOrg() {
               </span>
             )}
             {selected.last_run && (
-              <span className="text-micro text-white/30">Last run {formatDistanceToNow(new Date(selected.last_run), { addSuffix: true })}</span>
+              <span className="text-micro text-ink-faint">Last run {formatDistanceToNow(new Date(selected.last_run), { addSuffix: true })}</span>
             )}
           </div>
         </div>
@@ -377,7 +377,7 @@ export function DesktopOrg() {
               <button
                 onClick={cancelEdit}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-medium bg-white/[0.04] text-white/65 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-medium bg-white/[0.04] text-ink-muted border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
               >
                 <X size={12} /> Cancel
               </button>
@@ -410,11 +410,11 @@ export function DesktopOrg() {
               <p className="text-micro font-semibold uppercase tracking-[0.14em] text-emerald-400/70 mb-2">{selected.kpi_label}</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-micro text-white/35 uppercase tracking-wider">Target</p>
-                  <p className="text-body text-white/80 mt-0.5">{selected.kpi_target || '—'}</p>
+                  <p className="text-micro text-ink-faint uppercase tracking-wider">Target</p>
+                  <p className="text-body text-ink-muted mt-0.5">{selected.kpi_target || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-micro text-white/35 uppercase tracking-wider">Current</p>
+                  <p className="text-micro text-ink-faint uppercase tracking-wider">Current</p>
                   <p className="text-body text-emerald-300/80 mt-0.5 font-medium">{selected.kpi_current || '—'}</p>
                 </div>
               </div>
@@ -424,9 +424,9 @@ export function DesktopOrg() {
           <PlanReadonly plan={plan} />
 
           <div>
-            <p className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-2.5">Active Tasks ({detail.tasks.length})</p>
+            <p className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2.5">Active Tasks ({detail.tasks.length})</p>
             {detail.tasks.length === 0 ? (
-              <p className="text-micro text-white/30">No active tasks.</p>
+              <p className="text-micro text-ink-faint">No active tasks.</p>
             ) : (
               <div className="space-y-1.5">
                 {detail.tasks.slice(0, 8).map((t: any) => (
@@ -434,8 +434,8 @@ export function DesktopOrg() {
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                       t.status === 'waiting' ? 'bg-amber-400 animate-pulse' : t.status === 'active' ? 'bg-emerald-400' : t.status === 'in_progress' ? 'bg-blue-400' : 'bg-white/20'
                     }`} />
-                    <p className="text-label text-white/70 truncate flex-1">{t.title}</p>
-                    <span className="text-micro text-white/30">{t.status}</span>
+                    <p className="text-label text-ink-muted truncate flex-1">{t.title}</p>
+                    <span className="text-micro text-ink-faint">{t.status}</span>
                   </div>
                 ))}
               </div>
@@ -443,20 +443,20 @@ export function DesktopOrg() {
           </div>
 
           <div>
-            <p className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 mb-2.5">N8N Runs</p>
+            <p className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2.5">N8N Runs</p>
             {detail.runs.length === 0 ? (
-              <p className="text-micro text-white/30">No workflow runs recorded.</p>
+              <p className="text-micro text-ink-faint">No workflow runs recorded.</p>
             ) : (
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
                 {detail.runs.slice(0, 10).map((r: any) => (
                   <div key={r.id} className="flex items-center justify-between px-3 py-2.5 text-label gap-3">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.status === 'success' ? 'bg-emerald-400' : r.status === 'error' ? 'bg-rose-400' : 'bg-white/30'}`} />
-                      <span className="text-white/70 truncate">{humanize(r.workflow_name) || r.workflow_name}</span>
+                      <span className="text-ink-muted truncate">{humanize(r.workflow_name) || r.workflow_name}</span>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      {Number(r.cost_usd) > 0 && <span className="text-micro text-white/30 font-mono">${Number(r.cost_usd).toFixed(3)}</span>}
-                      <span className="text-micro text-white/25">{r.run_at ? formatDistanceToNow(new Date(r.run_at), { addSuffix: true }) : '—'}</span>
+                      {Number(r.cost_usd) > 0 && <span className="text-micro text-ink-faint font-mono">${Number(r.cost_usd).toFixed(3)}</span>}
+                      <span className="text-micro text-ink-faint/50">{r.run_at ? formatDistanceToNow(new Date(r.run_at), { addSuffix: true }) : '—'}</span>
                     </div>
                   </div>
                 ))}
@@ -468,12 +468,12 @@ export function DesktopOrg() {
         </>
       )}
     </div>
-  ) : <div className="h-full flex items-center justify-center text-body text-white/30">Select an agent</div>
+  ) : <div className="h-full flex items-center justify-center text-body text-ink-faint">Select an agent</div>
 
   if (!loaded && agents.length === 0) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Organisation</h1>
+        <h1 className="text-2xl font-semibold text-ink tracking-tight">Organisation</h1>
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
     )
@@ -510,11 +510,11 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
           {pod.icon}
         </span>
         <h3 className={`text-micro md:text-label font-semibold uppercase tracking-[0.14em] ${pod.accent}`}>{pod.label}</h3>
-        <span className="text-micro font-mono tabular-nums text-white/30 ml-auto">{members.length}</span>
+        <span className="text-micro font-mono tabular-nums text-ink-faint ml-auto">{members.length}</span>
       </header>
 
       {pod.description && (
-        <p className="text-micro md:text-micro text-white/35 leading-snug mb-3 px-0.5">{pod.description}</p>
+        <p className="text-micro md:text-micro text-ink-faint leading-snug mb-3 px-0.5">{pod.description}</p>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 md:gap-2.5">
@@ -533,10 +533,10 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
               <div className="flex items-start gap-2.5">
                 <AgentAvatar agent={a.id} size="md" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-label md:text-body text-white font-semibold truncate">{a.name}</p>
-                  {a.role && <p className="text-micro md:text-micro text-white/45 truncate">{a.role}</p>}
+                  <p className="text-label md:text-body text-ink font-semibold truncate">{a.name}</p>
+                  {a.role && <p className="text-micro md:text-micro text-ink-faint truncate">{a.role}</p>}
                   {a.last_run && (
-                    <p className="text-micro text-white/25 mt-1 truncate">
+                    <p className="text-micro text-ink-faint/50 mt-1 truncate">
                       Last run {formatDistanceToNow(new Date(a.last_run), { addSuffix: true })}
                     </p>
                   )}
@@ -549,7 +549,7 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
                       className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
                         triggering[a.name] === 'ok' ? 'text-emerald-400 bg-emerald-500/10 opacity-100' :
                         triggering[a.name] === 'err' ? 'text-rose-400 bg-rose-500/10 opacity-100' :
-                        'hover:bg-violet-500/10 text-white/25 hover:text-violet-400'
+                        'hover:bg-violet-500/10 text-ink-faint/50 hover:text-violet-400'
                       }`}
                       title={`Trigger ${a.name}`}
                     >
@@ -559,7 +559,7 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
                   <span
                     role="button"
                     onClick={(e) => { e.stopPropagation(); onFlag(a.id, a.name) }}
-                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-500/10 text-white/25 hover:text-amber-400 transition-all"
+                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-500/10 text-ink-faint/50 hover:text-amber-400 transition-all"
                     title={`Flag ${a.name}`}
                   >
                     <Zap size={12} />
@@ -590,7 +590,7 @@ function PlanReadonly({ plan }: { plan: AgentPlan | null }) {
     return (
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
         <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70 mb-2">Plan</p>
-        <p className="text-micro text-white/30 italic">No plan set yet. Click <span className="text-violet-300">Edit Plan &amp; Identity</span> to add one.</p>
+        <p className="text-micro text-ink-faint italic">No plan set yet. Click <span className="text-violet-300">Edit Plan &amp; Identity</span> to add one.</p>
       </div>
     )
   }
@@ -600,27 +600,27 @@ function PlanReadonly({ plan }: { plan: AgentPlan | null }) {
       <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70">Plan</p>
       {plan.objective && (
         <div>
-          <p className="text-micro text-white/35 uppercase tracking-wider">May KPI / Objective</p>
-          <p className="text-body text-white/85 mt-0.5 leading-relaxed">{plan.objective}</p>
+          <p className="text-micro text-ink-faint uppercase tracking-wider">May KPI / Objective</p>
+          <p className="text-body text-ink-muted mt-0.5 leading-relaxed">{plan.objective}</p>
         </div>
       )}
       {plan.current_phase && (
         <div>
-          <p className="text-micro text-white/35 uppercase tracking-wider">Current Phase</p>
-          <p className="text-body text-white/80 mt-0.5">{plan.current_phase}</p>
+          <p className="text-micro text-ink-faint uppercase tracking-wider">Current Phase</p>
+          <p className="text-body text-ink-muted mt-0.5">{plan.current_phase}</p>
         </div>
       )}
       {plan.next_milestone && (
         <div>
-          <p className="text-micro text-white/35 uppercase tracking-wider">Next Milestone</p>
-          <p className="text-body text-white/80 mt-0.5">{plan.next_milestone}</p>
+          <p className="text-micro text-ink-faint uppercase tracking-wider">Next Milestone</p>
+          <p className="text-body text-ink-muted mt-0.5">{plan.next_milestone}</p>
         </div>
       )}
       {pct !== null && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-micro text-white/35 uppercase tracking-wider">Progress</p>
-            <span className="text-label font-mono tabular-nums text-white/60">{pct}%</span>
+            <p className="text-micro text-ink-faint uppercase tracking-wider">Progress</p>
+            <span className="text-label font-mono tabular-nums text-ink-faint">{pct}%</span>
           </div>
           <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
             <div
@@ -636,19 +636,19 @@ function PlanReadonly({ plan }: { plan: AgentPlan | null }) {
 
 function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm; onChange: (next: EditForm) => void; saving: boolean; error: string | null }) {
   const set = <K extends keyof EditForm>(key: K, value: EditForm[K]) => onChange({ ...form, [key]: value })
-  const inputCls = 'w-full bg-white/[0.02] border border-white/[0.06] rounded-lg px-2.5 py-2 text-label text-white placeholder-white/20 focus:outline-none focus:border-violet-500/60 disabled:opacity-50'
+  const inputCls = 'w-full bg-white/[0.02] border border-white/[0.06] rounded-lg px-2.5 py-2 text-label text-ink placeholder-white/20 focus:outline-none focus:border-violet-500/60 disabled:opacity-50'
   return (
     <div className="space-y-4">
       {/* Identity */}
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2">
-        <p className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40">Identity (brief_content)</p>
+        <p className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Identity (brief_content)</p>
         <textarea
           value={form.brief_content}
           onChange={(e) => set('brief_content', e.target.value)}
           rows={14}
           disabled={saving}
           placeholder="Identity / brief_content…"
-          className="w-full bg-sunk border border-white/10 rounded p-2 text-label text-white/85 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60 disabled:opacity-50"
+          className="w-full bg-sunk border border-white/10 rounded p-2 text-label text-ink-muted leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60 disabled:opacity-50"
         />
       </div>
 
@@ -657,7 +657,7 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
         <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70">Plan</p>
 
         <div>
-          <label className="text-micro uppercase tracking-wider text-white/45 block mb-1">May KPI / Objective</label>
+          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">May KPI / Objective</label>
           <input
             value={form.objective}
             onChange={(e) => set('objective', e.target.value)}
@@ -668,7 +668,7 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
         </div>
 
         <div>
-          <label className="text-micro uppercase tracking-wider text-white/45 block mb-1">Current Phase</label>
+          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">Current Phase</label>
           <input
             value={form.current_phase}
             onChange={(e) => set('current_phase', e.target.value)}
@@ -679,7 +679,7 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
         </div>
 
         <div>
-          <label className="text-micro uppercase tracking-wider text-white/45 block mb-1">Next Milestone</label>
+          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">Next Milestone</label>
           <input
             value={form.next_milestone}
             onChange={(e) => set('next_milestone', e.target.value)}
@@ -691,8 +691,8 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-micro uppercase tracking-wider text-white/45">Progress %</label>
-            <span className="text-micro font-mono tabular-nums text-white/60">{form.progress_pct}%</span>
+            <label className="text-micro uppercase tracking-wider text-ink-faint">Progress %</label>
+            <span className="text-micro font-mono tabular-nums text-ink-faint">{form.progress_pct}%</span>
           </div>
           <input
             type="number"
@@ -751,11 +751,11 @@ function PendingCorrectionsPanel({
         <h3 className="text-micro md:text-label font-semibold uppercase tracking-[0.14em] text-amber-300">
           Pending corrections from Vera
         </h3>
-        <span className="text-micro font-mono tabular-nums text-white/30 ml-auto">
+        <span className="text-micro font-mono tabular-nums text-ink-faint ml-auto">
           {loading ? '…' : corrections.length}
         </span>
       </header>
-      <p className="text-micro md:text-micro text-white/45 leading-snug mb-3 px-0.5">
+      <p className="text-micro md:text-micro text-ink-faint leading-snug mb-3 px-0.5">
         Vera detected feedback patterns and proposed brief edits. Approve to append to the agent's identity, reject to dismiss.
       </p>
       <div className="space-y-2">
@@ -766,22 +766,22 @@ function PendingCorrectionsPanel({
               <div className="flex items-start gap-2 mb-2">
                 <AgentAvatar agent={c.agent_id} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-label font-semibold text-white capitalize">{c.agent_id}</p>
+                  <p className="text-label font-semibold text-ink capitalize">{c.agent_id}</p>
                   {c.pattern_reason_code && (
                     <p className="text-micro text-amber-200/80 mt-0.5">
                       Pattern: <span className="font-mono">{c.pattern_reason_code}</span>
                       {Array.isArray(c.consumed_feedback_ids) && c.consumed_feedback_ids.length > 0 && (
-                        <span className="text-white/40"> · {c.consumed_feedback_ids.length} downvotes</span>
+                        <span className="text-ink-faint"> · {c.consumed_feedback_ids.length} downvotes</span>
                       )}
                     </p>
                   )}
                 </div>
-                <span className="text-micro text-white/30 tabular-nums flex-shrink-0">
+                <span className="text-micro text-ink-faint tabular-nums flex-shrink-0">
                   {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                 </span>
               </div>
               {c.proposed_brief_edit && (
-                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-sunk border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
+                <pre className="text-micro text-ink-muted leading-relaxed whitespace-pre-wrap bg-sunk border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
                   {c.proposed_brief_edit}
                 </pre>
               )}
@@ -800,7 +800,7 @@ function PendingCorrectionsPanel({
                 <button
                   onClick={() => act(c.id, 'reject')}
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-white/[0.04] text-ink-faint border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
                 >
                   {state === 'rejecting' ? <Working size={11} /> : <ThumbsDown size={11} />}
                   Reject
@@ -902,7 +902,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => setExpanded(e => !e)}
-          className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 hover:text-white/60 transition-colors"
+          className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint hover:text-ink-faint transition-colors"
         >
           Identity {expanded ? '▾' : '▸'}
         </button>
@@ -910,7 +910,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
           {!editing && (
             <button
               onClick={startEdit}
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-white/60 transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-ink-faint transition-colors"
               title="Edit brief_content directly. Saves to Supabase, render-identity.py writes SKILL.md."
             >
               <Pencil size={12} /> Edit
@@ -929,7 +929,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
               <button
                 onClick={cancelEdit}
                 disabled={saving}
-                className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-white/60 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-ink-faint transition-colors disabled:opacity-50"
               >
                 <X size={12} /> Cancel
               </button>
@@ -939,7 +939,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
             <button
               onClick={triggerSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-white/60 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-ink-faint transition-colors disabled:opacity-50"
             >
               {syncing ? <Working size={12} /> : <Cog size={12} />}
               {synced ? 'Deployed' : 'Deploy Identity'}
@@ -953,12 +953,12 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={Math.min(30, Math.max(10, draft.split('\n').length + 2))}
-            className="w-full bg-sunk border border-white/10 rounded p-2 text-micro text-white/80 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60"
+            className="w-full bg-sunk border border-white/10 rounded p-2 text-micro text-ink-muted leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60"
             disabled={saving}
             placeholder="Edit the agent's Identity (brief_content). This becomes SKILL.md after save + sync."
           />
         ) : (
-          <p className="text-micro text-white/50 leading-relaxed whitespace-pre-wrap">
+          <p className="text-micro text-ink-faint leading-relaxed whitespace-pre-wrap">
             {expanded || !hasMore ? liveContent : preview + '…'}
           </p>
         )}

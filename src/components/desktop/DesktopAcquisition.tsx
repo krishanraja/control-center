@@ -93,10 +93,10 @@ export function DesktopAcquisition({
     <div className="max-w-6xl mx-auto space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight flex items-center gap-2">
             <Rocket size={22} className="text-violet-400" /> Growth
           </h1>
-          <p className="text-xs md:text-body text-white/50 mt-0.5">
+          <p className="text-xs md:text-body text-ink-faint mt-0.5">
             {`${totals.queued} sends queued · ${totals.sent} sent · ${totals.paid} paid ($${Math.round(totals.mrr).toLocaleString()}/mo) · ${totals.churn} in churn queue`}
           </p>
         </div>
@@ -105,7 +105,7 @@ export function DesktopAcquisition({
           onClick={doRefresh}
           disabled={refreshing}
           title="Refresh"
-          className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40 mt-1.5"
+          className="text-ink-faint hover:text-ink-muted transition-colors disabled:opacity-40 mt-1.5"
         >
           {refreshing ? <Working size={14} /> : <RefreshCw size={14} />}
         </button>
@@ -128,8 +128,8 @@ export function DesktopAcquisition({
               onClick={() => selectLane(l.slug)}
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label transition-colors ${
                 isSelected
-                  ? 'border-violet-400/50 bg-violet-500/15 text-white'
-                  : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/85 hover:border-white/20'
+                  ? 'border-violet-400/50 bg-violet-500/15 text-ink'
+                  : 'border-white/[0.08] bg-white/[0.02] text-ink-faint hover:text-ink-muted hover:border-white/20'
               } ${!l.active ? 'opacity-50' : ''}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${laneDot(l)}`} title={laneDotTitle(l)} />
@@ -172,7 +172,7 @@ export function DesktopAcquisition({
       ) : (
         !error && (
           <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] px-4 py-8 text-center">
-            <p className="text-label text-white/45">
+            <p className="text-label text-ink-faint">
               No product lanes registered. Add product ventures to venture_registry to light this up.
             </p>
           </div>

@@ -111,17 +111,17 @@ export function SendApprovalDeck({
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <MailCheck size={13} className="text-amber-400" />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           Send approvals
         </h2>
         <span className="ml-auto flex items-center gap-3">
-          <span className="text-micro text-white/30 tabular-nums">{sends.length} queued</span>
+          <span className="text-micro text-ink-faint tabular-nums">{sends.length} queued</span>
           <button
             type="button"
             onClick={() => { setRefreshing(true); load().finally(() => setRefreshing(false)) }}
             disabled={loading || refreshing}
             title="Refresh"
-            className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40"
+            className="text-ink-faint hover:text-ink-muted transition-colors disabled:opacity-40"
           >
             {(loading || refreshing) ? <Working size={12} /> : <RefreshCw size={12} />}
           </button>
@@ -142,7 +142,7 @@ export function SendApprovalDeck({
       {loading ? (
         <SkeletonList rows={3} card={false} quiet={!waiting} />
       ) : sends.length === 0 ? (
-        <div className="px-4 py-5 text-center text-label text-white/35">
+        <div className="px-4 py-5 text-center text-label text-ink-faint">
           Queue is clear — nothing waiting on you.
         </div>
       ) : (
@@ -166,21 +166,21 @@ export function SendApprovalDeck({
                       className="flex items-center gap-2 flex-1 min-w-0 text-left"
                     >
                       {isOpen
-                        ? <ChevronDown size={12} className="text-white/30 flex-shrink-0" />
-                        : <ChevronRight size={12} className="text-white/30 flex-shrink-0" />}
-                      <span className="text-micro font-semibold text-white/40 uppercase flex-shrink-0">T{s.touch_number}</span>
-                      <span className="text-label text-white/85 truncate">{s.rendered_subject || '(no subject)'}</span>
+                        ? <ChevronDown size={12} className="text-ink-faint flex-shrink-0" />
+                        : <ChevronRight size={12} className="text-ink-faint flex-shrink-0" />}
+                      <span className="text-micro font-semibold text-ink-faint uppercase flex-shrink-0">T{s.touch_number}</span>
+                      <span className="text-label text-ink-muted truncate">{s.rendered_subject || '(no subject)'}</span>
                     </button>
                     {s.queued_at && (
-                      <span className="text-micro text-white/25 flex-shrink-0">
+                      <span className="text-micro text-ink-faint/50 flex-shrink-0">
                         {formatDistanceToNow(new Date(s.queued_at), { addSuffix: true })}
                       </span>
                     )}
                   </div>
                   {isOpen && (
                     <div className="mt-2 ml-6 space-y-2">
-                      <p className="text-micro text-white/30">{s.frame_version}</p>
-                      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-label text-white/70 whitespace-pre-wrap max-h-56 overflow-y-auto">
+                      <p className="text-micro text-ink-faint">{s.frame_version}</p>
+                      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-label text-ink-muted whitespace-pre-wrap max-h-56 overflow-y-auto">
                         {s.rendered_body || '(empty body)'}
                       </div>
                       <div className="flex gap-2">
@@ -221,7 +221,7 @@ export function SendApprovalDeck({
               type="button"
               disabled={busy}
               onClick={() => act('approve', allIds)}
-              className="rounded-lg border border-white/[0.1] px-3 py-1.5 text-label font-medium text-white/70 hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
+              className="rounded-lg border border-white/[0.1] px-3 py-1.5 text-label font-medium text-ink-muted hover:text-ink hover:border-white/25 transition-colors disabled:opacity-40"
             >
               Approve all {allIds.length}
             </button>

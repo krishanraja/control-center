@@ -29,7 +29,7 @@ export function EditorialOpportunityList({ ideas, seriesKey }: { ideas: ContentI
     <section data-testid={`editorial-opportunities-${seriesKey}`}>
       <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <Eyebrow>Ideas ready to shape</Eyebrow>
-        <span className="text-micro text-white/40">One source, judged through this series</span>
+        <span className="text-micro text-ink-faint">One source, judged through this series</span>
       </h3>
       <div className="flex flex-col gap-2">
         {rows.map(({ idea, opportunity }) => (
@@ -47,13 +47,13 @@ export function EditorialOpportunityList({ ideas, seriesKey }: { ideas: ContentI
                   Mindmake build{idea.meta?.build?.public_name ? `, ${idea.meta.build.public_name}` : ''}
                 </span>
               ) : (
-                <span className="text-micro text-white/35">{opportunity.corroboration} source{opportunity.corroboration === 1 ? '' : 's'}</span>
+                <span className="text-micro text-ink-faint">{opportunity.corroboration} source{opportunity.corroboration === 1 ? '' : 's'}</span>
               )}
             </div>
-            <div className="mt-1 break-words text-body font-semibold leading-snug text-white/90 group-hover:text-white">
+            <div className="mt-1 break-words text-body font-semibold leading-snug text-ink group-hover:text-ink">
               {opportunity.title || opportunity.angle || idea.idea}
             </div>
-            <p className="mt-1 break-words text-label leading-relaxed text-white/48">{idea.idea}</p>
+            <p className="mt-1 break-words text-label leading-relaxed text-ink-faint">{idea.idea}</p>
             <span className="mt-2 inline-block text-label font-semibold text-emerald-200">Review the angle</span>
           </a>
         ))}

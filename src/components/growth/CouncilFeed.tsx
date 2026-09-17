@@ -201,7 +201,7 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
     >
       <header className="flex items-center gap-2 flex-wrap">
         <ProductChip slug={review.product_slug} />
-        <span className="text-label font-semibold text-white/85">Week of {shortDate(review.week_start)}</span>
+        <span className="text-label font-semibold text-ink-muted">Week of {shortDate(review.week_start)}</span>
         <span className="flex-1" />
         {review.krish_decision ? (
           <Chip tone="text-emerald-300 border-emerald-500/25">
@@ -223,9 +223,9 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
 
       {/* 1. The sentence. */}
       {headline ? (
-        <p className="text-lede font-semibold text-white leading-snug break-words">{headline}</p>
+        <p className="text-lede font-semibold text-ink leading-snug break-words">{headline}</p>
       ) : measured ? (
-        <p className="text-body text-white/80 leading-snug break-words">{measured}</p>
+        <p className="text-body text-ink-muted leading-snug break-words">{measured}</p>
       ) : null}
 
       {/* 2. The moves, each with a way to act on it now. */}
@@ -235,8 +235,8 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
           <ol className="flex flex-col gap-2.5">
             {doubleDown.map((d, i) => (
               <li key={i} className="flex flex-col gap-1.5 min-w-0">
-                <p className="text-body text-white/85 leading-snug break-words">
-                  <span className="text-white/35 tabular-nums mr-1.5">{i + 1}.</span>{d}
+                <p className="text-body text-ink-muted leading-snug break-words">
+                  <span className="text-ink-faint tabular-nums mr-1.5">{i + 1}.</span>{d}
                 </p>
                 <div className="flex items-center gap-1.5 flex-wrap pl-5">
                   <button type="button" disabled={acting != null} onClick={() => void putOnToday(d)} className={`${BTN_GHOST} inline-flex items-center gap-1.5 min-h-[32px]`}>
@@ -257,13 +257,13 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
         <div className="flex flex-col gap-1.5">
           <h4 className="text-micro uppercase tracking-[0.14em] text-rose-300/80 font-semibold">Stop</h4>
           <ul className="flex flex-col gap-1">
-            {kill.map((k, i) => <li key={i} className="text-body text-white/80 leading-snug break-words">{k}</li>)}
+            {kill.map((k, i) => <li key={i} className="text-body text-ink-muted leading-snug break-words">{k}</li>)}
           </ul>
         </div>
       )}
 
       {!degradedNote && doubleDown.length === 0 && kill.length === 0 && (
-        <p className="text-label text-white/40">The council proposed nothing to start or stop this week.</p>
+        <p className="text-label text-ink-faint">The council proposed nothing to start or stop this week.</p>
       )}
 
       {/* 4. The evidence, folded. */}
@@ -273,7 +273,7 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
             type="button"
             onClick={() => setEvidenceOpen(o => !o)}
             aria-expanded={evidenceOpen}
-            className="inline-flex items-center gap-1.5 text-label text-white/45 hover:text-white/70 self-start min-h-[36px]"
+            className="inline-flex items-center gap-1.5 text-label text-ink-faint hover:text-ink-muted self-start min-h-[36px]"
           >
             <ChevronDown size={13} className={`transition-transform ${evidenceOpen ? 'rotate-180' : ''}`} />
             {evidenceOpen ? 'Hide the evidence' : `Why: the evidence (${findings.length})`}
@@ -282,14 +282,14 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
             <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 flex flex-col gap-2.5">
               {findings.map(f => (
                 <div key={f.key} className="min-w-0">
-                  <p className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold">{keyLabel(f.key)}</p>
-                  <p className="text-label text-white/70 leading-snug break-words">{f.value}</p>
+                  <p className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold">{keyLabel(f.key)}</p>
+                  <p className="text-label text-ink-muted leading-snug break-words">{f.value}</p>
                 </div>
               ))}
               {measured && (
                 <div className="min-w-0 pt-1 border-t border-white/[0.05]">
-                  <p className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold">Measured</p>
-                  <p className="text-micro text-white/45 leading-snug break-words font-mono">{measured}</p>
+                  <p className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold">Measured</p>
+                  <p className="text-micro text-ink-faint leading-snug break-words font-mono">{measured}</p>
                 </div>
               )}
             </div>
@@ -302,7 +302,7 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
         {review.krish_decision && !editing ? (
           <div className="flex items-start gap-2">
             <Gavel size={13} className="text-emerald-300 mt-0.5 flex-shrink-0" />
-            <p className="text-label text-white/80 leading-relaxed flex-1 break-words">{review.krish_decision}</p>
+            <p className="text-label text-ink-muted leading-relaxed flex-1 break-words">{review.krish_decision}</p>
             <button type="button" onClick={() => { setEditing(true); setRuling(true); setText(review.krish_decision || '') }} className={BTN_GHOST}>
               Change
             </button>

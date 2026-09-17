@@ -79,7 +79,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
   if (!brief && !showRetro) return null
 
   const delta = brief?.yesterday_mrr_delta_usd ?? 0
-  const deltaColor = delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-red-300' : 'text-white/55'
+  const deltaColor = delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-red-300' : 'text-ink-faint'
 
   return (
     <div className="flex flex-col gap-3 min-w-0">
@@ -106,7 +106,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
               </span>
             )}
             {briefAt && (
-              <span className="text-micro text-white/35 ml-auto tabular-nums flex-shrink-0">
+              <span className="text-micro text-ink-faint ml-auto tabular-nums flex-shrink-0">
                 {humanAgo(briefAt)}
               </span>
             )}
@@ -123,25 +123,25 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
           )}
 
           {brief.one_bet && (
-            <p className="text-body text-white/85 leading-snug mb-1.5 break-words">
+            <p className="text-body text-ink-muted leading-snug mb-1.5 break-words">
               <span className="text-violet-300/80 font-semibold">Today's bet · </span>
               {brief.one_bet}
             </p>
           )}
           {brief.one_customer && (
-            <p className="text-body text-white/85 leading-snug mb-1.5 break-words">
+            <p className="text-body text-ink-muted leading-snug mb-1.5 break-words">
               <span className="text-emerald-300/80 font-semibold">Talk to · </span>
               {brief.one_customer}
             </p>
           )}
           {brief.one_anti_action && (
-            <p className="text-body text-white/85 leading-snug break-words">
+            <p className="text-body text-ink-muted leading-snug break-words">
               <span className="text-red-300/80 font-semibold">Don't · </span>
               {brief.one_anti_action}
             </p>
           )}
           {brief.body && !brief.one_bet && (
-            <p className="text-body text-white/75 leading-snug whitespace-pre-wrap break-words">
+            <p className="text-body text-ink-muted leading-snug whitespace-pre-wrap break-words">
               {brief.body}
             </p>
           )}
@@ -163,7 +163,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
               Friday retro
             </span>
             {retroAt && (
-              <span className="text-micro text-white/35 tabular-nums flex-shrink-0 ml-1">
+              <span className="text-micro text-ink-faint tabular-nums flex-shrink-0 ml-1">
                 {humanAgo(retroAt)}
               </span>
             )}
@@ -210,7 +210,7 @@ function RetroBody({ retro }: { retro: NonNullable<ReturnType<typeof useHomeInte
           <p className="text-micro uppercase tracking-[0.14em] text-emerald-300/80 font-semibold mb-1">
             Worked
           </p>
-          <ul className="text-body text-white/85 space-y-0.5 whitespace-normal break-words">
+          <ul className="text-body text-ink-muted space-y-0.5 whitespace-normal break-words">
             {retro.what_worked.slice(0, 4).map((w, i) => (
               <li key={i} className="break-words">· {w}</li>
             ))}
@@ -222,7 +222,7 @@ function RetroBody({ retro }: { retro: NonNullable<ReturnType<typeof useHomeInte
           <p className="text-micro uppercase tracking-[0.14em] text-red-300/80 font-semibold mb-1">
             Flopped
           </p>
-          <ul className="text-body text-white/85 space-y-0.5 whitespace-normal break-words">
+          <ul className="text-body text-ink-muted space-y-0.5 whitespace-normal break-words">
             {retro.what_flopped.slice(0, 4).map((w, i) => (
               <li key={i} className="break-words">· {w}</li>
             ))}

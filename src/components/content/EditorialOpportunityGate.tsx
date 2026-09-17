@@ -28,8 +28,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   if (!children) return null
   return (
     <div>
-      <dt className="text-micro font-semibold uppercase tracking-[0.14em] text-white/38">{label}</dt>
-      <dd className="mt-1 break-words text-body leading-relaxed text-white/76">{children}</dd>
+      <dt className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">{label}</dt>
+      <dd className="mt-1 break-words text-body leading-relaxed text-ink-muted">{children}</dd>
     </div>
   )
 }
@@ -95,9 +95,9 @@ export function EditorialOpportunityGate({
 
   if (!opportunity) {
     return (
-      <ComposerShell onClose={onClose} title={<span className="text-ui font-semibold text-white">Editorial route unavailable</span>}>
+      <ComposerShell onClose={onClose} title={<span className="text-ui font-semibold text-ink">Editorial route unavailable</span>}>
         <div className="flex flex-1 items-center justify-center p-6">
-          <p className="max-w-md text-center text-body leading-relaxed text-white/60">
+          <p className="max-w-md text-center text-body leading-relaxed text-ink-faint">
             This source does not carry a supported assessment for that series. Return to Content and choose one of the routes shown there.
           </p>
         </div>
@@ -112,8 +112,8 @@ export function EditorialOpportunityGate({
     <ComposerShell
       onClose={onClose}
       eyebrow="Editorial decision"
-      title={<span className="block break-words text-ui font-semibold text-white">{idea.idea}</span>}
-      meta={<span className="text-micro text-white/38">One source, two independent editorial lenses</span>}
+      title={<span className="block break-words text-ui font-semibold text-ink">{idea.idea}</span>}
+      meta={<span className="text-micro text-ink-faint">One source, two independent editorial lenses</span>}
     >
       <div className="flex-1 overflow-y-auto bg-[#07100c] px-4 py-5 sm:px-8 sm:py-7">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-28">
@@ -203,7 +203,7 @@ export function EditorialOpportunityGate({
                 onChange={event => setOverrideReason(event.target.value)}
                 rows={3}
                 placeholder="Your judgement becomes part of this story's provenance."
-                className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-body text-white outline-none placeholder:text-white/28 focus:border-amber-300/40"
+                className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-body text-ink outline-none placeholder:text-ink-faint focus:border-amber-300/40"
               />
             </label>
           ) : null}
@@ -216,7 +216,7 @@ export function EditorialOpportunityGate({
             type="button"
             disabled={busy !== null}
             onClick={() => act('pass')}
-            className="min-h-[46px] rounded-xl border border-white/12 px-5 text-body font-semibold text-white/68 hover:bg-white/[0.05] disabled:opacity-45"
+            className="min-h-[46px] rounded-xl border border-white/12 px-5 text-body font-semibold text-ink-muted hover:bg-white/[0.05] disabled:opacity-45"
           >
             {busy === 'pass' ? <Working size={15} /> : 'Pass'}
           </button>

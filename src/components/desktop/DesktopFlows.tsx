@@ -112,8 +112,8 @@ export function DesktopFlows() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Flows</h1>
-          <p className="text-xs md:text-body text-white/50 mt-0.5">
+          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Flows</h1>
+          <p className="text-xs md:text-body text-ink-faint mt-0.5">
             {view === 'workflows' ? 'N8N workflows & proposals.' : 'Forge custom Agent Skills for clients.'}
           </p>
         </div>
@@ -121,7 +121,7 @@ export function DesktopFlows() {
           <button
             onClick={() => setView('workflows')}
             className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-label font-medium transition-colors ${
-              view === 'workflows' ? 'bg-white/[0.07] text-white' : 'text-white/50 hover:text-white/80'
+              view === 'workflows' ? 'bg-white/[0.07] text-ink' : 'text-ink-faint hover:text-ink-muted'
             }`}
           >
             <WorkflowIcon size={11} /> Workflows
@@ -129,7 +129,7 @@ export function DesktopFlows() {
           <button
             onClick={() => setView('skill-forge')}
             className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-label font-medium transition-colors ${
-              view === 'skill-forge' ? 'bg-white/[0.07] text-white' : 'text-white/50 hover:text-white/80'
+              view === 'skill-forge' ? 'bg-white/[0.07] text-ink' : 'text-ink-faint hover:text-ink-muted'
             }`}
           >
             <Wand2 size={11} /> Skill Forge
@@ -148,20 +148,20 @@ export function DesktopFlows() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <WorkflowIcon size={13} className="text-blue-400" />
-          <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-white/50 flex-1">
+          <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint flex-1">
             Workflows
-            <span className="ml-2 normal-case tracking-normal font-normal text-white/30">runs on its own; anything that needs you shows up on Home</span>
+            <span className="ml-2 normal-case tracking-normal font-normal text-ink-faint">runs on its own; anything that needs you shows up on Home</span>
           </h2>
-          <span className="text-micro text-white/30 font-mono tabular-nums">{grouped.length}</span>
+          <span className="text-micro text-ink-faint font-mono tabular-nums">{grouped.length}</span>
         </div>
 
         {loading ? (
           <BoardSkeleton lanes={1} cardsPerLane={5} hero={false} />
         ) : grouped.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-            <WorkflowIcon size={20} className="text-white/20 mx-auto mb-3" />
-            <p className="text-sm md:text-body text-white/50 font-medium">No workflows yet.</p>
-            <p className="text-xs md:text-label text-white/30 mt-1">Runs will appear here once N8N starts firing.</p>
+            <WorkflowIcon size={20} className="text-ink-faint/40 mx-auto mb-3" />
+            <p className="text-sm md:text-body text-ink-faint font-medium">No workflows yet.</p>
+            <p className="text-xs md:text-label text-ink-faint mt-1">Runs will appear here once N8N starts firing.</p>
           </div>
         ) : (
           <>
@@ -172,7 +172,7 @@ export function DesktopFlows() {
             <div className="hidden md:block rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
               <table className="w-full text-label">
                 <thead>
-                  <tr className="text-left text-white/45 border-b border-white/[0.06] bg-white/[0.02]">
+                  <tr className="text-left text-ink-faint border-b border-white/[0.06] bg-white/[0.02]">
                     <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Workflow</th>
                     <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Agent</th>
                     <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Last Run</th>
@@ -184,21 +184,21 @@ export function DesktopFlows() {
                 <tbody className="divide-y divide-white/[0.04]">
                   {grouped.map(w => (
                     <tr key={w.workflow_id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-2.5 text-white/85 font-medium truncate max-w-[260px]">{humanize(w.workflow_name) || w.workflow_name}</td>
+                      <td className="px-4 py-2.5 text-ink-muted font-medium truncate max-w-[260px]">{humanize(w.workflow_name) || w.workflow_name}</td>
                       <td className="px-4 py-2.5">
                         {w.agent_id ? (
                           <span className="inline-flex items-center gap-1.5">
                             <AgentAvatar agent={w.agent_id} size="sm" />
-                            <span className="text-white/65">{humanize(w.agent_id)}</span>
+                            <span className="text-ink-muted">{humanize(w.agent_id)}</span>
                           </span>
                         ) : (
-                          <span className="text-white/25">System</span>
+                          <span className="text-ink-faint/50">System</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-white/50 tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</td>
+                      <td className="px-4 py-2.5 text-ink-faint tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</td>
                       <td className="px-4 py-2.5"><StatusChip status={w.status} /></td>
-                      <td className="px-4 py-2.5 text-right text-white/60 font-mono tabular-nums">{w.runCount}</td>
-                      <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${w.errorCount > 0 ? 'text-rose-400 font-semibold' : 'text-white/25'}`}>{w.errorCount}</td>
+                      <td className="px-4 py-2.5 text-right text-ink-faint font-mono tabular-nums">{w.runCount}</td>
+                      <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${w.errorCount > 0 ? 'text-rose-400 font-semibold' : 'text-ink-faint/50'}`}>{w.errorCount}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -211,24 +211,24 @@ export function DesktopFlows() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <AlertCircle size={13} className="text-violet-400" />
-          <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-white/50 flex-1">Pending Proposals</h2>
-          <span className="text-micro text-white/30 font-mono tabular-nums">{proposals.length}</span>
+          <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint flex-1">Pending Proposals</h2>
+          <span className="text-micro text-ink-faint font-mono tabular-nums">{proposals.length}</span>
         </div>
 
         {proposals.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-            <p className="text-sm md:text-body text-white/50 font-medium">Nothing waiting on you.</p>
-            <p className="text-xs md:text-label text-white/30 mt-1">Agents will surface improvement suggestions here.</p>
+            <p className="text-sm md:text-body text-ink-faint font-medium">Nothing waiting on you.</p>
+            <p className="text-xs md:text-label text-ink-faint mt-1">Agents will surface improvement suggestions here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {proposals.map(p => (
               <article key={p.id} className="rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] via-violet-500/[0.02] to-transparent p-4 md:p-5 space-y-3">
                 <header>
-                  <p className="text-sm md:text-ui font-semibold text-white leading-snug">{p.title}</p>
+                  <p className="text-sm md:text-ui font-semibold text-ink leading-snug">{p.title}</p>
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     {p.agent_id && (
-                      <span className="inline-block text-micro text-white/60 bg-white/[0.06] border border-white/[0.08] rounded-full px-2 py-0.5 font-medium">
+                      <span className="inline-block text-micro text-ink-faint bg-white/[0.06] border border-white/[0.08] rounded-full px-2 py-0.5 font-medium">
                         {p.agent_id}
                       </span>
                     )}
@@ -241,7 +241,7 @@ export function DesktopFlows() {
                 </header>
                 {p.description && (
                   <div>
-                    <p className={`text-xs md:text-label text-white/55 leading-relaxed whitespace-pre-line ${expanded === p.id ? '' : 'line-clamp-4'}`}>
+                    <p className={`text-xs md:text-label text-ink-faint leading-relaxed whitespace-pre-line ${expanded === p.id ? '' : 'line-clamp-4'}`}>
                       {p.description}
                     </p>
                     {p.description.length > 240 && (
@@ -294,24 +294,24 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-body text-white font-medium leading-snug truncate">{humanize(w.workflow_name) || w.workflow_name}</p>
+          <p className="text-body text-ink font-medium leading-snug truncate">{humanize(w.workflow_name) || w.workflow_name}</p>
           <div className="flex items-center gap-1.5 mt-1">
             {w.agent_id ? (
               <>
                 <AgentAvatar agent={w.agent_id} size="sm" />
-                <span className="text-micro text-white/55">{humanize(w.agent_id)}</span>
+                <span className="text-micro text-ink-faint">{humanize(w.agent_id)}</span>
               </>
             ) : (
-              <span className="text-micro text-white/30">System</span>
+              <span className="text-micro text-ink-faint">System</span>
             )}
-            <span className="text-white/20 mx-0.5">·</span>
-            <span className="text-micro text-white/45 tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</span>
+            <span className="text-ink-faint/40 mx-0.5">·</span>
+            <span className="text-micro text-ink-faint tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</span>
           </div>
         </div>
         <StatusChip status={w.status} />
       </div>
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/[0.04] text-micro font-mono tabular-nums">
-        <span className="text-white/50">{w.runCount} <span className="text-white/30">runs</span></span>
+        <span className="text-ink-faint">{w.runCount} <span className="text-ink-faint">runs</span></span>
         {w.errorCount > 0 && <span className="text-rose-400 font-semibold">{w.errorCount} errors</span>}
         <button
           onClick={async () => {
@@ -319,7 +319,7 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
             const body = await r.json().catch(() => ({}))
             if (!r.ok) alert(`Rerun failed: ${body?.error || r.status}`)
           }}
-          className="ml-auto text-micro px-2 py-0.5 rounded border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-colors"
+          className="ml-auto text-micro px-2 py-0.5 rounded border border-white/15 text-ink-faint hover:text-ink hover:border-white/35 transition-colors"
           title="Trigger a manual run of this workflow"
         >
           Rerun
@@ -334,7 +334,7 @@ function StatusChip({ status }: { status: string }) {
     status === 'success' ? 'text-emerald-300 border-emerald-500/25 bg-emerald-500/10' :
     status === 'error'   ? 'text-rose-300 border-rose-500/25 bg-rose-500/10' :
     status === 'running' ? 'text-blue-300 border-blue-500/25 bg-blue-500/10' :
-                           'text-white/55 border-white/10 bg-white/[0.03]'
+                           'text-ink-faint border-white/10 bg-white/[0.03]'
   return (
     <span className={`inline-flex items-center text-micro font-semibold uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border ${cls}`}>
       {humanize(status) || status}

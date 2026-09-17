@@ -40,14 +40,14 @@ export function SupplyDrawer({ open, onClose, mine, unclassified }: {
               <Eyebrow>Not yet sorted</Eyebrow>
               <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-micro tabular-nums">{unclassified.length}</span>
             </h3>
-            <p className="mb-2 text-label text-white/45">
+            <p className="mb-2 text-label text-ink-faint">
               Captured without a format. Each belongs in {publicSeriesIdentity('built').label} or {publicSeriesIdentity('paid').label}; opening one sets it. The phone Queue clears this pile one card at a time.
             </p>
             <ul className="space-y-2.5">
               {unclassified.slice(0, UNSORTED_CAP).map(i => <li key={i.id}><ContentIdeaCardActionable idea={i} /></li>)}
             </ul>
             {unclassified.length > UNSORTED_CAP && (
-              <p className="mt-2 text-micro text-white/45">{unclassified.length - UNSORTED_CAP} more in the pile. Clear them from the Queue on your phone.</p>
+              <p className="mt-2 text-micro text-ink-faint">{unclassified.length - UNSORTED_CAP} more in the pile. Clear them from the Queue on your phone.</p>
             )}
           </section>
         )}

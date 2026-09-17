@@ -102,8 +102,8 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
       />
 
       {variant === 'desktop' && (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-label text-white/45 tabular-nums">
-        <span className="text-white/70 font-semibold">{g.touchpoints.length} mapped</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-label text-ink-faint tabular-nums">
+        <span className="text-ink-muted font-semibold">{g.touchpoints.length} mapped</span>
         <span>{stats.covered} covered</span>
         <span>{stats.in_progress} in progress</span>
         <span>{stats.unaddressed} unaddressed</span>
@@ -112,7 +112,7 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
         <select
           value={product}
           onChange={e => setProduct(e.target.value as 'all' | ProductSlug)}
-          className={`${SELECT_CLS} border-white/10 text-white/70`}
+          className={`${SELECT_CLS} border-white/10 text-ink-muted`}
           aria-label="Filter by product"
         >
           <option value="all">All products</option>
@@ -133,7 +133,7 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
             <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-amber-300">
               {openQuestions.length} open question{openQuestions.length === 1 ? '' : 's'}
             </h3>
-            <span className="text-micro text-white/45">Answer these when you have a minute; the map gets sharper with each one.</span>
+            <span className="text-micro text-ink-faint">Answer these when you have a minute; the map gets sharper with each one.</span>
             <button
               type="button"
               onClick={() => setOpenOnly(o => !o)}
@@ -153,7 +153,7 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
         <section key={gr.product} className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
           <header className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.06] bg-white/[0.02]">
             <ProductChip slug={gr.product} />
-            <span className="text-micro text-white/40 tabular-nums">{gr.rows.length} touchpoints</span>
+            <span className="text-micro text-ink-faint tabular-nums">{gr.rows.length} touchpoints</span>
             <span className="flex-1" />
             {gr.rows.some(r => r.assumption_flag) && (
               <span className="text-micro text-amber-300">{gr.rows.filter(r => r.assumption_flag).length} open</span>
@@ -161,7 +161,7 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
           </header>
 
           {variant === 'desktop' && (
-            <div className="grid grid-cols-[112px_minmax(0,1fr)_76px_62px_128px_72px] gap-x-3 px-3 py-1.5 text-micro uppercase tracking-[0.14em] text-white/30 font-semibold border-b border-white/[0.05]">
+            <div className="grid grid-cols-[112px_minmax(0,1fr)_76px_62px_128px_72px] gap-x-3 px-3 py-1.5 text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold border-b border-white/[0.05]">
               <span>Channel</span><span>Trigger and watering hole</span><span>Owner</span><span>Score</span><span>Coverage</span><span />
             </div>
           )}
@@ -176,28 +176,28 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
 
       {accounts.length > 0 && (
         <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3">
-          <h3 className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold mb-2">Channel accounts</h3>
+          <h3 className="text-micro uppercase tracking-[0.14em] text-ink-faint font-semibold mb-2">Channel accounts</h3>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {accounts.map(a => (
               <div key={a.id} className="flex items-center gap-1.5 text-label">
                 <ProductChip slug={a.product_slug} />
-                <span className="text-white/70">{a.platform}</span>
+                <span className="text-ink-muted">{a.platform}</span>
                 {a.profile_url ? (
-                  <a href={a.profile_url} target="_blank" rel="noreferrer" className="text-white/40 hover:text-white/75 underline decoration-white/20">
+                  <a href={a.profile_url} target="_blank" rel="noreferrer" className="text-ink-faint hover:text-ink-muted underline decoration-white/20">
                     {a.handle || 'profile'}
                   </a>
                 ) : null}
                 <Chip tone={
                   a.status === 'live' ? 'text-emerald-300 border-emerald-500/25'
                     : a.status === 'planned' ? 'text-amber-300 border-amber-500/25'
-                      : 'text-white/30 border-white/[0.08]'
+                      : 'text-ink-faint border-white/[0.08]'
                 }>
                   {a.status}
                 </Chip>
               </div>
             ))}
           </div>
-          <p className="text-micro text-white/30 mt-2">
+          <p className="text-micro text-ink-faint mt-2">
             A planned account cannot carry a covered touchpoint. The account has to exist before the channel counts.
           </p>
         </section>
@@ -246,7 +246,7 @@ function Row({ t, variant, onSave, onAnswer }: {
     <select
       value={t.cost_efficiency_score ?? ''}
       onChange={e => onSave(t.id, { cost_efficiency_score: e.target.value === '' ? null : Number(e.target.value) })}
-      className={`${SELECT_CLS} border-white/10 text-white/80 tabular-nums w-full`}
+      className={`${SELECT_CLS} border-white/10 text-ink-muted tabular-nums w-full`}
       aria-label="How cheap is it to reach them here (1 to 10)"
       title="How cheap to reach them (1 to 10)"
     >
@@ -314,9 +314,9 @@ function Row({ t, variant, onSave, onAnswer }: {
 
   const body = (
     <>
-      <div className="text-label text-white/90 leading-snug">{t.icp_trigger}</div>
-      {t.watering_hole && <div className="text-micro text-white/40 leading-snug mt-0.5">{t.watering_hole}</div>}
-      {t.rationale && <div className={`text-micro text-white/30 leading-snug mt-0.5 ${variant === 'mobile' ? 'line-clamp-2' : ''}`}>{t.rationale}</div>}
+      <div className="text-label text-ink leading-snug">{t.icp_trigger}</div>
+      {t.watering_hole && <div className="text-micro text-ink-faint leading-snug mt-0.5">{t.watering_hole}</div>}
+      {t.rationale && <div className={`text-micro text-ink-faint leading-snug mt-0.5 ${variant === 'mobile' ? 'line-clamp-2' : ''}`}>{t.rationale}</div>}
       {prompt}
     </>
   )
@@ -335,13 +335,13 @@ function Row({ t, variant, onSave, onAnswer }: {
           className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
         >
           <Chip>{CHANNEL_LABEL[t.channel] || t.channel}</Chip>
-          <span className="min-w-0 flex-1 truncate text-label text-white/85">{t.icp_trigger}</span>
+          <span className="min-w-0 flex-1 truncate text-label text-ink-muted">{t.icp_trigger}</span>
           {t.assumption_flag && <span aria-label="Has an open question" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-300" />}
-          <ChevronDown size={13} className={`flex-shrink-0 text-white/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          <ChevronDown size={13} className={`flex-shrink-0 text-ink-faint transition-transform ${expanded ? 'rotate-180' : ''}`} />
         </button>
         {expanded && (
           <div className="px-3 pb-3">
-            {t.owner_agent && <div className="mb-1 text-micro text-white/40">{t.owner_agent}</div>}
+            {t.owner_agent && <div className="mb-1 text-micro text-ink-faint">{t.owner_agent}</div>}
             {body}
             <div className="grid grid-cols-[62px_minmax(0,1fr)_78px] gap-2 mt-2">
               {scoreSelect}{coverageSelect}{retireBtn}
@@ -356,7 +356,7 @@ function Row({ t, variant, onSave, onAnswer }: {
     <div className={`grid grid-cols-[112px_minmax(0,1fr)_76px_62px_128px_72px] gap-x-3 items-start px-3 py-2 border-t border-white/[0.05] hover:bg-white/[0.02] ${retired ? 'opacity-50' : ''}`}>
       <div className="pt-0.5"><Chip>{CHANNEL_LABEL[t.channel] || t.channel}</Chip></div>
       <div className="min-w-0">{body}</div>
-      <div className="text-micro text-white/45 pt-1 truncate">{t.owner_agent || ''}</div>
+      <div className="text-micro text-ink-faint pt-1 truncate">{t.owner_agent || ''}</div>
       <div>{scoreSelect}</div>
       <div>{coverageSelect}</div>
       <div>{retireBtn}</div>

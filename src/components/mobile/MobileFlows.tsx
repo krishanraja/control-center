@@ -150,7 +150,7 @@ export function MobileFlows() {
       ) : null}
 
       <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Workflows" value={grouped.length} color="text-white" />
+        <StatPill label="Workflows" value={grouped.length} color="text-ink" />
         <StatPill
           label="Errors 24h"
           value={errorRun24h}
@@ -159,7 +159,7 @@ export function MobileFlows() {
         <StatPill
           label="Proposals"
           value={proposals.length}
-          color={proposals.length > 0 ? 'text-amber-300' : 'text-white/45'}
+          color={proposals.length > 0 ? 'text-amber-300' : 'text-ink-faint'}
         />
       </div>
 
@@ -207,13 +207,13 @@ export function MobileFlows() {
               title={g.workflow_name}
               detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
               trailing={
-                <span className="text-ui text-white/35 tabular-nums">{humanAgo(g.lastRun)}</span>
+                <span className="text-ui text-ink-faint tabular-nums">{humanAgo(g.lastRun)}</span>
               }
               onClick={() => { h.select(); setOpenFlowId(g.workflow_id) }}
             />
           ))}
           {healthy.length > 12 && (
-            <div className="px-7 py-4 text-ui text-white/35 text-center">
+            <div className="px-7 py-4 text-ui text-ink-faint text-center">
               +{healthy.length - 12} more
             </div>
           )}

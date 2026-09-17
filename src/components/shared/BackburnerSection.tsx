@@ -78,13 +78,13 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
       >
         <ChevronRight
           size={11}
-          className={`text-white/40 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`text-ink-faint transition-transform ${open ? 'rotate-90' : ''}`}
         />
-        <ArchiveRestore size={11} className="text-white/35" />
-        <span className="text-micro font-semibold text-white/55 uppercase tracking-[0.14em]">
+        <ArchiveRestore size={11} className="text-ink-faint" />
+        <span className="text-micro font-semibold text-ink-faint uppercase tracking-[0.14em]">
           Backburner ({visible.length})
         </span>
-        <span className="text-micro text-white/35 ml-1">set aside — retained or auto-buried</span>
+        <span className="text-micro text-ink-faint ml-1">set aside — retained or auto-buried</span>
       </button>
 
       {open && (
@@ -92,9 +92,9 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
           {visible.slice(0, 50).map(item => (
             <div key={item.id} className={`flex items-center gap-3 px-3 py-2 ${exiting.has(item.id) ? 'animate-row-collapse' : ''}`}>
               <div className="flex-1 min-w-0">
-                <p className="text-label text-white/70 truncate">{item.title}</p>
+                <p className="text-label text-ink-muted truncate">{item.title}</p>
                 {item.buried_reason && (
-                  <p className="text-micro text-white/35 truncate mt-0.5">{item.buried_reason}</p>
+                  <p className="text-micro text-ink-faint truncate mt-0.5">{item.buried_reason}</p>
                 )}
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -112,7 +112,7 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
                   type="button"
                   onClick={() => restore(item.id)}
                   disabled={restoring !== null}
-                  className="px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] transition-colors disabled:opacity-40"
+                  className="px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-ink-faint hover:bg-white/[0.06] transition-colors disabled:opacity-40"
                 >
                   {restoring === item.id ? 'Restoring…' : 'Restore'}
                 </button>
@@ -120,7 +120,7 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
             </div>
           ))}
           {visible.length > 50 && (
-            <div className="px-3 py-2 text-micro text-white/35 text-center">
+            <div className="px-3 py-2 text-micro text-ink-faint text-center">
               +{visible.length - 50} more
             </div>
           )}

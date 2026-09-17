@@ -21,6 +21,13 @@
 // ── The diagnosis ────────────────────────────────────────────────────────────
 
 /**
+ * NOTE ON WORDING. Three lines here said "the room". Ruling (Krish,
+ * 2026-09-17): The Room is retired as vernacular and the motion is called
+ * Advisory. The lines are relabelled, not re-argued — the doctrine is
+ * unchanged and the `source` attributions still point at the passage each
+ * one came from.
+ */
+/**
  * The mechanism in one line, from the manual's executive diagnosis. Not "bad at
  * selling": avoidance of interpersonal exposure under status uncertainty,
  * compensated for with intellectual performance.
@@ -67,11 +74,11 @@ export const PURPOSE_LINES: PurposeLine[] = [
     source: 'Master Ikigai v4, what v4 changed, R11.1 and R1.3',
   },
   {
-    line: 'The room is the door. Cash inside ninety days, sold to people you already know, the face already named.',
+    line: 'Advisory is the door. Cash inside ninety days, sold to people you already know, the face already named.',
     source: 'Master Ikigai v4, double down',
   },
   {
-    line: 'Publish to fill the room. Do not mistake publishing for the swing.',
+    line: 'Publish to fill Advisory. Do not mistake publishing for the swing.',
     source: 'Master Ikigai v4, what v4 changed, R5.6',
   },
   {
@@ -309,7 +316,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'cold',
     chip: 'Needs cold outbound',
-    verdict: 'Cold outbound will not happen and never has. Warm intros, the room, and published thinking are the only motions that sustain.',
+    verdict: 'Cold outbound will not happen and never has. Warm intros, Advisory, and published thinking are the only motions that sustain.',
   },
   {
     id: 'slow_pay',

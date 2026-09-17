@@ -56,6 +56,6 @@ const PILLAR_COLORS: Record<string, { bg: string; text: string; border: string }
 }
 
 export function pillarTone(id: string | null | undefined) {
-  if (!id) return { bg: 'bg-white/[0.06]', text: 'text-white/65', border: 'border-white/10' }
-  return PILLAR_COLORS[id] || { bg: 'bg-white/[0.06]', text: 'text-white/65', border: 'border-white/10' }
+  if (!id) return { bg: 'bg-white/[0.06]', text: 'text-ink-muted', border: 'border-white/10' }
+  return PILLAR_COLORS[id] || { bg: 'bg-white/[0.06]', text: 'text-ink-muted', border: 'border-white/10' }
 }

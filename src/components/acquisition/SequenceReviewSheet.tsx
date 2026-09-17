@@ -100,22 +100,22 @@ export function SequenceReviewSheet({
         <header className="sticky top-0 bg-base px-5 py-4 flex items-center gap-2 border-b border-white/[0.07]">
           <Layers size={14} className="text-violet-400" />
           <div className="flex-1 min-w-0">
-            <h2 className="text-ui font-semibold text-white truncate">
+            <h2 className="text-ui font-semibold text-ink truncate">
               {seq?.name || 'Sequence review'}
             </h2>
             {seq && (
-              <p className="text-micro text-white/40">
+              <p className="text-micro text-ink-faint">
                 {seq.lane} · {seq.sequence_type.replace(/_/g, ' ')} · {seq.frame_version} · proposed by {seq.proposed_by}
               </p>
             )}
           </div>
-          <button type="button" onClick={onClose} className="text-white/40 hover:text-white/80 transition-colors">
+          <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink-muted transition-colors">
             <X size={16} />
           </button>
         </header>
 
         {missing ? (
-          <p className="px-5 py-8 text-center text-label text-white/40">
+          <p className="px-5 py-8 text-center text-label text-ink-faint">
             This sequence is gone or already ruled on.
           </p>
         ) : !seq ? (
@@ -123,15 +123,15 @@ export function SequenceReviewSheet({
         ) : (
           <div className="px-5 py-4 space-y-4">
             {seq.rationale && (
-              <p className="text-label text-white/55 leading-snug rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <p className="text-label text-ink-faint leading-snug rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
                 {seq.rationale}
               </p>
             )}
 
             {touches.map((t, idx) => (
               <div key={idx} className="rounded-xl border border-white/[0.07] overflow-hidden">
-                <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.05] flex items-center gap-2 text-micro text-white/40">
-                  <span className="font-semibold text-white/60">Touch {t.touch_number ?? idx + 1}</span>
+                <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.05] flex items-center gap-2 text-micro text-ink-faint">
+                  <span className="font-semibold text-ink-faint">Touch {t.touch_number ?? idx + 1}</span>
                   {t.delay_days != null && <span>· day {t.delay_days}</span>}
                 </div>
                 <div className="p-3 space-y-2">
@@ -139,14 +139,14 @@ export function SequenceReviewSheet({
                     value={t.subject || ''}
                     onChange={e => updateTouch(idx, 'subject', e.target.value)}
                     placeholder="Subject"
-                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/90 focus:outline-none focus:border-violet-400/50"
+                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-ink focus:outline-none focus:border-violet-400/50"
                   />
                   <textarea
                     value={t.body || ''}
                     onChange={e => updateTouch(idx, 'body', e.target.value)}
                     rows={5}
                     placeholder="Body"
-                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/80 leading-snug focus:outline-none focus:border-violet-400/50 resize-y"
+                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-ink-muted leading-snug focus:outline-none focus:border-violet-400/50 resize-y"
                   />
                 </div>
               </div>

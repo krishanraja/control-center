@@ -84,7 +84,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
             <Eyebrow>{c.label}</Eyebrow>
             {cardLoading
               ? <Skeleton quiet={!showBars} h={14} w={compact ? 28 : 40} r={4} />
-              : <span className={`font-mono tabular-nums ${compact ? 'text-label' : 'text-ui'} text-white/90 whitespace-nowrap`}>{c.value}</span>}
+              : <span className={`font-mono tabular-nums ${compact ? 'text-label' : 'text-ui'} text-ink whitespace-nowrap`}>{c.value}</span>}
           </button>
         </React.Fragment>
       ))}
@@ -95,7 +95,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
       <button
         type="button"
         onClick={() => { h.tap(); setLogging(true) }}
-        className={`shrink-0 min-h-[28px] ${compact ? 'px-1.5' : 'px-2'} rounded-md text-micro text-white/55 hover:text-white/90 border border-white/[0.08] hover:border-white/20 transition-colors`}
+        className={`shrink-0 min-h-[28px] ${compact ? 'px-1.5' : 'px-2'} rounded-md text-micro text-ink-faint hover:text-ink border border-white/[0.08] hover:border-white/20 transition-colors`}
       >
         Log
       </button>
@@ -110,9 +110,9 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
         className={`inline-flex items-baseline min-w-0 shrink-0 whitespace-nowrap group ${compact ? 'gap-1' : 'gap-2'}`}
       >
         <Eyebrow>Waiting</Eyebrow>
-        <span className={`font-mono tabular-nums ${compact ? 'text-label' : 'text-ui'} text-white/90 whitespace-nowrap inline-flex items-center gap-1`}>
+        <span className={`font-mono tabular-nums ${compact ? 'text-label' : 'text-ui'} text-ink whitespace-nowrap inline-flex items-center gap-1`}>
           {waiting}
-          <ArrowRight size={12} className="text-white/35 group-hover:text-white/75 transition-colors" />
+          <ArrowRight size={12} className="text-ink-faint group-hover:text-ink-muted transition-colors" />
         </span>
       </button>
 
@@ -133,7 +133,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
         >
           <div className="mb-3">
             <Eyebrow>Ship ledger</Eyebrow>
-            <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-label text-white/50">
+            <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-label text-ink-faint">
               <span>
                 {summary?.days_since_last == null
                   ? 'No ships logged yet'
@@ -150,10 +150,10 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
               <div className="mt-2.5 flex flex-col gap-1">
                 {lastThree.map(ship => (
                   <div key={ship.id} className="flex items-baseline gap-2 text-label">
-                    <span className="text-white/35 w-[42px] shrink-0">
+                    <span className="text-ink-faint w-[42px] shrink-0">
                       {new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', day: 'numeric', month: 'short' }).format(new Date(ship.occurred_at))}
                     </span>
-                    <span className="text-white/60 truncate">{ship.description}</span>
+                    <span className="text-ink-faint truncate">{ship.description}</span>
                   </div>
                 ))}
               </div>

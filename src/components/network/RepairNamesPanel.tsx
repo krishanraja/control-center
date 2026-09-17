@@ -75,7 +75,7 @@ export function RepairNamesPanel() {
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
         data-testid="network-repair-names"
-        className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
+        className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-ink-muted transition-colors hover:bg-white/[0.04]"
       >
         {open ? 'Close' : 'Fix missing surnames'}
       </button>
@@ -85,7 +85,7 @@ export function RepairNamesPanel() {
           className="absolute left-4 right-4 z-20 mt-2 rounded-xl border border-white/[0.08] bg-[#0f0f12] p-3 shadow-xl"
           data-testid="network-repair-names-panel"
         >
-          <p className="text-label leading-relaxed text-white/55">
+          <p className="text-label leading-relaxed text-ink-faint">
             1,882 contacts are a first name with no surname — unreadable here, and impossible for any
             enrichment service to look up. Their surnames are in the From header of their own email.
             This reads one header per person and fills the gap. It never changes a name that already
@@ -98,7 +98,7 @@ export function RepairNamesPanel() {
               onClick={() => run(true)}
               disabled={busy !== null}
               data-testid="network-repair-preview"
-              className="inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-white/[0.12] px-3 text-label font-medium text-white/80 transition-colors hover:bg-white/[0.04] disabled:opacity-40"
+              className="inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-white/[0.12] px-3 text-label font-medium text-ink-muted transition-colors hover:bg-white/[0.04] disabled:opacity-40"
             >
               {busy === 'preview' && <Working size={12} />}
               Preview next {BATCH}
@@ -129,7 +129,7 @@ export function RepairNamesPanel() {
 
           {preview && (
             <div className="mt-3">
-              <p className="text-label text-white/45">
+              <p className="text-label text-ink-faint">
                 Checked {preview.examined}. Found {preview.repaired} surnames.
                 {preview.repaired === 0 && ' Nothing to apply in this batch.'}
               </p>
@@ -138,9 +138,9 @@ export function RepairNamesPanel() {
                 <ul className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-white/[0.06]">
                   {preview.sample.map(r => (
                     <li key={r.id} className="flex items-baseline gap-2 border-b border-white/[0.05] px-3 py-1.5 text-label last:border-b-0">
-                      <span className="text-white/40">{r.from}</span>
-                      <span className="text-white/25" aria-hidden>→</span>
-                      <span className="font-medium text-white">{r.to}</span>
+                      <span className="text-ink-faint">{r.from}</span>
+                      <span className="text-ink-faint/50" aria-hidden>→</span>
+                      <span className="font-medium text-ink">{r.to}</span>
                     </li>
                   ))}
                 </ul>
@@ -149,7 +149,7 @@ export function RepairNamesPanel() {
               {/* The two reasons a name did not come back mean different things
                   and lead to different next steps, so they are never merged into
                   one "failed" count. */}
-              <p className="mt-2 text-micro leading-relaxed text-white/35">
+              <p className="mt-2 text-micro leading-relaxed text-ink-faint">
                 {preview.skipped.no_messages || 0} had no mail from that address — no service can fix those either.
                 {' '}{preview.skipped.no_display_name || 0} sent mail but never set a name on it.
                 {preview.skipped.error ? ` ${preview.skipped.error} could not be read.` : ''}

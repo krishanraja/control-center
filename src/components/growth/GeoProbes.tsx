@@ -76,19 +76,19 @@ export function GeoProbes({ g, variant }: { g: GrowthData; variant: 'desktop' | 
           {/* The read. One sentence that says it, then who is winning instead. */}
           <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col gap-2">
             <div className="flex items-end gap-3 flex-wrap">
-              <p className="text-display font-semibold text-white tabular-nums leading-none">{pct(overall)}</p>
-              <p className="text-label text-white/45 pb-1">of answers mention you</p>
+              <p className="text-display font-semibold text-ink tabular-nums leading-none">{pct(overall)}</p>
+              <p className="text-label text-ink-faint pb-1">of answers mention you</p>
             </div>
-            <p className="text-body text-white/85 leading-snug">
+            <p className="text-body text-ink-muted leading-snug">
               {readLine(cited, recent.length, engines.length, dayLabel(recent[0]?.run_at))}
             </p>
             {hosts.length > 0 && (
-              <p className="text-label text-white/50 leading-snug">
+              <p className="text-label text-ink-faint leading-snug">
                 Cited instead of you, most often: {hosts.map(h => `${h.host} (${h.times})`).join(', ')}.
               </p>
             )}
             {cited === 0 && (
-              <p className="text-label text-white/50 leading-snug">
+              <p className="text-label text-ink-faint leading-snug">
                 What to do about it is the Weekly review&rsquo;s job. It reads these same rows every Sunday.
               </p>
             )}
@@ -100,7 +100,7 @@ export function GeoProbes({ g, variant }: { g: GrowthData; variant: 'desktop' | 
 
           {unknownProduct.length > 0 && (
             <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
-              <header className="px-3 py-2 border-b border-white/[0.06] text-micro text-white/40">
+              <header className="px-3 py-2 border-b border-white/[0.06] text-micro text-ink-faint">
                 Questions on a product the map does not know ({unknownProduct.length})
               </header>
               <div>{unknownProduct.map(p => <ProbeRow key={p.id} probe={p} variant={variant} />)}</div>
@@ -151,19 +151,19 @@ function ProductRead({ product, rows, variant }: { product: ProductSlug; rows: G
         <div className="flex items-center gap-2">
           <ProductChip slug={product} />
           <span className="flex-1" />
-          <span className={`text-label font-semibold tabular-nums ${rate && rate > 0 ? 'text-emerald-300' : 'text-white/40'}`}>
+          <span className={`text-label font-semibold tabular-nums ${rate && rate > 0 ? 'text-emerald-300' : 'text-ink-faint'}`}>
             {pct(rate)}
           </span>
         </div>
-        <p className="text-body text-white/85 leading-snug">{sentence}</p>
+        <p className="text-body text-ink-muted leading-snug">{sentence}</p>
         {hosts.length > 0 && (
-          <p className="text-label text-white/45 leading-snug">Cited instead: {hosts.map(h => h.host).join(', ')}.</p>
+          <p className="text-label text-ink-faint leading-snug">Cited instead: {hosts.map(h => h.host).join(', ')}.</p>
         )}
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
           aria-expanded={open}
-          className="inline-flex items-center gap-1.5 text-label text-white/45 hover:text-white/70 self-start min-h-[36px]"
+          className="inline-flex items-center gap-1.5 text-label text-ink-faint hover:text-ink-muted self-start min-h-[36px]"
         >
           <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
           {open ? 'Hide the questions' : `Show the ${rows.length} question${rows.length === 1 ? '' : 's'}`}
@@ -196,21 +196,21 @@ function ProbeRow({ probe, variant }: { probe: GeoProbeRow; variant: 'desktop' |
   const hosts = Array.from(new Set(competitors.map(hostLabel)))
   return (
     <div className="px-3 py-2.5 border-t border-white/[0.05] first:border-t-0 flex flex-col gap-1 min-w-0">
-      <p className="text-label text-white/85 leading-snug break-words">{probe.question}</p>
+      <p className="text-label text-ink-muted leading-snug break-words">{probe.question}</p>
       <div className="flex items-center gap-1.5 flex-wrap">
         <Chip>{ENGINE_LABEL[probe.engine] || probe.engine}</Chip>
         {probe.we_cited
           ? <Chip tone="text-emerald-300 border-emerald-500/30">mentioned you</Chip>
-          : <Chip tone="text-white/35 border-white/[0.08]">did not mention you</Chip>}
-        <span className="text-micro text-white/25 tabular-nums">{dayLabel(probe.run_at)}</span>
+          : <Chip tone="text-ink-faint border-white/[0.08]">did not mention you</Chip>}
+        <span className="text-micro text-ink-faint/50 tabular-nums">{dayLabel(probe.run_at)}</span>
       </div>
       {hosts.length > 0 && (
-        <p className="text-micro text-white/40 leading-snug break-words" title={competitors.join('\n')}>
+        <p className="text-micro text-ink-faint leading-snug break-words" title={competitors.join('\n')}>
           Cited instead: {hosts.slice(0, variant === 'mobile' ? 3 : 8).join(', ')}{hosts.length > (variant === 'mobile' ? 3 : 8) ? ` and ${hosts.length - (variant === 'mobile' ? 3 : 8)} more` : ''}
         </p>
       )}
       {variant === 'desktop' && probe.answer_snapshot && (
-        <p className="text-micro text-white/30 leading-snug line-clamp-2 break-words" title={probe.answer_snapshot}>{probe.answer_snapshot}</p>
+        <p className="text-micro text-ink-faint leading-snug line-clamp-2 break-words" title={probe.answer_snapshot}>{probe.answer_snapshot}</p>
       )}
     </div>
   )

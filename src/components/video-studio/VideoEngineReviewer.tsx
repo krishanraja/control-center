@@ -274,12 +274,12 @@ function LoadingReview({ onClose, dialogRef }: { onClose: () => void; dialogRef:
       aria-labelledby="video-review-loading-title"
       tabIndex={-1}
       data-testid="video-review-overlay"
-      className="fixed left-0 top-0 z-[110] flex h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))] flex-col bg-base text-white"
+      className="fixed left-0 top-0 z-[110] flex h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))] flex-col bg-base text-ink"
       aria-busy="true"
     >
       <h1 id="video-review-loading-title" className="sr-only">Loading Video Engine review</h1>
       <header className="flex h-[52px] flex-shrink-0 items-center gap-3 border-b border-white/[0.06] px-3">
-        <button data-reviewer-initial-focus type="button" onClick={onClose} aria-label="Back to Content" className="grid h-11 w-11 place-items-center rounded-full text-white/60">
+        <button data-reviewer-initial-focus type="button" onClick={onClose} aria-label="Back to Content" className="grid h-11 w-11 place-items-center rounded-full text-ink-faint">
           <ArrowLeft size={18} />
         </button>
         <Skeleton h={10} w={96} r={5} />
@@ -458,14 +458,14 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
         aria-labelledby="video-review-unavailable-title"
         tabIndex={-1}
         data-testid="video-review-overlay"
-        className="fixed left-0 top-0 z-[110] grid h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))] place-items-center bg-base px-6 text-center text-white"
+        className="fixed left-0 top-0 z-[110] grid h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))] place-items-center bg-base px-6 text-center text-ink"
       >
         <div className="max-w-sm" data-testid={malformedResponse ? 'video-malformed-review' : undefined}>
           <AlertTriangle size={24} className="mx-auto text-amber-200" />
           <h1 id="video-review-unavailable-title" className="mt-4 text-lede font-semibold">
             {malformedResponse ? 'This review projection is incomplete' : 'This review could not be opened'}
           </h1>
-          <p className="mt-2 text-label leading-relaxed text-white/50">
+          <p className="mt-2 text-label leading-relaxed text-ink-faint">
             {malformedResponse
               ? 'No decision is available because version, taxonomy, review, gate, or private-preview data is missing or invalid.'
               : 'No decision was made. Refresh the private review or return to Content.'}
@@ -772,7 +772,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
       aria-modal="true"
       aria-labelledby="video-review-dialog-title"
       tabIndex={-1}
-      className="fixed left-0 top-0 z-[110] h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))] overflow-y-auto overscroll-contain bg-sunk text-white"
+      className="fixed left-0 top-0 z-[110] h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))] overflow-y-auto overscroll-contain bg-sunk text-ink"
     >
       <h1 id="video-review-dialog-title" className="sr-only">Video Engine review for {review.safe_title}</h1>
       <div ref={setSheetHost} className="mx-auto flex min-h-full w-full max-w-[520px] flex-col border-x border-white/[0.04] bg-base shadow-e3">
@@ -782,7 +782,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
             type="button"
             onClick={onClose}
             aria-label="Back to Content"
-            className="col-start-1 row-start-1 grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-white/65 transition-colors hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/50"
+            className="col-start-1 row-start-1 grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/50"
           >
             <ArrowLeft size={18} />
           </button>
@@ -820,8 +820,8 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 <AlertTriangle size={14} />
                 <Eyebrow className="!text-rose-200/85">Decision blocked</Eyebrow>
               </div>
-              <h1 className="mt-2 text-lede font-semibold leading-tight text-white/92">This review projection is incomplete</h1>
-              <p className="mt-2 text-label leading-relaxed text-white/55">No decision is available because version, taxonomy, review, gate, or private-preview data is missing or invalid.</p>
+              <h1 className="mt-2 text-lede font-semibold leading-tight text-ink">This review projection is incomplete</h1>
+              <p className="mt-2 text-label leading-relaxed text-ink-faint">No decision is available because version, taxonomy, review, gate, or private-preview data is missing or invalid.</p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Pressable variant="secondary" onPress={onClose}>Back to Content</Pressable>
                 <Pressable variant="primary" onPress={refreshReview}><RefreshCw size={14} /> Refresh</Pressable>
@@ -837,8 +837,8 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                     : <Sparkles size={14} />}
                 <Eyebrow tone="accent">Queued safely</Eyebrow>
               </div>
-              <h1 className="mt-2 text-lede font-semibold leading-tight text-white/92">{waitCopy.title}</h1>
-              <p className="mt-2 text-label leading-relaxed text-white/52">{waitCopy.body}</p>
+              <h1 className="mt-2 text-lede font-semibold leading-tight text-ink">{waitCopy.title}</h1>
+              <p className="mt-2 text-label leading-relaxed text-ink-faint">{waitCopy.body}</p>
               {(commandReadback.error || queuedCommandNeedsAttention) && (
                 <p className="mt-2 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-3 py-2 text-label leading-relaxed text-amber-100" role="alert">
                   {commandReadback.error
@@ -847,8 +847,8 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 </p>
               )}
               {queuedInstruction && (
-                <p className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-label leading-relaxed text-white/62">
-                  <strong className="text-white/80">Direction:</strong> “{queuedInstruction}”
+                <p className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-label leading-relaxed text-ink-faint">
+                  <strong className="text-ink-muted">Direction:</strong> “{queuedInstruction}”
                 </p>
               )}
               <div className="mt-4 grid grid-cols-2 gap-2">
@@ -866,7 +866,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 <button
                   type="button"
                   onClick={() => { void commandReadback.refresh() }}
-                  className="mt-2 min-h-[36px] w-full text-micro font-semibold text-white/45 underline underline-offset-4"
+                  className="mt-2 min-h-[36px] w-full text-micro font-semibold text-ink-faint underline underline-offset-4"
                 >Refresh command status</button>
               )}
             </div>
@@ -876,8 +876,8 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 <AlertTriangle size={14} />
                 <Eyebrow className="!text-amber-200/85">Editorial route required</Eyebrow>
               </div>
-              <h1 className="mt-2 text-lede font-semibold leading-tight text-white/92">Needs your editorial call</h1>
-              <p className="mt-2 text-label leading-relaxed text-white/55">{copy.editorialNote}</p>
+              <h1 className="mt-2 text-lede font-semibold leading-tight text-ink">Needs your editorial call</h1>
+              <p className="mt-2 text-label leading-relaxed text-ink-faint">{copy.editorialNote}</p>
               <p className="mt-2 text-micro leading-relaxed text-amber-100/70">No automatic treatment has been presented as a finished answer.</p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Pressable variant="secondary" onPress={() => { void submitDecision('keep_current') }} disabled={!canKeep || busyAction}>Keep current</Pressable>
@@ -906,10 +906,10 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                             : 'Ledger sync needs attention'}
                 </Eyebrow>
               </div>
-              <h1 className="mt-2 text-lede font-semibold leading-tight text-white/92">
+              <h1 className="mt-2 text-lede font-semibold leading-tight text-ink">
                 {review.status === 'approved' ? 'Candidate accepted' : 'Current version kept'}
               </h1>
-              <p className={`mt-2 text-label leading-relaxed ${mutationError ? 'text-amber-100' : 'text-white/52'}`} role={mutationError ? 'alert' : 'status'}>
+              <p className={`mt-2 text-label leading-relaxed ${mutationError ? 'text-amber-100' : 'text-ink-faint'}`} role={mutationError ? 'alert' : 'status'}>
                 {mutationError || (recoveryBridgeWaiting
                   ? 'The decision remains saved. A fresh review has been reserved, but it will stay hidden until the studio computer signs its exact local ledger binding.'
                   : recoveryBridgeOpening
@@ -935,12 +935,12 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
               )}
 
               {decisionCommand && (
-                <div data-testid="video-decision-sync" className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-micro text-white/48" role="status" aria-live="polite">
-                  <p className="break-all leading-relaxed"><span className="font-semibold text-white/72">Command</span> {decisionCommand.id}</p>
+                <div data-testid="video-decision-sync" className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-micro text-ink-faint" role="status" aria-live="polite">
+                  <p className="break-all leading-relaxed"><span className="font-semibold text-ink-muted">Command</span> {decisionCommand.id}</p>
                   <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 leading-relaxed">
-                    <dt className="font-semibold text-white/58">Kind</dt><dd className="min-w-0 break-words">{decisionCommand.kind}</dd>
-                    <dt className="font-semibold text-white/58">Status</dt><dd>{decisionCommand.status}</dd>
-                    <dt className="font-semibold text-white/58">Safe code</dt><dd className="min-w-0 break-words">{decisionCommand.safe_code || 'none'}</dd>
+                    <dt className="font-semibold text-ink-faint">Kind</dt><dd className="min-w-0 break-words">{decisionCommand.kind}</dd>
+                    <dt className="font-semibold text-ink-faint">Status</dt><dd>{decisionCommand.status}</dd>
+                    <dt className="font-semibold text-ink-faint">Safe code</dt><dd className="min-w-0 break-words">{decisionCommand.safe_code || 'none'}</dd>
                   </dl>
                 </div>
               )}
@@ -980,7 +980,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 )}
               </div>
               {!recoveryBridgePresent && !review.recovery.available && !canReturn && review.status === 'approved' && (
-                <p className="mt-2 text-center text-micro leading-relaxed text-white/35">
+                <p className="mt-2 text-center text-micro leading-relaxed text-ink-faint">
                   {activeReadback.error
                     ? 'Active-version readback failed. Return remains disabled.'
                     : activeReadback.loading
@@ -996,13 +996,13 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                   <Sparkles size={14} />
                   <Eyebrow tone="accent">{VIDEO_GATE_LABEL[review.gate] || 'Review'} ready</Eyebrow>
                 </div>
-                <span className="text-micro text-white/35">{MODE_LABEL[review.mode] || 'Unknown mode'} · {PLATFORM_LABEL[review.platform] || 'Unknown platform'}</span>
+                <span className="text-micro text-ink-faint">{MODE_LABEL[review.mode] || 'Unknown mode'} · {PLATFORM_LABEL[review.platform] || 'Unknown platform'}</span>
               </div>
-              <h1 className="mt-2 text-lede font-semibold leading-tight text-white/92 [@media(max-height:760px)]:mt-1">{copy.title}</h1>
+              <h1 className="mt-2 text-lede font-semibold leading-tight text-ink [@media(max-height:760px)]:mt-1">{copy.title}</h1>
               {copy.direction ? (
-                <p className="mt-2 break-words text-label leading-relaxed text-white/54 [@media(max-height:760px)]:mt-1"><strong className="text-white/75">You asked:</strong> “{copy.direction}”</p>
+                <p className="mt-2 break-words text-label leading-relaxed text-ink-faint [@media(max-height:760px)]:mt-1"><strong className="text-ink-muted">You asked:</strong> “{copy.direction}”</p>
               ) : copy.summary ? (
-                <p className="mt-2 text-label leading-relaxed text-white/54">{copy.summary}</p>
+                <p className="mt-2 text-label leading-relaxed text-ink-faint">{copy.summary}</p>
               ) : null}
 
               {prepareStopped && review.prepare_command && (
@@ -1017,7 +1017,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
               {(copy.range || copy.changes.length > 0) && (
                 <div className="mt-3 flex flex-wrap gap-1.5 [@media(max-height:760px)]:hidden" aria-label="Changes made">
                   {[copy.range, ...copy.changes].filter(Boolean).map((change, index) => (
-                    <span key={`${change}-${index}`} className="inline-flex min-h-[28px] items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.025] px-2.5 text-micro text-white/58">
+                    <span key={`${change}-${index}`} className="inline-flex min-h-[28px] items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.025] px-2.5 text-micro text-ink-faint">
                       <span className="h-1 w-1 rounded-full bg-violet-300" />{change}
                     </span>
                   ))}
@@ -1056,9 +1056,9 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                           ? <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-rose-300" />
                           : <Clock size={14} className="mt-0.5 flex-shrink-0 text-amber-300" />}
                       <span className="min-w-0">
-                        <strong className="font-semibold text-white/78">{gate.label}</strong>
-                        <span className="ml-1.5 text-white/38">{gate.status === 'passed' ? 'Passed' : gate.status === 'blocked' ? 'Blocked' : 'Pending'}</span>
-                        {gate.detail && <span className="mt-0.5 block leading-relaxed text-white/42">{gate.detail}</span>}
+                        <strong className="font-semibold text-ink-muted">{gate.label}</strong>
+                        <span className="ml-1.5 text-ink-faint">{gate.status === 'passed' ? 'Passed' : gate.status === 'blocked' ? 'Blocked' : 'Pending'}</span>
+                        {gate.detail && <span className="mt-0.5 block leading-relaxed text-ink-faint">{gate.detail}</span>}
                       </span>
                     </div>
                   ))}
@@ -1076,7 +1076,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
 
               {review.gate === 'learning' ? (
                 <div className="mt-3" data-testid="video-learning-confirmation">
-                  <p className="mb-2 text-micro leading-relaxed text-white/45">Does this learning accurately describe what you meant?</p>
+                  <p className="mb-2 text-micro leading-relaxed text-ink-faint">Does this learning accurately describe what you meant?</p>
                   {correctingLearning ? (
                     <>
                       <label htmlFor="video-learning-correction" className="sr-only">Correct the inferred learning</label>
@@ -1087,7 +1087,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                         rows={2}
                         autoFocus
                         placeholder="Write the precise learning to keep"
-                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-lede leading-relaxed text-white/85 outline-none placeholder:text-white/28 focus:border-violet-300/35 focus:ring-2 focus:ring-violet-300/15"
+                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-lede leading-relaxed text-ink-muted outline-none placeholder:text-ink-faint focus:border-violet-300/35 focus:ring-2 focus:ring-violet-300/15"
                       />
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <Pressable variant="secondary" onPress={() => setCorrectingLearning(false)} disabled={busyAction}>Cancel</Pressable>
@@ -1128,7 +1128,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                 </div>
               )}
               {!allPassed && (
-                <p className="mt-2 text-center text-micro leading-relaxed text-white/38">Every blocking check must pass before a candidate can be used.</p>
+                <p className="mt-2 text-center text-micro leading-relaxed text-ink-faint">Every blocking check must pass before a candidate can be used.</p>
               )}
               {previewMissing && pendingDecision && !waiting && (
                 <p data-testid="video-preview-missing" className="mt-2 text-center text-micro leading-relaxed text-amber-100/65">

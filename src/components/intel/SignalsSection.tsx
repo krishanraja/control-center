@@ -81,7 +81,7 @@ export function SignalsSection({ onOpen }: {
         )}
 
         {!intelLoading && ranked.length === 0 && (
-          <p className="px-2 py-3 text-body leading-relaxed text-white/45">
+          <p className="px-2 py-3 text-body leading-relaxed text-ink-faint">
             Nothing curated right now — Marcus runs Monday, Wednesday and Friday.
           </p>
         )}
@@ -100,13 +100,13 @@ export function SignalsSection({ onOpen }: {
                 className={`mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full ${s.urgency ? URGENCY_DOT[s.urgency] : 'bg-amber-400'}`}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-ui leading-snug text-white/90 line-clamp-2">{s.signal}</span>
+                <span className="block text-ui leading-snug text-ink line-clamp-2">{s.signal}</span>
                 {s.relevance && (
-                  <span className="mt-0.5 block text-label leading-snug text-white/45 line-clamp-2">{s.relevance}</span>
+                  <span className="mt-0.5 block text-label leading-snug text-ink-faint line-clamp-2">{s.relevance}</span>
                 )}
               </span>
               {chip && (
-                <span className="shrink-0 pt-0.5 text-micro font-semibold tabular-nums text-white/50">{chip}</span>
+                <span className="shrink-0 pt-0.5 text-micro font-semibold tabular-nums text-ink-faint">{chip}</span>
               )}
             </button>
           )
@@ -130,7 +130,7 @@ export function SignalsSection({ onOpen }: {
         )}
 
         {dormant && newestAt && (
-          <p className="px-2 pb-1 text-label text-white/40" data-testid="zara-dormant">
+          <p className="px-2 pb-1 text-label text-ink-faint" data-testid="zara-dormant">
             No new market signals since {format(newestAt, 'd MMM')}. Zara sweeps Mon/Wed/Fri.
           </p>
         )}
@@ -143,7 +143,7 @@ export function SignalsSection({ onOpen }: {
           </div>
         ) : filtered.length === 0 ? (
           !zaraLoading && (
-            <p className="px-2 py-3 text-body leading-relaxed text-white/45">
+            <p className="px-2 py-3 text-body leading-relaxed text-ink-faint">
               {zara.length === 0
                 ? 'No market signals yet — Zara will surface them on her next sweep.'
                 : 'Nothing from this venture yet.'}
@@ -155,7 +155,7 @@ export function SignalsSection({ onOpen }: {
               <ZaraRow key={s.id} signal={s} onActioned={markActioned} onDeclined={markDeclined} />
             ))}
             {filtered.length > ZARA_VISIBLE && (
-              <p className="px-2 py-1.5 text-micro text-white/30">
+              <p className="px-2 py-1.5 text-micro text-ink-faint">
                 +{filtered.length - ZARA_VISIBLE} more tracked
               </p>
             )}
@@ -167,10 +167,10 @@ export function SignalsSection({ onOpen }: {
 }
 
 function scoreTone(score: number | null): string {
-  if (score == null || score <= 0) return 'text-white/25'
+  if (score == null || score <= 0) return 'text-ink-faint/50'
   if (score >= 8) return 'text-emerald-400'
   if (score >= 5) return 'text-amber-400'
-  return 'text-white/40'
+  return 'text-ink-faint'
 }
 
 function ZaraRow({ signal: s, onActioned, onDeclined }: {
@@ -194,12 +194,12 @@ function ZaraRow({ signal: s, onActioned, onDeclined }: {
         <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-white/20" />
       )}
       <span className="min-w-0 flex-1">
-        <span className="block text-ui leading-snug text-white/90 line-clamp-2">
+        <span className="block text-ui leading-snug text-ink line-clamp-2">
           {s.description || s.summary || s.signal_type || 'Signal'}
         </span>
         <span className="mt-0.5 flex items-center gap-2.5">
           {detailBits && (
-            <span className="min-w-0 truncate text-label text-white/40">{detailBits}</span>
+            <span className="min-w-0 truncate text-label text-ink-faint">{detailBits}</span>
           )}
           {s.source_url && s.source_url !== 'https://example.com/test-podcast' && (
             <a
@@ -207,7 +207,7 @@ function ZaraRow({ signal: s, onActioned, onDeclined }: {
               target="_blank"
               rel="noreferrer"
               aria-label="Open source"
-              className="shrink-0 text-white/30 transition-colors hover:text-white/70"
+              className="shrink-0 text-ink-faint transition-colors hover:text-ink-muted"
             >
               <ExternalLink size={11} aria-hidden />
             </a>
@@ -312,7 +312,7 @@ function DeclineButton({ signal, onDeclined }: {
       disabled={busy}
       title="Decline this signal"
       aria-label="Decline this signal"
-      className="inline-flex items-center gap-1 text-label font-medium text-white/40 transition-colors hover:text-white/70 disabled:opacity-40"
+      className="inline-flex items-center gap-1 text-label font-medium text-ink-faint transition-colors hover:text-ink-muted disabled:opacity-40"
     >
       {busy ? <Working size={11} /> : <X size={11} aria-hidden />}
       Decline

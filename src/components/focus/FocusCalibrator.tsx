@@ -89,7 +89,7 @@ const KIND_META: Record<string, { label: string; bg: string; text: string; Icon:
   keep_honest: { label: 'Keep me honest',  bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
   run_pilots:    { label: 'Run the pilots',  bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
   feed_demand: { label: 'Feed the demand engine', bg: 'bg-violet-500/20', text: 'text-violet-200', Icon: SparkleIcon },
-  keep_edge:   { label: 'Keep the edge',   bg: 'bg-white/10',       text: 'text-white/70',    Icon: SparkleIcon },
+  keep_edge:   { label: 'Keep the edge',   bg: 'bg-white/10',       text: 'text-ink-muted',    Icon: SparkleIcon },
 }
 
 function ymd(d: Date): string {
@@ -408,8 +408,8 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   return (
     <section className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-transparent p-5">
       <header className="mb-4">
-        <h2 className="text-lede font-semibold text-white">What are your 3 today?</h2>
-        <p className="text-label text-white/55 mt-1">
+        <h2 className="text-lede font-semibold text-ink">What are your 3 today?</h2>
+        <p className="text-label text-ink-faint mt-1">
           Write them yourself. Tap an objective to start from it, or ask for suggestions below. Lock {targetCount} and Home recalibrates.
           {carry_over ? ' Yesterday is still open below.' : ''}
         </p>
@@ -417,10 +417,10 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
 
       {/* Today's 3, first. His words, prefilled when last night chose them. */}
       <div>
-        <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Today's 3</div>
+        <div className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">Today's 3</div>
         <div className="flex flex-col gap-2">
           {picks.length === 0 && (
-            <div className="rounded-md border border-dashed border-white/[0.08] px-3 py-3 text-label text-white/40 text-center">
+            <div className="rounded-md border border-dashed border-white/[0.08] px-3 py-3 text-label text-ink-faint text-center">
               Nothing yet. Add your own, or start from an objective.
             </div>
           )}
@@ -440,16 +440,16 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
             type="button"
             onClick={addCustom}
             disabled={picks.length >= targetCount}
-            className="inline-flex items-center gap-1.5 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 text-micro font-semibold text-ink-muted hover:text-ink border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={11} />
             Add your own
           </button>
           {picks.length >= targetCount && (
-            <span className="text-micro text-white/45">{targetCount}/{targetCount} · remove one to swap</span>
+            <span className="text-micro text-ink-faint">{targetCount}/{targetCount} · remove one to swap</span>
           )}
           {picks.length < targetCount && (
-            <span className="text-micro text-white/45 tabular-nums">{picks.length}/{targetCount}</span>
+            <span className="text-micro text-ink-faint tabular-nums">{picks.length}/{targetCount}</span>
           )}
         </div>
       </div>
@@ -458,7 +458,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
           one tap. Adds a pick pre-linked to the weekly goal it serves. */}
       {weeklyGoals.length > 0 && (
         <div className="mt-5">
-          <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Start from this week's objectives</div>
+          <div className="text-micro uppercase tracking-[0.14em] text-ink-faint mb-2">Start from this week's objectives</div>
           <div className="flex flex-wrap gap-1.5">
             {weeklyGoals.map(g => {
               const picked = picks.some(p => p.goalId === g.id)
@@ -471,7 +471,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
                     h.tap()
                     setPicks(prev => prev.length >= targetCount ? prev : [...prev, { kind: 'custom', text: g.title, id: `wk-${g.id}`, goalId: g.id, job: g.job || null }])
                   }}
-                  className={`max-w-full truncate rounded-full border px-3 py-1.5 text-label transition-colors ${picked ? 'border-violet-400/45 bg-violet-500/[0.12] text-violet-100' : 'border-white/[0.10] bg-white/[0.03] text-white/75 hover:border-white/25'} disabled:opacity-50`}
+                  className={`max-w-full truncate rounded-full border px-3 py-1.5 text-label transition-colors ${picked ? 'border-violet-400/45 bg-violet-500/[0.12] text-violet-100' : 'border-white/[0.10] bg-white/[0.03] text-ink-muted hover:border-white/25'} disabled:opacity-50`}
                 >
                   {g.title}
                 </button>
@@ -488,7 +488,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
           type="button"
           onClick={() => { h.tap(); setSuggestOpen(o => !o) }}
           aria-expanded={suggestOpen}
-          className="inline-flex items-center gap-1.5 text-label text-white/55 hover:text-white/85"
+          className="inline-flex items-center gap-1.5 text-label text-ink-faint hover:text-ink-muted"
         >
           <ChevronDown size={13} className={`transition-transform ${suggestOpen ? 'rotate-180' : ''}`} />
           {suggestOpen ? 'Hide suggestions' : 'Suggest from this week\'s objectives'}
@@ -498,27 +498,27 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       {suggestOpen && suggestLoading && (
         <div className="mt-2">
           <Pending label={suggestWork.label} elapsedMs={suggestMs} expectedMs={suggestWork.expectedMs} />
-          {suggestWork.sub && <p className="mt-1 text-micro text-white/35">{suggestWork.sub}</p>}
+          {suggestWork.sub && <p className="mt-1 text-micro text-ink-faint">{suggestWork.sub}</p>}
         </div>
       )}
       {suggestOpen && !suggestLoading && suggestError && (
         <p className="mt-2 text-label text-rose-300 flex items-center gap-2 flex-wrap">
           <span>{suggestError}</span>
-          <button type="button" onClick={() => setSuggestAttempt(a => a + 1)} className="underline underline-offset-2 text-white/70 hover:text-white">Retry</button>
+          <button type="button" onClick={() => setSuggestAttempt(a => a + 1)} className="underline underline-offset-2 text-ink-muted hover:text-ink">Retry</button>
         </p>
       )}
       {suggestOpen && !suggestLoading && !suggestError && !hasAnyMarcus && (
-        <p className="mt-2 text-label text-white/45">Nothing to suggest yet. Set this week's objectives first.</p>
+        <p className="mt-2 text-label text-ink-faint">Nothing to suggest yet. Set this week's objectives first.</p>
       )}
 
       {suggestOpen && hasAnyMarcus && (
         <div className="mt-3">
           <div className="flex items-baseline justify-between mb-2">
-            <div className="text-micro uppercase tracking-[0.14em] text-white/45">{suggestions.os_picks.length > 0 ? 'From your objectives, then Marcus' : "Marcus's leverage picks"}</div>
-            <div className="text-micro text-white/35 tabular-nums">{allPicks.length} suggestions</div>
+            <div className="text-micro uppercase tracking-[0.14em] text-ink-faint">{suggestions.os_picks.length > 0 ? 'From your objectives, then Marcus' : "Marcus's leverage picks"}</div>
+            <div className="text-micro text-ink-faint tabular-nums">{allPicks.length} suggestions</div>
           </div>
           {suggestions.marcus_reasoning && (
-            <p className="text-micro text-white/55 italic mb-3 leading-snug">{suggestions.marcus_reasoning}</p>
+            <p className="text-micro text-ink-faint italic mb-3 leading-snug">{suggestions.marcus_reasoning}</p>
           )}
           <div className="flex flex-col gap-1.5">
             {allPicks.map(({ s, key, tier }) => (
@@ -579,7 +579,7 @@ function MarcusPickRow({
   onSubmitThumbsDown: (reason: string) => void
 }) {
   const kind = (pick.kind || '').toLowerCase()
-  const meta = KIND_META[kind] || { label: pick.kind || 'pick', bg: 'bg-white/10', text: 'text-white/70', Icon: SparkleIcon }
+  const meta = KIND_META[kind] || { label: pick.kind || 'pick', bg: 'bg-white/10', text: 'text-ink-muted', Icon: SparkleIcon }
   const Icon = meta.Icon
   const score = typeof pick.leverage_score === 'number' ? pick.leverage_score : null
   const isFallback = score === 0
@@ -612,10 +612,10 @@ function MarcusPickRow({
           }
           className={`flex-shrink-0 w-7 h-7 rounded-full border inline-flex items-center justify-center text-label font-bold tabular-nums transition-colors ${
             unsuitable
-              ? 'border-white/[0.10] text-white/20 cursor-not-allowed'
+              ? 'border-white/[0.10] text-ink-faint/40 cursor-not-allowed'
               : picked
-                ? 'bg-violet-500/80 border-violet-300/60 text-white'
-                : 'border-white/[0.20] text-white/30 hover:border-white/40 hover:text-white/60'
+                ? 'bg-violet-500/80 border-violet-300/60 text-ink'
+                : 'border-white/[0.20] text-ink-faint hover:border-white/40 hover:text-ink-faint'
           }`}
         >
           {picked ? slotIndex : unsuitable ? <ThumbsDown size={11} /> : '○'}
@@ -633,7 +633,7 @@ function MarcusPickRow({
               <Icon size={9} />
               {meta.label}
             </span>
-            <span className={`text-label font-semibold truncate ${dim ? 'text-white/85' : 'text-white'} ${unsuitable ? 'line-through' : ''}`}>
+            <span className={`text-label font-semibold truncate ${dim ? 'text-ink-muted' : 'text-ink'} ${unsuitable ? 'line-through' : ''}`}>
               {pick.title}
             </span>
           </div>
@@ -642,7 +642,7 @@ function MarcusPickRow({
         {/* Leverage pill */}
         {score != null && (
           <span className={`flex-shrink-0 text-micro tabular-nums ${
-            isFallback ? 'text-amber-300' : score >= 80 ? 'text-emerald-300' : score >= 60 ? 'text-white/55' : 'text-white/35'
+            isFallback ? 'text-amber-300' : score >= 80 ? 'text-emerald-300' : score >= 60 ? 'text-ink-faint' : 'text-ink-faint'
           }`}>
             {isFallback ? 'fallback' : `lev ${score}`}
           </span>
@@ -658,7 +658,7 @@ function MarcusPickRow({
           className={`flex-shrink-0 w-7 h-7 inline-flex items-center justify-center transition-colors ${
             unsuitable
               ? 'text-rose-300/60'
-              : 'text-white/35 hover:text-rose-300'
+              : 'text-ink-faint hover:text-rose-300'
           } disabled:cursor-not-allowed`}
         >
           <ThumbsDown size={13} />
@@ -669,7 +669,7 @@ function MarcusPickRow({
           type="button"
           onClick={onToggleExpand}
           aria-label={expanded ? 'Collapse' : 'Expand'}
-          className="flex-shrink-0 w-7 h-7 inline-flex items-center justify-center text-white/40 hover:text-white/80"
+          className="flex-shrink-0 w-7 h-7 inline-flex items-center justify-center text-ink-faint hover:text-ink-muted"
         >
           <ChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
         </button>
@@ -713,14 +713,14 @@ function MarcusPickRow({
             rows={2}
             autoFocus
             placeholder="e.g. wrong category, already shipping, low ROI on this lead profile…"
-            className="w-full bg-sunk border border-white/[0.10] rounded-md px-2.5 py-1.5 text-label text-white placeholder:text-white/25 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
+            className="w-full bg-sunk border border-white/[0.10] rounded-md px-2.5 py-1.5 text-label text-ink placeholder:text-ink-faint/50 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancelThumbsDown}
               disabled={submittingDown}
-              className="inline-flex items-center gap-1 text-micro text-white/55 hover:text-white/85 px-2 py-1 rounded disabled:opacity-60"
+              className="inline-flex items-center gap-1 text-micro text-ink-faint hover:text-ink-muted px-2 py-1 rounded disabled:opacity-60"
             >
               <X size={11} />
               Cancel
@@ -742,8 +742,8 @@ function MarcusPickRow({
           the textarea doesn't compete for attention. */}
       {expanded && !composing && !unsuitable && (pick.why_now || pick.reasoning) && (
         <div className="border-t border-white/[0.06] px-3 py-2.5 space-y-1.5">
-          {pick.why_now && <p className="text-micro text-white/65 leading-snug">{pick.why_now}</p>}
-          {pick.reasoning && <p className="text-micro text-white/45 italic leading-snug">{pick.reasoning}</p>}
+          {pick.why_now && <p className="text-micro text-ink-muted leading-snug">{pick.why_now}</p>}
+          {pick.reasoning && <p className="text-micro text-ink-faint italic leading-snug">{pick.reasoning}</p>}
         </div>
       )}
     </div>
@@ -772,14 +772,14 @@ function SelectedSlot({
             type="text"
             value={pick.text}
             onChange={(e) => onChangeText(e.target.value)}
-            className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 text-body text-white focus:border-violet-400/50 focus:outline-none"
+            className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 text-body text-ink focus:border-violet-400/50 focus:outline-none"
           />
         )}
       </div>
       <button
         type="button"
         onClick={onRemove}
-        className="h-9 px-2 text-white/40 hover:text-white/70 flex-shrink-0"
+        className="h-9 px-2 text-ink-faint hover:text-ink-muted flex-shrink-0"
         aria-label="Remove"
       >
         <X size={13} />
@@ -848,7 +848,7 @@ function CustomTextarea({ value, onChange }: { value: string; onChange: (v: stri
         onChange={(e) => onChange(e.target.value)}
         placeholder="What would shipping this look like by EOD?"
         rows={2}
-        className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 pr-10 text-body text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-none"
+        className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 pr-10 text-body text-ink placeholder:text-ink-faint focus:border-violet-400/50 focus:outline-none resize-none"
       />
       {canRecord && (
         <button
@@ -859,7 +859,7 @@ function CustomTextarea({ value, onChange }: { value: string; onChange: (v: stri
           className={`absolute top-2 right-2 h-7 w-7 inline-flex items-center justify-center rounded transition-colors ${
             recording
               ? 'bg-rose-500/30 border border-rose-400/50 text-rose-100 animate-pulse'
-              : 'text-white/45 hover:text-white/85'
+              : 'text-ink-faint hover:text-ink-muted'
           } disabled:opacity-50`}
         >
           {transcribing ? <Working size={12} /> : (recording ? <Square size={11} /> : <Mic size={12} />)}

@@ -49,7 +49,7 @@ function fmtLong(ymd: string): string {
     .format(new Date(Date.UTC(y, m - 1, d)))
 }
 
-const cell = 'px-2 py-1.5 text-right font-mono tabular-nums text-label text-white/85 whitespace-nowrap'
+const cell = 'px-2 py-1.5 text-right font-mono tabular-nums text-label text-ink-muted whitespace-nowrap'
 const head = 'px-2 py-1.5 text-right whitespace-nowrap'
 
 export function ScorecardPanel() {
@@ -91,7 +91,7 @@ export function ScorecardPanel() {
     <div className="flex flex-col gap-4">
       <div>
         <Eyebrow>Twelve week scorecard</Eyebrow>
-        <p className="mt-1 text-label text-white/50">
+        <p className="mt-1 text-label text-ink-faint">
           Weeks end on Fridays. Tap a number to set an override; leave it empty to clear one.
         </p>
       </div>
@@ -112,7 +112,7 @@ export function ScorecardPanel() {
                   <th key={col} className={head}>
                     <Eyebrow>{LABELS[col]}</Eyebrow>
                     {col === 'unasked_hours' && (
-                      <span className="block font-sans text-micro normal-case tracking-normal text-white/40">
+                      <span className="block font-sans text-micro normal-case tracking-normal text-ink-faint">
                         {unaskedMeasured ? 'estimate from commits' : 'not measured yet'}
                       </span>
                     )}
@@ -123,7 +123,7 @@ export function ScorecardPanel() {
             <tbody>
               {weeks.map(w => (
                 <tr key={w.week_ending} className="border-b border-white/[0.05]">
-                  <td className="px-2 py-1.5 text-left font-mono tabular-nums text-label text-white/60 whitespace-nowrap">
+                  <td className="px-2 py-1.5 text-left font-mono tabular-nums text-label text-ink-faint whitespace-nowrap">
                     {fmtDay(w.week_ending)}
                   </td>
                   {SCORECARD_COLS.map(col => {
@@ -145,9 +145,9 @@ export function ScorecardPanel() {
                               }}
                               disabled={saving}
                               aria-label={`Override ${LABELS[col]} for the week ending ${fmtLong(w.week_ending)}`}
-                              className="w-16 rounded-md border border-white/20 bg-white/[0.06] px-1.5 py-0.5 text-right font-mono tabular-nums text-label text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+                              className="w-16 rounded-md border border-white/20 bg-white/[0.06] px-1.5 py-0.5 text-right font-mono tabular-nums text-label text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
                             />
-                            <span className="text-micro text-white/40">derived {fmtNum(col, w[col])}</span>
+                            <span className="text-micro text-ink-faint">derived {fmtNum(col, w[col])}</span>
                           </span>
                         ) : (
                           <button
@@ -158,7 +158,7 @@ export function ScorecardPanel() {
                             className="min-h-[24px] rounded px-1 font-mono tabular-nums disabled:cursor-default"
                           >
                             {w[col] == null
-                              ? <span className="text-white/25" aria-label="Not yet">&middot;</span>
+                              ? <span className="text-ink-faint/50" aria-label="Not yet">&middot;</span>
                               : fmtNum(col, w[col])}
                           </button>
                         )}
@@ -184,18 +184,18 @@ export function ScorecardPanel() {
         </div>
       )}
 
-      {error && <p className="text-label text-white/60">{error}</p>}
+      {error && <p className="text-label text-ink-faint">{error}</p>}
 
       <div className="flex flex-col gap-2 border-t border-white/[0.06] pt-3">
         {stopRule?.on && (
-          <p className="text-label text-white/60">
-            <span className="text-white/85">Stop rule, read on {fmtLong(stopRule.on)}.</span>{' '}
+          <p className="text-label text-ink-faint">
+            <span className="text-ink-muted">Stop rule, read on {fmtLong(stopRule.on)}.</span>{' '}
             {stopRule.reads}
           </p>
         )}
         {day90 && (
-          <p className="text-label text-white/60">
-            <span className="text-white/85">Day 90 is {fmtLong(day90)}.</span>{' '}
+          <p className="text-label text-ink-faint">
+            <span className="text-ink-muted">Day 90 is {fmtLong(day90)}.</span>{' '}
             Targets: {targets.approaches_sent} sent, {targets.calls_taken} calls, {targets.paid_pilots} paid {targets.paid_pilots === 1 ? 'pilot' : 'pilots'},{' '}
             {Math.round(targets.cash_invoiced_gbp).toLocaleString('en-GB')} GBP invoiced, {targets.pieces_published} pieces published,{' '}
             {targets.unasked_hours} hours building unasked.

@@ -16,18 +16,18 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.05]">
         <div className="flex items-center gap-2">
-          <Inbox size={12} className="text-white/40" />
-          <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/50">Recent deliveries</h3>
+          <Inbox size={12} className="text-ink-faint" />
+          <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Recent deliveries</h3>
         </div>
-        <span className="text-micro text-white/30 font-mono tabular-nums">{deliveries.length}</span>
+        <span className="text-micro text-ink-faint font-mono tabular-nums">{deliveries.length}</span>
       </header>
 
       {loading ? (
         <div className="px-4 py-4"><SkeletonList rows={3} card={false} /></div>
       ) : deliveries.length === 0 ? (
         <div className="px-4 py-8 text-center">
-          <p className="text-label text-white/45 font-medium">No deliveries yet.</p>
-          <p className="text-micro text-white/25 mt-1">Drafted skills will appear here.</p>
+          <p className="text-label text-ink-faint font-medium">No deliveries yet.</p>
+          <p className="text-micro text-ink-faint/50 mt-1">Drafted skills will appear here.</p>
         </div>
       ) : (
         <ul className="divide-y divide-white/[0.04]">
@@ -36,16 +36,16 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-label font-medium text-white truncate">{d.client_name}</p>
+                    <p className="text-label font-medium text-ink truncate">{d.client_name}</p>
                     <StatusPill shipped={!!d.shipped_at} emailSent={!!d.email_sent} />
                   </div>
                   {d.skill_names?.length > 0 && (
-                    <p className="text-micro text-white/45 mt-0.5 truncate">
+                    <p className="text-micro text-ink-faint mt-0.5 truncate">
                       {d.skill_names.slice(0, 3).join(', ')}
                       {d.skill_names.length > 3 ? ` +${d.skill_names.length - 3}` : ''}
                     </p>
                   )}
-                  <p className="text-micro text-white/30 mt-1 tabular-nums">
+                  <p className="text-micro text-ink-faint mt-1 tabular-nums">
                     {formatDistanceToNow(new Date(d.shipped_at || d.created_at), { addSuffix: true })}
                   </p>
                 </div>
@@ -55,7 +55,7 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
                       href={d.zip_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded-md text-white/40 hover:text-violet-300 hover:bg-white/[0.04] transition-colors"
+                      className="p-1.5 rounded-md text-ink-faint hover:text-violet-300 hover:bg-white/[0.04] transition-colors"
                       title="Download ZIP"
                     >
                       <ExternalLink size={12} />
@@ -63,7 +63,7 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
                   )}
                   <button
                     onClick={() => onRegenerate(d)}
-                    className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/[0.04] transition-colors"
+                    className="p-1.5 rounded-md text-ink-faint hover:text-ink hover:bg-white/[0.04] transition-colors"
                     title="Regenerate from this transcript"
                   >
                     <RotateCcw size={12} />
@@ -94,7 +94,7 @@ function StatusPill({ shipped, emailSent }: { shipped: boolean; emailSent: boole
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-white/55">
+    <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-faint">
       <Clock size={10} /> Draft
     </span>
   )

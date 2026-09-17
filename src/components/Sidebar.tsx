@@ -26,7 +26,7 @@ export function Sidebar({ agents, currentTime }: Props) {
     <div className="w-72 bg-command-surface border-r border-command-border p-6">
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+          <h2 className="text-lg font-semibold text-ink mb-4 flex items-center space-x-2">
             <GitBranch size={20} />
             <span>Organization</span>
           </h2>
@@ -37,7 +37,7 @@ export function Sidebar({ agents, currentTime }: Props) {
               <div className="flex items-center space-x-2">
                 {getStatusDot(agatha.status)}
                 <div>
-                  <div className="font-medium text-white">{agatha.name}</div>
+                  <div className="font-medium text-ink">{agatha.name}</div>
                   <div className="text-xs text-command-text/70">{agatha.role}</div>
                 </div>
               </div>
@@ -72,7 +72,7 @@ export function Sidebar({ agents, currentTime }: Props) {
 
         {/* Status Legend */}
         <div>
-          <h3 className="text-sm font-medium text-white mb-3 flex items-center space-x-2">
+          <h3 className="text-sm font-medium text-ink mb-3 flex items-center space-x-2">
             <BarChart3 size={16} />
             <span>Status</span>
           </h3>

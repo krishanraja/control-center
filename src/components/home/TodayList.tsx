@@ -133,7 +133,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
       <div className="flex items-baseline gap-2 mb-2">
         <Eyebrow>Today</Eyebrow>
         {anySet && (
-          <span className="text-micro text-white/35 tabular-nums font-mono">{doneCount}/3</span>
+          <span className="text-micro text-ink-faint tabular-nums font-mono">{doneCount}/3</span>
         )}
       </div>
 
@@ -158,7 +158,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
               >
                 {t.done
                   ? <Check size={13} />
-                  : <span className={`text-micro font-bold tabular-nums font-mono ${has ? 'text-white/35' : 'text-white/25'}`}>{t.n}</span>}
+                  : <span className={`text-micro font-bold tabular-nums font-mono ${has ? 'text-ink-muted' : 'text-ink-faint'}`}>{t.n}</span>}
               </button>
 
               {editing ? (
@@ -173,7 +173,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
                   }}
                   placeholder="What leaves the machine today?"
                   aria-label={`Target ${t.n}`}
-                  className="flex-1 min-w-0 min-h-[30px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-body text-white/90 placeholder:text-white/25 outline-none focus:border-violet-400/40"
+                  className="flex-1 min-w-0 min-h-[30px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-body text-ink placeholder:text-ink-faint/50 outline-none focus:border-violet-400/40"
                 />
               ) : (
                 <button
@@ -184,11 +184,11 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
                 >
                   {has ? (
                     <>
-                      <p className={`text-body leading-snug break-words ${compact ? 'line-clamp-1' : 'line-clamp-2'} ${t.done ? 'text-white/40 line-through' : 'text-white/90 group-hover/slot:text-white'}`}>
+                      <p className={`text-body leading-snug break-words ${compact ? 'line-clamp-1' : 'line-clamp-2'} ${t.done ? 'text-ink-faint line-through' : 'text-ink group-hover/slot:text-ink'}`}>
                         {t.text}
                       </p>
                       {!compact && (t.job || (t.goalId && weeklyTitle.get(t.goalId))) && (
-                        <p className="text-micro text-white/40 leading-snug mt-0.5 inline-flex items-center gap-1.5 min-w-0">
+                        <p className="text-micro text-ink-faint leading-snug mt-0.5 inline-flex items-center gap-1.5 min-w-0">
                           {t.job && <span className="shrink-0 px-1 py-0.5 rounded bg-white/[0.06]">{jobLabel(t.job)}</span>}
                           {t.goalId && weeklyTitle.get(t.goalId) && (
                             <span className="inline-flex items-center gap-1 min-w-0">

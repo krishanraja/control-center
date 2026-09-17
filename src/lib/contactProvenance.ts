@@ -118,8 +118,8 @@ function forChip(label: string): string {
 const WARM = 'text-rose-300 bg-rose-500/12 border-rose-500/25'
 const COMMUNITY = 'text-violet-300 bg-violet-500/10 border-violet-500/20'
 const NETWORK = 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20'
-const COLD = 'text-white/55 bg-white/[0.05] border-white/10'
-const UNKNOWN = 'text-white/40 bg-white/[0.03] border-white/[0.08]'
+const COLD = 'text-ink-faint bg-white/[0.05] border-white/10'
+const UNKNOWN = 'text-ink-faint bg-white/[0.03] border-white/[0.08]'
 
 const CHANNEL_TONE: Record<string, string> = {
   community: COMMUNITY,

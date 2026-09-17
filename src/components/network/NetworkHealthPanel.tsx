@@ -108,7 +108,7 @@ export function NetworkHealthPanel() {
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
         data-testid="network-health"
-        className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
+        className="min-h-[36px] rounded-lg border border-white/[0.12] px-3 text-label font-medium text-ink-muted transition-colors hover:bg-white/[0.04]"
       >
         {open ? 'Close' : 'Network health'}
       </button>
@@ -119,7 +119,7 @@ export function NetworkHealthPanel() {
           data-testid="network-health-panel"
         >
           {busy && (
-            <p className="flex items-center gap-2 text-label text-white/55">
+            <p className="flex items-center gap-2 text-label text-ink-faint">
               <Working size={12} /> Reading the network.
             </p>
           )}
@@ -130,7 +130,7 @@ export function NetworkHealthPanel() {
 
           {data?.ok && (
             <>
-              <p className="text-label leading-relaxed text-white/55">
+              <p className="text-label leading-relaxed text-ink-faint">
                 {data.total.toLocaleString()} people.
                 {' '}{data.posts_read.toLocaleString()} have had their posts read;
                 {' '}{data.signalling.toLocaleString()} are signalling live intent right now
@@ -141,7 +141,7 @@ export function NetworkHealthPanel() {
                 for the invisible, who score 0 here and never appear in results at all.
               </p>
               {data.rates?.apify_usd_per_profile != null && (
-                <p className="mt-1 text-micro text-white/35">
+                <p className="mt-1 text-micro text-ink-faint">
                   Prices below are measured, not estimated: ${data.rates.apify_usd_per_profile.toFixed(4)} per profile
                   {data.rates.apify_usd_per_posts_read != null
                     && `, $${data.rates.apify_usd_per_posts_read.toFixed(4)} per posts read`}
@@ -172,35 +172,35 @@ export function NetworkHealthPanel() {
                 {data.tiers.map(t => (
                   <li key={t.tier} className="rounded-lg border border-white/[0.06] px-3 py-2">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-label font-semibold text-white/85">
+                      <span className="text-label font-semibold text-ink-muted">
                         {TIER_LABEL[t.tier] || t.tier}
                       </span>
-                      <span className="text-label text-white/45">{t.people.toLocaleString()} people</span>
+                      <span className="text-label text-ink-faint">{t.people.toLocaleString()} people</span>
                     </div>
 
                     <div className="mt-2 grid grid-cols-3 gap-3">
                       <div>
-                        <p className="text-label text-white/45">LinkedIn {pct(t.linkedin, t.people)}%</p>
+                        <p className="text-label text-ink-faint">LinkedIn {pct(t.linkedin, t.people)}%</p>
                         <Bar value={pct(t.linkedin, t.people)} tone="bg-violet-400/70" />
                       </div>
                       <div>
-                        <p className="text-label text-white/45">Email {pct(t.email, t.people)}%</p>
+                        <p className="text-label text-ink-faint">Email {pct(t.email, t.people)}%</p>
                         <Bar value={pct(t.email, t.people)} tone="bg-emerald-400/70" />
                       </div>
                       <div>
-                        <p className="text-label text-white/45">Complete {t.avg_completeness}/100</p>
+                        <p className="text-label text-ink-faint">Complete {t.avg_completeness}/100</p>
                         <Bar value={t.avg_completeness} tone="bg-sky-400/70" />
                       </div>
                     </div>
 
-                    <p className="mt-2 text-label text-white/45">
+                    <p className="mt-2 text-label text-ink-faint">
                       {t.weak.toLocaleString()} thin, {t.strong.toLocaleString()} strong.
                       {' '}
                       {t.posts_read > 0
                         ? <>{t.posts_read.toLocaleString()} read, <span className="text-emerald-300/80">{t.signalling.toLocaleString()} signalling</span>{t.hot_intent > 0 && <> ({t.hot_intent.toLocaleString()} asking, stuck, hiring or piloting)</>}. </>
                         : <>No posts read here. </>}
                     </p>
-                    <p className="mt-1 text-label text-white/35">
+                    <p className="mt-1 text-label text-ink-faint">
                       {/* A null price is not a free one. An actor with no runs in
                           the meter has no observed price, and saying "$0.00"
                           would be the same class of lie as the hardcoded

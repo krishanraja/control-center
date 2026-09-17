@@ -58,13 +58,13 @@ export function GeoCitationsPanel({ lane }: { lane?: string | null }) {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Globe size={13} className="text-cyan-400" />
-        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
           AI-answer citations
         </h2>
         {rows.length > 0 && (
           <span className="ml-auto text-micro tabular-nums">
-            <span className={cited > 0 ? 'text-emerald-300' : 'text-white/35'}>{cited}</span>
-            <span className="text-white/25"> / {rows.length} cited</span>
+            <span className={cited > 0 ? 'text-emerald-300' : 'text-ink-faint'}>{cited}</span>
+            <span className="text-ink-faint/50"> / {rows.length} cited</span>
           </span>
         )}
       </header>
@@ -72,7 +72,7 @@ export function GeoCitationsPanel({ lane }: { lane?: string | null }) {
       {!loaded ? (
         <SkeletonList rows={4} card={false} quiet={!waiting} />
       ) : rows.length === 0 ? (
-        <div className="px-4 py-5 text-center text-label text-white/35">
+        <div className="px-4 py-5 text-center text-label text-ink-faint">
           No GEO sweep results yet — activate Zara's weekly geo-citation sweep
           and coverage of AI answers lands here.
         </div>
@@ -82,14 +82,14 @@ export function GeoCitationsPanel({ lane }: { lane?: string | null }) {
             <div key={r.id} className="px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.raw_data?.cited ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                <span className="text-label text-white/80 truncate">
+                <span className="text-label text-ink-muted truncate">
                   {r.raw_data?.query || r.description || '(query unknown)'}
                 </span>
-                <span className="ml-auto text-micro text-white/25 flex-shrink-0">
+                <span className="ml-auto text-micro text-ink-faint/50 flex-shrink-0">
                   {r.raw_data?.surface || ''}
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-0.5 text-micro text-white/30">
+              <div className="flex items-center gap-2 mt-0.5 text-micro text-ink-faint">
                 <span className={r.raw_data?.cited ? 'text-emerald-300/80' : ''}>
                   {r.raw_data?.cited ? 'Cited' : 'Not cited'}
                 </span>
