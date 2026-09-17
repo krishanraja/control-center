@@ -24,6 +24,7 @@ import {
   type AeoDigestRow, type AeoQueryRow, type AeoSubjectRow,
 } from '../src/lib/aeo.ts'
 import type { GeoProbeRow } from '../src/lib/growth.ts'
+import { ventureLabel } from '../src/lib/ventureOptions.ts'
 
 const now = new Date('2026-09-15T09:00:00.000Z') // a Tuesday; this week's Monday is 2026-09-14
 const CTRL = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -63,7 +64,15 @@ assert.equal(movements({ subjects, digests: wk1, queries: [], probes: [] }).leng
 const firstRead = portfolioRead({ subjects, digests: wk1, probes: [probe({ run_at: '2026-09-14T06:00:00.000Z' }), probe({ run_at: '2026-09-14T06:00:00.000Z', we_cited: true })], now })
 assert.equal(firstRead.never_run, false)
 assert.match(firstRead.sentence, /50% of 2 answers mentioned you this week/)
-assert.match(firstRead.sentence, /Biggest gap: get-alfred.ai, cited 9 times instead of mm-ctrl/)
+// The product's NAME comes from the venture registry mirror, not from a copy
+// of it here. This line read "instead of mm-ctrl" and went red the moment
+// growth.ts started deriving its labels from ventureLabel(); Krish's ruling on
+// 2026-09-17 made `ctrl` read "CTRL" everywhere. A guard that hardcodes a label
+// is asserting a spelling, not a behaviour, and goes stale on every rename.
+assert.match(
+  firstRead.sentence,
+  new RegExp(`Biggest gap: get-alfred\\.ai, cited 9 times instead of ${ventureLabel('ctrl')}`),
+)
 assert.match(firstRead.sentence, /Last run/)
 
 // ── Second week: a first citation, a tier jump, a new competitor, a new theme ──
@@ -82,10 +91,13 @@ const queries2 = [
 const moved = movements({ subjects, digests: wk2, queries: queries2, probes: probes2 })
 const kinds = moved.map(m => m.kind)
 assert.deepEqual(kinds, ['first_citation', 'new_competitor', 'query_up', 'new_theme'], `movement order: ${kinds.join(',')}`)
-assert.match(moved[0].line, /First time an engine mentioned mm-ctrl, on "What is an AI chief of staff for CEOs\?" \(chatgpt\)/)
-assert.match(moved[1].line, /linkedin.com is now cited instead of mm-ctrl on 4 answers \(last week it was get-alfred.ai\)/)
-assert.match(moved[2].line, /rose from 20 to 76 demand for mm-ctrl/)
-assert.match(moved[3].line, /A new theme from mm-ctrl's calls: Founders want the decision to stay theirs \(2 calls\)/)
+// Same reason as above: the label is read, never spelled, so a rename moves
+// the guard with the product instead of breaking it.
+const CTRL_LABEL = ventureLabel('ctrl') as string
+assert.match(moved[0].line, new RegExp(`First time an engine mentioned ${CTRL_LABEL}, on "What is an AI chief of staff for CEOs\\?" \\(chatgpt\\)`))
+assert.match(moved[1].line, new RegExp(`linkedin\\.com is now cited instead of ${CTRL_LABEL} on 4 answers \\(last week it was get-alfred\\.ai\\)`))
+assert.match(moved[2].line, new RegExp(`rose from 20 to 76 demand for ${CTRL_LABEL}`))
+assert.match(moved[3].line, new RegExp(`A new theme from ${CTRL_LABEL}'s calls: Founders want the decision to stay theirs \\(2 calls\\)`))
 assert.equal(isFirstWeek(wk2), false)
 const by = digestsBySubject(wk2)
 assert.equal(by.get(CTRL)?.latest.week_start, '2026-09-14')
