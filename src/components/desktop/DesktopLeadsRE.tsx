@@ -25,6 +25,7 @@ import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildContactsTriageConfig } from '../../lib/triageConfig'
 
 import { VENTURE_OPTIONS as VENTURES } from '../../lib/ventureOptions'
+import { useWork } from '../../lib/loadingVoice'
 
 const TIERS: Array<{ value: ConsentTier; label: string }> = [
   { value: 'customer', label: 'Customer' },
@@ -50,6 +51,7 @@ interface Props {
 }
 
 export function DesktopLeadsRE({ onNavigate }: Props = {}) {
+  const contactsWork = useWork('contacts.read')
   const { toast } = useToast()
   const h = useHaptics()
   const [triageOpen, setTriageOpen] = useState(false)
@@ -379,7 +381,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
             </div>
             {reviewList.length === 0 ? (
               <p className="text-label text-ink-faint px-1 py-2">
-                {loading ? 'Loading contacts…' : 'Nothing else to review in this filter.'}
+                {loading ? contactsWork.label : 'Nothing else to review in this filter.'}
               </p>
             ) : (
               <>

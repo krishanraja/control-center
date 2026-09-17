@@ -184,7 +184,7 @@ export function TabChatHost({ tab, narrow, params, suppressed = false }: TabChat
             {ex.loading && <Pending label={work.label} elapsedMs={elapsed} expectedMs={work.expectedMs} />}
             {ex.error && <p className="text-label text-red-300">{ex.error}</p>}
             {ex.reply && (
-              <p className="whitespace-pre-wrap font-serif text-lede leading-relaxed text-ink-muted">{ex.reply}</p>
+              <p className="whitespace-pre-wrap font-body text-lede leading-relaxed text-ink-muted">{ex.reply}</p>
             )}
           </div>
         </div>

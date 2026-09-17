@@ -3,6 +3,7 @@ import { SlidersHorizontal, X, Check } from '@/lib/icons'
 import { supabase } from '../../../lib/supabase'
 import { useToast } from '../../shared/Toast'
 import { useHaptics } from '../../../hooks/useHaptics'
+import { useWork } from '../../../lib/loadingVoice'
 
 type Domain = 'content' | 'lead' | 'visibility'
 
@@ -103,6 +104,7 @@ export function CalibrationCard() {
 }
 
 function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => void }) {
+  const itemsWork = useWork('calibration.read')
   const { toast } = useToast()
   const h = useHaptics()
   const [items, setItems] = useState<CalItem[] | null>(null)
@@ -238,7 +240,7 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
         </p>
 
         {error && <p className="text-label text-rose-300">{error}</p>}
-        {!items && !error && <p className="text-label text-ink-faint">Loading your items…</p>}
+        {!items && !error && <p className="text-label text-ink-faint">{itemsWork.label}</p>}
         {items && screens.length === 0 && (
           <p className="text-label text-ink-faint">
             Not enough agent-generated items in this domain to calibrate yet (need at least 4).

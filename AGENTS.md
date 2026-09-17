@@ -153,12 +153,22 @@ This repo contains **two independent frontends**, each with its own
 `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:api`,
 `npm run typecheck:scripts`, and the structural guards —
 `check-goal-ladder`, `check-goal-gate`, `check-type-tokens`, `check-icons`,
-`check-content-expiry`, `check-content-window`, `check-anchor-attribution`,
-`check-card-lint`, `check-content-vocabulary`, `check-arc-scoring`,
-`check-slate-calibration`, `check-content-chain`, `check-served-surfaces`, `check-enrichment-honesty`,
-`check-fleet-classifier`, `check-no-secrets`, `check-theme-tokens`
+`check-icon-stroke`, `check-content-window`, `check-n8n-sync-guard`,
+`check-served-surfaces`, `check-bridges-never-send`,
+`check-enrichment-honesty`, `check-fleet-classifier`, `check-theme-tokens`,
+`check-mindmake-design`, `check-mindmake-gate`, `check-env-example`,
+`check-no-secrets`, `check-agent-stamps`, `check-model-prices`,
+`check-anthropic-fallback`
 (all `scripts/check-*.mts`, run with `npx tsx`). Each guard encodes an
 invariant that already shipped broken once; run them locally before pushing.
+
+This list is generated from `ci.yml`, not maintained by hand. It used to name
+nine guards that do not exist in `scripts/` — `check-content-vocabulary`,
+`check-anchor-attribution`, `check-card-lint`, `check-arc-scoring`,
+`check-slate-calibration`, `check-content-chain`, `check-content-expiry`,
+`check-selection`, `check-teardown-beat` — while omitting seven that CI really
+runs. Anyone reaching for "the vocabulary guard" found nothing, which is part
+of how five files came to hold five different labels for the same venture.
 A separate `e2e` job runs five Playwright specs (see Tests above); the rest of
 the suite is not gated by CI. The repo also works on newer Node
 (tested on Node 22); `engines` requires `>=18`.

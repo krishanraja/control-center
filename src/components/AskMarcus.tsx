@@ -93,7 +93,7 @@ export function AskMarcus() {
                 <span className="text-micro uppercase tracking-[0.14em] text-violet-300 mt-0.5 flex-shrink-0">M</span>
                 {ex.loading && <Pending label={marcus.label} elapsedMs={elapsed} expectedMs={marcus.expectedMs} />}
                 {ex.error   && <p className="text-label text-red-300">{ex.error}</p>}
-                {ex.reply   && <p className="font-serif text-lede text-ink-muted leading-relaxed whitespace-pre-wrap">{ex.reply}</p>}
+                {ex.reply   && <p className="font-body text-lede text-ink-muted leading-relaxed whitespace-pre-wrap">{ex.reply}</p>}
               </div>
             </div>
           ))}

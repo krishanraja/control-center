@@ -405,6 +405,26 @@ The general rule: something that is true only occasionally does not get
 permanent screen space. It gets a mark that appears when it is true, and a
 drawer holding the whole of it.
 
+## The keyboard is a contract
+
+Audited 2026-09-17. Most of it was already right, which is the reason to pin it:
+⌘K (palette), ⌘I (capture), ⌘J (inbox) and ⌘/ (ask) all open and all close on
+Escape, and the tab order runs sidebar then content without traps.
+`e2e/keyboard.spec.ts` holds all of it.
+
+- **Every focusable control shows where the keyboard is.** The house ring is
+  `focus-visible:ring-2 focus-visible:ring-violet-400/50`. The sidebar's "More"
+  was the one control without it, so a keyboard user lost the cursor for exactly
+  one stop — the stop that opens the drawer holding Focus and Subscriptions.
+- **Skip to content is the first stop.** The sidebar is ten focusable stops, so
+  reaching the page cost ten Tabs on every navigation. The link is invisible
+  until focused and moves FOCUS, not just scroll position: moving only the
+  scroll leaves the next Tab resuming in the nav, which buys nothing.
+- **A spec must wait for an overlay to be listening, not merely present.**
+  Polling for a dialog's presence resolves on its first frame, and Escape
+  pressed before its handler attaches is swallowed — which reads as "Escape is
+  broken" when it is fine.
+
 ## Read first, rows second
 
 Locked 2026-09-08, after the Growth tab's signal and review sections read as

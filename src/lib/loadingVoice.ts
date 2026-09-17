@@ -129,6 +129,16 @@ export const WORK = {
   'file.import':         { doing: 'importing' },
   'voice.transcribe':    { doing: 'transcribing', expectedMs: 12_000 },
   'record.save':         { doing: 'saving' },
+
+  // ── Plain reads ────────────────────────────────────────────────────────
+  // No agent performs these; they are the app fetching its own rows. They live
+  // here anyway, because the point of this module is that there is exactly one
+  // place a wait is worded. These three were hardcoded at their call sites as
+  // "Loading contacts…", "Loading the canon…" and "Loading your items…", which
+  // is the drift this file's own docstring warns about.
+  'contacts.read':       { doing: 'loading your contacts' },
+  'canon.read':          { doing: 'loading the canon' },
+  'calibration.read':    { doing: 'loading your items' },
 } as const satisfies Record<string, WorkDef>
 
 export type WorkKey = keyof typeof WORK

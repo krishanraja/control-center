@@ -36,7 +36,22 @@ function walk(dir: string, out: string[] = []): string[] {
   return out
 }
 
-const SIZE = /text-\[\d+(?:\.\d+)?px\]/g
+// Any bracketed FONT SIZE, not just pixels. The original pattern was
+// `text-[<n>px]`, which let `text-[clamp(1.65rem,5vw,2.65rem)]` sit on the
+// editorial gate's headline — 26.4px to 42.4px, off the nine-token scale in
+// both directions, invisible to the guard that exists to prevent exactly that.
+// Colours are also spelled `text-[...]`, so anything opening with #, rgb, hsl
+// or a custom property is excluded; what is left is a length or a clamp.
+//
+// `em` is deliberately NOT caught. It sizes relative to the parent rather than
+// asserting a size, which is the correct mechanism inside a prose renderer:
+// `components/content/RichText.tsx` sizes markdown headings at 1.45/1.25/1.1em
+// so the same document renders in proportion wherever it is embedded. Pinning
+// those to absolute tokens would break that, and they are not a second type
+// scale — they are one scale expressed as ratios. Absolute and viewport units
+// (px, rem, vw, vh, ch) and clamp() all assert a size, and must be on the
+// nine tokens.
+const SIZE = /text-\[(?!#|rgb|hsl|var|--)[^\]]*(?:\d(?:px|rem|vw|vh|ch)|clamp\()[^\]]*\]/g
 const TRACK = /tracking-\[(0\.\d+)em\]/g
 // Matches the deprecated spelling only: `text-muted` but not `text-ink-muted`,
 // and only where it is used as a class (start of string, whitespace, or a

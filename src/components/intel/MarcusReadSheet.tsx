@@ -91,10 +91,10 @@ export function MarcusReadSheet({ open, onClose }: {
               <p className="font-serif text-title italic leading-snug text-violet-200/90">{intel.summary.headline}</p>
             )}
             {body && (
-              <p className="font-serif text-lede leading-relaxed text-ink-muted whitespace-pre-wrap">{body}</p>
+              <p className="font-body text-lede leading-relaxed text-ink-muted whitespace-pre-wrap">{body}</p>
             )}
             {read.assessment && (
-              <p className="font-serif text-lede leading-relaxed text-ink-muted whitespace-pre-wrap">{read.assessment}</p>
+              <p className="font-body text-lede leading-relaxed text-ink-muted whitespace-pre-wrap">{read.assessment}</p>
             )}
             {read.insights.length > 0 && (
               <ul className="flex flex-col gap-2.5">
@@ -102,7 +102,7 @@ export function MarcusReadSheet({ open, onClose }: {
                   <li key={i} className="flex items-start gap-2.5">
                     <span aria-hidden className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-violet-300/70" />
                     <span className="min-w-0">
-                      <span className="block font-serif text-lede leading-relaxed text-ink-muted">{insight.insight}</span>
+                      <span className="block font-body text-lede leading-relaxed text-ink-muted">{insight.insight}</span>
                       {insight.action && (
                         <span className="mt-0.5 block text-label leading-snug text-amber-200/75">
                           <span className="font-semibold uppercase tracking-[0.14em] text-amber-300/60">Do</span>{' '}
@@ -118,21 +118,21 @@ export function MarcusReadSheet({ open, onClose }: {
             {synthesis?.org_focus && (
               <div>
                 <p className="mb-1 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-amber-400/70">Org focus</p>
-                <p className="font-serif text-lede leading-relaxed text-amber-200/75">{synthesis.org_focus}</p>
+                <p className="font-body text-lede leading-relaxed text-amber-200/75">{synthesis.org_focus}</p>
               </div>
             )}
 
             {synthesis?.cleo_recommendations && (
               <div>
                 <p className="mb-1 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-sky-400/70">Content recommendation</p>
-                <p className="font-serif text-lede leading-relaxed text-sky-200/75">{synthesis.cleo_recommendations}</p>
+                <p className="font-body text-lede leading-relaxed text-sky-200/75">{synthesis.cleo_recommendations}</p>
               </div>
             )}
 
             {focus && (
               <div>
                 <p className="mb-1 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Focus this week</p>
-                <p className="font-serif text-lede leading-relaxed text-ink-muted">{focus}</p>
+                <p className="font-body text-lede leading-relaxed text-ink-muted">{focus}</p>
               </div>
             )}
 

@@ -137,7 +137,12 @@ export function DesktopSidebar({ active, onChange }: Props) {
               type="button"
               onClick={() => setDrawerOpen(o => !o)}
               aria-label="More tabs"
-              className={`w-full min-h-[42px] flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all motion-reduce:transition-none border ${
+              // The one control in the sidebar without a focus ring. Every peer
+              // here carries the house `focus-visible:ring-2 ring-violet-400/50`;
+              // this one was missed, so a keyboard user tabbing down the nav lost
+              // the cursor for exactly one stop — the stop that opens the drawer
+              // holding Focus and Subscriptions.
+              className={`w-full min-h-[42px] flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all motion-reduce:transition-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
                 drawerOpen
                   ? 'bg-white/[0.04] text-ink-muted border-white/10'
                   : 'text-ink-faint hover:text-ink-muted hover:bg-white/[0.04] border-transparent'

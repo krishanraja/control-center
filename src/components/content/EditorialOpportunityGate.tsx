@@ -137,7 +137,7 @@ export function EditorialOpportunityGate({
               <span className="text-micro text-[#102017]/48">{opportunity.corroboration} source{opportunity.corroboration === 1 ? '' : 's'}</span>
             </div>
 
-            <h1 className="mt-3 break-words font-serif text-[clamp(1.65rem,5vw,2.65rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
+            <h1 className="mt-3 break-words font-serif text-heading sm:text-display font-semibold leading-[0.98] tracking-[-0.035em]">
               {opportunity.title || opportunity.angle || idea.idea}
             </h1>
 
@@ -156,7 +156,7 @@ export function EditorialOpportunityGate({
             <div className="mt-7">
               <div className="editorial-kicker">Recommended angle</div>
               <div className="mt-2 rounded-xl border border-emerald-700/24 bg-white/45 p-4">
-                <p className="break-words text-[1.08rem] font-semibold leading-snug">
+                <p className="break-words text-lede font-semibold leading-snug">
                   {opportunity.recommended_version || opportunity.angle}
                 </p>
                 {opportunity.recommendation_reason ? (

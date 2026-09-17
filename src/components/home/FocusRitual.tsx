@@ -210,6 +210,7 @@ const STEP_TITLE: Record<StepId, string> = {
 // accept/pass chips (a pass feeds his learning loop). Every action writes
 // immediately through the one goal wire path — there is no separate commit.
 function WeeklyStep() {
+  const canonWork = useWork('canon.read')
   const { canon, loading, refresh } = useGoalCanon()
   const h = useHaptics()
   const { toast } = useToast()
@@ -352,7 +353,7 @@ function WeeklyStep() {
           This week · {activeCount}/3
         </p>
         {loading ? (
-          <div className="text-label text-ink-faint"><Working size={12} className="inline mr-2" />Loading the canon…</div>
+          <div className="text-label text-ink-faint"><Working size={12} className="inline mr-2" />{canonWork.label}</div>
         ) : weekly.length === 0 ? (
           <p className="text-label text-ink-faint">Nothing set yet. Write the first one below.</p>
         ) : (

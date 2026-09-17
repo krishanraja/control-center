@@ -224,6 +224,32 @@ export default function App() {
         >
         <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
           <AmbientField />
+          {/* Skip to content. The desktop sidebar is ten focusable stops —
+              six destinations, the collapse, the theme, the ambient toggle and
+              the timezone — so a keyboard user pressed Tab ten times to reach
+              the page on EVERY navigation. Measured 2026-09-17.
+
+              Invisible until focused, first in the tab order, and it moves
+              focus rather than only the scroll position, so the next Tab
+              continues inside the content instead of resuming in the nav. */}
+          {!narrow && !videoReviewOpen && (
+            <button
+              type="button"
+              data-testid="skip-to-content"
+              onClick={() => {
+                const main = mainRef.current
+                if (!main) return
+                const target = main.querySelector<HTMLElement>(
+                  'button, a[href], input, [tabindex="0"]',
+                ) ?? main
+                if (target === main) main.setAttribute('tabindex', '-1')
+                target.focus()
+              }}
+              className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:border focus:border-command-border focus:bg-command-surface focus:px-3 focus:py-2 focus:text-body focus:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+            >
+              Skip to content
+            </button>
+          )}
           {!narrow && !videoReviewOpen && <DesktopSidebar active={tab} onChange={handleTab} />}
           {/* No-scroll app shell: the window never scrolls. main is a fixed,
               non-scrolling region; each tab owns its inner scroll — mobile via its
