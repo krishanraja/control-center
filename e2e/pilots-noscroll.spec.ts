@@ -1,5 +1,8 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 import { answerPilotGate } from './pilot-gate-mock'
+// The lane's name comes from the product, so a rename never leaves a spec
+// asserting a word the app no longer says.
+import { ADVISORY_LABEL } from '../src/hooks/usePilots'
 
 /**
  * The no-scroll contract for Pilots.
@@ -167,7 +170,7 @@ for (const vp of PHONES) {
       await mock(page, state)
       await page.goto('/#/people?lane=pilots')
 
-      await expect(page.getByRole('heading', { name: 'Pilots' })).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByRole('heading', { name: ADVISORY_LABEL })).toBeVisible({ timeout: 15_000 })
       // The counts moved onto the deck's own progress strip rather than
       // spending a band of their own; the empty state has no deck to carry
       // them, so it says the empty line instead.

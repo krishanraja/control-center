@@ -163,17 +163,21 @@ export function useCustomers() {
 // them are preserved, not deleted — labels/accents/tones stay defined so those
 // rows keep rendering their real product name instead of crashing or falling
 // back to the raw enum string.
+// Words match the venture registry mirror (src/lib/ventureOptions.ts). This
+// enum has its own slug space, so the labels are written out rather than
+// derived, but they must never disagree with it — a product wears one name
+// across the OS. Ruling (Krish, 2026-09-17): Advisory, Media, Circle, Pulse.
 export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   gutted: 'Gutted',
   onalert: 'On Alert',
   merciless: 'Merciless',
-  fractionl_circle: 'Fractionl Circle',
-  fractionl_pulse: 'Fractionl Pulse',
-  mm_ctrl: 'mm-ctrl',
+  fractionl_circle: 'Circle',
+  fractionl_pulse: 'Pulse',
+  mm_ctrl: 'CTRL',
   legibility: 'Legibility',
   full_time: 'Full Time',
-  mindmake: 'Mindmake',
-  publication: 'Publication',
+  mindmake: 'Advisory',
+  publication: 'Media',
   // Retired as a brand 2026-08-06 and folded into Mindmake LIVE. The enum value
   // stays (Postgres enums cannot drop values) and existing rows keep rendering.
   tech0nomic: 'Techonomic (retired)',

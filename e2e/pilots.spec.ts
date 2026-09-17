@@ -1,5 +1,8 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 import { answerPilotGate } from './pilot-gate-mock'
+// The lane's name comes from the product, so a rename never leaves a spec
+// asserting a word the app no longer says.
+import { ADVISORY_LABEL } from '../src/hooks/usePilots'
 
 /**
  * The Pilots lane on People (job 1 of the one swing).
@@ -77,10 +80,10 @@ async function openPilots(page: Page) {
   await expect(page.getByTestId('pilot-counts')).toBeVisible()
 }
 
-test('the people-lane-pilots control switches to Pilots', async ({ page }) => {
+test('the people-lane-pilots control switches to Advisory', async ({ page }) => {
   await openPilots(page)
   await expect(page.getByTestId('people-lane-pilots')).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('heading', { name: 'Pilots' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: ADVISORY_LABEL })).toBeVisible()
   await expect(page.getByTestId('pilot-counts')).toContainText('1 listed, 1 drafted')
 })
 

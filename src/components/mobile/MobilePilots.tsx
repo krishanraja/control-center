@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MobileShell } from './MobileShell'
 import { MindmakeIdentity } from '../shared/MindmakeIdentity'
 import { PilotsBody } from '../desktop/DesktopPilots'
+import { ADVISORY_LABEL } from '../../hooks/usePilots'
 
 /**
  * Pilots on a phone: one fixed screen, never a page.
@@ -29,7 +30,7 @@ export function MobilePilots() {
         <div className="flex items-center gap-2.5">
           <MindmakeIdentity size={28} />
           <div className="min-w-0">
-            <h1 className="text-title font-bold leading-none tracking-tight text-white">Pilots</h1>
+            <h1 className="text-title font-bold leading-none tracking-tight text-white">{ADVISORY_LABEL}</h1>
             {/* Only while the deck is up. The old subtitle read "25 leaders you
                 already know" on every visit, which was both a row of chrome
                 the counts line immediately repeated and a number the list did

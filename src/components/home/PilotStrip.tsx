@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight } from '@/lib/icons'
 import { Eyebrow } from '../shared/Eyebrow'
+import { ADVISORY_LABEL } from '../../hooks/usePilots'
 
 // One line on Home: how many drafted approaches are waiting for Krish to
 // send, and the way to them. Renders nothing when nothing is drafted.
@@ -43,7 +44,7 @@ export function PilotStrip({ onNavigate }: { onNavigate?: NavigateFn }) {
       onClick={() => onNavigate?.('people', { lane: 'pilots' })}
       className="flex items-center gap-2 min-h-[28px] max-h-[34px] w-full text-left group"
     >
-      <Eyebrow tone="accent">Pilots</Eyebrow>
+      <Eyebrow tone="accent">{ADVISORY_LABEL}</Eyebrow>
       <span className="text-label text-white/80 truncate">
         {drafted} drafted approach{drafted === 1 ? '' : 'es'} waiting to send
       </span>

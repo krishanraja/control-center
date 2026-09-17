@@ -101,9 +101,15 @@ export function isLeadCandidate(l: LeadRow): boolean {
   return !l.deep_enriched_at && (l.status === 'new' || l.status === 'enriching')
 }
 
+/**
+ * Title-casing a slug is not a vocabulary. It happened to spell
+ * `fractionl_circle` correctly and spelled `mm_ctrl` "Mm Ctrl", a fourth name
+ * for CTRL alongside the registry's "CTRL", Growth's "mm-ctrl" and the check-in's
+ * old "CTRL". The registry mirror owns the words; title-case is the fallback for
+ * a slug it has never heard of, which is what `ventureLabel` already does.
+ */
 function ventureLabel(slug?: string | null): string {
-  if (!slug) return ''
-  return slug.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return contactVentureLabel(slug) ?? ''
 }
 
 /**

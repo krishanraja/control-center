@@ -58,9 +58,9 @@ function fmtVolume(v: number | null): string {
  * to say which product it belongs to.
  */
 const LANE_LABEL: Record<string, string> = {
-  mm_ctrl: 'mm-ctrl',
-  fractionl_circle: 'Fractionl Circle',
-  fractionl_pulse: 'Fractionl Pulse',
+  mm_ctrl: 'CTRL',
+  fractionl_circle: 'Circle',
+  fractionl_pulse: 'Pulse',
   full_time: 'Full Time',
   legibility: 'Legibility',
 }

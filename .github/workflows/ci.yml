@@ -47,6 +47,7 @@ jobs:
       # this keeps direct lucide imports, stray stroke weights, and emoji
       # stand-ins from creeping back.
       - run: npx tsx scripts/check-icons.mts
+      - run: npx tsx scripts/check-icon-stroke.mts
       # Same reason: 274 of 323 content ideas were unpurgeable because eleven
       # insert paths could each forget an expiry. The invariant now lives in a
       # column default, and this checks the default, the reserved meaning of

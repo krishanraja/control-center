@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SearchX, AlertTriangle, MapPin } from '@/lib/icons'
 import { Card } from '@/components/ui/card'
+import { BOTTOM_NAV_PAD } from '../mobile/MobileShell'
 import { useNetworkSearch, type NetworkResult } from '../../hooks/useNetworkSearch'
 import { NetworkSearchBar } from './NetworkSearchBar'
 import { NetworkFilters, EMPTY_FILTERS, type FilterState } from './NetworkFilters'
@@ -125,7 +126,14 @@ export function NetworkTab({ narrow, onOpenPerson }: {
     : null
 
   return (
-    <div className={`flex h-full flex-col overflow-hidden ${narrow ? 'pb-[calc(env(safe-area-inset-bottom,0px)+120px)]' : ''}`}>
+    // Padding on an overflow-hidden box does not make room, it removes it: the
+    // clip edge moves UP by the padding, so the lane's last 120px were cut
+    // off rather than scrolled to. That is what sliced "Ask a question, or pick
+    // a venture above." in half above the bottom nav. Krish, 2026-09-17: "There
+    // should be no artificial cut off above the bottom nav bar."
+    // The clearance belongs on the scrolling child, below, where it becomes
+    // scrollable room instead of a hidden strip.
+    <div className="flex h-full flex-col overflow-hidden">
       <div className="shrink-0">
         <NetworkSearchBar
           onSearch={q => runSearch(q, filters)}
@@ -179,7 +187,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         {!hasRun && <VentureRecommender onRecommend={onRecommend} loading={s.loading} active={recommendation} />}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={`min-h-0 flex-1 overflow-y-auto ${narrow ? BOTTOM_NAV_PAD : ''}`}>
         {s.error && (
           <Card variant="outline" className="mx-4 mt-3 border-rose-400/25 bg-rose-500/[0.06] p-3">
             <p className="text-body text-rose-200">{s.error}</p>

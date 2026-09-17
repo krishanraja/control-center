@@ -191,6 +191,17 @@ Content and the Video and Carousel Studio projection.
 
 One source, one weight, one rhythm — the icon counterpart of the type sweep.
 
+- **Nothing sets the stroke from CSS.** A CSS declaration beats an SVG
+  presentation attribute, so one stylesheet rule overrides every call site at
+  once while every other guard stays green. `index.css` carried
+  `svg.lucide, svg[fill='none'][…] { stroke-width: 1.5px }` from before the
+  wrapper existed, and it did exactly that: measured live on `#/home`, icons
+  rendered **0.75px at 12px, 0.88px at 14px and 1.00px at 16px** against the
+  intended constant 1.75, and the nav's 2.25 active weight was flattened to the
+  same 1.00 as an inactive tab — so active chrome had no weight cue at all.
+  `1.5px` inside a 24-unit viewBox is 1.5 *user units*, which is why the stroke
+  scaled with size again: the precise defect `absoluteStrokeWidth` exists to
+  remove. Removed 2026-09-17; `scripts/check-icon-stroke.mts` fails its return.
 - **Every icon ships through `src/lib/icons.tsx`** — lucide glyphs wrapped
   once with `absoluteStrokeWidth` and the house stroke (`ICON_STROKE = 1.75`),
   so a 12px glyph and a 24px glyph carry the same physical line weight,
@@ -284,6 +295,27 @@ each:
    moves into the sheet and remains whole. Do not abbreviate it with an
    ellipsis or clip it inside a chip.
 
+## Options are not content
+
+Locked 2026-09-17 (Krish: "give me this optionality without consuming most of
+the screen", and "there should be no artificial cut off above the bottom nav
+bar"). A set of choices earns its height only until a choice is made.
+
+- **A list of options collapses once one is picked.** The morning check-in's
+  intent stage kept all seven rows on screen and then opened the venture grid
+  underneath, needing 715px. Nothing on a phone has 715px for a question with
+  one answer, so the heading clipped off the top and the last chips sat under
+  the footer. It now collapses to the chosen intent with a way back, and the
+  stage is 355px — it fits at 360x640 with room to spare.
+- **Long example copy folds on a phone, opens on the desk**, the same rule as
+  Read first, rows second. Network's four example questions are sentences, and
+  wrapped to 223 of 640 CSS pixels before a single result.
+- **Never pad an `overflow-hidden` box to clear the bottom nav.** Padding a
+  clipping box moves the clip edge up: the content is cut off rather than
+  scrolled to. The clearance belongs on the `overflow-y-auto` child, which is
+  what `BOTTOM_NAV_PAD` (`mobile/MobileShell`) is for. NetworkTab padded the
+  clipping box with a hand-rolled 120px and sliced its own empty state in half.
+
 ## Read first, rows second
 
 Locked 2026-09-08, after the Growth tab's signal and review sections read as
@@ -325,6 +357,23 @@ Every string the product renders:
 - Product nouns are kept, not diluted: shifts, ventures, ships, the worry
   compiler, Built/Paid, MRR. One vocabulary per concept — never rename a
   canon term on one surface while the others keep it.
+- **The venture vocabulary has one owner: `src/lib/ventureOptions.ts`**, which
+  mirrors `venture_registry`. It had five owners until 2026-09-17 and they
+  disagreed: the same venture was "CTRL" in the registry, "mm-ctrl" in Growth
+  and Subscriptions, and "Mm Ctrl" on the triage deck (a title-cased slug is
+  not a vocabulary); the morning check-in said "Live", "Circle" and "Pulse"
+  where every other surface said "Publication", "Fractionl Circle" and
+  "Fractionl Pulse", so Krish answered "On what?" against one set of words at
+  7am and searched his network against another a minute later. `contactSignals`
+  was missing `fractionl_circle` outright and rendered the raw slug for it.
+  `ventureLabel(slug)` is now the one way to turn a venture into words, and it
+  normalises the three slug spellings (`ctrl`/`mm_ctrl`, `circle`/
+  `fractionl_circle`, `full-time`/`full_time`) that the tables grew separately.
+  The slugs are foreign keys and enum values and do NOT move; only the words do.
+  Ruling (Krish, 2026-09-17): Advisory, Media, CTRL, Circle, Pulse, Full Time.
+  The advisory lane is Advisory too — "The Room" is retired as vernacular
+  (`ADVISORY_LABEL` in `src/hooks/usePilots.ts`; the `pilots` slug stays so
+  links keep resolving).
 - Loading strings live only in `src/lib/loadingVoice.ts` (see the ladder
   below); the pilot surfaces additionally hold the stricter pilot register
   (direct, calm, zero reassurance — `docs/PILOT-LAYER.md`).

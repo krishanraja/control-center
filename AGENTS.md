@@ -23,7 +23,7 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | Text sizes + section labels | Role tokens `text-micro…text-hero`; uppercase labels are `shared/Eyebrow` | `scripts/check-type-tokens.mts` (CI) |
 | Text hierarchy | `text-ink` / `text-ink-muted` / `text-ink-faint`. The `text-strong/muted/faint` class spelling is retired | `scripts/check-type-tokens.mts` (CI) |
 | The serif payoff line | `shared/Claim` (family, size, leading, colour and its source line in one recipe). Never hand-roll `font-serif` for a headline | convention |
-| Icons | `@/lib/icons` wrapper (constant 1.75px physical stroke, snapped sizes); circled icons are `shared/IconTile` | `scripts/check-icons.mts` (CI) |
+| Icons | `@/lib/icons` wrapper (constant 1.75px physical stroke, snapped sizes); circled icons are `shared/IconTile`. **No stylesheet may set `stroke-width` on a glyph** — CSS beats the SVG attribute and silently overrides every call site | `scripts/check-icons.mts` + `scripts/check-icon-stroke.mts` (CI) |
 | Overlays | `shared/Modal` / `shared/SlideOver` / `mobile/BottomSheet` (all on `ui/dialog`, which owns the keyboard inset) | convention |
 | Editing a piece of text on a phone | `shared/FocusedEditor` — sheet, voice beside keyboard, one full-width Save, danger behind "…" | convention |
 | Choosing from a small set | Chips, never a native `<select>`: `goals/GoalPickers` (`OptionChips` / `ServesPicker` / `VentureChips`); `shared/ChipOverflow` when the set outgrows a line | convention |
@@ -31,6 +31,7 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | Tab / section switching | `shared/SegmentedNav`, always with `testIdPrefix` | e2e selects on it |
 | Goal reads/writes | `useGoalCanon` + `src/lib/goalsApi.ts` | `check-goal-ladder` / `check-goal-gate` (CI) |
 | Loading states | The ladder in `docs/DESIGN_SYSTEM.md`; every string in `src/lib/loadingVoice.ts` | convention |
+| Venture / product names | `ventureLabel()` in `src/lib/ventureOptions.ts` (mirrors `venture_registry`, normalises the three slug spellings). Never a second label map, never a title-cased slug | convention |
 | Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR). User-facing text wraps in full and is never ellipsised or line-clamped. | `scripts/check-editorial-text-integrity.mts` + review |
 | Humour, and prompts that propose work | `api/_humor.ts`. `buildHumourSystem()` for a humour pass on existing text; `proposalPlay(n)` in any prompt that hands Krish work to choose from, which spends one proposal per batch on a marked swing. A proposal prompt that is only prohibitions returns joyless work | review |
 

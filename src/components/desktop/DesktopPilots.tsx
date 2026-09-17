@@ -13,7 +13,7 @@ import { degradedWords } from '../../lib/degradedWords'
 import type { PilotDealItem } from '../../lib/triageConfig'
 import { feedbackVote } from '../../lib/triageActions'
 import {
-  addPilotDeal, patchPilot, PILOT_STATE_LABEL, PILOT_STATES, seedPilots, usePilots,
+  addPilotDeal, ADVISORY_LABEL, patchPilot, PILOT_STATE_LABEL, PILOT_STATES, seedPilots, usePilots,
 } from '../../hooks/usePilots'
 import type { PilotDealRow, PilotProposal, PilotState } from '../../hooks/usePilots'
 
@@ -253,7 +253,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
     <header>
       <h1 className="text-title font-semibold text-white tracking-tight flex items-center gap-2">
         <Users size={20} className="text-violet-300" />
-        Pilots
+        {ADVISORY_LABEL}
       </h1>
       <FreshnessLine lane="pilots" />
     </header>

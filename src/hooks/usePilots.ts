@@ -12,6 +12,18 @@ export const PILOT_STATES: PilotState[] = [
   'listed', 'drafted', 'sent', 'replied', 'call_booked', 'call_taken', 'pilot_booked', 'pilot_paid', 'not_now',
 ]
 
+/**
+ * What this lane is called, in one place.
+ *
+ * Ruling (Krish, 2026-09-17): "The Room should be called Advisory too. The Room
+ * should not exist as vernacular." The lane was The Room until 2026-09-16, when
+ * ADR-023 renamed it to Pilots; it is Advisory now, the same word the
+ * `mindmake` venture wears, because they are the same motion. The slug stays
+ * `pilots` so every existing link, deep link and test id keeps resolving, and
+ * the component and table names are internal, not vernacular.
+ */
+export const ADVISORY_LABEL = 'Advisory'
+
 export const PILOT_STATE_LABEL: Record<PilotState, string> = {
   listed: 'Listed',
   drafted: 'Drafted',

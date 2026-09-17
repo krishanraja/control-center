@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { ventureLabel } from '../src/lib/ventureOptions'
 
 /**
  * Growth tab E2E, deterministic: every /api/* and Supabase call is mocked.
@@ -248,8 +249,11 @@ test('signals merges the GEO citation rate with the SEO rank sweep', async ({ pa
   await expect(page.getByText('AI news aggregator')).toBeVisible()
   await expect(page.getByText('#8')).toBeVisible()
   await expect(page.getByText('not ranking')).toBeVisible()
-  await expect(page.getByText('mm-ctrl')).toBeVisible()
-  await expect(page.getByText('Fractionl Pulse')).toBeVisible()
+  // The words come from src/lib/ventureOptions.ts now, so this asserts the
+  // product's current vocabulary rather than a copy of it. Ruling (Krish,
+  // 2026-09-17): CTRL, not "mm-ctrl"; Pulse, not "Fractionl Pulse".
+  await expect(page.getByText(ventureLabel('mm_ctrl') as string)).toBeVisible()
+  await expect(page.getByText(ventureLabel('fractionl_pulse') as string)).toBeVisible()
 })
 
 test('integrations panel groups tools by status and shows gated reasons', async ({ page }) => {

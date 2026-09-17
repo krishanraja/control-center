@@ -5,27 +5,14 @@ import type { ContactRow } from '../hooks/useRealtimeContacts'
 // identical in both places. None of this spends a credit — it reads what's already
 // known (fit scores + any dossier already on file).
 
-// meliora and adfixus were retired in July 2026. Their labels stay so contacts
-// tagged before then still render a name instead of a blank chip; they are absent
-// from every venture picker, so nothing new can be filed against them.
-export const VENTURE_LABEL: Record<string, string> = {
-  mindmake: 'Mindmake', publication: 'Publication', mm_ctrl: 'CTRL',
-  full_time: 'Full Time', investor: 'Investor',
-  meliora: 'Meliora (retired)', adfixus: 'AdFixus (retired)',
-  // Retired as ventures 2026-08-11. Signal & Noise still exists as a
-  // distribution channel; it is just no longer something a contact is filed under.
-  signal_noise: 'Signal & Noise (retired as a venture)',
-  builder_economy: 'Builder Economy (retired)', mymu: 'MYMU (retired)',
-  // Both spellings. `fractionl` is what the database holds (19 primary_venture
-  // rows, 414 fit_scores keys); `fractionl_pulse` is what the pickers have been
-  // sending. Labelling only one left the other rendering a raw slug.
-  fractionl: 'Fractionl', fractionl_pulse: 'Fractionl Pulse',
-}
-
-export function ventureLabel(v?: string | null): string | null {
-  if (!v) return null
-  return VENTURE_LABEL[v] || v.replace(/_/g, ' ')
-}
+// The venture vocabulary is owned by src/lib/ventureOptions.ts, which mirrors
+// the `venture_registry` table. This module used to keep a rival copy, and it
+// had drifted: it was missing `fractionl_circle` entirely, so a contact tagged
+// with it rendered the raw slug ("fractionl circle", lower case) beside
+// contacts that rendered "Fractionl Pulse" correctly. Re-exported rather than
+// deleted so the four existing import sites keep working.
+import { VENTURE_LABELS, ventureLabel } from './ventureOptions'
+export { VENTURE_LABELS as VENTURE_LABEL, ventureLabel } from './ventureOptions'
 
 /** Highest per-venture fit score + which venture it's for. */
 export function topFit(fit?: Record<string, number> | null): { venture: string; score: number } | null {
@@ -77,7 +64,7 @@ function clip(s: string, max: number): string {
 export function dossierVentureAngle(dossier: any, ventureSlug?: string | null, max = 260): string | null {
   const angles = dossier?.pass4_cross_venture?.per_venture_angle
   if (!Array.isArray(angles) || angles.length === 0) return null
-  const label = ventureSlug ? (VENTURE_LABEL[ventureSlug] || ventureSlug) : null
+  const label = ventureSlug ? (VENTURE_LABELS[ventureSlug] || ventureSlug) : null
   let match: any = null
   if (label) {
     const key = label.toLowerCase().split(' ')[0]

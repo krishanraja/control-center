@@ -237,16 +237,22 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Refine every Lucide icon to a single, lighter stroke weight. A
-     consistent 1.5px line reads as far more sophisticated than the
-     default heavier 2px, and removes the inconsistent per-icon weights.
-     We match both the `.lucide` class and Lucide's signature attribute
-     set, because passing a custom `className` (for sizing) drops the
-     class but always keeps fill="none" + round caps/joins. */
-  svg.lucide,
-  svg[fill='none'][stroke-linecap='round'][stroke-linejoin='round'] {
-    stroke-width: 1.5px;
-  }
+  /* NO GLOBAL ICON STROKE RULE. It lives in `src/lib/icons.tsx`.
+     This block used to set `stroke-width: 1.5px` on every lucide svg, from
+     before the 2026-08 recompose gave icons a wrapper. A CSS declaration
+     beats an SVG presentation attribute, so that one rule silently overrode
+     the whole icon system for every glyph in the app:
+       • `ICON_STROKE = 1.75` never reached the screen.
+       • `absoluteStrokeWidth` never reached the screen either, and it is the
+         entire point of the wrapper. `1.5px` inside a 24-unit viewBox is 1.5
+         USER UNITS, so the physical stroke scaled with the icon again: a 12px
+         glyph rendered 0.75px, a 16px glyph 1.0px. That is precisely the
+         "assembled from parts" look the wrapper exists to remove.
+       • The nav's 2.25 active-tab weight step was flattened to the same 1.0px
+         as an inactive tab, so active chrome lost its weight cue entirely.
+     Measured live on #/home before removal: 0.75 / 0.88 / 1.00px at 12 / 14 /
+     16px, against an intended constant 1.75 (2.25 active).
+     `scripts/check-icon-stroke.mts` fails any attempt to reintroduce it. */
 
   /* Safe area support for iOS notch / Android gesture bar */
   .pb-safe {

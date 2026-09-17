@@ -4,6 +4,7 @@ import { isUiV2 } from '../../lib/uiV2'
 import { isBridgesLane } from '../../lib/bridgesLane'
 import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
+import { ADVISORY_LABEL } from '../../hooks/usePilots'
 
 // People: the one tab for every human pipeline. Network (the graph), Hunt
 // (the job search: roles Krish said Yes to and who gets him in), Visibility
@@ -42,7 +43,7 @@ const LANES: Array<{ id: PeopleLane; label: string }> = [
   { id: 'network', label: 'Network' },
   ...(isBridgesLane() ? [{ id: 'bridges' as const, label: 'Hunt' }] : []),
   { id: 'visibility', label: 'Visibility' },
-  { id: 'pilots', label: 'Pilots' },
+  { id: 'pilots', label: ADVISORY_LABEL },
 ]
 
 interface Props {

@@ -3,6 +3,7 @@ import { Search, Mic, Square, CornerDownLeft, X } from '@/lib/icons'
 import { Input } from '@/components/ui/input'
 import { browserCanRecord } from '../shared/VoiceCapture'
 import { Working } from '../shared/Working'
+import { detectDeviceClass } from '../shared/motion'
 
 // The one input. Type it or say it.
 //
@@ -38,6 +39,8 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
 }) {
   const [q, setQ] = useState('')
   const [recording, setRecording] = useState(false)
+  // The desk has room for the questions; the phone opens on the one line.
+  const [examplesOpen, setExamplesOpen] = useState(() => detectDeviceClass() === 'desktop')
   const [micError, setMicError] = useState<string | null>(null)
   const recRef = useRef<MediaRecorder | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -94,7 +97,14 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
               // the operator already uses and costs nothing to support.
               if (e.key === 'Escape' && dirty) { e.preventDefault(); clear() }
             }}
-            placeholder="Ask your network anything"
+            // The field shares its row with a 44px mic and a 44px submit, which
+            // leaves it 114px of text width on a 360px phone — measured, not
+            // estimated. "Ask your network anything" needs 186px and rendered
+            // "Ask your networl"; even "Ask your network" needs 122px and still
+            // clipped. User-facing text is never cut off, so the placeholder is
+            // the short form that fits (92px) and the full sentence lives on the
+            // accessible name, where width is not a constraint.
+            placeholder="Ask anything"
             aria-label="Ask your network anything"
             data-testid="network-search-input"
             icon={<Search size={14} />}
@@ -155,18 +165,44 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
         </p>
       )}
 
+      {/* Read first, rows second (docs/DESIGN_SYSTEM.md). These four examples are
+          full sentences, so on a phone they wrapped to two lines each and took
+          223 of 640 CSS pixels — 35% of the screen, before a single result, on
+          a surface whose whole job is the result. Krish, 2026-09-17: "give me
+          this optionality without consuming most of the screen."
+
+          So the phone opens on one line and folds the questions under a
+          disclosure; the desk, which has the room, opens them. Same rule the
+          Growth sections already follow. `truncate` is gone with them: it
+          contradicted the text-integrity rule (user-facing text is never
+          ellipsised), and inside the sheet there is room for the whole
+          sentence anyway. */}
       {!restated && !loading && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {EXAMPLES.map(x => (
+        <div className="mt-3">
+          {!examplesOpen && (
             <button
-              key={x}
               type="button"
-              onClick={() => { setQ(x); onSearch(x) }}
-              className="max-w-full truncate rounded-full border border-white/10 px-2.5 py-1 text-left text-label text-white/60 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              onClick={() => setExamplesOpen(true)}
+              data-testid="network-examples-toggle"
+              className="inline-flex min-h-[32px] items-center gap-1 text-label text-ink-muted underline underline-offset-4 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
-              {x}
+              Show {EXAMPLES.length} example questions
             </button>
-          ))}
+          )}
+          {examplesOpen && (
+            <div className="flex flex-wrap gap-1.5" data-testid="network-examples">
+              {EXAMPLES.map(x => (
+                <button
+                  key={x}
+                  type="button"
+                  onClick={() => { setQ(x); onSearch(x) }}
+                  className="max-w-full rounded-2xl border border-white/10 px-2.5 py-1 text-left text-label text-white/60 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+                >
+                  {x}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { ventureLabel } from './ventureOptions'
 /**
  * Growth tab: shared types, labels and small pure helpers.
  *
@@ -94,13 +95,14 @@ export interface SocialAccountRow {
 
 export const PRODUCTS: ProductSlug[] = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmake']
 
-export const PRODUCT_LABEL: Record<ProductSlug, string> = {
-  ctrl: 'mm-ctrl',
-  circle: 'Fractionl Circle',
-  pulse: 'Fractionl Pulse',
-  'full-time': 'Full Time',
-  mindmake: 'Mindmake',
-}
+// The words come from the venture registry mirror, not from here. This map
+// used to hold its own spellings and they had drifted: "mm-ctrl" where every
+// other surface said "CTRL", and the long "Fractionl" names Krish retired on
+// 2026-09-17. `ventureLabel` normalises this file's slug spelling (`ctrl`,
+// `circle`, `pulse`, `full-time`) onto the registry's.
+export const PRODUCT_LABEL: Record<ProductSlug, string> = Object.fromEntries(
+  PRODUCTS.map(slug => [slug, ventureLabel(slug) as string]),
+) as Record<ProductSlug, string>
 
 // Hue family matches the Subscriptions tab so one product wears one colour
 // across the OS. Literal class strings so the Tailwind scanner sees them.

@@ -3,6 +3,7 @@ import type { PilotCheckin, PilotMode, YesterdayRecap } from '../../types/pilot'
 import { computeMode, saveMorning } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
 import { INTENTS, type Intent } from '../../lib/pilotIntent'
+import { ventureLabel } from '../../lib/ventureOptions'
 import { readingFor, stoicFor } from '../../lib/pilotStoic'
 import { ANXIETY_ANCHORS, ENERGY_ANCHORS, anxietyColor, energyColor } from '../../lib/pilotColor'
 import { bucketFor, type StateBucket } from '../../lib/pilotStoic'
@@ -55,14 +56,25 @@ const MOOD_CHIPS_BY_BUCKET: Record<StateBucket, string[]> = {
 // Accountability: which venture is today actually for. Mirrors
 // venture_registry active ventures; kept short because this is a phone screen
 // at 7am, not a picker.
-const VENTURE_CHOICES: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmake', label: 'Mindmake' },
-  { slug: 'publication', label: 'Live' },
-  { slug: 'mm_ctrl', label: 'CTRL' },
-  { slug: 'full_time', label: 'Full Time' },
-  { slug: 'fractionl_circle', label: 'Circle' },
-  { slug: 'fractionl_pulse', label: 'Pulse' },
-]
+/**
+ * The ventures offered as "On what?", in the order the morning asks them.
+ *
+ * The LABELS are not this file's to choose. They used to be: this list said
+ * "Live", "Circle" and "Pulse" where the venture registry — and therefore the
+ * Network lane, the pipeline, the pills and Subscriptions — says "Publication",
+ * "Fractionl Circle" and "Fractionl Pulse". Same six ventures, two vocabularies,
+ * a minute apart in the same morning. Now the order is local and the words come
+ * from the registry mirror, so a rename lands everywhere at once.
+ *
+ * `investor` is deliberately not offered here. It is an active venture, but
+ * "today is for raising" is not a shift the check-in is asking about.
+ */
+const VENTURE_CHOICE_SLUGS = [
+  'mindmake', 'publication', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse',
+] as const
+
+const VENTURE_CHOICES: Array<{ slug: string; label: string }> =
+  VENTURE_CHOICE_SLUGS.map(slug => ({ slug, label: ventureLabel(slug) as string }))
 
 /** Fallback only for the case where the reading is somehow missing. */
 const MOOD_CHIPS_DEFAULT = ['clear', 'steady', 'scattered', 'flat', 'wired', 'heavy']
@@ -202,8 +214,23 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
           </p>
         </header>
 
-        {/* The one flexible region. Everything centres here and never overflows. */}
-        <main className="flex-1 min-h-0 flex flex-col justify-center py-2">
+        {/* The one flexible region. The stage centres when it fits and scrolls
+            when it does not.
+
+            It used to be `justify-center` with no overflow, on the claim that
+            it "never overflows". The intent stage does: seven intent rows plus
+            the venture grid need 715px, and a centred flex item whose content
+            exceeds the box overflows BOTH ends, so the parent's overflow-hidden
+            ate the top while the footer covered the bottom. Measured: at
+            390x844 the heading was cut off and "Skip, no single venture today"
+            sat under the footer; at 360x640, 218px short, the heading and the
+            first intent were gone and four venture chips were unreachable.
+
+            `my-auto` on the stage rather than `justify-center` here is what
+            makes both cases work: auto margins centre the item while there is
+            free space and resolve to zero once there is not, so the scroll
+            starts at the top of the content instead of past it. */}
+        <main className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-contain py-2">
           {stage === 'read' && (
             <Fade key="read">
               <h1 className="font-display text-heading leading-[1.15] mb-7">How is it, honestly?</h1>
@@ -282,23 +309,44 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
           {stage === 'intent' && (
             <Fade key="intent">
               <h1 className="font-display text-heading leading-[1.15] mb-6">What is today for?</h1>
-              <div className="flex flex-col gap-2">
-                {INTENTS.map(i => (
-                  <button
-                    key={i.key}
-                    type="button"
-                    onPointerDown={() => h.select()}
-                    onClick={() => { setIntent(i); h.select() }}
-                    className={`min-h-[52px] px-4 rounded-2xl text-ui text-left border transition-all active:scale-[0.98] touch-manipulation ${
-                      intent?.key === i.key
-                        ? 'bg-ink/[0.10] border-ink/25 text-ink'
-                        : 'bg-ink/[0.02] border-ink/[0.08] text-ink-muted'
-                    }`}
-                  >
-                    {i.label}
-                  </button>
-                ))}
-              </div>
+              {/* Seven intents plus the venture grid needed 715px. Nothing on a
+                  phone has 715px for a question with one answer, so the heading
+                  clipped off the top and the last venture chips sat under the
+                  footer (measured: 390x844 short by 14px, 360x640 by 218px).
+                  Krish, 2026-09-17: "give me this optionality without consuming
+                  most of the screen."
+
+                  A list of options is only worth its height until one is
+                  picked. So the seven collapse to the chosen one, which stays a
+                  button back to the list, and the room goes to the question
+                  that is now live. The stage drops to ~330px and fits every
+                  viewport without scrolling. */}
+              {intent ? (
+                <button
+                  type="button"
+                  onPointerDown={() => h.select()}
+                  onClick={() => { setIntent(null); setVenture(null) }}
+                  aria-label={`Today is for: ${intent.label}. Choose something else.`}
+                  className="w-full min-h-[52px] px-4 rounded-2xl text-ui text-left border bg-ink/[0.10] border-ink/25 text-ink flex items-center justify-between gap-3 transition-all active:scale-[0.98] touch-manipulation"
+                >
+                  <span>{intent.label}</span>
+                  <span className="text-label text-ink-muted shrink-0">Change</span>
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {INTENTS.map(i => (
+                    <button
+                      key={i.key}
+                      type="button"
+                      onPointerDown={() => h.select()}
+                      onClick={() => { setIntent(i); h.select() }}
+                      className="min-h-[52px] px-4 rounded-2xl text-ui text-left border transition-all active:scale-[0.98] touch-manipulation bg-ink/[0.02] border-ink/[0.08] text-ink-muted"
+                    >
+                      {i.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Krish: "if I select one of these, ideally I can choose which
                   venture to focus on as well, for accountability." The intent
@@ -400,9 +448,11 @@ export function MorningCheckin({ yesterday, lastEvening = null, today, onDone }:
   )
 }
 
-/** A stage entrance. Short, so it never feels like waiting. */
+/** A stage entrance. Short, so it never feels like waiting.
+ *  `my-auto` centres the stage in the flexible region while it fits and
+ *  releases to a normal top-anchored scroll once it does not (see <main>). */
 function Fade({ children }: { children: React.ReactNode }) {
-  return <div className="animate-[pilotIn_260ms_ease-out] will-change-transform">{children}</div>
+  return <div className="my-auto animate-[pilotIn_260ms_ease-out] will-change-transform">{children}</div>
 }
 
 /** Yesterday in one line, or a quiet placeholder on the first ever day. */
