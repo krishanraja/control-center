@@ -230,9 +230,9 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
             </div>
 
             {!mobile && wideDesk && (
-              <aside className="w-[320px] shrink-0 flex flex-col gap-4">
-                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />
-                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />
+              <aside data-testid="content-rail" className="w-[320px] shrink-0 flex flex-col gap-4">
+                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" dense />
+                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" dense />
               </aside>
             )}
           </div>

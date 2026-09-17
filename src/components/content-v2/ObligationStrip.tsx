@@ -4,10 +4,7 @@ import type { ContentDecisionRow } from '../../lib/contentV2'
 import { DecisionCard } from './DecisionCard'
 import { Pending } from '../shared/Pending'
 import { useToast } from '../shared/Toast'
-import { failureMessage, requestJson } from '../../lib/apiFetch'
-import { contentEngineAttention } from '../../lib/contentEngineSchedule'
 import { shiftIsOnBeat } from '../../lib/contentV2'
-import { useEngineHealth } from '../../hooks/useEngineHealth'
 import {
   VIDEO_GATE_LABEL,
   VIDEO_SERIES_LABEL,
@@ -45,25 +42,20 @@ import {
 // collapse into one line that says how many were discarded and why, so the
 // discard is visible and auditable without being an obligation.
 
-export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
+export function ObligationStrip({ v2, videoReviews = [], section = 'all', dense = false }: {
   v2: ReturnType<typeof useContentV2>
   /** Video Engine reviews waiting on a decision. Empty when the engine is off. */
   videoReviews?: VideoStudioReviewListItem[]
   /** Which half to render. 'urgent' goes above the work, 'proposals' below it.
    *  'all' keeps the original single-block behaviour for any other caller. */
   section?: 'all' | 'urgent' | 'proposals'
+  /** True in the Content rail, which is 320px. Passed to the cards, which
+   *  otherwise lay themselves out for the 768px body and overflow. */
+  dense?: boolean
 }) {
   const { brief, decisions, loading, runs, refresh } = v2
   const [busy, setBusy] = useState<string | null>(null)
-  const [replaying, setReplaying] = useState<string | null>(null)
   const { toast } = useToast()
-  // A cron that stopped, or failed last time, is an obligation too: the fix
-  // is on Krish's side (a key, a mount, a machine), and nothing else says so.
-  const engine = contentEngineAttention(runs)
-  // Since the crons moved to the content-engine project this dashboard's
-  // schedule table is a copy. Say so when the two disagree, rather than
-  // nagging about a job nobody runs or staying quiet about one that stopped.
-  const engineHealth = useEngineHealth()
 
   // Say so when a ruling fails. useContentV2's fetch wrapper throws on any
   // non-OK response and this was a bare try/finally, so a 409 ("already
@@ -80,39 +72,6 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
     }
   }
 
-  // Run one engine cron now, rather than waiting for its next schedule.
-  //
-  // requestOk is not used here because every interesting answer arrives with
-  // `ok: false` and would be flattened into one sentence. Two of them are not
-  // failures at all: the engine refuses `purge` and `aeo_ingest` on purpose and
-  // returns the reason, and a job that outlives the sixty second call answers
-  // 202 because it is still running. Reporting either as an error would send
-  // Krish looking for a fault that is not there.
-  const replay = async (job: string, label: string) => {
-    setReplaying(job)
-    try {
-      const { status, json } = await requestJson<{
-        ok?: boolean; error?: string; note?: string; reason?: string; elapsed_ms?: number
-      }>('/api/content-engine/runs/replay', { method: 'POST', body: { job } })
-
-      if (status === 202) {
-        toast(`${label} is running and will take longer than this page waits. Its result appears in the ledger when it finishes.`, 'info')
-      } else if (json?.ok) {
-        toast(`${label} ran.`, 'success')
-      } else if (json?.note) {
-        toast(json.note, 'info')
-      } else {
-        toast(`${label} could not run: ${json?.reason || json?.error || `the engine answered ${status}`}`, 'error')
-      }
-    } catch (e) {
-      toast(failureMessage(e, `Could not reach the engine to run ${label}.`), 'error')
-    } finally {
-      setReplaying(null)
-      // Refresh either way. A refused replay changes nothing and a successful
-      // one wrote a ledger row; re-reading is how the strip stops nagging.
-      await refresh()
-    }
-  }
 
   // A shift ruling is only worth asking for when the arc landed in one of the
   // six lenses. `ref` on a shift decision is the shift id, so the lens comes
@@ -146,8 +105,10 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
   }
 
   const hasBrief = Boolean(brief)
-  const urgentEmpty = !hasBrief && engine.attention.length === 0
-    && !engineHealth.scheduleDrift && engineHealth.health?.ready !== false
+  // No engine terms here. Since the crons moved to the alert mark this strip's
+  // "urgent" half is the weekly brief and nothing else, so an engine that is
+  // down no longer keeps Content from saying it is clear.
+  const urgentEmpty = !hasBrief
   const proposalsEmpty = shown.length === 0 && videoReviews.length === 0 && offBeat.length === 0
 
   // "Nothing is waiting" is worth saying once, on the whole tab, and only when
@@ -187,54 +148,12 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
         </button>
       )}
 
-      {wantUrgent && (engineHealth.scheduleDrift || engineHealth.health?.ready === false) && (
-        <div className="flex flex-col gap-1.5" data-testid="engine-health">
-          {engineHealth.scheduleDrift ? (
-            <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
-              {engineHealth.scheduleDrift}
-            </p>
-          ) : null}
-          {/* `missingRequired` can come back empty while `ready` is false — the
-              engine knows it cannot run but not which piece is absent. The
-              sentence interpolated the empty join anyway and rendered "The
-              engine is missing , so that part of it cannot run.": a stray
-              space-comma, and a sentence that names nothing while sounding as
-              though it does. Say which piece when there is one, and say plainly
-              that it is unknown when there is not. */}
-          {engineHealth.health && !engineHealth.health.ready ? (
-            <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
-              {engineHealth.health.missingRequired.length > 0
-                ? `The engine is missing ${engineHealth.health.missingRequired.join(', ')}, so that part of it cannot run.`
-                : 'The engine is not ready, and it did not say which piece is missing. That part of it cannot run.'}
-            </p>
-          ) : null}
-        </div>
-      )}
+      {/* The engine's own health and its failing crons used to render here, as
+          up to seventeen cards. Ruling (Krish, 2026-09-17): they move to the
+          alert mark entirely — a broken cron is not Content's news, it is the
+          same "something is on fire" the top bar already carries. See
+          `EngineAttention`, which the alert drawer renders. */}
 
-      {wantUrgent && engine.attention.length > 0 && (
-        <div className="flex flex-col gap-1.5" data-testid="engine-attention">
-          {engine.attention.map(a => (
-            <div
-              key={a.job}
-              className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-label ${a.kind === 'failed' ? 'border-rose-400/25 bg-rose-500/[0.05] text-rose-100/85' : 'border-amber-400/25 bg-amber-400/[0.05] text-amber-100/85'}`}
-            >
-              <p>{a.line}</p>
-              {/* The strip could say a job was stale and offer nothing to do
-                  about it, so a weekly job that failed on Friday waited a week.
-                  The engine refuses the two that delete or cost money and says
-                  why, so this offers the action and lets the engine rule. */}
-              <button
-                type="button"
-                disabled={replaying !== null}
-                onClick={() => replay(a.job, a.label)}
-                className="shrink-0 rounded-full border border-white/15 px-3 py-1 text-micro font-semibold text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {replaying === a.job ? 'Running…' : 'Run again'}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* A video review is a decision like any other, so it sits in the same
           strip on the desk. It used to be reachable only from the phone deck. */}
@@ -271,6 +190,7 @@ export function ObligationStrip({ v2, videoReviews = [], section = 'all' }: {
             <DecisionCard
               key={d.id}
               decision={d}
+              dense={dense}
               v2={v2}
               busy={busy === d.id}
               onAct={fn => act(d, fn)}

@@ -5,6 +5,9 @@ import { useFleetLiveness } from '../hooks/useFleetLiveness'
 import { useMoodSource } from './shared/AmbientField'
 import { humanAge } from '../lib/ageHelpers'
 import { SlideOver } from './shared/SlideOver'
+import { EngineAttention } from './content-v2/EngineAttention'
+import { useContentEngineRuns } from '../hooks/useContentEngineRuns'
+import { contentEngineAttention } from '../lib/contentEngineSchedule'
 
 // A local dismiss, keyed by WHICH alarm was silenced. Pressing the banner
 // silences the alarm in front of you and nothing else: the underlying
@@ -96,8 +99,11 @@ export function useCriticalAlert() {
  */
 export function CriticalAlertMark({ className = '' }: { className?: string } = {}) {
   const { visible, line, dismiss } = useCriticalAlert()
+  const { runs, refresh: refreshRuns } = useContentEngineRuns()
   const [open, setOpen] = useState(false)
-  if (!visible) return null
+  // The mark appears for a silent fleet OR a Content Engine that cannot run.
+  const engineNeedsSaying = contentEngineAttention(runs).attention.length > 0
+  if (!visible && !engineNeedsSaying) return null
 
   return (
     <>
@@ -122,24 +128,37 @@ export function CriticalAlertMark({ className = '' }: { className?: string } = {
         label="Critical alert"
       >
         <div className="flex flex-col gap-4" data-testid="critical-alert-drawer">
-          <div className="relative overflow-hidden rounded-xl border border-command-border bg-command-surface py-3 pl-4 pr-3">
-            <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-status-blocked" aria-hidden />
-            <p className="text-micro font-semibold uppercase tracking-[0.14em] text-rose-300">Critical</p>
-            {/* No truncate here. The drawer is where the whole sentence goes. */}
-            <p className="mt-1.5 text-body text-ink">{line}</p>
-          </div>
+          {line && (
+            <div className="relative overflow-hidden rounded-xl border border-command-border bg-command-surface py-3 pl-4 pr-3">
+              <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-status-blocked" aria-hidden />
+              <p className="text-micro font-semibold uppercase tracking-[0.14em] text-rose-300">Critical</p>
+              {/* No truncate here. The drawer is where the whole sentence goes. */}
+              <p className="mt-1.5 text-body text-ink">{line}</p>
+            </div>
+          )}
+          {/* Ruling (Krish, 2026-09-17): engine failures move here entirely. A
+              broken cron is the same "something is on fire" as a silent fleet,
+              and it now says so in one place instead of stacking cards down the
+              Content tab's rail. */}
+          <EngineAttention runs={runs} onRan={refreshRuns} />
           <p className="text-label text-ink-muted">
             The detail lives on OS, under Systems. Dismissing silences this alarm
             only. If a new failure arrives, the mark comes back.
           </p>
-          <button
-            type="button"
-            onClick={() => { dismiss(); setOpen(false) }}
-            data-testid="critical-alert-dismiss"
-            className="min-h-[44px] w-full rounded-xl border border-command-border bg-command-surface text-ui text-ink transition-colors hover:bg-command-card"
-          >
-            Dismiss this alert
-          </button>
+          {/* Only offered when there IS a dismissible alarm. `dismiss` silences
+              the fleet signature; it does nothing to a failing cron, and a
+              button that appears to dismiss one and does not is worse than no
+              button. A cron stops being reported by being fixed or re-run. */}
+          {line && (
+            <button
+              type="button"
+              onClick={() => { dismiss(); setOpen(false) }}
+              data-testid="critical-alert-dismiss"
+              className="min-h-[44px] w-full rounded-xl border border-command-border bg-command-surface text-ui text-ink transition-colors hover:bg-command-card"
+            >
+              Dismiss this alert
+            </button>
+          )}
         </div>
       </SlideOver>
     </>

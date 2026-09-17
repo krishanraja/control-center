@@ -40,12 +40,27 @@ function Btn({ children, primary, onClick, disabled }: {
   )
 }
 
-export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
+export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief, dense = false }: {
   decision: ContentDecisionRow
   v2: ReturnType<typeof useContentV2>
   busy: boolean
   onAct: (fn: () => Promise<void>) => void
   onOpenBrief: () => void
+  /**
+   * True when this card is in a narrow COLUMN rather than the main body — the
+   * Content rail is 320px. Stacks the actions under the text instead of beside
+   * it.
+   *
+   * It is a prop and not a `sm:` breakpoint because `sm:` asks about the
+   * VIEWPORT, and the rail only exists on viewports far above it. On
+   * 2026-09-17 this card sat in that rail laid out as a row: the action group
+   * is `flex-shrink-0` and its max-content is about 350px, while the text
+   * column is `flex-1 min-w-0` and so may shrink below min-content. Flexbox
+   * resolved the whole deficit against the text, squeezing it toward zero — the
+   * title rendered one word per line — and the `whitespace-nowrap` buttons
+   * overflowed the 288px box and painted on top of it.
+   */
+  dense?: boolean
 }) {
   const p = d.payload as Record<string, any>
   const chip = KIND_CHIP[d.kind] || { label: d.kind, cls: 'bg-white/[0.06] text-ink-faint' }
@@ -146,7 +161,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
 
   return (
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] px-4 py-3.5">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className={dense ? 'flex flex-col gap-3' : 'flex flex-col sm:flex-row sm:items-center gap-3'}>
         <div className="flex-1 min-w-0">
           <span className="inline-flex items-center gap-1.5">
             <span className={`inline-block rounded-full px-2 py-0.5 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
@@ -155,7 +170,9 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
           <div className="text-body font-semibold text-ink mt-1.5 leading-snug">{title}</div>
           <div className="text-label text-ink-faint mt-0.5 leading-relaxed">{subtitle}</div>
         </div>
-        <div className="flex flex-wrap gap-1.5 flex-shrink-0">{actions()}</div>
+        {/* No `flex-shrink-0` when dense: a button group that refuses to give
+            back width is what starves the text column. Wrapping is enough. */}
+        <div className={`flex flex-wrap gap-1.5 ${dense ? '' : 'flex-shrink-0'}`}>{actions()}</div>
       </div>
       {/* The question lands inside the card being judged, not in a dialog over it. */}
       {rejecting ? (
