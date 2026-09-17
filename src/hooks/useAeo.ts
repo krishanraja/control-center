@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { requestJson, requestOk } from '../lib/apiFetch'
+import { apiErrorMessage, requestJson, requestOk } from '../lib/apiFetch'
 import type { AeoCommandRow, AeoDigestRow, AeoQueryRow, AeoSubjectRow } from '../lib/aeo'
 
 /**
@@ -23,7 +23,7 @@ async function aeoApi<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...init })
   const body = await r.json().catch(() => ({}))
   if (!r.ok || (body as { ok?: boolean })?.ok === false) {
-    throw new Error((body as { error?: string })?.error || `http_${r.status}`)
+    throw new Error(apiErrorMessage(r.status, r.ok, body))
   }
   return body as T
 }

@@ -19,7 +19,12 @@
  * screen: plain English, no status codes, no "Failed to fetch".
  */
 
-const API = import.meta.env.VITE_API_URL ?? ''
+// Optional-chained so this module can be imported outside Vite. `import.meta.env`
+// is a Vite injection and is simply undefined under the node test runner, which
+// made the whole module — including the pure helpers below — unimportable by a
+// unit test. Reading a config value should not decide whether a function can be
+// tested.
+const API = import.meta.env?.VITE_API_URL ?? ''
 
 export class ApiError extends Error {
   kind: 'offline' | 'timeout' | 'network' | 'server'
@@ -30,6 +35,40 @@ export class ApiError extends Error {
     this.kind = kind
     this.status = status
   }
+}
+
+/**
+ * What to say when a route answered but said no.
+ *
+ * `ApiError` above covers the transport. This covers the other half: a call
+ * that arrived, got a reply, and the reply refused. Three hooks carried the
+ * same guard, character for character:
+ *
+ *   if (!r.ok || body?.ok === false) throw new Error(body?.error || `http_${r.status}`)
+ *
+ * It has a hole. A route answering HTTP 200 with `{ ok: false }` and no `error`
+ * field falls through to the fallback and produces the literal string
+ * `http_200` — the status code of a SUCCESSFUL transport, offered as the reason
+ * something failed. It says nothing and cannot be acted on.
+ *
+ * Not hypothetical: on 2026-09-17 Krish's Content tab read "Investigations
+ * failed on its last run: http_200.", because the engine's copy of this guard
+ * turned an unexplained refusal into a number and wrote it to
+ * `content_engine_runs.reason`.
+ *
+ * The three cases are different and now read differently:
+ *   - the route said what was wrong         -> say that
+ *   - the transport failed (a real 4xx/5xx) -> the status is the useful fact
+ *   - 200, `ok: false`, no reason given     -> say exactly that, in words
+ *
+ * This belongs here, beside ApiError, because this module is already the one
+ * place that decides what an API failure says out loud.
+ */
+export function apiErrorMessage(status: number, transportOk: boolean, body: unknown): string {
+  const error = (body as { error?: string } | null | undefined)?.error
+  if (typeof error === 'string' && error.trim()) return error.trim()
+  if (!transportOk) return `http_${status}`
+  return 'the request was refused without a reason'
 }
 
 export function isOffline(): boolean {

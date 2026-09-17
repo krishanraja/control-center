@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { ArcCardRow, ContentDecisionRow, ShiftEvidenceRow, ShiftRow, WeeklyBriefRow } from '../lib/contentV2'
 import { earliestQueueWeek } from '../lib/contentV2'
 import type { ContentEngineRunRow } from '../lib/contentEngineSchedule'
+import { apiErrorMessage } from '../lib/apiFetch'
 
 // Data layer for the four-room Content tab. Reads go straight to Supabase
 // (anon SELECT per house RLS); every write goes through /api/* (service role).
@@ -14,7 +15,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   })
   const body = await r.json().catch(() => ({}))
-  if (!r.ok || body?.ok === false) throw new Error(body?.error || `http_${r.status}`)
+  if (!r.ok || body?.ok === false) throw new Error(apiErrorMessage(r.status, r.ok, body))
   return body as T
 }
 
