@@ -185,6 +185,11 @@ const VIEWPORTS = [
   { w: 1280, h: 800, shell: 'desktop' as const },
   { w: 390, h: 844, shell: 'mobile' as const },
   { w: 360, h: 800, shell: 'mobile' as const },
+  // The short phone. The list stopped at 360x800 and the contract broke below
+  // it without anything failing: at 640 the critical alert banner took 180px,
+  // the doorway band landed on Today, and the third slot was clipped away with
+  // nothing said. A 360x740 Android with browser chrome is about this tall.
+  { w: 360, h: 640, shell: 'mobile' as const },
 ]
 
 for (const vp of VIEWPORTS) {

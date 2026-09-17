@@ -384,6 +384,27 @@ a phone layout scaled up.
 | Focus | 49% → **95%** | 37% → **73%** | three tool columns |
 | Content | 60% → **88%** | 46% → **67%** | 320px obligations rail |
 
+## An alarm is a mark and a drawer, not a block
+
+Locked 2026-09-17 (Krish: "Alerts can go into a side drawer that opens from a
+small alert notification in the top bar, as opposed to taking up extra screen
+space"). The critical alarm was a full-width banner at the top of Home. Its own
+docstring said "one line, always", but `.truncate` is globally neutralised to
+protect the complete-copy rule, so the sentence wrapped: 180px of a 640px phone,
+the doorway band pushed onto Today, and the third slot clipped away with nothing
+said. A banner that big is not a louder alarm, it is a smaller Home.
+
+`CriticalAlertMark` (`components/CriticalAlert.tsx`) rides the vitals band on
+both device classes: a 36px mark with a pulsing dot, rendered only when
+something is actually wrong, opening a `SlideOver` that carries the whole
+sentence untruncated plus the dismiss. Doorway language, like the Home doors —
+a mark, never a count. `useCriticalAlert()` is the one reader behind both, so
+the dot and the sentence cannot disagree.
+
+The general rule: something that is true only occasionally does not get
+permanent screen space. It gets a mark that appears when it is true, and a
+drawer holding the whole of it.
+
 ## Read first, rows second
 
 Locked 2026-09-08, after the Growth tab's signal and review sections read as

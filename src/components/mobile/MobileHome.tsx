@@ -6,7 +6,7 @@ import { CanonCta } from '../home/CanonCta'
 import { FocusDoor } from '../home/FocusDoor'
 import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
-import { CriticalAlertBanner } from '../CriticalAlertBanner'
+import { CriticalAlertMark } from '../CriticalAlert'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { PilotStrip } from '../home/PilotStrip'
 import { MindmakeIdentity } from '../shared/MindmakeIdentity'
@@ -54,14 +54,19 @@ export function MobileHome({ onNavigate }: {
 
   return (
     <div className={frame}>
-      {/* Compact header: identity + the vitals line share one band. */}
+      {/* Compact header: identity, the vitals line, and the alarm if one is
+          live, all in one band. */}
       <div className="shrink-0 flex items-start gap-3 mb-2">
         <div className="pt-[2px]"><MindmakeIdentity size={36} testId="mobile-home-identity" /></div>
         <div className="flex-1 min-w-0"><VitalsLine onNavigate={onNavigate} compact /></div>
+        <CriticalAlertMark className="mt-[2px]" />
       </div>
 
+      {/* The alarm is no longer a block here. It is the mark in the band above
+          and the drawer behind it, which costs Home nothing and loses nothing:
+          the full sentence is one tap away instead of 180px of a 640px screen.
+          Today's three slots fit again at every viewport as a result. */}
       <div className="shrink-0 flex flex-col gap-2.5">
-        <CriticalAlertBanner />
         <DueTestsCard variant="mobile" />
         <PilotStrip onNavigate={onNavigate} />
       </div>

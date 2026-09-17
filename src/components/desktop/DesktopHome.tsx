@@ -6,7 +6,7 @@ import { CanonCta } from '../home/CanonCta'
 import { FocusDoor } from '../home/FocusDoor'
 import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
-import { CriticalAlertBanner } from '../CriticalAlertBanner'
+import { CriticalAlertMark } from '../CriticalAlert'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { PilotStrip } from '../home/PilotStrip'
 import { useAltitudes } from '../../hooks/useAltitudes'
@@ -86,9 +86,14 @@ export function DesktopHome({ onNavigate }: {
     // three is a reading column, and 1300px of it would be worse, not better.
     // The width buys a second thing to look at, not a wider first thing.
     <div className={`h-full min-h-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 mx-auto w-full ${wide ? 'max-w-[1320px]' : 'max-w-[880px]'}`}>
+      {/* The alarm rides the vitals band as a mark, the same one the phone
+          shows, rather than a full-width block above it. One alarm, one
+          treatment, both device classes. */}
       <div className="shrink-0 flex flex-col gap-3">
-        <CriticalAlertBanner />
-        <VitalsLine onNavigate={onNavigate} />
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1"><VitalsLine onNavigate={onNavigate} /></div>
+          <CriticalAlertMark />
+        </div>
         {!wide && instruments}
       </div>
 
