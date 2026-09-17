@@ -8,32 +8,41 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 |---|---|---|
 | Lint | `npm run lint` (`--max-warnings 0`) | yes |
 | Types | `npx tsc --noEmit` + `npm run typecheck:api` + `npm run typecheck:scripts` | yes |
-| Structural guards | `npx tsx scripts/check-<name>.mts` | yes (seventeen of them) |
-| e2e (Playwright) | `npx playwright test` | **five specs only** (see below) |
+| Structural guards | every `- run:` line in `ci.yml`, verbatim | yes (25 of them) |
+| e2e (Playwright) | `npx playwright test` | five specs at 1280x800, plus every `*-desk.spec.ts` at 1440 and 1920 |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
 | COMPOUND full verification | `npm run verify` from `compound/` | no |
 
 A lint **warning** blocks merge, because `--max-warnings 0`.
 
-The guards in CI: `check-goal-ladder`, `check-goal-gate`,
-`check-type-tokens`, `check-icons`, `check-content-expiry`,
-`check-content-window`, `check-anchor-attribution`, `check-card-lint`,
-`check-content-vocabulary`, `check-arc-scoring`, `check-slate-calibration`,
-`check-content-chain`, `check-served-surfaces`, `check-enrichment-honesty`,
-`check-fleet-classifier`, `check-agent-stamps`, `check-model-prices`. Each
-one statically pins an invariant that already shipped broken once, or that
-drifts silently (one goal editor, the type scale, the icon system, honest
-enrichment, an Anthropic call site whose spend nobody can attribute, a model
-the price table has never heard of, ...) — the current list with rationale
-lives as comments in
+The guards in CI, as of 2026-09-17, read out of `ci.yml` rather than from
+memory: `check-goal-ladder`, `check-goal-gate`, `check-type-tokens`,
+`check-icons`, `check-icon-stroke`, `check-content-window`,
+`check-served-surfaces`, `check-bridges-never-send`,
+`check-enrichment-honesty`, `check-fleet-classifier`, `check-theme-tokens`,
+`check-mindmake-design`, `check-mindmake-gate`, `check-env-example`,
+`check-no-secrets`, `check-agent-stamps`, `check-model-prices`,
+`check-anthropic-fallback`, plus `check-n8n-sync-guard` behind its own
+condition — and SIX steps that are `npm run` scripts rather than `.mts`
+files, which a `scripts/check-*.mts` glob does not see:
+`check:harness-events`, `check:harness-mcp`, `check:editorial-text`,
+`check:content-spine`, `check:aeo-read`, `check:cache-metering`. Running
+the glob and calling it "all the guards" turned main red on 2026-09-17.
+**Parse every `- run:` line out of `ci.yml` and execute it verbatim.**
+
+Each one statically pins an invariant that already shipped broken once, or
+that drifts silently (one goal editor, the type scale, the icon system,
+honest enrichment, an Anthropic call site whose spend nobody can attribute,
+a model the price table has never heard of, ...) — the current list with
+rationale lives as comments in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). More `check-*`
 guards exist outside CI; see the root `AGENTS.md`.
 
 ## e2e
 
-Fifteen spec files against the production build via `npm run
-preview`. All `/api/*`, `**/rest/v1/**` and `**/realtime/**` traffic is
+Against the production build via `npm run preview`. All `/api/*`,
+`**/rest/v1/**` and `**/realtime/**` traffic is
 mocked, so panels settle on their honest empty states without a live
 database and no spec spends an embedding or a model call.
 
@@ -54,6 +63,40 @@ database and no spec spends an embedding or a model call.
 | `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
 | `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
 | `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
+| `e2e/content-desk.spec.ts` | the Content desk above 1400px, populated: no scroll, no nested scrollers, no hole, no squeezed text, no machine strings | **desk-1440 + desk-1920** |
+| `e2e/advisory-desk.spec.ts` | the Advisory two-pane card and the draft that no longer scrolls in a box | **desk-1440 + desk-1920** |
+| `e2e/network-desk.spec.ts` | one venture control, Where\|Venture over Role\|Tier, and the country overflow as a popover rather than a phone sheet | **desk-1440 + desk-1920** |
+
+### Desk projects, and the fixtures that make them mean anything
+
+`playwright.config.ts` defines three projects. `default` is 1280x800 and
+ignores `*-desk.spec.ts`; `desk-1440` and `desk-1920` run only those files.
+
+A desk spec **never calls `setViewportSize`** — its width comes from the
+project, and a spec that sets its own makes the project's width a lie.
+
+Two fixtures exist so a layout claim can be worth something:
+
+- `e2e/fixtures/populated.ts` — 22 ideas, 8 arcs, a weekly brief, six
+  proposals and a run ledger carrying all three statuses plus a job with no
+  row at all. Registration order is load-bearing and the file says so:
+  Playwright matches the LAST registered handler first, so a
+  `**/rest/v1/**` catch-all registered late shadows every specific table and
+  the page renders empty while every assertion still passes. Call
+  `assertFixturesLanded` before measuring.
+- `e2e/fixtures/layout.ts` — the probes. `assertRendered` first, always: an
+  error boundary passes every other probe in the file, because a crashed tab
+  has no scroll boxes, no squeezed text and no holes worth the name.
+
+`largestHole` is cropped to the bounding box of what is painted, not to the
+frame. Empty space BELOW the last card of a one-item list is not waste;
+empty space BESIDE it is. Gridding the whole frame conflates them and fails
+a correct layout for being short — a metric that teaches padding.
+
+**The rule this replaces:** the previous measure was "percent of viewport
+width occupied", taken from the bounding box of all content. A full-width
+header above one narrow card scores 96% and still looks half empty, which is
+exactly what Advisory looked like in the screenshot that came back.
 
 `pilot-gate.spec.ts` is the one suite that owns its own context per test, because
 its subject **is** the clock: it pairs `browser.newContext({ timezoneId })` with

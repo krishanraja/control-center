@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, ArrowRight } from '@/lib/icons'
 import { Eyebrow } from '../shared/Eyebrow'
-import { VENTURES } from './NetworkFilters'
 
 // "Who should I talk to for Mindmake" — the push mode, next to the pull mode.
 //
@@ -13,6 +12,20 @@ import { VENTURES } from './NetworkFilters'
 // venture-and-intent pair as its own chip: four ventures times five intents is
 // twenty chips, which on a 390px screen pushed the whole results list off the
 // bottom and read as a wall. Nine chips and one verb say the same thing.
+//
+// ── One venture control, not two (2026-09-17) ────────────────────────────
+//
+// This used to map VENTURES itself, so the same four chips rendered twice on
+// one screen: once here and once in the filter row above, from the same array,
+// looking identical. They were not the same control. The filter chips narrow
+// an existing query and NetworkTab's effect returns early with no question
+// typed, so with an empty field they did nothing at all — which is the state
+// Krish's screenshot caught. One of the two was a decoy.
+//
+// So the venture now comes from the filter state, and this owns only what is
+// genuinely its own: the intent, and the verb that runs it. Pick a venture with
+// nothing typed and you get the push mode; pick one with a question and it
+// narrows, as it always did.
 
 const INTENTS: Array<[string, string]> = [
   ['buyer', 'to sell to'],
@@ -43,32 +56,21 @@ function Chip({ on, onClick, testId, children }: {
   )
 }
 
-export function VentureRecommender({ onRecommend, loading, active }: {
+export function VentureRecommender({ venture, onRecommend, loading, active }: {
+  /** The venture chosen in the filter row. This component no longer offers its
+   *  own copy of that choice; see the note above. */
+  venture: string | null
   onRecommend: (venture: string, intent: string) => void
   loading: boolean
   active: { venture: string; intent: string } | null
 }) {
-  const [venture, setVenture] = useState<string | null>(active?.venture ?? null)
   const [intent, setIntent] = useState<string>(active?.intent ?? 'buyer')
 
   return (
     <div className="border-t border-white/[0.06] px-4 py-3" data-testid="network-recommender">
       <div className="mb-2 flex items-center gap-1.5">
         <Sparkles size={12} className="text-violet-300/70" aria-hidden />
-        <Eyebrow>Or pick a venture</Eyebrow>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        {VENTURES.map(([slug, label]) => (
-          <Chip
-            key={slug}
-            testId={`network-recommend-venture-${slug}`}
-            on={venture === slug}
-            onClick={() => setVenture(venture === slug ? null : slug)}
-          >
-            {label}
-          </Chip>
-        ))}
+        <Eyebrow>{venture ? 'Who for, and what for' : 'Or pick a venture above'}</Eyebrow>
       </div>
 
       {venture && (

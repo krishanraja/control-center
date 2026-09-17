@@ -184,7 +184,14 @@ export function NetworkTab({ narrow, onOpenPerson }: {
             </div>
           </section>
         )}
-        {!hasRun && <VentureRecommender onRecommend={onRecommend} loading={s.loading} active={recommendation} />}
+        {!hasRun && (
+          <VentureRecommender
+            venture={filters.venture}
+            onRecommend={onRecommend}
+            loading={s.loading}
+            active={recommendation}
+          />
+        )}
       </div>
 
       <div className={`min-h-0 flex-1 overflow-y-auto ${narrow ? BOTTOM_NAV_PAD : ''}`}>

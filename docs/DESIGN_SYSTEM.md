@@ -384,6 +384,65 @@ a phone layout scaled up.
 | Focus | 49% → **95%** | 37% → **73%** | three tool columns |
 | Content | 60% → **88%** | 46% → **67%** | 320px obligations rail |
 
+### The correction, same day
+
+The numbers above are "percent of viewport width occupied", and that metric is
+retired. It is measured from the bounding box of all rendered content, so a
+full-width header above one narrow card scores 96% while half the screen sits
+empty — which is what Advisory looked like in the screenshot Krish sent back
+hours after this section was written. The metric rewarded filling space and
+could never see using it badly.
+
+What replaced it is in `e2e/fixtures/layout.ts`: the largest EMPTY rectangle
+inside the box content occupies. It is cropped to that box on purpose, because
+emptiness below the last card of a one-item list is not waste and emptiness
+beside it is.
+
+Three rules came out of the same correction, and they are the ones to carry:
+
+- **A card that can appear in a narrow container takes a `dense` (or `wide`)
+  prop and never infers its width from `sm:`/`xl:`.** Those are VIEWPORT
+  queries. The Content rail exists only above a 1400px viewport, so `sm:` is
+  always on inside a 288px box: `DecisionCard` laid out for 768px, its action
+  row kept `flex-shrink-0`, flexbox resolved the whole deficit against the
+  text, and the headline rendered one word per line under the buttons. Where
+  the layout really does depend on the container, measure it — `useFitRows`
+  returns the box's own width for exactly this.
+- **A layout claim needs a populated fixture and a viewport above the widest
+  breakpoint in the code.** Everything in the table above was measured against
+  `{json: []}` on a suite whose only viewport was 1280x800, under a 1400px
+  breakpoint. The claims were sincere and untested.
+- **`grid-cols-N` over a variable-length list renders empty tracks.** Advisory's
+  `xl:grid-cols-2` gave one drafted deal an empty second column — a 35% hole,
+  measured. Either the list is long enough that a short last row is normal, or
+  the card owns the width and lays itself out in panes.
+
+## A stage is not a scroller
+
+Locked 2026-09-17 (Krish, on Content: "i want a no scroll experience").
+
+A **scroller** sizes itself to its content and lets the page grow. A **stage**
+is handed a height and lives inside it. Home, Pilots and now Content are
+stages; the People shell is a scroller and stays one.
+
+The contract for a stage:
+
+- Chrome is `shrink-0`, the work is `flex-1 min-h-0`, and there is exactly one
+  of the latter.
+- **Page size is measured, never guessed.** `useFitRows` renders a page,
+  compares the list's real height to the box's, and steps by one in whichever
+  direction is wrong. Dividing the box height by an assumed row height clips
+  the last row the moment a card runs a line long — and clipping is the
+  complaint a stage exists to answer, so a guess is not good enough.
+- **Nothing unbounded may be `shrink-0` inside a stage.** Content's "Also here"
+  fold holds seven surfaced cards and thirty-one tracked shifts; inline it
+  either pushed the page off the bottom or forced a scroll box inside a scroll
+  box. It opens in a drawer.
+- **The reading measure is dropped on a stage.** 768px is right for a scrolling
+  column of prose and wrong for a stage: at 1920 it left 535px of bare desk
+  beside a 320px rail. The cards inside pick one or two columns from the width
+  they are handed.
+
 ## An alarm is a mark and a drawer, not a block
 
 Locked 2026-09-17 (Krish: "Alerts can go into a side drawer that opens from a

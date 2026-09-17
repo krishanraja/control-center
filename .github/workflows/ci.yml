@@ -242,7 +242,18 @@ jobs:
           VITE_SUPABASE_ANON_KEY: placeholder
           VITE_UI_V2_ENABLED: 'true'
           VITE_VIDEO_ENGINE_ENABLED: 'true'
-      - run: npx playwright test e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts e2e/growth-scroll.spec.ts --reporter=line
+      - run: npx playwright test --project=default e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts e2e/growth-scroll.spec.ts --reporter=line
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_UI_V2_ENABLED: 'true'
+          VITE_VIDEO_ENGINE_ENABLED: 'true'
+      # The desk projects, at 1440 and 1920, holding real data. CI ran one
+      # viewport — 1280x800 — while the breakpoint the rails and focus columns
+      # hang off is 1400px, so an entire class of layout shipped untested and
+      # Krish found four broken surfaces by opening the app. These specs are
+      # cheap and they are the ones that would have caught it.
+      - run: npx playwright test --project=desk-1440 --project=desk-1920 --reporter=line
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder

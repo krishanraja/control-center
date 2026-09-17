@@ -137,9 +137,15 @@ export function NetworkFilters({ value, onChange, collapsible }: {
     />
   )
 
-  // ── Every dimension, for the phone sheet and the desktop rows alike ────────
-  const allSections = (
-    <div className="space-y-2.5">
+  // ── Every dimension, for the phone sheet and the desktop rows alike ───────
+  //
+  // Four dimensions, and on a desk they pair off two to a row: Where | Venture,
+  // then Role | Tier (Krish, 2026-09-17). Stacked, each was a full-width
+  // wrapping row with at most seven short chips in it, so four of them ate the
+  // top of the screen to say very little. The phone sheet keeps the stack,
+  // where one column is the only honest answer.
+  const sections = (columns: 1 | 2) => (
+    <div className={columns === 2 ? 'grid grid-cols-2 gap-x-6 gap-y-2.5' : 'space-y-2.5'}>
       <Section label="Where">{geoChips}</Section>
       <Section label="Venture">
         {VENTURES.map(([slug, label]) => (
@@ -163,6 +169,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
       </Section>
     </div>
   )
+  const allSections = sections(1)
 
   const modeRow = (
     <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-2.5">
@@ -196,8 +203,8 @@ export function NetworkFilters({ value, onChange, collapsible }: {
   // ── Desktop ───────────────────────────────────────────────────────────────
   if (!collapsible) {
     return (
-      <div className="space-y-2.5 px-4 py-3">
-        {allSections}
+      <div className="space-y-2.5 px-4 py-3" data-testid="network-filters">
+        {sections(2)}
         {active > 0 && modeRow}
       </div>
     )

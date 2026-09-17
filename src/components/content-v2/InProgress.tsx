@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CheckSquare, ChevronLeft, ChevronRight, GitMerge, Square } from '@/lib/icons'
 import { useFitRows } from '../../hooks/useFitRows'
 import type { ContentIdeaRow, IdeaState } from '../../hooks/useRealtimeContentIdeas'
@@ -73,11 +73,16 @@ export function InProgress({ ideas, testIdPrefix, fit = false }: {
     [byState],
   )
   const [page, setPage] = useState(0)
-  const { count, width, boxRef, listRef } = useFitRows(ordered.length, { min: 1, max: LANE_CAP * 2 })
   // Two columns once the stage is wide enough for two readable cards side by
   // side. Measured off the box, never off the viewport: at 1920 the work
   // column is about 1600px and a single column left a third of the desk bare.
-  const cols = width >= 760 ? 2 : 1
+  //
+  // `width` is 0 on the first pass, so the first render is one column and the
+  // ResizeObserver's first measurement restarts the fit. That is cheaper than
+  // guessing, and it is the same rule as everywhere else here: measure.
+  const [cols, setCols] = useState(1)
+  const { count, width, boxRef, listRef } = useFitRows(ordered.length, { min: 1, max: LANE_CAP * 2, step: cols })
+  useEffect(() => { setCols(width >= 760 ? 2 : 1) }, [width])
   const pages = Math.max(1, Math.ceil(ordered.length / Math.max(1, count)))
   const current = Math.min(page, pages - 1)
   const window_ = ordered.slice(current * count, current * count + count)

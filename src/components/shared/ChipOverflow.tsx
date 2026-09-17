@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Check, X } from '@/lib/icons'
 import { BottomSheet } from '../mobile/BottomSheet'
+import { useMediaQuery } from './motion'
 
 // A chip group that does not grow without bound.
 //
@@ -16,9 +17,15 @@ import { BottomSheet } from '../mobile/BottomSheet'
 // is SELECTED is always inline regardless of rank, because a filter you cannot
 // see is a filter you forget is on.
 //
-// Deliberately not a dropdown. A native select cannot show counts, cannot
-// multi-select on iOS without a modal anyway, and puts the options at the top of
-// the screen; a bottom sheet puts them under the thumb.
+// Deliberately not a native dropdown. A native select cannot show counts,
+// cannot multi-select on iOS without a modal anyway, and puts the options at
+// the top of the screen; a bottom sheet puts them under the thumb.
+//
+// The sheet is the PHONE's answer, and until 2026-09-17 it was the only one, so
+// clicking "+66" on the Network filters at 1440px slid a thumb-zone sheet up
+// from the bottom of a desk. On a desk the same list opens as a popover under
+// the button it opened from, which is where a pointer is already looking. Same
+// list, same rows, same test ids: only the container differs.
 
 export interface ChipItem {
   id: string
@@ -56,6 +63,31 @@ export function ChipOverflow({
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
 
+  // A pointer on a wide screen gets the popover; anything else gets the sheet.
+  // Both halves of the test matter: a touch laptop is still a pointer device
+  // by width, and a phone in landscape is wide without being a desk.
+  const desk = useMediaQuery('(min-width: 900px) and (pointer: fine)')
+  const popRef = useRef<HTMLDivElement | null>(null)
+
+  // Click away or press Escape to close, which a sheet gets from its overlay
+  // and a popover has to arrange for itself.
+  useEffect(() => {
+    if (!desk || !open) return
+    const away = (e: MouseEvent) => {
+      const el = popRef.current
+      if (el && !el.contains(e.target as Node) && !(e.target as Element)?.closest?.(`[data-testid="${testIdPrefix}-more"]`)) {
+        setOpen(false)
+      }
+    }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [desk, open, testIdPrefix])
+
   // Selected first, then the natural order, then cut. An option the operator
   // turned on never falls into the overflow: it would look like it turned off.
   const { shown, hidden } = useMemo(() => {
@@ -89,19 +121,30 @@ export function ChipOverflow({
       ))}
 
       {hidden.length > 0 && (
-        <button
-          type="button"
-          onClick={() => { setQ(''); setOpen(true) }}
-          data-testid={`${testIdPrefix}-more`}
-          aria-label={`${title}: ${hidden.length} more`}
-          className="min-h-[30px] rounded-full border border-dashed border-white/15 px-2.5 text-label font-semibold text-ink-faint transition-colors hover:border-white/30 hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
-        >
-          +{hidden.length}
-        </button>
-      )}
-
-      <BottomSheet open={open} onClose={() => setOpen(false)} fullHeight={false} ariaLabel={title}>
-        <div className="flex max-h-[70vh] flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+        // `relative` so the desk popover hangs off this button rather than off
+        // whatever ancestor happens to be positioned.
+        <span className="relative inline-flex">
+          <button
+            type="button"
+            onClick={() => { setQ(''); setOpen(o => !o) }}
+            data-testid={`${testIdPrefix}-more`}
+            aria-label={`${title}: ${hidden.length} more`}
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            className="min-h-[30px] rounded-full border border-dashed border-white/15 px-2.5 text-label font-semibold text-ink-faint transition-colors hover:border-white/30 hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+          >
+            +{hidden.length}
+          </button>
+      {/* The same list, in whichever container suits the pointer. */}
+      {desk ? (
+        open && (
+          <div
+            ref={popRef}
+            role="dialog"
+            aria-label={title}
+            data-testid={`${testIdPrefix}-popover`}
+            className="absolute left-0 top-full z-50 mt-1.5 flex max-h-[60vh] w-[320px] flex-col rounded-xl border border-white/10 bg-base p-3 shadow-e2"
+          >
           <div className="flex items-center gap-2 pb-2">
             <h2 className="text-ui font-semibold text-ink">{title}</h2>
             {!single && selected.length > 0 && (
@@ -171,8 +214,85 @@ export function ChipOverflow({
           {emptyNote && (
             <p className="border-t border-white/[0.06] pt-2.5 text-label leading-relaxed text-ink-faint">{emptyNote}</p>
           )}
-        </div>
-      </BottomSheet>
+          </div>
+        )
+      ) : (
+        <BottomSheet open={open} onClose={() => setOpen(false)} fullHeight={false} ariaLabel={title}>
+          <div className="flex max-h-[70vh] flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+          <div className="flex items-center gap-2 pb-2">
+            <h2 className="text-ui font-semibold text-ink">{title}</h2>
+            {!single && selected.length > 0 && (
+              <span className="text-label text-ink-faint">{selected.length} on</span>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+              className="ml-auto rounded-full p-1.5 text-ink-faint transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+            >
+              <X size={16} aria-hidden />
+            </button>
+          </div>
+
+          {items.length >= searchThreshold && (
+            <div className="relative pb-2">
+              <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden />
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder={`Find in ${title.toLowerCase()}`}
+                aria-label={`Find in ${title}`}
+                data-testid={`${testIdPrefix}-search`}
+                className="min-h-[38px] w-full rounded-form border border-white/10 bg-white/[0.03] pl-8 pr-3 text-body text-ink placeholder:text-ink-faint/50 focus:border-violet-400/40 focus:outline-none"
+              />
+            </div>
+          )}
+
+          {/* One per row, not a chip wrap. The sheet is a list: a row is a bigger
+              tap target than a chip and leaves room for the count on the right. */}
+          <div className="-mx-1 min-h-0 flex-1 overflow-y-auto">
+            {matches.map(i => {
+              const on = selected.includes(i.id)
+              return (
+                <button
+                  key={i.id}
+                  type="button"
+                  onClick={() => {
+                    if (busy) return
+                    onToggle(i.id)
+                    // Single-select has nothing left to choose once chosen.
+                    if (single) setOpen(false)
+                  }}
+                  disabled={busy}
+                  aria-pressed={on}
+                  role={single ? 'radio' : undefined}
+                  data-testid={`${testIdPrefix}-row-${i.id}`}
+                  className={`flex min-h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-left text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
+                    on ? 'text-violet-100' : 'text-ink-muted hover:bg-white/[0.03]'}`}
+                >
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
+                    single ? 'rounded-full' : 'rounded'} ${
+                    on ? 'border-violet-400/50 bg-violet-500/25' : 'border-white/15'}`}>
+                    {on && <Check size={11} className="text-violet-100" aria-hidden />}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{i.fullLabel || i.label}</span>
+                  {i.meta && <span className="shrink-0 text-label tabular-nums text-ink-faint">{i.meta}</span>}
+                </button>
+              )
+            })}
+            {matches.length === 0 && (
+              <p className="px-3 py-6 text-center text-label text-ink-faint">Nothing matches "{q}".</p>
+            )}
+          </div>
+
+          {emptyNote && (
+            <p className="border-t border-white/[0.06] pt-2.5 text-label leading-relaxed text-ink-faint">{emptyNote}</p>
+          )}
+          </div>
+        </BottomSheet>
+      )}
+        </span>
+      )}
     </>
   )
 }

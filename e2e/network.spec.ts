@@ -282,7 +282,10 @@ test('a recommendation can be cleared back to the venture picker', async ({ page
   await mockNetworkApis(page)
   await openNetwork(page)
 
-  await page.getByTestId('network-recommend-venture-mindmake').click()
+  // One venture control now: the filter chip IS the recommender's venture.
+  // There used to be a second identical row here, from the same VENTURES
+  // array, and with nothing typed the filter copy did nothing at all.
+  await page.getByTestId('network-venture-chip-mindmake').click()
   await page.getByTestId('network-recommend-go').click()
   await expect(page.getByText('Recommended Person')).toBeVisible()
 
