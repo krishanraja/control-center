@@ -847,12 +847,21 @@ body[data-scroll-locked] .tab-chat-pill { display: none; }
    Desk rule at the design-system boundary: names, evidence, statuses and
    instructions wrap instead of disappearing behind an ellipsis or clamp.
    Fixed identifiers may become taller; that is preferable to hiding the part
-   needed to distinguish or audit them. */
+   needed to distinguish or audit them.
+
+   `break-word`, NOT `anywhere`. Both let an unbreakable token (a URL, a long
+   id) break rather than overflow, which is the case this rule was written for.
+   They differ on ordinary words: `anywhere` breaks one the instant the line is
+   tight, so the Home doorway rendered "Signal" above a lone "s" in a button
+   with room for the word. `break-word` breaks a word only when it cannot fit
+   on a line of its own, and prefers the space before it. The invariant is that
+   copy is never HIDDEN; breaking a short word down the middle was never part
+   of it. */
 .truncate {
   overflow: visible !important;
   text-overflow: clip !important;
   white-space: normal !important;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .line-clamp-1,
@@ -866,5 +875,5 @@ body[data-scroll-locked] .tab-chat-pill { display: none; }
   -webkit-box-orient: initial !important;
   -webkit-line-clamp: unset !important;
   line-clamp: unset !important;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }

@@ -52,13 +52,25 @@ export function HomeDoor({
       className={[
         'group relative flex flex-1 min-w-0 items-center rounded-full border border-command-border',
         'bg-command-surface transition-colors hover:bg-command-card active:scale-[0.98]',
-        compact ? 'justify-center gap-1 px-2.5 py-2' : 'gap-2 py-1.5 pl-1.5 pr-3 text-left',
+        compact ? 'justify-center gap-1 px-2 py-2' : 'gap-2 py-1.5 pl-1.5 pr-3 text-left',
       ].join(' ')}
     >
       {!compact && <IconTile icon={icon} size="sm" />}
+      {/* The compact label is `whitespace-nowrap`, not `truncate`.
+          `.truncate` is globally neutralised to protect the complete-copy rule
+          (src/index.css), which leaves it meaning "wrap, breaking the word if
+          you must" — and at 360px this band had ~50px per door, so "Signals"
+          rendered as "Signal" above a lone "s" and grew the button 14px taller
+          than its two peers.
+
+          These three are navigation labels from a fixed vocabulary, which the
+          design system explicitly allows to be written short rather than cut.
+          Nothing dynamic reaches here, so there is no copy to lose: the word
+          is either Focus, Signals or Intel, and each fits the band once the
+          padding stops taking 20px of it. */}
       <span
-        className={`min-w-0 truncate font-semibold leading-none text-ink ${
-          compact ? 'text-label text-center' : 'text-ui'
+        className={`min-w-0 font-semibold leading-none text-ink ${
+          compact ? 'text-label text-center whitespace-nowrap' : 'truncate text-ui'
         }`}
       >
         {label}

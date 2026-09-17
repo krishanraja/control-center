@@ -195,8 +195,20 @@ and feedback, where a missing clause can reverse the meaning. Let the surface
 grow, wrap long tokens, or move secondary material behind a deliberate tap.
 The page may scroll naturally. A card must not gain its own scrollbar.
 
+`.truncate` and `.line-clamp-*` are globally neutralised in `src/index.css` so
+a legacy utility cannot hide copy. They wrap with **`overflow-wrap: break-word`,
+never `anywhere`**. Both let an unbreakable token (a URL, a long id) break
+rather than overflow, which is the case the rule exists for; they differ on
+ordinary words. `anywhere` breaks one the moment the line is tight, which is how
+Home's doorway rendered "Signal" above a lone "s" in a button with room for the
+word, 14px taller than its two peers. The invariant is that copy is never
+HIDDEN. Breaking a short word down the middle was never part of it.
+
 Navigation and compact controls use intentionally written short labels when
-space is scarce. They do not shorten a full label with an ellipsis. Dynamic
+space is scarce. They do not shorten a full label with an ellipsis. A fixed
+nav vocabulary (the three Home doorways) is `whitespace-nowrap`, not
+`truncate`: nothing dynamic reaches it, so there is no copy to lose, and
+`truncate` there means only "wrap, breaking the word if you must". Dynamic
 choices that cannot fit move into `ChipOverflow`, where the full text remains
 visible. `scripts/check-editorial-text-integrity.mts` holds this rule across
 Content and the Video and Carousel Studio projection.
