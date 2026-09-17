@@ -30,6 +30,31 @@ export function useReducedMotion(): boolean {
   return reduced
 }
 
+/**
+ * True while a CSS media query matches. Live-updates on resize.
+ *
+ * For layouts that must RENDER differently, not just look different. A
+ * Tailwind `min-[…]:hidden` pair leaves both variants in the DOM, which
+ * duplicates every id, testid and accessible name inside them — Home's three
+ * doorways became six buttons that way on 2026-09-17, and five specs failed on
+ * a strict-mode "resolved to 2 elements" rather than on anything visual.
+ * Reach for this when the same subtree would otherwise be mounted twice.
+ */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => isBrowser && Boolean(window.matchMedia?.(query).matches),
+  )
+  useEffect(() => {
+    if (!isBrowser || !window.matchMedia) return
+    const m = window.matchMedia(query)
+    setMatches(m.matches)
+    const onChange = () => setMatches(m.matches)
+    m.addEventListener?.('change', onChange)
+    return () => m.removeEventListener?.('change', onChange)
+  }, [query])
+  return matches
+}
+
 export type DeviceClass = 'mobile' | 'desktop'
 
 /**

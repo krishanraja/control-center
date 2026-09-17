@@ -330,6 +330,30 @@ bar"). A set of choices earns its height only until a choice is made.
   what `BOTTOM_NAV_PAD` (`mobile/MobileShell`) is for. NetworkTab padded the
   clipping box with a hand-rolled 120px and sliced its own empty state in half.
 
+## The desk gets a rail, not a wider column
+
+Locked 2026-09-17, after measuring twelve desktop surfaces at 1512 and 1920:
+ten were a single column, three were hard-capped narrow (Focus 620px, Content
+768px, Home 880px) and most ended before half the viewport height. The app was
+a phone layout scaled up.
+
+- **The measure never grows to fill the width.** A goal ladder and a list of
+  three is a reading column; 1300px of it is worse, not better. Width buys a
+  second thing to look at, not a wider first thing.
+- **The canon keeps the column; the instruments move into a 320px rail.** Home
+  does this above 1400px: goals, the week and today stay at 880px, while the
+  due tests, the Advisory strip and the three doorways sit beside them. Width
+  used went from 69% to 96% at 1512 and 52% to 79% at 1920.
+- **`mt-auto` belongs to a bottom row, never to a rail.** It is what pinned the
+  doorways to the foot of the page; carried into the rail unchanged it parked
+  them 700px below the content they sit beside, which is the same defect in a
+  new place.
+- **A layout that changes TREE shape is chosen in JS, not with
+  `min-[…]:hidden`.** Rendering both variants and hiding one leaves both in the
+  DOM: Home's three doorways became six buttons that way, and five specs failed
+  on "resolved to 2 elements". `useMediaQuery` in `shared/motion.ts` is the
+  one way to pick.
+
 ## Read first, rows second
 
 Locked 2026-09-08, after the Growth tab's signal and review sections read as
