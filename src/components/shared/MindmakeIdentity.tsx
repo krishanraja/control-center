@@ -140,6 +140,9 @@ export function SeriesIdentity({ series, className, testId }: SeriesIdentityProp
           className="relative block max-w-full overflow-hidden"
           style={{ width: renderedLetterWidth, height: renderedLetterHeight }}
           data-series-wordmark-crop="true"
+          // A window onto a sprite wider than itself. Declared so the layout
+          // probes do not read a deliberate crop as a clipped layout.
+          data-crop="true"
         >
           <img
             src={identity.assetPath}

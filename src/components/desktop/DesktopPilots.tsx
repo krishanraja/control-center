@@ -480,9 +480,14 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
       ) : targets.length === 0 ? (
         <p data-testid="pilot-empty" className="text-body text-ink-faint">{emptyLine}</p>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        // One column. `xl:grid-cols-2` was a viewport query over a variable
+        // number of deals: with one drafted deal it rendered an empty second
+        // track, so half the lane was bare while the card inside the first
+        // track scrolled its own draft. The card owns the width now and lays
+        // itself out as two panes, who | draft.
+        <div className="flex flex-col gap-4" data-testid="pilot-deal-list">
           {targets.map(t => (
-            <PilotCard key={t.id} target={t} onChanged={refetch} />
+            <PilotCard key={t.id} target={t} onChanged={refetch} wide={!narrow} />
           ))}
         </div>
       )}

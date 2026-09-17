@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { CheckSquare, GitMerge, Square } from '@/lib/icons'
+import { CheckSquare, ChevronLeft, ChevronRight, GitMerge, Square } from '@/lib/icons'
+import { useFitRows } from '../../hooks/useFitRows'
 import type { ContentIdeaRow, IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { SynthesisModal } from '../content/SynthesisModal'
@@ -29,7 +30,14 @@ const STATE_META: Record<IdeaState, { title: string; description: string; tone: 
   absorbed:    { title: 'Absorbed',    description: 'Folded into a synthesized narrative.', tone: 'text-violet-300/60' },
 }
 
-export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; testIdPrefix: string }) {
+export function InProgress({ ideas, testIdPrefix, fit = false }: {
+  ideas: ContentIdeaRow[]
+  testIdPrefix: string
+  /** True on a desk, where this section owns the height it is given and must
+   *  not exceed it. It then renders one flat, paged list instead of the
+   *  stacked accordions, which cannot be bounded without clipping one. */
+  fit?: boolean
+}) {
   const [merging, setMerging] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [synthOpen, setSynthOpen] = useState(false)
@@ -41,7 +49,6 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
   }, [ideas])
 
   const inFlight = STATE_ORDER.reduce((n, s) => n + (byState[s]?.length || 0), 0)
-  if (inFlight === 0) return null
 
   const mergeable = ideas.filter(i => ['drafting', 'review', 'researching'].includes(i.state))
   const toggle = (id: string) => setSelected(prev => {
@@ -51,11 +58,47 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
   })
   const chosen = ideas.filter(i => selected.has(i.id))
 
+  // ── the desk's flat, paged list ────────────────────────────────────────
+  //
+  // On a desk this section is inside a no-scroll stage, so it gets a height
+  // and must live within it. The accordions cannot: five groups, each capped
+  // at eight, is a pile no box bounds, and the only ways to bound it are to
+  // clip a card or to scroll — the two things Krish named.
+  //
+  // Flat also removes a duplication that was already there. Every card prints
+  // its own state chip, so the group header above four cards marked REVIEW
+  // said REVIEW a fifth time.
+  const ordered = useMemo(
+    () => STATE_ORDER.flatMap(s => (byState[s] || [])),
+    [byState],
+  )
+  const [page, setPage] = useState(0)
+  const { count, width, boxRef, listRef } = useFitRows(ordered.length, { min: 1, max: LANE_CAP * 2 })
+  // Two columns once the stage is wide enough for two readable cards side by
+  // side. Measured off the box, never off the viewport: at 1920 the work
+  // column is about 1600px and a single column left a third of the desk bare.
+  const cols = width >= 760 ? 2 : 1
+  const pages = Math.max(1, Math.ceil(ordered.length / Math.max(1, count)))
+  const current = Math.min(page, pages - 1)
+  const window_ = ordered.slice(current * count, current * count + count)
+  const first = current * count + 1
+  const last = Math.min(ordered.length, current * count + window_.length)
+
+  // After every hook, not before: an early return above `useFitRows` changes
+  // the hook count between renders, which React rejects outright (#310) and
+  // which took the whole tab down to its error boundary.
+  if (inFlight === 0) return null
+
   return (
-    <section data-testid={`${testIdPrefix}-in-progress`}>
-      <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+    <section
+      data-testid={`${testIdPrefix}-in-progress`}
+      className={fit ? 'flex min-h-0 flex-1 flex-col' : undefined}
+    >
+      <h3 className={`mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 ${fit ? 'shrink-0' : ''}`}>
         <Eyebrow>In progress</Eyebrow>
-        <span className="text-micro text-ink-faint tabular-nums">{inFlight} in flight</span>
+        <span className="text-micro text-ink-faint tabular-nums">
+          {fit && ordered.length > count ? `${first}–${last} of ${inFlight}` : `${inFlight} in flight`}
+        </span>
         {mergeable.length >= 2 && !merging && (
           <button
             type="button"
@@ -64,6 +107,20 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
           >
             <GitMerge size={11} /> Fold drafts together
           </button>
+        )}
+        {fit && pages > 1 && (
+          <span className="ml-auto flex items-center gap-1" data-testid={`${testIdPrefix}-pager`}>
+            <button
+              type="button" aria-label="Previous page" disabled={current === 0}
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              className="rounded-md border border-white/10 p-1 text-ink-faint hover:bg-white/[0.05] hover:text-ink-muted disabled:opacity-30"
+            ><ChevronLeft size={12} /></button>
+            <button
+              type="button" aria-label="Next page" disabled={current >= pages - 1}
+              onClick={() => setPage(p => Math.min(pages - 1, p + 1))}
+              className="rounded-md border border-white/10 p-1 text-ink-faint hover:bg-white/[0.05] hover:text-ink-muted disabled:opacity-30"
+            ><ChevronRight size={12} /></button>
+          </span>
         )}
       </h3>
 
@@ -102,6 +159,16 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
         </div>
       )}
 
+      {fit ? (
+        // The box owns the height; the list inside it is measured against it
+        // and never exceeds it. overflow-hidden is a backstop, not the plan:
+        // if it ever clips, useFitRows has a bug and the desk spec says so.
+        <div ref={boxRef} className="min-h-0 flex-1 overflow-hidden">
+          <ul ref={listRef} className={cols === 2 ? 'grid grid-cols-2 gap-2.5' : 'space-y-2.5'}>
+            {window_.map(i => <li key={i.id}><ContentIdeaCardActionable idea={i} /></li>)}
+          </ul>
+        </div>
+      ) : (
       <div className="space-y-3">
         {STATE_ORDER.map(state => {
           const rows = byState[state] || []
@@ -129,6 +196,7 @@ export function InProgress({ ideas, testIdPrefix }: { ideas: ContentIdeaRow[]; t
           )
         })}
       </div>
+      )}
 
       <SynthesisModal
         open={synthOpen}

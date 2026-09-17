@@ -11,6 +11,7 @@ import { publicSeriesIdentity } from '../../lib/publicSeries'
 import { EditorialOpportunityList } from './EditorialOpportunityList'
 import { InProgress } from './InProgress'
 import { SupplyDrawer } from './SupplyDrawer'
+import { SlideOver } from '../shared/SlideOver'
 import { isActiveIdea } from '../../lib/contentEngine'
 import { shiftIsOnBeat } from '../../lib/contentV2'
 
@@ -42,7 +43,7 @@ const COPY: Record<Exclude<RoomId, 'library'>, { question: string }> = {
 }
 
 export function LaneRoom({
-  lane, v2, ideas, variant, loading,
+  lane, v2, ideas, variant, loading, fit = false,
 }: {
   lane: Exclude<RoomId, 'library'>
   v2: ReturnType<typeof useContentV2>
@@ -52,11 +53,16 @@ export function LaneRoom({
    *  renders during the first load states something false and then corrects
    *  itself, which reads as a broken screen rather than a loading one. */
   loading?: boolean
+  /** True on a desk, where the room is a stage inside a no-scroll frame: it
+   *  owns the height it is handed, the header and the folds are fixed, and the
+   *  work in the middle is what flexes. */
+  fit?: boolean
 }) {
   const copy = COPY[lane]
   const series = publicSeriesIdentity(lane)
   const mobile = variant === 'mobile'
   const [supplyOpen, setSupplyOpen] = useState(false)
+  const [alsoOpen, setAlsoOpen] = useState(false)
 
   const { mine, active, derived, unclassified } = useMemo(() => {
     const live = ideas.filter(i => !i.library_at)
@@ -90,9 +96,48 @@ export function LaneRoom({
     [v2.shifts, lane],
   )
 
+  const alsoHereBody = (
+    <div className="flex flex-col gap-5">
+      <SurfacedCards cards={v2.arcCards} shifts={v2.shifts} lane={lane} />
+      <section>
+        <h3 className="mb-2"><Eyebrow>Shifts for {series.label}</Eyebrow></h3>
+        <ShiftsRoom v2={v2} variant={variant} lane={lane} />
+      </section>
+    </div>
+  )
+  const alsoHereCaption = `${surfacedCount} surfaced this week, ${shiftCount} shift${shiftCount === 1 ? '' : 's'} tracked`
+
+  const alsoHere = fit ? (
+    <>
+      <button
+        type="button"
+        onClick={() => setAlsoOpen(true)}
+        data-testid={`content-also-here-${lane}`}
+        className="flex shrink-0 items-baseline gap-2 rounded-xl border border-white/[0.06] bg-white/[0.01] px-3 py-2.5 text-left hover:bg-white/[0.04]"
+      >
+        <Eyebrow>Also here</Eyebrow>
+        <span className="text-micro text-ink-faint tabular-nums">{alsoHereCaption}</span>
+        <span className="ml-auto text-micro text-ink-faint">Show</span>
+      </button>
+      <SlideOver open={alsoOpen} onClose={() => setAlsoOpen(false)} ariaLabel="Also here" label="Also here">
+        {alsoHereBody}
+      </SlideOver>
+    </>
+  ) : (
+    <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]" data-testid={`content-also-here-${lane}`}>
+      <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2.5">
+        <Eyebrow>Also here</Eyebrow>
+        <span className="text-micro text-ink-faint tabular-nums">{alsoHereCaption}</span>
+        <span className="ml-auto text-micro text-ink-faint group-open:hidden">Show</span>
+        <span className="ml-auto hidden text-micro text-ink-faint group-open:inline">Hide</span>
+      </summary>
+      <div className="px-3 pb-3">{alsoHereBody}</div>
+    </details>
+  )
+
   return (
-    <div className="flex flex-col gap-5 max-w-3xl">
-      <header className="flex items-start gap-3">
+    <div className={`flex flex-col gap-5 ${fit ? 'h-full min-h-0' : 'max-w-3xl'}`}>
+      <header className={`flex items-start gap-3 ${fit ? 'shrink-0' : ''}`}>
         <div className="min-w-0 flex-1">
           <h2>
             <SeriesIdentity series={lane} />
@@ -118,9 +163,11 @@ export function LaneRoom({
         )}
       </header>
 
-      <EditorialOpportunityList ideas={ideas} seriesKey={lane} />
+      <div className={fit ? 'shrink-0' : undefined}>
+        <EditorialOpportunityList ideas={ideas} seriesKey={lane} />
+      </div>
 
-      <InProgress ideas={active} testIdPrefix={`content-${lane}`} />
+      <InProgress ideas={active} testIdPrefix={`content-${lane}`} fit={fit} />
 
       {/* An empty format is a real state and it needs to say WHY it is empty and
           what to do about it. It used to render the series banner, two silent
@@ -165,24 +212,15 @@ export function LaneRoom({
       )}
 
       {/* Context, folded shut. What the engine chose this week and the register
-          it chose from. Neither needs you; both are worth a look on a slow day. */}
-      <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01]" data-testid={`content-also-here-${lane}`}>
-        <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2.5">
-          <Eyebrow>Also here</Eyebrow>
-          <span className="text-micro text-ink-faint tabular-nums">
-            {surfacedCount} surfaced this week, {shiftCount} shift{shiftCount === 1 ? '' : 's'} tracked
-          </span>
-          <span className="ml-auto text-micro text-ink-faint group-open:hidden">Show</span>
-          <span className="ml-auto hidden text-micro text-ink-faint group-open:inline">Hide</span>
-        </summary>
-        <div className="flex flex-col gap-5 px-3 pb-3">
-          <SurfacedCards cards={v2.arcCards} shifts={v2.shifts} lane={lane} />
-          <section>
-            <h3 className="mb-2"><Eyebrow>Shifts for {series.label}</Eyebrow></h3>
-            <ShiftsRoom v2={v2} variant={variant} lane={lane} />
-          </section>
-        </div>
-      </details>
+          it chose from. Neither needs you; both are worth a look on a slow day.
+
+          On a desk it opens in a drawer rather than inline. Inline it was an
+          unbounded block inside a no-scroll stage: seven surfaced cards and
+          thirty-one tracked shifts have no height a frame can honour, so
+          opening it either pushed the page off the bottom or forced a scroll
+          box inside a scroll box. Context belongs beside the work, and the
+          drawer is where this desk already puts everything of that kind. */}
+      {alsoHere}
 
       {!mobile && (
         <SupplyDrawer open={supplyOpen} onClose={() => setSupplyOpen(false)} mine={mine} unclassified={unclassified} />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
@@ -23,6 +23,11 @@ interface Props {
    *  body moves into a FocusedEditor sheet here; the desk keeps it inline,
    *  which is the right mechanics for a pointer and a wide row. */
   narrow?: boolean
+  /** True when the card has a desk's worth of width to itself. It then lays
+   *  out as two panes rather than one long column. Passed by the lane, which
+   *  measures its own container — never inferred from a `sm:`/`xl:` viewport
+   *  query, which is how a 288px rail ended up laying cards out for 768px. */
+  wide?: boolean
 }
 
 const PRIMARY_CLASS =
@@ -59,7 +64,7 @@ function whyNowFor(t: PilotDealRow): { signal: string; url: string; kind: 'resea
   return { signal: quote, url, kind: 'published' }
 }
 
-export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
+export function PilotCard({ target: t, onChanged, narrow = false, wide = false }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'primary' | 'quiet' | 'save' | 'draft'>(null)
   // `body` is a local draft buffer over a row that refetches every 60s and
@@ -225,6 +230,155 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
   const primary = PRIMARY[t.state]
   const whyNow = whyNowFor(t)
 
+  // Height follows content, measured rather than assumed: reset to auto first
+  // so the box can shrink as well as grow when a draft is edited down.
+  const draftRef = useRef<HTMLTextAreaElement | null>(null)
+  useLayoutEffect(() => {
+    const el = draftRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [body, wide])
+
+  const whoPane = (
+    <>
+        {/* "Read first, rows second" (DESIGN_SYSTEM.md): the phone opens on the
+            ask and the reason to write now, and folds the longer judgment under
+            a disclosure. why_face runs to 600 characters and is the single
+            tallest block on the card; on a 360 by 640 screen it alone pushed the
+            card past the stage. The desk, which has the room, shows it open. */}
+        {narrow ? (
+          <details className="group mt-1.5">
+            <summary className="flex cursor-pointer list-none items-baseline gap-2">
+              <span className="text-label text-ink-faint group-open:text-ink-muted">Why them</span>
+              <span className="text-micro text-ink-faint group-open:hidden">Show</span>
+              <span className="hidden text-micro text-ink-faint group-open:inline">Hide</span>
+            </summary>
+            <p className="text-label text-ink-muted mt-1 leading-snug">{t.why_face}</p>
+          </details>
+        ) : (
+          <p className="text-label text-ink-muted mt-2">{t.why_face}</p>
+        )}
+
+        {/* What to ask THIS person. The lane ranked on warmth and never said what
+            the ask was, so a close collaborator and a stranger read identically
+            and neither card answered "what am I supposed to do with them". */}
+        {t.ask_line && (
+          <p data-testid="pilot-ask" className={`text-label text-ink-muted ${narrow ? 'mt-1' : 'mt-1.5'}`}>
+            {t.ask_kind && (
+              <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
+                t.ask_kind === 'buyer'
+                  ? 'bg-emerald-500/15 text-emerald-200'
+                  : t.ask_kind === 'collaborator'
+                    ? 'bg-amber-500/15 text-amber-200'
+                    : 'bg-sky-500/15 text-sky-200'
+              }`}>
+                {ASK_LABEL[t.ask_kind]}
+              </span>
+            )}
+            {t.ask_line}
+          </p>
+        )}
+
+        {/* Why now, from whichever source actually has one.
+            `trigger_signal` is written by the draft run, which researches the
+            web. `intent_evidence` is a verbatim sentence the person published,
+            checked against its source before storage by the intent pipeline and
+            carried onto this deal when it was listed. Until 2026-09-16 the card
+            read only the first, so a deal that had not been drafted yet said
+            "No live trigger found" while a dated, cited quote sat in its own
+            row. Both are cited-or-silent; neither is ever invented. */}
+        {whyNow ? (
+          <p data-testid="pilot-why-now" className="text-label text-ink-muted mt-1.5">
+            Why now: {whyNow.signal}
+            <a
+              href={whyNow.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 ml-1.5 text-violet-300 hover:text-violet-200"
+            >
+              <ExternalLink size={11} />
+              {whyNow.kind === 'published' ? 'their post' : 'source'}
+            </a>
+          </p>
+        ) : (
+          <p className="text-label text-ink-faint mt-1.5">{NO_SIGNAL_LINE}</p>
+        )}
+    </>
+  )
+
+  const draftPane = (
+    <>
+        {/* The draft, on a phone: the subject and one button, not a six row
+            textarea. That textarea was the single biggest consumer of vertical
+            space on this card and it already broke the house rule that a phone
+            edits text in a sheet, above the keyboard, with one full-width Save.
+            The desk keeps editing inline. */}
+        {t.state === 'drafted' && narrow && (
+          <div className="mt-2.5">
+            {t.draft_subject && (
+              <p className="text-label text-ink-muted font-medium">{t.draft_subject}</p>
+            )}
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                data-testid="pilot-edit-draft"
+                onClick={() => setEditorOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 transition-colors"
+              >
+                <Sparkles size={12} />
+                Read the draft
+              </button>
+              <ContactButton />
+            </div>
+            <FocusedEditor
+              open={editorOpen}
+              onClose={() => setEditorOpen(false)}
+              label={t.draft_subject || 'Draft email'}
+              value={body}
+              saveLabel="Save draft"
+              onSave={async text => { setBody(text); return saveDraftText(text) }}
+            />
+          </div>
+        )}
+
+        {t.state === 'drafted' && !narrow && (
+          <div className="mt-3">
+            {t.draft_subject && (
+              <p className="text-label text-ink-muted font-medium mb-1">{t.draft_subject}</p>
+            )}
+            {/* Grows to its content instead of scrolling inside itself.
+                `rows={6}` with a seven-line draft made a scroll box on the
+                desk — a box that scrolls differently from the page it is on,
+                depending on where the pointer happens to be. A draft is short;
+                give it the height it needs and let the lane page instead. */}
+            <textarea
+              ref={draftRef}
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              rows={1}
+              aria-label="Draft body"
+              className="w-full resize-none overflow-hidden rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-ink-muted focus:border-violet-500/40 focus:outline-none"
+            />
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
+              {body !== (t.draft_body || '') && !(body.trim() === '' && (t.draft_body || '') !== '') && (
+                <button
+                  type="button"
+                  onClick={saveDraft}
+                  disabled={busy !== null}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
+                >
+                  {busy === 'save' ? <Working size={12} /> : <Save size={12} />}
+                  Save draft
+                </button>
+              )}
+              <ContactButton />
+            </div>
+          </div>
+        )}
+    </>
+  )
+
   return (
     <article
       data-testid="pilot-card"
@@ -255,129 +409,24 @@ export function PilotCard({ target: t, onChanged, narrow = false }: Props) {
         </span>
       </div>
 
-      {/* "Read first, rows second" (DESIGN_SYSTEM.md): the phone opens on the
-          ask and the reason to write now, and folds the longer judgment under
-          a disclosure. why_face runs to 600 characters and is the single
-          tallest block on the card; on a 360 by 640 screen it alone pushed the
-          card past the stage. The desk, which has the room, shows it open. */}
-      {narrow ? (
-        <details className="group mt-1.5">
-          <summary className="flex cursor-pointer list-none items-baseline gap-2">
-            <span className="text-label text-ink-faint group-open:text-ink-muted">Why them</span>
-            <span className="text-micro text-ink-faint group-open:hidden">Show</span>
-            <span className="hidden text-micro text-ink-faint group-open:inline">Hide</span>
-          </summary>
-          <p className="text-label text-ink-muted mt-1 leading-snug">{t.why_face}</p>
-        </details>
-      ) : (
-        <p className="text-label text-ink-muted mt-2">{t.why_face}</p>
-      )}
+      {/* Two panes on a wide desk: who they are on the left, the draft on
+          the right. One column over a `xl:grid-cols-2` outer grid is what put
+          half an empty screen beside one drafted deal — track two rendered
+          nothing, and the card, built for a phone, never claimed the width the
+          lane had. Krish's ruling, 2026-09-17: "Two-pane card: who | draft".
 
-      {/* What to ask THIS person. The lane ranked on warmth and never said what
-          the ask was, so a close collaborator and a stranger read identically
-          and neither card answered "what am I supposed to do with them". */}
-      {t.ask_line && (
-        <p data-testid="pilot-ask" className={`text-label text-ink-muted ${narrow ? 'mt-1' : 'mt-1.5'}`}>
-          {t.ask_kind && (
-            <span className={`mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
-              t.ask_kind === 'buyer'
-                ? 'bg-emerald-500/15 text-emerald-200'
-                : t.ask_kind === 'collaborator'
-                  ? 'bg-amber-500/15 text-amber-200'
-                  : 'bg-sky-500/15 text-sky-200'
-            }`}>
-              {ASK_LABEL[t.ask_kind]}
-            </span>
-          )}
-          {t.ask_line}
-        </p>
-      )}
-
-      {/* Why now, from whichever source actually has one.
-          `trigger_signal` is written by the draft run, which researches the
-          web. `intent_evidence` is a verbatim sentence the person published,
-          checked against its source before storage by the intent pipeline and
-          carried onto this deal when it was listed. Until 2026-09-16 the card
-          read only the first, so a deal that had not been drafted yet said
-          "No live trigger found" while a dated, cited quote sat in its own
-          row. Both are cited-or-silent; neither is ever invented. */}
-      {whyNow ? (
-        <p data-testid="pilot-why-now" className="text-label text-ink-muted mt-1.5">
-          Why now: {whyNow.signal}
-          <a
-            href={whyNow.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-0.5 ml-1.5 text-violet-300 hover:text-violet-200"
-          >
-            <ExternalLink size={11} />
-            {whyNow.kind === 'published' ? 'their post' : 'source'}
-          </a>
-        </p>
-      ) : (
-        <p className="text-label text-ink-faint mt-1.5">{NO_SIGNAL_LINE}</p>
-      )}
-
-      {/* The draft, on a phone: the subject and one button, not a six row
-          textarea. That textarea was the single biggest consumer of vertical
-          space on this card and it already broke the house rule that a phone
-          edits text in a sheet, above the keyboard, with one full-width Save.
-          The desk keeps editing inline. */}
-      {t.state === 'drafted' && narrow && (
-        <div className="mt-2.5">
-          {t.draft_subject && (
-            <p className="text-label text-ink-muted font-medium">{t.draft_subject}</p>
-          )}
-          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              data-testid="pilot-edit-draft"
-              onClick={() => setEditorOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 transition-colors"
-            >
-              <Sparkles size={12} />
-              Read the draft
-            </button>
-            <ContactButton />
-          </div>
-          <FocusedEditor
-            open={editorOpen}
-            onClose={() => setEditorOpen(false)}
-            label={t.draft_subject || 'Draft email'}
-            value={body}
-            saveLabel="Save draft"
-            onSave={async text => { setBody(text); return saveDraftText(text) }}
-          />
+          Below the wide breakpoint the two panes are simply stacked, which is
+          what they always were. */}
+      {wide ? (
+        <div className="mt-2 grid grid-cols-2 items-start gap-x-6" data-testid="pilot-card-panes">
+          <div className="min-w-0">{whoPane}</div>
+          <div className="min-w-0">{draftPane}</div>
         </div>
-      )}
-
-      {t.state === 'drafted' && !narrow && (
-        <div className="mt-3">
-          {t.draft_subject && (
-            <p className="text-label text-ink-muted font-medium mb-1">{t.draft_subject}</p>
-          )}
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            rows={6}
-            aria-label="Draft body"
-            className="w-full rounded-md border border-white/10 bg-white/[0.03] p-2 text-body text-ink-muted focus:border-violet-500/40 focus:outline-none resize-y"
-          />
-          <div className="mt-1 flex items-center gap-2 flex-wrap">
-            {body !== (t.draft_body || '') && !(body.trim() === '' && (t.draft_body || '') !== '') && (
-              <button
-                type="button"
-                onClick={saveDraft}
-                disabled={busy !== null}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
-              >
-                {busy === 'save' ? <Working size={12} /> : <Save size={12} />}
-                Save draft
-              </button>
-            )}
-            <ContactButton />
-          </div>
-        </div>
+      ) : (
+        <>
+          {whoPane}
+          {draftPane}
+        </>
       )}
 
       {t.state === 'pilot_paid' && typeof t.cash_gbp === 'number' && (

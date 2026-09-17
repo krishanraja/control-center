@@ -77,6 +77,12 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   // `min-[1400px]:hidden` pair, so the obligation strips exist once in the DOM
   // rather than twice under the same test ids.
   const wideDesk = useMediaQuery('(min-width: 1400px)') && !mobile
+  // A stage needs height as well as width. 760px is the shortest viewport that
+  // fits the chrome (hero, tabs, series header, the folds) plus two idea cards
+  // with the sidebar's own rail beside it; under that, paging to one card at a
+  // time is worse than letting the page scroll, so it scrolls.
+  const tallEnough = useMediaQuery('(min-height: 760px)')
+  const deskStage = wideDesk && tallEnough
   const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'built')
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
@@ -184,9 +190,20 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
           </div>
         </>
       ) : (
-        // ONE scroller for the whole desk. Everything inside is sized by its
-        // content: nothing claims a share of the viewport it has not earned.
-        <div data-testid="content-room-scroll" className={`flex-1 min-h-0 overflow-y-auto ${mobile ? BOTTOM_NAV_PAD : ''}`}>
+        // A desk is a stage, not a scroller (Krish, 2026-09-17: "i want a no
+        // scroll experience"). Above the desk breakpoint nothing here scrolls:
+        // the chrome is fixed, the room in the middle takes what is left, and
+        // the work inside it is paged to the height it was actually given.
+        //
+        // Below that breakpoint — a narrow desktop window, or a phone — it is
+        // still one scroller, because a 900px-tall stage with a 320px column
+        // in it is a worse answer than scrolling. `deskStage` is the switch.
+        <div
+          data-testid="content-room-scroll"
+          className={deskStage
+            ? 'flex-1 min-h-0 overflow-hidden'
+            : `flex-1 min-h-0 overflow-y-auto ${mobile ? BOTTOM_NAV_PAD : ''}`}
+        >
           {/* Above 1400px the two obligation strips move into a rail beside the
               work instead of sitting above and below it. Measured 2026-09-17:
               the desk column is capped at 768px, which left 912px unused at
@@ -198,8 +215,13 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
               the rail states it more clearly than the stack did. Subordinate is
               a narrow column at the side, read after the work; it was never the
               same thing as "further down". */}
-          <div className={wideDesk ? 'flex gap-8 items-start' : ''}>
-            <div className={`flex flex-col gap-5 ${wideDesk ? 'min-w-0 flex-1 max-w-3xl' : 'max-w-3xl'}`}>
+          <div className={wideDesk ? `flex gap-8 ${deskStage ? 'h-full min-h-0 items-stretch' : 'items-start'}` : ''}>
+            {/* No max width on a stage. The 768px cap is a reading measure,
+                right for a scrolling column of prose and wrong here: at 1920
+                it left 535px of empty desk beside a 320px rail, which is the
+                hole the layout probe now fails on. The cards inside pick a
+                column count from the width they are handed. */}
+            <div className={`flex flex-col gap-5 ${wideDesk ? 'min-w-0 flex-1' : 'max-w-3xl'} ${deskStage ? 'min-h-0' : 'max-w-3xl'}`}>
               {/* 1. The action. The hero reads the WHOLE active pile, which is
                   what its own docstring always said it did, so it belongs here
                   and not inside a lane. Inside a lane it was invisible: every
@@ -210,7 +232,9 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
                   rendered that verdict directly above the obligation strip's
                   "Checking what needs you" spinner: two contradictory answers to
                   the same question, and a false one on top. */}
-              {!mobile && !ideasLoading && <NextBestActionHero ideas={liveIdeas} />}
+              {!mobile && !ideasLoading && (
+                <div className={deskStage ? 'shrink-0' : undefined}><NextBestActionHero ideas={liveIdeas} /></div>
+              )}
 
               {/* 2. Anything genuinely broken or already assembled. One line each,
                   and nothing at all when there is nothing. Stacked only; on a
@@ -218,19 +242,30 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
               {!mobile && !wideDesk && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />}
 
               {/* 3. Navigation, in a stable place under two bounded blocks. */}
-              {nav}
+              {deskStage ? <div className="shrink-0">{nav}</div> : nav}
 
               {/* 4. The work. */}
+              {/* The Library is a reference surface — a calendar and a
+                  backburner — and it is read by browsing, so it keeps its own
+                  scroll even on a stage. Paging a calendar would be silly. */}
               {room === 'library'
-                ? <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
-                : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} />}
+                ? (
+                  <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
+                    <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
+                  </div>
+                )
+                : (
+                  <div className={deskStage ? 'flex min-h-0 flex-1 flex-col' : undefined}>
+                    <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} fit={deskStage} />
+                  </div>
+                )}
 
               {/* 5. The machine's open questions, last. In the rail on a wide desk. */}
               {!mobile && !wideDesk && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />}
             </div>
 
             {!mobile && wideDesk && (
-              <aside data-testid="content-rail" className="w-[320px] shrink-0 flex flex-col gap-4">
+              <aside data-testid="content-rail" className={`w-[320px] shrink-0 flex flex-col gap-4 ${deskStage ? 'min-h-0 overflow-hidden' : ''}`}>
                 <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" dense />
                 <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" dense />
               </aside>
