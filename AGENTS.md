@@ -176,8 +176,14 @@ the suite is not gated by CI. The repo also works on newer Node
 More `check-*.mts` guards exist outside CI (`check-edit-palette`,
 `check-content-taxonomy`, `check-select-columns`, `check-selection`,
 `check-teardown-beat`, `check-video-formats`); run the one nearest your
-change. Known: `check-content-taxonomy` has a failing baseline on main —
-fix the baseline before wiring it into CI.
+change. Known: `check-content-taxonomy` fails on main, and the failure is
+real. It reports eight labels still carrying the two publication names
+retired on 2026-09-17, in `VENTURE_FORMATS`, `LANES`, `FACTORY_CHANNELS`
+and `PUBLIC_SERIES`. Clearing them is a rename across the dashboard, the
+Supabase CHECK constraints and the n8n factory's `target_channel` wire
+contract, so it is a coordinated change and not a find-and-replace; route
+it through `harness-maintainer` with 2026-09-17 as the finding date. The
+guard stays out of CI until that lands, per the rule above it.
 
 <!-- krish-canon:start release=v2026.09.15.2 sha=08e0df47694b rendered=2026-09-15 -->
 ## Krish canon

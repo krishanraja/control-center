@@ -14,11 +14,19 @@
 //      instead of its playbook. "Paid" has the same problem against prose
 //      about the publication's paid tiers.
 //
+//   4. A retired BRAND lives in a `label:`, and until 2026-09-19 nothing here
+//      read one. Every check below section 2 reads a `value:` or a `channel:`,
+//      which is where a storage key lives, and a storage key is not what goes
+//      stale when a publication relaunches. The publication relaunched on
+//      2026-09-17 and this guard stayed green through it. Section 2b reads
+//      labels.
+//
 //   npx tsx scripts/check-content-taxonomy.mts
 import { readFileSync } from 'node:fs'
 
 const ce = readFileSync('src/lib/contentEngine.ts', 'utf8')
 const ct = readFileSync('api/_content.ts', 'utf8')
+const ps = readFileSync('src/lib/publicSeries.ts', 'utf8')
 
 let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
@@ -45,9 +53,17 @@ for (const v of adaptValues) {
 // These are all reachable as LEGACY aliases so old rows still resolve; what
 // must never happen is one being offered for NEW work.
 const RETIRED = [
-  'builder_economy_ig', 'techonomic', 'mymu', 'makeyourmindup',
+  'builder_economy_ig', 'techonomic', 'mymu',
   'mymu_weekly', 'investigation', 'builder_economy',
 ]
+
+// `makeyourmindup` WAS on the list above. It is the publication's own name as of
+// the 2026-09-17 relaunch, so leaving it there meant the guard was standing
+// ready to reject the one name that is now correct. Pinned so it cannot creep
+// back in on a merge.
+if (RETIRED.includes('makeyourmindup')) {
+  bad("'makeyourmindup' is listed as retired; since 2026-09-17 it is the publication's own name")
+}
 const choiceBlocks = [
   ['FORMAT_ADAPTS', formatBlock],
   ['CHANNEL_ADAPTS', channelBlock],
@@ -59,6 +75,92 @@ for (const [name, block] of choiceBlocks) {
   if (!block) bad(`could not parse ${name}`)
   for (const dead of RETIRED) {
     if (new RegExp(`'${dead}'`).test(block)) bad(`retired value '${dead}' is still offered as a choice in ${name}`)
+  }
+}
+
+// ── 2b. no retired BRAND NAME is offered as a label ────────────────────────
+//
+// WHY THIS SECTION EXISTS. The publication relaunched on 2026-09-17 and this
+// guard did not notice, because every check above reads a `value:` or a
+// `channel:` and a brand name in this repo never lives in either. It lives in a
+// `label:`, which nothing here had ever looked at. The guard was green on the
+// morning the names it is supposed to police went out of date, and being green
+// is how it stayed out of CI and out of mind.
+//
+// Storage keys are NOT the target. `paid`, `built`, `money_of_ai` and
+// `built_with_ai` are CHECK-constraint values in Supabase and a wire contract
+// with the Omnichannel Content Factory in n8n cloud, so retiring them is a
+// migration plus a coordinated n8n change and not a lint's business. What a
+// lint can decide is whether a retired name is being shown to Krish or to a
+// reader, and that is what this checks.
+//
+// The live vocabulary is `venture_formats` in Mindmaker OS, where the two
+// retired rows carry `active = false` and `cadence_label = 'retired
+// 2026-09-17'`. This list is a copy of that fact, which is exactly the kind of
+// copy that drifts, so it carries its date and should be re-read against the
+// table whenever it is touched.
+const RETIRED_LABELS = [
+  'The Money of AI',
+  'Built with AI',
+  'Mindmaker',        // also catches 'Mindmaker Live'. 'Mindmake' is LIVE and is shorter, so it cannot match.
+  'Techonomic',
+  'The Builder Economy',
+  'lift.the.lid',
+  'inspect.the.build',
+  'follow.the.money',
+  'Newsflash',
+]
+
+// DELIBERATELY NOT ENFORCED, pending a ruling from Krish. 'The Artifact',
+// 'Follow the Money', 'Money Trace', 'First Version' and 'The Third Why' are
+// named as retired publication formats in the 2026-09-19 fleet brief, and all
+// five are ALSO live entries in a different vocabulary: the nine story shapes in
+// content-engine's api/_formats.ts, whose own header says it records "form, not
+// subject". 'Follow the Money' and 'The Artifact' are live there today, and
+// 'The Artifact' was itself the 2026-08-29 rename away from a retired name.
+// Two vocabularies collide on those five strings and a lint must not pick a
+// winner. See docs/DECISIONS/ARC-FORMAT-VOCABULARY-CONFLICT.md.
+const CONTESTED = ['The Artifact', 'Follow the Money', 'Money Trace', 'First Version', 'The Third Why']
+for (const c of CONTESTED) {
+  if (RETIRED_LABELS.includes(c)) {
+    bad(`'${c}' is enforced as a retired label while it is still a live story shape; that ruling is Krish's, not this guard's`)
+  }
+}
+
+// The matcher, proved in both directions before it is trusted on real files. A
+// retired-name check that silently matches nothing is worse than no check, and
+// 'Mindmake' is a live brand that 'Mindmaker' must not swallow.
+const hitsRetired = (label: string) =>
+  RETIRED_LABELS.some(r => label.toLowerCase().includes(r.toLowerCase()))
+for (const dead of ['The Money of AI', 'Built With AI', 'Mindmaker Live', 'Techonomic']) {
+  if (!hitsRetired(dead)) bad(`self-test: '${dead}' is retired and the matcher missed it`)
+}
+for (const live of ['mind.the.gap', 'split.the.bill', 'makeyourmindup', 'Mindmake', 'Signal & Noise', 'Maven']) {
+  if (hitsRetired(live)) bad(`self-test: '${live}' is live and the matcher flagged it as retired`)
+}
+
+const labelBlocks = [
+  ['VENTURE_FORMATS', ce.split('export const VENTURE_FORMATS')[1]?.split('\n]')[0] ?? ''],
+  ['LANES', ce.split('export const LANES')[1]?.split('\n]')[0] ?? ''],
+  ['FACTORY_CHANNELS', ce.split('export const FACTORY_CHANNELS')[1]?.split('\n]')[0] ?? ''],
+  ['MEDIA_CHANNELS', ce.split('export const MEDIA_CHANNELS')[1]?.split('\n]')[0] ?? ''],
+  // Anchored on the colon. Without it this splits on PUBLIC_SERIES_SOURCE_REVISION,
+  // ten lines earlier, and the block comes back with no labels in it at all.
+  ['PUBLIC_SERIES', ps.split('export const PUBLIC_SERIES:')[1]?.split('\n})')[0] ?? ''],
+] as const
+
+for (const [name, block] of labelBlocks) {
+  if (!block) { bad(`could not parse ${name}`); continue }
+  const labels = [...block.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1])
+  // FAIL LOUD on a block that parsed to nothing. A silent zero is how the
+  // LANE_ADAPTS check above came to pass vacuously on main for weeks, and the
+  // PUBLIC_SERIES entry in this very list did it again on the first draft of
+  // this section: the prefix matched PUBLIC_SERIES_SOURCE_REVISION and the
+  // check reported clean over two retired labels.
+  if (!labels.length) { bad(`${name} parsed to zero labels; the check is not looking at anything`); continue }
+  for (const label of labels) {
+    const dead = RETIRED_LABELS.find(r => label.toLowerCase().includes(r.toLowerCase()))
+    if (dead) bad(`${name} offers the retired name '${label}' as a label (retired 2026-09-17)`)
   }
 }
 
