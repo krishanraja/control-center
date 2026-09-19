@@ -192,6 +192,21 @@ All six are now closed:
 `loz` briefings, on their own bot account. Silencing the OS never meant
 silencing those.
 
+**Deliberately still able to send, to Krish and to nobody else: the weekly slate
+link (Krish, 2026-09-19).** Asked how the week's slate should reach him, he chose
+a real email over a draft he presses send on: "real send, to you only". It is one
+message a week, to his own address, carrying a link to a private page he asked
+for. It is an exception to the rule above and it is recorded here so the next
+session reads it as a decision rather than as drift, which is what an unrecorded
+exception always becomes.
+
+Its bounds, which are the whole of the exception: one recipient, Krish; one
+payload, the artifact URL and what it contains; one trigger, a completed slate
+run. It sends nothing to anyone else, carries no content of its own that he has
+not already been shown, and does not make the OS able to reach him about
+anything else. Widening any of those three is a new decision, not this one. The
+rule above stands for everything that is not this.
+
 **The two `maa` reminder jobs (group `Mother-Daily`) were DISABLED 2026-09-07
 at Krish's request.** They are not a pull-only casualty: they had been exempt,
 were repaired earlier the same day, and were then switched off as his call. The
