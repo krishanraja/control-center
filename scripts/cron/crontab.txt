@@ -1,13 +1,49 @@
 0 3 * * * /root/.openclaw/workspace/scripts/arlo-daily-contradiction-audit.sh
 0 3 * * 1 /root/.openclaw/workspace/scripts/vera-contradiction-audit.sh >> /tmp/vera-audit.log 2>&1
 30 2 * * * python3 /root/.openclaw/workspace/scripts/regenerate-standards-digest.py >> /tmp/standards-digest.log 2>&1
-0 8 * * * /usr/local/bin/node /root/.openclaw/workspace/vera-n8n-audit.js >> /var/log/vera-audit.log 2>&1
+0 8 * * * /usr/local/bin/node /root/.openclaw/workspace/scripts/vera-n8n-audit.js >> /var/log/vera-audit.log 2>&1
 0 3 * * * /root/.openclaw/cron/workspace_maintenance.sh
-# 2026-09-07: sync-to-drive.py mirrors agent briefs and actions only. The architecture doc entry is removed; the doc has one surface, GitHub main (docs/MINDMAKE_OS_ARCHITECTURE.md 0c).
 0 */6 * * * cd /root/.openclaw/integrations/google && bash refresh_token.sh >> /var/log/openclaw-drive-sync.log 2>&1 && cd /root/.openclaw/workspace && python3 scripts/sync-to-drive.py >> /var/log/openclaw-drive-sync.log 2>&1
 */2 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/fire-pending-flags.py >> /var/log/openclaw-flags.log 2>&1
 */5 * * * * /root/.openclaw/workspace-ops/scripts/cc-sync-engine.sh >> /tmp/cc-sync.log 2>&1
 */15 * * * * /root/.openclaw/workspace-ops/scripts/cc-doc-creator.sh >> /tmp/cc-doc-creator.log 2>&1
-* * * * * /usr/bin/python3 /root/.openclaw/workspace-ops/scripts/poll_sync_queue.py >> /tmp/poll_sync.log 2>&1
+*/5 * * * * /usr/bin/python3 /root/.openclaw/workspace-ops/scripts/poll_sync_queue.py >> /tmp/poll_sync.log 2>&1
 */15 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/render-identity.py >> /tmp/render-identity.log 2>&1
 30 2 * * * /root/.openclaw/workspace-ops/scripts/vera-nightly-quality-loop.sh >> /root/.openclaw/workspace-ops/logs/vera-nightly-cron.log 2>&1
+0 6 * * * ACCESS_TOKEN=$(jq -r .access_token /root/.openclaw/integrations/google/tokens.json) && curl -sL -H "Authorization: Bearer $ACCESS_TOKEN" "https://docs.google.com/document/export?format=txt&id=1vLSOMm2uXELk4c-G4sTEyA7efN9yYLO9BFY60pX5Tzg" > /root/.openclaw/workspace-cleo/DRAFTS.md
+0 8 * * * /root/.openclaw/cron/inbox-decay.sh >> /var/log/inbox-decay.log 2>&1
+0 9 * * 1,4 /root/.openclaw/workspace-ops/scripts/fireflies-biweekly-pull.sh >> /tmp/fireflies-pull.log 2>&1
+0 14 * * * /root/.openclaw/workspace-ops/scripts/token-spend-alert.sh >/dev/null 2>&1
+*/30 * * * * cd /root/.openclaw/workspace && /usr/bin/python3 scripts/os-autonomous-diagnostics.py --mode quick >> /var/log/os-autonomous-diagnostics.log 2>&1 || true
+30 11 * * 5 /root/.openclaw/workspace-ops/scripts/vera-gap-cycle.sh >> /var/log/vera-gap-cycle.log 2>&1
+0 14 * * * /root/.openclaw/workspace-ops/scripts/api-credit-monitor.sh
+0 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/n8n-exec-governor.py >> /var/log/n8n-governor.log 2>&1
+*/5 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/critical-infra-monitor.py >> /var/log/critical-infra-monitor.log 2>&1
+0 3 * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/api-balance-poller.py >> /var/log/api-usage.log 2>&1
+20 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/api-usage-alerter.py >> /var/log/api-usage.log 2>&1
+*/15 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/write-system-health.py >> /var/log/system-health.log 2>&1
+15 * * * * /usr/bin/python3 /root/.openclaw/workspace-loz/scripts/fix_orphaned_briefings.py >> /var/log/loz-orphan-sweep.log 2>&1
+15 6 * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/ingest-events-gmail.py >> /var/log/events-ingest.log 2>&1
+45 6 * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/discover-events.py >> /var/log/events-discover.log 2>&1
+0 7 * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/score-events.py >> /var/log/events-score.log 2>&1
+30 14,19,23 * * * /usr/bin/python3 /root/.openclaw/workspace-loz/scripts/loz_freshness_diagnostic.py >> /var/log/loz-freshness-diagnostic.log 2>&1
+*/30 * * * * /usr/bin/python3 /root/.openclaw/workspace-loz/scripts/loz_signal_radar.py --mode quick --paid never >> /var/log/loz-signal-radar.log 2>&1
+7,37 * * * * /usr/bin/python3 /root/.openclaw/workspace-loz/scripts/verify_doc.py --auto-repair --quiet >> /var/log/loz-doc-integrity.log 2>&1
+5 * * * * . /root/.openclaw/workspace/scripts/.vps-heartbeat.env && /root/.openclaw/workspace/scripts/vps-heartbeat.sh >> /var/log/vps-heartbeat.log 2>&1
+0 13,18,22 * * * /usr/bin/python3 /root/.openclaw/workspace-loz/scripts/briefing_and_send.py >> /var/log/loz-briefing.log 2>&1
+#
+# Snapshot of the OpenClaw VPS root crontab, regenerated 2026-09-19 from the
+# read-only audit run on the host at 15:09 UTC (ai-harness, branch
+# vps/align-2026-09-19, state/vps/ALIGN-2026-09-19-audit.txt, section 4).
+# 33 active entries. The previous snapshot held 12 and described a machine that
+# no longer existed: 22 live jobs were missing from it, one path had moved
+# (vera-n8n-audit.js is under scripts/), and poll_sync_queue.py runs every five
+# minutes, not every minute. api/goals/digest.ts cites line 3 of this file; the
+# regenerate-standards-digest entry is kept there on purpose.
+#
+# The governor on the hourly line warns and never acts (ruling 2026-09-09).
+# There is no automated n8n execution cap on this host or anywhere else.
+#
+# This file is a record, not a source: the host's crontab is the truth and
+# this is what it said on the date above. Regenerate it from an audit run,
+# never by hand.
