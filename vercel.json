@@ -72,8 +72,8 @@
       "destination": "https://content-engine-flame-nu.vercel.app/api/content-engine/:path*"
     },
     {
-      "source": "/api/concepts/:path*",
-      "destination": "https://content-engine-flame-nu.vercel.app/api/concepts/:path*"
+      "source": "/api/content-edits",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/content-edits"
     },
     {
       "source": "/api/content-ideas",
@@ -138,10 +138,6 @@
     {
       "source": "/api/content-engine",
       "destination": "https://content-engine-flame-nu.vercel.app/api/content-engine"
-    },
-    {
-      "source": "/api/concepts",
-      "destination": "https://content-engine-flame-nu.vercel.app/api/concepts"
     },
     {
       "source": "/api/triage/sweep",

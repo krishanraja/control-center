@@ -10,6 +10,7 @@ import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
 import { editGroups, type EditItem } from '../../lib/contentEngine'
 import { renderBrief, toEndnotes } from '../../lib/citations'
 import { diffSections, mergeSections, wordDiff, type SectionDiff } from '../../lib/briefDiff'
+import { recordBriefSectionVerdicts } from '../../lib/editLedger'
 import { useToast } from '../shared/Toast'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
 import { reasonsFor } from '../../lib/triageReasons'
@@ -103,7 +104,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
   const [error, setError] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [preview, setPreview] = useState<{ label: string; md: string } | null>(null)
+  const [preview, setPreview] = useState<{ label: string; md: string; mode: string | null } | null>(null)
   const [magicBusy, setMagicBusy] = useState<string | null>(null)
   // The revision as it arrives, shown while it is being written. Separate from
   // `preview` on purpose: see runMagic.
@@ -316,7 +317,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
           jsonText: body => body.preview || '',
         },
       )
-      setPreview({ label: span ? `${label} · selection` : label, md: data?.preview ?? text })
+      setPreview({ label: span ? `${label} · selection` : label, md: data?.preview ?? text, mode })
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
@@ -385,10 +386,25 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
     // citations stay at the end.
     const merged = toEndnotes(mergeSections(previewDiffs, acceptedKeys))
     await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ body_md: merged, source: 'cleo' }) })
+    // Which of Cleo's sections survived and which were binned. This was worked
+    // out above to build `merged` and then went no further, which left
+    // content_edit_events with almost nothing in it and the weekly compiler
+    // with nothing to learn from. Ambient and unawaited: the ledger being down
+    // must never be why a brief fails to save.
+    void recordBriefSectionVerdicts({
+      week,
+      mode: preview.mode,
+      sections: changedDiffs.map(d => ({
+        status: d.status,
+        before: d.before,
+        after: d.after,
+        kept: acceptedKeys.has(d.key),
+      })),
+    })
     setPreview(null)
     setDirty(false)
     await load()
-  }, [preview, acceptedKeys, previewDiffs, week, load])
+  }, [preview, acceptedKeys, previewDiffs, changedDiffs, week, load])
 
   const restore = useCallback(async (v: number) => {
     await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ restore_version: v }) })
