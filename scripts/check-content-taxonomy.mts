@@ -105,7 +105,6 @@ const RETIRED_LABELS = [
   'Mindmaker',        // also catches 'Mindmaker Live'. 'Mindmake' is LIVE and is shorter, so it cannot match.
   'Techonomic',
   'The Builder Economy',
-  'lift.the.lid',
   'inspect.the.build',
   'follow.the.money',
   'Newsflash',
@@ -119,7 +118,8 @@ const RETIRED_LABELS = [
 // subject". 'Follow the Money' and 'The Artifact' are live there today, and
 // 'The Artifact' was itself the 2026-08-29 rename away from a retired name.
 // Two vocabularies collide on those five strings and a lint must not pick a
-// winner. See docs/DECISIONS/ARC-FORMAT-VOCABULARY-CONFLICT.md.
+// winner. See makeyourmindup:project-documentation/02_REPO_BRIEF.md, which is
+// where that adjudication actually lives.
 const CONTESTED = ['The Artifact', 'Follow the Money', 'Money Trace', 'First Version', 'The Third Why']
 for (const c of CONTESTED) {
   if (RETIRED_LABELS.includes(c)) {
@@ -135,7 +135,10 @@ const hitsRetired = (label: string) =>
 for (const dead of ['The Money of AI', 'Built With AI', 'Mindmaker Live', 'Techonomic']) {
   if (!hitsRetired(dead)) bad(`self-test: '${dead}' is retired and the matcher missed it`)
 }
-for (const live of ['mind.the.gap', 'split.the.bill', 'makeyourmindup', 'Mindmake', 'Signal & Noise', 'Maven']) {
+// lift.the.lid is in this list deliberately. It was retired on 2026-09-18,
+// reinstated on 2026-09-19 as one of three standing subchannels, and sat in
+// RETIRED_LABELS in between, where it would have rejected the live format.
+for (const live of ['mind.the.gap', 'split.the.bill', 'lift.the.lid', 'makeyourmindup', 'Mindmake', 'Signal & Noise', 'Maven']) {
   if (hitsRetired(live)) bad(`self-test: '${live}' is live and the matcher flagged it as retired`)
 }
 
