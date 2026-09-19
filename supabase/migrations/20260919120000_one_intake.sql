@@ -38,9 +38,14 @@
 --    reason for every drop. A row is never deleted; it ends.
 -- 3. content_ideas.source_type moves from a CHECK of seventeen literals to a
 --    foreign key on intake_sources. Every one of the seventeen gets a row, so
---    the key admits exactly what the CHECK admitted and no writer breaks. The
---    ten values with zero rows are kept inactive: the rename ledger is the
---    table itself, and a value nobody writes any more is a fact worth keeping.
+--    no writer breaks. The key is wider than the CHECK, though, and saying so
+--    is the point of this line: it also admits gmail_newsletters, drive_files,
+--    hunter_newsletter_posts and mm_ctrl_gather. The first three name read
+--    ledgers rather than ideas, so nothing should ever write them into
+--    content_ideas. The foreign key will not stop it. That is a gap to close
+--    when the writers move, not a guarantee to lean on now. The ten values
+--    with zero rows are kept inactive: the rename ledger is the table itself,
+--    and a value nobody writes any more is a fact worth keeping.
 -- 4. A backfill, in this file, so the ledger is complete from the first run:
 --    one intake row per existing idea (promoted, pointing at the idea), one per
 --    Gmail message the sweep read (assessed, because the sweep read it), one per
@@ -278,9 +283,14 @@ create index if not exists intake_items_url_idx          on public.intake_items 
 
 -- ── 4. One vocabulary for content_ideas.source_type ────────────────────────
 -- The CHECK held seventeen literals. Every one now has an intake_sources row,
--- so the foreign key admits exactly what the CHECK admitted. The guard below
--- proves it against the live rows before anything is dropped: if a value is
--- missing the migration stops here and names it, and nothing has changed.
+-- so no value that was legal before this migration is illegal after it. The
+-- foreign key is wider than the CHECK by four slugs (gmail_newsletters,
+-- drive_files, hunter_newsletter_posts, mm_ctrl_gather), and the first three
+-- name read ledgers that should never be an idea's source type. Nothing here
+-- stops a writer using one; see the note at the top of this file. The guard
+-- below proves the other direction against the live rows before anything is
+-- dropped: if a value in use is missing from intake_sources the migration
+-- stops here and names it, and nothing has changed.
 do $$
 declare missing text;
 begin
@@ -515,6 +525,17 @@ end $$;
 comment on function public.intake_mirror_content_idea() is
   'Bridge, dated 2026-09-19. Mirrors a directly written content_ideas row into intake_items as promoted, or flips the intake row a runner-promoted idea names in meta.intake_item_id. To be dropped when the last direct writer moves to intake.';
 
+-- The bridge runs as its definer, so it must not be callable by anyone but the
+-- writer. Without these two lines PostgREST publishes it at
+-- /rest/v1/rpc/intake_mirror_content_idea for anon and authenticated, which is
+-- what Supabase lints 0028 and 0029 report. content_ideas carries three
+-- security definer trigger functions and the other two, autoscore_content_idea
+-- and creator_moves_track_outcome, are already locked to postgres and
+-- service_role. A trigger still fires for the writer once the grant is gone:
+-- those two, and room_targets_touch_updated_at, have run this way all along.
+revoke all on function public.intake_mirror_content_idea() from public, anon, authenticated;
+grant execute on function public.intake_mirror_content_idea() to service_role;
+
 drop trigger if exists trg_intake_mirror_content_idea on public.content_ideas;
 create trigger trg_intake_mirror_content_idea
   after insert on public.content_ideas
@@ -652,3 +673,39 @@ commit;
 -- Proved in a rolled-back transaction: a direct content_ideas insert mirrors
 -- exactly one promoted intake row; an invented source_type is refused by the
 -- foreign key; an intake row set to dropped with no drop_reason is refused.
+--
+-- REVIEWED 2026-09-19, after the apply, against information_schema on the live
+-- project. Every table and column this file names exists. Every foreign key
+-- points at a primary key: intake_sources.slug, intake_owners.slug,
+-- intake_states.slug, handoff_reasons.slug, content_ideas.id, intake_items.id.
+-- No CHECK in this file carries a vocabulary; the three on intake_items are
+-- cross-column rules, and the state vocabulary is the foreign key. RLS is on
+-- for all four new tables with one anon read policy and one service_role write
+-- policy each. Re-running the file is a no-op on rows.
+--
+-- Two things the review changed, and neither is live yet. Apply them in the
+-- next change to this project:
+--   1. The revoke and grant on intake_mirror_content_idea above. The applied
+--      version left the function executable by public, anon and authenticated
+--      while it is also security definer, and that pairing is what Supabase
+--      lints 0028 and 0029 flag. It is the only function in the project they
+--      name. The other two security definer triggers on content_ideas,
+--      autoscore_content_idea and creator_moves_track_outcome, are already
+--      locked to postgres and service_role, so this restores the house shape
+--      rather than inventing one.
+--   2. The two comments about the foreign key being as narrow as the old
+--      CHECK. It is wider by four slugs. Only the wording changed.
+--
+-- One drift worth knowing, not a fault in this file: inspiration_messages held
+-- 340 rows at review time against 338 gmail_newsletters intake rows. Two
+-- newsletters arrived after the apply, and nothing mirrors that ledger into
+-- intake yet. Re-running 5b closes the gap; moving the sweep to intake ends it.
+
+-- The revoke and grant above were NOT in the version applied at 12:00 on
+-- 2026-09-19. They were found by the migration's own checker afterwards and
+-- applied separately the same day (migration one_intake_lock_down_bridge_function),
+-- then read back: anon and authenticated can no longer execute the function,
+-- service_role can, which is exactly what autoscore_content_idea has always
+-- carried on this same table. A rolled-back transaction proved the trigger
+-- still fires for the writer with the grant removed, and the 623 intake rows
+-- are untouched. Anyone applying this file from scratch gets it in one pass.
