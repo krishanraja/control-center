@@ -224,15 +224,53 @@
     {
       "name": "AEO-Engine",
       "product": "AEO research machine (weekly answer-engine research for the ventures, the buyers and the benchmarks)",
-      "docs_roots": ["docs"],
+      "docs_roots": [
+        "docs"
+      ],
       "state_doc": "docs/STATE.md",
       "history_dir": "docs/history",
-      "truth_files": ["docs/packet.schema.json"],
+      "truth_files": [
+        "docs/packet.schema.json"
+      ],
       "docs_check": "npm run check:config",
-      "rules_files": ["README.md", "docs/NEVER-PUBLISH.md"],
-      "write_allowlist": ["**/*.md"],
+      "rules_files": [
+        "README.md",
+        "docs/NEVER-PUBLISH.md"
+      ],
+      "write_allowlist": [
+        "**/*.md"
+      ],
       "nightly_utc": "20:45",
       "bootstrap_head": "0d5a6f3"
+    },
+    {
+      "name": "makeyourmindup",
+      "product": "makeyourmindup (the publication and the strategy machine behind it)",
+      "docs_roots": [
+        "project-documentation",
+        "docs",
+        "engine",
+        "panel",
+        "quality"
+      ],
+      "state_doc": "project-documentation/03_STEP_PLAN.md",
+      "history_dir": "docs/history",
+      "truth_files": [
+        "project-documentation/01_MEDIA_KIT.md",
+        "panel/judges.json",
+        "quality/panel/rubric.v1.json",
+        "quality/panel/kill-list.v1.json"
+      ],
+      "docs_check": "npm test && npm run gate:canon",
+      "rules_files": [
+        "AGENTS.md",
+        "project-documentation/02_REPO_BRIEF.md",
+        "engine/ENGINE_SPEC.md"
+      ],
+      "write_allowlist": [
+        "**/*.md"
+      ],
+      "bootstrap_head": "f3c8bfd"
     }
   ]
 }
