@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Sparkles } from '@/lib/icons'
 import { useContentV2 } from '../../hooks/useContentV2'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
@@ -94,6 +94,10 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const tallEnough = useMediaQuery('(min-height: 760px)')
   const deskStage = wideDesk && tallEnough
   const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : (ROOM_SLUGS[0] ?? 'library'))
+  // Whether Krish has picked a room himself. Until he has, the landing room is
+  // the machine's guess and may be corrected once the counts arrive; after he
+  // has, it is a decision and nothing moves it.
+  const [roomPicked, setRoomPicked] = useState(false)
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
   // Both viewports read the video queue: the phone decides from the deck, the
@@ -123,6 +127,25 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
       + ideas.filter(i => i.library_at).length
     return perRoom
   }, [v2.shifts, ideas, liveIdeas])
+
+  // Land on a room that has work in it.
+  //
+  // ROOM_SLUGS is in venture_formats sort order, so the tab opens on the hero
+  // format. mind.the.gap is the hero and deliberately has no routing rules,
+  // because it is a shape rather than a vocabulary and the router would only be
+  // guessing. The result on 2026-09-20 was a tab that opened on 2 cards with
+  // dozens sitting in the two rooms beside it.
+  //
+  // Only ever runs before Krish has touched the switcher, and only when the
+  // room he would land on is genuinely empty, so a deliberate visit to a quiet
+  // room is never overridden. Ruling (Krish, 2026-09-20).
+  useEffect(() => {
+    if (roomPicked || mobile) return
+    if (ideasLoading) return
+    if (counts[room as string]) return
+    const firstWithWork = ROOM_SLUGS.find(slug => counts[slug])
+    if (firstWithWork && firstWithWork !== room) setRoom(firstWithWork)
+  }, [counts, room, roomPicked, mobile, ideasLoading])
 
   // Mobile leads with the Queue (the finite decision deck), then the three
   // rooms as peers. The deck used to render ABOVE the rooms while claiming
@@ -157,7 +180,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
           <SegmentedNav<ViewId>
             segments={segments}
             value={room}
-            onChange={setRoom}
+            onChange={next => { setRoomPicked(true); setRoom(next) }}
             label="Content views"
             variant="pill"
             testIdPrefix="content-room"

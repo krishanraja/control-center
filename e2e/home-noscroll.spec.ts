@@ -1,5 +1,9 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 
+// UTC for the whole file, so the node side that builds the fixtures and the
+// browser that reads them agree on what "local" means when FIXED is formatted.
+test.use({ timezoneId: 'UTC' })
+
 /**
  * The no-scroll contract (2026-08-20 recompose).
  *
@@ -27,9 +31,24 @@ const WEEKLY = [
   { id: 'weekly:license-memo', title: 'Draft the licensing one-pager', parent: 'os:asset' },
 ]
 
+// A FIXED WEDNESDAY, and the whole file runs in UTC.
+//
+// These five specs used to read `FIXED` on both sides of the wire with no
+// clock pinned, so they passed Monday to Friday and failed on Saturday and
+// Sunday. That is not a flake: `useAltitudes` sets `weeklyNeeds` false at the
+// weekend on purpose, because "set this week's 3" is the wrong thing to ask on
+// a Sunday ("Week closed. Set next week's 3 on Monday"). The product is right
+// and the spec was reading the calendar. It was green in CI on Thursday
+// 2026-09-17 and red on Sunday 2026-09-20 for that reason alone.
+//
+// Pinned on BOTH sides deliberately: page.clock moves the browser, and the mock
+// payloads are built in node, so a fixture computed from the real date against
+// a page that thinks it is Wednesday desynchronises week_start.
+const FIXED = new Date('2026-09-16T10:00:00Z')
+
 /** Monday of the current civil week, YYYY-MM-DD, in the browser's zone. */
 function currentWeek(): string {
-  const now = new Date()
+  const now = FIXED
   const dow = (now.getDay() + 6) % 7
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 12)
   return new Intl.DateTimeFormat('en-CA').format(monday)
@@ -41,7 +60,7 @@ function goalRow(id: string, title: string, horizon: 'os' | 'weekly', parent: st
     priority: null, why_now: null, definition_of_done: null, target_horizon: null,
     is_stale: false, orphaned: false, days_since_touch: 1, stale_after_days: horizon === 'weekly' ? 10 : 90,
     week_start: horizon === 'weekly' ? currentWeek() : null, closed_at: null, carried_from: null,
-    updated_at: new Date().toISOString(), created_at: new Date().toISOString(),
+    updated_at: FIXED.toISOString(), created_at: FIXED.toISOString(),
   }
 }
 
@@ -53,7 +72,7 @@ async function mockHome(page: Page, state: 'empty' | 'full') {
 
   await page.route('**/api/pilot/worries*', (r: Route) => r.fulfill({ json: {
     ok: true, due: [], calibration: { total_closed: 0, pct_confirmed: 0 }, open_test_count: 0, cap: 5,
-    today: new Intl.DateTimeFormat('en-CA').format(new Date()),
+    today: new Intl.DateTimeFormat('en-CA').format(FIXED),
   } }))
 
   await page.route('**/api/pilot/checkin*', (r: Route) => r.fulfill({ json: {
@@ -61,14 +80,14 @@ async function mockHome(page: Page, state: 'empty' | 'full') {
     morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
     last_evening: null, evening_done_today: true, yesterday: null,
     timezone: 'Australia/Sydney',
-    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
+    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(FIXED),
   } }))
 
   await page.route('**/api/pilot/ships*', (r: Route) => r.fulfill({ json: {
     ok: true,
     summary: state === 'full'
       ? { this_week: 4, days_since_last: 0, return_rate: 2, last_ten: [
-          { id: 's1', occurred_at: new Date().toISOString(), description: 'Sent the licensing memo', channel: 'email', source: 'manual' },
+          { id: 's1', occurred_at: FIXED.toISOString(), description: 'Sent the licensing memo', channel: 'email', source: 'manual' },
         ] }
       : { this_week: 0, days_since_last: null, return_rate: null, last_ten: [] },
   } }))
@@ -78,7 +97,7 @@ async function mockHome(page: Page, state: 'empty' | 'full') {
   // cold start.
   const full = state === 'full'
   const week = (w: string, v: number[] | null) => ({
-    week_ending: w, frozen_at: v ? new Date().toISOString() : null, plan_sent: v ? 5 : null, variance_note: null,
+    week_ending: w, frozen_at: v ? FIXED.toISOString() : null, plan_sent: v ? 5 : null, variance_note: null,
     approaches_sent: v ? v[0] : null, calls_taken: v ? v[1] : null, paid_pilots: v ? v[2] : null,
     cash_invoiced_gbp: v ? v[3] : null, pieces_published: v ? v[4] : null, unasked_hours: v ? v[5] : null,
     unasked_measured: Boolean(v),
@@ -131,20 +150,20 @@ async function mockHome(page: Page, state: 'empty' | 'full') {
       const dateParam = (url.searchParams.get('focus_date') || '').replace('eq.', '')
       const row = {
         id: 'df1', focus_date: dateParam, status: 'calibrated',
-        target_1_text: 'Record the refresher walkthrough', target_1_concept_id: null, target_1_source: 'krish_added', target_1_replaced_marcus_pick: null, target_1_completed_at: new Date().toISOString(), target_1_goal_id: 'weekly:refresher',
+        target_1_text: 'Record the refresher walkthrough', target_1_concept_id: null, target_1_source: 'krish_added', target_1_replaced_marcus_pick: null, target_1_completed_at: FIXED.toISOString(), target_1_goal_id: 'weekly:refresher',
         target_2_text: 'Invoice AdFixus', target_2_concept_id: null, target_2_source: 'krish_added', target_2_replaced_marcus_pick: null, target_2_completed_at: null, target_2_goal_id: 'weekly:invoices',
         target_3_text: 'Email the licensing draft to counsel', target_3_concept_id: null, target_3_source: 'krish_added', target_3_replaced_marcus_pick: null, target_3_completed_at: null, target_3_goal_id: 'weekly:license-memo',
-        calibrated_at: new Date().toISOString(), completed_at: null, carried_from_date: null,
+        calibrated_at: FIXED.toISOString(), completed_at: null, carried_from_date: null,
         relevance_index: {}, marcus_suggestions: [],
-        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        created_at: FIXED.toISOString(), updated_at: FIXED.toISOString(),
       }
       // useDailyFocus asks for today and yesterday; only today gets a row.
-      const isYesterday = dateParam < new Intl.DateTimeFormat('en-CA').format(new Date())
+      const isYesterday = dateParam < new Intl.DateTimeFormat('en-CA').format(FIXED)
       return r.fulfill({ json: isYesterday ? null : row })
     })
     await page.route('**/rest/v1/decisions_waiting*', (r: Route) => r.fulfill({ json: [
-      { kind: 'task', id: 't1', title: 'Approve the Vera correction batch', description: null, priority: 'high', agent: 'vera', status: 'waiting', sort_at: new Date().toISOString(), meta: {}, route_target: null },
-      { kind: 'task', id: 't2', title: 'Rule on the returned capture', description: null, priority: 'normal', agent: null, status: 'waiting', sort_at: new Date().toISOString(), meta: {}, route_target: null },
+      { kind: 'task', id: 't1', title: 'Approve the Vera correction batch', description: null, priority: 'high', agent: 'vera', status: 'waiting', sort_at: FIXED.toISOString(), meta: {}, route_target: null },
+      { kind: 'task', id: 't2', title: 'Rule on the returned capture', description: null, priority: 'normal', agent: null, status: 'waiting', sort_at: FIXED.toISOString(), meta: {}, route_target: null },
     ] }))
   }
 }
@@ -196,6 +215,7 @@ for (const vp of VIEWPORTS) {
   for (const state of ['empty', 'full'] as const) {
     test(`home fits without scroll at ${vp.w}×${vp.h} (${state} canon)`, async ({ page }) => {
       await page.setViewportSize({ width: vp.w, height: vp.h })
+      await page.clock.setFixedTime(FIXED)
       await mockHome(page, state)
       await page.goto('/#/home')
       // Let the skeleton settle into live data.
