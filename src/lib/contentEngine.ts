@@ -650,8 +650,17 @@ export function editGroups(o?: {
       label: 'Deep research',
       accent: 'border-cyan-500/30 text-cyan-200',
       items: [
-        { label: 'Paid: follow the money', mode: 'deepen', value: 'paid', hint: 'Investigate how the money moves and how it has SHIFTED: who pays, who collects, what the price was against what it is now, the effect on margin, how buying behaviour changed, and where the economics do not hold. Ends in a like-for-like comparison of at least two named approaches on the same axes.' },
-        { label: 'Built: find who shipped it', mode: 'deepen', value: 'built', hint: 'Find people who actually built this. What they shipped, the stack, the cost, the time, what broke, and what it replaced. Ends in a like-for-like comparison of at least three real implementations on the same axes.' },
+        // The labels named Paid and Built, two formats retired on 2026-09-17,
+        // so the buttons offered brands that no longer exist. These are not
+        // formats at all: they are two ways of digging, and the piece keeps
+        // whatever subchannel it already has. Named for what they do now.
+        //
+        // The VALUES stay 'paid' and 'built' because they are the wire
+        // contract: `type Format = 'paid' | 'built'` in
+        // content-engine/apps/control-plane/api/content-ideas/[id]/deepen.ts.
+        // Renaming them here alone would send a value that endpoint rejects.
+        { label: 'Follow the money', mode: 'deepen', value: 'paid', hint: 'Investigate how the money moves and how it has SHIFTED: who pays, who collects, what the price was against what it is now, the effect on margin, how buying behaviour changed, and where the economics do not hold. Ends in a like-for-like comparison of at least two named approaches on the same axes.' },
+        { label: 'Find who shipped it', mode: 'deepen', value: 'built', hint: 'Find people who actually built this. What they shipped, the stack, the cost, the time, what broke, and what it replaced. Ends in a like-for-like comparison of at least three real implementations on the same axes.' },
       ],
     })
   }

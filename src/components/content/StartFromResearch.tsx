@@ -162,8 +162,16 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Format</span>
-          {([['', 'Decide later'], ['paid', 'Paid'], ['built', 'Built']] as const).map(([v, label]) => (
+          {/* Labelled "Format / Paid / Built" until 2026-09-20, which was wrong
+              twice. Those two names retired on 2026-09-17, so the first thing
+              anyone touched offered brands that no longer exist. And it was
+              never picking a format: the endpoint uses it to choose a corpus
+              playbook and shape the research questions, which is what the hint
+              beside it already said. The piece still gets its subchannel later.
+              Values are the wire contract (`format?: 'paid'|'built'` in
+              content-engine research-topic.ts), so only the words change. */}
+          <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">Research angle</span>
+          {([['', 'Decide later'], ['paid', 'Follow the money'], ['built', 'Find who shipped it']] as const).map(([v, label]) => (
             <button
               key={v || 'none'}
               type="button"
