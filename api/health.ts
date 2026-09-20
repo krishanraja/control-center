@@ -281,24 +281,39 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         } else {
           const file = await r.json() as { content?: string }
           const beats = JSON.parse(Buffer.from(String(file.content || ''), 'base64').toString('utf8')) as
-            Record<string, { last_run?: string } | null>
+            Record<string, { last_run?: string; retiring?: string } | null>
+          // A clock the harness has declared RETIRING is meant to go quiet, so
+          // it must not be allowed to become the oldest clock and hold this
+          // component red forever. openclaw-vps is the case that forced this:
+          // its token has been rejected since 2026-09-19 and it will not beat
+          // again, and a dashboard that is permanently red is one you stop
+          // reading. The declaration lives in the harness's own
+          // state/heartbeats.json, so there is no second list here to drift.
+          const retiring = Object.entries(beats)
+            .filter(([, b]) => b?.retiring && b?.last_run)
+            .map(([who, b]) => ({ who, since: b!.retiring!, hours: (now.getTime() - new Date(b!.last_run!).getTime()) / 3_600_000 }))
           const ages = Object.entries(beats)
-            .filter(([, b]) => b?.last_run)
+            .filter(([, b]) => b?.last_run && !b?.retiring)
             .map(([who, b]) => ({ who, hours: (now.getTime() - new Date(b!.last_run!).getTime()) / 3_600_000 }))
           if (!ages.length) {
             health.components['harness-heartbeat'] = {
               status: 'failed', last_check: nowIso,
-              message: 'heartbeats.json carries no clock with a last_run',
+              message: retiring.length
+                ? `every clock in heartbeats.json is declared retiring (${retiring.map(r => r.who).join(', ')}), so nothing live is reporting`
+                : 'heartbeats.json carries no clock with a last_run',
             }
             health.alerts.push({ severity: 'critical', message: 'The harness has no live clock at all.', component: 'harness-heartbeat', timestamp: nowIso })
           } else {
             const oldest = ages.sort((a, b) => b.hours - a.hours)[0]
+            const winding = retiring.length
+              ? ` ${retiring.length} retiring clock(s) not counted: ${retiring.map(r => `${r.who} quiet ${Math.round(r.hours)}h since ${r.since}`).join(', ')}.`
+              : ''
             // 48 hours matches the harness audit's own limit, so the two agree
             // on what stale means rather than each having an opinion.
             const level: Level = oldest.hours > 48 ? 'failed' : oldest.hours > 30 ? 'degraded' : 'healthy'
             health.components['harness-heartbeat'] = {
               status: level, last_check: nowIso,
-              message: `${ages.length} clock(s), oldest is ${oldest.who} at ${Math.round(oldest.hours)}h`,
+              message: `${ages.length} clock(s), oldest is ${oldest.who} at ${Math.round(oldest.hours)}h.${winding}`,
             }
             if (level === 'failed') {
               health.alerts.push({

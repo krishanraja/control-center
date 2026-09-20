@@ -45,8 +45,22 @@ const adaptBlock = `${formatBlock}\n${channelBlock}`
 const adaptValues = [...adaptBlock.matchAll(/value:\s*'([^']+)'/g)].map(m => m[1])
 const corpusKeys = new Set([...ct.matchAll(/^ {2}([a-z_]+):\s*\//gm)].map(m => m[1]))
 if (!adaptValues.length) bad('no LANE_ADAPTS values parsed')
+// A format may legitimately have no playbook, but only out loud. api/_content.ts
+// declares each gap with its reason in NO_CORPUS_PLAYBOOK, the engine takes the
+// corpus_playbook_missing path for it, and this guard tells that apart from a
+// typo. The declaration is checked both ways below, so it cannot outlive the gap.
+const declaredGaps = new Set(
+  [...(ct.split('NO_CORPUS_PLAYBOOK: Record<string, string> = {')[1] ?? '')
+    .split('\n}')[0]
+    .matchAll(/^\s{2}([a-z_]+):/gm)].map(m => m[1]),
+)
+for (const g of declaredGaps) {
+  if (corpusKeys.has(g)) {
+    bad(`'${g}' is declared in NO_CORPUS_PLAYBOOK but DOES have a CHANNEL_HEADING key; the corpus caught up and the declaration is now a lie`)
+  }
+}
 for (const v of adaptValues) {
-  if (!corpusKeys.has(v)) bad(`LANE_ADAPTS value '${v}' is not a CHANNEL_HEADING key`)
+  if (!corpusKeys.has(v) && !declaredGaps.has(v)) bad(`LANE_ADAPTS value '${v}' is not a CHANNEL_HEADING key`)
 }
 
 // ── 2. no retired value is offered as a choice ─────────────────────────────
@@ -149,7 +163,14 @@ const labelBlocks = [
   ['MEDIA_CHANNELS', ce.split('export const MEDIA_CHANNELS')[1]?.split('\n]')[0] ?? ''],
   // Anchored on the colon. Without it this splits on PUBLIC_SERIES_SOURCE_REVISION,
   // ten lines earlier, and the block comes back with no labels in it at all.
-  ['PUBLIC_SERIES', ps.split('export const PUBLIC_SERIES:')[1]?.split('\n})')[0] ?? ''],
+  // PUBLIC_SERIES is an ASSET registry, not a taxonomy, and every entry in it
+  // has carried a retired name since 2026-09-17. A published wordmark cannot be
+  // un-published, so it is checked differently below: each entry must declare
+  // retiredOn, and the file must say why each live subchannel has no wordmark.
+  // Failing it on the label would force the artwork to be renamed rather than
+  // drawn, which is how a piece ends up carrying a name it was not published
+  // under.
+  // ['PUBLIC_SERIES', ...] deliberately absent from this list.
 ] as const
 
 for (const [name, block] of labelBlocks) {
@@ -177,6 +198,31 @@ if (/value:\s*'publication'/.test(adaptBlock)) {
 // because v2 is the live system and v1 does not render while the flag is on.
 // Fixing v1's LANE_ADAPTS while v2 was live changed nothing he could see, which
 // is precisely the miss this check exists to prevent.
+// ── the wordmark gap, declared or it is not a gap ─────────────────────────
+// Every asset in publicSeries.ts carries a name retired on 2026-09-17, which is
+// fine for artwork already on published pieces and not fine silently. So: each
+// entry must be marked retired, and every live subchannel must appear in
+// NO_WORDMARK_FOR with a reason. When a wordmark is finally drawn, its format
+// leaves NO_WORDMARK_FOR and this check stops requiring an explanation for it.
+{
+  const entries = [...ps.matchAll(/^ {2}([a-z_]+): Object\.freeze\(\{/gm)].map(m => m[1])
+  for (const e of entries) {
+    const body = ps.split(`  ${e}: Object.freeze({`)[1]?.split('  }),')[0] ?? ''
+    if (!/retiredOn:\s*'/.test(body)) {
+      bad(`PUBLIC_SERIES entry '${e}' has no retiredOn. Every wordmark in this file carries a name retired on 2026-09-17; an unmarked one reads as current identity.`)
+    }
+  }
+  const declared = new Set(
+    [...(ps.split('NO_WORDMARK_FOR: Readonly<Record<string, string>> = Object.freeze({')[1] ?? '')
+      .split('})')[0]
+      .matchAll(/^\s{2}([a-z_]+):/gm)].map(m => m[1]),
+  )
+  const live = ['split_the_bill', 'mind_the_gap', 'lift_the_lid']
+  for (const f of live) {
+    if (!declared.has(f)) bad(`no wordmark exists for '${f}' and NO_WORDMARK_FOR does not say why; a surface would fall back to a retired one without saying so`)
+  }
+}
+
 const cv2 = readFileSync('src/lib/contentV2.ts', 'utf8')
 const fanBlock = cv2.split('FACTORY_FANOUT')[1]?.split('\n]')[0] ?? ''
 const fanChannels = [...fanBlock.matchAll(/channel:\s*'([^']+)'/g)].map(m => m[1])
@@ -213,7 +259,12 @@ const HEADINGS = [
 // CANON 2026-08-28: the publication runs exactly two channels. 'paid' and
 // 'built' remain as LEGACY aliases resolving to the same two playbooks, so they
 // are deliberately not live keys and are exempt from the disjointness check.
-const LIVE_KEYS = ['money_of_ai', 'built_with_ai', 'publication', 'signal_noise', 'maven'] as const
+// CANON 2026-09-17: three subchannels. money_of_ai/built_with_ai/paid/built stay
+// as LEGACY aliases resolving to the same playbooks, so they are deliberately
+// not live keys and are exempt from the disjointness check. mind_the_gap is a
+// live format with no corpus section and is declared in NO_CORPUS_PLAYBOOK, so
+// it is exempt here too: a key with no heading is exactly what it says it is.
+const LIVE_KEYS = ['split_the_bill', 'lift_the_lid', 'publication', 'signal_noise', 'maven'] as const
 const patternFor = (k: string) => {
   const m = new RegExp(`^ {2}${k}:\\s*/(.*)/([a-z]*),`, 'm').exec(ct)
   return m ? new RegExp(m[1], m[2]) : null

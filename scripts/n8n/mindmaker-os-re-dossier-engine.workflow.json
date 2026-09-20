@@ -247,7 +247,7 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
+      "onError": "stopWorkflow",
       "credentials": {
         "httpHeaderAuth": {
           "id": "eoursuitt7vHBbP6",
@@ -312,7 +312,7 @@
           }
         }
       },
-      "onError": "continueRegularOutput",
+      "onError": "stopWorkflow",
       "credentials": {
         "httpHeaderAuth": {
           "id": "eoursuitt7vHBbP6",

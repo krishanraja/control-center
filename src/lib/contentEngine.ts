@@ -10,6 +10,8 @@
 // the gates, the active predicate, or the "is this card real" test. This is the
 // fix for CORE_PROBLEM.md F-1/F-2: four copies of one state machine.
 
+import { SUBCHANNELS } from './formats'
+
 export type ContentState =
   | 'seeded' | 'researching' | 'drafting' | 'review' | 'approved' | 'published' | 'dropped' | 'absorbed'
 
@@ -391,12 +393,21 @@ export interface VentureFormat {
   corpusKey: string
 }
 
-/** Mirrors the `venture_formats` table. The composer picks one of these AFTER
- *  the venture and BEFORE the channels. */
-export const VENTURE_FORMATS: VentureFormat[] = [
-  { venture: 'publication', slot: 'money_of_ai', label: 'The Money of AI', hero: true, gear: 'A', corpusKey: 'money_of_ai' },
-  { venture: 'publication', slot: 'built_with_ai', label: 'Built with AI', gear: 'B', corpusKey: 'built_with_ai' },
-]
+/** DERIVED from `venture_formats`, never restated. The composer picks one of
+ *  these AFTER the venture and BEFORE the channels.
+ *
+ *  Until 2026-09-20 this was two hand-written rows carrying the brands retired
+ *  on 2026-09-17, and so were LANES and FACTORY_CHANNELS beside it: the same
+ *  rename, owed in three places, paid in none. All three now read
+ *  `src/lib/formats.ts`, which reads one snapshot of the live table. */
+export const VENTURE_FORMATS: VentureFormat[] = SUBCHANNELS.map(f => ({
+  venture: 'publication' as const,
+  slot: f.slug,
+  label: f.label,
+  ...(f.hero ? { hero: true } : {}),
+  gear: (f.gear === 'Gear B' ? 'B' : 'A') as 'A' | 'B',
+  corpusKey: f.slug,
+}))
 
 export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
   { value: 'publication', label: 'the publication' },
@@ -445,13 +456,20 @@ export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
 // distribution surfaces (linkedin, signal_noise, vertical_video), because the
 // factory produces a draft styled FOR a destination. That is not the same list
 // as MEDIA_CHANNELS and must not be collapsed into it.
+// 2026-09-20: the three subchannel slugs joined the factory's Route by Channel
+// switch on 2026-09-19, additively, so `split_the_bill` routes where `paid` did,
+// `lift_the_lid` where `built` did and `mind_the_gap` to house. Both spellings
+// route today. The dashboard now sends the live slug; the retired spellings stay
+// in the TYPE so a historical row still compiles, and are absent from the
+// SELECTABLE list so nothing new is written with one.
 export type FactoryChannel =
-  | 'paid' | 'built' | 'linkedin' | 'signal_noise'
+  | 'split_the_bill' | 'mind_the_gap' | 'lift_the_lid'
+  | 'paid' | 'built'
+  | 'linkedin' | 'signal_noise'
   | 'vertical_video' | 'dynamic'
 
 export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
-  { value: 'paid', label: 'The Money of AI' },
-  { value: 'built', label: 'Built with AI' },
+  ...SUBCHANNELS.map(f => ({ value: f.slug as FactoryChannel, label: f.label })),
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'signal_noise', label: 'Signal & Noise' },
   { value: 'vertical_video', label: 'Vertical Video' },
@@ -460,10 +478,13 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // The variant toggles. `lane` now carries the VENTURE and `slot` the FORMAT,
 // which is why 'builder_economy_ig' is gone: Instagram was a channel wearing a
 // venture's clothes, and it now lives in MEDIA_CHANNELS where it belongs.
-export const LANES: LaneDef[] = [
-  { lane: 'publication', slot: 'money_of_ai', label: 'The Money of AI', gear: 'A', factoryChannel: 'paid' },
-  { lane: 'publication', slot: 'built_with_ai', label: 'Built with AI', gear: 'B', factoryChannel: 'built' },
-]
+export const LANES: LaneDef[] = SUBCHANNELS.map(f => ({
+  lane: 'publication',
+  slot: f.slug,
+  label: f.label,
+  gear: (f.gear === 'Gear B' ? 'B' : 'A') as 'A' | 'B',
+  factoryChannel: f.slug as FactoryChannel,
+}))
 
 // ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
 // Krish's note: "transforming into another lane should already come with a tone
@@ -488,19 +509,30 @@ export interface LaneAdapt { value: string; label: string; hint: string }
 
 /** What the piece IS. Changes the argument's register and its evidence bar. */
 export const FORMAT_ADAPTS: LaneAdapt[] = [
-  // the publication is a venture, never an adapt target. Adapting to the
-  // venture was meaningless: it has two formats with two different registers,
-  // and offering the venture as one option is what made the composer feel
-  // stale. Adapt to a FORMAT.
+  // Three, not two, since 2026-09-17. `value` is the corpus lookup key used
+  // verbatim by api/content-ideas/[id]/revise.ts, so it must be a key in
+  // CHANNEL_HEADING in api/_content.ts. mind_the_gap has no corpus section yet
+  // and the engine says `corpus_playbook_missing` rather than quietly handing
+  // the hero format somebody else's register.
+  //
+  // THE HINTS ARE STEERS, NOT MANDATES. Each mandate lives in full prose in
+  // venture_formats.mandate and is read at run time. A mandate copied into this
+  // file is a copy, and on 2026-09-17 the copy here was three weeks out of date
+  // while the table was right.
   {
-    value: 'money_of_ai',
-    label: 'The Money of AI',
-    hint: 'Adapt this into a Paid piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
+    value: 'split_the_bill',
+    label: 'split.the.bill',
+    hint: 'Adapt this into a split.the.bill piece. The standing question leads: what does it really cost to run, and who ends up holding the bill. Take one load-bearing number apart and attribute every figure to the party that produced it. The reader is a leader of a five to fifty million pound business who has just seen the renewal quote, never the vendor pricing it. Hold one genuine counterpoint, say plainly where the knowable record ends, and end on the question the evidence leaves open. The register is dry; the evidence handling is not. The joke is never the finding.',
   },
   {
-    value: 'built_with_ai',
-    label: 'Built with AI',
-    hint: 'Adapt this into a Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
+    value: 'mind_the_gap',
+    label: 'mind.the.gap',
+    hint: 'Adapt this into a mind.the.gap piece, the Friday hero. ONE topic, followed over time, showing where the claim and the reality separated. A piece that surveys several topics is not this format. The spine is the topic and the argument is the gap. Carry the human story underneath the technology rather than the technology itself.',
+  },
+  {
+    value: 'lift_the_lid',
+    label: 'lift.the.lid',
+    hint: 'Adapt this into a lift.the.lid piece. Take a launch, a release or a live product surface apart and separate what actually ships from what was demoed. The standing question, which the opening artifact also asks the reader: does this make its user sharper, or dependent. Pricing pages and changelogs move, so archive the surface before recording or the piece rots in a week.',
   },
 ]
 

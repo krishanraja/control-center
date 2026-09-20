@@ -164,6 +164,20 @@ export function laneToCorpusChannel(lane?: string | null, slot?: string | null):
 }
 
 // channel key -> a matcher against the playbook heading text in the corpus.
+/**
+ * Formats that have NO corpus playbook, and why.
+ *
+ * A format listed here takes the `corpus_playbook_missing` path rather than
+ * quietly borrowing another format's register, and scripts/check-content-taxonomy.mts
+ * reads this to tell a declared gap from a typo. An entry that DOES have a
+ * CHANNEL_HEADING key fails the same guard, so a declaration cannot go stale
+ * after the corpus is written.
+ */
+export const NO_CORPUS_PLAYBOOK: Record<string, string> = {
+  mind_the_gap:
+    'The corpus document in system_config.content_corpus was last written on 2026-08-28, when the canon still said the publication ran exactly two channels. mind.the.gap was added to venture_formats on 2026-09-17 and has no section in it. Until the corpus gains one, the hero format has no playbook and the engine says so. Writing that section is editorial work against venture_formats.mandate, not a rename, which is why it is declared here rather than pointed at split.the.bill or lift.the.lid.',
+}
+
 const CHANNEL_HEADING: Record<string, RegExp> = {
   // COLLISION RULE. These patterns are tested against every `##` heading in the
   // corpus (the heading TEXT, with the # markers already stripped) and the
@@ -185,11 +199,26 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // The house register is matched on the exact phrase "Publication house
   // register" so a bare "Publication" elsewhere cannot claim it.
   //
-  // CANON 2026-08-28: the publication runs exactly two channels, The Money of
-  // AI and Built with AI. 'paid' and 'built' remain as LEGACY aliases that
-  // resolve to those same two playbooks, so a stored legacy row still gets its
-  // real playbook instead of the whole-corpus fallback. Single anchored
-  // patterns only, never an alternation.
+  // CANON 2026-09-17, replacing the 2026-08-28 two-channel canon: the
+  // publication runs THREE subchannels, split.the.bill, mind.the.gap and
+  // lift.the.lid. venture_formats is the authority; src/lib/formats.ts is the
+  // dashboard's one reader of it.
+  //
+  // The corpus document has not been rewritten yet. Its playbook headings are
+  // still "## 1. The Money of AI" and "## 2. Built with AI", so the live slugs
+  // are pointed at the headings their retired names had, exactly as the n8n
+  // factory's Route by Channel switch was widened additively on 2026-09-19.
+  // Both spellings resolve; nothing falls through to the whole-corpus fallback.
+  //
+  // mind_the_gap IS ABSENT ON PURPOSE. The corpus has no mind.the.gap playbook,
+  // and giving it one of the other two would hand the hero format a register
+  // that is not its own and no signal that it had happened. Absent, it takes
+  // the `corpus_playbook_missing` path below, which says so. Add the key here
+  // the same day the corpus gains the section, and not before.
+  //
+  // Single anchored patterns only, never an alternation.
+  split_the_bill: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
+  lift_the_lid: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
   money_of_ai: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
   built_with_ai: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
   paid: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
