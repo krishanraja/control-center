@@ -292,13 +292,28 @@ having done almost nothing:
   no plate, because the plate read as a black bar repeating the room chip.
 - **mind.the.gap has no corpus section.** Declared as `NO_CORPUS_PLAYBOOK` in
   `content-engine/api/_content.ts`.
-- **Retired names still appear in three places in the UI.** The mobile Queue
-  passes the retired slug `built` into `LaneRoom`
-  (`ContentV2Tab.tsx`), the Deep research chips are labelled "Paid:" and
-  "Built:" (`contentEngine.ts`), and `ShiftsRoom.tsx` prints
-  `publicSeriesLabel('built')` and `publicSeriesLabel('paid')` in a caption.
-  The alias ledger means none of these is broken; they are wrong words on a
-  working surface.
+- **Retired names in the UI: cleared 2026-09-20.** The Start from research
+  picker offered "Paid" and "Built" as the format, the Deep research chips were
+  labelled the same way, the mobile Queue fell back to the retired slug `built`
+  (landing on lift.the.lid rather than the hero), and ShiftsRoom described
+  laneless shifts as touching "both" of two named formats. All fixed. Where a
+  value is a wire contract with n8n or the control plane it was kept and only
+  the words changed, with the contract named in a comment beside it.
+
+- **`research-topic` still writes retired slugs to NEW rows.** In
+  `content-engine`, the endpoint behind Start from research stores
+  `lane: 'mindmaker_live'` and `lane_slot: 'paid' | 'built'`. Reads resolve
+  through the alias ledger so nothing is lost, but new rows should carry live
+  slugs, and the house rule is that an unknown slug fails the write rather than
+  degrading. Fixing it means teaching the endpoint the three live slugs while
+  still accepting the two old ones, which is a change in the other repo.
+
+- **mind.the.gap has no fan-out destination.** `FACTORY_FANOUT` in
+  `src/lib/contentV2.ts` carries split.the.bill and lift.the.lid only. The
+  `channel` values are the n8n Omnichannel Content Factory's wire contract and
+  it switches on `target_channel`, so the hero format cannot be added from the
+  repo side alone: the factory would receive a value it cannot route. A Friday
+  piece therefore cannot be pushed the way a Wednesday one can.
 
 ---
 

@@ -288,7 +288,15 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
                 )
                 : (
                   <div className={deskStage ? 'flex min-h-0 flex-1 flex-col' : undefined}>
-                    <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} fit={deskStage} />
+                    {/* 'queue' is a mobile view, not a room, and the mobile
+                        branch above already owns it, so this fallback is only
+                        reached if that ever stops being true. It used to read
+                        'built', a slug retired on 2026-09-17 that survives
+                        only as a read-side alias, so the fallback resolved to
+                        lift.the.lid: the 0.5-a-week standing format rather
+                        than the hero. ROOM_SLUGS is in venture_formats sort
+                        order, so [0] is whatever the hero is today. */}
+                    <LaneRoom lane={room === 'queue' ? (ROOM_SLUGS[0] ?? 'general') : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} fit={deskStage} />
                   </div>
                 )}
 

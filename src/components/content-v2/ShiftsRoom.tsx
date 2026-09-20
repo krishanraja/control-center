@@ -259,9 +259,14 @@ export function ShiftsRoom({ v2, variant, lane }: {
       )}
       {crossCutting.length > 0 && (
         <div className={own.length || !lane ? 'mt-5' : 'mt-3'}>
+          {/* This said "shifts that touch both X and Y", naming two formats by
+              their retired slugs. Two things were wrong. The filter above is
+              `!s.lane`: these shifts carry NO subchannel, so they touch none of
+              them rather than both of two. And there are three subchannels now,
+              so naming two was never going to hold. Says what the filter does. */}
           {lane && (
             <p className="mb-2 text-label text-ink-faint" data-testid="shifts-cross-cutting">
-              Also here: shifts that touch both {publicSeriesLabel('built')} and {publicSeriesLabel('paid')}.
+              Also here: shifts not tied to one subchannel yet.
             </p>
           )}
           {grid(crossCutting)}

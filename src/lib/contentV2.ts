@@ -210,10 +210,18 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // SynthesisModal did not change what he was looking at: v2 was already the
 // live system, and since 2026-09-07 it is the only one.
 //
-// Publication is a VENTURE with two formats and two registers, so offering
-// it as one destination would be the same mistake as offering "Builder Economy
-// IG", a channel wearing a venture's name. Fan out to FORMATS (paid, built)
-// plus real distribution channels, never to the venture.
+// Publication is a VENTURE with three subchannels and three registers, so
+// offering it as one destination would be the same mistake as offering "Builder
+// Economy IG", a channel wearing a venture's name. Fan out to FORMATS plus real
+// distribution channels, never to the venture.
+//
+// GAP, 2026-09-20: only two of the three are here. The `channel` values below
+// are the n8n Omnichannel Content Factory's wire contract and it switches on
+// `target_channel`, so mind.the.gap cannot be added from this side alone: the
+// factory would receive a value it cannot route. It is the HERO format and it
+// has no fan-out destination, which is why a Friday piece cannot be pushed the
+// way a Wednesday one can. Adding it is an n8n change and needs its own
+// approval at the moment of the change.
 // `short` is the name used where the full label will not fit, notably the
 // collapsed one-line fan-out summary on a phone. It exists so that summary can
 // name every selected format instead of ellipsing after the first.
