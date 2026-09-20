@@ -6,10 +6,9 @@ import {
   readEditorialDecision,
   readEditorialOpportunity,
 } from '../../lib/editorialOpportunities'
-import type { PublicSeriesKey } from '../../lib/publicSeries'
 import { Eyebrow } from '../shared/Eyebrow'
 
-export function EditorialOpportunityList({ ideas, seriesKey }: { ideas: ContentIdeaRow[]; seriesKey: PublicSeriesKey }) {
+export function EditorialOpportunityList({ ideas, seriesKey }: { ideas: ContentIdeaRow[]; seriesKey: string }) {
   const series = editorialSeriesForKey(seriesKey)
   const rows = ideas
     .map(idea => ({ idea, opportunity: readEditorialOpportunity(idea, series) }))

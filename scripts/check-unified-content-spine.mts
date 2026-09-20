@@ -9,6 +9,7 @@ import {
 } from '../src/lib/editorialOpportunities'
 import type { ContentIdeaRow } from '../src/hooks/useRealtimeContentIdeas'
 import { CONTENT_OUTPUTS, storedContentOutputs } from '../src/lib/contentOutputs'
+import { SUBCHANNELS, formatSpelling, resolveFormat } from '../src/lib/formats'
 
 const candidate = (series: 'money_of_ai' | 'built_with_ai', status: 'eligible' | 'near_miss' = 'eligible') => ({
   schema_version: 2,
@@ -46,7 +47,7 @@ assert.equal(readEditorialOpportunity(source, 'built_with_ai')?.title, 'built_wi
 assert.equal(readEditorialDecision(source, 'money_of_ai')?.child_id, 'money-child')
 assert.equal(readEditorialDecision(source, 'built_with_ai'), null)
 assert.equal(editorialSeriesForKey('paid'), 'money_of_ai')
-assert.equal(publicKeyForEditorialSeries('built_with_ai'), 'built')
+assert.equal(publicKeyForEditorialSeries('built_with_ai'), 'lift_the_lid')
 assert.equal(editorialOpportunityHref('source 1', 'money_of_ai'), '#/content?idea=source%201&lens=money_of_ai')
 
 // The editorial-route half moved to the engine with the route
@@ -65,7 +66,33 @@ assert.deepEqual(stored.map(output => output.definition.key), ['linkedin', 'vide
 
 const contentTab = readFileSync(new URL('../src/components/content-v2/ContentV2Tab.tsx', import.meta.url), 'utf8')
 assert.match(contentTab, /lane === 'publication'/)
-assert.match(contentTab, /slot === 'built_with_ai'/)
-assert.match(contentTab, /slot === 'money_of_ai'/)
+
+// Until 2026-09-20 the next three lines named the two rooms by slug, so this
+// guard went green on the retired vocabulary and would have failed on the
+// correct one. What is held now is the derivation, not the words: the rooms
+// come from SUBCHANNELS and the slot resolves through the rename ledger, so a
+// fourth subchannel in venture_formats needs no edit to this file and a
+// hand-typed room needs one it cannot get.
+assert.match(contentTab, /\.\.\.SUBCHANNELS\.map\(/)
+assert.match(contentTab, /resolveFormat\(slot\)/)
+assert.match(contentTab, /f\.kind === 'subchannel'/)
+
+// The behaviour those literals used to stand in for, asserted against the one
+// reader rather than against a source string.
+assert.equal(resolveFormat('built_with_ai')?.slug, 'lift_the_lid')
+assert.equal(resolveFormat('money_of_ai')?.slug, 'split_the_bill')
+assert.equal(resolveFormat('paid')?.slug, 'split_the_bill')
+assert.equal(resolveFormat('built')?.slug, 'lift_the_lid')
+assert.equal(resolveFormat('not_a_format'), null)
+assert(SUBCHANNELS.length >= 3, 'the publication runs three subchannels, not two')
+
+// Reading is generous, writing is not. A retired spelling must route a
+// historical row to its live room AND be refused for a new one; when those were
+// one question the answer was wrong for whichever half lost the tie.
+assert.equal(formatSpelling('lift_the_lid'), 'current')
+assert.equal(formatSpelling('built_with_ai'), 'retired')
+assert.equal(formatSpelling('built'), 'retired')
+assert.equal(formatSpelling('money_of_ai'), 'retired')
+assert.equal(formatSpelling('not_a_format'), 'unknown')
 
 console.log('PASS  one neutral source feeds independent editorial routes inside the existing Content spine')

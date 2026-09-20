@@ -3,6 +3,7 @@ import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge, Film, Layers,
 } from '@/lib/icons'
+import { SUBCHANNELS } from '../../lib/formats'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { SkeletonText, SkeletonDetail } from '../shared/Skeleton'
@@ -1672,7 +1673,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
           body: JSON.stringify({ duration: definition.key.replace(/^video_/, ''), source_text: idea.body }),
         })
       } else {
-        if (!canonicalSeries) throw new Error('Choose The Money of AI or Built With AI before starting Studio.')
+        if (!canonicalSeries) throw new Error(`Choose a subchannel before starting Studio: ${SUBCHANNELS.map(f => f.label).join(', ')}.`)
         if (!hardGatesConfirmed) throw new Error('Confirm the five production gates first.')
         const productionKind = definition.family === 'carousel' ? 'carousel' : 'video'
         response = await fetch(`/api/content-ideas/${idea.id}/production-brief`, {

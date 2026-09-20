@@ -39,7 +39,7 @@ export function SurfacedCards({
 }: {
   cards: ArcCardRow[]
   shifts: ShiftRow[]
-  lane: Exclude<RoomId, 'library'>
+  lane: RoomId
 }) {
   const laneOfShift = useMemo(() => new Map(shifts.map(s => [s.id, s.lane])), [shifts])
 

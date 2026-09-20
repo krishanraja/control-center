@@ -143,8 +143,13 @@ includes(identity, 'publicSeriesIdentity', 'shared series identity')
 includes(series, "label: 'Built With AI'", 'public series labels')
 includes(series, "label: 'The Money of AI'", 'public series labels')
 includes(series, '54ea43b9771d3b263718a4d40cecc68167b7a718', 'public series provenance')
-includes(contentRooms, "publicSeriesLabel('built')", 'Content v2 Built label')
-includes(contentRooms, "publicSeriesLabel('paid')", 'Content v2 Money label')
+// The room labels used to be `publicSeriesLabel('built')` and
+// `publicSeriesLabel('paid')`, and this guard held those two calls by name.
+// Both slugs retired on 2026-09-17 and the guard kept passing, which is part of
+// how the dashboard still opened on the old wordmarks three days later. The
+// rooms now render from SUBCHANNELS, so what is held is that they are derived
+// at all: no room label may be typed into this component again.
+includes(contentRooms, 'SUBCHANNELS.map(f => ({ id: f.slug, label: f.label }))', 'Content v2 room labels derive from venture_formats')
 
 for (const expected of ['/mindmake-wordmark.svg', '/mindmake-og.png']) {
   includes(middleware, expected, 'middleware public metadata')

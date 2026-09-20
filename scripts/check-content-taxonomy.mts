@@ -23,6 +23,7 @@
 //
 //   npx tsx scripts/check-content-taxonomy.mts
 import { readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 
 const ce = readFileSync('src/lib/contentEngine.ts', 'utf8')
 const ct = readFileSync('api/_content.ts', 'utf8')
@@ -275,6 +276,50 @@ for (const h of HEADINGS) {
 }
 for (const k of LIVE_KEYS) {
   if (!HEADINGS.some(h => patternFor(k)?.test(h))) bad(`live key '${k}' matches NO corpus heading; its playbook will never load`)
+}
+
+
+// ── the sweep this guard did not have, and paid for ────────────────────────
+// Until 2026-09-20 this file read four sources. Six other files carried the
+// retired publication names, and one of them, ContentV2Tab.tsx, is the Content
+// tab's ROOM list: what Krish actually looks at on his phone. The guard went
+// green on 2026-09-20 while his dashboard still opened on "Built With AI" and
+// "The Money of AI", three days after the rename. A guard that checks four
+// named files reports on four named files, and reads like it reports on the
+// repo.
+//
+// So this sweeps every source file instead. A retired name may only appear
+// where it is declared below, with the reason it is allowed to be there:
+// history in a comment, the rename ledger, and the retired asset registry are
+// legitimate; a label, an option or a room is not.
+{
+  const ALLOWED: Array<{ file: string; why: string }> = [
+    { file: 'src/lib/formats.generated.json', why: 'the rename ledger itself: retired rows and their aliases are its content' },
+    { file: 'src/lib/publicSeries.ts', why: 'the retired wordmark registry, every entry marked retiredOn, plus NO_WORDMARK_FOR explaining the gap' },
+    { file: 'src/components/shared/MindmakeIdentity.tsx', why: 'a comment about which asset the sizing was derived from' },
+    { file: 'scripts/check-content-taxonomy.mts', why: 'this guard names what it forbids' },
+  ]
+  const RETIRED_IN_CODE = ['The Money of AI', 'Built With AI', 'Built with AI']
+  const files = execSync(
+    "git ls-files 'src/**/*.ts' 'src/**/*.tsx' 'api/**/*.ts' 'scripts/**/*.mts' 'src/**/*.json'",
+    { encoding: 'utf8' },
+  ).split('\n').filter(Boolean)
+
+  for (const f of files) {
+    if (ALLOWED.some(a => a.file === f)) continue
+    let body: string
+    try { body = readFileSync(f, 'utf8') } catch { continue }
+    body.split('\n').forEach((line, i) => {
+      // A comment may explain the history. Code may not carry the name.
+      const t = line.trim()
+      if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return
+      for (const name of RETIRED_IN_CODE) {
+        if (line.includes(name)) {
+          bad(`${f}:${i + 1} carries the retired name '${name}' in code. Retired names live in formats.generated.json and resolve through resolveFormat(); a label comes from venture_formats. If this line is genuinely historical, move it into a comment or add the file to ALLOWED with its reason.`)
+        }
+      }
+    })
+  }
 }
 
 console.log(

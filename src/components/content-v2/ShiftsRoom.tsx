@@ -169,7 +169,7 @@ export function ShiftsRoom({ v2, variant, lane }: {
    *  would stop being produced, and the lens filter below is what enforces it.
    *  It was also the mechanism that put the same six governance arcs in front
    *  of Krish twice, once per room. */
-  lane?: 'built' | 'paid'
+  lane?: string
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const live = useMemo(

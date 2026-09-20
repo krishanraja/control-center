@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { cn } from '../../lib/utils'
-import { publicSeriesIdentity, type PublicSeriesKey } from '../../lib/publicSeries'
+import { publicSeriesIdentity, NO_WORDMARK_FOR } from '../../lib/publicSeries'
 
 // One extra source pixel prevents Chromium's 1.2 mobile zoom rounding the
 // rendered 36px contract down to 35.99px on 375px viewports.
@@ -101,7 +101,8 @@ export function MindmakeIdentity({ variant = 'compact', size, className, testId 
 }
 
 type SeriesIdentityProps = {
-  series: PublicSeriesKey
+  /** A live venture_formats slug, or a retired asset key for a historical piece. */
+  series: string
   className?: string
   testId?: string
 }
@@ -116,6 +117,39 @@ type SeriesIdentityProps = {
  */
 export function SeriesIdentity({ series, className, testId }: SeriesIdentityProps) {
   const identity = publicSeriesIdentity(series)
+
+  // NO WORDMARK EXISTS FOR ANY LIVE SUBCHANNEL. Both PNGs read "The Money of
+  // AI" and "Built With AI", retired on 2026-09-17, so pointing a live format
+  // at one would put a name on the piece that the piece is not. Until three are
+  // drawn, the plate shows the publication mark and sets the format in type.
+  // This is the declared degrade, not a missing asset: see NO_WORDMARK_FOR in
+  // src/lib/publicSeries.ts, which scripts/check-content-taxonomy.mts holds to
+  // saying so out loud.
+  const why = NO_WORDMARK_FOR[series]
+  if (why || !identity.assetPath) {
+    return (
+      <span
+        className={cn(
+          'inline-flex h-12 w-full max-w-[320px] items-center gap-2 rounded-xl border border-white/[0.12] bg-[#0a100d] px-2 shadow-e1',
+          className,
+        )}
+        role="img"
+        aria-label={identity.label}
+        title={why}
+        data-testid={testId ?? `series-identity-${series}`}
+        data-series-identity={series}
+        data-series-label={identity.label}
+        data-series-wordmark="absent"
+      >
+        <MarkTile size={MINDMAKE_COMPACT_MIN_SIZE} labelled={false} />
+        <span className="flex min-w-0 flex-1 items-center justify-center px-1">
+          <span className="truncate font-mono text-label tracking-[0.06em] text-white/85">
+            {identity.label}
+          </span>
+        </span>
+      </span>
+    )
+  }
   const sourceLetterHeight = identity.letterBottomY - identity.letterTopY + 1
   const sourceLetterWidth = identity.letterRightX - identity.letterLeftX + 1
   const renderedLetterHeight = SERIES_WORDMARK_LETTER_HEIGHT

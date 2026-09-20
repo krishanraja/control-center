@@ -77,14 +77,53 @@ export const RETIRED_FORMATS: readonly FormatDef[] = Object.freeze(
 export function resolveFormat(value?: string | null): FormatDef | null {
   if (!value) return null
   const v = String(value).trim()
-  const direct = BY_SLUG.get(v)
-  if (direct) return direct
+  // THE ALIAS LEDGER IS READ FIRST, and the order is the whole point.
+  //
+  // `money_of_ai` and `built_with_ai` are each two rows: a retired row in
+  // venture_formats (what the format WAS) and an alias row in format_aliases
+  // (what the name MEANS NOW). Reading venture_formats first made every
+  // historical `lane_slot = 'built_with_ai'` resolve to a retired format, whose
+  // kind is not `subchannel`, so the rooms dropped it and the idea disappeared
+  // from the dashboard rather than appearing under lift.the.lid. That is the
+  // exact failure the ledger exists to prevent, so the ledger wins.
+  //
+  // Nothing loses the retired rows by this: RETIRED_FORMATS reads FORMATS
+  // directly, and formatSpelling() below is how a writer refuses a retired
+  // spelling without a resolver that pretends not to understand it.
   const viaAlias = ALIAS_TO_SLUG.get(v)
   if (viaAlias) return BY_SLUG.get(viaAlias) ?? null
+  const direct = BY_SLUG.get(v)
+  if (direct) return direct
   // Labels are matched last and case-insensitively, so "The Money of AI" and
   // "split.the.bill" both land somewhere, but a near miss still fails.
   const lower = v.toLowerCase()
-  return FORMATS.find(f => f.label.toLowerCase() === lower) ?? null
+  const byLabel = FORMATS.find(f => f.label.toLowerCase() === lower)
+  if (!byLabel) return null
+  // A retired label resolves the same way its slug does, or the read side would
+  // route "Built with AI" and `built_with_ai` to two different places.
+  return byLabel.kind === 'retired' ? resolveFormat(byLabel.slug) : byLabel
+}
+
+export type FormatSpelling = 'current' | 'retired' | 'unknown'
+
+/**
+ * Whether this exact string may be written to a new row.
+ *
+ * `resolveFormat` answers "what does this mean", which is a read-side question
+ * and must be generous: an eight-month-old row saying `built_with_ai` is a
+ * lift.the.lid piece. This answers "is this how we spell it today", which is a
+ * write-side question and must not be: `built_with_ai` is a retired spelling
+ * even though it resolves cleanly, and writing it again would start the drift
+ * over. The two questions were one function until 2026-09-20 and the single
+ * answer was wrong for one of them whichever way it was ordered.
+ */
+export function formatSpelling(value?: string | null): FormatSpelling {
+  if (!value) return 'unknown'
+  const v = String(value).trim()
+  if (ALIAS_TO_SLUG.has(v)) return 'retired'
+  const direct = BY_SLUG.get(v)
+  if (direct) return direct.kind === 'retired' ? 'retired' : 'current'
+  return resolveFormat(v) ? 'retired' : 'unknown'
 }
 
 /** The label to show a person. Never a title-cased slug. */
@@ -92,7 +131,9 @@ export function formatLabel(value?: string | null): string {
   return resolveFormat(value)?.label ?? 'unknown format'
 }
 
-/** True when the value names a format that may be commissioned today. */
+/** True when the value names a format that may be commissioned today, under any
+ *  of its spellings. Ask `formatSpelling(value) === 'current'` as well before
+ *  storing the string itself. */
 export function isLiveFormat(value?: string | null): boolean {
   const f = resolveFormat(value)
   return !!f && (f.kind === 'subchannel' || f.kind === 'holding')
@@ -105,8 +146,10 @@ export function whyNotAFormat(value?: string | null): string {
   if (!f) {
     return `"${value}" is not a format venture_formats has, so there is no mandate to write against and no slug to store. The live ones are ${SUBCHANNELS.map(s => s.slug).join(', ')}.`
   }
-  if (f.kind === 'retired') {
-    return `"${value}" is ${f.label}, retired on ${f.cadence_label.replace('retired ', '')}. It resolves to ${resolveFormat(f.slug)?.slug ?? 'nothing'} for reading historical rows and must never be written to a new one.`
+  if (formatSpelling(value) === 'retired') {
+    const was = BY_SLUG.get(String(value).trim())
+    const when = was?.cadence_label.replace('retired ', '') ?? FORMAT_ALIASES.find(a => a.alias === String(value).trim())?.retired_on ?? 'an earlier rename'
+    return `"${value}" is a retired spelling, dropped on ${when}. It reads as ${f.slug} for historical rows and must never be written to a new one.`
   }
   if (f.kind === 'any') return `"${value}" means "either", which is a query, not a destination.`
   return ''
