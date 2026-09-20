@@ -220,6 +220,17 @@ does not follow a rename. Widening `PublicSeriesKey` to three would mean a third
 Content room and three new wordmarks, which is a product change and waits on
 Krish.
 
+**Two n8n snapshots in `scripts/n8n/` are stale as of 2026-09-20**, because the
+live workflows were changed that day and the mirrors were not:
+`cleo-inspiration-sweep.workflow.json` (53 nodes against 55 live, missing
+`Collect Mined Ids` and `Mark Messages Mined`, and its Seen Filter still points
+at the table rather than the `inspiration_messages_mined` view) and
+`cleo-content-lane-sourcing.workflow.json` (missing `Get Voice Block`, and its
+Plan Due Lanes still joins on a built string). `sync.mjs` pushes repo to cloud
+and its own drift guard blocks a stale push, which is the only reason this is a
+note and not an incident, but refresh from cloud before touching either.
+Refreshing needs `N8N_API_KEY`, which the cloud session does not carry.
+
 `scripts/check-format-drift.mts` reads the live table and fails naming the slug
 that differs, so the snapshot cannot become a fifth copy. It needs
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, says NOT CHECKED without them
