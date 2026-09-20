@@ -37,45 +37,43 @@
       "id": "26c80c43-ba78-452e-b84d-1dd02ad4ec39"
     },
     {
+      "id": "36950cb0-79f7-4416-af9c-2f8fa0fb034f",
       "name": "Sonnet retro",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
       "position": [
         760,
         280
       ],
       "parameters": {
-        "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
             {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
-            },
-            {
-              "name": "content-type",
-              "value": "application/json"
+              "content": "={{ JSON.stringify($json) }}",
+              "role": "user"
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', thinking: { type: 'adaptive' }, max_tokens: 6000, system: 'You are Marcus writing the Friday retro for Krish. You get this week\\'s numbers and the learning events the OS recorded. Be brutal and specific.\\n\\nOutput ONLY a JSON object:\\n{\"what_worked\":string[], \"what_flopped\":string[], \"next_focus\":string}\\n\\nwhat_worked and what_flopped: 2 to 4 each. Every entry is TWO clauses: what happened with its number, then what it means for next week. \"Three Maven signups from the LinkedIn thread, so the channel is worth another week before judging it\" not \"LinkedIn did well\". An entry with no number is not an entry. An entry that restates the number without saying what follows from it is a summary, and a summary is a failure.\\n\\nnext_focus: the ONE thing to drive next week, and it must name its first move. Format: the focus, then \"Start by:\" and a single concrete action doable Monday morning, naming the customer, lead, metric or bet it acts on. If an open stall or a recorded learning event points at the focus, say which.\\n\\nRules: cite real numbers from the data, never invent one. No platitudes, no \"continue to\", no \"keep momentum\". If the week was genuinely flat, say so plainly rather than manufacturing a win. No em dashes.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth"
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "w8sWwz8EfYc1JA7G",
-          "name": "Anthropic Header 2026-05-21"
+        "addAttachments": false,
+        "simplify": false,
+        "options": {
+          "system": "You are Marcus writing the Friday retro for Krish. You get this week's numbers and the learning events the OS recorded. Be brutal and specific.\n\nOutput ONLY a JSON object:\n{\"what_worked\":string[], \"what_flopped\":string[], \"next_focus\":string}\n\nwhat_worked and what_flopped: 2 to 4 each. Every entry is TWO clauses: what happened with its number, then what it means for next week. \"Three Maven signups from the LinkedIn thread, so the channel is worth another week before judging it\" not \"LinkedIn did well\". An entry with no number is not an entry. An entry that restates the number without saying what follows from it is a summary, and a summary is a failure.\n\nnext_focus: the ONE thing to drive next week, and it must name its first move. Format: the focus, then \"Start by:\" and a single concrete action doable Monday morning, naming the customer, lead, metric or bet it acts on. If an open stall or a recorded learning event points at the focus, say which.\n\nRules: cite real numbers from the data, never invent one. No platitudes, no \"continue to\", no \"keep momentum\". If the week was genuinely flat, say so plainly rather than manufacturing a win. No em dashes.",
+          "maxTokens": 6000
         }
       },
-      "id": "36950cb0-79f7-4416-af9c-2f8fa0fb034f",
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 5000
+      "credentials": {
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      }
     },
     {
       "name": "Parse + write",
