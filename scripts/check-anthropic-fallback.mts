@@ -15,8 +15,25 @@
  *      empty output. Maya went further and alerted "LLM call failed" on a
  *      fallback that had in fact answered.
  *
+ *   3. The model id itself goes stale. Google retired gemini-2.5-pro and six
+ *      fallbacks started answering "no longer available to new users" — with
+ *      `neverError: true` set so the parse step can read the body, a 404
+ *      renders as a GREEN node. It was found on 2026-09-20 only because the
+ *      Anthropic key hit a spend cap that afternoon and the fallback was asked
+ *      to work for the first time in months. gemini-2.0-flash had been shut
+ *      down since 2026-06-01 on the same terms.
+ *
  * Neither shows up in an execution list: the runs are green. So the invariants
  * are asserted here instead of discovered in six months of thin output.
+ *
+ * GEMINI_ALIVE is not Google's catalogue. It is what answered when probed
+ * against THIS project's credential on the date named. The distinction is the
+ * whole point: gemini-3.1-pro-preview is current, documented, and useless here,
+ * because the key is free-tier and every *pro* model carries a free-tier quota
+ * of `limit: 0`. A documentation page would have waved it through.
+ *
+ * Widening the list means probing first — one 8-token generateContent call on
+ * the real credential, candidates[] in the reply — never reading a doc page.
  *
  *   npx tsx scripts/check-anthropic-fallback.mts
  */
@@ -26,6 +43,18 @@ import { join } from 'node:path'
 const N8N = join(process.cwd(), 'scripts', 'n8n')
 const ANTHROPIC = 'api.anthropic.com'
 const GEMINI = 'generativelanguage.googleapis.com'
+
+/** Probed against the live googlePalmApi credential on 2026-09-20. */
+const GEMINI_ALIVE = new Set(['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'])
+
+/** Probed the same day and refused by this project, with the reason. */
+const GEMINI_DEAD: Readonly<Record<string, string>> = {
+  'gemini-2.5-pro': '404, retired for new users',
+  'gemini-2.0-flash': 'shut down 2026-06-01',
+  'gemini-3.1-pro-preview': '429, free-tier quota limit 0 - pro needs billing on the Google project',
+}
+
+const GEMINI_MODEL = /models\/(gemini-[a-z0-9.-]+?)(?=:|["'\\/\s])/g
 
 interface Node { name: string; type: string; parameters?: Record<string, unknown>; onError?: string; retryOnFail?: boolean; maxTries?: number }
 interface Workflow { active?: boolean; nodes: Node[]; connections: Record<string, { main?: Array<Array<{ node: string }>> }> }
@@ -99,6 +128,22 @@ for (const file of readdirSync(N8N).filter(n => n.endsWith('.workflow.json') && 
   }
 }
 
+// Every Gemini id in the mirrors, including the workflows that are switched
+// off: a dead id waiting in an inactive workflow is still a dead id, and
+// hunter-job-sweep sat on a model Google shut down in June.
+const geminiModels = new Map<string, Set<string>>()
+for (const file of readdirSync(N8N).filter(n => n.endsWith('.workflow.json') && !n.startsWith('zz-archived-'))) {
+  for (const m of readFileSync(join(N8N, file), 'utf8').matchAll(GEMINI_MODEL)) {
+    if (!geminiModels.has(m[1])) geminiModels.set(m[1], new Set())
+    geminiModels.get(m[1])!.add(file)
+  }
+}
+for (const [id, files] of geminiModels) {
+  if (GEMINI_ALIVE.has(id)) continue
+  const why = GEMINI_DEAD[id] ?? 'not probed against this credential'
+  for (const f of [...files].sort()) failures.push(`${f}: Gemini model "${id}" - ${why}`)
+}
+
 // The API side has no cross-provider fallback by design (a user-facing surface
 // should fail loudly rather than answer from a model nobody chose), but it must
 // still survive an overload.
@@ -110,8 +155,8 @@ if (!/RETRY_STATUS/.test(proxy)) failures.push('api/internal/sonnet-proxy.ts: fo
 if (failures.length) {
   console.error(`FAIL: ${failures.length} Anthropic fallback invariant(s) broken.\n`)
   for (const f of failures) console.error(`  ${f}`)
-  console.error('\nA fallback that cannot see the prompt, or whose answer nothing can parse, is not a fallback.')
+  console.error('\nA fallback that cannot see the prompt, whose answer nothing can parse, or whose model Google no longer serves, is not a fallback.')
   process.exit(1)
 }
 
-console.log(`PASS  ${anthropicNodes} Anthropic nodes retry; ${fallbackChains} Gemini fallback chains carry a prompt and a shape adapter`)
+console.log(`PASS  ${anthropicNodes} Anthropic nodes retry; ${fallbackChains} Gemini fallback chains carry a prompt and a shape adapter; ${[...geminiModels.keys()].join(', ')} probed alive`)

@@ -231,6 +231,23 @@ and its own drift guard blocks a stale push, which is the only reason this is a
 note and not an incident, but refresh from cloud before touching either.
 Refreshing needs `N8N_API_KEY`, which the cloud session does not carry.
 
+**The Google key is free-tier, so no *pro* Gemini model is reachable (2026-09-20).**
+All 23 Gemini fallback nodes now call `gemini-3.6-flash`, and that is not a
+preference. `gemini-2.5-pro` 404s ("no longer available to new users") and
+`gemini-2.0-flash` was shut down on 2026-06-01, so seven of the fallbacks had
+been dead for months. Nothing said so: the nodes carry `neverError: true` so the
+parse step can read the body, which means a 404 renders as a green node. It
+surfaced only because the Anthropic key hit a spend cap the same afternoon and
+the backup was asked to work for the first time. Google's own error names
+`gemini-3.1-pro-preview` as the replacement and that is a trap here — probing it
+on the real credential returns 429 with `limit: 0` on
+`generate_content_free_tier_*`, because every pro model has a free-tier quota of
+zero. Enabling billing on the Google project is what unlocks pro; until then the
+fallback layer is flash-only. `scripts/check-anthropic-fallback.mts` holds the
+allowlist and covers inactive workflows too. Probe any new id against the live
+credential before widening it; a documentation page would have waved
+`3.1-pro-preview` straight through.
+
 `scripts/check-format-drift.mts` reads the live table and fails naming the slug
 that differs, so the snapshot cannot become a fifth copy. It needs
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, says NOT CHECKED without them
