@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-20
-head: PENDING
+head: 4d720a44
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
