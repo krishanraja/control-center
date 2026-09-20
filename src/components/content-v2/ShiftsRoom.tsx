@@ -4,6 +4,7 @@ import { contentV2Api, useShiftEvidence, type useContentV2 } from '../../hooks/u
 import { LENS_LABEL, monthLabel, shiftIsOnBeat, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
 import { SkeletonText, SkeletonList } from '../shared/Skeleton'
 import { BottomSheet } from '../mobile/BottomSheet'
+import { resolveFormat } from '../../lib/formats'
 import { publicSeriesLabel } from '../../lib/publicSeries'
 
 // The long-term memory with receipts (mockup set 1, mock 3). A shift is one
@@ -184,8 +185,13 @@ export function ShiftsRoom({ v2, variant, lane }: {
       .filter(s => ['proposed', 'active', 'fading'].includes(s.status)).length,
     [v2.shifts],
   )
+  // Through resolveFormat, never `s.lane === lane`. The live table happens to
+  // hold only current slugs today, so raw equality passes on production data
+  // and fails on any row written before the 2026-09-17 rename. The e2e fixture
+  // carries `lane: 'built'` for exactly that reason and is the only thing that
+  // was checking it.
   const own = useMemo(
-    () => (lane ? live.filter(s => s.lane === lane) : live),
+    () => (lane ? live.filter(s => resolveFormat(s.lane)?.slug === lane) : live),
     [live, lane],
   )
   const crossCutting = useMemo(

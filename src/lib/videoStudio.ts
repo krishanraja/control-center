@@ -1,4 +1,4 @@
-import { formatLabel } from './formats'
+import { publicSeriesAssetLabel } from './publicSeries'
 export const VIDEO_STUDIO_SCHEMA_VERSION = 1 as const
 
 /** Fail closed until the secure routes, migration and runtime config are live. */
@@ -1398,13 +1398,17 @@ export function takeVideoStudioReturnFocus(): HTMLElement | null {
   return element
 }
 
-// Derived, never restated. These keys are STORED on video_studio_jobs.series
-// and keep their spelling; the label they show comes from venture_formats
-// through the rename ledger, so a renamed format renames here too.
+// Derived from the ARTWORK registry, not from venture_formats.
+//
+// This pointed at formatLabel() for four hours on 2026-09-20 and was wrong. The
+// keys are stored on video_studio_jobs.series and the plate renders the retired
+// wordmark PNG beside this text, so sending the label through the rename ledger
+// captioned "The Money of AI" artwork as "split.the.bill". The words on a piece
+// of artwork are fixed at publication. Renaming a format does not repaint it.
 export const VIDEO_SERIES_LABEL: Record<VideoStudioSeries, string> = Object.freeze(
   Object.fromEntries(
     (['money_of_ai', 'built_with_ai'] as VideoStudioSeries[])
-      .map(key => [key, formatLabel(key)]),
+      .map(key => [key, publicSeriesAssetLabel(key)]),
   ) as Record<VideoStudioSeries, string>,
 )
 

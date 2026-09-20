@@ -51,13 +51,13 @@ async function gapBelow(page: Page, testId: string): Promise<number> {
 // after the loop. The panel test id follows the mounted section, and it is the
 // scroller itself (GrowthTab.tsx), so measuring the landing one is both honest
 // and stable.
-for (const [tab, panel] of [['growth', 'growth-panel-work'], ['content?room=built', 'content-room-scroll']] as const) {
+for (const [tab, panel] of [['growth', 'growth-panel-work'], ['content?room=lift_the_lid', 'content-room-scroll']] as const) {
   test(`the ${tab.split('?')[0]} scroller reaches the bottom of a phone screen`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
     const page = await ctx.newPage()
     await mock(page)
     await page.goto(`/#/${tab}`)
-    if (tab.startsWith('content')) await page.getByTestId('content-room-built').click()
+    if (tab.startsWith('content')) await page.getByTestId('content-room-lift_the_lid').click()
     await expect(page.getByTestId(panel)).toBeVisible()
     // A few pixels of rounding across the 1.2x zoom is fine. A hundred is the bug.
     expect(await gapBelow(page, panel)).toBeLessThanOrEqual(4)
