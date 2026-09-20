@@ -6,6 +6,7 @@ import { ShiftsRoom } from './ShiftsRoom'
 import { SurfacedCards } from './SurfacedCards'
 import { routeOf, type RoomId } from './ContentV2Tab'
 import { Eyebrow } from '../shared/Eyebrow'
+import { standingQuestion } from '../../lib/formats'
 import { SeriesIdentity } from '../shared/MindmakeIdentity'
 import { publicSeriesLabel } from '../../lib/publicSeries'
 import { EditorialOpportunityList } from './EditorialOpportunityList'
@@ -33,14 +34,10 @@ import { shiftIsOnBeat } from '../../lib/contentV2'
 // Built asks how things actually get built, Paid asks how they actually make
 // money, and a signal that moves neither is noise.
 
-const COPY: Record<Exclude<RoomId, 'library'>, { question: string }> = {
-  built: {
-    question: 'Stories about how things actually get built, including the parts that broke.',
-  },
-  paid: {
-    question: 'Stories about how things actually make money: who pays, and for what.',
-  },
-}
+// The standing line moved to src/lib/formats.ts on 2026-09-20, after the map
+// that used to live here crashed this component: it was keyed on the two
+// retired slugs and the third format had no entry. One reader, and a missing
+// line now fails the taxonomy guard instead of the page.
 
 export function LaneRoom({
   lane, v2, ideas, variant, loading, fit = false,
@@ -58,7 +55,7 @@ export function LaneRoom({
    *  work in the middle is what flexes. */
   fit?: boolean
 }) {
-  const copy = COPY[lane]
+  const question = standingQuestion(lane)
   const seriesLabel = publicSeriesLabel(lane)
   const mobile = variant === 'mobile'
   const [supplyOpen, setSupplyOpen] = useState(false)
@@ -142,7 +139,7 @@ export function LaneRoom({
           <h2>
             <SeriesIdentity series={lane} />
           </h2>
-          <p className="text-label text-ink-faint mt-0.5">{copy.question}</p>
+          {question && <p className="text-label text-ink-faint mt-0.5">{question}</p>}
           {/* Say when a card is here because the router guessed, not because
               anyone decided. Silence here is how a guess hardens into a fact. */}
           {derived > 0 && (

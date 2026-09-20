@@ -11,7 +11,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # 20, not 18. Node 18 has no `globalThis.crypto`, so src/lib/editLedger.ts
+          # `sha256Hex` took its documented null path and the digest assertion in
+          # tests/api/editLedger.test.ts failed on the runner and nowhere else.
+          # Main was red from 2026-09-19 to 2026-09-20 for that alone. Nothing this
+          # repo deploys to runs Node 18: Vercel functions are 20+, and every browser
+          # has webcrypto. Testing on 18 was testing an environment nobody has.
+          node-version: '20'
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
@@ -232,7 +238,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium

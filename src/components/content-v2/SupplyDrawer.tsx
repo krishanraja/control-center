@@ -3,7 +3,7 @@ import { ContentSeedRail } from '../content/ContentSeedRail'
 import { FeedRoom } from './FeedRoom'
 import { Eyebrow } from '../shared/Eyebrow'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
-import { publicSeriesIdentity } from '../../lib/publicSeries'
+import { SUBCHANNELS } from '../../lib/formats'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 
 /** How many unsorted ideas the desk shows as cards before deferring to the phone. */
@@ -41,7 +41,7 @@ export function SupplyDrawer({ open, onClose, mine, unclassified }: {
               <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-micro tabular-nums">{unclassified.length}</span>
             </h3>
             <p className="mb-2 text-label text-ink-faint">
-              Captured without a format. Each belongs in {publicSeriesIdentity('built').label} or {publicSeriesIdentity('paid').label}; opening one sets it. The phone Queue clears this pile one card at a time.
+              Captured without a format. Each belongs in one of {SUBCHANNELS.map(f => f.label).join(', ')}; opening one sets it. The phone Queue clears this pile one card at a time.
             </p>
             <ul className="space-y-2.5">
               {unclassified.slice(0, UNSORTED_CAP).map(i => <li key={i.id}><ContentIdeaCardActionable idea={i} /></li>)}

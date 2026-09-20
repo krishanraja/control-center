@@ -149,7 +149,7 @@ This repo contains **two independent frontends**, each with its own
 
 ### CI
 
-[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs, on Node 18:
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs, on Node 20:
 `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:api`,
 `npm run typecheck:scripts`, and the structural guards —
 `check-goal-ladder`, `check-goal-gate`, `check-type-tokens`, `check-icons`,
@@ -169,8 +169,24 @@ nine guards that do not exist in `scripts/` — `check-content-vocabulary`,
 `check-selection`, `check-teardown-beat` — while omitting seven that CI really
 runs. Anyone reaching for "the vocabulary guard" found nothing, which is part
 of how five files came to hold five different labels for the same venture.
-A separate `e2e` job runs five Playwright specs (see Tests above); the rest of
-the suite is not gated by CI. The repo also works on newer Node
+A separate `e2e` job runs five Playwright specs at the default viewport AND every
+`*-desk.spec.ts` at 1440 and 1920 (its second step has no file filter, so the
+desk projects cover whatever matches their `testMatch`). Everything else,
+including `home-noscroll.spec.ts`, `mindmake-identity.spec.ts`, `growth.spec.ts`
+and `room.spec.ts`, is caught only by a full local run.
+
+**CI was Node 18 until 2026-09-20, and that alone kept main red from 2026-09-19.**
+Node 18 has no `globalThis.crypto`, so `sha256Hex` in `src/lib/editLedger.ts`
+took its documented null path and `tests/api/editLedger.test.ts` failed on the
+runner and passed everywhere else. Nothing here deploys to Node 18. If a test
+passes locally and fails in CI, check the runtime difference before the test.
+
+**Six specs fail on a full local run and are not CI-gated**, all pre-existing as
+of 2026-09-20: five `home-noscroll.spec.ts` viewports in the `empty` canon
+state, and `mindmake-identity.spec.ts` "desktop expanded identity ... in light",
+where the Mindmake sidebar wordmark's high-contrast share measures 0.49 against
+a 0.55 floor. Neither is a format or content problem. Both were failing before
+today's work and neither has been chased. The repo also works on newer Node
 (tested on Node 22); `engines` requires `>=18`.
 
 More `check-*.mts` guards exist outside CI (`check-edit-palette`,

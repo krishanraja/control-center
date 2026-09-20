@@ -1,4 +1,14 @@
+import { readFileSync } from 'node:fs'
 import { test, expect, type Browser, type Locator, type Page, type Route } from '@playwright/test'
+
+// Read straight from the snapshot rather than importing src/lib/formats.ts:
+// that module imports JSON, which Vite resolves and Playwright's node ESM
+// loader refuses without an import attribute. Same one source of truth either
+// way, and scripts/check-format-drift.mts holds it to the live table.
+const SUBCHANNELS: Array<{ slug: string; label: string }> =
+  (JSON.parse(readFileSync(new URL('../src/lib/formats.generated.json', import.meta.url), 'utf8'))
+    .formats as Array<{ slug: string; label: string; kind: string }>)
+    .filter(f => f.kind === 'subchannel')
 
 const AFTERNOON = new Date('2026-08-20T18:30:00Z')
 const calmMorning = {
@@ -262,33 +272,42 @@ test('375px mobile keeps the real mark and both official series wordmarks legibl
   expect(compact.tilePixels).toBeGreaterThanOrEqual(36)
   expect(compact.glyphPixels).toBeGreaterThanOrEqual(24)
 
+  // The rooms carried the two official series wordmarks until 2026-09-17, when
+  // both names retired. No wordmark exists for split.the.bill, mind.the.gap or
+  // lift.the.lid, and pointing a live room at "Built With AI" artwork would put
+  // a name on the page that the page is not. So the room header degrades on
+  // purpose: publication mark plus the format set in type, declared in
+  // NO_WORDMARK_FOR. What this spec holds now is that the degrade is a designed
+  // state and not a broken image, and that no tab ever shows a raw slug.
   await page.goto('/#/content')
-  await page.getByTestId('content-room-built').click()
-  await expect(page.getByRole('tab', { name: /Built With AI/ })).toBeVisible()
-  await expect(page.getByRole('tab', { name: /The Money of AI/ })).toBeVisible()
-  await expect(page.getByRole('tab', { name: /^Built$/ })).toHaveCount(0)
-  await expect(page.getByRole('tab', { name: /^Paid$/ })).toHaveCount(0)
+  for (const f of SUBCHANNELS) {
+    await expect(page.getByRole('tab', { name: new RegExp(escapeForRegExp(f.label)) })).toBeVisible()
+    await expect(page.getByRole('tab', { name: new RegExp(`^${escapeForRegExp(f.slug)}$`) })).toHaveCount(0)
+  }
 
-  for (const series of ['built', 'paid'] as const) {
-    await page.getByTestId(`content-room-${series}`).click()
-    const identity = page.getByTestId(`series-identity-${series}`)
+  for (const f of SUBCHANNELS) {
+    await page.getByTestId(`content-room-${f.slug}`).click()
+    const identity = page.getByTestId(`series-identity-${f.slug}`)
     await expect(identity).toBeVisible()
-    const metrics = await measureSeries(identity)
-    expect(metrics.outerWidth).toBeGreaterThanOrEqual(300)
-    expect(metrics.letterHeight).toBeGreaterThanOrEqual(16)
-    expect(metrics.letterWidth).toBeGreaterThan(0)
-    expect(metrics.letterWidthCoverage).toBeGreaterThanOrEqual(0.995)
-    expect(metrics.symbolVisible).toBeLessThanOrEqual(0.75)
-    expect(metrics.opaqueLetterPixels).toBeGreaterThan(2_000)
-    expect(metrics.minOpaqueContrast).toBeGreaterThanOrEqual(4.5)
-    expect(metrics.anchorSize).toBeGreaterThanOrEqual(36)
-    expect(metrics.anchorGlyphSize).toBeGreaterThanOrEqual(24)
-    expect(metrics.horizontalGap).toBeGreaterThan(0)
-    expect(metrics.rootLeft).toBeGreaterThanOrEqual(-0.5)
-    expect(metrics.rootRight).toBeLessThanOrEqual(metrics.viewportWidth + 0.5)
-    expect(metrics.cropContainedByRoot).toBe(true)
+    await expect(identity).toHaveAttribute('data-series-wordmark', 'absent')
+    await expect(identity).toHaveAttribute('data-series-label', f.label)
+    await expect(identity).toContainText(f.label)
+    const plate = await identity.evaluate((root: HTMLElement) => {
+      const glyph = root.querySelector<HTMLElement>('[data-mindmake-mark-glyph="true"]')
+      const box = root.getBoundingClientRect()
+      return {
+        glyphSize: glyph?.getBoundingClientRect().width || 0,
+        left: box.left,
+        right: box.right,
+        viewportWidth: window.innerWidth,
+      }
+    })
+    // The anchor stays at its documented minimum, and the plate stays on screen.
+    expect(plate.glyphSize).toBeGreaterThanOrEqual(24)
+    expect(plate.left).toBeGreaterThanOrEqual(-0.5)
+    expect(plate.right).toBeLessThanOrEqual(plate.viewportWidth + 0.5)
     if (process.env.MINDMAKE_CAPTURE) {
-      await page.screenshot({ path: test.info().outputPath(`mobile-series-${series}.png`) })
+      await page.screenshot({ path: test.info().outputPath(`mobile-series-${f.slug}.png`) })
     }
   }
 
@@ -318,16 +337,14 @@ for (const theme of ['dark', 'light'] as const) {
     // the actually painted wordmark to clear text contrast after compositing.
     expect(ink.highContrastShare).toBeGreaterThanOrEqual(0.55)
 
-    const series = page.getByTestId('series-identity-built')
+    // Same declared degrade as the mobile case above: the room plate sets the
+    // format in type because no live subchannel has artwork. The Mindmake
+    // wordmark measured above is the one that must still be official.
+    const first = SUBCHANNELS[0]
+    const series = page.getByTestId(`series-identity-${first.slug}`)
     await expect(series).toBeVisible()
-    const metrics = await measureSeries(series)
-    expect(metrics.outerWidth).toBeGreaterThanOrEqual(320)
-    expect(metrics.letterHeight).toBeGreaterThanOrEqual(16)
-    expect(metrics.letterWidthCoverage).toBeGreaterThanOrEqual(0.995)
-    expect(metrics.minOpaqueContrast).toBeGreaterThanOrEqual(4.5)
-    expect(metrics.rootLeft).toBeGreaterThanOrEqual(-0.5)
-    expect(metrics.rootRight).toBeLessThanOrEqual(metrics.viewportWidth + 0.5)
-    expect(metrics.cropContainedByRoot).toBe(true)
+    await expect(series).toHaveAttribute('data-series-wordmark', 'absent')
+    await expect(series).toContainText(first.label)
     if (process.env.MINDMAKE_CAPTURE) {
       await page.screenshot({ path: test.info().outputPath(`desktop-${theme}-content.png`) })
     }
@@ -486,3 +503,8 @@ test('reduced motion and low capacity calm the shared shell rather than changing
   expect(dialogTransition).toBeLessThanOrEqual(0.001)
   await context.close()
 })
+
+/** Escape a format label for use inside a RegExp: the live labels contain dots. */
+function escapeForRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}

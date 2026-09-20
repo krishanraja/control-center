@@ -98,6 +98,31 @@ export const PUBLIC_SERIES: Readonly<Record<PublicSeriesKey, PublicSeriesIdentit
 
 export const PUBLIC_SERIES_KEYS = Object.freeze(['built', 'paid'] as const)
 
+/** Which retired asset a stored key uses. `video_studio_jobs.series` spells the
+ *  same two publications as `money_of_ai` and `built_with_ai`; this registry
+ *  spells them `paid` and `built`. Both are frozen history. */
+export const SERIES_ASSET_KEY: Readonly<Record<string, PublicSeriesKey>> = Object.freeze({
+  money_of_ai: 'paid',
+  paid: 'paid',
+  built_with_ai: 'built',
+  built: 'built',
+})
+
+/** The words printed ON the artwork, which are fixed at publication and are
+ *  never renamed.
+ *
+ *  This is a THIRD question, and on 2026-09-20 it was answered with the second
+ *  one by mistake. `publicSeriesLabel` asks what to call a thing today and is
+ *  right for a room header. `VIDEO_SERIES_LABEL` was pointed at it, so a video
+ *  review of a piece stored as `money_of_ai` rendered the "The Money of AI"
+ *  wordmark under an accessible name reading "split.the.bill". A label that
+ *  disagrees with the artwork beside it is worse than either alone, and the
+ *  e2e suite caught it where every static guard passed. */
+export function publicSeriesAssetLabel(key: string): string {
+  const asset = PUBLIC_SERIES[SERIES_ASSET_KEY[key]]
+  return asset ? asset.label : publicSeriesLabel(key)
+}
+
 /** The artwork for a key. A retired asset key gets its PNG. Anything else,
  *  including every live subchannel, gets a wordmark-less identity carrying the
  *  live label and the reason there is no asset, so a caller renders type rather

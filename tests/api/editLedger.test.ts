@@ -98,3 +98,19 @@ test('sha256Hex agrees with the hash the engine would compute', async () => {
     'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
   )
 })
+
+test('a platform with no webcrypto gets null, not a throw', async () => {
+  // The other half of the contract, and the half that was only ever exercised
+  // by accident: CI ran Node 18, which has no `globalThis.crypto`, so this was
+  // silently the ONLY path the runner took and the assertion above failed there
+  // and nowhere else. CI is on Node 20 now, so the digest path above is real.
+  // This keeps the fallback covered deliberately rather than by an old runner:
+  // section_kept and section_dropped are admissible with no hashes at all.
+  const had = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  try {
+    Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true })
+    assert.equal(await sha256Hex('abc'), null)
+  } finally {
+    if (had) Object.defineProperty(globalThis, 'crypto', had)
+  }
+})

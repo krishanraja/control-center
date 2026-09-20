@@ -24,6 +24,7 @@
 //   npx tsx scripts/check-content-taxonomy.mts
 import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
+import { subchannelsMissingAStandingQuestion } from '../src/lib/formats'
 
 const ce = readFileSync('src/lib/contentEngine.ts', 'utf8')
 const ct = readFileSync('api/_content.ts', 'utf8')
@@ -293,6 +294,12 @@ for (const k of LIVE_KEYS) {
 // history in a comment, the rename ledger, and the retired asset registry are
 // legitimate; a label, an option or a room is not.
 {
+  // A subchannel with no reader-facing line used to crash the Content tab
+  // rather than fail anything. It fails here now.
+  for (const slug of subchannelsMissingAStandingQuestion()) {
+    bad(`venture_formats subchannel '${slug}' has no standing question in src/lib/formats.ts. LaneRoom renders that line under the room header; without one the room is unlabelled. Add it to STANDING_QUESTION.`)
+  }
+
   const ALLOWED: Array<{ file: string; why: string }> = [
     { file: 'src/lib/formats.generated.json', why: 'the rename ledger itself: retired rows and their aliases are its content' },
     { file: 'src/lib/publicSeries.ts', why: 'the retired wordmark registry, every entry marked retiredOn, plus NO_WORDMARK_FOR explaining the gap' },

@@ -126,6 +126,39 @@ export function formatSpelling(value?: string | null): FormatSpelling {
   return resolveFormat(v) ? 'retired' : 'unknown'
 }
 
+/** The one line under a room header: what this subchannel is for, in a reader's
+ *  words.
+ *
+ *  It lives here rather than in the room component because on 2026-09-20 it did
+ *  not, and the Content tab crashed on the desk with "Cannot read properties of
+ *  undefined (reading 'question')". LaneRoom keyed its copy on the two retired
+ *  slugs; widening RoomId from a union to `string` removed the exhaustiveness
+ *  check that had been the only thing keeping that map complete, so the third
+ *  format reached a lookup that had no entry for it. tsc cannot see it either,
+ *  because a `Record<string, T>` index returns T rather than T | undefined
+ *  without noUncheckedIndexedAccess.
+ *
+ *  So the lookup returns null rather than throwing, the caller renders nothing
+ *  rather than crashing, and scripts/check-content-taxonomy.mts fails the build
+ *  when a subchannel has no line. A gap takes down CI, never the app. */
+const STANDING_QUESTION: Readonly<Record<string, string>> = Object.freeze({
+  split_the_bill: 'Stories about what something really costs to run, and who ends up holding the bill.',
+  mind_the_gap: 'Stories about what is actually happening, traced against what everyone says is happening.',
+  lift_the_lid: 'Stories that take a product apart and ask whether it leaves you sharper, or dependent.',
+})
+
+/** The reader-facing line for a format, or null when none is written yet. */
+export function standingQuestion(value?: string | null): string | null {
+  const f = resolveFormat(value)
+  return (f && STANDING_QUESTION[f.slug]) || null
+}
+
+/** Subchannels with no standing question. Empty in a healthy tree; the taxonomy
+ *  guard fails the build on anything else. */
+export function subchannelsMissingAStandingQuestion(): string[] {
+  return SUBCHANNELS.filter(f => !STANDING_QUESTION[f.slug]).map(f => f.slug)
+}
+
 /** The label to show a person. Never a title-cased slug. */
 export function formatLabel(value?: string | null): string {
   return resolveFormat(value)?.label ?? 'unknown format'
