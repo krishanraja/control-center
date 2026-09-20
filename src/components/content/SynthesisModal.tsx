@@ -6,8 +6,9 @@ import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { Working } from '../shared/Working'
 
 // Venture + format, mirroring venture_formats. There is ONE content venture,
-// Publication, with two formats. Synthesis targets a FORMAT, never the
-// venture, because the two carry different registers.
+// Publication, with three subchannels. Synthesis targets a FORMAT, never the
+// venture, because the three carry different registers. The list itself is
+// derived from SUBCHANNELS below, so a fourth would arrive here on its own.
 interface LaneChoice {
   lane: 'publication'
   slot?: string | null
