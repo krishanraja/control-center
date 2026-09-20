@@ -3,7 +3,7 @@
 // between it and the retired triage surface is gone: a flag missing from one
 // environment silently served a different product, and nothing errored.
 
-import { publicSeriesLabel } from './publicSeries'
+import { SUBCHANNELS } from './formats'
 
 // ---------------------------------------------------------------------------
 // The queue's week window.
@@ -215,21 +215,34 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // Economy IG", a channel wearing a venture's name. Fan out to FORMATS plus real
 // distribution channels, never to the venture.
 //
-// GAP, 2026-09-20: only two of the three are here. The `channel` values below
-// are the n8n Omnichannel Content Factory's wire contract and it switches on
-// `target_channel`, so mind.the.gap cannot be added from this side alone: the
-// factory would receive a value it cannot route. It is the HERO format and it
-// has no fan-out destination, which is why a Friday piece cannot be pushed the
-// way a Wednesday one can. Adding it is an n8n change and needs its own
-// approval at the moment of the change.
+// Derived from SUBCHANNELS since 2026-09-20. It was two hardcoded rows, 'paid'
+// and 'built', so mind.the.gap could not be fanned out at all: the HERO format
+// was the one that could not be pushed.
+//
+// That looked like it was blocked on n8n. It was not. The factory's Route by
+// Channel switch already accepts all three live slugs, added additively on
+// 2026-09-19 beside the old spellings, which the live workflow confirms:
+// split_the_bill routes where paid did, lift_the_lid where built did, and
+// mind_the_gap to the house branch. The wire was ready and only this list was
+// short. Reading the switch shows that; inferring it from the short list does
+// not, which is how it was called an n8n blocker for a day.
+//
+// The channel values are still the factory's wire contract, which is why they
+// are slugs and not labels. Deriving them means a fourth subchannel arrives
+// here on its own and the factory is the only side left to teach.
+//
+// mind.the.gap routes to the HOUSE branch rather than a packaging branch of its
+// own, so it is polished in the publication house register rather than a
+// bespoke one. That is the same gap as its missing corpus section, not a
+// second one.
+//
 // `short` is the name used where the full label will not fit, notably the
 // collapsed one-line fan-out summary on a phone. It exists so that summary can
 // name every selected format instead of ellipsing after the first.
 export const FACTORY_FANOUT: Array<{ channel: string; label: string; short: string; defaultOn: boolean }> = [
-  // channel values are the n8n Omnichannel Content Factory wire contract and
-  // stay stable; only the labels moved to the canon channel names (2026-08-29).
-  { channel: 'paid', label: publicSeriesLabel('paid'), short: publicSeriesLabel('paid'), defaultOn: true },
-  { channel: 'built', label: publicSeriesLabel('built'), short: publicSeriesLabel('built'), defaultOn: false },
+  // Pre-ticked for whichever format venture_formats marks as the hero, rather
+  // than for whichever row happened to be written first.
+  ...SUBCHANNELS.map(f => ({ channel: f.slug, label: f.label, short: f.label, defaultOn: f.hero })),
   { channel: 'linkedin', label: 'LinkedIn post', short: 'LinkedIn', defaultOn: true },
   { channel: 'signal_noise', label: 'Signal & Noise', short: 'Signal & Noise', defaultOn: false },
 ]
