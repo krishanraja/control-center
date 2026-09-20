@@ -7,7 +7,7 @@ import { SurfacedCards } from './SurfacedCards'
 import { routeOf, type RoomId } from './ContentV2Tab'
 import { Eyebrow } from '../shared/Eyebrow'
 import { SeriesIdentity } from '../shared/MindmakeIdentity'
-import { publicSeriesIdentity } from '../../lib/publicSeries'
+import { publicSeriesLabel } from '../../lib/publicSeries'
 import { EditorialOpportunityList } from './EditorialOpportunityList'
 import { InProgress } from './InProgress'
 import { SupplyDrawer } from './SupplyDrawer'
@@ -59,7 +59,7 @@ export function LaneRoom({
   fit?: boolean
 }) {
   const copy = COPY[lane]
-  const series = publicSeriesIdentity(lane)
+  const seriesLabel = publicSeriesLabel(lane)
   const mobile = variant === 'mobile'
   const [supplyOpen, setSupplyOpen] = useState(false)
   const [alsoOpen, setAlsoOpen] = useState(false)
@@ -100,7 +100,7 @@ export function LaneRoom({
     <div className="flex flex-col gap-5">
       <SurfacedCards cards={v2.arcCards} shifts={v2.shifts} lane={lane} />
       <section>
-        <h3 className="mb-2"><Eyebrow>Shifts for {series.label}</Eyebrow></h3>
+        <h3 className="mb-2"><Eyebrow>Shifts for {seriesLabel}</Eyebrow></h3>
         <ShiftsRoom v2={v2} variant={variant} lane={lane} />
       </section>
     </div>
@@ -182,7 +182,7 @@ export function LaneRoom({
           data-testid={`content-lane-empty-${lane}`}
         >
           <p className="text-body text-ink-muted">
-            Nothing is routed to {series.label} yet.
+            Nothing is routed to {seriesLabel} yet.
           </p>
           {unclassified.length > 0 ? (
             <>

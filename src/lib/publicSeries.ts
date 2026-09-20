@@ -1,3 +1,5 @@
+import { resolveFormat, formatLabel } from './formats'
+
 /**
  * Public publication identity: which wordmark goes on a piece.
  *
@@ -47,7 +49,7 @@ export interface PublicSeriesIdentity {
   /** The date this NAME was retired. Present on every entry here since
    *  2026-09-17: the assets are history, not current identity. */
   retiredOn: string
-  assetPath: string
+  assetPath: string | null
   assetSha256: string
   sourceUrl: string
   sourceWidth: 1200
@@ -96,10 +98,27 @@ export const PUBLIC_SERIES: Readonly<Record<PublicSeriesKey, PublicSeriesIdentit
 
 export const PUBLIC_SERIES_KEYS = Object.freeze(['built', 'paid'] as const)
 
-export function publicSeriesIdentity(key: PublicSeriesKey): PublicSeriesIdentity {
-  return PUBLIC_SERIES[key]
+/** The artwork for a key. A retired asset key gets its PNG. Anything else,
+ *  including every live subchannel, gets a wordmark-less identity carrying the
+ *  live label and the reason there is no asset, so a caller renders type rather
+ *  than somebody else's name. */
+export function publicSeriesIdentity(key: string): PublicSeriesIdentity {
+  const asset = (PUBLIC_SERIES as Record<string, PublicSeriesIdentity | undefined>)[key]
+  if (asset) return asset
+  return {
+    key: key as PublicSeriesKey,
+    label: publicSeriesLabel(key),
+    retiredOn: '',
+    assetPath: null,
+  } as unknown as PublicSeriesIdentity
 }
 
-export function publicSeriesLabel(key: PublicSeriesKey): string {
-  return publicSeriesIdentity(key).label
+/** The label to show. A LIVE slug gets its live label from venture_formats; a
+ *  retired asset key gets the name it was published under, because a historical
+ *  piece is still that piece. Never a title-cased slug. */
+export function publicSeriesLabel(key: string): string {
+  const live = resolveFormat(key)
+  if (live && live.kind === 'subchannel') return live.label
+  const retired = (PUBLIC_SERIES as Record<string, PublicSeriesIdentity>)[key]
+  return retired ? retired.label : formatLabel(key)
 }

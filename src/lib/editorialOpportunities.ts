@@ -1,5 +1,5 @@
 import type { ContentIdeaRow } from '../hooks/useRealtimeContentIdeas'
-import type { PublicSeriesKey } from './publicSeries'
+import { resolveFormat } from './formats'
 
 export const EDITORIAL_SERIES = ['money_of_ai', 'built_with_ai'] as const
 export type EditorialSeries = typeof EDITORIAL_SERIES[number]
@@ -55,15 +55,32 @@ export function parseEditorialSeries(value: unknown): EditorialSeries | null {
   return EDITORIAL_SERIES.includes(value as EditorialSeries) ? value as EditorialSeries : null
 }
 
-export function editorialSeriesForKey(key: PublicSeriesKey): EditorialSeries {
-  return key === 'paid' ? 'money_of_ai' : 'built_with_ai'
+// EDITORIAL_SERIES values are STORAGE KEYS inside meta.editorial_radar.lenses
+// on rows already written, so they keep their old spelling forever. What
+// changed on 2026-09-20 is that the mapping to a format is a lookup through the
+// rename ledger rather than a pair of binary ternaries, which is what made a
+// third format structurally unrepresentable here.
+const SERIES_TO_SLUG: Record<EditorialSeries, string> = {
+  money_of_ai: 'split_the_bill',
+  built_with_ai: 'lift_the_lid',
 }
 
-export function publicKeyForEditorialSeries(series: EditorialSeries): PublicSeriesKey {
-  return series === 'money_of_ai' ? 'paid' : 'built'
+/** The stored lens key for a format slug, or null when the radar has no lens
+ *  for it. mind.the.gap has none: the radar predates it and never judged one,
+ *  so asking for its lens must return nothing rather than somebody else's. */
+export function editorialSeriesForKey(key: string): EditorialSeries | null {
+  const f = resolveFormat(key)
+  if (!f) return null
+  const hit = (Object.keys(SERIES_TO_SLUG) as EditorialSeries[])
+    .find(series => SERIES_TO_SLUG[series] === f.slug)
+  return hit ?? null
 }
 
-export function slotForEditorialSeries(series: EditorialSeries): PublicSeriesKey {
+export function publicKeyForEditorialSeries(series: EditorialSeries): string {
+  return SERIES_TO_SLUG[series]
+}
+
+export function slotForEditorialSeries(series: EditorialSeries): string {
   return publicKeyForEditorialSeries(series)
 }
 

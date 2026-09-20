@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { SUBCHANNELS } from '../../lib/formats'
 import { Sparkles, X, GitMerge } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
@@ -14,10 +15,21 @@ interface LaneChoice {
   description: string
 }
 
-const LANES: LaneChoice[] = [
-  { lane: 'publication', slot: 'money_of_ai', label: 'The Money of AI', description: 'Who pays for this, where does value move, and what mechanism changes when the shift lands. Take one load-bearing claim apart against dated evidence, and end where the record runs out. The event is never the story.' },
-  { lane: 'publication', slot: 'built_with_ai', label: 'Built with AI', description: 'Someone who actually built something, dug past what they built to why they really built it. The third turn of the why is the piece. Warm, Gear B.' },
-]
+// Derived from venture_formats. The descriptions are SHORT STEERS, not
+// mandates: venture_formats.mandate holds each one in full prose and a copy
+// here would drift, which is exactly what happened to the two rows this
+// replaced. They named formats retired on 2026-09-17.
+const LANE_STEER: Record<string, string> = {
+  split_the_bill: 'What does it really cost to run, and who ends up holding the bill. Take one load-bearing number apart against dated evidence and attribute every figure to whoever produced it. The reader is the buyer with a renewal quote in front of them, never the vendor pricing it.',
+  mind_the_gap: 'The gap between what everyone says is happening and what is actually happening, traced through ONE topic. The topic is the spine and the gap is the argument. A piece that surveys several topics is not this format.',
+  lift_the_lid: 'Take a launch or a live product surface apart and separate what ships from what was demoed. Does this make its user sharper, or dependent. Archive the surface before recording, because pricing pages move.',
+}
+const LANES: LaneChoice[] = SUBCHANNELS.map(f => ({
+  lane: 'publication',
+  slot: f.slug,
+  label: f.label,
+  description: LANE_STEER[f.slug] ?? 'See venture_formats.mandate for this format.',
+}))
 
 interface Props {
   open: boolean

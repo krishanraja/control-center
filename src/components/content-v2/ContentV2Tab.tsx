@@ -15,6 +15,7 @@ import { useContentTriage } from '../../hooks/useContentTriage'
 import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 import { NextBestActionHero } from '../content/NextBestActionHero'
 import { isActiveIdea } from '../../lib/contentEngine'
+import { SUBCHANNELS, resolveFormat } from '../../lib/formats'
 import { routeIdea } from '../../lib/contentRouting'
 import { useMediaQuery } from '../shared/motion'
 
@@ -61,15 +62,24 @@ import { useMediaQuery } from '../shared/motion'
 // because a proposal is something to consult, not an obligation that outranks
 // the six pieces sitting in review.
 
-export type RoomId = 'built' | 'paid' | 'library'
+/** A live venture_formats slug, or the Library.
+ *
+ *  Until 2026-09-20 this was `'built' | 'paid' | 'library'`, hardcoded, and the
+ *  rooms were labelled from the retired wordmarks. The publication was ruled to
+ *  three subchannels on 2026-09-17 and the dashboard still opened on "Built
+ *  With AI" and "The Money of AI" three days later, because the four lists that
+ *  moved to src/lib/formats.ts were the ones the machine WRITES with and this
+ *  is the one Krish READS. The taxonomy guard went green over it, because it
+ *  reads four files and this was not one of them. Both are fixed. */
+export type RoomId = string
 /** Mobile adds a Queue view (the decision deck) as a peer of the rooms. */
 type ViewId = 'queue' | RoomId
 
 const ROOMS: Array<{ id: RoomId; label: string }> = [
-  { id: 'built', label: publicSeriesLabel('built') },
-  { id: 'paid', label: publicSeriesLabel('paid') },
+  ...SUBCHANNELS.map(f => ({ id: f.slug, label: f.label })),
   { id: 'library', label: 'Library' },
 ]
+const ROOM_SLUGS = SUBCHANNELS.map(f => f.slug)
 
 export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const mobile = variant === 'mobile'
@@ -83,7 +93,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   // time is worse than letting the page scroll, so it scrolls.
   const tallEnough = useMediaQuery('(min-height: 760px)')
   const deskStage = wideDesk && tallEnough
-  const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'built')
+  const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : (ROOM_SLUGS[0] ?? 'library'))
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
   // Both viewports read the video queue: the phone decides from the deck, the
@@ -107,12 +117,11 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 
   const counts = useMemo(() => {
     const forLane = (lane: RoomId) => liveIdeas.filter(i => routeOf(i).route === lane).length
-    return {
-      built: forLane('built'),
-      paid: forLane('paid'),
-      library: v2.shifts.filter(s => s.status === 'library').length
-        + ideas.filter(i => i.library_at).length,
-    }
+    const perRoom: Record<string, number> = {}
+    for (const slug of ROOM_SLUGS) perRoom[slug] = forLane(slug)
+    perRoom.library = v2.shifts.filter(s => s.status === 'library').length
+      + ideas.filter(i => i.library_at).length
+    return perRoom
   }, [v2.shifts, ideas, liveIdeas])
 
   // Mobile leads with the Queue (the finite decision deck), then the three
@@ -284,14 +293,18 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 // Returns null when the lane genuinely does not say.
 export function laneOf(lane?: string | null, slot?: string | null): RoomId | null {
   if (!lane) return null
+  // The slot is the format when there is one. resolveFormat carries the whole
+  // rename ledger, so `built_with_ai`, `built`, `money_of_ai` and `paid` all
+  // land on their live subchannel without a second alias map living here.
   if (lane === 'publication') {
-    if (slot === 'built_with_ai' || slot === 'built') return 'built'
-    if (slot === 'money_of_ai' || slot === 'paid') return 'paid'
-    return null
+    const f = resolveFormat(slot)
+    return f && f.kind === 'subchannel' ? f.slug : null
   }
-  if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built'
-  if (lane === 'techonomic' || lane === 'mindmake' || lane === 'mymu' || lane === 'makeyourmindup') return 'paid'
-  return null
+  // A retired VENTURE name in the lane column, from before lane carried the
+  // venture and slot carried the format. These resolve through the same ledger;
+  // anything landing on the holding lane is not a room.
+  const viaLane = resolveFormat(lane)
+  return viaLane && viaLane.kind === 'subchannel' ? viaLane.slug : null
 }
 
 /**

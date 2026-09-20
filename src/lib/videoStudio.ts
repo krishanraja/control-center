@@ -1,3 +1,4 @@
+import { formatLabel } from './formats'
 export const VIDEO_STUDIO_SCHEMA_VERSION = 1 as const
 
 /** Fail closed until the secure routes, migration and runtime config are live. */
@@ -1397,10 +1398,15 @@ export function takeVideoStudioReturnFocus(): HTMLElement | null {
   return element
 }
 
-export const VIDEO_SERIES_LABEL: Record<VideoStudioSeries, string> = {
-  money_of_ai: 'The Money of AI',
-  built_with_ai: 'Built With AI',
-}
+// Derived, never restated. These keys are STORED on video_studio_jobs.series
+// and keep their spelling; the label they show comes from venture_formats
+// through the rename ledger, so a renamed format renames here too.
+export const VIDEO_SERIES_LABEL: Record<VideoStudioSeries, string> = Object.freeze(
+  Object.fromEntries(
+    (['money_of_ai', 'built_with_ai'] as VideoStudioSeries[])
+      .map(key => [key, formatLabel(key)]),
+  ) as Record<VideoStudioSeries, string>,
+)
 
 export const VIDEO_GATE_LABEL: Record<VideoStudioGate, string> = {
   story: 'Story',
