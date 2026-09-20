@@ -176,14 +176,25 @@ the suite is not gated by CI. The repo also works on newer Node
 More `check-*.mts` guards exist outside CI (`check-edit-palette`,
 `check-content-taxonomy`, `check-select-columns`, `check-selection`,
 `check-teardown-beat`, `check-video-formats`); run the one nearest your
-change. Known: `check-content-taxonomy` fails on main, and the failure is
-real. It reports eight labels still carrying the two publication names
-retired on 2026-09-17, in `VENTURE_FORMATS`, `LANES`, `FACTORY_CHANNELS`
-and `PUBLIC_SERIES`. Clearing them is a rename across the dashboard, the
-Supabase CHECK constraints and the n8n factory's `target_channel` wire
-contract, so it is a coordinated change and not a find-and-replace; route
-it through `harness-maintainer` with 2026-09-17 as the finding date. The
-guard stays out of CI until that lands, per the rule above it.
+change. `check-content-taxonomy` passed again on 2026-09-20, having failed on main
+since 2026-09-17. The eight failures were four hardcoded format lists still
+offering the two retired publication names. They are gone: `VENTURE_FORMATS`,
+`LANES` and `FACTORY_CHANNELS` now derive from `src/lib/formats.ts`, the one
+reader of a snapshot of `venture_formats`, and `FORMAT_ADAPTS` carries three
+formats whose hints steer without restating a mandate. Two consequences are
+declared rather than fixed, each with a guard holding the declaration honest:
+`api/_content.ts` `NO_CORPUS_PLAYBOOK` says mind.the.gap has no corpus section,
+and `src/lib/publicSeries.ts` `NO_WORDMARK_FOR` says no subchannel has a
+wordmark, because both wordmarks name formats retired on 2026-09-17 and artwork
+does not follow a rename. Widening `PublicSeriesKey` to three would mean a third
+Content room and three new wordmarks, which is a product change and waits on
+Krish.
+
+`scripts/check-format-drift.mts` reads the live table and fails naming the slug
+that differs, so the snapshot cannot become a fifth copy. It needs
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, says NOT CHECKED without them
+rather than passing, and is out of CI for that reason. Run it after any change
+to `venture_formats`.
 
 <!-- krish-canon:start release=v2026.09.15.2 sha=08e0df47694b rendered=2026-09-15 -->
 ## Krish canon
