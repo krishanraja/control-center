@@ -23,6 +23,11 @@
   --ink-muted: 176 192 183; /* #B0C0B7                                */
   --ink-faint: 120 140 130; /* #788C82                                */
   --accent: 127 227 180;    /* #7FE3B4 mint means answer              */
+  /* The mint END of the Mindmake wordmark gradient. Its own token because the
+     wordmark is a MASK: every antialiased edge pixel is a blend toward the
+     ground, so the stop needs more headroom over the 4.5:1 floor than a solid
+     accent does. On ink the ordinary accent already has it (12.4:1). */
+  --wordmark-accent: 127 227 180;
   --accent-2: 62 142 104;   /* #3E8E68 mint depth                     */
   --accent-3: 224 164 74;   /* #E0A44A amber means changed/attention  */
   --action-bg: 127 227 180; /* bright surface form in both themes     */
@@ -113,6 +118,12 @@
   --ink-muted: 74 85 78;     /* #4A554E                                */
   --ink-faint: 92 104 97;    /* #5C6861, >=4.8:1 on raised paper       */
   --accent: 47 111 81;       /* #2F6F51 mint on paper                  */
+  /* Darker than --accent on purpose, and ONLY inside the wordmark. The ordinary
+     paper mint measures 5.28:1 on --bg-base and 4.78:1 on --bg-sunk, so the
+     wordmark's masked edges kept dipping under 4.5:1 and only 53% of the mark
+     cleared against a 55% house floor. #245440 is 7.67:1 and 6.94:1. Nothing
+     else on paper changes. Ruling (Krish, 2026-09-20). */
+  --wordmark-accent: 36 84 64;   /* #245440 mint on paper, wordmark only   */
   --accent-2: 62 142 104;    /* #3E8E68                                */
   --accent-3: 154 90 28;     /* #9A5A1C amber on paper                 */
   --action-bg: 127 227 180;

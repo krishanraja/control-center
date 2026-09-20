@@ -57,7 +57,7 @@ function MarkTile({ size, labelled, testId }: { size?: number; labelled: boolean
 }
 
 const wordmarkMask: CSSProperties = {
-  background: 'linear-gradient(90deg, rgb(var(--ink)) 0%, rgb(var(--accent)) 100%)',
+  background: 'linear-gradient(90deg, rgb(var(--ink)) 0%, rgb(var(--wordmark-accent)) 100%)',
   WebkitMaskImage: "url('/mindmake-wordmark.svg')",
   maskImage: "url('/mindmake-wordmark.svg')",
   WebkitMaskPosition: 'center',

@@ -181,12 +181,26 @@ took its documented null path and `tests/api/editLedger.test.ts` failed on the
 runner and passed everywhere else. Nothing here deploys to Node 18. If a test
 passes locally and fails in CI, check the runtime difference before the test.
 
-**Six specs fail on a full local run and are not CI-gated**, all pre-existing as
-of 2026-09-20: five `home-noscroll.spec.ts` viewports in the `empty` canon
-state, and `mindmake-identity.spec.ts` "desktop expanded identity ... in light",
-where the Mindmake sidebar wordmark's high-contrast share measures 0.49 against
-a 0.55 floor. Neither is a format or content problem. Both were failing before
-today's work and neither has been chased. The repo also works on newer Node
+**The six that used to fail on a full local run are fixed (2026-09-20).** The
+five `home-noscroll.spec.ts` failures were never a layout bug: the spec read
+`new Date()` on both sides of the wire with no clock pinned, and `useAltitudes`
+sets `weeklyNeeds` false at the weekend on purpose, so the "Set this week's 3"
+ask it waited for does not exist on a Saturday or Sunday. It passed Monday to
+Friday and failed at weekends, green in CI on Thursday 2026-09-17 and red on
+Sunday 2026-09-20. The clock is pinned to a fixed Wednesday on both sides now
+and the file runs in UTC, so it is day-independent; it is in CI as of the same
+day. The sixth was the Mindmake wordmark in light mode: its gradient ended on
+`--accent`, which measures 5.28:1 on `--bg-base` and 4.78:1 on `--bg-sunk`, so
+the masked edges kept dipping under 4.5:1. A dedicated `--wordmark-accent`
+token is darker on paper only (#245440, 7.67:1 and 6.94:1) and nothing else
+changed colour.
+
+**`mindmake-identity.spec.ts` is deliberately NOT in CI.** Its wordmark checks
+count composited pixels clearing a contrast ratio, and antialiasing differs
+between Chromium builds. After the fix the light theme measures 0.588 against a
+0.55 floor, which is about 7% of headroom: enough to be correct, not enough to
+gate a different runner's renderer on. Run it locally after any change to the
+identity, the theme tokens or the mark assets. The repo also works on newer Node
 (tested on Node 22); `engines` requires `>=18`.
 
 More `check-*.mts` guards exist outside CI (`check-edit-palette`,
