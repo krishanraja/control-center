@@ -108,7 +108,8 @@ type SeriesIdentityProps = {
 }
 
 /**
- * A dedicated horizontal plate for the official series lettering.
+ * The series lettering: the official artwork where it exists, plain type where
+ * it does not.
  *
  * The source PNGs include a large symbol above the wordmark. Showing the full
  * canvas at card size made the actual words microscopic, so this view clips to
@@ -120,32 +121,31 @@ export function SeriesIdentity({ series, className, testId }: SeriesIdentityProp
 
   // NO WORDMARK EXISTS FOR ANY LIVE SUBCHANNEL. Both PNGs read "The Money of
   // AI" and "Built With AI", retired on 2026-09-17, so pointing a live format
-  // at one would put a name on the piece that the piece is not. Until three are
-  // drawn, the plate shows the publication mark and sets the format in type.
-  // This is the declared degrade, not a missing asset: see NO_WORDMARK_FOR in
+  // at one would put a name on the piece that the piece is not. This is the
+  // declared degrade, not a missing asset: see NO_WORDMARK_FOR in
   // src/lib/publicSeries.ts, which scripts/check-content-taxonomy.mts holds to
   // saying so out loud.
+  //
+  // Ruling (Krish, 2026-09-20): the plate goes. Standing in for absent artwork
+  // with a dark plate and the publication mark drew a black bar across the top
+  // of every room, in both themes, carrying the same words as the room chip two
+  // lines above it. A placeholder that loud is a claim, and there is nothing to
+  // claim until the three are drawn. Type only until then; the plate returns
+  // with the artwork, which is why it is still the branch below rather than a
+  // deleted one.
   const why = NO_WORDMARK_FOR[series]
   if (why || !identity.assetPath) {
     return (
       <span
-        className={cn(
-          'inline-flex h-12 w-full max-w-[320px] items-center gap-2 rounded-xl border border-white/[0.12] bg-[#0a100d] px-2 shadow-e1',
-          className,
-        )}
-        role="img"
-        aria-label={identity.label}
+        className={cn('inline-flex min-w-0 max-w-full items-baseline', className)}
         title={why}
         data-testid={testId ?? `series-identity-${series}`}
         data-series-identity={series}
         data-series-label={identity.label}
         data-series-wordmark="absent"
       >
-        <MarkTile size={MINDMAKE_COMPACT_MIN_SIZE} labelled={false} />
-        <span className="flex min-w-0 flex-1 items-center justify-center px-1">
-          <span className="truncate font-mono text-label tracking-[0.06em] text-white/85">
-            {identity.label}
-          </span>
+        <span className="truncate font-mono text-label tracking-[0.06em] text-ink">
+          {identity.label}
         </span>
       </span>
     )

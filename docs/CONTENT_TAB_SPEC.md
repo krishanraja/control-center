@@ -8,15 +8,19 @@
 > describes four lanes (`signal_noise`, `mindmake`, `builder_economy_ig`,
 > `techonomic`) that no longer exist as ventures.
 >
-> **The live model, as of 2026-08-11:** ONE content venture, **Mindmake's publication**
-> (`publication`), with exactly two formats carried in `lane_slot`:
-> **Paid** (the investigation, carrying Techonomic's register) and **Built**
-> (builder conversations, carrying the builder economy thesis). Signal & Noise
-> is a distribution CHANNEL, not a lane. Builder Economy is fully retired.
-> "Make Your Mind Up" is the CTRL lead magnet, not a content brand.
+> **The live model, as of 2026-09-17:** ONE content venture, **Mindmake's publication**
+> (`publication`), with **three** subchannels carried in `lane_slot`:
+> **mind.the.gap** (Fridays, hero), **split.the.bill** (Wednesdays) and
+> **lift.the.lid** (standing, no fixed day). The two names this banner used to
+> carry, **Paid** / The Money of AI and **Built** / Built with AI, retired on
+> 2026-09-17 and survive only as read-side aliases for historical rows.
+> Signal & Noise is a distribution CHANNEL, not a lane. Builder Economy is fully
+> retired. "Make Your Mind Up" is the CTRL lead magnet, not a content brand.
 >
-> **Current truth lives in code, not here:** `src/lib/contentEngine.ts`
-> (`VENTURE_FORMATS`, `LANES`, `FACTORY_CHANNELS`), `src/lib/contentLanes.ts`
+> **Current truth lives in code, not here:** `src/lib/formats.ts` is the one
+> reader of `venture_formats` and the only place a slug may come from;
+> `src/lib/contentEngine.ts` (`VENTURE_FORMATS`, `LANES`, `FACTORY_CHANNELS`,
+> all derived from it), `src/lib/contentLanes.ts`
 > (`normalizeLane` and the legacy aliases), and `api/_content.ts`
 > (`CHANNEL_HEADING`, `laneToCorpusChannel`). The guard
 > `scripts/check-content-taxonomy.mts` is what keeps those in step.

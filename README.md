@@ -210,6 +210,10 @@ issue.
 - [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) — "Obsidian Aurora"
   design system: themes, tokens, typography, material, motion, haptics
 - [`docs/PRODUCT.md`](./docs/PRODUCT.md) — per-tab product spec
+- [`docs/CONTENT-ENGINE-OPERATING-GUIDE.md`](./docs/CONTENT-ENGINE-OPERATING-GUIDE.md)
+  — how to actually drive the Content Engine: every surface, every way to start
+  a piece, what the crons and Cleo start on their own, and what the edit palette
+  modes really do
 - [`docs/AGENTS.md`](./docs/AGENTS.md) — agent roster and slug-as-key rule
 - [`docs/DATABASE.md`](./docs/DATABASE.md) — Supabase tables, relationships, RLS
 - [`docs/DB_HEALTH.md`](./docs/DB_HEALTH.md) — DB health, security remediation,

@@ -276,9 +276,13 @@ test('375px mobile keeps the real mark and both official series wordmarks legibl
   // both names retired. No wordmark exists for split.the.bill, mind.the.gap or
   // lift.the.lid, and pointing a live room at "Built With AI" artwork would put
   // a name on the page that the page is not. So the room header degrades on
-  // purpose: publication mark plus the format set in type, declared in
-  // NO_WORDMARK_FOR. What this spec holds now is that the degrade is a designed
-  // state and not a broken image, and that no tab ever shows a raw slug.
+  // purpose, declared in NO_WORDMARK_FOR.
+  //
+  // Ruling (Krish, 2026-09-20): that degrade is TYPE ONLY. It used to be a dark
+  // plate carrying the publication mark, which read as a black bar across the
+  // top of every room in both themes, repeating the words already on the room
+  // chip. So this no longer asserts a plate or a mark glyph, only that the
+  // format is named in real text and that no tab ever shows a raw slug.
   await page.goto('/#/content')
   for (const f of SUBCHANNELS) {
     await expect(page.getByRole('tab', { name: new RegExp(escapeForRegExp(f.label)) })).toBeVisible()
@@ -292,20 +296,27 @@ test('375px mobile keeps the real mark and both official series wordmarks legibl
     await expect(identity).toHaveAttribute('data-series-wordmark', 'absent')
     await expect(identity).toHaveAttribute('data-series-label', f.label)
     await expect(identity).toContainText(f.label)
-    const plate = await identity.evaluate((root: HTMLElement) => {
-      const glyph = root.querySelector<HTMLElement>('[data-mindmake-mark-glyph="true"]')
+    const shown = await identity.evaluate((root: HTMLElement) => {
       const box = root.getBoundingClientRect()
+      const style = getComputedStyle(root)
       return {
-        glyphSize: glyph?.getBoundingClientRect().width || 0,
         left: box.left,
         right: box.right,
         viewportWidth: window.innerWidth,
+        // A plate would paint a background and a border. Type does neither, and
+        // that is the whole point of the 2026-09-20 ruling, so it is asserted
+        // rather than left to the eye.
+        background: style.backgroundColor,
+        borderWidth: parseFloat(style.borderTopWidth) || 0,
+        hasMarkGlyph: !!root.querySelector('[data-mindmake-mark-glyph="true"]'),
       }
     })
-    // The anchor stays at its documented minimum, and the plate stays on screen.
-    expect(plate.glyphSize).toBeGreaterThanOrEqual(24)
-    expect(plate.left).toBeGreaterThanOrEqual(-0.5)
-    expect(plate.right).toBeLessThanOrEqual(plate.viewportWidth + 0.5)
+    // The name stays on screen, and it is type rather than a plate.
+    expect(shown.left).toBeGreaterThanOrEqual(-0.5)
+    expect(shown.right).toBeLessThanOrEqual(shown.viewportWidth + 0.5)
+    expect(shown.hasMarkGlyph).toBe(false)
+    expect(shown.borderWidth).toBe(0)
+    expect(shown.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/)
     if (process.env.MINDMAKE_CAPTURE) {
       await page.screenshot({ path: test.info().outputPath(`mobile-series-${f.slug}.png`) })
     }
@@ -337,9 +348,10 @@ for (const theme of ['dark', 'light'] as const) {
     // the actually painted wordmark to clear text contrast after compositing.
     expect(ink.highContrastShare).toBeGreaterThanOrEqual(0.55)
 
-    // Same declared degrade as the mobile case above: the room plate sets the
-    // format in type because no live subchannel has artwork. The Mindmake
-    // wordmark measured above is the one that must still be official.
+    // Same declared degrade as the mobile case above: the room names the format
+    // in type because no live subchannel has artwork, and since 2026-09-20 it is
+    // type with no plate around it. The Mindmake wordmark measured above is the
+    // one that must still be official.
     const first = SUBCHANNELS[0]
     const series = page.getByTestId(`series-identity-${first.slug}`)
     await expect(series).toBeVisible()

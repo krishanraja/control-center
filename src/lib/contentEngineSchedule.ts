@@ -1,9 +1,21 @@
 // The Content Engine's schedule, as the dashboard knows it.
 //
-// One row per scheduled job: the cron path in vercel.json, how often it is
-// meant to succeed, and how long past that we wait before saying something.
-// scripts/check-content-engine-schedule.mts holds this list and vercel.json
-// to the same set, so a cron added or removed on one side fails the build.
+// One row per scheduled job: the cron path, how often it is meant to succeed,
+// and how long past that we wait before saying something.
+//
+// THIS LIST IS A SECOND COPY AND NOTHING GUARDS IT. The header used to claim
+// `scripts/check-content-engine-schedule.mts` held it and vercel.json to the
+// same set. That file does not exist in this repository. The guard is real but
+// it lives in the other one, as
+// `content-engine/apps/control-plane/scripts/check-content-engine-schedule.ts`,
+// and it reads that repo's own `lib/contentEngineSchedule.ts` against that
+// repo's `vercel.json`. Since ADR-019 moved the crons, none of the paths below
+// is a cron in THIS repo's vercel.json at all, so no local guard could check
+// them; the two lists agreed job-for-job when last compared (17 each,
+// 2026-09-20) and only a human keeps them that way.
+//
+// So: a cron added in content-engine and not added here goes quiet invisibly,
+// and one removed there keeps being nagged about here. Change one, change both.
 //
 // The rows are read against content_engine_runs (api/_runs.ts) to produce
 // attention lines in the obligation strip. The OS is pull-only: a stale job
