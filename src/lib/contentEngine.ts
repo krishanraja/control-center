@@ -439,8 +439,21 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
   { value: 'signal_noise', label: 'Signal & Noise', shortForm: false },
 ]
 
-/** Default distribution per format, so the composer pre-ticks the sane set. */
+/** Default distribution per format, so the composer pre-ticks the sane set.
+ *
+ *  ContentComposer looks this up as `${idea.lane}:${idea.lane_slot}`, and both
+ *  keys named formats retired on 2026-09-17. A live piece therefore matched
+ *  nothing and pre-ticked NOTHING, which reads as "no channels suggested"
+ *  rather than as a broken lookup: the exact silent shape this codebase keeps
+ *  finding. The live slugs are keyed here, with the retired spellings kept
+ *  beside them because `lane_slot` on a historical row still holds them and
+ *  ContentComposer builds the key from the stored value, not a resolved one.
+ */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
+  'publication:split_the_bill': ['substack', 'linkedin'],
+  'publication:mind_the_gap': ['substack', 'linkedin'],
+  'publication:lift_the_lid': ['substack', 'instagram', 'youtube', 'signal_noise'],
+  // Historical rows, which carry the retired spelling verbatim.
   'publication:money_of_ai': ['substack', 'linkedin'],
   'publication:built_with_ai': ['substack', 'instagram', 'youtube', 'signal_noise'],
 }
@@ -510,10 +523,20 @@ export interface LaneAdapt { value: string; label: string; hint: string }
 /** What the piece IS. Changes the argument's register and its evidence bar. */
 export const FORMAT_ADAPTS: LaneAdapt[] = [
   // Three, not two, since 2026-09-17. `value` is the corpus lookup key used
-  // verbatim by api/content-ideas/[id]/revise.ts, so it must be a key in
-  // CHANNEL_HEADING in api/_content.ts. mind_the_gap has no corpus section yet
-  // and the engine says `corpus_playbook_missing` rather than quietly handing
-  // the hero format somebody else's register.
+  // verbatim by content-ideas/[id]/revise.ts, so it must be a key in
+  // CHANNEL_HEADING in content-engine's api/_content.ts.
+  //
+  // Until 2026-09-20 none of the three WAS a key there, so every "change the
+  // format" adapt fell through to the whole-corpus synopsis and got a generic
+  // rewrite. The two renamed formats are keys now and inherit the playbook of
+  // the lineage format_aliases says they are.
+  //
+  // mind_the_gap still has no corpus section. This comment used to say the
+  // engine answers `corpus_playbook_missing`; no such string exists anywhere in
+  // either repository and never did. What actually happens now is that
+  // NO_CORPUS_PLAYBOOK in content-engine's api/_content.ts states the gap IN
+  // THE PROMPT, so the model is told it has no playbook instead of being handed
+  // the house synopsis and left to infer a register.
   //
   // THE HINTS ARE STEERS, NOT MANDATES. Each mandate lives in full prose in
   // venture_formats.mandate and is read at run time. A mandate copied into this

@@ -300,20 +300,27 @@ having done almost nothing:
   value is a wire contract with n8n or the control plane it was kept and only
   the words changed, with the contract named in a comment beside it.
 
-- **`research-topic` still writes retired slugs to NEW rows.** In
-  `content-engine`, the endpoint behind Start from research stores
-  `lane: 'mindmaker_live'` and `lane_slot: 'paid' | 'built'`. Reads resolve
-  through the alias ledger so nothing is lost, but new rows should carry live
-  slugs, and the house rule is that an unknown slug fails the write rather than
-  degrading. Fixing it means teaching the endpoint the three live slugs while
-  still accepting the two old ones, which is a change in the other repo.
+- **Write-side vocabulary: fixed 2026-09-20.** `research-topic` was storing
+  `lane: 'mindmaker_live'` and `lane_slot: 'paid' | 'built'` on new rows. It now
+  accepts a live slug or either legacy spelling and stores the live one, and
+  refuses anything else rather than writing null.
 
-- **mind.the.gap has no fan-out destination.** `FACTORY_FANOUT` in
-  `src/lib/contentV2.ts` carries split.the.bill and lift.the.lid only. The
-  `channel` values are the n8n Omnichannel Content Factory's wire contract and
-  it switches on `target_channel`, so the hero format cannot be added from the
-  repo side alone: the factory would receive a value it cannot route. A Friday
-  piece therefore cannot be pushed the way a Wednesday one can.
+- **The fan-out carries all three: fixed 2026-09-20.** `FACTORY_FANOUT` had two
+  hardcoded rows, so the hero format could not be pushed. This was not blocked
+  on n8n as first reported: the factory's Route by Channel switch already
+  accepted all three live slugs, added on 2026-09-19. Only the repo list was
+  short. It derives from `SUBCHANNELS` now, and pre-ticks the hero.
+
+  mind.the.gap routes to the factory's **house** branch rather than a packaging
+  branch of its own, so it is polished in the publication house register. Same
+  gap as the missing corpus section, not a second one.
+
+- **The corpus playbook for mind.the.gap is still missing**, and now says so in
+  the prompt. `NO_CORPUS_PLAYBOOK` in content-engine's `api/_content.ts` states
+  the gap to the model rather than handing over the house synopsis and letting
+  it infer a register. Until 2026-09-20 none of the three live slugs was a
+  corpus key at all, so every "change the format" adapt silently got the whole
+  corpus instead of a playbook.
 
 ---
 
