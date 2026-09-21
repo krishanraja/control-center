@@ -1,0 +1,552 @@
+<title>Subchannel Triage Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /* Light palette complete on bare :root. Cool newsroom slate with one warm
+     brass signal; greys carry a blue bias so they read as chosen. */
+  :root {
+    --paper:   #f4f6f8;
+    --card:    #ffffff;
+    --sunk:    #eceff3;
+    --ink:     #141920;
+    --slate:   #59636f;
+    --faint:   #8a94a0;
+    --rule:    #e0e5ea;
+    --brass:   #8a5d18;
+    --brass-w: #f5ecd9;
+    --go:      #176b4f;
+    --go-w:    #e3f1eb;
+    --wait:    #9c4a16;
+    --shadow:  0 1px 2px rgba(20,25,32,.06), 0 8px 24px -12px rgba(20,25,32,.18);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:   #0e1217;
+      --card:    #161c23;
+      --sunk:    #11161c;
+      --ink:     #e7ebf0;
+      --slate:   #949fac;
+      --faint:   #6b7683;
+      --rule:    #262e38;
+      --brass:   #d8a75a;
+      --brass-w: #2a2013;
+      --go:      #4fbf95;
+      --go-w:    #12251e;
+      --wait:    #e0995f;
+      --shadow:  0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:   #0e1217;
+    --card:    #161c23;
+    --sunk:    #11161c;
+    --ink:     #e7ebf0;
+    --slate:   #949fac;
+    --faint:   #6b7683;
+    --rule:    #262e38;
+    --brass:   #d8a75a;
+    --brass-w: #2a2013;
+    --go:      #4fbf95;
+    --go-w:    #12251e;
+    --wait:    #e0995f;
+    --shadow:  0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0;
+    padding-inline: 16px;
+    padding-block: 0 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ── masthead ─────────────────────────────────────────────────────── */
+  header.top {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+    margin-inline: -16px;
+    padding: 14px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 18px;
+  }
+  .mark {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+  h1 { font-size: 19px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  .tally {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+  }
+  .tally b { color: var(--ink); font-weight: 500; }
+
+  /* ── layout ───────────────────────────────────────────────────────── */
+  .cols { display: grid; grid-template-columns: 1fr; gap: 26px; padding-block: 24px; }
+  @media (min-width: 900px) {
+    .cols { grid-template-columns: 296px 1fr; gap: 34px; align-items: start; }
+    aside { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 74px); }
+  }
+
+  /* ── the mandates rail: the decision aid ──────────────────────────── */
+  .rail-head {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint); margin-bottom: 10px;
+  }
+  .fmt {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--card);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .fmt.hero { border-color: color-mix(in srgb, var(--brass) 45%, var(--rule)); }
+  .fmt > button {
+    width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+    padding: 11px 13px; display: flex; align-items: center; gap: 8px;
+    font: inherit; color: var(--ink);
+  }
+  .fmt .slug {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px; font-weight: 500;
+  }
+  .fmt .cadence {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; color: var(--faint); white-space: nowrap;
+  }
+  .hero-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--brass); flex: 0 0 auto;
+  }
+  .mandate {
+    padding: 0 13px 13px;
+    font-family: Newsreader, Georgia, serif;
+    font-size: 15px; line-height: 1.55; color: var(--slate);
+  }
+  .mandate p { margin: 0; }
+
+  /* ── triage cards ─────────────────────────────────────────────────── */
+  .queue { display: flex; flex-direction: column; gap: 14px; }
+  article.card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 16px 16px 14px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; color: var(--faint); margin-bottom: 9px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta a { color: var(--faint); }
+  .fit {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 1px 7px; border-radius: 99px;
+    background: var(--sunk); color: var(--slate);
+  }
+  .fit.high { background: var(--go-w); color: var(--go); }
+  h2.idea {
+    font-size: 17px; font-weight: 600; line-height: 1.32;
+    margin: 0 0 8px; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .thesis {
+    font-family: Newsreader, Georgia, serif;
+    font-size: 16px; line-height: 1.55; color: var(--slate);
+    margin: 0 0 14px; max-width: 64ch;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+  button.pick {
+    font: 500 13px/1 "IBM Plex Mono", ui-monospace, monospace;
+    padding: 9px 11px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
+    transition: background .12s, border-color .12s;
+  }
+  button.pick:hover { border-color: var(--brass); background: var(--brass-w); }
+  button.pick.is-hero { border-color: color-mix(in srgb, var(--brass) 45%, var(--rule)); }
+  button.ghost {
+    font: 400 13px/1 Archivo, sans-serif;
+    padding: 9px 11px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; background: none; color: var(--faint);
+  }
+  button.ghost:hover { color: var(--ink); border-color: var(--rule); }
+  button.ask {
+    margin-left: auto;
+    font: 500 13px/1 Archivo, sans-serif;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--rule); background: none; color: var(--slate);
+  }
+  button.ask:hover { color: var(--ink); border-color: var(--brass); }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--brass); outline-offset: 2px;
+  }
+
+  .verdict {
+    margin-top: 12px; padding: 11px 13px;
+    border-left: 2px solid var(--brass);
+    background: var(--sunk); border-radius: 0 8px 8px 0;
+    font-family: Newsreader, Georgia, serif; font-size: 15px; line-height: 1.5;
+    color: var(--ink);
+  }
+  .verdict .who {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--brass); display: block; margin-bottom: 5px;
+  }
+
+  /* ── states ───────────────────────────────────────────────────────── */
+  .note {
+    border: 1px solid var(--rule); border-radius: 12px; background: var(--card);
+    padding: 20px; color: var(--slate); max-width: 62ch;
+  }
+  .note h3 { margin: 0 0 7px; font-size: 16px; color: var(--ink); font-weight: 600; }
+  .note code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px;
+    background: var(--sunk); padding: 1px 5px; border-radius: 4px;
+  }
+  .note button {
+    margin-top: 13px; font: 500 13px/1 Archivo, sans-serif;
+    padding: 9px 13px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
+  }
+  .skel {
+    height: 108px; border-radius: 12px; border: 1px solid var(--rule);
+    background: linear-gradient(90deg, var(--card), var(--sunk), var(--card));
+    background-size: 220% 100%; animation: sweep 1.5s ease-in-out infinite;
+  }
+  @keyframes sweep { to { background-position: -220% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+  .done { text-align: center; padding: 40px 16px; color: var(--slate); }
+  .done .big {
+    font-family: Newsreader, Georgia, serif; font-size: 22px; color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .row-err {
+    font-size: 13px; color: var(--wait); margin-top: 9px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  footer.foot {
+    margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 12.5px; color: var(--faint); max-width: 70ch;
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="mark">makeyourmindup</span>
+    <h1>Subchannel Triage Desk</h1>
+    <div class="tally">
+      <span>queue <b id="t-left">–</b></span>
+      <span>assigned here <b id="t-done">0</b></span>
+    </div>
+  </header>
+
+  <div class="cols">
+    <aside>
+      <div class="rail-head">The three mandates</div>
+      <div id="formats">
+        <div class="skel" style="height:44px;margin-bottom:10px"></div>
+        <div class="skel" style="height:44px;margin-bottom:10px"></div>
+        <div class="skel" style="height:44px"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div id="queue" class="queue">
+        <div class="skel"></div>
+        <div class="skel"></div>
+        <div class="skel"></div>
+      </div>
+      <footer class="foot">
+        Every assignment writes <code>content_ideas.lane_slot</code> straight
+        away. That column has a foreign key to <code>venture_formats.slug</code>,
+        so a slug that is not a real subchannel fails the write by name instead
+        of landing as a null nobody notices.
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PROJECT = 'gojpffsrxybbpbdzzrvs';
+  const SERVER  = 'Supabase';
+  const TOOL    = 'execute_sql';
+  /* Slugs that are real subchannels. `general` and `either` are rows in
+     venture_formats but are holding lanes, not subchannels, so they are not
+     offered as a destination here. */
+  const PICKABLE = new Set(['split_the_bill', 'mind_the_gap', 'lift_the_lid']);
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  const $ = s => document.querySelector(s);
+  const el = (t, c, txt) => { const n = document.createElement(t); if (c) n.className = c; if (txt != null) n.textContent = txt; return n; };
+  const lit = s => "'" + String(s).replace(/'/g, "''") + "'";
+
+  let mcp = null, sample = null, formats = [], assigned = 0;
+
+  /* The connector answers with a wrapped envelope: a preamble, the rows as
+     JSON inside an <untrusted-data-…> block, then a trailing note. Take the
+     rows out of the block; fall back to a bare array or a bare JSON string so
+     a shape change degrades to "no rows" rather than to a crash. */
+  function rowsOf(payload) {
+    if (Array.isArray(payload)) return payload;
+    const text = typeof payload === 'string' ? payload
+      : (payload && typeof payload === 'object' && typeof payload.result === 'string') ? payload.result
+      : null;
+    if (!text) return [];
+    const block = text.match(/<untrusted-data-[^>]*>([\s\S]*?)<\/untrusted-data-[^>]*>/);
+    const body = block ? block[1].trim() : text.trim();
+    try { const v = JSON.parse(body); return Array.isArray(v) ? v : []; } catch { return []; }
+  }
+
+  async function sql(query, { write = false } = {}) {
+    const res = await mcp.callTool(SERVER, TOOL, { project_id: PROJECT, query },
+      write ? { cache: false } : { cache: { staleTime: 0 } });
+    return rowsOf(res.payload);
+  }
+
+  /* Each code has a different correct fix, so each gets its own copy. */
+  function explain(err) {
+    const c = err && err.code;
+    if (c === 'needs_reauth')         return ['Supabase needs reconnecting', 'Reconnect Supabase in claude.ai Settings → Connectors, then reload.'];
+    if (c === 'server_not_connected') return ['No Supabase connector', 'Add Supabase in claude.ai Settings → Connectors, then reload.'];
+    if (c === 'selection_required')   return ['More than one Supabase connector', 'Choose which Supabase connector this page should use when prompted, then reload.'];
+    if (c === 'not_in_manifest')      return ['Supabase is off for this page', 'You turned this connector off for this artifact, or declined it. Allow it and reload.'];
+    if (c === 'blocked_by_policy')    return ['Blocked by policy', 'Your organisation blocks this connector tool.'];
+    if (c === 'approval_required')    return ['Needs approval', 'This tool needs per-call approval, which artifacts cannot ask for yet.'];
+    if (c === 'tool_error')           return ['The query was refused', (err.message || '').slice(0, 300)];
+    if (c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed')
+                                      return ['This view cannot reach connectors', 'Open the artifact on claude.ai to use the desk.'];
+    return ['Could not reach Supabase', (err && err.message) || 'Unknown error.'];
+  }
+
+  function pageNote(title, body, retry) {
+    const n = el('div', 'note');
+    n.append(el('h3', null, title), el('div', null, body));
+    if (retry) { const b = el('button', null, 'Try again'); b.onclick = retry; n.append(b); }
+    $('#queue').replaceChildren(n);
+  }
+
+  /* ── render ─────────────────────────────────────────────────────── */
+  function renderFormats() {
+    const box = $('#formats');
+    box.replaceChildren();
+    for (const f of formats) {
+      const card = el('div', 'fmt' + (f.hero ? ' hero' : ''));
+      const head = el('button');
+      head.type = 'button';
+      head.setAttribute('aria-expanded', 'false');
+      if (f.hero) head.append(el('span', 'hero-dot'));
+      head.append(el('span', 'slug', f.label || f.slug));
+      head.append(el('span', 'cadence', f.cadence_label || ''));
+      const body = el('div', 'mandate');
+      body.append(el('p', null, f.mandate || ''));
+      body.hidden = true;
+      head.onclick = () => {
+        body.hidden = !body.hidden;
+        head.setAttribute('aria-expanded', String(!body.hidden));
+      };
+      card.append(head, body);
+      box.append(card);
+    }
+  }
+
+  function ageOf(iso) {
+    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    return d <= 0 ? 'today' : d === 1 ? '1 day old' : d + ' days old';
+  }
+
+  function renderQueue(rows) {
+    $('#t-left').textContent = rows.length;
+    const q = $('#queue');
+    q.replaceChildren();
+    if (!rows.length) {
+      const d = el('div', 'done');
+      d.append(el('div', 'big', 'Nothing waiting on a subchannel.'));
+      d.append(el('div', null, 'Every seeded idea has been given a home or set aside.'));
+      q.append(d);
+      return;
+    }
+    for (const r of rows) q.append(cardFor(r));
+  }
+
+  function cardFor(r) {
+    const card = el('article', 'card');
+    card.dataset.id = r.id;
+
+    const meta = el('div', 'meta');
+    meta.append(el('span', null, ageOf(r.created_at)));
+    if (r.brand_fit_score != null) {
+      const fit = el('span', 'fit' + (Number(r.brand_fit_score) >= 8 ? ' high' : ''), 'brand fit ' + r.brand_fit_score);
+      meta.append(fit);
+    }
+    if (r.pillar_id) meta.append(el('span', null, String(r.pillar_id).replace(/^pillar:/, '')));
+    if (r.source_url) {
+      const a = el('a', null, 'source');
+      a.href = r.source_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      meta.append(a);
+    }
+    card.append(meta);
+
+    card.append(el('h2', 'idea', r.idea || '(untitled seed)'));
+    if (r.thesis) card.append(el('p', 'thesis', r.thesis));
+
+    const actions = el('div', 'actions');
+    for (const f of formats.filter(f => PICKABLE.has(f.slug))) {
+      const b = el('button', 'pick' + (f.hero ? ' is-hero' : ''), f.label || f.slug);
+      b.type = 'button';
+      b.onclick = () => assign(card, r, f.slug);
+      actions.append(b);
+    }
+    const drop = el('button', 'ghost', 'Not a piece');
+    drop.type = 'button';
+    drop.onclick = () => assign(card, r, null);
+    actions.append(drop);
+
+    if (sample) {
+      const ask = el('button', 'ask', 'Ask Claude');
+      ask.type = 'button';
+      ask.onclick = () => advise(card, r, ask);
+      actions.append(ask);
+    }
+    card.append(actions);
+    return card;
+  }
+
+  function fail(card, err) {
+    const [title, body] = explain(err);
+    let line = card.querySelector('.row-err');
+    if (!line) { line = el('div', 'row-err'); card.append(line); }
+    line.textContent = title + ' — ' + body;
+    card.querySelectorAll('button').forEach(b => { b.disabled = false; });
+  }
+
+  /* ── write ──────────────────────────────────────────────────────── */
+  async function assign(card, r, slug) {
+    if (!UUID.test(r.id)) return fail(card, { code: 'bad_request', message: 'This row has no usable id.' });
+    if (slug !== null && !PICKABLE.has(slug)) return fail(card, { code: 'bad_request', message: 'Not a subchannel.' });
+    card.querySelectorAll('button').forEach(b => { b.disabled = true; });
+
+    const q = slug === null
+      ? `update public.content_ideas set state = 'dropped', updated_at = now() where id = ${lit(r.id)};`
+      : `update public.content_ideas set lane_slot = ${lit(slug)}, updated_at = now() where id = ${lit(r.id)};`;
+    try {
+      await sql(q, { write: true });
+      assigned += 1;
+      $('#t-done').textContent = assigned;
+      $('#t-left').textContent = Math.max(0, Number($('#t-left').textContent || 1) - 1);
+      card.remove();
+      if (!$('#queue').children.length) renderQueue([]);
+    } catch (e) {
+      fail(card, e);
+    }
+  }
+
+  /* ── ask Claude, on the viewer's subscription rather than the API ── */
+  async function advise(card, r, btn) {
+    btn.disabled = true;
+    let box = card.querySelector('.verdict');
+    if (!box) {
+      box = el('div', 'verdict');
+      box.append(el('span', 'who', 'Claude reads the three mandates'));
+      box.append(el('span', 'body', 'Thinking…'));
+      card.append(box);
+    }
+    const body = box.querySelector('.body');
+    const brief = formats.filter(f => PICKABLE.has(f.slug))
+      .map(f => `${f.slug} (${f.cadence_label}): ${f.mandate}`).join('\n\n');
+    const prompt =
+      'You are sorting one seeded idea into one of three subchannels of a publication. ' +
+      'The mandates are below and they are the only test that matters: each one is a test on the QUESTION the piece asks, not on its surface subject.\n\n' +
+      brief +
+      '\n\n---\nIdea: ' + (r.idea || '') +
+      '\nThesis: ' + (r.thesis || '') +
+      '\n---\n\nAnswer in at most 45 words: name the one subchannel that fits and the question this piece would have to ask to earn it. ' +
+      'If it fits none of the three, say so plainly and say why. No preamble, no bullet points, no em dashes.';
+    try {
+      const out = await sample(prompt, {
+        modelTier: 'quick',
+        onText: ({ text }) => { body.textContent = text; },
+      });
+      body.textContent = out.text;
+    } catch (e) {
+      const code = e && e.code;
+      body.textContent =
+        code === 'not_granted'  ? 'Claude is not available on this view.' :
+        code === 'rate_limited' ? 'Too many questions just now. Try again shortly.' :
+        code === 'cancelled'    ? 'Cancelled.' :
+        'Could not get a read on this one.';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ── boot ───────────────────────────────────────────────────────── */
+  async function load() {
+    $('#queue').replaceChildren(el('div', 'skel'), el('div', 'skel'), el('div', 'skel'));
+    try {
+      formats = await sql(
+        `select slug, label, hero, cadence_label, mandate
+           from public.venture_formats
+          where active order by hero desc, sort_order nulls last, slug;`);
+      renderFormats();
+    } catch (e) {
+      const [t, b] = explain(e);
+      return pageNote(t, b, load);
+    }
+    try {
+      const rows = await sql(
+        `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url
+           from public.content_ideas
+          where lane_slot is null
+            and state in ('seeded', 'researching')
+          order by brand_fit_score desc nulls last, created_at desc
+          limit 60;`);
+      renderQueue(rows);
+    } catch (e) {
+      const [t, b] = explain(e);
+      pageNote(t, b, load);
+    }
+  }
+
+  (async () => {
+    mcp = await window.claude?.use?.('mcp');
+    sample = await window.claude?.use?.('sample');
+    if (!mcp) {
+      return pageNote(
+        'This desk needs the Supabase connector',
+        'It reads the live idea queue and writes your decisions straight back, so it only works on claude.ai with Supabase connected.',
+        null);
+    }
+    load();
+  })();
+})();
+</script>
