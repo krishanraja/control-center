@@ -140,7 +140,7 @@ export async function add(e: {
   try {
     const supabase = await db()
     if (!supabase) return
-    await supabase.rpc('meter_add', {
+    const { error } = await supabase.rpc('meter_add', {
       p_provider: e.provider,
       p_unit_kind: e.unitKind,
       p_unit_key: e.unitKey,
@@ -157,7 +157,26 @@ export async function add(e: {
       p_cache_write_tokens: e.cacheWriteTokens ?? 0,
       p_usd_uncached: e.usdUncached ?? e.usd ?? 0,
     })
-  } catch { /* metering is never load-bearing */ }
+    // METERING IS NEVER LOAD-BEARING, BUT IT MUST BE ABLE TO SAY IT FAILED.
+    //
+    // supabase-js RETURNS errors here, it does not throw them, so the catch
+    // below never saw a rejected write: the result was discarded and every
+    // failure looked exactly like a successful one. Combined with the catch,
+    // this function could not report anything at all.
+    //
+    // What that hides is the whole instrument going dark. Every Anthropic agent
+    // in meter_daily stops on 2026-09-15 on the same day, control-center's own
+    // and content-engine's alike, while the apify and n8n rows written by the
+    // sync crons continue. Read off the dashboard that is "we spent nothing",
+    // which is the most expensive sentence this codebase can say silently.
+    //
+    // Still swallowed, still never thrown: a failed meter write must not fail
+    // the work it was measuring. But it is now SAID, once per failure, so the
+    // difference between "no spend" and "no measurement" reaches a log.
+    if (error) console.warn(`[meter] write failed for ${e.provider}/${e.unitKey}: ${error.message || error}`)
+  } catch (e2) {
+    console.warn(`[meter] write threw for ${e.provider}/${e.unitKey}: ${(e2 as Error)?.message || e2}`)
+  }
 }
 
 export interface MeterUnit {
