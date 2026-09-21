@@ -172,6 +172,9 @@
   }
   .gapwarn b { font-weight: 600; }
 
+.sep { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; color: var(--faint); letter-spacing: .04em; }
+  .reasons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; margin-top: 8px; }
+  #ledger-state { margin: 10px 0 0; padding: 9px 12px; border-radius: 8px; background: var(--brass-w); color: var(--brass); font-size: 13px; }
   .note { border: 1px solid var(--rule); border-radius: 12px; background: var(--card); padding: 20px; color: var(--slate); max-width: 62ch; }
   .note h3 { margin: 0 0 7px; font-size: 16px; color: var(--ink); font-weight: 600; }
   .note code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; background: var(--sunk); padding: 1px 5px; border-radius: 4px; }
@@ -212,6 +215,7 @@
 
     <main>
       <p class="stage-hint" id="hint"></p>
+      <div id="ledger-state" hidden></div>
       <div id="queue" class="queue">
         <div class="skel"></div><div class="skel"></div><div class="skel"></div>
       </div>
@@ -474,6 +478,82 @@
     : e && e.code === 'rate_limited' ? 'Too many requests just now. Try again shortly.'
     : e && e.code === 'cancelled' ? 'Cancelled.' : 'Could not get an answer for this one.';
 
+
+  /* ── the ledger ───────────────────────────────────────────────────────
+   *
+   * Every machine suggestion on this page is a prediction, and every button
+   * Krish presses is the grade. Without both written down, a dry run teaches
+   * nothing and the desk is just a nicer way to spend an afternoon.
+   *
+   * This page shipped without it. It called sample() for drafts and judgments
+   * and wrote not one row to content_edit_events, so the learning bank stayed
+   * at zero while the surface looked like it was working - the same shape as
+   * the meter that could not report its own failure.
+   *
+   * Events are inserted straight into the table rather than posted to
+   * /api/content-edits, because an artifact on claude.ai has no route to the
+   * OS's own API. The table's CHECK constraints are the real gate either way:
+   *
+   *   magic_accepted / magic_rejected   need before_hash  (resolution_has_parent)
+   *   manual_edit / magic_accepted      need after_hash   (change_has_result)
+   *
+   * PAIRING. A suggestion and its verdict share before_hash. For a draft that
+   * is the hash of the seed it was written from; for a hand rewrite it is the
+   * hash of the machine's draft, so accepted-then-rewritten pairs up, which is
+   * the single highest-signal thing the weekly compiler looks for.
+   */
+  async function sha256Hex(text) {
+    try {
+      const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text ?? ''));
+      return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch { return null; }
+  }
+  const seedTextOf = r => `${r.idea || ''}\n\n${r.thesis || ''}`;
+
+  let ledgerDown = false;
+  async function ledger(e) {
+    const col = [], val = [];
+    const put = (c, v) => { col.push(c); val.push(v === null || v === undefined ? 'null' : v); };
+    put('idempotency_key', lit(crypto.randomUUID()));
+    put('subject_table', lit('content_ideas'));
+    put('subject_id', lit(e.subjectId));
+    put('artifact_kind', lit('draft'));
+    put('action', lit(e.action));
+    put('surface', lit('triage'));
+    put('client', lit(window.innerWidth < 900 ? 'mobile' : 'desktop'));
+    if (e.mode) put('mode', lit(e.mode));
+    if (e.value) put('value', lit(String(e.value).slice(0, 120)));
+    if (e.reasonCode) put('reason_code', lit(e.reasonCode));
+    if (e.beforeHash) put('before_hash', lit(e.beforeHash));
+    if (e.afterHash) put('after_hash', lit(e.afterHash));
+    if (e.charsBefore != null) put('chars_before', String(e.charsBefore));
+    if (e.charsAfter != null) put('chars_after', String(e.charsAfter));
+    if (e.dwellMs != null) put('dwell_ms', String(Math.max(0, Math.round(e.dwellMs))));
+    put('confirmation_state', lit(e.action === 'magic_invoked' ? 'pending' : 'not_applicable'));
+    try {
+      await sql(`insert into public.content_edit_events (${col.join(', ')}) values (${val.join(', ')});`, { write: true });
+      ledgerDown = false;
+    } catch (err) {
+      // Swallowed, because a ledger write must never cost him the work. Said
+      // out loud, because a silent ledger is the thing this page is for.
+      ledgerDown = true;
+      console.warn('[desk] ledger write refused:', (err && err.message) || err);
+      const bar = $('#ledger-state');
+      if (bar) { bar.hidden = false; bar.textContent = 'Decisions are not being recorded: ' + ((err && err.message) || 'the ledger refused the write') + '. The work still saves.'; }
+    }
+  }
+
+  /** Why a draft was binned. Short, fixed, and about FORM, never subject:
+   *  a free-text box here would be unreadable in aggregate and would leak
+   *  topic into a table whose whole rule is that it must not rank by it. */
+  const BIN_REASONS = [
+    ['wrong_question', 'Wrong question'],
+    ['thin_evidence', 'Thin evidence'],
+    ['wrong_register', 'Wrong register'],
+    ['already_covered', 'Already covered'],
+    ['not_interesting', 'Not interesting'],
+  ];
+
   /* ── stage 2: the dry run ─────────────────────────────────────────── */
   function sectionOf(re) {
     if (!corpus) return '';
@@ -485,8 +565,10 @@
   function draftCard(r) {
     const f = fmtBySlug()[r.lane_slot] || { label: r.lane_slot, mandate: '' };
     const card = el('article', 'card'); card.dataset.id = r.id;
+    card.__seedAt = Date.now();
     const meta = el('div', 'meta');
     meta.append(el('span', 'chip slot', f.label || r.lane_slot));
+    if (r.auto) meta.append(el('span', 'chip', 'machine pick'));
     if (f.cadence_label) meta.append(el('span', null, f.cadence_label));
     meta.append(el('span', null, ageOf(r.created_at)));
     card.append(meta, el('h2', 'idea', r.idea || '(untitled)'));
@@ -497,18 +579,79 @@
       w.append(el('b', null, 'No corpus playbook for this format. '));
       w.append(document.createTextNode(
         'The corpus was last written on 2026-08-28, when the canon still said two channels, and ' +
-        (f.label || r.lane_slot) + ' was added on 2026-09-17. This draft will be written to the house register and the mandate alone. ' +
+        (f.label || r.lane_slot) + ' was added on 2026-09-17. This draft is written to the house register and the mandate alone. ' +
         'That is the honest dry run, not a broken one, and it is what writing the section would fix.'));
       card.append(w);
     }
 
-    const actions = el('div', 'actions');
+    // GRADE THE MACHINE'S SUBCHANNEL PICK. 78 of these were a model's guess,
+    // tagged meta.auto_triage. Moving one is a rejection with a correction
+    // attached, which is the whole training set for an automatic classifier.
+    const row1 = el('div', 'actions');
     const go = el('button', 'go', 'Draft it'); go.type = 'button';
-    go.onclick = () => writeDraft(card, r, go); actions.append(go);
-    const skip = el('button', 'ghost', 'Send back to triage'); skip.type = 'button';
-    skip.onclick = () => unassign(card, r); actions.append(skip);
-    card.append(actions);
+    go.onclick = () => writeDraft(card, r, go); row1.append(go);
+    row1.append(el('span', 'sep', r.auto ? 'wrong subchannel?' : 'move to'));
+    for (const slug of PICKABLE) {
+      if (slug === r.lane_slot) continue;
+      const alt = fmtBySlug()[slug]; if (!alt) continue;
+      const b = el('button', 'pick', alt.label || slug); b.type = 'button';
+      b.onclick = () => regrade(card, r, slug); row1.append(b);
+    }
+    card.append(row1);
+
+    const row2 = el('div', 'actions'); row2.style.marginTop = '7px';
+    const bin = el('button', 'ghost', 'Not a piece'); bin.type = 'button';
+    bin.onclick = () => binSeed(card, r, row2); row2.append(bin);
+    card.append(row2);
     return card;
+  }
+
+  /* The machine picked a subchannel and Krish moved it. Recorded as a
+     rejection of the suggestion PLUS the correction, so the pair says not
+     only that the guess was wrong but what right looked like. */
+  async function regrade(card, r, slug) {
+    card.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    const before = await sha256Hex(seedTextOf(r));
+    try {
+      await sql(`update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+      await ledger({
+        subjectId: r.id, action: 'magic_rejected', mode: 'subchannel',
+        value: r.lane_slot, reasonCode: 'wrong_subchannel', beforeHash: before,
+        dwellMs: Date.now() - card.__seedAt,
+      });
+      await ledger({
+        subjectId: r.id, action: 'manual_edit', mode: 'subchannel',
+        value: slug, beforeHash: before, afterHash: await sha256Hex(slug),
+        dwellMs: Date.now() - card.__seedAt,
+      });
+      card.remove(); await counts(); if (!$('#queue').children.length) render();
+    } catch (e) { fail(card, e); }
+  }
+
+  /* A seed that should never have reached this stage. The reason is the
+     teaching: "binned" alone says the pile is too big and nothing else. */
+  function binSeed(card, r, row) {
+    if (card.querySelector('.reasons')) return;
+    const box = el('div', 'reasons');
+    box.append(el('span', 'sep', 'why?'));
+    for (const [code, label] of BIN_REASONS) {
+      const b = el('button', 'pick', label); b.type = 'button';
+      b.onclick = async () => {
+        card.querySelectorAll('button').forEach(x => { x.disabled = true; });
+        const before = await sha256Hex(seedTextOf(r));
+        try {
+          await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('set aside at the triage desk: ' + code)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+          await ledger({
+            subjectId: r.id, action: 'binned', mode: 'seed', value: r.lane_slot,
+            reasonCode: code, beforeHash: before, charsBefore: seedTextOf(r).length,
+            dwellMs: Date.now() - card.__seedAt,
+          });
+          card.remove(); await counts(); if (!$('#queue').children.length) render();
+        } catch (e) { fail(card, e); }
+      };
+      box.append(b);
+    }
+    row.append(box);
   }
 
   async function writeDraft(card, r, btn) {
@@ -529,14 +672,15 @@
     try {
       const out = await sample(prompt, { modelTier: 'complex', onText: ({ text }) => { ta.value = text; } });
       ta.value = out.text;
-      if (!card.querySelector('.save-row')) {
-        const row = el('div', 'actions save-row'); row.style.marginTop = '10px';
-        const save = el('button', 'go', 'Save draft'); save.type = 'button';
-        save.onclick = () => saveDraft(card, r, ta, save); row.append(save);
-        const judge = el('button', 'ask', 'Does it meet the mandate?'); judge.type = 'button';
-        judge.onclick = () => judgeDraft(card, r, ta.value, judge); row.append(judge);
-        card.append(row);
-      }
+      card.__machineDraft = out.text;
+      card.__draftAt = Date.now();
+      // The offer, recorded before the verdict so the two can pair.
+      await ledger({
+        subjectId: r.id, action: 'magic_invoked', mode: 'draft', value: r.lane_slot,
+        beforeHash: await sha256Hex(seedTextOf(r)),
+        charsBefore: seedTextOf(r).length, charsAfter: out.text.length,
+      });
+      verdictRow(card, r, ta);
     } catch (e) {
       let line = card.querySelector('.row-err');
       if (!line) { line = el('div', 'row-err'); card.append(line); }
@@ -544,13 +688,75 @@
     } finally { btn.disabled = false; btn.textContent = 'Draft again'; }
   }
 
-  async function saveDraft(card, r, ta, btn) {
-    btn.disabled = true; btn.textContent = 'Saving…';
+  /* The verdict on a draft. Keep, bin with a reason, or edit and save - and
+     that third one is the prize: an accepted machine draft followed by a hand
+     rewrite is what learning/compile calls the highest signal in the product,
+     because whatever the rubric is missing is in the diff. */
+  function verdictRow(card, r, ta) {
+    if (card.querySelector('.verdict-row')) return;
+    const row = el('div', 'actions verdict-row'); row.style.marginTop = '10px';
+
+    const keep = el('button', 'go', 'Keep it'); keep.type = 'button';
+    keep.onclick = () => settle(card, r, ta, { kept: true }); row.append(keep);
+
+    const save = el('button', 'pick', 'Save my edits'); save.type = 'button';
+    save.onclick = () => settle(card, r, ta, { kept: true, edited: true }); row.append(save);
+
+    const bin = el('button', 'ghost', 'Bin it'); bin.type = 'button';
+    bin.onclick = () => {
+      if (row.querySelector('.reasons')) return;
+      const box = el('div', 'reasons');
+      box.append(el('span', 'sep', 'why?'));
+      for (const [code, label] of BIN_REASONS) {
+        const b = el('button', 'pick', label); b.type = 'button';
+        b.onclick = () => settle(card, r, ta, { kept: false, reason: code });
+        box.append(b);
+      }
+      row.append(box);
+    };
+    row.append(bin);
+
+    if (sample) {
+      const judge = el('button', 'ask', 'Does it meet the mandate?'); judge.type = 'button';
+      judge.onclick = () => judgeDraft(card, r, ta.value, judge); row.append(judge);
+    }
+    card.append(row);
+  }
+
+  async function settle(card, r, ta, opts) {
+    card.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    const machine = card.__machineDraft || '';
+    const final = ta.value;
+    const beforeSeed = await sha256Hex(seedTextOf(r));
+    const machineHash = await sha256Hex(machine);
+    const dwell = Date.now() - (card.__draftAt || Date.now());
     try {
-      await sql(`update public.content_ideas set body=${lit(ta.value)}, state='drafting', updated_at=now() where id=${lit(r.id)};`, { write: true });
-      btn.textContent = 'Saved';
-      await counts();
-    } catch (e) { fail(card, e); btn.textContent = 'Save draft'; }
+      if (opts.kept) {
+        await sql(`update public.content_ideas set body=${lit(final)}, state='drafting', updated_at=now() where id=${lit(r.id)};`, { write: true });
+        await ledger({
+          subjectId: r.id, action: 'magic_accepted', mode: 'draft', value: r.lane_slot,
+          beforeHash: beforeSeed, afterHash: machineHash,
+          charsBefore: seedTextOf(r).length, charsAfter: machine.length, dwellMs: dwell,
+        });
+        // Only when the text actually moved. An unchanged save is not a rewrite,
+        // and logging it as one would put noise into the one signal that matters.
+        if (final !== machine) {
+          await ledger({
+            subjectId: r.id, action: 'manual_edit', mode: 'draft', value: r.lane_slot,
+            beforeHash: machineHash, afterHash: await sha256Hex(final),
+            charsBefore: machine.length, charsAfter: final.length, dwellMs: dwell,
+          });
+        }
+      } else {
+        await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('draft binned at the desk: ' + opts.reason)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+        await ledger({
+          subjectId: r.id, action: 'magic_rejected', mode: 'draft', value: r.lane_slot,
+          reasonCode: opts.reason, beforeHash: beforeSeed,
+          charsBefore: machine.length, dwellMs: dwell,
+        });
+      }
+      card.remove(); await counts(); if (!$('#queue').children.length) render();
+    } catch (e) { fail(card, e); }
   }
 
   async function unassign(card, r) {
@@ -605,7 +811,7 @@
               where lane_slot is null and state in ('seeded','researching')
                 and buried_at is null
               order by brand_fit_score desc nulls last, created_at desc limit 60;`,
-    draft:  `select id, idea, thesis, created_at, lane_slot
+    draft:  `select id, idea, thesis, created_at, lane_slot, (meta ? 'auto_triage') as auto
                from public.content_ideas
               where lane_slot is not null and coalesce(body,'') = '' and buried_at is null
                 and state not in ('dropped','published','absorbed')
@@ -617,7 +823,7 @@
   };
   const HINTS = {
     triage: 'Every seed here has no subchannel yet. The mandates on the left are the test, and each one is a question the piece has to ask rather than a subject it covers.',
-    draft:  'These have a subchannel and no draft. Drafting runs on your Claude subscription, so a dry run here costs nothing against the API bill the crons spend.',
+    draft:  'Every button here is recorded. The machine picked the subchannel and wrote the draft; what you keep, move, bin and rewrite is what the weekly compiler learns from. Binning with a reason teaches more than keeping.',
     review: 'Drafts already saved. Edit them in place, or ask whether the piece actually asks the question its subchannel demands.',
   };
   const CARD = { triage: triageCard, draft: draftCard, review: reviewCard };
