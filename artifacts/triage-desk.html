@@ -254,19 +254,97 @@
   let mcp = null, sample = null, formats = [], corpus = null, stage = 'triage';
   const fmtBySlug = () => Object.fromEntries(formats.map(f => [f.slug, f]));
 
-  function rowsOf(payload) {
-    if (Array.isArray(payload)) return payload;
-    const text = typeof payload === 'string' ? payload
-      : (payload && typeof payload === 'object' && typeof payload.result === 'string') ? payload.result : null;
-    if (!text) return [];
-    const block = text.match(/<untrusted-data-[^>]*>([\s\S]*?)<\/untrusted-data-[^>]*>/);
-    try { const v = JSON.parse((block ? block[1] : text).trim()); return Array.isArray(v) ? v : []; } catch { return []; }
+  /* Read rows out of whatever the connector hands back.
+   *
+   * This is the part that shipped broken, and the way it broke is the point.
+   * The first version recognised two shapes and returned [] for anything
+   * else, so an unreadable answer rendered as "nothing waiting" - a silent
+   * empty state standing in for a parse failure, which is the same lie as a
+   * meter reporting no spend because it could not write.
+   *
+   * So: try every shape a JSON-over-MCP tool plausibly returns, and when none
+   * of them fits, THROW with a description of what actually arrived. A page
+   * that cannot read the answer has to say so.
+   */
+  let lastShape = null;
+  function rowsOf(res) {
+    const tryValue = v => {
+      if (Array.isArray(v)) return v;
+      if (v && typeof v === 'object') {
+        // The named carriers, whose value may itself be an array OR the JSON
+        // as a string: {result: "[...]"} is the shape this page shipped
+        // broken on, because the first version only looked for an array here.
+        for (const k of ['rows', 'result', 'results', 'data', 'records']) {
+          if (v[k] !== undefined && v[k] !== v) {
+            const inner = tryValue(v[k]);
+            if (inner) return inner;
+          }
+        }
+        // A single array-valued property, whatever it is called.
+        const arrays = Object.values(v).filter(Array.isArray);
+        if (arrays.length === 1) return arrays[0];
+      }
+      if (typeof v === 'string') {
+        const s = v.trim();
+        if (!s) return [];
+        // Some servers wrap rows in an untrusted-data fence with prose around it.
+        const fenced = s.match(/<untrusted-data-[^>]*>([\s\S]*?)<\/untrusted-data-[^>]*>/);
+        const candidates = [fenced ? fenced[1].trim() : null, s, (s.match(/\[[\s\S]*\]/) || [])[0]];
+        for (const c of candidates) {
+          if (!c) continue;
+          try { const parsed = tryValue(JSON.parse(c)); if (parsed) return parsed; } catch { /* next */ }
+        }
+      }
+      return null;
+    };
+
+    for (const source of [res && res.payload, res && res.structuredContent]) {
+      const hit = tryValue(source);
+      if (hit) return hit;
+    }
+    // The MCP envelope itself: content blocks, text first.
+    for (const block of (res && Array.isArray(res.content) ? res.content : [])) {
+      if (block && block.type === 'text') {
+        const hit = tryValue(block.text);
+        if (hit) return hit;
+      }
+    }
+    lastShape = describe(res && res.payload !== undefined ? res.payload : res);
+    const err = new Error('The connector answered in a shape this page does not recognise.');
+    err.code = 'shape_error';
+    err.shape = lastShape;
+    throw err;
+  }
+
+  /** A short, safe description of a value: what it is, not what it holds. */
+  function describe(v) {
+    if (v === undefined) return 'undefined';
+    if (v === null) return 'null';
+    if (Array.isArray(v)) return `array of ${v.length}`;
+    if (typeof v === 'string') return `string (${v.length} chars) starting: ${JSON.stringify(v.slice(0, 120))}`;
+    if (typeof v === 'object') return `object with keys: ${Object.keys(v).slice(0, 12).join(', ') || '(none)'}`;
+    return typeof v;
   }
 
   async function sql(query, { write = false } = {}) {
     const res = await mcp.callTool(SERVER, TOOL, { project_id: PROJECT, query },
       write ? { cache: false } : { cache: { staleTime: 0 } });
-    return rowsOf(res.payload);
+    // A write returns no rows and must not be judged by the row reader.
+    if (write) return [];
+    return rowsOf(res);
+  }
+
+  /** What the viewer's connectors actually look like, for when a call fails. */
+  async function connectorReport() {
+    try {
+      const { servers } = await mcp.listTools();
+      if (!servers || !servers.length) return 'This view has no connectors available to the page.';
+      return 'Connectors this page can see: ' + servers
+        .map(s => `${s.server} [${s.authStatus}] (${(s.tools || []).map(t => t.name).join(', ') || 'no tools'})`)
+        .join(' · ');
+    } catch (e) {
+      return 'Could not list connectors: ' + ((e && e.message) || 'unknown');
+    }
   }
 
   function explain(err) {
@@ -278,15 +356,31 @@
     if (c === 'blocked_by_policy')    return ['Blocked by policy', 'Your organisation blocks this connector tool.'];
     if (c === 'approval_required')    return ['Needs approval', 'This tool needs per-call approval, which artifacts cannot ask for yet.'];
     if (c === 'tool_error')           return ['The database refused it', (err.message || '').slice(0, 300)];
+    if (c === 'shape_error')          return ['Read the answer but could not find the rows', 'The query ran. What came back was ' + (err.shape || 'an unfamiliar shape') + '.'];
     if (c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed')
                                       return ['This view cannot reach connectors', 'Open the artifact on claude.ai to use the desk.'];
     return ['Could not reach Supabase', (err && err.message) || 'Unknown error.'];
   }
-  function pageNote(title, body, retry) {
+
+  /* A failure gets the page, not a silent empty state. Where the cause could
+     be the connector rather than the query, the note also says which
+     connectors this view can actually see, so the answer is on screen rather
+     than in a console nobody opens. */
+  async function pageNote(title, body, retry, err) {
     const n = el('div', 'note');
     n.append(el('h3', null, title), el('div', null, body));
+    const code = err && err.code;
+    if (code && code !== 'shape_error') {
+      const line = el('div', 'row-err', 'code: ' + code);
+      n.append(line);
+    }
     if (retry) { const b = el('button', null, 'Try again'); b.onclick = retry; n.append(b); }
     $('#queue').replaceChildren(n);
+    if (mcp && code && ['server_not_connected', 'selection_required', 'not_in_manifest', 'shape_error'].includes(code)) {
+      const report = el('div', 'row-err', await connectorReport());
+      report.style.whiteSpace = 'pre-wrap';
+      n.append(report);
+    }
   }
   function fail(card, err) {
     const [t, b] = explain(err);
@@ -536,7 +630,12 @@
            from public.content_ideas;`);
       if (!c) return;
       $('#c-triage').textContent = c.triage; $('#c-draft').textContent = c.draft; $('#c-review').textContent = c.review;
-    } catch { /* counts are a convenience; the stage itself reports its own failure */ }
+    } catch (e) {
+      // Counts are a convenience, but a shape error here is the same fault
+      // that would empty every stage, so it is worth a line rather than silence.
+      for (const id of ['#c-triage', '#c-draft', '#c-review']) $(id).textContent = '?';
+      console.warn('[desk] counts unavailable:', (e && e.code) || e);
+    }
   }
 
   async function render() {
@@ -550,7 +649,7 @@
     }
     let rows;
     try { rows = await sql(QUERIES[stage]); }
-    catch (e) { const [t, b] = explain(e); return pageNote(t, b, render); }
+    catch (e) { const [t, b] = explain(e); return pageNote(t, b, render, e); }
     const q = $('#queue'); q.replaceChildren();
     if (!rows.length) {
       const d = el('div', 'done');
@@ -591,7 +690,7 @@
                              from public.venture_formats where active
                             order by hero desc, sort_order nulls last, slug;`);
       renderFormats();
-    } catch (e) { const [t, b] = explain(e); return pageNote(t, b, () => location.reload()); }
+    } catch (e) { const [t, b] = explain(e); return pageNote(t, b, () => location.reload(), e); }
     counts();
     render();
   })();
