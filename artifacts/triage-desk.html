@@ -446,7 +446,7 @@
     if (slug !== null && !PICKABLE.includes(slug)) return fail(card, { code: 'bad_request', message: 'Not a subchannel.' });
     card.querySelectorAll('button').forEach(b => { b.disabled = true; });
     const q = slug === null
-      ? `update public.content_ideas set state='dropped', updated_at=now() where id=${lit(r.id)};`
+      ? `update public.content_ideas set buried_at=now(), buried_reason='set aside at the triage desk', updated_at=now() where id=${lit(r.id)};`
       : `update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`;
     try { await sql(q, { write: true }); card.remove(); await counts(); if (!$('#queue').children.length) render(); }
     catch (e) { fail(card, e); }
@@ -603,15 +603,16 @@
     triage: `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url
                from public.content_ideas
               where lane_slot is null and state in ('seeded','researching')
+                and buried_at is null
               order by brand_fit_score desc nulls last, created_at desc limit 60;`,
     draft:  `select id, idea, thesis, created_at, lane_slot
                from public.content_ideas
-              where lane_slot is not null and coalesce(body,'') = ''
+              where lane_slot is not null and coalesce(body,'') = '' and buried_at is null
                 and state not in ('dropped','published','absorbed')
               order by created_at desc limit 40;`,
     review: `select id, idea, body, state, lane_slot, created_at
                from public.content_ideas
-              where coalesce(body,'') <> '' and state in ('drafting','review')
+              where coalesce(body,'') <> '' and buried_at is null and state in ('drafting','review')
               order by updated_at desc nulls last, created_at desc limit 25;`,
   };
   const HINTS = {
@@ -624,9 +625,9 @@
   async function counts() {
     try {
       const [c] = await sql(
-        `select count(*) filter (where lane_slot is null and state in ('seeded','researching')) as triage,
-                count(*) filter (where lane_slot is not null and coalesce(body,'')='' and state not in ('dropped','published','absorbed')) as draft,
-                count(*) filter (where coalesce(body,'')<>'' and state in ('drafting','review')) as review
+        `select count(*) filter (where lane_slot is null and state in ('seeded','researching') and buried_at is null) as triage,
+                count(*) filter (where lane_slot is not null and coalesce(body,'')='' and buried_at is null and state not in ('dropped','published','absorbed')) as draft,
+                count(*) filter (where coalesce(body,'')<>'' and buried_at is null and state in ('drafting','review')) as review
            from public.content_ideas;`);
       if (!c) return;
       $('#c-triage').textContent = c.triage; $('#c-draft').textContent = c.draft; $('#c-review').textContent = c.review;
