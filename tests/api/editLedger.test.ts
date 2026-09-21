@@ -15,7 +15,7 @@
 // quietly become evidence, forever.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { briefSectionEvent, sha256Hex } from '../../src/lib/editLedger.ts'
+import { briefSectionEvent, magicVerdictEvent, sha256Hex } from '../../src/lib/editLedger.ts'
 
 const SECTION = {
   status: 'changed',
@@ -113,4 +113,99 @@ test('a platform with no webcrypto gets null, not a throw', async () => {
   } finally {
     if (had) Object.defineProperty(globalThis, 'crypto', had)
   }
+})
+
+// ---------------------------------------------------------------------------
+// THE VERDICT HALF, which did not exist.
+//
+// api/content-ideas/:id/revise has always written a `magic_invoked` row and
+// returned edit_event_id so the composer "can later resolve the same event to
+// accepted or rejected". Nothing ever did: there was no resolver anywhere in
+// the fleet and nothing in this repo so much as read edit_event_id.
+//
+// The cost is not a missing nicety. learning/compile's presetProposals gates on
+// `resolved = accepted + rejected` and needs three before it will say anything.
+// With no writer for either verdict that count is permanently zero, so the
+// detector could never emit a proposal however hard the composer was used. The
+// suggestion was recorded; what Krish did with it was not.
+//
+// content_edit_events is append-only, so a verdict is a NEW row that pairs on
+// before_hash. These tests pin the pairing and the table's own constraints,
+// because every one of them fails as a swallowed 400 rather than as an error
+// anyone sees.
+
+const VERDICT = {
+  ideaId: '7f3a1c2e-0000-4000-8000-000000000001',
+  mode: 'tone',
+  value: 'punchier',
+  idempotencyKey: '22222222-2222-4222-8222-222222222222',
+  beforeHash: 'c'.repeat(64),
+  afterHash: 'd'.repeat(64),
+  charsBefore: 900,
+  charsAfter: 740,
+  dwellMs: 4200,
+  client: 'desktop' as const,
+}
+
+const verdict = (overrides = {}) => magicVerdictEvent({ ...VERDICT, kept: true, ...overrides })
+
+test('a kept edit pairs to its invocation on before_hash and carries its result', () => {
+  const e = verdict()
+  assert.equal(e.action, 'magic_accepted')
+  // content_edit_events_resolution_has_parent: a verdict without this is
+  // rejected by the table, and a row that cannot pair teaches nothing anyway.
+  assert.equal(e.before_hash, 'c'.repeat(64))
+  // content_edit_events_change_has_result.
+  assert.equal(e.after_hash, 'd'.repeat(64))
+})
+
+// A rejected edit produced no result, so it carries none. Sending the preview's
+// hash anyway would assert that text became the draft when it never did.
+test('a rejected edit still pairs, but claims no result', () => {
+  const e = verdict({ kept: false })
+  assert.equal(e.action, 'magic_rejected')
+  assert.equal(e.before_hash, 'c'.repeat(64))
+  assert.equal(e.after_hash, null)
+})
+
+// presetProposals counts by `${mode}:${value}`. If a verdict keyed differently
+// from its invocation it would never be counted against it, and every preset
+// would look like it was invoked and never resolved.
+test('the verdict keys on the same preset the invocation did', () => {
+  const e = verdict()
+  assert.equal(e.mode, 'tone')
+  assert.equal(e.value, 'punchier')
+})
+
+test('no draft text reaches the ledger, only hashes, lengths and the verdict', () => {
+  const wire = JSON.stringify(verdict())
+  for (const leak of ['punchier draft', 'the renewal', 'Cleo', 'headline']) {
+    assert.ok(!wire.includes(leak), `"${leak}" reached the ledger`)
+  }
+  assert.equal(verdict().chars_before, 900)
+  assert.equal(verdict().chars_after, 740)
+})
+
+test('delta_features says which way it went, never what it was about', () => {
+  assert.deepEqual(verdict().delta_features, ['kept'])
+  assert.deepEqual(verdict({ kept: false }).delta_features, ['dropped'])
+})
+
+// Dwell is how long he looked at it before deciding. A fast discard and a long
+// deliberation are different signals and the table has a column for it.
+test('dwell is carried, and is allowed to be absent', () => {
+  assert.equal(verdict().dwell_ms, 4200)
+  assert.equal(verdict({ dwellMs: null }).dwell_ms, null)
+})
+
+test('every field the table constrains is in its vocabulary', () => {
+  const e = verdict()
+  assert.equal(e.subject_table, 'content_ideas')
+  assert.equal(e.artifact_kind, 'draft')
+  assert.equal(e.surface, 'composer')
+  assert.equal(e.client, 'desktop')
+  // content_edit_events_mode_check: ^[a-z][a-z0-9_]{0,39}$
+  assert.match(String(e.mode), /^[a-z][a-z0-9_]{0,39}$/)
+  // content_edit_events_value_check: at most 120 characters.
+  assert.ok(String(e.value).length <= 120)
 })

@@ -19,6 +19,7 @@ import { Working } from '../shared/Working'
 import { useWork } from '../../lib/loadingVoice'
 import { useElapsed } from '../../hooks/useAsyncAction'
 import { streamText } from '../../lib/streamText'
+import { recordMagicVerdict } from '../../lib/editLedger'
 import { Pending } from '../shared/Pending'
 import { BriefComposer } from './BriefComposer'
 import { ComposerShell, ComposerRail, MetaDot, type ComposerStage } from './ComposerShell'
@@ -445,7 +446,36 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
   // written for and never reached.
   const rewriteWork = useWork('content.revise')
   const rewriteElapsed = useElapsed(busy !== null)
-  const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
+  /**
+   * The open preview, plus what the ledger needs to resolve it.
+   *
+   * `edit` carries the preset and the exact source text the revise ran on,
+   * because the verdict row pairs to its invocation on sha256(source_text) and
+   * on (mode, value). Without it the preview knows what it says and not what it
+   * is an answer to, which is why no verdict was ever recordable. `at` is when
+   * it opened, so dwell is a real measurement rather than a guess.
+   */
+  const [preview, setPreview] = useState<
+    { label: string; text: string; edit?: { mode: string; value: string; sourceText: string; at: number } } | null
+  >(null)
+
+  /** Resolve the open preview in the ledger, then clear it. Ambient: a ledger
+   *  that is down must never be why an edit fails to apply. */
+  const resolvePreview = useCallback((kept: boolean) => {
+    const p = preview
+    if (p?.edit) {
+      void recordMagicVerdict({
+        ideaId: idea.id,
+        mode: p.edit.mode,
+        value: p.edit.value,
+        sourceText: p.edit.sourceText,
+        revisedText: p.text,
+        kept,
+        dwellMs: Math.max(0, Math.round(Date.now() - p.edit.at)),
+      })
+    }
+    setPreview(null)
+  }, [preview, idea.id])
   const [sheet, setSheet] = useState<null | 'cleo' | 'cuts' | 'materials' | 'research'>(null)
   const [adjust, setAdjust] = useState(false)
   // Undo stack of prior draft bodies — every applied iteration is reversible.
@@ -480,6 +510,10 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
     try {
       const label = scoped ? `${opts.label} · selection` : opts.label
       let live = ''
+      // Pinned once and reused for both the request and the ledger, so the
+      // verdict hashes the same string the revise was sent. Reading it twice
+      // would let a keystroke between the two silently break the pairing.
+      const sourceText = scoped ? draft : (preview?.text ?? draft)
       const { data } = await streamText<{ revised?: string }>(
         `/api/content-ideas/${idea.id}/revise`,
         {
@@ -487,7 +521,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
           body: JSON.stringify({
             mode: opts.mode, value: opts.value, hint: opts.hint, instruction: opts.instruction,
             selection: selection || undefined,
-            source_text: scoped ? draft : (preview?.text ?? draft),
+            source_text: sourceText,
           }),
         },
         {
@@ -498,7 +532,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
             // selected passage while `revised` is the full draft with that
             // passage spliced in, so streaming it here would replace the
             // document with the paragraph.
-            if (!scoped) setPreview({ label, text: live })
+            if (!scoped) setPreview({ label, text: live, edit: { mode: opts.mode, value: opts.value, sourceText, at: Date.now() } })
           },
           jsonText: body => body.revised || '',
         },
@@ -507,7 +541,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
       if (scoped) setSelection('')
       // Always land on the server's finished text: it has been through
       // sanitizeVoice and, when scoped, spliced back into the full draft.
-      setPreview({ label, text: data?.revised ?? live }); h.success()
+      setPreview({ label, text: data?.revised ?? live, edit: { mode: opts.mode, value: opts.value, sourceText, at: Date.now() } }); h.success()
     } catch (e: any) { h.error(); toast(`${opts.label} failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
   }
@@ -746,7 +780,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
       {/* Iteration preview sheet — keep, stack another, or discard */}
       {preview && (
         <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[96] flex flex-col justify-end">
-          <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
+          <button aria-label="Discard" onClick={() => resolvePreview(false)} className="absolute inset-0 bg-black/60 animate-fade-in" />
           <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center gap-1.5 px-4 py-2 text-body text-violet-200/80">
@@ -756,16 +790,19 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
               <RichText text={preview.text} className="text-ui leading-relaxed text-ink" />
             </div>
             <div className="px-4 pt-3 pb-safe border-t border-white/[0.06] flex items-center gap-2">
-              <button type="button" onClick={() => { apply(preview.text); setPreview(null); toast('Applied.', 'success') }}
+              <button type="button" onClick={() => { apply(preview.text); resolvePreview(true); toast('Applied.', 'success') }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-ui font-semibold bg-violet-500/90 text-ink active:bg-violet-500">
                 <Check size={15} /> Keep
               </button>
-              <button type="button" onClick={() => { apply(preview.text); setPreview(null); setAdjust(true) }}
+              {/* Again keeps this one and stacks another, so it is an ACCEPT.
+                  Counting it as anything else would teach the compiler that the
+                  presets he iterates hardest on are the ones he discards. */}
+              <button type="button" onClick={() => { apply(preview.text); resolvePreview(true); setAdjust(true) }}
                 title="Keep this and stack another adjustment"
                 className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-ui border border-violet-400/40 text-violet-200 active:bg-violet-500/10">
                 <SlidersHorizontal size={14} /> Again
               </button>
-              <button type="button" onClick={() => setPreview(null)}
+              <button type="button" onClick={() => resolvePreview(false)}
                 className="px-4 py-3 rounded-xl text-ui border border-white/12 text-ink-muted active:bg-white/[0.06]">Discard</button>
             </div>
           </div>
@@ -2018,7 +2055,26 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
   const rewriteWork = useWork('content.revise')
   const selWork = useWork('content.rewriteSel')
   const [preview, setPreview] = useState<string | null>(null)
+  /** What the open preview is an answer to, so the ledger can resolve it.
+   *  See recordMagicVerdict: the verdict pairs on the source text's hash. */
+  const [previewEdit, setPreviewEdit] = useState<{ mode: string; value: string; sourceText: string; at: number } | null>(null)
   const [feedback, setFeedback] = useState('')
+
+  const resolvePreview = useCallback((kept: boolean) => {
+    if (previewEdit && preview != null) {
+      void recordMagicVerdict({
+        ideaId: idea.id,
+        mode: previewEdit.mode,
+        value: previewEdit.value,
+        sourceText: previewEdit.sourceText,
+        revisedText: preview,
+        kept,
+        dwellMs: Math.max(0, Math.round(Date.now() - previewEdit.at)),
+      })
+    }
+    setPreview(null)
+    setPreviewEdit(null)
+  }, [preview, previewEdit, idea.id])
 
   const revise = async (mode: string, value: string, hint?: string, instruction?: string) => {
     if (!draft.trim()) { toast('Nothing to refine yet — write or ask Cleo first.', 'error'); return }
@@ -2029,6 +2085,8 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     h.heavy(); setBusy(`${mode}:${value}`)
     try {
       let live = ''
+      // Pinned once, used for the request and for the verdict's before_hash.
+      const sourceText = scoped ? draft : (preview ?? draft)
       const { data } = await streamText<{ revised?: string }>(
         `/api/content-ideas/${idea.id}/revise`,
         {
@@ -2036,7 +2094,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
           body: JSON.stringify({
             mode, value, hint, instruction,
             selection: selection || undefined,
-            source_text: scoped ? draft : (preview ?? draft),
+            source_text: sourceText,
           }),
         },
         {
@@ -2046,7 +2104,9 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
           jsonText: body => body.revised || '',
         },
       )
-      setPreview(data?.revised ?? live); h.success()
+      setPreview(data?.revised ?? live)
+      setPreviewEdit({ mode, value, sourceText, at: Date.now() })
+      h.success()
       if (scoped) { onClearSelection(); toast('Revised just that passage.', 'success') }
     } catch (e: any) { h.error(); toast(`Refine failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
@@ -2153,11 +2213,14 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
           <div className="text-micro uppercase tracking-wide text-violet-200/70 flex items-center gap-1"><Sparkles size={10} /> Revised preview</div>
           <p className="text-label text-ink-muted leading-relaxed whitespace-pre-wrap max-h-[40vh] overflow-y-auto">{preview}</p>
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={() => { onApplyDraft(preview); setPreview(null); toast('Draft updated.', 'success') }}
+            <button type="button" onClick={() => { onApplyDraft(preview); resolvePreview(true); toast('Draft updated.', 'success') }}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-violet-500/30 text-ink hover:bg-violet-500/40 min-h-[32px]">
               <Check size={11} /> Accept
             </button>
-            <button type="button" onClick={() => setPreview(null)}
+            {/* "Keep current" keeps the DRAFT, which means the machine's
+                revision was rejected. The wording is about the document; the
+                verdict is about the edit. */}
+            <button type="button" onClick={() => resolvePreview(false)}
               className="flex items-center gap-1 px-2 py-1 rounded-md text-micro text-ink-faint hover:text-ink-muted min-h-[32px]">
               <RotateCcw size={11} /> Keep current
             </button>
