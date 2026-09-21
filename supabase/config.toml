@@ -10,7 +10,13 @@ enabled = true
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public", "compound"]
+# This file describes only Control Center's half of the hosted project. Another
+# application shares it and exposes a schema of its own, set on the
+# authenticator role by its migrations rather than listed here. `supabase db
+# push` and `supabase functions deploy` are safe; `supabase config push` is not,
+# because this list would replace that role's setting and revoke its API access.
+# Change project-wide API and auth settings in the Supabase dashboard.
+schemas = ["public", "graphql_public"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -151,11 +157,11 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://compound.krishraja.com"
+site_url = "https://controlcenter.krishraja.com"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://compound.krishraja.com", "https://compound.krishraja.com/**", "http://127.0.0.1:5173", "http://localhost:5173"]
+additional_redirect_urls = ["https://controlcenter.krishraja.com", "https://controlcenter.krishraja.com/**", "http://127.0.0.1:5173", "http://localhost:5173"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -406,25 +412,3 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
-
-[functions.compound-ask]
-enabled = true
-verify_jwt = true
-import_map = "./functions/compound-ask/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/compound-ask/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/compound-ask/*.html" ]
-
-[functions.compound-login]
-enabled = true
-verify_jwt = false
-import_map = "./functions/compound-login/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/compound-login/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/compound-login/*.html" ]
