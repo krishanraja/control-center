@@ -37,18 +37,14 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 
 ## Cursor Cloud specific instructions
 
-This repo contains **two independent frontends**, each with its own
-`package.json` + lockfile. The update script installs both.
+This repo contains **one frontend**: Control Center (repo root), a React 18
++ TypeScript + Vite 4 dashboard. Standard scripts live in
+[`package.json`](./package.json) (`dev`, `build`, `lint`, `preview`);
+typecheck is `npx tsc --noEmit`.
 
-- **Control Center** (repo root) — the main React 18 + TypeScript + Vite 4
-  dashboard. Standard scripts live in [`package.json`](./package.json)
-  (`dev`, `build`, `lint`, `preview`); typecheck is `npx tsc --noEmit`.
-- **compound/** (`compound/`) — a separate, isolated Vite app (its own
-  `package.json`, lockfile, tsconfig). Scripts in
-  [`compound/package.json`](./compound/package.json): `dev`, `build`,
-  `typecheck`, `test:run` (vitest), and `verify` (boundaries + supabase
-  boundary + tests + build). It must not import from the root app — see
-  [`docs/plans/compound/STATE.md`](./docs/plans/compound/STATE.md).
+A second Vite app used to live here under `compound/`. It moved to its own
+repository, `krishanraja/compound`, on 2026-09-21. Nothing in this repo
+builds, tests or deploys it.
 
 ### Running the apps (non-obvious caveats)
 
@@ -66,12 +62,6 @@ This repo contains **two independent frontends**, each with its own
   returning the raw `.ts` source, not JSON. This is expected. To exercise the
   API locally use `vercel dev` (needs the Vercel CLI plus the server-only
   secrets from [`.env.example`](./.env.example)).
-- **compound runs fully offline in demo mode.** Set
-  `VITE_COMPOUND_DEMO_MODE=true` in `compound/.env` and run `npm run dev` from
-  `compound/`; it loads deterministic fixture data (Now dashboard, Stocks,
-  stock detail, grounded Ask answers) with no Supabase or login. Live mode
-  additionally needs `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY`.
-  Run it on a different port from the root app (e.g. `npm run dev -- --port 5174`).
 
 ### Tests
 
@@ -144,8 +134,6 @@ This repo contains **two independent frontends**, each with its own
   before it, which is part of how the brief surface came to have four one-click
   edits while `src/lib/contentEngine.ts` held twenty-six. `scripts/check-edit-palette.mts`
   guards the same invariants statically and runs without a browser.
-- **compound** unit/component tests: `npm run test:run` (vitest, jsdom) from
-  `compound/` — fast and self-contained.
 
 ### CI
 

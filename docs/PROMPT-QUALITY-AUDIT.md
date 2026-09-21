@@ -1,6 +1,6 @@
 # Prompt quality audit
 
-*Scope: every LLM call site in this repository except `compound/`. Roughly 60
+*Scope: every LLM call site in this repository. Roughly 60
 call sites across `api/`, `scripts/`, `supabase/functions/`, and the two n8n
 workflow trees.*
 

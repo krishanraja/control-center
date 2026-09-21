@@ -12,7 +12,6 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 | e2e (Playwright) | `npx playwright test` | five specs at 1280x800, plus every `*-desk.spec.ts` at 1440 and 1920 |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
-| COMPOUND full verification | `npm run verify` from `compound/` | no |
 
 A lint **warning** blocks merge, because `--max-warnings 0`.
 
@@ -218,8 +217,8 @@ Run it against any database with the two network migrations applied.
   file and `AGENTS.md` previously said CI runs no browser tests at all, which
   was wrong). The `e2e` job in `.github/workflows/ci.yml` runs
   `content-rooms.spec.ts`, `content-queue-window.spec.ts`, `composer.spec.ts`,
-  `video-engine-mobile.spec.ts` and `growth-scroll.spec.ts`. Everything else,
-  plus the compound vitest suite, is local-only. Run the full e2e suite
+  `video-engine-mobile.spec.ts` and `growth-scroll.spec.ts`. Everything else
+  is local-only. Run the full e2e suite
   yourself before merging UI work.
 - **e2e coverage is broad but not total.** Growth, Network (search +
   add-person), Home's no-scroll contract, the pilot gate, the brief

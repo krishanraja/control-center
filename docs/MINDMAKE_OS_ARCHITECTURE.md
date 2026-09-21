@@ -2572,7 +2572,7 @@ Known and left alone: identity docs rewrite on most runs because the rendered `S
 
 **Branch list resolved, 50 to 2.** 33 branches whose PR was merged were deleted, then 13 more that were byte-identical to main (zero diff, so nothing could be lost). Two carried unique work and were **tagged before deletion** so they stay permanently recoverable: `archive/ui-restraint-pass-2026-07-02` (a monochrome restraint pass that hardcodes dark-mode values and would regress light mode) and `archive/growth-tab-alt-2026-08-05` (superseded; main's Growth tab is the larger implementation).
 
-`feat/compound-foundation` is **deliberately kept**. It is not stale: it holds the only copy of the source for **compound.krishraja.com**, a live Vercel project that is CLI-deployed with no git link. Deleting that branch would delete a live product's source. Whether it should get its own repo is a structural call for Krish.
+`feat/compound-foundation` was **deliberately kept** at the time, as the only copy of the source for a live Vercel project that was CLI-deployed with no git link. That question — whether it should get its own repo — was answered on 2026-09-21: it did. The application, its pipeline workflows, its schema migrations and its edge functions all moved to `krishanraja/compound`, and this repo no longer carries any of it. The branch is no longer the only copy and no longer load-bearing.
 
 ### 2026-08-06 (late): the goal ladder becomes one editor
 
