@@ -217,6 +217,10 @@
       "schedule": "35 */6 * * *"
     },
     {
+      "path": "/api/meter/n8n-llm-sync",
+      "schedule": "50 */6 * * *"
+    },
+    {
       "path": "/api/pilot-deals/monday",
       "schedule": "0 10 * * 1"
     },
@@ -257,6 +261,9 @@
     },
     "api/meter/n8n-sync.ts": {
       "maxDuration": 120
+    },
+    "api/meter/n8n-llm-sync.ts": {
+      "maxDuration": 60
     },
     "api/pilot-deals/monday.ts": {
       "maxDuration": 300

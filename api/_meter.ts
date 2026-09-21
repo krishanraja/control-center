@@ -42,7 +42,13 @@ function db(): Promise<Db | null> {
 //                  Accumulates. Never use it for a value the provider can
 //                  restate, or a re-sync will stack on top of what is there.
 
-export type MeterProvider = 'apify' | 'n8n' | 'anthropic'
+// 'google' is here for the fleet's Gemini fallback nodes, which bill Google
+// rather than Anthropic when Anthropic stops answering. Without it a spend cap
+// would read in meter_daily as the fleet going quiet instead of the fleet
+// changing provider. meter_daily has no CHECK on provider — the primary key is
+// (provider, unit_kind, unit_key, day, bucket) — so widening this union is the
+// whole change.
+export type MeterProvider = 'apify' | 'n8n' | 'anthropic' | 'google'
 export type MeterUnitKind = 'actor' | 'workflow' | 'agent'
 
 export interface MeterRow {
