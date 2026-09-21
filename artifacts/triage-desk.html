@@ -172,7 +172,18 @@
   }
   .gapwarn b { font-weight: 600; }
 
-.sep { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; color: var(--faint); letter-spacing: .04em; }
+.notewrap { margin-top: 12px; }
+  textarea.notes {
+    width: 100%; resize: vertical; min-height: 58px;
+    font: 400 14.5px/1.5 Archivo, sans-serif; color: var(--ink);
+    background: var(--card); border: 1px dashed var(--rule);
+    border-radius: 9px; padding: 10px 12px;
+  }
+  textarea.notes:focus { border-style: solid; border-color: var(--brass); }
+  textarea.notes::placeholder { color: var(--faint); }
+  .notefoot { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+  .notefoot .sep { flex: 1; }
+  .sep { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; color: var(--faint); letter-spacing: .04em; }
   .reasons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; margin-top: 8px; }
   #ledger-state { margin: 10px 0 0; padding: 9px 12px; border-radius: 8px; background: var(--brass-w); color: var(--brass); font-size: 13px; }
   .note { border: 1px solid var(--rule); border-radius: 12px; background: var(--card); padding: 20px; color: var(--slate); max-width: 62ch; }
@@ -524,6 +535,10 @@
     if (e.mode) put('mode', lit(e.mode));
     if (e.value) put('value', lit(String(e.value).slice(0, 120)));
     if (e.reasonCode) put('reason_code', lit(e.reasonCode));
+    // His own words, riding with the verdict. The table has taken free text
+    // since it was built (revise.ts writes open feedback here) and capping at
+    // 1600 is the table's own rule, not a new one.
+    if (e.instruction) put('instruction', lit(String(e.instruction).slice(0, 1600)));
     if (e.beforeHash) put('before_hash', lit(e.beforeHash));
     if (e.afterHash) put('after_hash', lit(e.afterHash));
     if (e.charsBefore != null) put('chars_before', String(e.charsBefore));
@@ -553,6 +568,56 @@
     ['already_covered', 'Already covered'],
     ['not_interesting', 'Not interesting'],
   ];
+
+
+  /* ── his notes ────────────────────────────────────────────────────────
+   *
+   * A reason code says which of five things went wrong. A note says what he
+   * actually thought, and that is the thing worth rebuilding a system around:
+   * "this is a money story wearing a gap headline" teaches more than
+   * wrong_question ever will.
+   *
+   * It is safe to keep, and the reason is structural rather than a promise.
+   * The anti-echo rule protects the SCORER, not the record:
+   * check-judges.ts fails the build if api/_arcScore.ts so much as mentions
+   * content_edit_events, so nothing he writes here can push a subject up the
+   * rankings. The table has carried free text since it was built.
+   *
+   * A note WITH a verdict is training data and rides on the event. A note
+   * with NO verdict is a thought, and goes on the idea instead, because an
+   * event whose action nobody can interpret is worse than no event.
+   */
+  function noteBox(card, r) {
+    const wrap = el('div', 'notewrap');
+    const ta = el('textarea', 'notes');
+    ta.id = 'note-' + r.id;
+    ta.placeholder = 'What do you make of it? Anything at all: what is wrong with the angle, what you would have led with, why it is not worth writing. This travels with your decision.';
+    ta.rows = 2; ta.spellcheck = true;
+    const foot = el('div', 'notefoot');
+    const save = el('button', 'ghost', 'Keep this note'); save.type = 'button';
+    save.onclick = () => keepNote(card, r, ta, save);
+    foot.append(el('span', 'sep', 'your note rides with whichever button you press'), save);
+    wrap.append(ta, foot);
+    card.append(wrap);
+    return ta;
+  }
+  const noteOf = card => {
+    const ta = card.querySelector('.notes');
+    return ta && ta.value.trim() ? ta.value.trim().slice(0, 1600) : null;
+  };
+
+  /** A thought with no decision attached. Kept on the idea, not the ledger. */
+  async function keepNote(card, r, ta, btn) {
+    const note = ta.value.trim();
+    if (!note) return;
+    btn.disabled = true; btn.textContent = 'Keeping…';
+    try {
+      await sql(`update public.content_ideas set meta = coalesce(meta,'{}'::jsonb) || jsonb_build_object('krish_notes',
+        coalesce(meta->'krish_notes','[]'::jsonb) || jsonb_build_array(jsonb_build_object('note', ${lit(note)}, 'at', now(), 'stage', ${lit(stage)}))),
+        updated_at = now() where id = ${lit(r.id)};`, { write: true });
+      btn.textContent = 'Kept';
+    } catch (e) { fail(card, e); btn.disabled = false; btn.textContent = 'Keep this note'; }
+  }
 
   /* ── stage 2: the dry run ─────────────────────────────────────────── */
   function sectionOf(re) {
@@ -599,6 +664,7 @@
     }
     card.append(row1);
 
+    noteBox(card, r);
     const row2 = el('div', 'actions'); row2.style.marginTop = '7px';
     const bin = el('button', 'ghost', 'Not a piece'); bin.type = 'button';
     bin.onclick = () => binSeed(card, r, row2); row2.append(bin);
@@ -617,7 +683,7 @@
       await ledger({
         subjectId: r.id, action: 'magic_rejected', mode: 'subchannel',
         value: r.lane_slot, reasonCode: 'wrong_subchannel', beforeHash: before,
-        dwellMs: Date.now() - card.__seedAt,
+        instruction: noteOf(card), dwellMs: Date.now() - card.__seedAt,
       });
       await ledger({
         subjectId: r.id, action: 'manual_edit', mode: 'subchannel',
@@ -644,7 +710,7 @@
           await ledger({
             subjectId: r.id, action: 'binned', mode: 'seed', value: r.lane_slot,
             reasonCode: code, beforeHash: before, charsBefore: seedTextOf(r).length,
-            dwellMs: Date.now() - card.__seedAt,
+            instruction: noteOf(card), dwellMs: Date.now() - card.__seedAt,
           });
           card.remove(); await counts(); if (!$('#queue').children.length) render();
         } catch (e) { fail(card, e); }
@@ -726,6 +792,7 @@
   async function settle(card, r, ta, opts) {
     card.querySelectorAll('button').forEach(b => { b.disabled = true; });
     const machine = card.__machineDraft || '';
+    const note = noteOf(card);
     const final = ta.value;
     const beforeSeed = await sha256Hex(seedTextOf(r));
     const machineHash = await sha256Hex(machine);
@@ -735,7 +802,7 @@
         await sql(`update public.content_ideas set body=${lit(final)}, state='drafting', updated_at=now() where id=${lit(r.id)};`, { write: true });
         await ledger({
           subjectId: r.id, action: 'magic_accepted', mode: 'draft', value: r.lane_slot,
-          beforeHash: beforeSeed, afterHash: machineHash,
+          beforeHash: beforeSeed, afterHash: machineHash, instruction: note,
           charsBefore: seedTextOf(r).length, charsAfter: machine.length, dwellMs: dwell,
         });
         // Only when the text actually moved. An unchanged save is not a rewrite,
@@ -743,7 +810,7 @@
         if (final !== machine) {
           await ledger({
             subjectId: r.id, action: 'manual_edit', mode: 'draft', value: r.lane_slot,
-            beforeHash: machineHash, afterHash: await sha256Hex(final),
+            beforeHash: machineHash, afterHash: await sha256Hex(final), instruction: note,
             charsBefore: machine.length, charsAfter: final.length, dwellMs: dwell,
           });
         }
@@ -751,7 +818,7 @@
         await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('draft binned at the desk: ' + opts.reason)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
         await ledger({
           subjectId: r.id, action: 'magic_rejected', mode: 'draft', value: r.lane_slot,
-          reasonCode: opts.reason, beforeHash: beforeSeed,
+          reasonCode: opts.reason, beforeHash: beforeSeed, instruction: note,
           charsBefore: machine.length, dwellMs: dwell,
         });
       }
@@ -776,6 +843,7 @@
     card.append(meta, el('h2', 'idea', r.idea || '(untitled)'));
     const ta = el('textarea', 'draft'); ta.id = 'review-' + r.id; ta.value = r.body || ''; ta.spellcheck = true;
     card.append(ta);
+    noteBox(card, r);
     const row = el('div', 'actions'); row.style.marginTop = '10px';
     const save = el('button', 'go', 'Save edits'); save.type = 'button';
     save.onclick = () => saveDraft(card, r, ta, save); row.append(save);
