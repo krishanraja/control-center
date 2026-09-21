@@ -24,6 +24,36 @@
  *   not allowed to carry.
  */
 
+/**
+ * POST one event, and be able to say when it did not land.
+ *
+ * `fetch` RESOLVES on 400, 401 and 500; it rejects only on a network fault. So
+ * a bare `await fetch(...)` inside a try/catch cannot tell a rejected event
+ * from an accepted one, and the catch never fires. That is the same shape as
+ * the usage meter discarding supabase.rpc's returned error, and as the n8n
+ * nodes that render a 404 as a green node: three ways of reporting success for
+ * work that did not happen.
+ *
+ * Still non-blocking, still nothing the operator sees. But the failure reaches
+ * a console line, so "Krish kept nothing" and "the ledger is rejecting us" stop
+ * looking identical from here.
+ */
+async function postEvent(body: Record<string, unknown>): Promise<{ ok: boolean; error: string | null }> {
+  try {
+    const r = await fetch('/api/content-edits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      // Survives the composer closing in the same tick as the save.
+      keepalive: true,
+    })
+    if (r.ok) return { ok: true, error: null }
+    return { ok: false, error: `content-edits ${r.status}` }
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message || e).slice(0, 120) }
+  }
+}
+
 /** Hex SHA-256, or null where the platform will not do it.
  *
  *  `crypto.subtle` needs a secure context. Production is https and localhost
@@ -120,15 +150,120 @@ export async function recordBriefSectionVerdicts(input: {
         afterHash: after_hash,
         client: client(),
       })
-      await fetch('/api/content-edits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        // Survives the composer closing in the same tick as the save.
-        keepalive: true,
-      })
+      const posted = await postEvent(body)
+      if (!posted.error) return
+      console.warn(`[edit-ledger] brief section verdict not recorded: ${posted.error}`)
     } catch {
-      // Ambient. Silence is correct.
+      // Ambient. Silence is correct for the work; the POST says its own failure.
     }
   }))
+}
+
+/**
+ * The other half of a magic edit: what Krish did with what the machine offered.
+ *
+ * THE GAP THIS CLOSES. api/content-ideas/:id/revise writes a `magic_invoked`
+ * row for every preset run, and returns edit_event_id so the composer "can
+ * later resolve the same event to accepted or rejected" — its own words.
+ * Nothing ever did. There is no resolver anywhere in the fleet, and nothing in
+ * this repo so much as reads edit_event_id.
+ *
+ * That is not a missing nicety, it is the learning bank's whole comparison.
+ * learning/compile's presetProposals gates on `resolved = accepted + rejected`
+ * and skips any preset with fewer than three. With no writer for either verdict
+ * `resolved` is permanently zero, so the detector cannot emit a proposal no
+ * matter how hard the composer is used. The ruling is that everything the
+ * machine suggests gets compared against what Krish did to it; the suggestion
+ * was recorded and the verdict was not.
+ *
+ * PAIRING. content_edit_events is append-only — a trigger rejects UPDATE and
+ * DELETE — so a verdict is a NEW row, not a patch of the invoked one. They pair
+ * on before_hash, which is why the caller must pass the SAME source text the
+ * revise ran on, and on (mode, value), which is the key presetProposals counts.
+ * Both hashes are plain lowercase-hex SHA-256 of the raw string on either side.
+ *
+ * ANTI-ECHO. Form only: which preset, which way it went, how long the decision
+ * took, how the length moved. No heading, no body, no subject. The idea id is
+ * admissible and already carried by the invoked row; the compiler uses it only
+ * to cite a counterexample.
+ */
+export function magicVerdictEvent(input: {
+  ideaId: string
+  mode: string
+  value: string | null
+  kept: boolean
+  idempotencyKey: string
+  beforeHash: string | null
+  afterHash: string | null
+  charsBefore: number
+  charsAfter: number
+  dwellMs: number | null
+  client: 'desktop' | 'mobile'
+}): Record<string, unknown> {
+  return {
+    idempotency_key: input.idempotencyKey,
+    subject_table: 'content_ideas',
+    subject_id: input.ideaId,
+    artifact_kind: 'draft',
+    action: input.kept ? 'magic_accepted' : 'magic_rejected',
+    surface: 'composer',
+    client: input.client,
+    mode: input.mode,
+    value: input.value,
+    // Required by content_edit_events_resolution_has_parent, and the thing that
+    // pairs this row to its invocation.
+    before_hash: input.beforeHash,
+    // Required by content_edit_events_change_has_result when kept. A rejected
+    // verdict has no result, so it carries none.
+    after_hash: input.kept ? input.afterHash : null,
+    chars_before: input.charsBefore,
+    chars_after: input.charsAfter,
+    dwell_ms: input.dwellMs,
+    delta_features: [input.kept ? 'kept' : 'dropped'],
+  }
+}
+
+/**
+ * Record one verdict on one magic edit.
+ *
+ * Fire and forget, same posture as the section verdicts: the rewrite is the
+ * product and the ledger is the record of it, so a ledger that is down must
+ * never be why an edit fails to apply.
+ */
+export async function recordMagicVerdict(input: {
+  ideaId: string
+  mode: string
+  value: string | null
+  /** The text the revise ran on. Must be the same string revise was sent. */
+  sourceText: string
+  /** What the machine came back with. */
+  revisedText: string
+  kept: boolean
+  /** How long the preview was open before he decided. */
+  dwellMs?: number | null
+}): Promise<void> {
+  const { ideaId, mode, sourceText, revisedText, kept } = input
+  if (!ideaId || !mode || !sourceText) return
+  try {
+    const [beforeHash, afterHash] = await Promise.all([sha256Hex(sourceText), sha256Hex(revisedText)])
+    // A verdict with no before_hash would be rejected by the table's own
+    // constraint, and a row that cannot pair teaches nothing anyway.
+    if (!beforeHash) return
+    const posted = await postEvent(magicVerdictEvent({
+      ideaId,
+      mode,
+      value: input.value,
+      kept,
+      idempotencyKey: crypto.randomUUID(),
+      beforeHash,
+      afterHash,
+      charsBefore: sourceText.length,
+      charsAfter: revisedText.length,
+      dwellMs: input.dwellMs ?? null,
+      client: client(),
+    }))
+    if (posted.error) console.warn(`[edit-ledger] magic verdict not recorded: ${posted.error}`)
+  } catch {
+    // Ambient.
+  }
 }
