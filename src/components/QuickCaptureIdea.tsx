@@ -178,12 +178,12 @@ export function QuickCaptureIdea({ narrow = false }: { narrow?: boolean } = {}) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="capture-pill hidden min-[900px]:flex fixed right-5 bottom-5 z-30 items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
+        className="capture-pill surface hidden min-[900px]:flex fixed right-5 bottom-5 z-30 items-center gap-2 rounded-full px-3 py-2 text-ink-muted shadow-e2 backdrop-blur transition-colors hover:text-ink"
         title="Capture content idea (⌘+I)"
       >
         <Sparkles size={14} />
         <span className="text-label font-medium">Capture idea</span>
-        <kbd className="text-micro font-mono border border-rose-300/30 rounded px-1 py-0.5 bg-rose-500/10">
+        <kbd className="rounded border border-white/[0.10] bg-white/[0.04] px-1 py-0.5 text-micro font-mono text-ink-faint">
           ⌘I
         </kbd>
       </button>

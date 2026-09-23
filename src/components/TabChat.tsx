@@ -229,12 +229,12 @@ export function TabChatHost({ tab, narrow, params, suppressed = false }: TabChat
           type="button"
           onClick={openPanel}
           data-testid="tab-chat-pill"
-          className="tab-chat-pill fixed bottom-5 right-[11rem] z-30 hidden items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/15 px-3 py-2 text-violet-200 shadow-lg backdrop-blur transition-colors hover:bg-violet-500/25 min-[900px]:flex"
+          className="tab-chat-pill surface fixed bottom-5 right-[11rem] z-30 hidden items-center gap-2 rounded-full px-3 py-2 text-ink-muted shadow-e2 backdrop-blur transition-colors hover:text-ink min-[900px]:flex"
           title={`Ask about ${label} (⌘+/)`}
         >
           <MessageCircle size={14} />
           <span className="text-label font-medium">Ask {label}</span>
-          <kbd className="rounded border border-violet-300/30 bg-violet-500/10 px-1 py-0.5 text-micro font-mono">⌘/</kbd>
+          <kbd className="rounded border border-white/[0.10] bg-white/[0.04] px-1 py-0.5 text-micro font-mono text-ink-faint">⌘/</kbd>
         </button>
       )}
 

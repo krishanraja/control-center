@@ -201,6 +201,27 @@
   .notefoot .sep { flex: 1; }
   .sep { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; color: var(--faint); letter-spacing: .04em; }
   .reasons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; margin-top: 8px; }
+  article.card.settled { padding: 11px 14px 12px; background: var(--sunk); box-shadow: none; }
+  .settled-head { display: flex; align-items: baseline; gap: 9px; }
+  .settled-mark { font: 600 13px/1.45 Archivo, sans-serif; color: var(--go); flex: 0 0 auto; }
+  .settled.settled-warn .settled-mark { color: var(--brass); }
+  .settled-what { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.45; color: var(--slate); }
+  .settled-what strong { color: var(--ink); font-weight: 600; }
+  .settled-idea { display: block; color: var(--faint); font-size: 13px; }
+  .settled-head button.ghost { flex: 0 0 auto; padding: 5px 9px; font-size: 12.5px; }
+  .settled-facts {
+    display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 7px 0 0 23px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px;
+    color: var(--faint); letter-spacing: .04em;
+  }
+  .settled.settled-warn .settled-facts { color: var(--brass); }
+  .settled-lost {
+    margin: 8px 0 0 23px; padding: 9px 11px; border-radius: 8px;
+    background: var(--brass-w); color: var(--brass); font-size: 13.5px; line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .batch-end { text-align: center; padding: 20px 16px 8px; color: var(--slate); font-size: 13.5px; }
+  .batch-end button { margin-top: 11px; }
   #ledger-state { margin: 10px 0 0; padding: 9px 12px; border-radius: 8px; background: var(--brass-w); color: var(--brass); font-size: 13px; }
   .note { border: 1px solid var(--rule); border-radius: 12px; background: var(--card); padding: 20px; color: var(--slate); max-width: 62ch; }
   .note h3 { margin: 0 0 7px; font-size: 16px; color: var(--ink); font-weight: 600; }
@@ -504,8 +525,9 @@
       // if he asked it on this card, otherwise the auto-triage tag the row
       // arrived with.
       const guess = card.__claudeGuess || (r.auto ? r.lane_slot : null);
+      let graded = true;
       if (guess) {
-        await ledger({
+        graded = await ledger({
           subjectId: r.id, action: guess === slug ? 'magic_accepted' : 'magic_rejected',
           mode: 'subchannel', value: guess,
           reasonCode: guess === slug ? null : 'wrong_subchannel',
@@ -514,12 +536,17 @@
         });
       }
       // What he actually chose, recorded whether or not anything guessed first.
-      await ledger({
+      const kept = await ledger({
         subjectId: r.id, action: 'manual_edit', mode: 'subchannel', value: slug,
         beforeHash: before, afterHash: await sha256Hex(slug),
         instruction: note, charsBefore: seedTextOf(r).length, dwellMs: dwell,
       });
-      card.remove(); await counts(); if (!$('#queue').children.length) render();
+      const label = (fmtBySlug()[slug] || {}).label || slug;
+      finish(card, r, {
+        verb: 'Sent to ' + label + (guess ? (guess === slug ? ', agreeing with the machine' : ', overruling the machine') : ''),
+        recorded: kept && graded, note,
+        undo: () => unpick(r, slug),
+      });
     } catch (e) { fail(card, e); }
   }
 
@@ -621,6 +648,7 @@
     try {
       await sql(`insert into public.content_edit_events (${col.join(', ')}) values (${val.join(', ')});`, { write: true });
       ledgerDown = false;
+      return true;
     } catch (err) {
       // Swallowed, because a ledger write must never cost him the work. Said
       // out loud, because a silent ledger is the thing this page is for.
@@ -628,7 +656,125 @@
       console.warn('[desk] ledger write refused:', (err && err.message) || err);
       const bar = $('#ledger-state');
       if (bar) { bar.hidden = false; bar.textContent = 'Decisions are not being recorded: ' + ((err && err.message) || 'the ledger refused the write') + '. The work still saves.'; }
+      return false;
     }
+  }
+
+  /* ── what just happened ───────────────────────────────────────────────
+   *
+   * Krish: "it disappears, which I find a glitchy UX, I am not sure if my
+   * note even came through." Both halves are one fault. Every decision on
+   * this page ended in card.remove(), so the only evidence a press had done
+   * anything was the piece being gone, and that is also exactly what a
+   * silent failure looks like. The note did ride along; the page just never
+   * said so, which is the same as not knowing.
+   *
+   * A decision now collapses the card in place into a line saying what was
+   * written, whether the ledger took it, whether his note went with it, and
+   * how to put it back. Every word of that line is built from the RESULT of
+   * the writes rather than from the intent: a refused ledger shows a warning,
+   * never a tick over nothing. That distinction is the whole bug class this
+   * session keeps finding.
+   */
+  function finish(card, r, spec) {
+    card.classList.add('settled');
+    if (!spec.recorded) card.classList.add('settled-warn');
+    card.replaceChildren();
+
+    const head = el('div', 'settled-head');
+    head.append(el('span', 'settled-mark', spec.recorded ? '✓' : '!'));
+    const what = el('div', 'settled-what');
+    what.append(el('strong', null, spec.verb));
+    what.append(el('span', 'settled-idea', r.idea || '(untitled seed)'));
+    head.append(what);
+    if (spec.undo) {
+      const u = el('button', 'ghost', 'Undo'); u.type = 'button';
+      u.onclick = async () => {
+        u.disabled = true; u.textContent = 'Undoing…';
+        try {
+          await spec.undo();
+          await counts();
+          card.replaceWith(CARD[stage](r));
+        } catch (e) { u.disabled = false; u.textContent = 'Undo'; fail(card, e); }
+      };
+      head.append(u);
+    }
+    card.append(head);
+
+    const facts = el('div', 'settled-facts');
+    const noteFact = el('span', null, spec.note
+      ? 'your note saved with it, ' + spec.note.length + ' characters'
+      : 'no note on this one');
+    facts.append(noteFact);
+    facts.append(el('span', null, spec.recorded
+      ? 'recorded for the compiler'
+      : 'the ledger refused this record, so it teaches nothing'));
+    card.append(facts);
+
+    // His note rides in the ledger row. If that row was refused, the note went
+    // with it, and saying "your note saved" over a failed insert would be the
+    // same lie in miniature. Put it somewhere that survives, and say which.
+    if (!spec.recorded && spec.note) {
+      noteFact.textContent = 'keeping your note somewhere it survives…';
+      stashNote(r, spec.note).then(
+        () => { noteFact.textContent = 'the record was refused, so your note was kept on the idea instead'; },
+        () => {
+          noteFact.textContent = 'your note could not be saved anywhere. It is below, copy it.';
+          const lost = el('p', 'settled-lost', spec.note);
+          card.append(lost);
+        });
+    }
+
+    countsAndMaybeNext();
+  }
+
+  /** A note kept on the idea itself, for a thought with no decision attached
+   *  and for rescuing one whose ledger row was refused. */
+  function stashNote(r, note) {
+    return sql(`update public.content_ideas set meta = coalesce(meta,'{}'::jsonb) || jsonb_build_object('krish_notes',
+      coalesce(meta->'krish_notes','[]'::jsonb) || jsonb_build_array(jsonb_build_object('note', ${lit(note)}, 'at', now(), 'stage', ${lit(stage)}))),
+      updated_at = now() where id = ${lit(r.id)};`, { write: true });
+  }
+
+  /* The queue is finished when no card is still awaiting a decision, and the
+     receipts stay put, so children.length can no longer answer that.
+     Reloading here would be the vanishing act again in its worst place: the
+     last decision of a sitting, wiping every receipt he just earned. So the
+     stage ends with a line and a button, and nothing moves until he presses
+     it. */
+  async function countsAndMaybeNext() {
+    await counts();
+    const q = $('#queue');
+    if (q.querySelector('.card:not(.settled)') || q.querySelector('.batch-end')) return;
+    const end = el('div', 'batch-end');
+    end.append(el('div', null, 'That is everything that was waiting here. What you decided is above, and saved.'));
+    const next = el('button', 'pick', 'Load whatever is waiting now'); next.type = 'button';
+    next.onclick = () => render();
+    end.append(next);
+    q.append(end);
+  }
+
+  /* Putting a buried row back. The ledger is append-only by design, so an
+     undo is a NEW row retracting the last one rather than a deletion: the
+     pair says he set it aside and then changed his mind, which is worth more
+     than a decision that was never recorded at all. */
+  async function unbury(r, retracting) {
+    await sql(`update public.content_ideas set buried_at=null, buried_reason=null, updated_at=now() where id=${lit(r.id)};`, { write: true });
+    const h = await sha256Hex(seedTextOf(r));
+    await ledger({
+      subjectId: r.id, action: 'manual_edit', mode: 'triage_undo',
+      value: retracting, beforeHash: h, afterHash: h,
+    });
+  }
+
+  /** The same, for a subchannel he did not mean to pick. */
+  async function unpick(r, slug) {
+    await sql(`update public.content_ideas set lane_slot=null, updated_at=now() where id=${lit(r.id)};`, { write: true });
+    const h = await sha256Hex(seedTextOf(r));
+    await ledger({
+      subjectId: r.id, action: 'manual_edit', mode: 'triage_undo',
+      value: 'subchannel:' + slug, beforeHash: h, afterHash: h,
+    });
   }
 
   /** Why a draft was binned. Short, fixed, and about FORM, never subject:
@@ -711,7 +857,15 @@
     const foot = el('div', 'notefoot');
     const save = el('button', 'ghost', 'Keep this note'); save.type = 'button';
     save.onclick = () => keepNote(card, r, ta, save);
-    foot.append(el('span', 'sep', 'your note rides with whichever button you press'), save);
+    // Said before the press as well as after it. "I am not sure if my note even
+    // came through" is answered at both ends or it is not answered.
+    const IDLE = 'your note rides with whichever button you press';
+    const state = el('span', 'sep', IDLE);
+    ta.oninput = () => {
+      const n = ta.value.trim().length;
+      state.textContent = n ? n + ' characters will travel with your next press' : IDLE;
+    };
+    foot.append(state, save);
     wrap.append(ta, foot);
     card.append(wrap);
     return ta;
@@ -727,10 +881,8 @@
     if (!note) return;
     btn.disabled = true; btn.textContent = 'Keeping…';
     try {
-      await sql(`update public.content_ideas set meta = coalesce(meta,'{}'::jsonb) || jsonb_build_object('krish_notes',
-        coalesce(meta->'krish_notes','[]'::jsonb) || jsonb_build_array(jsonb_build_object('note', ${lit(note)}, 'at', now(), 'stage', ${lit(stage)}))),
-        updated_at = now() where id = ${lit(r.id)};`, { write: true });
-      btn.textContent = 'Kept';
+      await stashNote(r, note);
+      btn.textContent = 'Kept on the idea';
     } catch (e) { fail(card, e); btn.disabled = false; btn.textContent = 'Keep this note'; }
   }
 
@@ -793,19 +945,32 @@
   async function regrade(card, r, slug) {
     card.querySelectorAll('button').forEach(b => { b.disabled = true; });
     const before = await sha256Hex(seedTextOf(r));
+    const note = noteOf(card);
+    const was = r.lane_slot;
     try {
       await sql(`update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
-      await ledger({
+      const graded = await ledger({
         subjectId: r.id, action: 'magic_rejected', mode: 'subchannel',
-        value: r.lane_slot, reasonCode: 'wrong_subchannel', beforeHash: before,
-        instruction: noteOf(card), dwellMs: Date.now() - card.__seedAt,
+        value: was, reasonCode: 'wrong_subchannel', beforeHash: before,
+        instruction: note, dwellMs: Date.now() - card.__seedAt,
       });
-      await ledger({
+      const kept = await ledger({
         subjectId: r.id, action: 'manual_edit', mode: 'subchannel',
         value: slug, beforeHash: before, afterHash: await sha256Hex(slug),
-        dwellMs: Date.now() - card.__seedAt,
+        instruction: note, dwellMs: Date.now() - card.__seedAt,
       });
-      card.remove(); await counts(); if (!$('#queue').children.length) render();
+      finish(card, r, {
+        verb: 'Moved to ' + ((fmtBySlug()[slug] || {}).label || slug),
+        recorded: graded && kept, note,
+        undo: async () => {
+          await sql(`update public.content_ideas set lane_slot=${lit(was)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+          const h = await sha256Hex(seedTextOf(r));
+          await ledger({
+            subjectId: r.id, action: 'manual_edit', mode: 'triage_undo',
+            value: 'subchannel:' + slug, beforeHash: h, afterHash: h,
+          });
+        },
+      });
     } catch (e) { fail(card, e); }
   }
 
@@ -820,14 +985,19 @@
       b.onclick = async () => {
         card.querySelectorAll('button').forEach(x => { x.disabled = true; });
         const before = await sha256Hex(seedTextOf(r));
+        const note = noteOf(card);
         try {
           await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('set aside at the triage desk: ' + code)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
-          await ledger({
+          const recorded = await ledger({
             subjectId: r.id, action: 'binned', mode: 'seed', value: r.lane_slot,
             reasonCode: code, beforeHash: before, charsBefore: seedTextOf(r).length,
-            instruction: noteOf(card), dwellMs: Date.now() - card.__seedAt,
+            instruction: note, dwellMs: Date.now() - card.__seedAt,
           });
-          card.remove(); await counts(); if (!$('#queue').children.length) render();
+          finish(card, r, {
+            verb: 'Set aside: ' + label.toLowerCase(),
+            recorded, note,
+            undo: () => unbury(r, 'binned:' + code),
+          });
         } catch (e) { fail(card, e); }
       };
       box.append(b);
@@ -915,36 +1085,66 @@
     try {
       if (opts.kept) {
         await sql(`update public.content_ideas set body=${lit(final)}, state='drafting', updated_at=now() where id=${lit(r.id)};`, { write: true });
-        await ledger({
+        let recorded = await ledger({
           subjectId: r.id, action: 'magic_accepted', mode: 'draft', value: r.lane_slot,
           beforeHash: beforeSeed, afterHash: machineHash, instruction: note,
           charsBefore: seedTextOf(r).length, charsAfter: machine.length, dwellMs: dwell,
         });
         // Only when the text actually moved. An unchanged save is not a rewrite,
         // and logging it as one would put noise into the one signal that matters.
-        if (final !== machine) {
-          await ledger({
+        const rewritten = final !== machine;
+        if (rewritten) {
+          recorded = await ledger({
             subjectId: r.id, action: 'manual_edit', mode: 'draft', value: r.lane_slot,
             beforeHash: machineHash, afterHash: await sha256Hex(final), instruction: note,
             charsBefore: machine.length, charsAfter: final.length, dwellMs: dwell,
-          });
+          }) && recorded;
         }
+        finish(card, r, {
+          verb: rewritten
+            ? 'Kept, with your rewrite on top of the machine draft'
+            : 'Kept as the machine wrote it',
+          recorded, note,
+        });
       } else {
         await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('draft binned at the desk: ' + opts.reason)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
-        await ledger({
+        const recorded = await ledger({
           subjectId: r.id, action: 'magic_rejected', mode: 'draft', value: r.lane_slot,
           reasonCode: opts.reason, beforeHash: beforeSeed, instruction: note,
           charsBefore: machine.length, dwellMs: dwell,
         });
+        finish(card, r, {
+          verb: 'Draft binned: ' + opts.reason.replace(/_/g, ' '),
+          recorded, note,
+          undo: () => unbury(r, 'draft_binned:' + opts.reason),
+        });
       }
-      card.remove(); await counts(); if (!$('#queue').children.length) render();
     } catch (e) { fail(card, e); }
   }
 
   async function unassign(card, r) {
     card.querySelectorAll('button').forEach(b => { b.disabled = true; });
-    try { await sql(`update public.content_ideas set lane_slot=null, updated_at=now() where id=${lit(r.id)};`, { write: true }); card.remove(); await counts(); if (!$('#queue').children.length) render(); }
-    catch (e) { fail(card, e); }
+    const was = r.lane_slot;
+    const note = noteOf(card);
+    try {
+      await sql(`update public.content_ideas set lane_slot=null, updated_at=now() where id=${lit(r.id)};`, { write: true });
+      const h = await sha256Hex(seedTextOf(r));
+      const recorded = await ledger({
+        subjectId: r.id, action: 'magic_rejected', mode: 'subchannel', value: was,
+        reasonCode: 'wrong_subchannel', beforeHash: h, instruction: note,
+      });
+      finish(card, r, {
+        verb: 'Sent back to triage, with no subchannel',
+        recorded, note,
+        undo: async () => {
+          await sql(`update public.content_ideas set lane_slot=${lit(was)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+          await ledger({
+            subjectId: r.id, action: 'manual_edit', mode: 'triage_undo',
+            value: 'unassigned:' + was, beforeHash: h, afterHash: h,
+          });
+        },
+      });
+    } catch (e) { fail(card, e); }
   }
 
   /* ── stage 3: read back ───────────────────────────────────────────── */

@@ -481,6 +481,53 @@ Both gates run in CI: `e2e/desk-noscroll-desk.spec.ts` at 1440 and 1920,
 that finds things; a list that stops at 390 has never seen a short Android with
 browser chrome.
 
+## Persistent chrome is neutral, or it is not persistent
+
+Locked 2026-09-23, after Krish sent back a screenshot of Focus (Krish: "can you
+make this a bit more of a professional UX and UI?"). Two pills float over every
+desktop tab: capture (⌘I) and ask-this-tab (⌘/). One was rose, the other
+violet, each with a matching tinted `kbd`, and they were the only saturated
+colour on the page. They read as two browser extensions parked on the product,
+and because they are `fixed` they land on live content at any scroll position —
+the `--capture-gutter` only reserves the bottom of the page, not the middle of
+it.
+
+- **A control that is on screen at all times takes the house surface, not an
+  accent.** Both pills are `.surface` + `text-ink-muted` + `shadow-e2`, and
+  lift to `text-ink` on hover. Mint means the answer or the active path and
+  amber means something moved; a keyboard shortcut with a visible fallback is
+  neither, and spending an accent on it leaves nothing to spend on the surface's
+  actual answer. Rose was not in the accent language at all.
+- Their `kbd` badges follow: a hairline on `bg-white/[0.04]` at `text-ink-faint`.
+- The corollary, which is the rule this section is really about: if something
+  needs an accent to be found, it should not be permanent chrome. Give it a
+  mark that appears when it is true, the way `CriticalAlertMark` does below.
+
+## The Focus tab's material
+
+Focus was written before `.surface` existed and never migrated, so its ask card,
+its three tool cards and its chips were all `bg-white/[0.03] border-white/[0.08]`
+— the same 3% wash, at the same elevation, on the page and on each other. On
+paper that is a 3% black tint of warm paper (nothing separates from anything);
+on obsidian it is exactly the translucency the card tokens were rewritten to
+kill in the first place. All three now use `.surface`, and chips are the tint
+INSIDE that material rather than a sibling of it.
+
+Three more things came out of the same pass, each a general rule:
+
+- **`.surface` and `hover:bg-*` do not compose.** `.surface` paints a layered
+  `background` (gradient over card colour); a `hover:bg-white/[0.05]` utility
+  replaces the whole shorthand with one flat wash, so the material disappears
+  on hover. Put the hover on text, border or transform instead.
+- **A touch floor is not a density.** `min-h-[48px]` is correct in a bottom
+  sheet and wrong under a mouse: three desk columns of 56px-tall chips holding
+  three-word labels pushed "Test an idea" off the bottom of the screen. The
+  chip recipe takes `compact` and the desk gets 36px.
+- **A disclosure needs a hitbox and a direction.** A bare 16px `+` / `−` glyph
+  in a card's corner was the one piece of chrome on the surface and the one
+  that read as unfinished. A chevron in a 28px tile, rotating on open, is the
+  house spelling.
+
 ## An alarm is a mark and a drawer, not a block
 
 Locked 2026-09-17 (Krish: "Alerts can go into a side drawer that opens from a
