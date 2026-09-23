@@ -3,6 +3,7 @@ import { Search, Users } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { Working } from '../shared/Working'
+import { AppFrame } from '../shared/AppFrame'
 import { useToast } from '../shared/Toast'
 import { PilotCard } from '../pilotDeals/PilotCard'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -390,9 +391,11 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
     )
   }
 
+  // Desk: the title and the offer line are chrome, the deals scroll under
+  // them. Narrow keeps its own shell.
   return (
-    <div className="space-y-5">
-      {header}
+    <AppFrame header={<div className="pb-4">{header}</div>}>
+      <div className="space-y-5 pb-2">
 
       {/* One line, not three. The first pass put the purpose, the offer and the
           charter arithmetic on screen together and pushed the first card below
@@ -413,10 +416,20 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
         </details>
       </section>
 
+      {/* The counts line counts. When there is nothing to count it renders
+          nothing, and the one empty state below speaks.
+
+          All three used to fire at once on an empty lane: this line said
+          "Nobody is on the list yet.", the search note under it said "Nobody
+          new fits closely enough right now.", and the empty state under THAT
+          said "Nobody is on the list yet. Find five to start…" — three
+          different sentences about the same nothing, in three tones, inside
+          90 vertical pixels, with 600px of blank screen after them. Measured
+          2026-09-23. */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p data-testid="pilot-counts" className="text-label text-ink-faint">
-          {counts || (error ? 'The list could not be read.' : 'Nobody is on the list yet.')}
-        </p>
+        {counts
+          ? <p data-testid="pilot-counts" className="text-label text-ink-muted">{counts}</p>
+          : <span />}
         <button
           type="button"
           data-testid="pilot-find-more"
@@ -454,8 +467,8 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
         </div>
       )}
 
-      {findNote && (
-        <p data-testid="pilot-find-note" className="text-label text-amber-100/75">{findNote}</p>
+      {findNote && targets.length > 0 && (
+        <p data-testid="pilot-find-note" className="text-label text-amber-200">{findNote}</p>
       )}
 
       {proposals && proposals.length > 0 && (
@@ -478,7 +491,12 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
             : `The list could not be read (${error}). It retries every minute.`}
         </p>
       ) : targets.length === 0 ? (
-        <p data-testid="pilot-empty" className="text-body text-ink-faint">{emptyLine}</p>
+        <div data-testid="pilot-empty" className="rounded-xl border border-white/[0.07] bg-white/[0.015] px-5 py-6 max-w-xl">
+          <p className="text-body text-ink-muted leading-snug">{emptyLine}</p>
+          {findNote && (
+            <p data-testid="pilot-find-note" className="text-label text-amber-200 mt-2 leading-snug">{findNote}</p>
+          )}
+        </div>
       ) : (
         // One column. `xl:grid-cols-2` was a viewport query over a variable
         // number of deals: with one drafted deal it rendered an empty second
@@ -491,7 +509,8 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </AppFrame>
   )
 }
 

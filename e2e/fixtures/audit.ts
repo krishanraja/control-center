@@ -135,7 +135,7 @@ export const VISIBILITY_TARGETS = EVENT_TITLES.flatMap((title, i) =>
 
 // ── Customers, contacts, the OS tables ──────────────────────────────────────
 
-export const CUSTOMERS = Array.from({ length: 9 }, (_, i) => ({
+export const CUSTOMERS = Array.from({ length: 34 }, (_, i) => ({
   id: `cust-${i}`,
   name: `Northwind ${i + 1} Group`,
   venture: i % 2 === 0 ? 'mindmake' : 'ctrl',
@@ -150,9 +150,9 @@ export const CUSTOMERS = Array.from({ length: 9 }, (_, i) => ({
   updated_at: daysAgo(i),
 }))
 
-export const AGENTS = Array.from({ length: 14 }, (_, i) => ({
+export const AGENTS = Array.from({ length: 28 }, (_, i) => ({
   id: `agent-${i}`,
-  name: ['Nova', 'Nell', 'Marcus', 'Maya', 'Zara', 'Cleo', 'Agatha', 'Hunter', 'Iris', 'Otto', 'Vera', 'Rex', 'Juno', 'Sol'][i],
+  name: ['Nova', 'Nell', 'Marcus', 'Maya', 'Zara', 'Cleo', 'Agatha', 'Hunter', 'Iris', 'Otto', 'Vera', 'Rex', 'Juno', 'Sol'][i % 14] + (i >= 14 ? ' II' : ''),
   role: 'Scout and enrich the lane it owns, then hand Krish a decision.',
   status: i % 5 === 0 ? 'degraded' : 'healthy',
   pod: ['growth', 'content', 'ops'][i % 3],
@@ -161,7 +161,7 @@ export const AGENTS = Array.from({ length: 14 }, (_, i) => ({
   updated_at: daysAgo(i % 3),
 }))
 
-export const TASKS = Array.from({ length: 12 }, (_, i) => ({
+export const TASKS = Array.from({ length: 40 }, (_, i) => ({
   id: `task-${i}`,
   title: `Decide whether to run the ${['Sifted', 'SaaStr', 'Lenny', 'Every'][i % 4]} play this week`,
   status: i % 3 === 0 ? 'waiting' : 'open',
@@ -173,15 +173,15 @@ export const TASKS = Array.from({ length: 12 }, (_, i) => ({
   updated_at: daysAgo(i),
 }))
 
-export const SYSTEM_HEALTH = Array.from({ length: 8 }, (_, i) => ({
+export const SYSTEM_HEALTH = Array.from({ length: 26 }, (_, i) => ({
   id: `health-${i}`,
-  component: ['ingest', 'enrichment', 'outreach', 'briefs', 'video', 'search', 'billing', 'realtime'][i],
+  component: ['ingest', 'enrichment', 'outreach', 'briefs', 'video', 'search', 'billing', 'realtime'][i % 8] + (i >= 8 ? `-${Math.floor(i / 8)}` : ''),
   status: i % 4 === 0 ? 'degraded' : 'ok',
   detail: 'Last run finished inside its window.',
   checked_at: daysAgo(0),
 }))
 
-export const WORKFLOW_RUNS = Array.from({ length: 10 }, (_, i) => ({
+export const WORKFLOW_RUNS = Array.from({ length: 48 }, (_, i) => ({
   id: `run-${i}`,
   workflow: `flow_${i}`,
   name: `Flow ${i + 1}`,
@@ -191,7 +191,7 @@ export const WORKFLOW_RUNS = Array.from({ length: 10 }, (_, i) => ({
   error: null,
 }))
 
-export const CONTACTS = Array.from({ length: 24 }, (_, i) => ({
+export const CONTACTS = Array.from({ length: 60 }, (_, i) => ({
   id: `contact-${i}`,
   full_name: `Contact Person ${i + 1}`,
   first_name: 'Contact',

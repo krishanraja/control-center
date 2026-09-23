@@ -49,6 +49,8 @@ interface Measure {
   offScaleType: string[]
   /** Tallest single element as a fraction of viewport height. */
   tallestChromeFraction: number
+  /** Content cut off below the frame with no scroller to reach it. */
+  clipped: string[]
   crashed: string | null
 }
 
@@ -84,6 +86,56 @@ async function overlappingControls(page: Page, sel: string) {
       }
     }
     return Array.from(new Set(bad)).slice(0, 12)
+  }, sel)
+}
+
+/**
+ * Content that falls outside the frame with no way to reach it.
+ *
+ * This is the failure mode a no-scroll shell introduces if a surface is put
+ * inside `overflow-hidden` without its own scroller: the rows are laid out,
+ * they are simply cut off, and NO other probe sees it. `scrollContainers`
+ * reports zero (nothing scrolls), `largestHole` reports a clean board, and the
+ * screenshot looks tidy — because the missing rows are not in it.
+ *
+ * Returns the deepest visible text leaf that starts below the frame's bottom
+ * edge, and how far past it sits.
+ */
+async function clippedBelow(page: Page, sel: string) {
+  return page.evaluate((s) => {
+    const frame = document.querySelector(s) as HTMLElement | null
+    if (!frame) return [] as string[]
+    const fb = frame.getBoundingClientRect().bottom
+    const bad: string[] = []
+    const walk = (el: Element) => {
+      const he = el as HTMLElement
+      const cs = getComputedStyle(he)
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return
+      // Inside something that scrolls, being below the fold is normal.
+      //
+      // The ancestor walk must start INSIDE the frame. Started at the frame
+      // itself it ran off the top of the document, found the first scrollable
+      // ancestor up there and returned on the very first node — so the probe
+      // reported a clean surface after visiting exactly one element. It was
+      // silently green over 225px of unreachable content on Systems.
+      if (he !== frame) {
+        let n: HTMLElement | null = he.parentElement
+        while (n && n !== frame) {
+          const pcs = getComputedStyle(n)
+          if (pcs.overflowY === 'auto' || pcs.overflowY === 'scroll') return
+          n = n.parentElement
+        }
+      }
+      const own = Array.from(he.childNodes).filter(t => t.nodeType === Node.TEXT_NODE)
+        .map(t => t.textContent || '').join(' ').trim()
+      if (own) {
+        const r = he.getBoundingClientRect()
+        if (r.top > fb + 2) bad.push(`"${own.slice(0, 34)}" ${Math.round(r.top - fb)}px below the frame`)
+      }
+      for (const c of Array.from(he.children)) walk(c)
+    }
+    walk(frame)
+    return Array.from(new Set(bad)).slice(0, 8)
   }, sel)
 }
 
@@ -126,7 +178,26 @@ async function lowContrastText(page: Page, sel: string) {
         const r = he.getBoundingClientRect()
         if (r.width > 0 && r.height > 0 && r.top < innerHeight && r.bottom > 0) {
           const bg = bgOf(he)
-          const fg = over(parse(cs.color), bg)
+          // Text painted with a gradient through `background-clip: text` has
+          // `color: transparent`, so the composited colour IS the background
+          // and the naive ratio is 1.00:1 — a false alarm on every such node.
+          // Take the darkest stop of the gradient instead, which is the
+          // honest worst case for the reader.
+          const clip = (cs as unknown as { webkitBackgroundClip?: string }).webkitBackgroundClip || cs.backgroundClip
+          let colour = cs.color
+          if (clip === 'text' && parse(cs.color)[3] < 0.05) {
+            const stops = (cs.backgroundImage.match(/rgba?\([^)]+\)/g) || [])
+            if (!stops.length) return
+            const lumOf = (c: string) => {
+              const v = parse(c)
+              return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+            }
+            // The stop furthest from the ground is the one that reads worst.
+            const groundLum = 0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]
+            colour = stops.reduce((worst, c) =>
+              Math.abs(lumOf(c) - groundLum) < Math.abs(lumOf(worst) - groundLum) ? c : worst)
+          }
+          const fg = over(parse(colour), bg)
           const l1 = lum(fg), l2 = lum(bg)
           const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
           const size = parseFloat(cs.fontSize)
@@ -230,13 +301,14 @@ test('walk every desktop surface and record what it measures', async ({ page }, 
       lowContrast: await lowContrastText(page, sel),
       offScaleType: await offScaleType(page, sel),
       tallestChromeFraction: await tallestChrome(page, sel),
+      clipped: await clippedBelow(page, sel),
       crashed,
     }
     results.push(m)
     await page.screenshot({ path: path.join(OUT, `${vp.width}-${route.id}.png`) })
     console.log(
       `${route.name.padEnd(30)} scroll=${m.windowScroll}/${m.mainOverflow} hole=${m.holeFraction} ` +
-      `scrollers=${m.nestedScrollers.length} overlap=${m.overlaps.length} lowContrast=${m.lowContrast.length} ` +
+      `scrollers=${m.nestedScrollers.length} CLIPPED=${m.clipped.length} overlap=${m.overlaps.length} lowContrast=${m.lowContrast.length} ` +
       `offScale=${m.offScaleType.length} squeezed=${m.squeezed.length}${m.crashed ? ' CRASHED' : ''}`,
     )
   }

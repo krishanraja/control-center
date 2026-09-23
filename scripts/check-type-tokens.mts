@@ -58,6 +58,23 @@ const TRACK = /tracking-\[(0\.\d+)em\]/g
 // variant colon before it).
 const LEGACY_INK = /(?:^|[\s'"`:{])(text-(?:strong|muted|faint))\b/g
 
+// Tailwind's DEFAULT size scale, which is not this app's scale.
+//
+// The 2026-08-21 sweep caught `text-[13px]` and missed `text-2xl`, because a
+// bracket literal looks like a mistake and a named Tailwind class looks like a
+// system. It is not this system: `text-2xl` is 24px and the role scale runs
+// 11/12/13/14/16/20/28/40/56, so there is no 24 on it. Measured live at
+// 1440px on 2026-09-23, Visibility, Hunt and Systems each rendered their page
+// title at 24px, off the scale, in the most prominent text on the page — and
+// across twelve files the same heading carried four different recipes
+// (`text-2xl`, `text-xl md:text-2xl xl:text-heading`, `text-xl md:text-2xl
+// font-bold`). `shared/SurfaceHeader` is the one recipe now.
+//
+// `text-xs` and `text-sm` are additive-on-purpose leftovers the role tokens do
+// not override, so they are left alone; the display sizes are what fragment a
+// page's hierarchy.
+const TW_DISPLAY_SIZE = /(?:^|[\s'"`:{])(text-(?:lg|xl|[2-9]xl))\b/g
+
 let sizeHits = 0
 let trackHits = 0
 let inkHits = 0
@@ -71,8 +88,17 @@ for (const file of walk('src')) {
   const text = readFileSync(file, 'utf8')
   const lines = text.split('\n')
   lines.forEach((line, i) => {
+    // A comment explaining the rule is not a violation of it. Every guard in
+    // this repo documents the class it bans by name, so the scan has to skip
+    // comment lines or each one fails itself.
+    const t = line.trim()
+    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return
     for (const m of line.matchAll(SIZE)) {
       bad(`${file}:${i + 1} bracket text size ${m[0]} — use a role token (text-micro…text-hero)`)
+      sizeHits++
+    }
+    for (const m of line.matchAll(TW_DISPLAY_SIZE)) {
+      bad(`${file}:${i + 1} ${m[1]} is Tailwind's default scale, not the role scale — use a role token (text-lede/title/heading/display) or <SurfaceHeader>`)
       sizeHits++
     }
     for (const m of line.matchAll(LEGACY_INK)) {
@@ -94,4 +120,4 @@ if (fail) {
   console.log(`${fail} FAILURE(S)`)
   process.exit(1)
 }
-console.log('PASS  no bracket text sizes, uppercase tracking uniform at 0.14em, one spelling of the text hierarchy')
+console.log('PASS  no bracket or default-Tailwind text sizes, uppercase tracking uniform at 0.14em, one spelling of the text hierarchy')

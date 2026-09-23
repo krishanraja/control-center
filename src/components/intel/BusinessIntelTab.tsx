@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ChevronRight } from '@/lib/icons'
 import { MobileShell, TabHeader, MobileLoadingScreen } from '../mobile/primitives'
 import { AskMarcus } from '../AskMarcus'
+import { Eyebrow } from '../shared/Eyebrow'
 import { SpendDetailSheet } from './SpendDetailSheet'
 import { BetsSheet } from './BetsSheet'
 import { MarcusReadSheet } from './MarcusReadSheet'
@@ -153,13 +154,18 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
   const active = questions.find(q => q.id === open) || questions[4]
 
   return (
-    <div className="mx-auto max-w-[1080px]">
-      <div>
-        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Business Intelligence</h1>
+    <div className="mx-auto max-w-[1080px] h-full min-h-0 flex flex-col">
+      <div className="flex-shrink-0">
+        <h1 className="text-title font-display font-semibold text-ink tracking-tight leading-tight">Business Intelligence</h1>
         {header}
       </div>
 
-      <div className="mt-7 flex gap-14">
+      {/* `gap-14` (56px) between a 400px rail and the pane beside it was the
+          widest gutter in the app by a factor of three, and the pane holds one
+          short answer — so the surface read as a narrow column with a hole
+          where the rest of the screen should be. Measured 2026-09-23: the
+          largest unpainted rectangle was 34% of the painted area. */}
+      <div className="mt-5 flex gap-8 flex-1 min-h-0 overflow-y-auto pb-2">
         <div className="flex w-[400px] shrink-0 flex-col" data-testid="bi-questions">
           {questions.map(q => {
             const isOpen = active.id === q.id
@@ -191,9 +197,16 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
           </div>
         </div>
 
+        {/* The pane carries the DETAIL. It used to repeat the question as a
+            20px heading, so "What should I decide?" rendered twice on one
+            screen — once as the highlighted row in the rail and once as the
+            largest text in the pane — with the rail's one-line answer and the
+            pane's opening line saying the same thing in two wordings. The row
+            is already marked selected three inches to the left; the pane only
+            needs to say which row it belongs to, quietly. */}
         <div className="min-w-0 flex-1 pt-1" data-testid="bi-pane">
-          <h2 className="font-display text-title font-semibold tracking-tight text-ink">{active.question}</h2>
-          <div className="mt-4 max-w-[560px]">{active.detail}</div>
+          <Eyebrow>{active.question}</Eyebrow>
+          <div className="mt-3 max-w-[560px]">{active.detail}</div>
         </div>
       </div>
 

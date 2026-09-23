@@ -390,9 +390,24 @@
   }
   .btn-contrast:active { filter: brightness(0.94); }
 
-  /* Money ink uses the same answer colour as the rest of Mindmake. */
+  /* Money ink uses the same answer colour as the rest of Mindmake.
+     Three fixed hexes under `background-clip: text` is the adaptive-text bug
+     the token rules warn about, wearing a gradient. The night ramp runs
+     #a4e8cd -> #4faf85, which is 9-13:1 on obsidian and 1.4-2.4:1 on warm
+     paper — so in daylight the MRR figure, the largest and most important
+     number on Subscriptions, rendered under the contrast floor at 40px.
+     Measured 2026-09-23.
+     Paper gets its own ramp off the deep `--ac-*` end, the same way the
+     `*-300` accent tier was given one: same gesture, same direction of light,
+     legible on both grounds. */
   .money-text {
     background: linear-gradient(120deg, #a4e8cd 0%, #7fe3b4 44%, #4faf85 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  :root[data-theme='light'] .money-text {
+    background: linear-gradient(120deg, #2F6F51 0%, #276046 44%, #1C4733 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { relativeTimeOr } from '../../lib/ageHelpers'
-import { Crown, Cog, Sparkles, Zap, Play, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from '@/lib/icons'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
+import { Crown, Cog, Sparkles, Zap, Play, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown, ChevronRight } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -300,13 +301,11 @@ export function DesktopOrg() {
 
   const list = (
     <div className="space-y-5 pr-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Organisation</h1>
-          <p className="text-micro md:text-label text-ink-faint mt-0.5">Pod hierarchy — Executive sets direction, Ops runs day-to-day, Growth drives revenue.</p>
-        </div>
-        <p className="text-micro md:text-label text-ink-faint font-mono tabular-nums whitespace-nowrap">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
-      </div>
+      <SurfaceHeader
+        title="Organisation"
+        description="Pod hierarchy. Executive sets direction, Ops runs day-to-day, Growth drives revenue."
+        meta={<span className="text-micro text-ink-faint font-mono tabular-nums whitespace-nowrap">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</span>}
+      />
 
       {pendingCorrections.data.length > 0 && (
         <PendingCorrectionsPanel
@@ -347,7 +346,7 @@ export function DesktopOrg() {
         <AgentAvatar agent={selected.id} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink leading-tight tracking-tight">{selected.name}</h1>
+            <h1 className="text-title font-display font-semibold text-ink leading-tight tracking-tight">{selected.name}</h1>
             <RunHealthDot runs={detail.runs} />
           </div>
           {selected.role && <p className="text-xs md:text-body text-ink-faint mt-1">{selected.role}</p>}
@@ -472,15 +471,17 @@ export function DesktopOrg() {
 
   if (!loaded && agents.length === 0) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-ink tracking-tight">Organisation</h1>
+      <div className="flex flex-col gap-4 h-full min-h-0">
+        <SurfaceHeader title="Organisation" />
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
     )
   }
 
+  // The hero is chrome and SplitPane takes the rest: `flex-1 min-h-0` is what
+  // lets its two columns bound their own scroll instead of growing the page.
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full min-h-0">
       {triggeringName && (
         <ProcessingOverlay
           label={`Triggering ${triggeringName}`}
@@ -494,7 +495,9 @@ export function DesktopOrg() {
         agentCount={agents.length}
         onReview={focusCorrection}
       />
-      <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
+      <div className="flex-1 min-h-0">
+        <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
+      </div>
       {flagTarget && (
         <FlagAgentModal agentId={flagTarget.id} agentDisplayName={flagTarget.name} onClose={() => setFlagTarget(null)} />
       )}
@@ -904,7 +907,8 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
           onClick={() => setExpanded(e => !e)}
           className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint hover:text-ink-faint transition-colors"
         >
-          Identity {expanded ? '▾' : '▸'}
+          Identity
+          <ChevronRight size={11} className={`inline-block ml-1 align-[-1px] transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </button>
         <div className="flex items-center gap-1.5">
           {!editing && (

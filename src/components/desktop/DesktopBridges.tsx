@@ -5,6 +5,8 @@ import { Eyebrow } from '../shared/Eyebrow'
 import { BridgeCard } from '../BridgeCard'
 import { HunterStatus } from '../HunterStatus'
 import { FreshnessLine } from '../shared/FreshnessLine'
+import { AppFrame } from '../shared/AppFrame'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { useBridges } from '../../hooks/useBridges'
 import { useHuntRoles, type HuntRole } from '../../hooks/useHuntRoles'
 import { contactAction, copyText } from '../../lib/contactAction'
@@ -144,30 +146,31 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
   }, [stateCounts])
 
   const header = !narrow && (
-    <header>
-      <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-        <Target size={20} className="text-violet-300" />
-        Hunt
-      </h1>
-      <p className="text-body text-ink-faint mt-1">{HUNT_LINE}</p>
-      <FreshnessLine lane="hunt" />
-    </header>
+    <SurfaceHeader
+      title="Hunt"
+      description={HUNT_LINE}
+      icon={<Target size={18} className="text-accent" />}
+      meta={<FreshnessLine lane="hunt" />}
+      className="pb-4"
+    />
   )
 
   if (loading && hunt.loading && bridges.length === 0 && hunt.roles.length === 0) {
-    return (
-      <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
-        {header}
+    return narrow ? (
+      <div className="space-y-4 px-5">
         <BoardSkeleton lanes={1} cardsPerLane={3} hero={false} />
       </div>
+    ) : (
+      <AppFrame header={header}>
+        <BoardSkeleton lanes={1} cardsPerLane={3} hero={false} />
+      </AppFrame>
     )
   }
 
-  return (
-    <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
-      {/* On narrow the MobileShell owns the title, like every other lane. */}
-      {header}
-
+  // On narrow the MobileShell owns the title and the scroll, like every other
+  // lane. On a desk the title is chrome and the roster scrolls under it.
+  const body = (
+    <>
       <HunterStatus />
 
       <section data-testid="hunt-roles">
@@ -200,8 +203,12 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
           <p className="text-label text-ink-faint mt-2">Handled so far: {historyLine}.</p>
         )}
       </section>
-    </div>
+    </>
   )
+
+  return narrow
+    ? <div className="space-y-4 px-5">{body}</div>
+    : <AppFrame header={header}><div className="space-y-5 pb-2">{body}</div></AppFrame>
 }
 
 export function DesktopBridges() {
