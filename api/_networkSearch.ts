@@ -1,6 +1,6 @@
 import { supabase } from './_supabase.js'
 import { embed, vectorLiteral } from './_embeddings.js'
-import { callClaude, robustJson } from './_content.js'
+import { callClaude, robustJson, hasAnthropicKey } from './_content.js'
 import { planQuery, type QueryPlan, type Constraint } from './_networkQuery.js'
 import { SYNTHESIS_MODEL } from './_models.js'
 
@@ -410,7 +410,9 @@ Rules:
 - No em dashes.`
 
 async function rerank(question: string, rows: NetworkResult[], limit: number): Promise<NetworkResult[]> {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error('missing_anthropic_key')
+  // See the note in _networkQuery: the env var alone skips the app_secrets
+  // fallback that exists to keep this working through a key rotation.
+  if (!(await hasAnthropicKey())) throw new Error('missing_anthropic_key')
   // Only the head of the list is worth a model's attention; the tail is
   // returned in scorer order. Twelve, not twenty: output length is what this
   // costs, and nobody reads a justification for result nineteen.

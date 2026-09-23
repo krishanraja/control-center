@@ -1,4 +1,4 @@
-import { callClaude, robustJson } from './_content.js'
+import { callClaude, robustJson, hasAnthropicKey } from './_content.js'
 import { JUDGE_MODEL } from './_models.js'
 import { isRetiredVenture } from './_venturePositioning.js'
 
@@ -176,7 +176,10 @@ export async function planQuery(question: string): Promise<{ plan: QueryPlan; pl
     constraints: [],
   }
   if (!q) return { plan: fallback, planned: false, reason: 'empty_query' }
-  if (!process.env.ANTHROPIC_API_KEY) return { plan: fallback, planned: false, reason: 'missing_anthropic_key' }
+  // hasAnthropicKey, not the env var: the app_secrets fallback in _content.ts
+  // exists so a rotated Vercel variable does not take this surface down, and
+  // reading the env var here skipped straight past it.
+  if (!(await hasAnthropicKey())) return { plan: fallback, planned: false, reason: 'missing_anthropic_key' }
 
   try {
     const text = await callClaude({
