@@ -1203,6 +1203,15 @@
                from public.content_ideas
               where lane_slot is null and state in ('seeded','researching')
                 and buried_at is null
+                -- Ambient corpus is not a proposal. pool_headline rows are raw
+                -- RSS, inserted verbatim with no model between the feed and the
+                -- table: brand_fit_score null, pillar_id null, and a thesis that
+                -- is whatever the feed put in <description>, HTML included. They
+                -- exist so the synthesis engine has a dated corpus to read
+                -- ACROSS, and it used five of them in today's run. Showing them
+                -- here asked Krish which subchannel a Bloomberg bond-yield video
+                -- blurb belongs to, which is not a question with an answer.
+                and coalesce(source_type, '') <> 'pool_headline'
               order by brand_fit_score desc nulls last, created_at desc limit 60;`,
     draft:  `select id, idea, thesis, created_at, lane_slot, (meta ? 'auto_triage') as auto
                from public.content_ideas
@@ -1251,7 +1260,8 @@
   async function counts() {
     try {
       const [c] = await sql(
-        `select count(*) filter (where lane_slot is null and state in ('seeded','researching') and buried_at is null) as triage,
+        `select count(*) filter (where lane_slot is null and state in ('seeded','researching') and buried_at is null
+                                   and coalesce(source_type,'') <> 'pool_headline') as triage,
                 count(*) filter (where lane_slot is not null and coalesce(body,'')='' and buried_at is null and state not in ('dropped','published','absorbed')) as draft,
                 count(*) filter (where coalesce(body,'')<>'' and buried_at is null and state in ('drafting','review')) as review,
                 (select count(*) from public.content_edit_events
