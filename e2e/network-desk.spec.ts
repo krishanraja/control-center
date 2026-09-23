@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import {
   assertNoSqueezedText, assertNoRawErrors, assertRendered, assertNothingOverflows,
 } from './fixtures/layout'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * The Network filters on a desk.
@@ -40,6 +41,20 @@ async function openNetwork(page: import('@playwright/test').Page) {
     ok: true, total: 10_670, known: 4_212, unknown: 6_458,
     countries: COUNTRIES,
   } }))
+  // Last, so it wins: Playwright matches route handlers in reverse
+  // registration order, and the `**\/api\/**` catch-all above answers the
+  // check-in with `{ ok: true }`, which is not a shape the gate can read.
+  //
+  // Without this the gate covers the app and every assertion below fails with
+  // `element(s) not found`, which reads as a broken Network tab rather than a
+  // missing fixture. It is also CLOCK-dependent: the gate only mounts between
+  // 04:00 and 12:00 in the operator's civil day, so this spec passed all
+  // afternoon and went red at 10:41 UTC on 2026-09-23 against a bundle it had
+  // been green on the evening before. Ten failures on main, no code change
+  // between them. pilot-gate-mock's own header warned that this had already
+  // cost a debugging cycle in August; this is the same one, in the one desk
+  // spec that never called it.
+  await answerPilotGate(page)
   await page.goto('/#/people?lane=network')
   await assertRendered(page, 'main')
   await expect(page.getByTestId('network-venture-chip-mindmake')).toBeVisible({ timeout: 15_000 })

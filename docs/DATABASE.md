@@ -978,7 +978,88 @@ than a promise the caller has to keep.
 
 Candidate recall is a UNION of orthogonal paths, one of which is
 **query-independent** (the strongest relationships in the network). That is what
-a nonsense query falls back to. The no-vector path stays fully exhaustive.
+a nonsense query falls back to.
+
+**The no-vector path is the floor going deep, not a full scan** (migration
+`20260923104235`). It used to score every person on the reasoning that a search
+without a semantic tier should at least be exhaustive; measured, that was 6.2s
+for 11,704 people against an 8s statement timeout, which made the DEGRADED path
+the one most likely to fail outright. It is now the same relationship ordering
+as the floor, bounded at `greatest(p_floor, 2000)`. The lexical, venture and
+geography paths are untouched, so anyone whose words, venture fit or country
+matches is still reached however cold the relationship; what it drops is people
+below 2,000 on relationship who match none of those. 2,000 candidates is still
+three times the ~650 the everyday path scores when a query vector is present, so
+the degraded path stays the deeper of the two.
+
+**The lexical recall path is bounded** (migration `20260923102803`). It reads at
+most `p_pool * 4` keyword matches and ranks those by `ts_rank_cd`, rather than
+cover-density-ranking every match in the corpus to keep `p_pool`. Keywords are
+OR'd, so a five-word question matched 3,135 of 11,755 people and the gate read
+1,951 heap blocks and ranked all of them: 0.9s on a good run, 3.9s on a bad one,
+and it is what put a real search over the 8s statement timeout on 2026-09-23.
+Bounded, the same gate measures 21ms. For a query matching fewer than the cap,
+which is every narrow lexical query this tier exists for (a company name, a
+surname), behaviour is **identical**; above it, the 250 keyword candidates come
+from the first `p_pool * 4` matches rather than the best. Measured end to end on
+four query shapes, 18-20 of the top 20 were unchanged and the leaders identical,
+because the scorer downstream recomputes the lexical signal for the whole pool
+and relationship value dominates a broad query anyway.
+
+Two other costs worth knowing before tuning this function:
+
+- The **relationship floor** (path e) and the **soft geography path** (path f)
+  are served by `ci_relationship_floor_idx` and `ci_geo_relationship_floor_idx`.
+  Before those existed the floor seq-scanned the whole table on every search.
+- **`p_pool` does not apply to the semantic path, and never did.** pgvector's
+  `hnsw.ef_search` bounds the neighbour scan and defaulted to 40, so a request
+  for 250 returned 40. Migration `20260923104235` sets it to **120 on the
+  function**, not on the role, because raising it for `authenticator` would
+  raise it for every vector query in the product. Tripling the neighbour list is
+  the most expensive thing left in this function and the first dial to turn back
+  if timeouts return, though since the compute upgrade below it is no longer
+  near the budget. It moves results materially: across six probes only about a
+  third of the old top twenty held, and average `match_score` rose (53.4 to
+  54.8, 63.5 to 65.5), which is what deeper recall is supposed to do.
+
+**The ceiling used to be the instance, and on 2026-09-23 it was raised.** The
+project ran on Micro: 224MB `shared_buffers` against a 447MB database, of which
+`contact_intelligence` alone is 274MB with a 103MB HNSW index. Nothing important
+stayed cached, so a cold read was disk, and the same search measured 0.23s warm
+against **7.31s cold** with an 8s statement timeout behind it.
+
+It is now Small, and 512MB of `shared_buffers` holds the whole database.
+Measured on the restarted instance, same queries:
+
+```
+                              Micro        Small
+cold search                   7.31s        1.06s
+warm search                   0.23s        0.12s
+six unseen query vectors      1.8-2.8s     0.40s each
+vectorless fallback           0.51s        0.30s
+```
+
+What that changes about the numbers above: `hnsw.ef_search` at 120 touches 2,640
+index pages where 40 touched 1,136, and while those pages were coming off disk
+that was most of the remaining headroom. Cached, it is not, so the note that
+used to read "lower this before anything else" now reads: it is still the
+largest single cost in the function, and still the first dial to turn back, but
+it is no longer close to the budget.
+
+The API's timeout retry stays as the backstop, and it is deliberately not a
+narrower version of the same query: it drops the vector and the keywords and
+lands on the bounded relationship floor. A retry that can itself be slow is not
+a backstop.
+
+**The next time this bites will be growth, not configuration.**
+`contact_intelligence` is 274MB for 11,755 people, about 23KB each. Around 20k
+the database outgrows Small's `shared_buffers` and the cold case comes back.
+Re-measure at that point rather than waiting for a timeout to report it.
+
+The 2026-09-23 version upgrade (17.6.1.104 to 17.6.1.166) moved pgvector 0.8.0
+to 0.8.2. Checked afterwards rather than assumed: `ci_embedding_hnsw` is present,
+`indisvalid` and `indisready` both true, all 20 indexes on the table intact, and
+the semantic path still returns the deeper neighbour list.
 
 `p_countries` **pushes down into every recall path** rather than filtering their
 output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered
@@ -1044,3 +1125,117 @@ enforces its daily limit, and attaches `emitter_id` to the inbox row for audit
 without exporting machine identity in the event envelope. The older event
 endpoint remains the compatibility path for the GitHub importer canary, not a
 reason to run a machine-local collector.
+
+## The trend record
+
+Six tables that exist so the working surfaces can stay disposable. `content_ideas`
+is a desk and the Monday purge clears it; `live_headlines_cache` in the CTRL
+project keeps twenty cards a day. Both of those are right, and until 2026-09-22
+they were also the only copy, so anything that did not become a shift inside
+twenty-one days had never existed as data. Volume, share of voice, publisher lead
+and lag, and any audit of our own filters all need what we discarded.
+
+`trend_observations` is every AI story any collector has seen, from any source,
+whether or not it was surfaced, and when it was not, why. It is not an editorial
+ledger and must not become one: `intake_items` owns the lifecycle of a thing that
+arrived, one row per thing per source, which is right for an editorial ledger and
+wrong for a measurement series. The same story reaching us on three consecutive
+days is one `intake_items` row and three observations, and the three are the
+signal. Identity is `(origin, observed_on, url_hash, content_hash)` with nulls not
+distinct, so an identical re-gather collapses and a changed headline on the same
+URL is kept as its own row. `published_at` is the source's own time and is null
+when the source was silent, never the time we happened to look.
+
+Rows are never updated and never deleted, and a trigger enforces it rather than a
+comment, because a comment is what produced the overwrites this exists to stop.
+Anything a later pass produces therefore lives in its own side table:
+`trend_observation_story_keys` (clustering judgements, stamped with which
+clusterer and when), `trend_observation_entities` (which entities an observation
+mentions, per extractor) and `trend_observation_embeddings` (one row per model).
+A better clusterer, extractor or embedding model adds rows beside the old ones, so
+a change in a trend line can always be attributed to the world or to us.
+
+`trend_entities` is the registry of things that act: labs, companies, models,
+people, techniques. The nine shift categories are a taxonomy of subjects and can
+say whether orchestration is rising; they cannot say how one lab's share of
+coverage is moving against another's. `aliases` is the whole quality of the layer.
+`parent_slug` carries a model up to the lab that made it, so a question about a
+lab sweeps in its releases without anyone maintaining a list.
+
+`trend_weekly_metrics` is the plottable series, rolled by
+`snapshot_trend_weekly_metrics(week, method)` which counts in Postgres rather than
+by paging rows. It is snapshotted and append-only: a recomputation writes a new
+row beside the old one, because a metric computed on read silently rewrites its
+own history the moment the method changes. `trend_weekly_metrics_current` takes
+the newest per point and `trend_weekly_momentum` gives week over week, with
+`pct_change` null rather than infinite where the previous week was zero.
+
+`claim_resolutions` finally reads `investigation_claims.falsifier_due_on`, which
+the 2026-08-05 migration added with the note that it "feeds the public corrections
+log, which turns an apology page into a scoreboard" and which nothing had ever
+read. `came_due` is written by the machine the day a falsifier matures, one per
+claim, so a claim nobody looked at stays visibly unjudged rather than absent.
+`ruled` is a person deciding, with evidence, through `POST /api/claims/rule`; the
+verdict is deliberately not automated, because a system grading its own
+predictions produces a number nobody should trust. `claims_due` is the queue and
+`claim_scoreboard` is the number, with `unclear` and `not_checkable` excluded from
+the denominator rather than counted as wins, and `awaiting_ruling` beside the rate
+so a flattering figure cannot be read without seeing how much is unjudged.
+
+Every one of these tables has RLS on with no policy and no anon or authenticated
+privileges. The writers are content-engine control-plane routes using the service
+role: `/api/feed/ingest` and `/api/purge/run` record observations, `/api/trends/entities`
+tags them, `/api/trends/metrics` snapshots the week, `/api/claims/resolve` notices
+due falsifiers.
+
+## View security posture (2026-09-23)
+
+A view in Postgres runs as its **owner** unless `security_invoker = true` is set on
+it, so by default it reads straight past the permissions of whoever queried it.
+Supabase separately grants `public` schema objects to `anon` and `authenticated`
+by default. The two together are how a table that has been explicitly revoked
+stays readable through a view over it, and the frontend's key is the public
+`VITE_SUPABASE_ANON_KEY` in a browser bundle from a public repository, so `anon`
+means anyone.
+
+Three postures are in use here, and the difference between them is intent rather
+than accident:
+
+1. **Invoker, browser readable.** The dashboard's own reads. The view carries
+   `security_invoker = true` and the tables underneath carry an `anon read`
+   policy, so the table's rules are what decide. Most views are here.
+2. **Invoker, service role only.** No `anon` or `authenticated` grant on the view
+   and no `anon` policy underneath. `standards_efficacy`, `spend_monthly`, the
+   `trend_*` views, `claims_due` and `claim_scoreboard`.
+3. **Definer, service role only, deliberately.** A controlled aggregate interface
+   over a schema that is not exposed through PostgREST at all. The definer
+   property *is* the access control: the view publishes aggregates and never
+   rows, and the raw table stays unreachable. `attribution_app_health`,
+   `growth_attribution_weekly`, `fleet_funnel_by_campaign` and
+   `fleet_revenue_by_campaign` read `attribution.events`, which carries emails.
+   The invariant that makes this safe is the `revoke all ... from anon,
+   authenticated` line; a definer view without it is a hole, which is exactly
+   what `attribution_app_health` was until 2026-09-23.
+
+Migration `20260923143000` converted the fourteen views that were in neither
+posture. Eleven of them changed nothing observable, because their base tables
+already carried `anon read USING (true)`; the conversion removed a bypass rather
+than closing a hole. Verified by counting every view as `role anon` before and
+after and requiring the numbers to match, including `decisions_waiting` broken
+down per `kind`.
+
+`decisions_waiting` needed two policies to survive the conversion, on
+`acquisition_sends` and `corrections`, each using the view's own `WHERE` clause as
+its predicate. The `acquisition_sends` policy is `status = 'queued'` rather than
+the narrower `status = 'queued' AND sample_required`, because that table also
+appears inside a `NOT EXISTS` that suppresses a task while it has a send waiting;
+a narrower policy would have let suppressed tasks reappear.
+
+**Two things this did not fix, recorded so they are not mistaken for done.**
+`attribution_app_health` briefly became invoker in that migration and was
+reverted by `20260923144500`: `service_role` has `rolbypassrls` but that bypasses
+row level security, not table grants, and it holds no `SELECT` on
+`attribution.events`. And the larger exposure is untouched: `contacts` (11,755
+rows), `leads`, `guests`, `customers` and `system_config` are anon readable with
+`USING (true)`. `20260909110000_revoke_anon_writes.sql` promised a table by table
+pass on reads, personal data first, and it has not happened.

@@ -227,7 +227,7 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   const poolSize = Math.min(100, Math.max(limit * 2, 40))
   mark('between_plan_and_rpc', tAfterAll)
   const tRpc = Date.now()
-  const { data, error } = await supabase.rpc('network_search', {
+  const rpc = (over: Record<string, unknown> = {}) => supabase.rpc('network_search', {
     p_query_vec: qvec,
     p_keywords: plan.keywords || null,
     p_venture: plan.venture,
@@ -257,9 +257,82 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     // load from the backfill jobs is what turned a slow search into a failing
     // one, which is worth knowing before running the next bulk job against a
     // database someone is reading from.
+    //
+    // Two corrections from 2026-09-23, when it timed out again on "people in
+    // New York who work at large enterprises":
+    //
+    // - Depth was not what timed out THAT time either. The lexical recall gate
+    //   was reading and cover-density-ranking every keyword match in the corpus
+    //   (3,135 rows for a five-word question) to keep 250. Migration
+    //   20260923102803 bounds that window. Same query, same instance, back to
+    //   back: 6.47s before, 0.26s after, 18 of the top 20 unchanged and the top
+    //   five identical.
+    //
+    // - p_pool still does not reach the SEMANTIC tier, and never did.
+    //   pgvector's hnsw.ef_search bounds the neighbour scan, defaulted to 40,
+    //   and capped it regardless of the LIMIT. That is why 250 and 400 produced
+    //   an identical top twenty above: both were really 40. Migration
+    //   20260923104235 sets it to 120 ON THE FUNCTION, so the number to change
+    //   is there and not here.
+    //
+    //   It is the single most expensive thing left in this search and the first
+    //   dial to turn back if timeouts return. Measured on the same vector, 120
+    //   touches 2,640 index pages against 40's 1,136. On Micro those pages came
+    //   off disk and that was most of the 8s budget; the 2026-09-23 upgrade to
+    //   Small put 512MB of shared_buffers against a 447MB database, so the whole
+    //   thing is cached and the cold search went 7.31s to 1.06s. It buys real
+    //   recall (about a third of the old top twenty held, average match_score
+    //   rose), which is why it stays.
     p_pool: 250,
     p_floor: 150,
+    ...over,
   })
+
+  let { data, error } = await rpc()
+
+  // A timeout is a degradation, not an answer.
+  //
+  // PostgREST runs as `authenticator`, which carries statement_timeout=8s, and
+  // the database cancels rather than waits. Every other stage of this search
+  // degrades and returns people; this one used to put a red bar over an empty
+  // tab, which is the one outcome the feature is built to avoid.
+  //
+  // The retry drops BOTH query tiers rather than narrowing them, which reads as
+  // an overreaction until you look at what a timeout costs. The failure is
+  // already 8 seconds old when it arrives, so a second attempt that might also
+  // time out spends another 8 and returns nothing twice. The retry has one job:
+  // come back with people, fast, every time.
+  //
+  // So it lands on the shape that cannot be slow. Without keywords and without
+  // a vector, network_search is union member (a), which migration
+  // 20260923104235 bounds at the 2,000 strongest relationships: 0.30s on the
+  // current instance. Narrowing the pool instead, which is what this retry did
+  // first, was the wrong lever, because the pool was never what blew the budget.
+  //
+  // What blew it was a COLD read. On the Micro instance this ran on until
+  // 2026-09-23, shared_buffers was 224MB against a 447MB database, so the same
+  // search measured 0.23s warm and 7.31s cold, and hnsw.ef_search=120 touches
+  // 2,640 index pages against 40's 1,136, every one of them off disk. A
+  // narrower pool does not make those pages warmer; dropping the vector skips
+  // them entirely.
+  //
+  // Small holds the whole database in cache and the cold search is now 1.06s,
+  // so this path should fire rarely. It stays because "rarely" is not "never":
+  // the corpus grows, and a retry is the difference between a weaker answer and
+  // no answer.
+  //
+  // Both tiers are named in `degraded`, so the banner says semantic matching
+  // and keyword matching did not run, which is exactly what happened. The rows
+  // are then ranked on relationship and constraints alone, which is the same
+  // honest fallback the nonsense-query path has always used.
+  if (error && /statement timeout|57014/i.test(error.message || '')) {
+    degraded.push('search:narrowed_after_timeout')
+    if (qvec) degraded.push('embedding:dropped_after_timeout')
+    const tRetry = Date.now()
+    ;({ data, error } = await rpc({ p_query_vec: null, p_keywords: null, p_pool: 120, p_floor: 80 }))
+    mark('rpc_retry', tRetry)
+  }
+
   mark('rpc', tRpc)
   if (error) throw new Error(`network_search: ${error.message}`)
 
