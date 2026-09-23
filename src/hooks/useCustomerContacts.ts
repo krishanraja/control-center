@@ -188,10 +188,20 @@ export function useCustomerContacts() {
     let streak = 0
     let cursor = new Date()
     cursor.setHours(0, 0, 0, 0)
-    const dates = new Set(contacts.map(c => {
-      const d = new Date(c.contacted_at); d.setHours(0, 0, 0, 0)
-      return d.toISOString()
-    }))
+    // A row with no usable `contacted_at` is skipped, not fatal. `toISOString`
+    // throws `RangeError: Invalid time value` on an invalid Date, and this runs
+    // inside a useMemo during render — so ONE contact row missing its timestamp
+    // unmounted the entire Subscriptions tab and the reader got "Customers
+    // failed to render / Invalid time value" instead of the roster. Measured
+    // 2026-09-23. The column is typed non-null in TypeScript, which is a claim
+    // about the schema, not about the bytes PostgREST actually returns.
+    const dates = new Set<string>()
+    for (const c of contacts) {
+      const d = new Date(c.contacted_at)
+      if (Number.isNaN(d.getTime())) continue
+      d.setHours(0, 0, 0, 0)
+      dates.add(d.toISOString())
+    }
     for (;;) {
       const key = cursor.toISOString()
       if (!dates.has(key)) break

@@ -82,10 +82,19 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
       )}
       {/* Keyed on the headline so a new "next" gently rises in instead of swapping. */}
       <div key={headline} className={`min-w-0 flex-1 ${reduced ? '' : 'animate-rise'}`}>
+        {/* Full accent, not `/70`. Measured at 1440px on paper, the faded
+            version rendered 2.96:1 — under the 4.5:1 floor — on the eyebrow of
+            the ONE surface this design language calls focal. Mint at full
+            strength is 5.2:1 on paper and ~9:1 on obsidian, so nothing is lost
+            in the dark by removing the fade. */}
         {!clear && (
-          <p className="text-micro font-display uppercase tracking-[0.14em] text-accent/70 mb-1">Do this next</p>
+          <p className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-accent mb-1">Do this next</p>
         )}
-        <p className={`${narrow ? 'text-ui' : 'text-lede'} font-display font-semibold text-ink leading-[1.15] tracking-tight truncate`}>
+        {/* Wraps, never truncates. The headline is the instruction and it names
+            the thing being acted on, so an ellipsis here hides exactly which
+            guest or which stage the button below is about to act on. Two lines
+            of instruction cost 22px; a wrong action costs the move. */}
+        <p className={`${narrow ? 'text-ui' : 'text-lede'} font-display font-semibold text-ink leading-[1.15] tracking-tight break-words`}>
           {headline}
         </p>
         {/* Wraps rather than truncates: the supporting line carries the count

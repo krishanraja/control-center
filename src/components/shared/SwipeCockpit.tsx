@@ -59,9 +59,14 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
   const currentStage = top && config.stageTrack ? config.stageTrack.current(top) : null
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-170px)] min-h-[480px]">
+    // `h-full`, not `h-[calc(100vh-170px)]`. The old value was a guess at the
+    // height of whatever chrome happened to sit above the cockpit on the day it
+    // was written; it was wrong on every surface that used it, which is how a
+    // stage that is supposed to be exactly one screen ended up making the page
+    // scroll. AppFrame now hands it a real height and this fills it.
+    <div className="flex gap-4 h-full min-h-0">
       {/* Left rail — up next */}
-      <aside className="w-64 flex-shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] flex flex-col overflow-hidden">
+      <aside className="w-60 flex-shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] flex flex-col overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] flex-shrink-0">
           <Layers size={14} className="text-violet-300" />
           <span className="text-label font-medium text-ink-muted">Up next</span>
@@ -118,12 +123,19 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
             triagedCount={triage.triagedCount}
             onExit={onExit}
             title={config.title}
+            // The desk deck is a card the height of what is in it, in a stage
+            // as wide as the cockpit can spare. It used to inherit the phone's
+            // `max-w-md` fill card: a 448px column adrift in the middle of a
+            // 1440px screen, most of it empty, with the two rails carrying more
+            // of the reader's answer than the card they were there to support.
+            stage="fit"
+            stageClassName="max-w-2xl"
           />
         </div>
       </div>
 
       {/* Right rail — docked detail + full action set */}
-      <aside className="w-80 flex-shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+      <aside className="w-[22rem] flex-shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden flex flex-col">
         {top && config.renderDetail ? (
           <div className="h-full overflow-y-auto">{config.renderDetail(top)}</div>
         ) : detailDecision ? (

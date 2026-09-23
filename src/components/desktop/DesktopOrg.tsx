@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { Crown, Cog, Sparkles, Zap, Play, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
@@ -359,7 +359,7 @@ export function DesktopOrg() {
               </span>
             )}
             {selected.last_run && (
-              <span className="text-micro text-ink-faint">Last run {formatDistanceToNow(new Date(selected.last_run), { addSuffix: true })}</span>
+              <span className="text-micro text-ink-faint">Last run {relativeTimeOr(selected.last_run, 'not yet')}</span>
             )}
           </div>
         </div>
@@ -456,7 +456,7 @@ export function DesktopOrg() {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {Number(r.cost_usd) > 0 && <span className="text-micro text-ink-faint font-mono">${Number(r.cost_usd).toFixed(3)}</span>}
-                      <span className="text-micro text-ink-faint/50">{r.run_at ? formatDistanceToNow(new Date(r.run_at), { addSuffix: true }) : '—'}</span>
+                      <span className="text-micro text-ink-faint/50">{relativeTimeOr(r.run_at, '—')}</span>
                     </div>
                   </div>
                 ))}
@@ -537,7 +537,7 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
                   {a.role && <p className="text-micro md:text-micro text-ink-faint truncate">{a.role}</p>}
                   {a.last_run && (
                     <p className="text-micro text-ink-faint/50 mt-1 truncate">
-                      Last run {formatDistanceToNow(new Date(a.last_run), { addSuffix: true })}
+                      Last run {relativeTimeOr(a.last_run, 'not yet')}
                     </p>
                   )}
                 </div>
@@ -777,7 +777,7 @@ function PendingCorrectionsPanel({
                   )}
                 </div>
                 <span className="text-micro text-ink-faint tabular-nums flex-shrink-0">
-                  {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                  {relativeTimeOr(c.created_at, 'just now')}
                 </span>
               </div>
               {c.proposed_brief_edit && (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTime, relativeTimeOr } from '../../lib/ageHelpers'
 import { UserMinus } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import type { ChurnLeadRow } from '../../hooks/useAcquisition'
@@ -70,7 +70,7 @@ export function ChurnReengagementQueue({
                 </span>
                 {l.churned_at && (
                   <span className="text-micro text-rose-300/70 flex-shrink-0">
-                    churned {formatDistanceToNow(new Date(l.churned_at), { addSuffix: true })}
+                    churned {relativeTimeOr(l.churned_at, 'at an unknown time')}
                   </span>
                 )}
               </div>
@@ -78,7 +78,7 @@ export function ChurnReengagementQueue({
                 {l.email && <p className="text-micro text-ink-faint truncate">{l.email}</p>}
                 <span className="text-micro text-ink-faint/50 flex-shrink-0">
                   {l.last_emailed_at
-                    ? `emailed ${formatDistanceToNow(new Date(l.last_emailed_at), { addSuffix: true })}`
+                    ? `emailed ${relativeTime(l.last_emailed_at) ?? 'at an unknown time'}`
                     : 'not re-contacted'}
                 </span>
               </div>

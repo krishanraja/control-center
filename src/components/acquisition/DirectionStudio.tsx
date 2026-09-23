@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { Lock, PencilLine, Eye, RotateCcw, Check } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { laneAction, type LaneDetail, type LaneDirection } from '../../hooks/useLaneDetail'
@@ -242,7 +242,7 @@ export function DirectionStudio({
               {locked.never_say?.length > 0 && <p className="text-micro text-ink-faint">Never: {locked.never_say.join(' · ')}</p>}
               {locked.locked_at && (
                 <p className="text-micro text-ink-faint/50">
-                  Locked {formatDistanceToNow(new Date(locked.locked_at), { addSuffix: true })} by {locked.locked_by || 'krish'}
+                  Locked {relativeTimeOr(locked.locked_at, 'earlier')} by {locked.locked_by || 'krish'}
                   {serverDraft ? ' · a draft is in progress' : ''}
                 </p>
               )}

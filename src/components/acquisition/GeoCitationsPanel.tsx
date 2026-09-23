@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { Globe } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { SkeletonList } from '../shared/Skeleton'
@@ -95,7 +95,7 @@ export function GeoCitationsPanel({ lane }: { lane?: string | null }) {
                 </span>
                 {r.venture && <span>· {r.venture}</span>}
                 <span className="ml-auto">
-                  {formatDistanceToNow(new Date(r.surfaced_at || r.created_at), { addSuffix: true })}
+                  {relativeTimeOr(r.surfaced_at || r.created_at, 'just now')}
                 </span>
               </div>
             </div>

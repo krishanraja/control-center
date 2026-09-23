@@ -760,10 +760,21 @@
       bottom-right add it as padding, the way pilot/controls.tsx already
       reserves room for its dock.
 
-   Two pills now stack in that corner: capture (⌘I, bottom) and ask-this-tab
-   (⌘/, above it). Both retire behind a modal, and the gutter covers the pair
-   — 84px reserved for one pill left the upper one sitting on the last row. */
-:root { --capture-gutter: 132px; }
+   Two pills sit in that corner: capture (⌘I, right) and ask-this-tab (⌘/,
+   beside it). Both retire behind a modal.
+
+   They used to STACK, and the gutter had to cover the pair: 132px of the
+   bottom of every desktop surface, at every width, reserved for two controls
+   occupying 300px of the bottom-right corner. On a 900px screen that is 15% of
+   the viewport spent on whitespace the pills are not even in — measured
+   2026-09-23, the Visibility rails stopped 160px short of the frame because of
+   it. Side by side the pair is one 36px row, the gutter is 72px, and roughly
+   60px comes back to every desk surface at once.
+
+   The ⌘I pill's label is fixed, so it anchors the right edge; the ask pill's
+   label follows the tab ("Ask People", "Ask Subscriptions") and sits to its
+   left, where growing costs nothing. */
+:root { --capture-gutter: 72px; }
 
 body[data-scroll-locked] .capture-pill,
 body[data-scroll-locked] .tab-chat-pill { display: none; }

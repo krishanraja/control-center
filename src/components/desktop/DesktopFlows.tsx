@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from '@/lib/icons'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
@@ -195,7 +195,7 @@ export function DesktopFlows() {
                           <span className="text-ink-faint/50">System</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-ink-faint tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</td>
+                      <td className="px-4 py-2.5 text-ink-faint tabular-nums">{relativeTimeOr(w.lastRun, 'never run')}</td>
                       <td className="px-4 py-2.5"><StatusChip status={w.status} /></td>
                       <td className="px-4 py-2.5 text-right text-ink-faint font-mono tabular-nums">{w.runCount}</td>
                       <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${w.errorCount > 0 ? 'text-rose-400 font-semibold' : 'text-ink-faint/50'}`}>{w.errorCount}</td>
@@ -305,7 +305,7 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
               <span className="text-micro text-ink-faint">System</span>
             )}
             <span className="text-ink-faint/40 mx-0.5">·</span>
-            <span className="text-micro text-ink-faint tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</span>
+            <span className="text-micro text-ink-faint tabular-nums">{relativeTimeOr(w.lastRun, 'never run')}</span>
           </div>
         </div>
         <StatusChip status={w.status} />

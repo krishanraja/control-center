@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { Check, ShieldCheck, X } from '@/lib/icons'
 import type { AcquisitionLane } from '../../hooks/useAcquisition'
 import { laneAction, type LaneCriteria, type LaneDetail } from '../../hooks/useLaneDetail'
@@ -113,7 +113,7 @@ export function AutonomyLadderCard({
           )}
           {lastEvent?.at != null && (
             <span>
-              changed {formatDistanceToNow(new Date(String(lastEvent.at)), { addSuffix: true })}
+              changed {relativeTimeOr(String(lastEvent.at), 'earlier')}
               {lastEvent.actor ? ` by ${String(lastEvent.actor)}` : ''}
             </span>
           )}
@@ -187,7 +187,7 @@ export function AutonomyLadderCard({
               {h.reason && <span className="text-ink-faint truncate">{String(h.reason)}</span>}
               {h.at && (
                 <span className="ml-auto text-ink-faint/50 flex-shrink-0">
-                  {formatDistanceToNow(new Date(String(h.at)), { addSuffix: true })}
+                  {relativeTimeOr(String(h.at), 'earlier')}
                 </span>
               )}
             </div>
