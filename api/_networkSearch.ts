@@ -227,7 +227,7 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   const poolSize = Math.min(100, Math.max(limit * 2, 40))
   mark('between_plan_and_rpc', tAfterAll)
   const tRpc = Date.now()
-  const { data, error } = await supabase.rpc('network_search', {
+  const rpc = (over: Record<string, unknown> = {}) => supabase.rpc('network_search', {
     p_query_vec: qvec,
     p_keywords: plan.keywords || null,
     p_venture: plan.venture,
@@ -257,9 +257,52 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     // load from the backfill jobs is what turned a slow search into a failing
     // one, which is worth knowing before running the next bulk job against a
     // database someone is reading from.
+    //
+    // Two corrections from 2026-09-23, when it timed out again on "people in
+    // New York who work at large enterprises":
+    //
+    // - Depth was not what timed out THAT time either. The lexical recall gate
+    //   was reading and cover-density-ranking every keyword match in the corpus
+    //   (3,135 rows for a five-word question) to keep 250. Migration
+    //   20260923102803 bounds that window. Same query, same instance, back to
+    //   back: 6.47s before, 0.26s after, 18 of the top 20 unchanged and the top
+    //   five identical.
+    //
+    // - p_pool has never meant anything to the SEMANTIC tier. pgvector's
+    //   hnsw.ef_search defaults to 40 and caps the neighbour scan, so asking for
+    //   250 returns 40. That is why 250 and 400 produced an identical top twenty
+    //   above: both were really 40. Raising it is a ranking decision with a
+    //   latency cost, so it is still open rather than quietly done.
     p_pool: 250,
     p_floor: 150,
+    ...over,
   })
+
+  let { data, error } = await rpc()
+
+  // A timeout is a degradation, not an answer.
+  //
+  // PostgREST runs as `authenticator`, which carries statement_timeout=8s, and
+  // the database cancels rather than waits. Every other stage of this search
+  // degrades and returns people; this one used to put a red bar over an empty
+  // tab, which is the one outcome the feature is built to avoid.
+  //
+  // So: retry once, narrower. Dropping the keywords removes the lexical tier,
+  // which is the most expensive one and the one the semantic tier most nearly
+  // duplicates, and the smaller pool and floor cut the number of people scored.
+  // The answer is weaker and the response says so.
+  //
+  // Honest about what this does NOT save: with no query vector, network_search
+  // scores the whole corpus by design (union member (a)), and neither the pool
+  // nor the floor bounds that. A search that timed out with the embedding
+  // already unavailable will most likely time out again, and the error stands.
+  if (error && /statement timeout|57014/i.test(error.message || '')) {
+    degraded.push('search:narrowed_after_timeout')
+    const tRetry = Date.now()
+    ;({ data, error } = await rpc({ p_keywords: null, p_pool: 120, p_floor: 80 }))
+    mark('rpc_retry', tRetry)
+  }
+
   mark('rpc', tRpc)
   if (error) throw new Error(`network_search: ${error.message}`)
 

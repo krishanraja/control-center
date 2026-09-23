@@ -980,6 +980,30 @@ Candidate recall is a UNION of orthogonal paths, one of which is
 **query-independent** (the strongest relationships in the network). That is what
 a nonsense query falls back to. The no-vector path stays fully exhaustive.
 
+**The lexical recall path is bounded** (migration `20260923102803`). It reads at
+most `p_pool * 4` keyword matches and ranks those by `ts_rank_cd`, rather than
+cover-density-ranking every match in the corpus to keep `p_pool`. Keywords are
+OR'd, so a five-word question matched 3,135 of 11,755 people and the gate read
+1,951 heap blocks and ranked all of them: 0.9s on a good run, 3.9s on a bad one,
+and it is what put a real search over the 8s statement timeout on 2026-09-23.
+Bounded, the same gate measures 21ms. For a query matching fewer than the cap,
+which is every narrow lexical query this tier exists for (a company name, a
+surname), behaviour is **identical**; above it, the 250 keyword candidates come
+from the first `p_pool * 4` matches rather than the best. Measured end to end on
+four query shapes, 18-20 of the top 20 were unchanged and the leaders identical,
+because the scorer downstream recomputes the lexical signal for the whole pool
+and relationship value dominates a broad query anyway.
+
+Two other costs worth knowing before tuning this function:
+
+- The **relationship floor** (path e) and the **soft geography path** (path f)
+  are served by `ci_relationship_floor_idx` and `ci_geo_relationship_floor_idx`.
+  Before those existed the floor seq-scanned the whole table on every search.
+- **`p_pool` has never applied to the semantic path.** pgvector's
+  `hnsw.ef_search` defaults to 40 and caps the neighbour scan, so a request for
+  250 returns 40. Raising it changes ranking and adds latency, so it is an open
+  decision rather than a silent default.
+
 `p_countries` **pushes down into every recall path** rather than filtering their
 output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered
 afterwards would examine 400 mostly-Australian neighbours and return the handful

@@ -17,6 +17,10 @@ export function degradedWords(stages: string[]): string {
     if (stage.startsWith('embedding')) return 'semantic matching'
     if (stage.startsWith('rerank')) return 'the reranker'
     if (stage.startsWith('planner')) return 'the query planner'
+    // The database cancelled the first attempt at the 8s statement timeout and
+    // the API ran a narrower one: no keyword tier, a smaller pool. "Keyword
+    // matching" is the part of that a person can feel in the results.
+    if (stage.startsWith('search:narrowed')) return 'keyword matching'
     return stage.replace(/[:_]/g, ' ')
   })
   return [...new Set(words)].join(' or ')
