@@ -258,6 +258,13 @@ async function tallestChrome(page: Page, sel: string) {
 
 test.describe.configure({ mode: 'serial' })
 
+// The instrument, not a gate. It walks fifteen surfaces twice, takes thirty
+// screenshots and never fails, so it is off by default and CI does not pay for
+// it. `desk-noscroll-desk.spec.ts` is the gate that runs on every push.
+//
+//   LAYOUT_AUDIT=1 npx playwright test layout-audit --project=desk-1440
+test.skip(!process.env.LAYOUT_AUDIT, 'set LAYOUT_AUDIT=1 to run the layout audit')
+
 test('walk every desktop surface and record what it measures', async ({ page }, testInfo) => {
   test.setTimeout(600_000)
   fs.mkdirSync(OUT, { recursive: true })

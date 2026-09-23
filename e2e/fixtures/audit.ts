@@ -293,6 +293,7 @@ export const AUDIT_ROUTES: Array<{ id: string; hash: string; name: string }> = [
   { id: 'people-hunt', hash: '#/people?lane=bridges', name: 'People · Hunt' },
   { id: 'people-visibility-guests', hash: '#/people?lane=visibility', name: 'People · Visibility (Guests)' },
   { id: 'people-visibility-events', hash: '#/people?lane=visibility&target=vis-3', name: 'People · Visibility (detail)' },
+  { id: 'os-systems-2', hash: '#/os?sub=systems', name: 'OS · Systems (again)' },
   { id: 'people-advisory', hash: '#/people?lane=pilots', name: 'People · Advisory' },
   { id: 'customers', hash: '#/customers', name: 'Customers' },
   { id: 'growth', hash: '#/growth', name: 'Growth' },

@@ -391,6 +391,25 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
     )
   }
 
+  // The one way onto the list. When the list is empty this button is the ONLY
+  // thing to do on the surface, so it belongs inside the empty state rather
+  // than floating in a counts row above it with nothing to count — which is
+  // where it sat, right-aligned to the full width of the board, 70px away
+  // from and diagonally opposite the sentence telling the reader to press it.
+  const findMoreButton = (
+    <button
+      type="button"
+      data-testid="pilot-find-more"
+      onClick={findMore}
+      disabled={seeding}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-accent/40 bg-accent/[0.1] text-ink hover:bg-accent/20 disabled:opacity-40 transition-colors"
+      title="Searches your own network for people who fit the face. Nothing is added until you accept one."
+    >
+      {seeding ? <Working size={12} /> : <Search size={12} />}
+      Find five more
+    </button>
+  )
+
   // Desk: the title and the offer line are chrome, the deals scroll under
   // them. Narrow keeps its own shell.
   return (
@@ -426,22 +445,12 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           different sentences about the same nothing, in three tones, inside
           90 vertical pixels, with 600px of blank screen after them. Measured
           2026-09-23. */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        {counts
-          ? <p data-testid="pilot-counts" className="text-label text-ink-muted">{counts}</p>
-          : <span />}
-        <button
-          type="button"
-          data-testid="pilot-find-more"
-          onClick={findMore}
-          disabled={seeding}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
-          title="Searches your own network for people who fit the face. Nothing is added until you accept one."
-        >
-          {seeding ? <Working size={12} /> : <Search size={12} />}
-          Find five more
-        </button>
-      </div>
+      {counts && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p data-testid="pilot-counts" className="text-label text-ink-muted">{counts}</p>
+          {findMoreButton}
+        </div>
+      )}
 
       {views.length > 1 && (
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pilot states">
@@ -496,6 +505,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           {findNote && (
             <p data-testid="pilot-find-note" className="text-label text-amber-200 mt-2 leading-snug">{findNote}</p>
           )}
+          <div className="mt-4">{findMoreButton}</div>
         </div>
       ) : (
         // One column. `xl:grid-cols-2` was a viewport query over a variable
