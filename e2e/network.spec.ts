@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * Network tab E2E, deterministic: /api/network/* and every Supabase call is
@@ -115,6 +116,29 @@ const input = (page: Page) => page.getByTestId('network-search-input')
 const clearButton = (page: Page) => page.getByTestId('network-search-clear')
 
 async function openNetwork(page: Page) {
+  // Hardening, not a fix: this file was never broken by the morning check-in
+  // gate, and it is worth saying why, because the reason is one edit from
+  // disappearing.
+  //
+  // The gate mounts between 04:00 and 12:00 in the operator's civil day unless
+  // today's check-in exists. This spec has no `**\/api\/**` catch-all, so
+  // `/api/pilot/checkin` goes unmatched, hits the preview server, 404s, and the
+  // gate fails open exactly as designed. It passes at 10am today. Measured, not
+  // assumed: run under a forced `timezoneId` inside the window, 36 of 36 pass
+  // with this line and without it.
+  //
+  // What breaks it is adding a catch-all. `{ ok: true }` is a 200 in the wrong
+  // shape, so the gate reads no check-in and covers the app, and every
+  // assertion below fails with `element(s) not found` at the first selector,
+  // reading as a broken Network tab rather than a missing fixture. That is
+  // precisely what network-desk.spec.ts did, and it took main red on the
+  // morning of 2026-09-23. A catch-all is an ordinary thing to add.
+  //
+  // So: answered explicitly, and registered here rather than in
+  // mockNetworkApis, because this is the file's only navigation and Playwright
+  // matches route handlers in REVERSE order. Several tests add routes after the
+  // shared mocks; landing last wins over all of them at once.
+  await answerPilotGate(page)
   await page.goto('/#/relationships')
   await expect(input(page)).toBeVisible()
 }
