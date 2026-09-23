@@ -93,7 +93,7 @@ export function DesktopAcquisition({
     <div className="max-w-6xl mx-auto space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight flex items-center gap-2">
+          <h1 className="text-title font-display font-semibold text-ink tracking-tight leading-tight flex items-center gap-2">
             <Rocket size={22} className="text-violet-400" /> Growth
           </h1>
           <p className="text-xs md:text-body text-ink-faint mt-0.5">

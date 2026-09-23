@@ -1,3 +1,5 @@
+import { formatDistanceToNow } from 'date-fns'
+
 /**
  * Age helpers shared by every pipeline / blocker / queue surface.
  *
@@ -6,6 +8,36 @@
  * resolves to hour granularity for fresh items. Pipeline lanes use both:
  * card-level age is `humanAge(updated_at)`, rollup age is `ageDays(iso)`.
  */
+
+/**
+ * "3 days ago", or null when there is no usable timestamp. THE one way this
+ * app renders a relative time.
+ *
+ * `formatDistanceToNow(new Date(x))` THROWS `RangeError: Invalid time value`
+ * on a null, undefined or unparseable value. Inside a React render that is not
+ * a missing label, it is an unmounted tab: the error boundary swallows the
+ * whole surface and the reader gets "Customers failed to render / Invalid time
+ * value" where the board should be. Measured 2026-09-23: 17 unguarded call
+ * sites across 10 files, two of which took their tab down against ordinary
+ * data with one nullable column unset.
+ *
+ * The lesson had already been learned once, locally, in WhyBadge — "a bad
+ * timestamp must not throw inside a popover" — and never extended past that
+ * one popover, which is exactly the failure the one-system rule exists to
+ * stop. So: one helper, returning null rather than throwing, and every call
+ * site decides what an absent time looks like.
+ */
+export function relativeTime(at?: string | number | Date | null): string | null {
+  if (at === null || at === undefined || at === '') return null
+  const d = at instanceof Date ? at : new Date(at)
+  if (Number.isNaN(d.getTime())) return null
+  return formatDistanceToNow(d, { addSuffix: true })
+}
+
+/** `relativeTime` with a caller-chosen stand-in, for a slot that must hold something. */
+export function relativeTimeOr(at: string | number | Date | null | undefined, fallback: string): string {
+  return relativeTime(at) ?? fallback
+}
 
 export function ageDays(iso?: string | null): number | null {
   if (!iso) return null

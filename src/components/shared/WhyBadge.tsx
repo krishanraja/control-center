@@ -81,7 +81,7 @@ export function WhyBadge(props: Props) {
         className={
           scored
             ? `shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full border text-body font-semibold tabular-nums transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${ringFor(why.score!, tone)} ${className}`
-            : `shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.14] text-micro font-semibold leading-none text-ink-faint transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-400/60 ${className}`
+            : `tap-44 shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.14] text-micro font-semibold leading-none text-ink-faint transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-400/60 ${className}`
         }
       >
         {scored ? Math.round(why.score!) : '?'}

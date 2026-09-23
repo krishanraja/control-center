@@ -103,21 +103,16 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
   // Narrow: the switcher and the subtab share one viewport-height column, so
   // the subtab's MobileShell (h-full) gets the height that remains under the
   // switcher instead of claiming a fresh full viewport and overflowing the
-  // zoom root's clip box. Desktop keeps the plain flow (its scroll container
-  // lives in App's shell).
-  if (narrow) {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        {switcher}
-        <div className="flex-1 min-h-0">{body}</div>
-      </div>
-    )
-  }
-
+  // zoom root's clip box.
+  //
+  // Desktop takes the same contract since 2026-09-23: the shell stopped
+  // wrapping this tab in `overflow-y-auto`, so the subtab owns the height that
+  // remains under the switcher and scrolls its own board. The switcher is
+  // chrome and stays put.
   return (
-    <>
-      {switcher}
-      {body}
-    </>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex-shrink-0">{switcher}</div>
+      <div className="flex-1 min-h-0">{body}</div>
+    </div>
   )
 }

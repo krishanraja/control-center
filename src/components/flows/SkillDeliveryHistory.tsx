@@ -1,5 +1,5 @@
 import React from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { SkeletonList } from '../shared/Skeleton'
 import { CheckCircle2, Clock, Mail, RotateCcw, ExternalLink, Inbox } from '@/lib/icons'
 import type { SkillDelivery } from './types'
@@ -46,7 +46,7 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
                     </p>
                   )}
                   <p className="text-micro text-ink-faint mt-1 tabular-nums">
-                    {formatDistanceToNow(new Date(d.shipped_at || d.created_at), { addSuffix: true })}
+                    {relativeTimeOr(d.shipped_at || d.created_at, 'just now')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">

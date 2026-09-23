@@ -325,7 +325,20 @@ export default function App() {
                 </ErrorBoundary>
               </Suspense>
             ) : (
-              <div className="h-full overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))]">
+              // Every remaining tab owns its own height, the way Home, Content
+              // and Growth already did. This bucket used to be the one place
+              // the shell wrapped a tab in `overflow-y-auto`, and it was where
+              // every scrolling desk surface lived: People, Customers, OS and
+              // Focus. Measured 2026-09-23, Visibility ran seven status lanes
+              // past the fold inside it.
+              //
+              // The window still never scrolls; what changed is WHERE the
+              // scroll lives. A tab is now a fixed header band over one
+              // bounded, scrolling board (shared/AppFrame), so the title, the
+              // lane switcher and the next action stay put while the list
+              // moves under them — instead of the whole page sliding and the
+              // instruction leaving the screen.
+              <div className="h-full overflow-hidden flex flex-col px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))]">
                 <Suspense fallback={<DesktopRouteFallback />}>
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}

@@ -54,6 +54,12 @@ jobs:
       # stand-ins from creeping back.
       - run: npx tsx scripts/check-icons.mts
       - run: npx tsx scripts/check-icon-stroke.mts
+      # A timestamp the code has not proved is a timestamp takes the whole tab
+      # down: date-fns and Intl both throw RangeError on an invalid date, and
+      # the error boundary turns that into "failed to render" where the board
+      # should be. 17 unguarded call sites were found on 2026-09-23, two of
+      # which crashed their tab against ordinary data.
+      - run: npx tsx scripts/check-safe-dates.mts
       # Same reason: 274 of 323 content ideas were unpurgeable because eleven
       # insert paths could each forget an expiry. The invariant now lives in a
       # column default, and this checks the default, the reserved meaning of
@@ -264,4 +270,15 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder
           VITE_UI_V2_ENABLED: 'true'
+      # The phone, at 390x844 and 360x640. The desk pass of 2026-09-23 fixed
+      # fifteen surfaces and never once rendered the shell Krish actually
+      # carries. 360x640 is the size that bites: Home clipped its own primary
+      # action there, and Visibility's triage card was left 55px of the screen,
+      # both while every desk check was green.
+      - run: npx playwright test --project=phone-390 --project=phone-360 --reporter=line
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_UI_V2_ENABLED: 'true'
+          VITE_VIDEO_ENGINE_ENABLED: 'true'
           VITE_VIDEO_ENGINE_ENABLED: 'true'

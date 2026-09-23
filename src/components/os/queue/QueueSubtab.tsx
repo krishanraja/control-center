@@ -31,10 +31,14 @@ export function QueueSubtab({
       </MobileShell>
     )
   }
+  // The queue is a list and a list needs somewhere to scroll. Inside a
+  // no-scroll shell a plain column is not laid out short, it is cut off.
   return (
-    <div className="max-w-[1280px] mx-auto w-full flex flex-col gap-4">
-      <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} limit={10} />
-      <CalibrationCard />
+    <div className="h-full min-h-0 overflow-y-auto">
+      <div className="max-w-[1280px] mx-auto w-full flex flex-col gap-4 pb-2">
+        <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} limit={10} />
+        <CalibrationCard />
+      </div>
     </div>
   )
 }

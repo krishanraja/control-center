@@ -22,6 +22,7 @@ import { LeadSheet } from '../LeadSheet'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { buildContactsTriageConfig } from '../../lib/triageConfig'
 
 import { VENTURE_OPTIONS as VENTURES } from '../../lib/ventureOptions'
@@ -186,13 +187,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
   if (loading && rawContacts.length === 0) {
     return (
       <div className="space-y-5">
-        <header>
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <HeartHandshake size={20} className="text-rose-300" />
-            Network
-          </h1>
-          <p className="text-body text-ink-faint mt-1">Gathering your network…</p>
-        </header>
+        <SurfaceHeader title="Network" description="Gathering your network…" icon={<HeartHandshake size={18} className="text-rose-300" />} />
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
     )
@@ -201,31 +196,28 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
   if (triageOpen) {
     return (
       <div className="space-y-4">
-        <header className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <HeartHandshake size={20} className="text-rose-300" />
-            Network · Triage
-          </h1>
-          <span className="text-body text-ink-faint">— right keeps warm, left skips with a reason</span>
-        </header>
+        <SurfaceHeader
+          eyebrow="Network"
+          title="Triage"
+          description="Right keeps warm, left skips with a reason."
+          icon={<HeartHandshake size={18} className="text-rose-300" />}
+        />
         <SwipeCockpit config={triageConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4 h-[calc(100vh-3rem)] min-h-0">
+    // `h-full`: the 3rem was a guess at the chrome above this lane, and the
+    // lane is now inside a frame that knows its own height.
+    <div className="flex flex-col gap-4 h-full min-h-0">
       {/* Header */}
       <header className="flex items-end justify-between gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <HeartHandshake size={20} className="text-rose-300" />
-            Network
-          </h1>
-          <p className="text-body text-ink-faint mt-1">
-            The relationship spine — every contact, where they came from, and how warm they are.
-          </p>
-        </div>
+        <SurfaceHeader
+          title="Network"
+          description="The relationship spine. Every contact, where they came from, and how warm they are."
+          icon={<HeartHandshake size={18} className="text-rose-300" />}
+        />
         <div className="flex items-center gap-3">
           <span className="text-micro text-ink-faint tabular-nums">
             {loading ? '…' : `${total} contacts`}

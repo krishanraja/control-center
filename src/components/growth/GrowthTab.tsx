@@ -215,7 +215,7 @@ export function GrowthTab({
   return (
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
-        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Growth</h1>
+        <h1 className="text-title font-display font-semibold text-ink tracking-tight leading-tight">Growth</h1>
         {/* The purpose, on the desk only. On a phone the title, the purpose,
             the counts, the hero, the pills and the section line took the top
             half of the screen before any content: "more than half the screen
