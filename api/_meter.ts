@@ -48,7 +48,7 @@ function db(): Promise<Db | null> {
 // changing provider. meter_daily has no CHECK on provider — the primary key is
 // (provider, unit_kind, unit_key, day, bucket) — so widening this union is the
 // whole change.
-export type MeterProvider = 'apify' | 'n8n' | 'anthropic' | 'google'
+export type MeterProvider = 'apify' | 'n8n' | 'anthropic' | 'google' | 'openai'
 export type MeterUnitKind = 'actor' | 'workflow' | 'agent'
 
 export interface MeterRow {
@@ -361,5 +361,42 @@ export async function anthropicCall(e: {
     unitName: 'tokens',
     cacheReadTokens: u.cacheRead || 0,
     cacheWriteTokens: (u.cacheWrite5m || 0) + (u.cacheWrite1h || 0),
+  })
+}
+
+/**
+ * The OpenAI fallback's spend, recorded the same way Anthropic's is.
+ *
+ * Not optional. The fleet already learned this once: n8n's LLM calls went
+ * unmetered and the dashboard reported $0.00 beside a real bill, which made the
+ * whole automation layer look free. A rescue provider that nobody measures is
+ * the same bug with a better excuse.
+ *
+ * These model ids have no row in _prices.ts, so rows land as `unpriced-model`
+ * with real token counts and no dollars beside them. That is this repo's
+ * deliberate unknown-model behaviour rather than an omission: a guessed rate
+ * would read as fact. Add the rates there and this traffic costs itself.
+ */
+export async function openaiCall(e: {
+  agent?: string | null
+  model: string
+  inputTokens?: number
+  outputTokens?: number
+  failed?: boolean
+}): Promise<void> {
+  const tokens = (e.inputTokens || 0) + (e.outputTokens || 0)
+  if (!tokens) return
+  await add({
+    provider: 'openai',
+    unitKind: 'agent',
+    unitKey: normalizeAgent(e.agent),
+    bucket: e.model,
+    label: normalizeAgent(e.agent),
+    category: isPriced(e.model) ? 'priced' : 'unpriced-model',
+    usd: priceUsd(e.model, e.inputTokens || 0, e.outputTokens || 0),
+    runs: 1,
+    failed: e.failed ? 1 : 0,
+    units: tokens,
+    unitName: 'tokens',
   })
 }

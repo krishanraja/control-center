@@ -225,6 +225,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     raw = await callClaude({
       agent: 'network-scan-card',
+      // Vision. The fallback path is text only, so an image call that fell back
+      // would answer confidently about an image it never saw.
+      fallback: false,
       system: SYSTEM,
       user: 'Extract the person from this screenshot.',
       images: [{ mime, data: body.toString('base64') }],
