@@ -1092,3 +1092,65 @@ enforces its daily limit, and attaches `emitter_id` to the inbox row for audit
 without exporting machine identity in the event envelope. The older event
 endpoint remains the compatibility path for the GitHub importer canary, not a
 reason to run a machine-local collector.
+
+## The trend record
+
+Six tables that exist so the working surfaces can stay disposable. `content_ideas`
+is a desk and the Monday purge clears it; `live_headlines_cache` in the CTRL
+project keeps twenty cards a day. Both of those are right, and until 2026-09-22
+they were also the only copy, so anything that did not become a shift inside
+twenty-one days had never existed as data. Volume, share of voice, publisher lead
+and lag, and any audit of our own filters all need what we discarded.
+
+`trend_observations` is every AI story any collector has seen, from any source,
+whether or not it was surfaced, and when it was not, why. It is not an editorial
+ledger and must not become one: `intake_items` owns the lifecycle of a thing that
+arrived, one row per thing per source, which is right for an editorial ledger and
+wrong for a measurement series. The same story reaching us on three consecutive
+days is one `intake_items` row and three observations, and the three are the
+signal. Identity is `(origin, observed_on, url_hash, content_hash)` with nulls not
+distinct, so an identical re-gather collapses and a changed headline on the same
+URL is kept as its own row. `published_at` is the source's own time and is null
+when the source was silent, never the time we happened to look.
+
+Rows are never updated and never deleted, and a trigger enforces it rather than a
+comment, because a comment is what produced the overwrites this exists to stop.
+Anything a later pass produces therefore lives in its own side table:
+`trend_observation_story_keys` (clustering judgements, stamped with which
+clusterer and when), `trend_observation_entities` (which entities an observation
+mentions, per extractor) and `trend_observation_embeddings` (one row per model).
+A better clusterer, extractor or embedding model adds rows beside the old ones, so
+a change in a trend line can always be attributed to the world or to us.
+
+`trend_entities` is the registry of things that act: labs, companies, models,
+people, techniques. The nine shift categories are a taxonomy of subjects and can
+say whether orchestration is rising; they cannot say how one lab's share of
+coverage is moving against another's. `aliases` is the whole quality of the layer.
+`parent_slug` carries a model up to the lab that made it, so a question about a
+lab sweeps in its releases without anyone maintaining a list.
+
+`trend_weekly_metrics` is the plottable series, rolled by
+`snapshot_trend_weekly_metrics(week, method)` which counts in Postgres rather than
+by paging rows. It is snapshotted and append-only: a recomputation writes a new
+row beside the old one, because a metric computed on read silently rewrites its
+own history the moment the method changes. `trend_weekly_metrics_current` takes
+the newest per point and `trend_weekly_momentum` gives week over week, with
+`pct_change` null rather than infinite where the previous week was zero.
+
+`claim_resolutions` finally reads `investigation_claims.falsifier_due_on`, which
+the 2026-08-05 migration added with the note that it "feeds the public corrections
+log, which turns an apology page into a scoreboard" and which nothing had ever
+read. `came_due` is written by the machine the day a falsifier matures, one per
+claim, so a claim nobody looked at stays visibly unjudged rather than absent.
+`ruled` is a person deciding, with evidence, through `POST /api/claims/rule`; the
+verdict is deliberately not automated, because a system grading its own
+predictions produces a number nobody should trust. `claims_due` is the queue and
+`claim_scoreboard` is the number, with `unclear` and `not_checkable` excluded from
+the denominator rather than counted as wins, and `awaiting_ruling` beside the rate
+so a flattering figure cannot be read without seeing how much is unjudged.
+
+Every one of these tables has RLS on with no policy and no anon or authenticated
+privileges. The writers are content-engine control-plane routes using the service
+role: `/api/feed/ingest` and `/api/purge/run` record observations, `/api/trends/entities`
+tags them, `/api/trends/metrics` snapshots the week, `/api/claims/resolve` notices
+due falsifiers.
