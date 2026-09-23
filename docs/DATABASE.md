@@ -1024,9 +1024,25 @@ Two other costs worth knowing before tuning this function:
 
 **The real ceiling is the instance, not the query.** `shared_buffers` is 224MB
 and `contact_intelligence` alone is 274MB with a 103MB HNSW index, so the table
-cannot be held in cache and a cold candidate set is disk. Identical queries
-measure 0.1-0.5s warm and 2-5s cold. That spread, not the SQL, is what is left
-between here and the 8s statement timeout.
+cannot be held in cache and a cold read is disk. The same search measured **0.23s
+warm and 7.31s cold** after the ef_search change, against an 8s timeout. That
+spread, not the SQL, is what is left to give.
+
+Two things follow, and they are worth reading before touching any of the numbers
+above:
+
+- **`hnsw.ef_search` is what makes the cold case expensive.** 120 touches 2,640
+  index pages where 40 touched 1,136, and on a cold cache every one of those is
+  a read. Warm, the difference is 0.3-0.6s and invisible; cold, it is most of
+  the remaining headroom. If timeouts come back, lower this before anything
+  else.
+- **A compute upgrade is the only thing that removes the cold case.** Every
+  other lever trades recall for latency. More RAM does not.
+
+Until then the API's timeout retry is the backstop, and it is deliberately not
+a narrower version of the same query: it drops the vector and the keywords and
+lands on the bounded relationship floor, measured at 0.11s warm and 1.59s cold.
+A retry that can itself be slow is not a backstop.
 
 `p_countries` **pushes down into every recall path** rather than filtering their
 output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered

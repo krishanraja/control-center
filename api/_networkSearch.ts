@@ -273,9 +273,15 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     //   and capped it regardless of the LIMIT. That is why 250 and 400 produced
     //   an identical top twenty above: both were really 40. Migration
     //   20260923104235 sets it to 120 ON THE FUNCTION, so the number to change
-    //   is there and not here. It is the single most expensive thing left in
-    //   this search, roughly 0.3-0.6s per call, and the first dial to turn back
-    //   if timeouts ever return.
+    //   is there and not here.
+    //
+    //   It is the single most expensive thing left in this search and the first
+    //   dial to turn back if timeouts return. Measured on the same vector, 120
+    //   touches 2,640 index pages against 40's 1,136: roughly 0.3-0.6s warm,
+    //   and considerably more than that cold, because shared_buffers is 224MB
+    //   against a 274MB table plus a 103MB index and those pages are read from
+    //   disk. It buys real recall (about a third of the old top twenty held,
+    //   and average match_score rose), which is why it stays.
     p_pool: 250,
     p_floor: 150,
     ...over,
@@ -290,19 +296,34 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   // degrades and returns people; this one used to put a red bar over an empty
   // tab, which is the one outcome the feature is built to avoid.
   //
-  // So: retry once, narrower. Dropping the keywords removes the lexical tier,
-  // which is the most expensive one and the one the semantic tier most nearly
-  // duplicates, and the smaller pool and floor cut the number of people scored.
-  // The answer is weaker and the response says so.
+  // The retry drops BOTH query tiers rather than narrowing them, which reads as
+  // an overreaction until you look at what a timeout costs. The failure is
+  // already 8 seconds old when it arrives, so a second attempt that might also
+  // time out spends another 8 and returns nothing twice. The retry has one job:
+  // come back with people, fast, every time.
   //
-  // The no-vector case used to be beyond saving here, because union member (a)
-  // scored the whole corpus and no argument bounded it. Migration
-  // 20260923104235 bounds it at 2,000 by relationship, so the retry is now
-  // worth making whether or not the embedding arrived.
+  // So it lands on the shape that cannot be slow. Without keywords and without
+  // a vector, network_search is union member (a), which migration
+  // 20260923104235 bounds at the 2,000 strongest relationships: measured at
+  // 0.11s warm and 1.59s cold, whatever was asked. Narrowing the pool instead,
+  // which is what this retry did first, was the wrong lever, because the pool
+  // was never what blew the budget.
+  //
+  // What blows it is a COLD read. Measured after the merge: the same search is
+  // 0.23s warm and 7.31s cold, because shared_buffers is 224MB against a 274MB
+  // table and a 103MB HNSW index, and hnsw.ef_search=120 touches 2,640 index
+  // pages against 40's 1,136. A narrower pool does not make those pages any
+  // warmer; dropping the vector skips them entirely.
+  //
+  // Both tiers are named in `degraded`, so the banner says semantic matching
+  // and keyword matching did not run, which is exactly what happened. The rows
+  // are then ranked on relationship and constraints alone, which is the same
+  // honest fallback the nonsense-query path has always used.
   if (error && /statement timeout|57014/i.test(error.message || '')) {
     degraded.push('search:narrowed_after_timeout')
+    if (qvec) degraded.push('embedding:dropped_after_timeout')
     const tRetry = Date.now()
-    ;({ data, error } = await rpc({ p_keywords: null, p_pool: 120, p_floor: 80 }))
+    ;({ data, error } = await rpc({ p_query_vec: null, p_keywords: null, p_pool: 120, p_floor: 80 }))
     mark('rpc_retry', tRetry)
   }
 
