@@ -91,7 +91,12 @@ export function AskCard({ variant, composeSignal }: Props) {
   const composing = !today || editing
 
   return (
-    <div className={`rounded-2xl bg-white/[0.03] border border-white/[0.08] ${compact ? 'p-4 gap-3' : 'p-5 gap-4'} flex flex-col`}>
+    // The house card material (`.surface`), not a 3% wash of the page. The wash
+    // never became a surface in either theme: on paper it was a 3% black tint of
+    // warm paper, and on obsidian it was the translucency the card tokens were
+    // rewritten to kill. Same fix as SectionCard, so the spine and the tools
+    // beneath it read as one set of instruments.
+    <div className={`surface rounded-2xl ${compact ? 'p-4 gap-3' : 'p-5 gap-4'} flex flex-col`}>
 
       {/* An ask from a past day, still waiting on reality. One at a time. */}
       {state?.unresolved && !learning && (
