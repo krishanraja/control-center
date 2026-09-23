@@ -405,8 +405,17 @@
 
      It needs a positioning context, so it sets `position: relative` itself
      unless the call site already made it absolute or fixed. */
+  /* `position: relative` only creates the positioning context the ::after
+     needs. It does NOT need defending against a call site that positions the
+     control itself: Tailwind emits utilities in a later layer than components,
+     so `absolute` / `fixed` / `sticky` already win here.
+     The first version added `.tap-44.absolute { position: revert-layer }` to
+     "let the call site win", and that rule — higher specificity than the bare
+     utility — reverted the position to static instead. The dialog's close
+     button left its corner and re-entered the layout flow, pushing the sheet's
+     own content down; the evening shutdown's way out went off the bottom of a
+     phone and two pilot-gate specs caught it. */
   .tap-44 { position: relative; }
-  .tap-44.absolute, .tap-44.fixed, .tap-44.sticky { position: revert-layer; }
   .tap-44::after {
     content: '';
     position: absolute;
