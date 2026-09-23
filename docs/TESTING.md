@@ -65,6 +65,17 @@ database and no spec spends an embedding or a model call.
 | `e2e/content-desk.spec.ts` | the Content desk above 1400px, populated: no scroll, no nested scrollers, no hole, no squeezed text, no machine strings | **desk-1440 + desk-1920** |
 | `e2e/advisory-desk.spec.ts` | the Advisory two-pane card and the draft that no longer scrolls in a box | **desk-1440 + desk-1920** |
 | `e2e/network-desk.spec.ts` | one venture control, Where\|Venture over Role\|Tier, and the country overflow as a popover rather than a phone sheet | **desk-1440 + desk-1920** |
+| `e2e/focus-desk.spec.ts` | Focus above 1400px: the day-boundary panel beside the ask rather than under it, the 620px ask measure held at 1920, and the shared squeezed-text/overflow/hole probes | **desk-1440 + desk-1920** |
+| `e2e/sidebar-desk.spec.ts` | the sidebar's hover-to-expand after a collapse, swept with no pause so the Chromium timing gap that hid the bug cannot hide it again | **desk-1440 + desk-1920** |
+| `e2e/desk-noscroll-desk.spec.ts` | the hard gate every desk surface owes: no window scroll, no clipped content, no error boundary, all fifteen surfaces | **desk-1440 + desk-1920** |
+| `e2e/phone-noscroll-phone.spec.ts` | the same gate at phone widths, plus a collision check for the two fixed corner controls | 390x844 + 360x640 |
+
+`e2e/layout-audit-desk.spec.ts` and `e2e/layout-audit-phone.spec.ts` are not
+in the table above: they never fail, screenshot every populated surface into
+`audit/`, and exist to produce the numbers the specs above gate on. Behind
+`LAYOUT_AUDIT=1` so CI does not pay for them. The full procedure and the
+three traps that each cost a cycle building it are in the root `AGENTS.md`,
+"Measuring a layout instead of arguing about it".
 
 ### Desk projects, and the fixtures that make them mean anything
 
