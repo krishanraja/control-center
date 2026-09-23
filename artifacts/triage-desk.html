@@ -172,7 +172,23 @@
   }
   .gapwarn b { font-weight: 600; }
 
-.notewrap { margin-top: 12px; }
+.selftest {
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    margin: 0 0 14px; padding: 10px 13px; border-radius: 9px;
+    border: 1px solid var(--rule); background: var(--card);
+    font-size: 13.5px; color: var(--slate);
+  }
+  .selftest .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: 0 0 auto; }
+  .selftest.ok { background: var(--go-w); border-color: transparent; color: var(--go); }
+  .selftest.ok .dot { background: var(--go); }
+  .selftest.bad { background: var(--brass-w); border-color: transparent; color: var(--brass); }
+  .selftest.bad .dot { background: var(--brass); }
+  .selftest button {
+    margin-left: auto; font: 500 12.5px/1 Archivo, sans-serif; padding: 6px 10px;
+    border-radius: 7px; cursor: pointer; border: 1px solid currentColor;
+    background: none; color: inherit;
+  }
+  .notewrap { margin-top: 12px; }
   textarea.notes {
     width: 100%; resize: vertical; min-height: 58px;
     font: 400 14.5px/1.5 Archivo, sans-serif; color: var(--ink);
@@ -225,6 +241,11 @@
     </aside>
 
     <main>
+      <div id="selftest" class="selftest">
+        <span class="dot" id="st-dot"></span>
+        <span id="st-text">Checking what this desk can do…</span>
+        <button type="button" id="st-run" hidden>Check again</button>
+      </div>
       <p class="stage-hint" id="hint"></p>
       <div id="ledger-state" hidden></div>
       <div id="queue" class="queue">
@@ -569,6 +590,48 @@
     ['not_interesting', 'Not interesting'],
   ];
 
+
+
+  /* ── can this desk actually do anything? ──────────────────────────────
+   *
+   * Krish: "is this whole artifact actually able to do anything?" A fair
+   * question, and the page could not answer it. Reads plainly worked - cards
+   * were on screen - while every write had recorded nothing, and the two are
+   * indistinguishable until you press something.
+   *
+   * So the page tests itself out loud, on load, with a real write: an UPDATE
+   * that sets a row's updated_at to the value it already holds. It changes
+   * nothing and it is a genuine write, which is the only kind of test worth
+   * running. A read-only probe would pass in exactly the broken case.
+   */
+  async function selfTest() {
+    const box = $('#selftest'), dot = $('#st-dot'), txt = $('#st-text'), again = $('#st-run');
+    box.className = 'selftest'; again.hidden = true;
+    txt.textContent = 'Checking what this desk can do…';
+    let probeId = null;
+    try {
+      const rows = await sql(`select id from public.content_ideas where buried_at is null order by created_at desc limit 1;`);
+      probeId = rows[0] && rows[0].id;
+      if (!probeId) { box.classList.add('ok'); txt.textContent = 'Reading works. No rows to write against, so writing is untested.'; again.hidden = false; return; }
+    } catch (e) {
+      const [t, b] = explain(e);
+      box.classList.add('bad'); txt.textContent = 'Cannot read: ' + t + '. ' + b; again.hidden = false; return;
+    }
+    try {
+      await sql(`update public.content_ideas set updated_at = updated_at where id = ${lit(probeId)};`, { write: true });
+      box.classList.add('ok');
+      txt.textContent = 'Reading and writing both work. Your decisions will be saved and recorded.';
+    } catch (e) {
+      const code = (e && e.code) || 'unknown';
+      box.classList.add('bad');
+      txt.textContent = code === 'approval_required'
+        ? 'This desk can READ but not WRITE. Your Supabase connector asks you to confirm each write, and an artifact has no way to show that prompt, so every button here would fail silently. Nothing you press will save.'
+        : code === 'tool_error'
+          ? 'This desk can read but not write. The database refused it: ' + String(e.message || '').slice(0, 200)
+          : 'This desk can read but not write (' + code + '). Nothing you press will save.';
+      again.hidden = false;
+    }
+  }
 
   /* ── his notes ────────────────────────────────────────────────────────
    *
@@ -968,6 +1031,8 @@
     } catch (e) { const [t, b] = explain(e); return pageNote(t, b, () => location.reload(), e); }
     counts();
     render();
+    $('#st-run').onclick = selfTest;
+    selfTest();
   })();
 })();
 </script>
