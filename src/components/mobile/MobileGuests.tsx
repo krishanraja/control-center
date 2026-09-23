@@ -191,10 +191,25 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
     return <MobileLoadingScreen title="Visibility" subtitle="Gathering people and events…" />
   }
 
+  // No title block on the deck. The stage IS the screen.
+  //
+  // Measured on a 360x640 phone, 2026-09-23: a 40px identity mark, a 28px
+  // "Visibility" and the subtitle "Swipe to clear the pile" took 110px off the
+  // top, and with the lane tabs, the deck's progress strip, its control bar,
+  // its hint line, the create button and the bottom nav under them, the CARD
+  // was left 55 pixels — nine percent of the screen for the one thing the
+  // screen exists to show, with the guest's name, their pitch and every
+  // research link clipped out of it.
+  //
+  // The lane tabs and the deck's own "Guests to triage · 22 left" strip say
+  // where you are; the tab bar above already says Visibility. The subtitle sat
+  // directly above a hint line that says the same thing in more detail.
+  // Identity renders on every other mobile surface, which is what the brand
+  // rule is about; a card deck is a stage.
   if (activeTriage.mode === 'deck') {
     return (
-      <MobileShell scroll="none" header={<TabHeader title="Visibility" subtitle="Swipe to clear the pile" />}>
-        <div className="px-4 pb-3 flex-shrink-0">{laneTabs}</div>
+      <MobileShell scroll="none">
+        <div className="px-4 pt-1 pb-3 flex-shrink-0">{laneTabs}</div>
         <div className="flex-1 min-h-0">
           {lane === 'inbound' ? (
             <SwipeDeck<GuestRow>
@@ -449,12 +464,21 @@ function renderGuestBody(g: GuestRow) {
       </div>
       <p className="text-title font-semibold text-ink leading-snug">{g.name}</p>
       {g.one_liner && <p className="text-body text-ink-faint leading-relaxed mt-2">{g.one_liner}</p>}
+      {/* The reasoning scrolls; it is never cut.
+          
+          It used to be `overflow-hidden` over `why_fit.slice(0, 300)` with an
+          ellipsis — a clip inside a clip, on the one field that answers "why
+          this person". The house text rule exists for exactly this: a missing
+          clause can reverse the meaning of a reason. And because the clipping
+          box was `flex-1`, the link row underneath it was pushed off the card:
+          measured on a 360x640 phone on 2026-09-23, LinkedIn and Email sat 10px
+          and Google and YouTube 47px past the bottom of the screen. */}
       {g.why_fit && (
-        <p className="text-body text-ink-muted leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
-          <span className="text-ink-faint">Why: </span>{g.why_fit.slice(0, 300)}{g.why_fit.length > 300 ? '…' : ''}
+        <p className="text-body text-ink-muted leading-relaxed mt-3 overflow-y-auto flex-1 min-h-0">
+          <span className="text-ink-faint">Why: </span>{g.why_fit}
         </p>
       )}
-      <QuickLinkRow links={guestLinks(g)} />
+      <div className="flex-shrink-0"><QuickLinkRow links={guestLinks(g)} /></div>
     </>
   )
 }
@@ -495,10 +519,11 @@ function renderTargetBody(t: VisibilityTargetRow) {
         )}
       </div>
       <p className="text-title font-semibold text-ink leading-snug">{t.title}</p>
+      {/* Scrolls, never cut — see the guest card above. */}
       {t.why_relevant && (
-        <p className="text-body text-ink-muted leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+        <p className="text-body text-ink-muted leading-relaxed mt-3 overflow-y-auto flex-1 min-h-0">
           <Sparkles size={11} className="inline mr-1 text-violet-300" />
-          <span className="text-ink-faint">Why: </span>{t.why_relevant.slice(0, 280)}{t.why_relevant.length > 280 ? '…' : ''}
+          <span className="text-ink-faint">Why: </span>{t.why_relevant}
         </p>
       )}
       {t.suggested_talk_title && (

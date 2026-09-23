@@ -71,11 +71,26 @@ export function MobileHome({ onNavigate }: {
         <PilotStrip onNavigate={onNavigate} />
       </div>
 
-      {/* overflow-hidden so an over-tall day (a firing critical alert on a
-          short phone) clips inside this stack instead of painting over the
-          Focus door below it. On an ordinary day the canon fits: the no-scroll
-          spec pins scrollHeight == clientHeight here at every viewport. */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-2 pt-1">
+      {/* The canon stack keeps the doors off its back — but it SCROLLS when it
+          overruns instead of clipping.
+          
+          It used to be `overflow-hidden`, on the reasoning that an over-tall
+          day should clip here rather than paint over the Focus door, and that
+          "on an ordinary day the canon fits". Measured on a 360x640 phone with
+          a real canon on 2026-09-23, an ordinary day does not: three OS goals
+          written the way Krish writes them ("Twenty-five paid advisory rooms by
+          the end of the quarter") wrap to two lines each, and "Pick your 3 for
+          today" — the primary action on the page — sat 63px below the bottom of
+          the screen with no way to reach it and nothing to say it was there.
+          The existing no-scroll spec covers 360x640 and passed, because its
+          fixture's goal titles are short enough to fit.
+
+          Clipping the third slot away with nothing said is the exact failure
+          that spec was written to catch; a short viewport that scrolls a little
+          is the graceful degradation Focus & Purpose already uses. On a phone
+          with room, nothing overflows and nothing scrolls, so the contract is
+          unchanged where it can be kept. */}
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pt-1">
         <GoalLadder variant="mobile" />
         {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
         <TodayList compact />

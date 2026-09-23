@@ -34,10 +34,37 @@ export default defineConfig({
     {
       name: 'default',
       use: { viewport: { width: 1280, height: 800 } },
-      testIgnore: /-desk\.spec\.ts$/,
+      // The desk and phone projects own their own files; `default` is the
+      // 1280x800 middle ground for everything else. Without the phone ignore a
+      // phone spec also ran here, measuring the DESK shell against phone rules.
+      testIgnore: /-(desk|phone)\.spec\.ts$/,
     },
     { name: 'desk-1440', use: { viewport: { width: 1440, height: 900 } }, testMatch: /-desk\.spec\.ts$/ },
     { name: 'desk-1920', use: { viewport: { width: 1920, height: 1080 } }, testMatch: /-desk\.spec\.ts$/ },
+    /**
+     * The phone, at the two sizes that actually bite.
+     *
+     * 390x844 is a current iPhone; 360x640 is the short viewport the design
+     * system's own notes keep coming back to ("it fits at 360x640 with room to
+     * spare"), and it is where a stage that is 60px too tall stops fitting.
+     * Both are coarse-pointer + isMobile, because App resolves its shell from
+     * pointer type, not width alone: a 390px window with a fine pointer renders
+     * the DESK tree, so a phone spec without hasTouch measures the wrong app.
+     *
+     * The `*-phone.spec.ts` files read their width from page.viewportSize() and
+     * never call setViewportSize — a spec that sets its own size makes the
+     * project's width a lie.
+     */
+    {
+      name: 'phone-390',
+      use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+      testMatch: /-phone\.spec\.ts$/,
+    },
+    {
+      name: 'phone-360',
+      use: { viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true },
+      testMatch: /-phone\.spec\.ts$/,
+    },
   ],
   webServer: {
     command: `npm run preview -- --port ${previewPort} --strictPort --host 127.0.0.1`,

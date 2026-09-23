@@ -155,10 +155,15 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
     )
   }
 
+  // Desktop takes the same column contract as narrow now that the shell no
+  // longer wraps this tab in a scroll container: the lane switcher is fixed
+  // chrome, and the lane under it gets exactly the height that remains. A lane
+  // that renders a list scrolls that list, not the page — so the switcher, the
+  // surface title and the next action never leave the screen.
   return (
-    <>
-      {switcher}
-      {body}
-    </>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex-shrink-0">{switcher}</div>
+      <div className="flex-1 min-h-0">{body}</div>
+    </div>
   )
 }

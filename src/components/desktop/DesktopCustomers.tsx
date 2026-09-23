@@ -76,7 +76,7 @@ export function DesktopCustomers() {
   const left = (
     <div className="h-full overflow-y-auto p-4 space-y-4">
       <div>
-        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">
+        <h1 className="text-title font-display font-semibold text-ink tracking-tight leading-tight">
           Subscriptions
         </h1>
         {loading ? (
@@ -202,7 +202,7 @@ export function DesktopCustomers() {
   const right = current ? (
     <div className="h-full overflow-y-auto p-5 space-y-4">
       <div className="flex items-end justify-between gap-3 flex-wrap">
-        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">
+        <h1 className="text-title font-display font-semibold text-ink tracking-tight leading-tight">
           {PRODUCT_LABEL[current.product]}
         </h1>
         <p className="text-label text-ink-faint">

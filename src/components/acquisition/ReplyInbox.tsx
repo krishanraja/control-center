@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { MessageSquare } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { SkeletonList } from '../shared/Skeleton'
@@ -107,7 +107,7 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
                   {r.classification.replace(/_/g, ' ')}
                 </span>
                 <span className="ml-auto text-micro text-ink-faint/50 flex-shrink-0">
-                  {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                  {relativeTimeOr(r.created_at, 'just now')}
                 </span>
               </div>
               {(r.subject || r.body) && (

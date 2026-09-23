@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Clock, MapPin, Sparkles, AlertTriangle, Copy, CheckCircle2 } from '@/lib/icons'
-import { formatDistanceToNow, parseISO } from 'date-fns'
+import { relativeTime } from './../lib/ageHelpers'
 import { supabase } from '../lib/supabase'
 
 /**
@@ -263,9 +263,9 @@ function HeaderStrip({
               {autoFired ? 'Auto enriching' : 'Enriching now'}
             </span>
           )}
-          {target.deep_enriched_at && !enriching && (
+          {relativeTime(target.deep_enriched_at) && !enriching && (
             <span className="text-micro text-emerald-300/80 uppercase tracking-wider">
-              Deep enriched {formatDistanceToNow(parseISO(target.deep_enriched_at), { addSuffix: true })}
+              Deep enriched {relativeTime(target.deep_enriched_at)}
             </span>
           )}
         </div>
@@ -594,11 +594,11 @@ interface DeadlineMeta {
 }
 
 function useDeadlineMeta(iso: string | null): DeadlineMeta | null {
-  if (!iso) return null
-  const date = parseISO(iso)
-  const days = Math.floor((date.getTime() - Date.now()) / 86_400_000)
-  if (days < 0) return { label: `Passed ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-white/15 text-ink-faint bg-white/[0.02]' }
-  if (days < 7) return { label: `Due ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-rose-400/40 text-rose-200 bg-rose-500/[0.08]' }
-  if (days < 30) return { label: `Due ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-amber-400/40 text-amber-200 bg-amber-500/[0.06]' }
-  return { label: `Due ${formatDistanceToNow(date, { addSuffix: true })}`, tone: 'border-emerald-400/30 text-emerald-200 bg-emerald-500/[0.04]' }
+  const rel = relativeTime(iso)
+  if (!iso || !rel) return null
+  const days = Math.floor((new Date(iso).getTime() - Date.now()) / 86_400_000)
+  if (days < 0) return { label: `Passed ${rel}`, tone: 'border-white/15 text-ink-faint bg-white/[0.02]' }
+  if (days < 7) return { label: `Due ${rel}`, tone: 'border-rose-400/40 text-rose-200 bg-rose-500/[0.08]' }
+  if (days < 30) return { label: `Due ${rel}`, tone: 'border-amber-400/40 text-amber-200 bg-amber-500/[0.06]' }
+  return { label: `Due ${rel}`, tone: 'border-emerald-400/30 text-emerald-200 bg-emerald-500/[0.04]' }
 }

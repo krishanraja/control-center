@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, ThumbsUp, ThumbsDown } from '@/lib/icons'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { useSkillProposals } from '../../hooks/useSkillProposals'
 import { Working } from './Working'
 
@@ -74,7 +74,7 @@ export function SkillProposalsPanel() {
                   </p>
                 </div>
                 <span className="text-micro text-ink-faint tabular-nums flex-shrink-0">
-                  {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                  {relativeTimeOr(p.created_at, 'just now')}
                 </span>
               </div>
               {p.skill_body && (

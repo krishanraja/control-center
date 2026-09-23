@@ -390,9 +390,75 @@
   }
   .btn-contrast:active { filter: brightness(0.94); }
 
-  /* Money ink uses the same answer colour as the rest of Mindmake. */
+  /* ── The tap floor ────────────────────────────────────────────────────────
+     A control smaller than 44 physical pixels is a control that misses.
+
+     Measured on a phone, 2026-09-23: the dialog close was 17x17, the queue's
+     snooze 17x17, the "why is this here" badge 24x24 and the goal ladder's
+     own checkboxes 26x26 — and the ladder is the primary interaction on Home.
+
+     The fix is NOT to draw them bigger. A 44px X in the corner of a sheet is a
+     heavy thing sitting where a quiet thing belongs, and the ladder's small
+     square checkbox is correct. `.tap-44` leaves the ink exactly where it is
+     and grows the HIT AREA underneath it with a centred pseudo-element, which
+     is what the 44px guidance is actually about.
+
+     It needs a positioning context, so it sets `position: relative` itself
+     unless the call site already made it absolute or fixed. */
+  /* `position: relative` only creates the positioning context the ::after
+     needs. It does NOT need defending against a call site that positions the
+     control itself: Tailwind emits utilities in a later layer than components,
+     so `absolute` / `fixed` / `sticky` already win here.
+     The first version added `.tap-44.absolute { position: revert-layer }` to
+     "let the call site win", and that rule — higher specificity than the bare
+     utility — reverted the position to static instead. The dialog's close
+     button left its corner and re-entered the layout flow, pushing the sheet's
+     own content down; the evening shutdown's way out went off the bottom of a
+     phone and two pilot-gate specs caught it. */
+  .tap-44 { position: relative; }
+  .tap-44::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+    /* NO `z-index: -1` here. It reads as "behind the glyph", and it is — but
+       negative z-index also drops the box behind the nearest ancestor that
+       paints a background, at which point `elementFromPoint` returns that
+       ancestor and the expanded area is not clickable at all. The first
+       version of this utility had it, and the hit-test probe correctly kept
+       reporting the 17px close and the 26px checkbox as unreachable after
+       they had supposedly been fixed.
+       The pseudo-element belongs to the control, so a press on it activates
+       the control; being transparent, it paints nothing over anything. */
+  }
+  /* Inside a zoomed mobile root the CSS pixel is 1/1.2 of a physical one, so
+     44 CSS px would only be 36.7 real ones. The wrapper publishes --z. */
+  .mobile-zoom-root .tap-44::after {
+    width: max(100%, calc(44px / var(--z, 1)));
+    height: max(100%, calc(44px / var(--z, 1)));
+  }
+
+  /* Money ink uses the same answer colour as the rest of Mindmake.
+     Three fixed hexes under `background-clip: text` is the adaptive-text bug
+     the token rules warn about, wearing a gradient. The night ramp runs
+     #a4e8cd -> #4faf85, which is 9-13:1 on obsidian and 1.4-2.4:1 on warm
+     paper — so in daylight the MRR figure, the largest and most important
+     number on Subscriptions, rendered under the contrast floor at 40px.
+     Measured 2026-09-23.
+     Paper gets its own ramp off the deep `--ac-*` end, the same way the
+     `*-300` accent tier was given one: same gesture, same direction of light,
+     legible on both grounds. */
   .money-text {
     background: linear-gradient(120deg, #a4e8cd 0%, #7fe3b4 44%, #4faf85 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  :root[data-theme='light'] .money-text {
+    background: linear-gradient(120deg, #2F6F51 0%, #276046 44%, #1C4733 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -760,10 +826,21 @@
       bottom-right add it as padding, the way pilot/controls.tsx already
       reserves room for its dock.
 
-   Two pills now stack in that corner: capture (⌘I, bottom) and ask-this-tab
-   (⌘/, above it). Both retire behind a modal, and the gutter covers the pair
-   — 84px reserved for one pill left the upper one sitting on the last row. */
-:root { --capture-gutter: 132px; }
+   Two pills sit in that corner: capture (⌘I, right) and ask-this-tab (⌘/,
+   beside it). Both retire behind a modal.
+
+   They used to STACK, and the gutter had to cover the pair: 132px of the
+   bottom of every desktop surface, at every width, reserved for two controls
+   occupying 300px of the bottom-right corner. On a 900px screen that is 15% of
+   the viewport spent on whitespace the pills are not even in — measured
+   2026-09-23, the Visibility rails stopped 160px short of the frame because of
+   it. Side by side the pair is one 36px row, the gutter is 72px, and roughly
+   60px comes back to every desk surface at once.
+
+   The ⌘I pill's label is fixed, so it anchors the right edge; the ask pill's
+   label follows the tab ("Ask People", "Ask Subscriptions") and sits to its
+   left, where growing costs nothing. */
+:root { --capture-gutter: 72px; }
 
 body[data-scroll-locked] .capture-pill,
 body[data-scroll-locked] .tab-chat-pill { display: none; }

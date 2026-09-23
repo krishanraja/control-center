@@ -443,6 +443,44 @@ The contract for a stage:
   beside a 320px rail. The cards inside pick one or two columns from the width
   they are handed.
 
+Extended 2026-09-23 (Krish: "ensuring no scroll at all times but 11/10
+interaction design and information hierarchy"). Every destination is a stage
+now, desk and phone: `shared/AppFrame` on the desk, `MobileShell` on the phone.
+Four rules came out of measuring all fifteen of them.
+
+- **A stage that overruns must SCROLL, not clip.** This is the failure the
+  no-scroll shell introduces, and it is invisible to every other check: content
+  laid out in normal flow inside `overflow-hidden` does not scroll, does not
+  overlap, leaves no hole in the layout, and is not in the screenshot either.
+  Systems ran 225px past the bottom of a 900px desk with 60 elements
+  unreachable while every probe was green; Home's canon put "Pick your 3 for
+  today" 63px below a 360x640 phone with nothing to say it was there. Clipping
+  the last thing away silently is worse than a short scroll, always.
+- **The window is not the surface.** A width decision asks
+  `hooks/useContainerWidth` about the box it is laying out, never
+  `window.matchMedia`. The sidebar takes 240px and the gutter 48, so a 1400px
+  window hands a tab about 1112 — and collapsing the sidebar, which gives it
+  240 more, moved nothing at all while the decision was a media query. Measure
+  a box the decision does NOT resize: measuring the capped one makes the
+  decision its own input (Home started narrow, capped itself at 880, measured
+  880, stayed narrow).
+- **A conditional flex direction must be exclusive.** `flex-col` in the base
+  with `flex-row` appended does not make a row: Tailwind emits `.flex-row`
+  before `.flex-col`, so the column wins at equal specificity whatever order
+  the classes are written in. Home's wide rail had never once rendered beside
+  its column because of this, in a branch written specifically to put it there.
+- **An empty lane is not a card.** Seven empty statuses on Visibility were
+  seven bordered sections at ~82px each: 574px of a 900px screen spent saying
+  "nothing here" seven times, with the lanes that had rows pushed below the
+  fold. `desktop/StatusLane` returns null when empty and `EmptyLanes` names
+  them together in one line. The same rule applies to prose: Advisory rendered
+  three different sentences about one nothing inside 90 vertical pixels.
+
+Both gates run in CI: `e2e/desk-noscroll-desk.spec.ts` at 1440 and 1920,
+`e2e/phone-noscroll-phone.spec.ts` at 390x844 and 360x640. 360x640 is the size
+that finds things; a list that stops at 390 has never seen a short Android with
+browser chrome.
+
 ## Persistent chrome is neutral, or it is not persistent
 
 Locked 2026-09-23, after Krish sent back a screenshot of Focus (Krish: "can you

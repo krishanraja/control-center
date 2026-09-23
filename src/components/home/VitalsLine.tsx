@@ -151,7 +151,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
                 {lastThree.map(ship => (
                   <div key={ship.id} className="flex items-baseline gap-2 text-label">
                     <span className="text-ink-faint w-[42px] shrink-0">
-                      {new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', day: 'numeric', month: 'short' }).format(new Date(ship.occurred_at))}
+                      {shipDay(ship.occurred_at)}
                     </span>
                     <span className="text-ink-faint truncate">{ship.description}</span>
                   </div>
@@ -169,4 +169,20 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
       )}
     </div>
   )
+}
+
+/**
+ * The day a ship landed, in the civil timezone the rest of Home reads.
+ *
+ * `Intl.DateTimeFormat.format` throws `RangeError: Invalid time value` on an
+ * unparseable date exactly the way date-fns does, and a ship row with no
+ * `occurred_at` would have taken Home down rather than lost one label.
+ */
+function shipDay(iso?: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York', day: 'numeric', month: 'short',
+  }).format(d)
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers } from '@/lib/icons'
+import { Mic, Megaphone, Layers, Upload } from '@/lib/icons'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
@@ -9,8 +9,7 @@ import { dismissTriageToday, triageDismissedToday } from '../../lib/triageDismis
 import { useToast } from '../shared/Toast'
 import { GuestImportDropzone } from '../GuestImportDropzone'
 import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
-import { GuestStatusLane } from './GuestStatusLane'
-import { VisibilityTargetLane } from './VisibilityTargetLane'
+import { StatusLane, EmptyLanes } from './StatusLane'
 import { DecisionDetail } from '../DecisionDetail'
 import { NextVisibilityHero } from '../guests/NextVisibilityHero'
 import { SlideOver } from '../shared/SlideOver'
@@ -23,6 +22,9 @@ import { GuestCard } from '../GuestCard'
 import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { FreshnessLine } from '../shared/FreshnessLine'
+import { AppFrame } from '../shared/AppFrame'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
+import { Eyebrow } from '../shared/Eyebrow'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -74,6 +76,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const [lane, setLane] = useState<Lane>('inbound')
   const { toast } = useToast()
   const [triageOpen, setTriageOpen] = useState(false)
+  // Import is a once-a-week action. It used to hold the top-left 400x160px of
+  // the board — the most valuable real estate on the tab — above a table of
+  // zeros. It lives in a sheet behind a header button now.
+  const [importOpen, setImportOpen] = useState(false)
   // Coherence wave 1 (v2 idiom): bounded typed queue first, lanes as browse.
   const autoOpenedRef = useRef(false)
   const { guests: allGuests, loading: guestsLoading } = useRealtimeGuests()
@@ -172,119 +178,145 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   // Desktop loads the board's architecture at once — inbound + outbound breadth.
   if ((guestsLoading || targetsLoading) && allGuests.length === 0 && allTargets.length === 0) {
     return (
-      <div className="space-y-5">
-        <header>
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <Mic size={20} className="text-violet-300" />
-            Visibility
-          </h1>
-          <p className="text-body text-ink-faint mt-1">Gathering people and events…</p>
-        </header>
+      <AppFrame
+        header={<SurfaceHeader title="Visibility" icon={<Mic size={18} className="text-accent" />} meta={<span className="text-micro text-ink-faint">Gathering people and events…</span>} className="pb-4" />}
+      >
         <BoardSkeleton lanes={2} cardsPerLane={3} hero={false} />
-      </div>
+      </AppFrame>
     )
   }
 
+  // Triage is a stage, not a page: the cockpit fills whatever height is left
+  // under its one-line header and never scrolls. `scroll='none'` is what lets
+  // the cockpit's rails size themselves off the real frame instead of the
+  // `h-[calc(100vh-170px)]` guess they used to carry.
   if (triageOpen) {
     return (
-      <div className="space-y-4">
-        <header className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            {lane === 'inbound' ? <Mic size={20} className="text-violet-300" /> : <Megaphone size={20} className="text-violet-300" />}
-            Visibility · Triage
-          </h1>
-          <span className="text-body text-ink-faint">
-            — {lane === 'inbound' ? 'right pitches, left skips' : 'right applies, left passes'} with a reason
-          </span>
-        </header>
+      <AppFrame
+        scroll="none"
+        header={
+          <SurfaceHeader
+            eyebrow="Visibility"
+            title="Triage"
+            description={lane === 'inbound' ? 'Right pitches, left skips with a reason.' : 'Right applies, left passes with a reason.'}
+            icon={lane === 'inbound' ? <Mic size={18} className="text-accent" /> : <Megaphone size={18} className="text-accent" />}
+            className="pb-3"
+          />
+        }
+      >
         {lane === 'inbound' ? (
           <SwipeCockpit config={guestConfig} onExit={() => { dismissTriageToday(triageSurface); setTriageOpen(false) }} onNavigate={onNavigate} />
         ) : (
           <SwipeCockpit config={targetConfig} onExit={() => { dismissTriageToday(triageSurface); setTriageOpen(false) }} onNavigate={onNavigate} />
         )}
-      </div>
+      </AppFrame>
     )
   }
 
+  // ── The board ───────────────────────────────────────────────────────────
+  //
+  // One fixed instrument panel over one scrolling board. What changed on
+  // 2026-09-23, measured against the live surface at 1440x900:
+  //
+  // * The page used to scroll. Five stacked bands — nav, title, description,
+  //   lane tabs, hero — put the first row of data at y=330, and the seven
+  //   status lanes ran past the fold, so the instruction in the hero scrolled
+  //   off the screen exactly when the reader went looking for the row it was
+  //   about. Header and hero are now fixed chrome; only the board moves.
+  // * Seven empty lanes were seven bordered cards, ~82px each. They are one
+  //   line at the foot of the board now (`EmptyLanes`).
+  // * The reference rail was on the LEFT, so the first thing the eye met was
+  //   an import dropzone and a table of zeros, with the actual pipeline pushed
+  //   right. Board leads; the rail is secondary and sits where secondary goes.
+  // * Import is a once-a-week action that held the most valuable 400x160px on
+  //   the tab. It is a header button that opens a sheet.
+  const lanes = lane === 'inbound'
+    ? PRIMARY_STATUSES.map(s => ({ key: s, title: STATUS_META[s].title, description: STATUS_META[s].description, rows: byStatus[s] || [] }))
+    : VIS_STATUSES.map(s => ({ key: s, title: VIS_STATUS_META[s].title, description: VIS_STATUS_META[s].description, rows: byVisStatus[s] || [] }))
+  const filled = lanes.filter(l => l.rows.length > 0)
+  const empty = lanes.filter(l => l.rows.length === 0).map(l => l.title)
+
+  const breakdown = lane === 'inbound'
+    ? (Object.keys(TARGET_META) as GuestPodcastTarget[]).map(t => ({ label: TARGET_META[t].title, count: (byTarget[t] || []).length }))
+    : (['cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'other'] as const)
+        .map(t => ({ label: t.replace('_', ' '), count: targets.filter(x => x.type === t).length }))
+
   return (
-    <div className="space-y-5">
-      <header className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            {lane === 'inbound' ? <Mic size={20} className="text-violet-300" /> : <Megaphone size={20} className="text-violet-300" />}
-            Visibility
-          </h1>
-          <p className="text-body text-ink-faint mt-1">
-            Podcast guests to invite, and the stages, calls for papers and press to pitch. Side by side.
-          </p>
-          <FreshnessLine lane="visibility" />
+    <AppFrame
+      header={
+        <div className="pb-4 space-y-3">
+          <SurfaceHeader
+            title="Visibility"
+            description="Podcast guests to invite, and the stages, calls for papers and press to pitch."
+            icon={lane === 'inbound' ? <Mic size={18} className="text-accent" /> : <Megaphone size={18} className="text-accent" />}
+            meta={<FreshnessLine lane="visibility" />}
+            actions={
+              <>
+                {isFocusModeEnabled() && calibrated && <FocusModeToggle mode={mode} onChange={setMode} />}
+                <button
+                  type="button"
+                  onClick={() => setImportOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.12] hover:border-white/25 hover:bg-white/[0.04] px-3 py-1.5 text-label font-medium text-ink-muted hover:text-ink transition-colors"
+                >
+                  <Upload size={14} /> Import
+                </button>
+                {triageConfig.items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTriageOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/[0.12] hover:bg-accent/20 px-3 py-1.5 text-label font-semibold text-ink transition-colors"
+                  >
+                    <Layers size={14} className="text-accent" /> Handle 1-by-1 · {triageConfig.items.length}
+                  </button>
+                )}
+              </>
+            }
+          />
+
+          {/* The lane switch carries the active count, so the orphaned
+              "70 active" that used to float alone in the top-right corner —
+              unaligned with anything and attached to no noun — is gone. */}
+          <div className="flex items-center gap-3">
+            <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
+              <LaneTab active={lane === 'inbound'} onClick={() => setLane('inbound')}>
+                Guests <span className="ml-1.5 text-micro font-mono tabular-nums text-ink-faint">{inboundActive}</span>
+              </LaneTab>
+              <LaneTab active={lane === 'outbound'} onClick={() => setLane('outbound')}>
+                Events <span className="ml-1.5 text-micro font-mono tabular-nums text-ink-faint">{outboundActive}</span>
+              </LaneTab>
+            </div>
+            <span className="text-micro text-ink-faint">
+              {loading ? 'Loading…' : `${activeCount} active in this lane`}
+            </span>
+          </div>
+
+          {/* One visibility engine — same hero as every tab. It now speaks for
+              the lane on screen: on the Guests board it used to read "Apply to
+              Section AI Strategy Summit", an event from the other half, with an
+              Apply button acting on a row the reader could not see. */}
+          <NextVisibilityHero
+            guests={guests}
+            targets={targets}
+            lane={lane === 'inbound' ? 'inbound' : 'outbound'}
+          />
         </div>
-        <div className="flex items-center gap-3">
-          {isFocusModeEnabled() && calibrated && (
-            <FocusModeToggle mode={mode} onChange={setMode} />
-          )}
-          {triageConfig.items.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setTriageOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-label font-semibold text-violet-100 transition-colors"
-            >
-              <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
-            </button>
-          )}
-          <span className="text-micro text-ink-faint tabular-nums">
-            {loading ? '…' : `${activeCount} active`}
-          </span>
-        </div>
-      </header>
-
-      <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
-        <LaneTab active={lane === 'inbound'} onClick={() => setLane('inbound')}>
-          Guests <span className="ml-1.5 text-micro text-ink-faint tabular-nums">{inboundActive}</span>
-        </LaneTab>
-        <LaneTab active={lane === 'outbound'} onClick={() => setLane('outbound')}>
-          Events <span className="ml-1.5 text-micro text-ink-faint tabular-nums">{outboundActive}</span>
-        </LaneTab>
-      </div>
-
-      {/* One visibility engine — same hero as every tab, spanning inbound guests
-          AND outbound stages (Krish: "both equally"). */}
-      <NextVisibilityHero guests={guests} targets={targets} />
-
+      }
+    >
       <SlideOver open={!!detailDecision} onClose={() => onClearDetail?.()}>
         {detailDecision && <DecisionDetail key={detailDecision} decision={detailDecision} actionsEnabled />}
       </SlideOver>
 
-      {lane === 'inbound' ? (
-        <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
-          <aside className="space-y-4">
-            <section>
-              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
-                Import
-              </h2>
-              <GuestImportDropzone />
-            </section>
+      <SlideOver open={importOpen} onClose={() => setImportOpen(false)} ariaLabel="Import" label="Import">
+        <div className="p-5 space-y-3">
+          <Eyebrow>Import {lane === 'inbound' ? 'guests' : 'opportunities'}</Eyebrow>
+          {lane === 'inbound' ? <GuestImportDropzone /> : <VisibilityImportDropzone />}
+        </div>
+      </SlideOver>
 
-            <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
-                By show
-              </h2>
-              <ul className="space-y-1">
-                {(Object.keys(TARGET_META) as GuestPodcastTarget[]).map(t => {
-                  const count = (byTarget[t] || []).length
-                  return (
-                    <li key={t} className="flex items-center justify-between gap-2 py-1 text-label">
-                      <span className="text-ink-muted truncate">{TARGET_META[t].title}</span>
-                      <span className={`tabular-nums ${count > 0 ? 'text-ink-muted' : 'text-ink-faint/50'}`}>{count}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          </aside>
-
-          <div className="space-y-3">
-            {showFocus ? (
+      <div className="grid grid-cols-1 lg:[grid-template-columns:minmax(0,2.4fr)_minmax(240px,1fr)] gap-5 items-start pb-2">
+        <div className="space-y-3 min-w-0">
+          {showFocus ? (
+            lane === 'inbound' ? (
               <FocusLanes
                 rows={guests}
                 table="guests"
@@ -294,60 +326,6 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
                 mutedLabel="Off focus"
               />
             ) : (
-              PRIMARY_STATUSES.map(s => (
-                <GuestStatusLane
-                  key={s}
-                  status={s}
-                  title={STATUS_META[s].title}
-                  description={STATUS_META[s].description}
-                  guests={byStatus[s] || []}
-                  onOpen={handleOpenGuest}
-                />
-              ))
-            )}
-            <BackburnerSection
-              table="guests"
-              items={buriedGuests.map(g => ({ id: g.id, title: g.name || '(unnamed)', buried_reason: g.buried_reason }))}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
-          <aside className="space-y-4">
-            <section>
-              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
-                Import
-              </h2>
-              <VisibilityImportDropzone />
-            </section>
-            <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
-                By type
-              </h2>
-              <ul className="space-y-1">
-                {(['cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'other'] as const).map(t => {
-                  const count = targets.filter(x => x.type === t).length
-                  return (
-                    <li key={t} className="flex items-center justify-between gap-2 py-1 text-label">
-                      <span className="text-ink-muted truncate capitalize">{t.replace('_', ' ')}</span>
-                      <span className={`tabular-nums ${count > 0 ? 'text-ink-muted' : 'text-ink-faint/50'}`}>{count}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-            <section className="rounded-xl border border-violet-500/25 bg-violet-500/[0.05] p-4">
-              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-300/80 mb-2">
-                Enrichment
-              </h2>
-              <p className="text-label text-ink-muted leading-snug">
-                Nova fires deep enrichment on each sourced target twice daily. Each row gets strategic value, angle, proposed talk, audience snapshot, CFP requirements, and a prep checklist. Click any card to view the deep detail.
-              </p>
-            </section>
-          </aside>
-
-          <div className="space-y-3">
-            {showFocus ? (
               <FocusLanes
                 rows={targets}
                 table="visibility_targets"
@@ -356,28 +334,64 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
                 fallback={null}
                 mutedLabel="Off focus"
               />
-            ) : (
-              VIS_STATUSES.map(s => (
-                <VisibilityTargetLane
-                  key={s}
-                  status={s}
-                  title={VIS_STATUS_META[s].title}
-                  description={VIS_STATUS_META[s].description}
-                  targets={byVisStatus[s] || []}
-                  onOpen={openTarget}
+            )
+          ) : (
+            <>
+              {filled.map(l => (
+                <StatusLane
+                  key={l.key}
+                  status={l.key}
+                  title={l.title}
+                  description={l.description}
+                  items={l.rows as Array<GuestRow | VisibilityTargetRow>}
+                  keyOf={(r) => String(r.id)}
+                  renderItem={(r) =>
+                    lane === 'inbound'
+                      ? renderGuestRow(r as GuestRow)
+                      : renderTargetRow(r as VisibilityTargetRow)}
+                  defaultCollapsed={l.key === 'dropped' || l.key === 'done'}
                 />
-              ))
-            )}
-            <BackburnerSection
-              table="visibility_targets"
-              items={buriedTargets.map(t => ({ id: t.id, title: t.title || '(untitled)', buried_reason: t.buried_reason }))}
-            />
-          </div>
+              ))}
+              <EmptyLanes names={empty} />
+            </>
+          )}
+          <BackburnerSection
+            table={lane === 'inbound' ? 'guests' : 'visibility_targets'}
+            items={lane === 'inbound'
+              ? buriedGuests.map(g => ({ id: g.id, title: g.name || '(unnamed)', buried_reason: g.buried_reason }))
+              : buriedTargets.map(t => ({ id: t.id, title: t.title || '(untitled)', buried_reason: t.buried_reason }))}
+          />
         </div>
-      )}
-    </div>
+
+        {/* The rail: what the lane is made of, and nothing that asks for a
+            decision. Secondary material on the secondary side. */}
+        <aside className="space-y-4 min-w-0">
+          <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
+            <Eyebrow>{lane === 'inbound' ? 'By show' : 'By type'}</Eyebrow>
+            <ul className="mt-2 space-y-1">
+              {breakdown.map(b => (
+                <li key={b.label} className="flex items-center justify-between gap-2 py-0.5 text-label">
+                  <span className={`capitalize ${b.count > 0 ? 'text-ink-muted' : 'text-ink-faint'}`}>{b.label}</span>
+                  <span className={`font-mono tabular-nums ${b.count > 0 ? 'text-ink-muted' : 'text-ink-faint'}`}>{b.count}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {lane === 'outbound' && (
+            <section className="rounded-xl border border-accent/25 bg-accent/[0.05] p-4">
+              <Eyebrow>Enrichment</Eyebrow>
+              <p className="mt-2 text-label text-ink-muted leading-snug">
+                Nova fires deep enrichment on each sourced target twice daily. Each row gets strategic value, angle, proposed talk, audience snapshot, CFP requirements, and a prep checklist. Click any card to view the deep detail.
+              </p>
+            </section>
+          )}
+        </aside>
+      </div>
+    </AppFrame>
   )
 }
+
 
 function LaneTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

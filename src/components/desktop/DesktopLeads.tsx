@@ -3,6 +3,7 @@ import { Users, X, Sparkles, Layers } from '@/lib/icons'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { buildLeadsTriageConfig } from '../../lib/triageConfig'
 import { useToast } from '../shared/Toast'
 import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
@@ -90,13 +91,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   if (loading && allLeads.length === 0) {
     return (
       <div className="space-y-5">
-        <header>
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <Users size={20} className="text-emerald-300" />
-            Pipeline
-          </h1>
-          <p className="text-body text-ink-faint mt-1">Gathering your pipeline across every venture…</p>
-        </header>
+        <SurfaceHeader title="Pipeline" description="Gathering your pipeline across every venture…" icon={<Users size={18} className="text-emerald-300" />} />
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
     )
@@ -105,13 +100,12 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   if (triageOpen) {
     return (
       <div className="space-y-4">
-        <header className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <Users size={20} className="text-emerald-300" />
-            Pipeline · Triage
-          </h1>
-          <span className="text-body text-ink-faint">— right enriches or promotes, left drops with a reason</span>
-        </header>
+        <SurfaceHeader
+          eyebrow="Pipeline"
+          title="Triage"
+          description="Right enriches or promotes, left drops with a reason."
+          icon={<Users size={18} className="text-emerald-300" />}
+        />
         <SwipeCockpit
           config={triageConfig}
           onExit={() => setTriageOpen(false)}
@@ -124,15 +118,11 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-            <Users size={20} className="text-emerald-300" />
-            Pipeline
-          </h1>
-          <p className="text-body text-ink-faint mt-1">
-            Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.
-          </p>
-        </div>
+        <SurfaceHeader
+          title="Pipeline"
+          description="Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one."
+          icon={<Users size={18} className="text-emerald-300" />}
+        />
         <div className="flex items-center gap-3">
           {isFocusModeEnabled() && calibrated && (
             <FocusModeToggle mode={mode} onChange={setMode} />

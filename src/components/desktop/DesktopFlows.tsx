@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
+import { AppFrame } from '../shared/AppFrame'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from '@/lib/icons'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
@@ -108,15 +110,14 @@ export function DesktopFlows() {
     }, {} as any))
   ) as GroupedRun[], [runs])
 
+  // Title and view switch are chrome; the run list scrolls under them.
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-ink tracking-tight">Flows</h1>
-          <p className="text-xs md:text-body text-ink-faint mt-0.5">
-            {view === 'workflows' ? 'N8N workflows & proposals.' : 'Forge custom Agent Skills for clients.'}
-          </p>
-        </div>
+    <AppFrame header={
+      <div className="flex items-end justify-between gap-3 flex-wrap pb-4">
+        <SurfaceHeader
+          title="Flows"
+          description={view === 'workflows' ? 'N8N workflows and proposals.' : 'Forge custom Agent Skills for clients.'}
+        />
         <div className="inline-flex rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5">
           <button
             onClick={() => setView('workflows')}
@@ -135,11 +136,18 @@ export function DesktopFlows() {
             <Wand2 size={11} /> Skill Forge
           </button>
         </div>
-
-      {/* External truth first. Everything below this line is the fleet
-          describing itself; this is n8n describing the fleet. */}
-      {view === 'workflows' && <FleetHealthStrip />}
       </div>
+    }>
+      <div className="space-y-6 pb-2">
+      {/* External truth first. Everything below this line is the fleet
+          describing itself; this is n8n describing the fleet.
+
+          This strip used to sit INSIDE the header's `flex items-end
+          justify-between flex-wrap` row, so it laid out as a third flex item
+          beside the title and the view switch rather than as a band under
+          them — the fleet's own health, wrapped to whatever width happened to
+          be left over. It is a block in the body now. */}
+      {view === 'workflows' && <FleetHealthStrip />}
 
       {view === 'skill-forge' ? (
         <SkillForge />
@@ -195,7 +203,7 @@ export function DesktopFlows() {
                           <span className="text-ink-faint/50">System</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-ink-faint tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</td>
+                      <td className="px-4 py-2.5 text-ink-faint tabular-nums">{relativeTimeOr(w.lastRun, 'never run')}</td>
                       <td className="px-4 py-2.5"><StatusChip status={w.status} /></td>
                       <td className="px-4 py-2.5 text-right text-ink-faint font-mono tabular-nums">{w.runCount}</td>
                       <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${w.errorCount > 0 ? 'text-rose-400 font-semibold' : 'text-ink-faint/50'}`}>{w.errorCount}</td>
@@ -285,7 +293,8 @@ export function DesktopFlows() {
       </section>
       </>
       )}
-    </div>
+      </div>
+    </AppFrame>
   )
 }
 
@@ -305,7 +314,7 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
               <span className="text-micro text-ink-faint">System</span>
             )}
             <span className="text-ink-faint/40 mx-0.5">·</span>
-            <span className="text-micro text-ink-faint tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</span>
+            <span className="text-micro text-ink-faint tabular-nums">{relativeTimeOr(w.lastRun, 'never run')}</span>
           </div>
         </div>
         <StatusChip status={w.status} />

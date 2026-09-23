@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, RefreshCw } from '@/lib/icons'
 import { BoardSkeleton } from './shared/Skeleton'
 import { Working } from './shared/Working'
+import { SurfaceHeader } from './shared/SurfaceHeader'
+import { AppFrame } from './shared/AppFrame'
+import { Eyebrow } from './shared/Eyebrow'
 
 interface Service {
   id: string
@@ -30,7 +33,7 @@ const STATUS_CONFIG = {
   green:   { icon: CheckCircle2,  color: 'text-emerald-400', bg: 'bg-emerald-500/10',  border: 'border-emerald-500/20', label: 'Healthy' },
   amber:   { icon: AlertTriangle, color: 'text-amber-400',   bg: 'bg-amber-500/10',    border: 'border-amber-500/20',   label: 'Warning' },
   red:     { icon: XCircle,       color: 'text-red-400',     bg: 'bg-red-500/10',      border: 'border-red-500/20',     label: 'Down' },
-  unknown: { icon: HelpCircle,    color: 'text-ink-faint/50',    bg: 'bg-white/[0.02]',    border: 'border-white/[0.06]',   label: 'Unchecked' },
+  unknown: { icon: HelpCircle,    color: 'text-ink-faint',   bg: 'bg-white/[0.02]',    border: 'border-white/[0.06]',   label: 'Unchecked' },
 }
 
 function timeAgo(iso: string | null): string {
@@ -50,9 +53,9 @@ function ServiceRow({ service }: { service: Service }) {
       <Icon size={14} className={`flex-shrink-0 ${cfg.color}`} />
       <div className="flex-1 min-w-0">
         <span className="text-body font-medium text-ink">{service.name}</span>
-        <p className="text-micro text-ink-faint truncate">{service.note}</p>
+        <p className="text-micro text-ink-muted">{service.note}</p>
       </div>
-      <span className="text-micro text-ink-faint/40 flex-shrink-0 font-mono">{timeAgo(service.last_checked)}</span>
+      <span className="text-micro text-ink-faint flex-shrink-0 font-mono">{timeAgo(service.last_checked)}</span>
     </div>
   )
 }
@@ -62,15 +65,28 @@ function CategoryBlock({ category }: { category: Category }) {
   category.services.forEach(s => counts[s.status]++)
   const cfg = STATUS_CONFIG[counts.red > 0 ? 'red' : counts.amber > 0 ? 'amber' : counts.unknown === category.services.length ? 'unknown' : 'green']
 
+  // A category holding ONE service used to render as a bordered card, a header
+  // naming the category, a "1 unchecked" count and then a row whose name was
+  // the category name again — four pieces of chrome around one fact, eight
+  // times over. Measured 2026-09-23: the board said "INGEST / 1 unk / ingest"
+  // to tell the reader one thing. A single service is now just its row.
+  if (category.services.length === 1) {
+    return (
+      <div className={`rounded-2xl border ${cfg.border} overflow-hidden`}>
+        <ServiceRow service={category.services[0]} />
+      </div>
+    )
+  }
+
   return (
     <div className={`rounded-2xl border ${cfg.border} overflow-hidden`}>
       <div className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
-        <p className="text-micro font-bold uppercase tracking-widest text-ink-faint">{category.label}</p>
+        <Eyebrow>{category.label}</Eyebrow>
         <div className="flex items-center gap-3">
           {counts.red > 0     && <span className="text-micro text-red-400 font-semibold">{counts.red} down</span>}
-          {counts.amber > 0   && <span className="text-micro text-amber-400 font-semibold">{counts.amber} warn</span>}
-          {counts.green > 0   && <span className="text-micro text-emerald-400 font-semibold">{counts.green} ok</span>}
-          {counts.unknown > 0 && <span className="text-micro text-ink-faint/50 font-semibold">{counts.unknown} unk</span>}
+          {counts.amber > 0   && <span className="text-micro text-amber-400 font-semibold">{counts.amber} warning</span>}
+          {counts.green > 0   && <span className="text-micro text-emerald-400 font-semibold">{counts.green} healthy</span>}
+          {counts.unknown > 0 && <span className="text-micro text-ink-muted font-semibold">{counts.unknown} unchecked</span>}
         </div>
       </div>
       <div className="divide-y divide-white/[0.03]">
@@ -151,34 +167,35 @@ export function SystemsPanel() {
 
   if (loading && !data) {
     return (
-      <div className="space-y-5">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-ink">Systems</h1>
-          <p className="text-body text-ink-faint mt-0.5">Checking every connected service…</p>
-        </div>
+      <AppFrame header={<div className="pb-4"><SurfaceHeader title="Systems" description="Checking every connected service…" /></div>}>
         <BoardSkeleton lanes={2} cardsPerLane={4} hero={false} />
-      </div>
+      </AppFrame>
     )
   }
 
+  // The board scrolls inside the frame; the title and the health summary do
+  // not. Without this the surface was laid out in full inside an
+  // overflow-hidden shell and simply cut off: measured 2026-09-23 at
+  // 1440x900, 225px of services ran past the bottom of the screen with no way
+  // to reach them, and no probe but a clipping check could see it — nothing
+  // scrolled, nothing overlapped, and the missing rows were not in the
+  // screenshot either.
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-ink">Systems</h1>
-          <p className="text-body text-ink-faint mt-0.5">All connected services, watched by Arlo.</p>
-        </div>
-        <button
+    <AppFrame
+      header={<div className="space-y-4 pb-4">
+      <SurfaceHeader
+        title="Systems"
+        description="All connected services, watched by Arlo."
+        actions={<button
           onClick={liveRefresh}
           disabled={loading || refreshing}
           title="Re-poll N8N and update system_health"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-ink-faint hover:text-ink-faint text-micro transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.1] bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-ink-muted hover:text-ink text-micro transition-colors"
         >
           {(loading || refreshing) ? <Working size={12} /> : <RefreshCw size={12} />}
           {refreshing ? 'Polling N8N…' : loading ? 'Reading services…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
-        </button>
-      </div>
+        </button>}
+      />
 
       {/* Summary bar */}
       <div className={`rounded-xl border px-4 py-3 ${overallOk ? 'border-emerald-500/20 bg-emerald-500/[0.04]' : downServices.length > 0 ? 'border-red-500/20 bg-red-500/[0.04]' : 'border-amber-500/20 bg-amber-500/[0.04]'}`}>
@@ -191,15 +208,15 @@ export function SystemsPanel() {
               </span>
             </div>
             {overallOk && (
-              <p className="text-micro text-ink-faint pl-4">Ambient surface: nothing here needs you. Real failures page Telegram and land on Home.</p>
+              <p className="text-micro text-ink-muted pl-4">Nothing here needs you. Real failures page Telegram and land on Home.</p>
             )}
             {downServices.length > 0 && (
-              <p className="text-micro text-red-300/70 pl-4">
+              <p className="text-micro text-red-300 pl-4">
                 Down: {downServices.map(s => s.name).join(', ')}
               </p>
             )}
             {warnServices.length > 0 && (
-              <p className="text-micro text-amber-300/60 pl-4">
+              <p className="text-micro text-amber-300 pl-4">
                 Warning: {warnServices.map(s => s.name).join(', ')}
               </p>
             )}
@@ -208,20 +225,24 @@ export function SystemsPanel() {
             {greenCount > 0    && <span className="text-emerald-400">{greenCount} healthy</span>}
             {warnServices.length > 0 && <span className="text-amber-400">{warnServices.length} warning</span>}
             {downServices.length > 0 && <span className="text-red-400">{downServices.length} down</span>}
-            {unknownCount > 0  && <span className="text-ink-faint/50">{unknownCount} unchecked</span>}
+            {unknownCount > 0  && <span className="text-ink-muted">{unknownCount} unchecked</span>}
           </div>
         </div>
       </div>
 
       {/* Meta */}
       {data && (
-        <div className="flex items-center gap-4 text-micro text-ink-faint/50">
-          <span>File updated: {timeAgo(data.updated_at)} by {data.updated_by}</span>
-          <span>|</span>
-          <span>Next live check: {data.next_check}</span>
+        <div className="flex items-center gap-2 text-micro text-ink-faint">
+          <span>Read {timeAgo(data.updated_at)} from {data.updated_by}</span>
+          {/* The one sanctioned character mark is the middle dot. A pipe is a
+              text glyph used as chrome, which the icon rules do not allow. */}
+          <span aria-hidden>·</span>
+          <span>Next check {data.next_check}</span>
         </div>
       )}
-
+      </div>}
+    >
+      <div className="space-y-5 pb-2">
       {error && <p className="text-label text-red-400">Failed to load: {error}</p>}
 
       {/* Grid */}
@@ -232,13 +253,14 @@ export function SystemsPanel() {
       )}
 
       {/* Arlo note */}
-      <div className="rounded-xl border border-violet-500/10 bg-violet-500/[0.03] px-4 py-3">
+      <div className="rounded-xl border border-accent/15 bg-accent/[0.04] px-4 py-3">
         <p className="text-micro text-violet-300/50 leading-relaxed">
           <strong className="text-violet-300/70">Arlo</strong> runs hourly health checks and a full sweep every Sunday 3AM UTC.
           Statuses update via the <code className="text-micro bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
           Red or critical warnings route to ops-bot immediately.
         </p>
       </div>
-    </div>
+      </div>
+    </AppFrame>
   )
 }

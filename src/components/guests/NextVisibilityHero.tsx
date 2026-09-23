@@ -12,6 +12,9 @@ import { useHaptics } from '../../hooks/useHaptics'
 
 type VisKind = 'confirm' | 'apply_deadline' | 'pitch' | 'apply' | 'clear'
 
+/** Which half of Visibility the hero should speak for. */
+export type VisLane = 'inbound' | 'outbound' | 'both'
+
 interface NextVis {
   kind: VisKind
   guest?: GuestRow
@@ -19,13 +22,31 @@ interface NextVis {
   descriptor: HeroDescriptor
 }
 
-function clip(s: string, n = 46): string { return s.length > n ? `${s.slice(0, n)}…` : s }
+// The name or title goes in whole. It used to be cut at 46 characters with an
+// ellipsis, which is the one thing the house text rule forbids: "Apply to The
+// Information Subscriber Summit…" hides which summit, and the hero exists to
+// name the thing. The band wraps to a second line instead.
 function daysTo(iso?: string | null): number | null {
   if (!iso || Number.isNaN(Date.parse(iso))) return null
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)
 }
 
-function computeNextVis(guests: GuestRow[], targets: VisibilityTargetRow[]): NextVis {
+/**
+ * The one next move across inbound guests AND outbound stages.
+ *
+ * `lane` narrows it to the half the reader is actually looking at. Without it
+ * the hero on the Guests board read "Apply to Section AI Strategy Summit" —
+ * an EVENT, from the other lane, with an Apply button that acts on a row not
+ * present on screen. Measured on the live board 2026-09-23 and visible in the
+ * screenshot that opened this work: the one focal surface on the tab was
+ * pointing at the tab the reader had not selected.
+ *
+ * 'both' keeps the old behaviour for the phone, where the two lanes share one
+ * scroll and there is no selected half to be wrong about.
+ */
+function computeNextVis(guests: GuestRow[], targets: VisibilityTargetRow[], lane: VisLane = 'both'): NextVis {
+  if (lane === 'inbound') targets = []
+  if (lane === 'outbound') guests = []
   // 1) A guest who replied / is scheduled → Confirm (fires the whole cascade).
   const toConfirm = guests
     .filter(g => g.status === 'responded' || g.status === 'scheduled')
@@ -34,7 +55,7 @@ function computeNextVis(guests: GuestRow[], targets: VisibilityTargetRow[]): Nex
     const g = toConfirm[0]
     return {
       kind: 'confirm', guest: g,
-      descriptor: { headline: `Confirm ${clip(g.name)}`, sub: 'Replied / scheduled — confirm to fire prep + promo', actionLabel: 'Confirm', icon: <CheckCircle2 size={16} className="text-emerald-300" />, tone: 'emerald' },
+      descriptor: { headline: `Confirm ${g.name}`, sub: 'Replied / scheduled — confirm to fire prep + promo', actionLabel: 'Confirm', icon: <CheckCircle2 size={16} className="text-emerald-300" />, tone: 'emerald' },
     }
   }
   // 2) An outbound target with a deadline closing soon → Apply now (time-sensitive).
@@ -46,7 +67,7 @@ function computeNextVis(guests: GuestRow[], targets: VisibilityTargetRow[]): Nex
     const d = daysTo(t.deadline_at)
     return {
       kind: 'apply_deadline', target: t,
-      descriptor: { headline: `Apply to ${clip(t.title)}`, sub: d === 0 ? 'Closes today' : `Closes in ${d}d — get the application in`, actionLabel: 'Apply', icon: <Clock size={16} className="text-amber-300" />, tone: 'amber' },
+      descriptor: { headline: `Apply to ${t.title}`, sub: d === 0 ? 'Closes today' : `Closes in ${d}d — get the application in`, actionLabel: 'Apply', icon: <Clock size={16} className="text-amber-300" />, tone: 'amber' },
     }
   }
   // 3) An enriched guest → Pitch (strong/green first).
@@ -61,7 +82,7 @@ function computeNextVis(guests: GuestRow[], targets: VisibilityTargetRow[]): Nex
     const g = toPitch[0]
     return {
       kind: 'pitch', guest: g,
-      descriptor: { headline: `Pitch ${clip(g.name)}`, sub: toPitch.length > 1 ? `${toPitch.length} guests ready to pitch` : 'Enriched and ready for outreach', actionLabel: 'Pitch', icon: <Mic size={16} className="text-violet-300" />, tone: 'violet' },
+      descriptor: { headline: `Pitch ${g.name}`, sub: toPitch.length > 1 ? `${toPitch.length} guests ready to pitch` : 'Enriched and ready for outreach', actionLabel: 'Pitch', icon: <Mic size={16} className="text-violet-300" />, tone: 'violet' },
     }
   }
   // 4) A queued outbound target → Apply (by relevance).
@@ -72,20 +93,31 @@ function computeNextVis(guests: GuestRow[], targets: VisibilityTargetRow[]): Nex
     const t = toApply[0]
     return {
       kind: 'apply', target: t,
-      descriptor: { headline: `Apply to ${clip(t.title)}`, sub: toApply.length > 1 ? `${toApply.length} stages / CFPs queued` : 'Queued visibility target', actionLabel: 'Apply', icon: <Megaphone size={16} className="text-violet-300" />, tone: 'violet' },
+      descriptor: { headline: `Apply to ${t.title}`, sub: toApply.length > 1 ? `${toApply.length} stages / CFPs queued` : 'Queued visibility target', actionLabel: 'Apply', icon: <Megaphone size={16} className="text-violet-300" />, tone: 'violet' },
     }
+  }
+  const clearCopy: Record<VisLane, { headline: string; sub: string }> = {
+    inbound:  { headline: 'No guest needs you', sub: 'Nobody to confirm or pitch. Nell adds new people here as she finds them.' },
+    outbound: { headline: 'No stage needs you', sub: 'Nothing to apply to. Nova adds events, calls for papers and press here as she finds them.' },
+    both:     { headline: 'Visibility is clear', sub: 'No guests to confirm or pitch, no stages to apply to. New ones land here.' },
   }
   return {
     kind: 'clear',
-    descriptor: { headline: 'Visibility is clear', sub: 'No guests to confirm or pitch, no stages to apply to. New ones land here.', icon: <Send size={16} className="text-emerald-400/80" />, tone: 'neutral', clear: true },
+    descriptor: { ...clearCopy[lane], icon: <Send size={16} className="text-emerald-400/80" />, tone: 'neutral', clear: true },
   }
 }
 
-export function NextVisibilityHero({ guests, targets, narrow }: { guests: GuestRow[]; targets: VisibilityTargetRow[]; narrow?: boolean }) {
+export function NextVisibilityHero({ guests, targets, narrow, lane = 'both' }: {
+  guests: GuestRow[]
+  targets: VisibilityTargetRow[]
+  narrow?: boolean
+  /** The half of the board on screen. The hero never points at the other one. */
+  lane?: VisLane
+}) {
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState(false)
-  const next = useMemo(() => computeNextVis(guests, targets), [guests, targets])
+  const next = useMemo(() => computeNextVis(guests, targets, lane), [guests, targets, lane])
 
   const req = async (url: string, body?: unknown, method: 'POST' | 'PATCH' = 'POST') => {
     h.heavy(); setBusy(true)

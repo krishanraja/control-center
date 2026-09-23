@@ -56,6 +56,16 @@ interface Props<T> {
   /** Progress-strip headline, e.g. "Clear the pile". */
   title?: string
   narrow?: boolean
+  /**
+   * How the card fills the stage. 'fill' (default) is the phone: one card IS
+   * the screen. 'fit' is the desk cockpit, where the card is as tall as what is
+   * in it — see SwipeCard for why the difference matters.
+   */
+  stage?: 'fill' | 'fit'
+  /** Stage width. The phone's `max-w-md` is a phone measurement; a desk with
+   *  two rails beside the deck has more to give and a wider card means fewer
+   *  lines to read. */
+  stageClassName?: string
   /** Freeze gestures + keys while an overlay (composer/detail) is open above. */
   paused?: boolean
 }
@@ -84,6 +94,7 @@ export function SwipeDeck<T>({
   pending, reasonChips, onChooseReason, onCancelPending, why,
   remaining, triagedCount, onExit, exitLabel, onUndo, canUndo,
   title = 'Clear the pile', narrow, paused,
+  stage = 'fill', stageClassName = 'max-w-md',
 }: Props<T>) {
   const top = deck[0] ?? null
   const containerRef = useRef<HTMLDivElement>(null)
@@ -153,8 +164,16 @@ export function SwipeDeck<T>({
         canUndo={canUndo}
       />
 
-      {/* Card stage */}
-      <div className="relative flex-1 min-h-0 mx-auto w-full max-w-md">
+      {/* Card stage.
+          'fill': the stage IS the remaining height and the card fills it.
+          'fit': the card is as tall as its content, and the card AND its
+          control bar centre TOGETHER as one group. Centring only the card
+          left the buttons pinned to the bottom of the frame — in the desk
+          cockpit that put ~140px of nothing between the card being read and
+          the two buttons that act on it, so the pair no longer read as one
+          object and the eye had to travel the gap on every single decision. */}
+      <div className={`flex-1 min-h-0 flex flex-col ${stage === 'fit' ? 'justify-center gap-4' : ''}`}>
+      <div className={`relative ${stage === 'fit' ? 'flex-none' : 'flex-1'} min-h-0 mx-auto w-full ${stageClassName}`}>
         {top ? (
           deck.slice(0, 3).reverse().map((item) => {
             const depth = deck.indexOf(item)
@@ -171,6 +190,7 @@ export function SwipeDeck<T>({
                 bind={isTop ? bind : undefined}
                 ariaLabel={ariaLabel ? ariaLabel(item) : undefined}
                 onClick={isTop && onOpen ? () => onOpen(item) : undefined}
+                stage={stage}
               >
                 {isTop && why?.(item) ? (
                   <div className="absolute right-3 top-3 z-10">
@@ -182,7 +202,7 @@ export function SwipeDeck<T>({
             )
           })
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <div className={`flex flex-col items-center justify-center text-center ${stage === 'fit' ? 'relative py-16' : 'absolute inset-0'}`}>
             <CheckCircle2 size={28} className="text-emerald-400/80 mb-3" />
             <p className="text-ui text-ink-muted font-medium">Pile cleared.</p>
             <p className="text-label text-ink-faint mt-1 max-w-xs">
@@ -210,7 +230,7 @@ export function SwipeDeck<T>({
         top && (
           <>
             {/* Control bar — button parity with the swipe */}
-            <div className="flex items-center justify-center gap-3 pt-4 flex-shrink-0">
+            <div className={`flex items-center justify-center gap-3 flex-shrink-0 ${stage === 'fit' ? '' : 'pt-4'}`}>
               <button
                 type="button"
                 onClick={() => flyOut('left')}
@@ -255,6 +275,7 @@ export function SwipeDeck<T>({
           </>
         )
       )}
+      </div>
     </div>
   )
 }

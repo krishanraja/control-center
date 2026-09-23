@@ -16,6 +16,17 @@ interface Props {
   bind?: React.HTMLAttributes<HTMLDivElement>
   onClick?: () => void
   ariaLabel?: string
+  /**
+   * 'fill' (default): the card is the stage — right on a phone, where one card
+   * IS the screen. 'fit': the card is as tall as its content and sits centred
+   * in the stage.
+   *
+   * The desk cockpit had no 'fit'. Measured at 1440x900, a guest card holding a
+   * two-paragraph pitch angle rendered as a 448x830px panel with the text in
+   * the top third and 540px of empty white under it, which is the void in the
+   * triage screenshot. A card that is mostly nothing reads as a loading state.
+   */
+  stage?: 'fill' | 'fit'
   children: React.ReactNode
 }
 
@@ -29,7 +40,7 @@ interface Props {
 export function SwipeCard({
   dx = 0, dragging, flyout, depth = 0,
   leftLabel = 'Drop', rightLabel = 'Keep',
-  bind, onClick, ariaLabel, children,
+  bind, onClick, ariaLabel, stage = 'fill', children,
 }: Props) {
   const isTop = depth === 0
   const rot = isTop ? dx * 0.035 : 0
@@ -48,7 +59,10 @@ export function SwipeCard({
       onClick={isTop ? onClick : undefined}
       role={isTop ? 'group' : undefined}
       aria-label={isTop ? ariaLabel : undefined}
-      className="absolute inset-0 select-none"
+      // In 'fit' the TOP card sits in normal flow so it gives the stage its
+      // height; the cards behind it stay absolute scenery over that box. In
+      // 'fill' every card is absolute and the stage's own height wins.
+      className={`select-none ${stage === 'fit' && isTop ? 'relative w-full' : 'absolute inset-0'}`}
       style={{
         transform,
         transition,
@@ -59,7 +73,7 @@ export function SwipeCard({
         pointerEvents: isTop ? 'auto' : 'none',
       }}
     >
-      <div className="relative h-full rounded-3xl surface-2 shadow-e3 p-5 flex flex-col overflow-hidden">
+      <div className={`relative rounded-3xl surface-2 shadow-e3 p-5 flex flex-col overflow-hidden ${stage === 'fit' ? '' : 'h-full'}`}>
         {isTop && (
           <>
             <div

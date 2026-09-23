@@ -26,7 +26,7 @@ export function Sidebar({ agents, currentTime }: Props) {
     <div className="w-72 bg-command-surface border-r border-command-border p-6">
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-ink mb-4 flex items-center space-x-2">
+          <h2 className="text-lede font-display font-semibold text-ink mb-4 flex items-center space-x-2">
             <GitBranch size={20} />
             <span>Organization</span>
           </h2>

@@ -15,3 +15,7 @@ test-results/
 supabase/.temp/
 .vercel
 .env*
+
+# The layout audit writes screenshots + a JSON report here on every run.
+# It is evidence for one session, not a build artefact to carry in the repo.
+audit/

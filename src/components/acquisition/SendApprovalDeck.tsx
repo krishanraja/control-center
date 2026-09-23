@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { relativeTimeOr } from '../../lib/ageHelpers'
 import { ChevronDown, ChevronRight, MailCheck, RefreshCw } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { SkeletonList } from '../shared/Skeleton'
@@ -173,7 +173,7 @@ export function SendApprovalDeck({
                     </button>
                     {s.queued_at && (
                       <span className="text-micro text-ink-faint/50 flex-shrink-0">
-                        {formatDistanceToNow(new Date(s.queued_at), { addSuffix: true })}
+                        {relativeTimeOr(s.queued_at, 'just now')}
                       </span>
                     )}
                   </div>

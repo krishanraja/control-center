@@ -14,7 +14,7 @@ import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useSpend, spendAlert } from '../../hooks/useSpend'
 import { HomeSkeleton } from '../shared/Skeleton'
 import { useFirstLoad } from '../shared/useDeferredPending'
-import { useMediaQuery } from '../shared/motion'
+import { useContainerWidth } from '../../hooks/useContainerWidth'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -35,7 +35,17 @@ export function DesktopHome({ onNavigate }: {
   // Rendering both and hiding one with `min-[1400px]:hidden` put two copies of
   // every doorway in the DOM — same testids, same accessible names, six buttons
   // where the page has three.
-  const wide = useMediaQuery('(min-width: 1400px)')
+  // Measured on the CANVAS, not the window. `(min-width: 1400px)` asked how
+  // wide the browser is; this tab never gets the browser — the sidebar takes
+  // 240px and the gutter 48, so a 1440px window hands Home 1200. The old query
+  // therefore turned the rail on at a canvas of ~1112 and ignored the sidebar
+  // being collapsed, which gives the page 240px more and used to change
+  // nothing. The threshold is now the sum of what the layout actually needs:
+  // the 880px reading measure, the 32px gap, and the 320px rail. Below that
+  // the rail does not fit beside the column without shrinking the measure,
+  // and the measure is the point — so below it, one centred column.
+  const [canvasRef, canvasWidth] = useContainerWidth<HTMLDivElement>()
+  const wide = canvasWidth >= 880 + 32 + 320
   const alt = useAltitudes()
   const { canon, loading } = useGoalCanon()
   const { spend } = useSpend()
@@ -85,6 +95,12 @@ export function DesktopHome({ onNavigate }: {
     // The measure does NOT grow to fill the width. A goal ladder and a list of
     // three is a reading column, and 1300px of it would be worse, not better.
     // The width buys a second thing to look at, not a wider first thing.
+    // The measured box is the OUTER one, which always fills the canvas. The
+    // inner box is the one being capped at 880 or 1320, so measuring it made
+    // the decision its own input: it started narrow, capped itself at 880,
+    // measured 880, stayed narrow. A width decision may never be taken from
+    // the element the decision resizes.
+    <div ref={canvasRef} className="h-full min-h-0 w-full">
     <div className={`h-full min-h-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 mx-auto w-full ${wide ? 'max-w-[1320px]' : 'max-w-[880px]'}`}>
       {/* The alarm rides the vitals band as a mark, the same one the phone
           shows, rather than a full-width block above it. One alarm, one
@@ -97,7 +113,19 @@ export function DesktopHome({ onNavigate }: {
         {!wide && instruments}
       </div>
 
-      <div className={`min-h-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 ${wide ? 'flex-row gap-8 flex-1' : ''}`}>
+      {/* The direction is exclusive, and it has to be: `flex-col` in the base
+          with `flex-row` appended conditionally does NOT make a row. Tailwind
+          emits `.flex-row` before `.flex-col` in its stylesheet, so at equal
+          specificity the column always won no matter what order the classes
+          were written in — and this wide branch has never once rendered as two
+          columns since it shipped.
+
+          Measured 2026-09-23 at a 1440px window, where the query said wide:
+          the 320px rail laid out BELOW the goal column at y=658 instead of
+          beside it at x=1150, which is exactly the "doorways stranded half a
+          screen below the content they belong to" this branch was written to
+          fix. */}
+      <div className={`min-h-0 flex [@media(max-height:820px)]:gap-3.5 ${wide ? 'flex-row gap-8 flex-1' : 'flex-col gap-6'}`}>
         <div className={`shrink-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 pt-1 ${wide ? 'min-w-0 flex-1 max-w-[880px]' : ''}`}>
           <GoalLadder variant="desktop" />
           {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
@@ -122,6 +150,7 @@ export function DesktopHome({ onNavigate }: {
           this row (--capture-gutter), not over it, so the panel can span the
           full width. */}
       {!wide && <div className="shrink-0 mt-auto flex items-center gap-3">{doors}</div>}
+    </div>
     </div>
   )
 }

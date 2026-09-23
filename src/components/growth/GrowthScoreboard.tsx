@@ -184,7 +184,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
               </div>
               <div className="flex items-end justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="text-lg font-bold tabular-nums text-ink truncate">
+                  <div className="text-lede font-bold tabular-nums text-ink truncate">
                     {headline ?? <span className="text-ink-faint text-sm font-medium">no data yet</span>}
                   </div>
                   {def.id === 'apps' && (
