@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, MoreHorizontal, type LucideIcon } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
@@ -17,7 +17,19 @@ interface Props {
 export function DesktopSidebar({ active, onChange }: Props) {
   const [pinnedExpanded, setPinnedExpanded] = useState(true)
   const [hoverExpanded, setHoverExpanded] = useState(false)
-  const [hoverSuppressed, setHoverSuppressed] = useState(false)
+  const [hoverSuppressed, setHoverSuppressedState] = useState(false)
+  const asideRef = useRef<HTMLElement | null>(null)
+  // The suppression is written by one pointer handler and read by another, and
+  // a handler closes over the value from the render that created it. A leave
+  // and the enter that follows can both run before React commits the leave, and
+  // the enter would then decide against a value that is already stale. The ref
+  // is the truth and is current the instant it is written; the state exists to
+  // schedule the render. Read the ref in a handler, the state when rendering.
+  const hoverSuppressedRef = useRef(false)
+  const setHoverSuppressed = (v: boolean) => {
+    hoverSuppressedRef.current = v
+    setHoverSuppressedState(v)
+  }
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [badge, setBadge] = useState<'green' | 'amber' | 'red' | 'unknown'>('unknown')
   const [badgeStatus, setBadgeStatus] = useState<string>('unknown')
@@ -73,6 +85,44 @@ export function DesktopSidebar({ active, onChange }: Props) {
 
   const dotTitle = alertCount > 0 ? `${badgeStatus} (${alertCount} alert${alertCount === 1 ? '' : 's'})` : badgeStatus
 
+  /**
+   * Release the hover suppression on the first pointer movement that is
+   * genuinely outside the sidebar.
+   *
+   * It used to be released only by `onMouseLeave`, and that event is not owed.
+   * Collapsing animates the sidebar from 240px to 72px under a pointer that is
+   * sitting at about x=119 — already outside the new box — and Chromium does
+   * not reliably synthesise a boundary event when an element shrinks out from
+   * under a stationary pointer. Traced: the collapse commits, the pointer moves
+   * away, and NO mouseout is dispatched on the aside at all. The suppression
+   * then stays true forever, so hovering the collapsed sidebar does nothing for
+   * the rest of the session.
+   *
+   * It reproduced whenever the pointer moved within about 150ms of the click
+   * (0 of 8 sweeps expanded at 0, 10 and 50ms; 8 of 8 at 150ms and above),
+   * because waiting out the 200ms width transition lets Chromium recompute
+   * hover on its own and fire the leave that was missing. So this was never a
+   * flake: it was a real dead control on any collapse the person did not
+   * happen to pause after.
+   *
+   * Movement is the right signal because movement is what the suppression is
+   * actually about: ignore the synthetic re-entry the collapse itself causes,
+   * honour any real pointer travel.
+   */
+  useEffect(() => {
+    if (!hoverSuppressed) return
+    const release = (e: PointerEvent) => {
+      const box = asideRef.current?.getBoundingClientRect()
+      if (!box) return
+      const outside =
+        e.clientX < box.left || e.clientX > box.right ||
+        e.clientY < box.top || e.clientY > box.bottom
+      if (outside) setHoverSuppressed(false)
+    }
+    document.addEventListener('pointermove', release, true)
+    return () => document.removeEventListener('pointermove', release, true)
+  }, [hoverSuppressed])
+
   const expanded = pinnedExpanded || (!hoverSuppressed && hoverExpanded)
   const w = expanded ? 'w-60' : 'w-[72px]'
   const toggleLabel = pinnedExpanded
@@ -97,11 +147,12 @@ export function DesktopSidebar({ active, onChange }: Props) {
 
   return (
     <aside
+      ref={asideRef}
       id="desktop-sidebar"
       data-testid="desktop-sidebar"
       data-expanded={expanded ? 'true' : 'false'}
       className={`${w} flex-shrink-0 border-r border-white/[0.08] bg-base/95 flex flex-col h-[100dvh] transition-[width] duration-200 ease-out-soft motion-reduce:transition-none shadow-[12px_0_48px_-36px_rgba(0,0,0,.9)]`}
-      onMouseEnter={() => { if (!pinnedExpanded && !hoverSuppressed) setHoverExpanded(true) }}
+      onMouseEnter={() => { if (!pinnedExpanded && !hoverSuppressedRef.current) setHoverExpanded(true) }}
       onMouseLeave={() => { setHoverExpanded(false); setHoverSuppressed(false); setDrawerOpen(false) }}
     >
       <div className={`h-16 flex items-center border-b border-white/[0.07] ${expanded ? 'px-4' : 'justify-center px-0'}`}>
