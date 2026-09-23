@@ -305,6 +305,9 @@ async function ingest(token: string, backfillMonths: number | null) {
       try {
         const raw = await callClaude({
           agent: 'spend-ingest',
+          // A cron that reconciles spend. Nobody is waiting on it, and paying a
+          // second provider to measure the first one's bill is a poor trade.
+          fallback: false,
           system: PARSE_SYSTEM,
           user: `Subject: ${subject}\nFrom: ${from}\n\n${body}`,
           model: PARSE_MODEL,

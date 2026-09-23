@@ -8,6 +8,7 @@ import * as meter from './_meter.js'
 
 import { UTILITY_MODEL, MODEL_PRICES, thinkingParam } from './_models.js'
 import { fetchWithRetry, RETRY_STATUS } from './_retry.js'
+import { askOpenAI, anthropicIsShut, openBreaker, shouldFallBack } from './_providerFallback.js'
 
 /** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
  *  replacing them with the comma/period Krish would actually use. Safe to run
@@ -368,6 +369,15 @@ export interface ClaudeOpts {
    *  numbers mean something. A call that omits it meters as 'unattributed' —
    *  a visible gap in the console, never folded into another agent's total. */
   agent?: string
+  /** Ask for strict JSON from the fallback provider. No effect on Anthropic,
+   *  whose callers all parse through robustJson already. */
+  json?: boolean
+  /** Opt OUT of the OpenAI fallback.
+   *
+   *  Set it on bulk and cron paths. enrich-person alone ran 3,284 calls on
+   *  2026-09-15; rescuing that volume with a second provider is how a fallback
+   *  becomes the incident. Interactive surfaces leave it on. */
+  fallback?: boolean
 }
 
 export interface TokenUsage { input: number; output: number; model: string }
@@ -393,6 +403,18 @@ function userContent(opts: ClaudeOpts): string | ContentBlock[] {
     })),
     { type: 'text', text: opts.user },
   ]
+}
+
+/** The user turn as plain text.
+ *
+ *  The fallback path takes text only: an outage is not the moment to also port
+ *  the vision shape to another provider's schema, and the one image caller
+ *  (scan-card) opts out of fallback for exactly that reason. Stated here rather
+ *  than discovered later from a silently image-free answer. */
+function userText(opts: ClaudeOpts): string {
+  return opts.images?.length
+    ? `${opts.user}\n\n[${opts.images.length} image(s) omitted: the fallback provider is text only]`
+    : opts.user
 }
 
 /** Single-shot Anthropic Messages call. Returns the first text block (or throws). */
@@ -444,14 +466,42 @@ export async function hasAnthropicKey(): Promise<boolean> {
   return Boolean(await getAnthropicKey())
 }
 
+/**
+ * The one entry point, so the OpenAI fallback is inherited rather than wired
+ * up twenty times. See _providerFallback.ts for why it exists and what keeps
+ * it cheap; the short version is that Anthropic has been unavailable three
+ * times this month and the Vercel functions had no second provider.
+ *
+ * `fallback: false` opts a call site out, and the bulk paths use it. An
+ * interactive search is worth paying another provider to answer; a 3,000-row
+ * backfill is not, and it can wait for the reset.
+ */
 export async function callClaude(opts: ClaudeOpts): Promise<string> {
+  const model = opts.model || UTILITY_MODEL
+  const mayFallBack = opts.fallback !== false
+  const toOpenAI = (why: string) => {
+    console.warn(`anthropic_fallback agent=${opts.agent || 'unattributed'} model=${model} reason=${why.slice(0, 120)}`)
+    return askOpenAI({
+      agent: opts.agent, model, system: opts.system, user: userText(opts),
+      maxTokens: opts.maxTokens, temperature: opts.temperature,
+      timeoutMs: opts.timeoutMs, json: opts.json,
+    })
+  }
+
+  // The breaker first, so a known outage costs nothing. Anthropic states its
+  // own reset time and this one runs to 2026-10-01: without this, that is eight
+  // days of every request paying a doomed round trip before doing any work.
+  if (mayFallBack && await anthropicIsShut()) return toOpenAI('breaker_open')
+
   const apiKey = await getAnthropicKey()
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
+  if (!apiKey) {
+    if (mayFallBack) return toOpenAI('ANTHROPIC_API_KEY not configured')
+    throw new Error('ANTHROPIC_API_KEY not configured')
+  }
   // A deadline, because there was none. An upstream that stalls otherwise burns
   // the entire 60s function budget and the caller gets no response at all, which
   // on a phone is indistinguishable from the app being broken. Callers on a
   // user-facing path should pass something well under maxDuration.
-  const model = opts.model || UTILITY_MODEL
   const ctrl = new AbortController()
   const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
   try {
@@ -491,6 +541,23 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
     return firstText(j)
   } catch (e: unknown) {
     if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
+    // A refusal that will still be a refusal in a second: record it so the rest
+    // of the outage skips this call entirely, then answer anyway if allowed.
+    // openBreaker only fires on outage-shaped errors, so one malformed request
+    // does not take the provider out for everyone.
+    if (shouldFallBack(e)) {
+      void openBreaker((e as Error)?.message || '')
+      if (mayFallBack) {
+        try {
+          return await toOpenAI((e as Error)?.message || 'anthropic_error')
+        } catch (fe: unknown) {
+          // Both providers down. Throw the ANTHROPIC error, not this one: it is
+          // the cause, the fallback failure is a consequence, and the surfaces
+          // downstream print whichever one they are handed.
+          console.warn(`openai_fallback_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
+        }
+      }
+    }
     throw e
   } finally {
     if (tid) clearTimeout(tid)
