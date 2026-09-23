@@ -77,3 +77,49 @@ reference in `SECURITY.md`):
 4. **Relocate `vector`/`http`** out of `public` with a references sweep.
 5. Land each step behind a feature flag with an anon→auth cutover, and update
    `SECURITY.md` + this ADR's status in the same PR.
+
+---
+
+## Addendum, 2026-09-23: follow-up 3 is partly done, because the premise expired
+
+Status above is unchanged and the deferred auth scope still stands. This records
+that **follow-up step 3 has been taken for eleven of the fourteen views**, and
+why that did not require the auth layer this ADR made it conditional on.
+
+The reasoning for deferring was measured again before acting:
+
+> `decisions_waiting`/`triage_queue` are read by anon *because* they are definer;
+> converting blanks the dashboard until proper RLS exists.
+
+That was accurate on 2026-07-01. It is no longer accurate as a general statement.
+In the months since, most of the tables underneath these views acquired
+`anon read USING (true)` policies for unrelated reasons. Of the forty
+view-to-table dependencies, thirty six are now reachable by `anon` directly, so
+the definer property is doing no work on them.
+
+Measured per view as `role anon`, before and after conversion, counts identical:
+
+- **Eleven converted with no observable change**, `triage_queue` among them.
+  Nothing reads `triage_queue` at all any more.
+- **`decisions_waiting` did need work**, exactly as this ADR predicted. It was
+  converted alongside two row-scoped `anon` policies on `acquisition_sends` and
+  `corrections` whose predicates copy the view's own `WHERE` clauses, so all
+  thirteen `UNION ALL` branches return what they did before.
+- **`standards_efficacy`** was converted and its browser grants revoked. It had
+  been handing `anon` 169 operating rules with severity, enforcement and hit
+  counts. Nothing reads it.
+- **`attribution_app_health`** stays `SECURITY DEFINER` on purpose and is now
+  documented as such. See `20260923144500`.
+
+Advisor after: `security_definer_view` 14 to 0, `function_search_path_mutable`
+4 to 0 (the four functions postdating the `20260821200000` restoration were
+pinned in the same pass), no ERROR-level findings remaining.
+
+**What this does not change.** Steps 1, 2, 4 and 5 stand untouched, and the
+`USING(true)` write policies are as this ADR left them. The eleven conversions
+removed a bypass; they did not reduce what `anon` can read, because that data was
+already reachable one layer down. The exposure worth a decision is the one
+`20260909110000_revoke_anon_writes.sql` flagged and deferred: `contacts`
+(11,755 rows), `leads`, `guests`, `customers` and `system_config` are readable
+with the published anon key. That pass was promised, has not happened, and is a
+larger hole than all fourteen views were.
