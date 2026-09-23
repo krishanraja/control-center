@@ -78,22 +78,19 @@ async function open(browser, { seeds, refuseLedger = false }) {
 
 const browser = await chromium.launch({ executablePath: CHROME })
 
-console.log('A. the first press asks why, and writes nothing')
+console.log('A. the reason is in the press, not behind it')
 {
   const { page, errs, since, mark } = await open(browser, { seeds: SEEDS })
   const card = page.locator('article.card').first()
   await card.locator('textarea.notes').fill('This is a money story wearing a gap headline.')
   ok('the foot counts the note before any press',
     await card.locator('.notefoot .sep').textContent(), '45 characters will travel with your next press')
-  const at = await mark()
-  await card.getByRole('button', { name: 'Not a piece' }).click()
-  ok('nothing written on the first press', (await since(at)).length, 0)
-  ok('five reasons offered', await card.locator('.reasons button').count(), 5)
-  ok('the card is still a card', await card.evaluate(n => n.classList.contains('settled')), false)
+  ok('five reasons on the card, no second step', await card.locator('.bin-row button').count(), 5)
+  ok('no save-the-note button to press first', await card.locator('.notefoot button').count(), 0)
 
-  console.log('B. the second press buries, records, and says so')
+  console.log('B. one press buries, records, and says so')
   const at2 = await mark()
-  await card.locator('.reasons button', { hasText: 'Wrong register' }).click()
+  await card.locator('.bin-row button', { hasText: 'Wrong register' }).click()
   await page.waitForSelector('article.card.settled')
   const wrote = await since(at2)
   const event = wrote.find(q => /insert into public\.content_edit_events/.test(q)) || ''
@@ -132,8 +129,7 @@ console.log('E. a refused ledger is never shown as a tick')
 {
   const { page } = await open(browser, { seeds: [SEEDS[0]], refuseLedger: true })
   await page.locator('textarea.notes').first().fill('a note worth keeping')
-  await page.getByRole('button', { name: 'Not a piece' }).click()
-  await page.locator('.reasons button', { hasText: 'Thin evidence' }).click()
+  await page.locator('.bin-row button', { hasText: 'Thin evidence' }).click()
   await page.waitForSelector('article.card.settled')
   const settled = page.locator('article.card.settled').first()
   ok('marked as a warning, not a success', await settled.evaluate(n => n.classList.contains('settled-warn')))

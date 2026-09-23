@@ -220,6 +220,17 @@
     background: var(--brass-w); color: var(--brass); font-size: 13.5px; line-height: 1.5;
     white-space: pre-wrap;
   }
+  .bin-row { border-top: 1px dashed var(--rule); padding-top: 9px; }
+  .bin-row .sep { margin-right: 2px; }
+  .bin-row button.ghost { padding: 7px 9px; font-size: 12.5px; }
+  .bin-row button.ghost:hover:not(:disabled) { color: var(--brass); border-color: var(--brass); }
+  article.card.told { padding: 14px 16px; }
+  .told-note {
+    margin: 9px 0 0; padding: 10px 12px; border-left: 2px solid var(--brass);
+    background: var(--sunk); border-radius: 0 8px 8px 0;
+    font-family: Newsreader, Georgia, serif; font-size: 15.5px; line-height: 1.55; color: var(--ink);
+    white-space: pre-wrap; max-width: 66ch;
+  }
   .batch-end { text-align: center; padding: 20px 16px 8px; color: var(--slate); font-size: 13.5px; }
   .batch-end button { margin-top: 11px; }
   #ledger-state { margin: 10px 0 0; padding: 9px 12px; border-radius: 8px; background: var(--brass-w); color: var(--brass); font-size: 13px; }
@@ -248,6 +259,7 @@
       <button role="tab" id="tab-triage" aria-selected="true" data-stage="triage">1 · Triage <span class="count" id="c-triage">–</span></button>
       <button role="tab" id="tab-draft"  aria-selected="false" data-stage="draft">2 · Dry run <span class="count" id="c-draft">–</span></button>
       <button role="tab" id="tab-review" aria-selected="false" data-stage="review">3 · Read back <span class="count" id="c-review">–</span></button>
+      <button role="tab" id="tab-told" aria-selected="false" data-stage="told">What you have told me <span class="count" id="c-told">–</span></button>
     </nav>
   </header>
 
@@ -497,12 +509,18 @@
 
     noteBox(card, r);
 
-    const row2 = el('div', 'actions'); row2.style.marginTop = '7px';
-    const drop = el('button', 'ghost', 'Not a piece'); drop.type = 'button';
-    // Never buries on the first press. A piece that vanishes without saying why
-    // is the one outcome this desk exists to stop: the reason IS the product.
-    drop.onclick = () => binSeed(card, r, row2);
-    row2.append(drop);
+    // One press, with the reason IN the press. The previous version made him
+    // click "Not a piece", then a reason, having already typed the reason in
+    // the note box and pressed "Keep this note" - four actions to say one
+    // thing, and his word for it was smart-arse. The reason still cannot be
+    // skipped; it just is not a second step.
+    const row2 = el('div', 'actions bin-row'); row2.style.marginTop = '9px';
+    row2.append(el('span', 'sep', 'not a piece, because'));
+    for (const [code, label] of BIN_REASONS) {
+      const b = el('button', 'ghost', label); b.type = 'button';
+      b.onclick = () => binSeed(card, r, code, label);
+      row2.append(b);
+    }
     card.append(row2);
     return card;
   }
@@ -855,17 +873,24 @@
     ta.placeholder = 'What do you make of it? Anything at all: what is wrong with the angle, what you would have led with, why it is not worth writing. This travels with your decision.';
     ta.rows = 2; ta.spellcheck = true;
     const foot = el('div', 'notefoot');
-    const save = el('button', 'ghost', 'Keep this note'); save.type = 'button';
-    save.onclick = () => keepNote(card, r, ta, save);
-    // Said before the press as well as after it. "I am not sure if my note even
-    // came through" is answered at both ends or it is not answered.
+    // No save button. It was a third thing to press to say one thing, and the
+    // note travelled with the decision anyway, so the button mostly taught him
+    // to distrust the box. The note now keeps itself when he clicks away, and
+    // still rides with whichever decision he makes.
     const IDLE = 'your note rides with whichever button you press';
     const state = el('span', 'sep', IDLE);
     ta.oninput = () => {
       const n = ta.value.trim().length;
       state.textContent = n ? n + ' characters will travel with your next press' : IDLE;
+      card.__noteDirty = true;
     };
-    foot.append(state, save);
+    ta.onblur = async () => {
+      if (!card.__noteDirty || !ta.value.trim()) return;
+      card.__noteDirty = false;
+      try { await stashNote(r, ta.value.trim()); state.textContent = 'kept, and it still travels with your next press'; }
+      catch { state.textContent = 'could not keep that note yet. It still travels with your next press.'; }
+    };
+    foot.append(state);
     wrap.append(ta, foot);
     card.append(wrap);
     return ta;
@@ -876,16 +901,6 @@
   };
 
   /** A thought with no decision attached. Kept on the idea, not the ledger. */
-  async function keepNote(card, r, ta, btn) {
-    const note = ta.value.trim();
-    if (!note) return;
-    btn.disabled = true; btn.textContent = 'Keeping…';
-    try {
-      await stashNote(r, note);
-      btn.textContent = 'Kept on the idea';
-    } catch (e) { fail(card, e); btn.disabled = false; btn.textContent = 'Keep this note'; }
-  }
-
   /* ── stage 2: the dry run ─────────────────────────────────────────── */
   function sectionOf(re) {
     if (!corpus) return '';
@@ -932,9 +947,13 @@
     card.append(row1);
 
     noteBox(card, r);
-    const row2 = el('div', 'actions'); row2.style.marginTop = '7px';
-    const bin = el('button', 'ghost', 'Not a piece'); bin.type = 'button';
-    bin.onclick = () => binSeed(card, r, row2); row2.append(bin);
+    const row2 = el('div', 'actions bin-row'); row2.style.marginTop = '9px';
+    row2.append(el('span', 'sep', 'not a piece, because'));
+    for (const [code, label] of BIN_REASONS) {
+      const b = el('button', 'ghost', label); b.type = 'button';
+      b.onclick = () => binSeed(card, r, code, label);
+      row2.append(b);
+    }
     card.append(row2);
     return card;
   }
@@ -976,33 +995,23 @@
 
   /* A seed that should never have reached this stage. The reason is the
      teaching: "binned" alone says the pile is too big and nothing else. */
-  function binSeed(card, r, row) {
-    if (card.querySelector('.reasons')) return;
-    const box = el('div', 'reasons');
-    box.append(el('span', 'sep', 'why?'));
-    for (const [code, label] of BIN_REASONS) {
-      const b = el('button', 'pick', label); b.type = 'button';
-      b.onclick = async () => {
-        card.querySelectorAll('button').forEach(x => { x.disabled = true; });
-        const before = await sha256Hex(seedTextOf(r));
-        const note = noteOf(card);
-        try {
-          await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('set aside at the triage desk: ' + code)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
-          const recorded = await ledger({
-            subjectId: r.id, action: 'binned', mode: 'seed', value: r.lane_slot,
-            reasonCode: code, beforeHash: before, charsBefore: seedTextOf(r).length,
-            instruction: note, dwellMs: Date.now() - card.__seedAt,
-          });
-          finish(card, r, {
-            verb: 'Set aside: ' + label.toLowerCase(),
-            recorded, note,
-            undo: () => unbury(r, 'binned:' + code),
-          });
-        } catch (e) { fail(card, e); }
-      };
-      box.append(b);
-    }
-    row.append(box);
+  async function binSeed(card, r, code, label) {
+    card.querySelectorAll('button').forEach(x => { x.disabled = true; });
+    const before = await sha256Hex(seedTextOf(r));
+    const note = noteOf(card);
+    try {
+      await sql(`update public.content_ideas set buried_at=now(), buried_reason=${lit('set aside at the triage desk: ' + code)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+      const recorded = await ledger({
+        subjectId: r.id, action: 'binned', mode: 'seed', value: r.lane_slot,
+        reasonCode: code, beforeHash: before, charsBefore: seedTextOf(r).length,
+        instruction: note, dwellMs: Date.now() - card.__seedAt,
+      });
+      finish(card, r, {
+        verb: 'Set aside: ' + label.toLowerCase(),
+        recorded, note,
+        undo: () => unbury(r, 'binned:' + code),
+      });
+    } catch (e) { fail(card, e); }
   }
 
   async function writeDraft(card, r, btn) {
@@ -1204,27 +1213,57 @@
                from public.content_ideas
               where coalesce(body,'') <> '' and buried_at is null and state in ('drafting','review')
               order by updated_at desc nulls last, created_at desc limit 25;`,
+    // Read straight out of the ledger, joined to whatever it was about. "I
+    // still do not know if you logged the responses I have given" is not
+    // answerable by a reassuring sentence on a different screen.
+    told: `select e.occurred_at, e.action, e.mode, e.value, e.reason_code, e.instruction,
+                  e.subject_id, i.idea
+             from public.content_edit_events e
+             left join public.content_ideas i
+               on i.id::text = e.subject_id and e.subject_table = 'content_ideas'
+            where e.instruction is not null or e.reason_code is not null
+            order by e.occurred_at desc limit 100;`,
   };
   const HINTS = {
     triage: 'Every seed here has no subchannel yet. Nothing is set aside without you saying why, and your note travels with whichever button you press. The mandates on the left are the test, and each is a question the piece must ask rather than a subject it covers.',
     draft:  'Every button here is recorded. The machine picked the subchannel and wrote the draft; what you keep, move, bin and rewrite is what the weekly compiler learns from. Binning with a reason teaches more than keeping.',
     review: 'Drafts already saved. Edit them in place, or ask whether the piece actually asks the question its subchannel demands.',
+    told:   'Every decision you have made here, read back out of the table it was written to. This is the whole record, not a summary of it. If something you said is missing, that is a bug and I want to know.',
   };
-  const CARD = { triage: triageCard, draft: draftCard, review: reviewCard };
+
+  /** One recorded decision, in his words and the table’s. */
+  function toldCard(r) {
+    const card = el('article', 'card told'); card.dataset.id = r.subject_id || '';
+    const meta = el('div', 'meta');
+    const when = new Date(r.occurred_at);
+    meta.append(el('span', null, isNaN(when) ? String(r.occurred_at) : when.toLocaleString()));
+    meta.append(el('span', 'chip', r.action));
+    if (r.reason_code) meta.append(el('span', 'chip slot', r.reason_code));
+    if (r.value) meta.append(el('span', null, r.value));
+    card.append(meta);
+    card.append(el('h2', 'idea', r.idea || '(the idea this was about is no longer in the queue)'));
+    if (r.instruction) card.append(el('p', 'told-note', r.instruction));
+    return card;
+  }
+
+  const CARD = { triage: triageCard, draft: draftCard, review: reviewCard, told: toldCard };
 
   async function counts() {
     try {
       const [c] = await sql(
         `select count(*) filter (where lane_slot is null and state in ('seeded','researching') and buried_at is null) as triage,
                 count(*) filter (where lane_slot is not null and coalesce(body,'')='' and buried_at is null and state not in ('dropped','published','absorbed')) as draft,
-                count(*) filter (where coalesce(body,'')<>'' and buried_at is null and state in ('drafting','review')) as review
+                count(*) filter (where coalesce(body,'')<>'' and buried_at is null and state in ('drafting','review')) as review,
+                (select count(*) from public.content_edit_events
+                  where instruction is not null or reason_code is not null) as told
            from public.content_ideas;`);
       if (!c) return;
-      $('#c-triage').textContent = c.triage; $('#c-draft').textContent = c.draft; $('#c-review').textContent = c.review;
+      $('#c-triage').textContent = c.triage; $('#c-draft').textContent = c.draft;
+      $('#c-review').textContent = c.review; $('#c-told').textContent = c.told;
     } catch (e) {
       // Counts are a convenience, but a shape error here is the same fault
       // that would empty every stage, so it is worth a line rather than silence.
-      for (const id of ['#c-triage', '#c-draft', '#c-review']) $(id).textContent = '?';
+      for (const id of ['#c-triage', '#c-draft', '#c-review', '#c-told']) $(id).textContent = '?';
       console.warn('[desk] counts unavailable:', (e && e.code) || e);
     }
   }
@@ -1247,10 +1286,12 @@
       d.append(el('div', 'big',
         stage === 'triage' ? 'Nothing waiting on a subchannel.'
         : stage === 'draft' ? 'Nothing assigned is waiting to be written.'
+        : stage === 'told' ? 'Nothing recorded yet.'
         : 'No drafts to read back.'));
       d.append(el('div', null,
         stage === 'triage' ? 'Every seed has a home or has been set aside.'
         : stage === 'draft' ? 'Triage a few seeds first and they will appear here.'
+        : stage === 'told' ? 'The moment you bin, pick or rewrite anything with a reason, it shows up here.'
         : 'Write one in the dry run and it lands here.'));
       q.append(d); return;
     }
