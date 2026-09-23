@@ -429,6 +429,21 @@ async function getAnthropicKey(): Promise<string | null> {
   return cachedAnthropicKey
 }
 
+/** Whether a key is reachable AT ALL, by either route.
+ *
+ *  The fallback above was added on 2026-09-16 because a bad or rotated Vercel
+ *  variable took down the query planner, the reranker and the per-person
+ *  explanations with no recovery short of a redeploy. It never helped any of
+ *  them: all three test `process.env.ANTHROPIC_API_KEY` themselves and return
+ *  early, so the recovery path was unreachable from the exact three surfaces it
+ *  was written for. They ask this instead now.
+ *
+ *  Returns a boolean, not the key: a call site that only needs to know whether
+ *  to attempt the call has no business holding the secret. */
+export async function hasAnthropicKey(): Promise<boolean> {
+  return Boolean(await getAnthropicKey())
+}
+
 export async function callClaude(opts: ClaudeOpts): Promise<string> {
   const apiKey = await getAnthropicKey()
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
