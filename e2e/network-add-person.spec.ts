@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * Adding a person to the network from a screenshot.
@@ -92,6 +93,17 @@ async function mockApis(page: Page, o: MockOpts = {}) {
 }
 
 async function openFlow(page: Page) {
+  // Hardening, not a fix. Like network.spec.ts, this file mocks specific
+  // `/api/network/*` routes and no `**\/api\/**` catch-all, so
+  // `/api/pilot/checkin` 404s against the preview server and the morning gate
+  // fails open. Verified inside a forced 04:00-12:00 window: it passes with
+  // this line and without it.
+  //
+  // Adding a catch-all is what would break it, because `{ ok: true }` is a 200
+  // the gate cannot read, and then every test here dies at the first selector
+  // looking like a broken capture flow. See network.spec.ts for the longer
+  // note and network-desk.spec.ts for the morning it actually happened.
+  await answerPilotGate(page)
   await page.goto('/#/relationships')
   await page.getByTestId('network-add-person-open').click()
   await expect(page.getByTestId('network-add-person-capture')).toBeVisible()
