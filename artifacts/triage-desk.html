@@ -453,6 +453,7 @@
   /* ── stage 1: triage ──────────────────────────────────────────────── */
   function triageCard(r) {
     const card = el('article', 'card'); card.dataset.id = r.id;
+    card.__seedAt = Date.now();
     const meta = el('div', 'meta');
     meta.append(el('span', null, ageOf(r.created_at)));
     if (r.brand_fit_score != null) meta.append(el('span', 'chip' + (Number(r.brand_fit_score) >= 8 ? ' high' : ''), 'brand fit ' + r.brand_fit_score));
@@ -465,27 +466,61 @@
     for (const slug of PICKABLE) {
       const f = fmtBySlug()[slug]; if (!f) continue;
       const b = el('button', 'pick' + (f.hero ? ' is-hero' : ''), f.label || slug);
-      b.type = 'button'; b.onclick = () => assign(card, r, slug); actions.append(b);
+      b.type = 'button'; b.onclick = () => chooseSlot(card, r, slug); actions.append(b);
     }
-    const drop = el('button', 'ghost', 'Not a piece'); drop.type = 'button';
-    drop.onclick = () => assign(card, r, null); actions.append(drop);
     if (sample) {
       const ask = el('button', 'ask', 'Ask Claude'); ask.type = 'button';
       ask.onclick = () => advise(card, r, ask); actions.append(ask);
     }
     card.append(actions);
+
+    noteBox(card, r);
+
+    const row2 = el('div', 'actions'); row2.style.marginTop = '7px';
+    const drop = el('button', 'ghost', 'Not a piece'); drop.type = 'button';
+    // Never buries on the first press. A piece that vanishes without saying why
+    // is the one outcome this desk exists to stop: the reason IS the product.
+    drop.onclick = () => binSeed(card, r, row2);
+    row2.append(drop);
+    card.append(row2);
     return card;
   }
 
-  async function assign(card, r, slug) {
+  /* He chose a subchannel. Two things are worth recording and they are
+     different: WHAT he chose, always, and whether Claude had guessed the same,
+     when he asked it. The second is a graded prediction and is the only honest
+     training set for the classifier that has to do this unattended. */
+  async function chooseSlot(card, r, slug) {
     if (!UUID.test(r.id)) return fail(card, { code: 'bad_request', message: 'This row has no usable id.' });
-    if (slug !== null && !PICKABLE.includes(slug)) return fail(card, { code: 'bad_request', message: 'Not a subchannel.' });
+    if (!PICKABLE.includes(slug)) return fail(card, { code: 'bad_request', message: 'Not a subchannel.' });
     card.querySelectorAll('button').forEach(b => { b.disabled = true; });
-    const q = slug === null
-      ? `update public.content_ideas set buried_at=now(), buried_reason='set aside at the triage desk', updated_at=now() where id=${lit(r.id)};`
-      : `update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`;
-    try { await sql(q, { write: true }); card.remove(); await counts(); if (!$('#queue').children.length) render(); }
-    catch (e) { fail(card, e); }
+    const note = noteOf(card);
+    const before = await sha256Hex(seedTextOf(r));
+    const dwell = Date.now() - card.__seedAt;
+    try {
+      await sql(`update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+
+      // Grade the machine, when there was a machine guess to grade: Claude's
+      // if he asked it on this card, otherwise the auto-triage tag the row
+      // arrived with.
+      const guess = card.__claudeGuess || (r.auto ? r.lane_slot : null);
+      if (guess) {
+        await ledger({
+          subjectId: r.id, action: guess === slug ? 'magic_accepted' : 'magic_rejected',
+          mode: 'subchannel', value: guess,
+          reasonCode: guess === slug ? null : 'wrong_subchannel',
+          beforeHash: before, afterHash: guess === slug ? await sha256Hex(slug) : null,
+          instruction: note, dwellMs: dwell,
+        });
+      }
+      // What he actually chose, recorded whether or not anything guessed first.
+      await ledger({
+        subjectId: r.id, action: 'manual_edit', mode: 'subchannel', value: slug,
+        beforeHash: before, afterHash: await sha256Hex(slug),
+        instruction: note, charsBefore: seedTextOf(r).length, dwellMs: dwell,
+      });
+      card.remove(); await counts(); if (!$('#queue').children.length) render();
+    } catch (e) { fail(card, e); }
   }
 
   async function advise(card, r, btn) {
@@ -502,6 +537,23 @@
         + 'In at most 45 words: name the one subchannel that fits and the question this piece would have to ask to earn it. If none fits, say so and why. No preamble, no bullets, no em dashes.',
         { modelTier: 'quick', onText: ({ text }) => { body.textContent = text; } });
       body.textContent = out.text;
+      // Which one it named, so the next button press grades it. First mention
+      // wins; an answer naming none leaves the guess unset rather than picking.
+      let best = null, at = Infinity;
+      for (const slug of PICKABLE) {
+        const label = (fmtBySlug()[slug] || {}).label || slug;
+        for (const needle of [slug, label]) {
+          const i = out.text.toLowerCase().indexOf(needle.toLowerCase());
+          if (i >= 0 && i < at) { at = i; best = slug; }
+        }
+      }
+      card.__claudeGuess = best;
+      if (best) {
+        await ledger({
+          subjectId: r.id, action: 'magic_invoked', mode: 'subchannel', value: best,
+          beforeHash: await sha256Hex(seedTextOf(r)), charsBefore: seedTextOf(r).length,
+        });
+      }
     } catch (e) { body.textContent = sampleErr(e); }
     finally { btn.disabled = false; }
   }
@@ -937,7 +989,8 @@
 
   /* ── stages ───────────────────────────────────────────────────────── */
   const QUERIES = {
-    triage: `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url
+    triage: `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url,
+                    lane_slot, (meta ? 'auto_triage') as auto
                from public.content_ideas
               where lane_slot is null and state in ('seeded','researching')
                 and buried_at is null
@@ -953,7 +1006,7 @@
               order by updated_at desc nulls last, created_at desc limit 25;`,
   };
   const HINTS = {
-    triage: 'Every seed here has no subchannel yet. The mandates on the left are the test, and each one is a question the piece has to ask rather than a subject it covers.',
+    triage: 'Every seed here has no subchannel yet. Nothing is set aside without you saying why, and your note travels with whichever button you press. The mandates on the left are the test, and each is a question the piece must ask rather than a subject it covers.',
     draft:  'Every button here is recorded. The machine picked the subchannel and wrote the draft; what you keep, move, bin and rewrite is what the weekly compiler learns from. Binning with a reason teaches more than keeping.',
     review: 'Drafts already saved. Edit them in place, or ask whether the piece actually asks the question its subchannel demands.',
   };
