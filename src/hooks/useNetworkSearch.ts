@@ -96,6 +96,15 @@ export interface SearchState {
    *  Without it the only person who could retry never learns there is
    *  anything to retry. */
   explainFailed: boolean
+  /** WHY it failed, in the upstream's own words, capped by the route.
+   *
+   *  /api/network/explain has returned this on every failure since it stopped
+   *  answering with an empty success, and nothing read it. On 2026-09-23 that
+   *  cost an afternoon: the tab said "the per-person reasons failed", the
+   *  planner said "did not run", and the one sentence naming the cause was
+   *  sitting in the response body being discarded by this hook. A reason the
+   *  client drops is the same as no reason at all. */
+  explainReason: string | null
   error: string | null
   transcript?: string
   /** What geography the server applied, and whether it excluded or only ranked.
@@ -107,7 +116,7 @@ export interface SearchState {
 
 const EMPTY: SearchState = {
   results: [], restated: '', weak: false, degraded: [], loading: false, explaining: false,
-  explainFailed: false, error: null,
+  explainFailed: false, explainReason: null, error: null,
   geo: { countries: [], hard: false },
 }
 
@@ -162,10 +171,14 @@ export function useNetworkSearch() {
         ok?: boolean
         explanations?: Record<string, string>
         moves?: Record<string, string>
+        reason?: string
       }
       if (mine !== seq.current) return
       if (j.ok === false) {
-        setState(s => ({ ...s, explaining: false, explainFailed: true }))
+        setState(s => ({
+          ...s, explaining: false, explainFailed: true,
+          explainReason: typeof j.reason === 'string' && j.reason ? j.reason : null,
+        }))
         return
       }
       const map = j.explanations || {}
@@ -174,6 +187,7 @@ export function useNetworkSearch() {
         ...s,
         explaining: false,
         explainFailed: false,
+        explainReason: null,
         results: s.results.map(x => (
           map[x.contact_id] || moves[x.contact_id]
             ? { ...x, why_match: map[x.contact_id] || x.why_match, move: moves[x.contact_id] || x.move }
@@ -181,7 +195,9 @@ export function useNetworkSearch() {
         )),
       }))
     } catch {
-      if (mine === seq.current) setState(s => ({ ...s, explaining: false, explainFailed: true }))
+      // A throw here is the client's own abort or a network failure, so there
+      // is no upstream sentence to quote; say nothing rather than guess.
+      if (mine === seq.current) setState(s => ({ ...s, explaining: false, explainFailed: true, explainReason: null }))
     } finally {
       clearTimeout(tid)
     }
@@ -237,6 +253,7 @@ export function useNetworkSearch() {
         loading: false,
         explaining: wantsExplain,
         explainFailed: false,
+        explainReason: null,
         error: null,
         transcript: typeof j.transcript === 'string' ? j.transcript : undefined,
         geo: (j.geo as SearchState['geo']) || { countries: [], hard: false },
@@ -297,7 +314,7 @@ export function useNetworkSearch() {
   const retryExplain = useCallback(() => {
     const last = lastExplain.current
     if (!last) return
-    setState(s => ({ ...s, explaining: true, explainFailed: false }))
+    setState(s => ({ ...s, explaining: true, explainFailed: false, explainReason: null }))
     void explain(last.question, last.results, seq.current)
   }, [explain])
 

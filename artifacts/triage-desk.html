@@ -172,7 +172,23 @@
   }
   .gapwarn b { font-weight: 600; }
 
-.notewrap { margin-top: 12px; }
+.selftest {
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    margin: 0 0 14px; padding: 10px 13px; border-radius: 9px;
+    border: 1px solid var(--rule); background: var(--card);
+    font-size: 13.5px; color: var(--slate);
+  }
+  .selftest .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: 0 0 auto; }
+  .selftest.ok { background: var(--go-w); border-color: transparent; color: var(--go); }
+  .selftest.ok .dot { background: var(--go); }
+  .selftest.bad { background: var(--brass-w); border-color: transparent; color: var(--brass); }
+  .selftest.bad .dot { background: var(--brass); }
+  .selftest button {
+    margin-left: auto; font: 500 12.5px/1 Archivo, sans-serif; padding: 6px 10px;
+    border-radius: 7px; cursor: pointer; border: 1px solid currentColor;
+    background: none; color: inherit;
+  }
+  .notewrap { margin-top: 12px; }
   textarea.notes {
     width: 100%; resize: vertical; min-height: 58px;
     font: 400 14.5px/1.5 Archivo, sans-serif; color: var(--ink);
@@ -225,6 +241,11 @@
     </aside>
 
     <main>
+      <div id="selftest" class="selftest">
+        <span class="dot" id="st-dot"></span>
+        <span id="st-text">Checking what this desk can do…</span>
+        <button type="button" id="st-run" hidden>Check again</button>
+      </div>
       <p class="stage-hint" id="hint"></p>
       <div id="ledger-state" hidden></div>
       <div id="queue" class="queue">
@@ -432,6 +453,7 @@
   /* ── stage 1: triage ──────────────────────────────────────────────── */
   function triageCard(r) {
     const card = el('article', 'card'); card.dataset.id = r.id;
+    card.__seedAt = Date.now();
     const meta = el('div', 'meta');
     meta.append(el('span', null, ageOf(r.created_at)));
     if (r.brand_fit_score != null) meta.append(el('span', 'chip' + (Number(r.brand_fit_score) >= 8 ? ' high' : ''), 'brand fit ' + r.brand_fit_score));
@@ -444,27 +466,61 @@
     for (const slug of PICKABLE) {
       const f = fmtBySlug()[slug]; if (!f) continue;
       const b = el('button', 'pick' + (f.hero ? ' is-hero' : ''), f.label || slug);
-      b.type = 'button'; b.onclick = () => assign(card, r, slug); actions.append(b);
+      b.type = 'button'; b.onclick = () => chooseSlot(card, r, slug); actions.append(b);
     }
-    const drop = el('button', 'ghost', 'Not a piece'); drop.type = 'button';
-    drop.onclick = () => assign(card, r, null); actions.append(drop);
     if (sample) {
       const ask = el('button', 'ask', 'Ask Claude'); ask.type = 'button';
       ask.onclick = () => advise(card, r, ask); actions.append(ask);
     }
     card.append(actions);
+
+    noteBox(card, r);
+
+    const row2 = el('div', 'actions'); row2.style.marginTop = '7px';
+    const drop = el('button', 'ghost', 'Not a piece'); drop.type = 'button';
+    // Never buries on the first press. A piece that vanishes without saying why
+    // is the one outcome this desk exists to stop: the reason IS the product.
+    drop.onclick = () => binSeed(card, r, row2);
+    row2.append(drop);
+    card.append(row2);
     return card;
   }
 
-  async function assign(card, r, slug) {
+  /* He chose a subchannel. Two things are worth recording and they are
+     different: WHAT he chose, always, and whether Claude had guessed the same,
+     when he asked it. The second is a graded prediction and is the only honest
+     training set for the classifier that has to do this unattended. */
+  async function chooseSlot(card, r, slug) {
     if (!UUID.test(r.id)) return fail(card, { code: 'bad_request', message: 'This row has no usable id.' });
-    if (slug !== null && !PICKABLE.includes(slug)) return fail(card, { code: 'bad_request', message: 'Not a subchannel.' });
+    if (!PICKABLE.includes(slug)) return fail(card, { code: 'bad_request', message: 'Not a subchannel.' });
     card.querySelectorAll('button').forEach(b => { b.disabled = true; });
-    const q = slug === null
-      ? `update public.content_ideas set buried_at=now(), buried_reason='set aside at the triage desk', updated_at=now() where id=${lit(r.id)};`
-      : `update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`;
-    try { await sql(q, { write: true }); card.remove(); await counts(); if (!$('#queue').children.length) render(); }
-    catch (e) { fail(card, e); }
+    const note = noteOf(card);
+    const before = await sha256Hex(seedTextOf(r));
+    const dwell = Date.now() - card.__seedAt;
+    try {
+      await sql(`update public.content_ideas set lane_slot=${lit(slug)}, updated_at=now() where id=${lit(r.id)};`, { write: true });
+
+      // Grade the machine, when there was a machine guess to grade: Claude's
+      // if he asked it on this card, otherwise the auto-triage tag the row
+      // arrived with.
+      const guess = card.__claudeGuess || (r.auto ? r.lane_slot : null);
+      if (guess) {
+        await ledger({
+          subjectId: r.id, action: guess === slug ? 'magic_accepted' : 'magic_rejected',
+          mode: 'subchannel', value: guess,
+          reasonCode: guess === slug ? null : 'wrong_subchannel',
+          beforeHash: before, afterHash: guess === slug ? await sha256Hex(slug) : null,
+          instruction: note, dwellMs: dwell,
+        });
+      }
+      // What he actually chose, recorded whether or not anything guessed first.
+      await ledger({
+        subjectId: r.id, action: 'manual_edit', mode: 'subchannel', value: slug,
+        beforeHash: before, afterHash: await sha256Hex(slug),
+        instruction: note, charsBefore: seedTextOf(r).length, dwellMs: dwell,
+      });
+      card.remove(); await counts(); if (!$('#queue').children.length) render();
+    } catch (e) { fail(card, e); }
   }
 
   async function advise(card, r, btn) {
@@ -481,6 +537,23 @@
         + 'In at most 45 words: name the one subchannel that fits and the question this piece would have to ask to earn it. If none fits, say so and why. No preamble, no bullets, no em dashes.',
         { modelTier: 'quick', onText: ({ text }) => { body.textContent = text; } });
       body.textContent = out.text;
+      // Which one it named, so the next button press grades it. First mention
+      // wins; an answer naming none leaves the guess unset rather than picking.
+      let best = null, at = Infinity;
+      for (const slug of PICKABLE) {
+        const label = (fmtBySlug()[slug] || {}).label || slug;
+        for (const needle of [slug, label]) {
+          const i = out.text.toLowerCase().indexOf(needle.toLowerCase());
+          if (i >= 0 && i < at) { at = i; best = slug; }
+        }
+      }
+      card.__claudeGuess = best;
+      if (best) {
+        await ledger({
+          subjectId: r.id, action: 'magic_invoked', mode: 'subchannel', value: best,
+          beforeHash: await sha256Hex(seedTextOf(r)), charsBefore: seedTextOf(r).length,
+        });
+      }
     } catch (e) { body.textContent = sampleErr(e); }
     finally { btn.disabled = false; }
   }
@@ -569,6 +642,48 @@
     ['not_interesting', 'Not interesting'],
   ];
 
+
+
+  /* ── can this desk actually do anything? ──────────────────────────────
+   *
+   * Krish: "is this whole artifact actually able to do anything?" A fair
+   * question, and the page could not answer it. Reads plainly worked - cards
+   * were on screen - while every write had recorded nothing, and the two are
+   * indistinguishable until you press something.
+   *
+   * So the page tests itself out loud, on load, with a real write: an UPDATE
+   * that sets a row's updated_at to the value it already holds. It changes
+   * nothing and it is a genuine write, which is the only kind of test worth
+   * running. A read-only probe would pass in exactly the broken case.
+   */
+  async function selfTest() {
+    const box = $('#selftest'), dot = $('#st-dot'), txt = $('#st-text'), again = $('#st-run');
+    box.className = 'selftest'; again.hidden = true;
+    txt.textContent = 'Checking what this desk can do…';
+    let probeId = null;
+    try {
+      const rows = await sql(`select id from public.content_ideas where buried_at is null order by created_at desc limit 1;`);
+      probeId = rows[0] && rows[0].id;
+      if (!probeId) { box.classList.add('ok'); txt.textContent = 'Reading works. No rows to write against, so writing is untested.'; again.hidden = false; return; }
+    } catch (e) {
+      const [t, b] = explain(e);
+      box.classList.add('bad'); txt.textContent = 'Cannot read: ' + t + '. ' + b; again.hidden = false; return;
+    }
+    try {
+      await sql(`update public.content_ideas set updated_at = updated_at where id = ${lit(probeId)};`, { write: true });
+      box.classList.add('ok');
+      txt.textContent = 'Reading and writing both work. Your decisions will be saved and recorded.';
+    } catch (e) {
+      const code = (e && e.code) || 'unknown';
+      box.classList.add('bad');
+      txt.textContent = code === 'approval_required'
+        ? 'This desk can READ but not WRITE. Your Supabase connector asks you to confirm each write, and an artifact has no way to show that prompt, so every button here would fail silently. Nothing you press will save.'
+        : code === 'tool_error'
+          ? 'This desk can read but not write. The database refused it: ' + String(e.message || '').slice(0, 200)
+          : 'This desk can read but not write (' + code + '). Nothing you press will save.';
+      again.hidden = false;
+    }
+  }
 
   /* ── his notes ────────────────────────────────────────────────────────
    *
@@ -874,7 +989,8 @@
 
   /* ── stages ───────────────────────────────────────────────────────── */
   const QUERIES = {
-    triage: `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url
+    triage: `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url,
+                    lane_slot, (meta ? 'auto_triage') as auto
                from public.content_ideas
               where lane_slot is null and state in ('seeded','researching')
                 and buried_at is null
@@ -890,7 +1006,7 @@
               order by updated_at desc nulls last, created_at desc limit 25;`,
   };
   const HINTS = {
-    triage: 'Every seed here has no subchannel yet. The mandates on the left are the test, and each one is a question the piece has to ask rather than a subject it covers.',
+    triage: 'Every seed here has no subchannel yet. Nothing is set aside without you saying why, and your note travels with whichever button you press. The mandates on the left are the test, and each is a question the piece must ask rather than a subject it covers.',
     draft:  'Every button here is recorded. The machine picked the subchannel and wrote the draft; what you keep, move, bin and rewrite is what the weekly compiler learns from. Binning with a reason teaches more than keeping.',
     review: 'Drafts already saved. Edit them in place, or ask whether the piece actually asks the question its subchannel demands.',
   };
@@ -968,6 +1084,8 @@
     } catch (e) { const [t, b] = explain(e); return pageNote(t, b, () => location.reload(), e); }
     counts();
     render();
+    $('#st-run').onclick = selfTest;
+    selfTest();
   })();
 })();
 </script>
