@@ -112,10 +112,14 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
     // KEEPS that 620px — a purpose line and one ask are reading, and stretching
     // them would make the tab worse — and the three tools spread into columns
     // beneath, which is what the extra 1060px is actually good for.
-    <div className={`w-full flex flex-col pb-6 ${
+    <div
+      data-testid="focus-tab"
+      data-shape={compact ? 'phone' : wideDesk ? 'wide-desk' : 'desk'}
+      className={`w-full flex flex-col pb-6 ${
       compact ? 'gap-3 [@media(max-height:860px)]:gap-2'
       : wideDesk ? 'max-w-[1240px] mx-auto gap-5'
-      : 'max-w-[620px] mx-auto gap-4'}`}>
+      : 'max-w-[620px] mx-auto gap-4'}`}
+    >
 
       {/* The purpose anchor: one line of his own record, per day. Never more. */}
       <header className={`${compact ? 'pt-0' : 'pt-2'} ${wideDesk ? 'w-full max-w-[620px]' : ''}`}>
@@ -136,7 +140,7 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
           everywhere else. The band used to end at 883px with 600px of bare
           desk to its right. */}
       <div className={wideDesk ? 'flex items-stretch gap-5' : ''}>
-        <div ref={askRef} className={`scroll-mt-4 ${wideDesk ? 'w-full max-w-[620px]' : ''}`}>
+        <div ref={askRef} data-testid="focus-ask" className={`scroll-mt-4 ${wideDesk ? 'w-full max-w-[620px]' : ''}`}>
           <AskCard variant={variant} composeSignal={composeSignal} />
         </div>
         {wideDesk && (
@@ -199,7 +203,7 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
       ) : (
         // `items-start` matters: without it the grid stretches all three cards
         // to the tallest, so opening one inflates two empty neighbours.
-        <div className={wideDesk ? 'grid grid-cols-3 gap-5 items-start' : 'flex flex-col gap-4'}>
+        <div data-testid="focus-tools" className={wideDesk ? 'grid grid-cols-3 gap-5 items-start' : 'flex flex-col gap-4'}>
           {TOOLS.map(t => (
             <SectionCard
               key={t.id}
@@ -223,7 +227,7 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
         // 284px, and the button's left edge is 318px. Reserving a 72px gutter
         // for it instead wrapped "Shutdown" onto a second line, which on a tab
         // that is meant to fit one screen is the worse of the two problems.
-        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <div data-testid="focus-day-boundary" className="flex flex-wrap items-center gap-2 pt-0.5">
           <BoundaryButton icon={compact ? null : <Brain size={14} />} onClick={() => { h.tap(); setWorryOpen(true) }}>
             Compile a worry
           </BoundaryButton>
@@ -270,7 +274,7 @@ function DayBoundary({ onCompile, onShutdown }: { onCompile: () => void; onShutd
     { icon: <Moon size={15} />, label: 'Shutdown', sub: 'Say what today was, then stop.', onClick: onShutdown },
   ]
   return (
-    <aside className="surface flex min-w-0 flex-1 flex-col rounded-2xl p-5">
+    <aside data-testid="focus-day-boundary" className="surface flex min-w-0 flex-1 flex-col rounded-2xl p-5">
       <Eyebrow>Ending the day</Eyebrow>
       <div className="mt-3 flex flex-col gap-2">
         {rows.map(r => (
@@ -306,7 +310,7 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="surface rounded-2xl p-5">
+    <section data-testid="focus-tool-card" className="surface rounded-2xl p-5">
       <button
         type="button"
         onClick={onToggle}

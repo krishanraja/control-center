@@ -129,6 +129,18 @@ builds, tests or deploys it.
   Keep it that way. If you add a switcher, give it a `testIdPrefix` (see
   `src/components/shared/SegmentedNav.tsx`) rather than letting a spec click a
   word, or the next copy change silently takes the suite out again.
+- **`e2e/focus-desk.spec.ts` covers Focus above 1400px** (added 2026-09-23).
+  Focus was the last `wideDesk` surface with no desk spec, so its three tool
+  columns and its 620px spine had been shipped and reshaped twice without one
+  test ever rendering them. Two notes if you touch it. It probes
+  `[data-testid="focus-tab"]`, not `main`: Focus is a **scroller**, not a stage
+  (its wrapper in `App.tsx` is `overflow-y-auto` on purpose), so pointing the
+  overflow probe at `main` flags the page's legitimate scroller. And each
+  assertion was mutation-tested rather than trusted for passing on the first
+  run — dropping `items-start` fails exactly the neighbour-inflation test, and
+  unstacking the day-boundary panel fails both the "beside, not under" test and
+  the hole probe. A layout assertion that has never been seen to fail is a
+  comment, not a test.
 - **`e2e/composer.spec.ts` covers the content composer** (the brief opening in
   it, the rail, and the full edit palette). There was no content coverage at all
   before it, which is part of how the brief surface came to have four one-click
