@@ -1170,3 +1170,55 @@ privileges. The writers are content-engine control-plane routes using the servic
 role: `/api/feed/ingest` and `/api/purge/run` record observations, `/api/trends/entities`
 tags them, `/api/trends/metrics` snapshots the week, `/api/claims/resolve` notices
 due falsifiers.
+
+## View security posture (2026-09-23)
+
+A view in Postgres runs as its **owner** unless `security_invoker = true` is set on
+it, so by default it reads straight past the permissions of whoever queried it.
+Supabase separately grants `public` schema objects to `anon` and `authenticated`
+by default. The two together are how a table that has been explicitly revoked
+stays readable through a view over it, and the frontend's key is the public
+`VITE_SUPABASE_ANON_KEY` in a browser bundle from a public repository, so `anon`
+means anyone.
+
+Three postures are in use here, and the difference between them is intent rather
+than accident:
+
+1. **Invoker, browser readable.** The dashboard's own reads. The view carries
+   `security_invoker = true` and the tables underneath carry an `anon read`
+   policy, so the table's rules are what decide. Most views are here.
+2. **Invoker, service role only.** No `anon` or `authenticated` grant on the view
+   and no `anon` policy underneath. `standards_efficacy`, `spend_monthly`, the
+   `trend_*` views, `claims_due` and `claim_scoreboard`.
+3. **Definer, service role only, deliberately.** A controlled aggregate interface
+   over a schema that is not exposed through PostgREST at all. The definer
+   property *is* the access control: the view publishes aggregates and never
+   rows, and the raw table stays unreachable. `attribution_app_health`,
+   `growth_attribution_weekly`, `fleet_funnel_by_campaign` and
+   `fleet_revenue_by_campaign` read `attribution.events`, which carries emails.
+   The invariant that makes this safe is the `revoke all ... from anon,
+   authenticated` line; a definer view without it is a hole, which is exactly
+   what `attribution_app_health` was until 2026-09-23.
+
+Migration `20260923143000` converted the fourteen views that were in neither
+posture. Eleven of them changed nothing observable, because their base tables
+already carried `anon read USING (true)`; the conversion removed a bypass rather
+than closing a hole. Verified by counting every view as `role anon` before and
+after and requiring the numbers to match, including `decisions_waiting` broken
+down per `kind`.
+
+`decisions_waiting` needed two policies to survive the conversion, on
+`acquisition_sends` and `corrections`, each using the view's own `WHERE` clause as
+its predicate. The `acquisition_sends` policy is `status = 'queued'` rather than
+the narrower `status = 'queued' AND sample_required`, because that table also
+appears inside a `NOT EXISTS` that suppresses a task while it has a send waiting;
+a narrower policy would have let suppressed tasks reappear.
+
+**Two things this did not fix, recorded so they are not mistaken for done.**
+`attribution_app_health` briefly became invoker in that migration and was
+reverted by `20260923144500`: `service_role` has `rolbypassrls` but that bypasses
+row level security, not table grants, and it holds no `SELECT` on
+`attribution.events`. And the larger exposure is untouched: `contacts` (11,755
+rows), `leads`, `guests`, `customers` and `system_config` are anon readable with
+`USING (true)`. `20260909110000_revoke_anon_writes.sql` promised a table by table
+pass on reads, personal data first, and it has not happened.
