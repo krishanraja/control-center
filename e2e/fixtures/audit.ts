@@ -133,6 +133,143 @@ export const VISIBILITY_TARGETS = EVENT_TITLES.flatMap((title, i) =>
   }),
 )
 
+
+// ── The /api surfaces ───────────────────────────────────────────────────────
+//
+// Home, Intel and Focus read almost nothing from PostgREST: their content
+// arrives over /api, which a blanket `{ ok: true }` mock answers with a
+// well-formed nothing. The first audit run therefore measured all three as
+// empty states and reported holes of 0.33-0.38 that said more about the
+// fixture than the layout. These are the real envelopes.
+
+const WEEK_ENDING = new Date(now + 3 * 86_400_000).toISOString().slice(0, 10)
+
+function mondayOf(offsetWeeks = 0): string {
+  const d = new Date(now + offsetWeeks * 7 * 86_400_000)
+  const day = (d.getUTCDay() + 6) % 7
+  d.setUTCDate(d.getUTCDate() - day)
+  return d.toISOString().slice(0, 10)
+}
+
+const goal = (id: string, title: string, horizon: 'os' | 'weekly', extra: Record<string, unknown> = {}) => ({
+  id, title, horizon,
+  parent_id: horizon === 'weekly' ? 'os-1' : null,
+  venture: 'mindmake',
+  job: 'sell',
+  status: 'active',
+  priority: 1,
+  is_stale: false,
+  orphaned: false,
+  days_since_touch: 1,
+  stale_after_days: 14,
+  week_start: horizon === 'weekly' ? mondayOf() : null,
+  closed_at: null,
+  carried_from: null,
+  updated_at: daysAgo(1),
+  created_at: daysAgo(30),
+  ...extra,
+})
+
+export const GOAL_LADDER = {
+  ok: true,
+  by_horizon: {
+    os: [
+      goal('os-1', 'Twenty-five paid advisory rooms by the end of the quarter', 'os'),
+      goal('os-2', 'One piece a week that a buyer forwards to their board', 'os'),
+      goal('os-3', 'The OS runs a full week without Krish touching a workflow', 'os'),
+    ],
+    weekly: [
+      goal('wk-1', 'Send fifteen approaches to the judgment-economy list', 'weekly'),
+      goal('wk-2', 'Publish the verification-gap essay and pitch it to three newsletters', 'weekly'),
+      goal('wk-3', 'Close the Sifted CFP with the judgment-economy talk', 'weekly', { status: 'done', closed_at: daysAgo(1) }),
+    ],
+  },
+  ventures: ['mindmake', 'ctrl'],
+  stale_count: 0,
+  orphan_count: 0,
+  week_of: mondayOf(),
+  current_week: mondayOf(),
+}
+
+export const SCORECARD = {
+  ok: true,
+  week_ending: WEEK_ENDING,
+  current: {
+    week_ending: WEEK_ENDING,
+    approaches_sent: 11, calls_taken: 3, paid_pilots: 1,
+    cash_invoiced_gbp: 4500, pieces_published: 2, unasked_hours: 6,
+    unasked_measured: true, commits: 14,
+  },
+  weeks: Array.from({ length: 12 }, (_, i) => ({
+    week_ending: new Date(now - i * 7 * 86_400_000).toISOString().slice(0, 10),
+    frozen_at: i > 0 ? daysAgo(i * 7) : null,
+    plan_sent: 15,
+    variance_note: i === 3 ? 'Two days lost to the Supabase migration.' : null,
+    approaches_sent: 15 - (i % 5), calls_taken: 4 - (i % 3), paid_pilots: i % 4 === 0 ? 1 : 0,
+    cash_invoiced_gbp: i % 4 === 0 ? 4500 : 0, pieces_published: 2 - (i % 2), unasked_hours: 5 + (i % 4),
+    unasked_measured: true,
+    override_approaches_sent: null, override_calls_taken: null, override_paid_pilots: null,
+    override_cash_invoiced_gbp: null, override_pieces_published: null, override_unasked_hours: null,
+  })),
+  targets: { approaches_sent: 25, calls_taken: 12, paid_pilots: 25, cash_invoiced_gbp: 60000, pieces_published: 12, unasked_hours: 0 },
+  totals:  { approaches_sent: 148, calls_taken: 31, paid_pilots: 4, cash_invoiced_gbp: 18000, pieces_published: 19, unasked_hours: 62 },
+  gap:     { approaches_sent: -102, calls_taken: -81, paid_pilots: -21, cash_invoiced_gbp: -42000, pieces_published: 7, unasked_hours: 62 },
+  stop_rule: { on: 'Two weeks under ten approaches', reads: 'Stop building. Sell.' },
+  day_90: new Date(now + 40 * 86_400_000).toISOString().slice(0, 10),
+  unasked_measured: true,
+}
+
+export const SHIPS = {
+  ok: true,
+  this_week: 3,
+  days_since_last: 1,
+  return_rate: 2,
+  last_ten: Array.from({ length: 6 }, (_, i) => ({
+    id: `ship-${i}`,
+    created_at: daysAgo(i + 1),
+    occurred_at: daysAgo(i + 1),
+    source: 'manual',
+    channel: 'linkedin',
+    description: [
+      'Published the verification-gap essay',
+      'Sent the Sifted CFP',
+      'Shipped the triage cockpit',
+      'Recorded with Dan Pratl',
+      'Invoiced the first advisory room',
+      'Wired the judgment-economy scout',
+    ][i],
+    external_ref: null,
+    dedup_key: null,
+  })),
+}
+
+export const BETS = {
+  ok: true,
+  bets: Array.from({ length: 5 }, (_, i) => ({
+    id: `bet-${i}`,
+    title: ['Judgment economy is the wedge', 'Advisory beats courses', 'Video is the top of funnel',
+            'CTRL sells itself once one client ships', 'Newsletters outperform stages'][i],
+    status: i === 0 ? 'live' : i === 4 ? 'retired' : 'live',
+    venture: 'mindmake',
+    evidence: 'Three buyers used the phrase unprompted on calls this month.',
+    created_at: daysAgo(20 - i),
+    updated_at: daysAgo(i),
+  })),
+}
+
+export const ASKS = {
+  ok: true,
+  asks: Array.from({ length: 3 }, (_, i) => ({
+    id: `ask-${i}`,
+    ask_line: ['Would a three week pilot be useful to you?',
+               'Can I send you the verification-gap piece?',
+               'Who else should see this?'][i],
+    kind: 'pilot',
+    resolved_at: null,
+    created_at: daysAgo(i),
+  })),
+}
+
 // ── Customers, contacts, the OS tables ──────────────────────────────────────
 
 export const CUSTOMERS = Array.from({ length: 34 }, (_, i) => ({
@@ -275,6 +412,12 @@ export async function mockAudit(page: Page, tables = auditTables()) {
       { code: 'AU', name: 'Australia', n: 1120, featured: true },
       { code: 'US', name: 'United States', n: 980, featured: true },
     ] } }))
+  await page.route('**/api/goals/ladder*', (r: Route) => r.fulfill({ json: GOAL_LADDER }))
+  await page.route('**/api/objectives*', (r: Route) => r.fulfill({ json: GOAL_LADDER }))
+  await page.route('**/api/scorecard*', (r: Route) => r.fulfill({ json: SCORECARD }))
+  await page.route('**/api/pilot/ships*', (r: Route) => r.fulfill({ json: SHIPS }))
+  await page.route('**/api/pilot/asks*', (r: Route) => r.fulfill({ json: ASKS }))
+  await page.route('**/api/bets*', (r: Route) => r.fulfill({ json: BETS }))
   await page.route('**/api/pilot/timezone', (r: Route) =>
     r.fulfill({ json: { ok: true, timezone: 'Australia/Sydney' } }))
   await page.route('**/api/pilot/checkin*', (r: Route) => r.fulfill({ json: {

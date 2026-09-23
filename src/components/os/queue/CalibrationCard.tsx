@@ -87,7 +87,7 @@ export function CalibrationCard() {
           <button
             type="button"
             onClick={snooze}
-            className="text-ink-faint hover:text-ink-muted flex-shrink-0"
+            className="tap-44 text-ink-faint hover:text-ink-muted flex-shrink-0"
             aria-label="Snooze for a week"
             title="Snooze for a week"
           >

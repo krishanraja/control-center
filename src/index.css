@@ -390,6 +390,41 @@
   }
   .btn-contrast:active { filter: brightness(0.94); }
 
+  /* ── The tap floor ────────────────────────────────────────────────────────
+     A control smaller than 44 physical pixels is a control that misses.
+
+     Measured on a phone, 2026-09-23: the dialog close was 17x17, the queue's
+     snooze 17x17, the "why is this here" badge 24x24 and the goal ladder's
+     own checkboxes 26x26 — and the ladder is the primary interaction on Home.
+
+     The fix is NOT to draw them bigger. A 44px X in the corner of a sheet is a
+     heavy thing sitting where a quiet thing belongs, and the ladder's small
+     square checkbox is correct. `.tap-44` leaves the ink exactly where it is
+     and grows the HIT AREA underneath it with a centred pseudo-element, which
+     is what the 44px guidance is actually about.
+
+     It needs a positioning context, so it sets `position: relative` itself
+     unless the call site already made it absolute or fixed. */
+  .tap-44 { position: relative; }
+  .tap-44.absolute, .tap-44.fixed, .tap-44.sticky { position: revert-layer; }
+  .tap-44::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+    /* Behind the glyph, so it never eats its own hover or paints over it. */
+    z-index: -1;
+  }
+  /* Inside a zoomed mobile root the CSS pixel is 1/1.2 of a physical one, so
+     44 CSS px would only be 36.7 real ones. The wrapper publishes --z. */
+  .mobile-zoom-root .tap-44::after {
+    width: max(100%, calc(44px / var(--z, 1)));
+    height: max(100%, calc(44px / var(--z, 1)));
+  }
+
   /* Money ink uses the same answer colour as the rest of Mindmake.
      Three fixed hexes under `background-clip: text` is the adaptive-text bug
      the token rules warn about, wearing a gradient. The night ramp runs

@@ -29,11 +29,53 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | Choosing from a small set | Chips, never a native `<select>`: `goals/GoalPickers` (`OptionChips` / `ServesPicker` / `VentureChips`); `shared/ChipOverflow` when the set outgrows a line | convention |
 | Creating anything on a phone | The one + button: `CreateSheet` + the `src/lib/quickCreate.ts` bus. Never a new inline create button on a narrow viewport | convention |
 | Tab / section switching | `shared/SegmentedNav`, always with `testIdPrefix` | e2e selects on it |
+| A desk surface's title band | `shared/SurfaceHeader` — one recipe, `text-title`, optional icon / eyebrow / actions / meta. Never a hand-rolled `<h1>` | `scripts/check-type-tokens.mts` (CI) |
+| A tab's height | `shared/AppFrame` — fixed header over one bounded body. The window never scrolls, and nothing may be laid out past the frame with no scroller to reach it | `e2e/desk-noscroll-desk.spec.ts` + `e2e/phone-noscroll-phone.spec.ts` (CI) |
+| A status lane on a board | `desktop/StatusLane` + `EmptyLanes`. An empty lane returns null; the board names them together in one line | convention |
+| Rendering a relative time | `relativeTime()` / `relativeTimeOr()` in `src/lib/ageHelpers.ts`. A bare `formatDistanceToNow(new Date(x))` throws on a null and takes the whole tab down | `scripts/check-safe-dates.mts` (CI) |
+| A width-dependent LAYOUT choice | `hooks/useContainerWidth` on a box that is NOT the one being resized. `window.matchMedia` asks about the browser; no surface gets the browser | convention |
+| A tap target under 44px | `.tap-44` — grows the hit area with a pseudo-element and leaves the ink where it is | `e2e/layout-audit-phone.spec.ts` measures it by hit-test |
 | Goal reads/writes | `useGoalCanon` + `src/lib/goalsApi.ts` | `check-goal-ladder` / `check-goal-gate` (CI) |
 | Loading states | The ladder in `docs/DESIGN_SYSTEM.md`; every string in `src/lib/loadingVoice.ts` | convention |
 | Venture / product names | `ventureLabel()` in `src/lib/ventureOptions.ts` (mirrors `venture_registry`, normalises the three slug spellings). Never a second label map, never a title-cased slug | convention |
 | Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR). User-facing text wraps in full and is never ellipsised or line-clamped. | `scripts/check-editorial-text-integrity.mts` + review |
 | Humour, and prompts that propose work | `api/_humor.ts`. `buildHumourSystem()` for a humour pass on existing text; `proposalPlay(n)` in any prompt that hands Krish work to choose from, which spends one proposal per batch on a marked swing. A proposal prompt that is only prohibitions returns joyless work | review |
+
+## Measuring a layout instead of arguing about it
+
+`e2e/layout-audit-desk.spec.ts` and `e2e/layout-audit-phone.spec.ts` walk every
+surface with populated fixtures, screenshot each one into `audit/`, and record
+page scroll, clipped content, nested scrollers, the largest unpainted
+rectangle, squeezed text, overlapping controls, composited WCAG contrast,
+off-scale type, and tap targets measured by hit-test. They never fail — a red
+suite hides the numbers, and the numbers are the point. Behind `LAYOUT_AUDIT=1`
+so CI does not pay for them:
+
+```
+LAYOUT_AUDIT=1 npx playwright test layout-audit --project=desk-1440
+LAYOUT_AUDIT=1 npx playwright test layout-audit --project=phone-360
+```
+
+The gates that DO fail are `desk-noscroll-desk.spec.ts` and
+`phone-noscroll-phone.spec.ts`, and CI runs both at two widths each.
+
+Three things learned the hard way on 2026-09-23, all of which cost a cycle:
+
+- **A probe that finds nothing has to be proved able to find something.** The
+  first clipping probe walked ancestors outward from the frame, hit a
+  scrollable element above the document and returned on its very first node. It
+  reported a clean board after visiting exactly one element, while Systems was
+  225px over with 60 elements unreachable.
+- **A fixture that renders an empty page measures nothing.** `{ ok: true }` is a
+  well-formed nothing: Home, Intel and Focus read almost everything over
+  `/api`, so the first pass scored them as holes of 0.33-0.38 that said more
+  about the mock than the layout. `@example.com` is worse than useless —
+  `recordHygiene` drops it as test data, so a fixture using it looks populated
+  and renders empty.
+- **The failure a no-scroll shell introduces is invisible to every other
+  measure.** Content laid out in normal flow inside `overflow-hidden` does not
+  scroll, does not overlap, leaves no hole, and is not in the screenshot
+  either. Only a clipping check sees it.
 
 ## Cursor Cloud specific instructions
 

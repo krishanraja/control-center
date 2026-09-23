@@ -43,6 +43,7 @@ export function TabHeader({
   leading,
   trailing,
   wrap = false,
+  compact = false,
 }: {
   title?: string
   /** A node, not a string, so a pending subtitle can be a bar in its own
@@ -57,18 +58,37 @@ export function TabHeader({
    *  instead of truncating — "Business Intelligence" does not fit one line
    *  on a phone. Opt-in so the twelve short titles keep their guarantee. */
   wrap?: boolean
+  /**
+   * The stage header: same parts, half the height, for a screen whose whole
+   * job is the thing UNDER the header.
+   *
+   * Measured on a 360x640 phone, 2026-09-23. On the Visibility triage deck the
+   * full header — a 40px mark, a 28px title and a subtitle — plus the lane
+   * tabs, the deck's own progress strip, its control bar, its hint line, the
+   * create button and the bottom nav left the CARD 55 pixels. Nine percent of
+   * the screen for the one thing the screen exists to show, and the guest's
+   * name, their pitch and every research link clipped out of it.
+   *
+   * Compact keeps the identity at the 36px floor the brand rules set and drops
+   * the title a rung. The subtitle goes: on a deck it said "Swipe to clear the
+   * pile" directly above a hint line that already said "swipe left to skip,
+   * right to pitch, tap to open".
+   */
+  compact?: boolean
 }) {
-  const resolvedLeading = leading === undefined ? <MindmakeIdentity size={40} /> : leading
+  const resolvedLeading = leading === undefined
+    ? <MindmakeIdentity size={compact ? 36 : 40} />
+    : leading
   return (
     <div className="flex items-end justify-between gap-3">
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
         {title && (
-          <h1 className={`font-bold text-ink leading-[1.1] tracking-tight text-heading ${wrap ? '' : 'truncate'}`}>
+          <h1 className={`font-bold text-ink leading-[1.1] tracking-tight ${compact ? 'text-title' : 'text-heading'} ${wrap ? '' : 'truncate'}`}>
             {title}
           </h1>
         )}
-        {subtitle && (
+        {subtitle && !compact && (
           <p className="text-ui text-ink-faint mt-1.5 truncate">{subtitle}</p>
         )}
       </div>

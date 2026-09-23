@@ -371,15 +371,26 @@ export function GoalLadder({ variant = 'desktop' }: {
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {weekly.map(g => {
+            {/* The serves-line answers "which OS goal does this week's work
+                serve". When every row serves the same one, saying it under
+                every row is not an answer, it is the same eight-word sentence
+                three times in a hundred pixels — measured on Home with a real
+                canon on 2026-09-23. It is stated once, above the list, when
+                the whole week points at one goal. */}
+            {weekly.map((g, i) => {
               const done = g.status === 'done'
+              // Repeat the parent only where it CHANGES down the list.
+              const parentTitle = g.parent_id ? osTitle.get(g.parent_id) : undefined
+              const prev = i > 0 ? weekly[i - 1] : null
+              const prevTitle = prev?.parent_id ? osTitle.get(prev.parent_id) : undefined
+              const showParent = Boolean(parentTitle) && parentTitle !== prevTitle
               return (
                 <li key={g.id} className="flex items-start gap-3 min-w-0 group/row">
                   <button
                     type="button"
                     onClick={() => void toggleDone(g)}
                     aria-label={done ? 'Mark not done' : 'Mark done'}
-                    className={`mt-[1px] w-[22px] h-[22px] shrink-0 rounded-[7px] border inline-flex items-center justify-center transition-colors ${done ? 'bg-emerald-400/80 border-emerald-300/60 text-emerald-950' : 'border-white/25 hover:border-white/50'}`}
+                    className={`tap-44 mt-[1px] w-[22px] h-[22px] shrink-0 rounded-[7px] border inline-flex items-center justify-center transition-colors ${done ? 'bg-emerald-400/80 border-emerald-300/60 text-emerald-950' : 'border-white/25 hover:border-white/50'}`}
                   >
                     {done && <Check size={12} />}
                   </button>
@@ -409,9 +420,9 @@ export function GoalLadder({ variant = 'desktop' }: {
                       </span>
                       {/* The serves-chip is a second line on desktop only; on
                           mobile every row stays single-line so the canon fits. */}
-                      {!compact && g.parent_id && osTitle.get(g.parent_id) && (
+                      {!compact && showParent && (
                         <span className="mt-0.5 flex items-center gap-1 text-micro text-ink-faint min-w-0">
-                          <Target size={9} className="opacity-60 flex-shrink-0" /><span className="truncate">{osTitle.get(g.parent_id)}</span>
+                          <Target size={9} className="opacity-60 flex-shrink-0" /><span>{parentTitle}</span>
                         </span>
                       )}
                     </button>
