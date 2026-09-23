@@ -71,7 +71,7 @@ export function Tap({
  * hides itself and the field degrades to plain typing.
  */
 export function VoiceField({
-  value, onChange, placeholder, rows = 2, autoFocus, onEnter,
+  value, onChange, placeholder, rows = 2, autoFocus, onEnter, size = 'lede',
 }: {
   value: string
   onChange: (s: string) => void
@@ -79,6 +79,13 @@ export function VoiceField({
   rows?: number
   autoFocus?: boolean
   onEnter?: () => void
+  /**
+   * `lede` is the default and belongs to a surface's primary write (the day's
+   * ask, the composer). `ui` is for a secondary field inside a narrow column,
+   * where the lede size out-types the section heading above it and wraps a
+   * one-line placeholder onto two.
+   */
+  size?: 'lede' | 'ui'
 }) {
   const h = useHaptics()
   const ref = useRef<HTMLTextAreaElement>(null)
@@ -105,7 +112,7 @@ export function VoiceField({
           if (e.key === 'Enter' && !e.shiftKey && onEnter) { e.preventDefault(); onEnter() }
         }}
         placeholder={listening ? 'Listening…' : placeholder}
-        className={`w-full px-4 py-3.5 ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border text-lede leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
+        className={`w-full ${size === 'ui' ? 'px-3.5 py-3 text-ui' : 'px-4 py-3.5 text-lede'} ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
           listening ? 'border-white/30' : 'border-white/10 focus:border-white/25'
         }`}
       />
