@@ -261,7 +261,11 @@ export function NetworkTab({ narrow, onOpenPerson }: {
                 stored judgment. */}
             {s.explainFailed && !s.explaining && (
               <p className="flex flex-wrap items-center gap-2 px-4 pb-2 text-label text-amber-200/80">
-                Ranked, but the per-person reasons failed.
+                {/* The cause, when the route sent one. It always did; nothing
+                    read it, so every failure here read as the same unnamed
+                    failure and the only way to tell a spent balance from a
+                    slow model was to go and look at the logs. */}
+                Ranked, but the per-person reasons failed{s.explainReason ? `: ${s.explainReason}` : '.'}
                 <button
                   type="button"
                   onClick={s.retryExplain}

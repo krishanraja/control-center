@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import { callClaude, robustJson } from '../_content.js'
+import { callClaude, robustJson, hasAnthropicKey } from '../_content.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
 
 // POST /api/network/explain
@@ -46,7 +46,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? body.contact_ids.map(String).filter(x => /^[0-9a-f-]{36}$/i.test(x)).slice(0, MAX_IDS)
     : []
   if (!question || !ids.length) return res.status(400).json({ ok: false, error: 'question_and_ids_required' })
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ ok: true, explanations: {} })
+  // ok:false with a reason, not an empty success. An empty success is
+  // indistinguishable from "nothing to say about any of them", which is the
+  // exact confusion the catch block below was rewritten to remove; this early
+  // return had kept it. And hasAnthropicKey rather than the env var, so the
+  // app_secrets fallback is actually reachable from here.
+  if (!(await hasAnthropicKey())) {
+    return res.status(200).json({
+      ok: false, error: 'explain_failed', explanations: {}, moves: {},
+      reason: 'no Anthropic key is configured',
+    })
+  }
 
   try {
     // Everything a "move" actually depends on.
