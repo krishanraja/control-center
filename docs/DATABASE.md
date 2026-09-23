@@ -1015,34 +1015,51 @@ Two other costs worth knowing before tuning this function:
   `hnsw.ef_search` bounds the neighbour scan and defaulted to 40, so a request
   for 250 returned 40. Migration `20260923104235` sets it to **120 on the
   function**, not on the role, because raising it for `authenticator` would
-  raise it for every vector query in the product. Tripling the neighbour list
-  costs 0.3-0.6s per search and is the most expensive thing left in this
-  function; it is the first dial to turn back if timeouts return. It also moves
-  results materially: across six probes only about a third of the old top twenty
-  held, and average `match_score` rose (53.4 to 54.8, 63.5 to 65.5), which is
-  what deeper recall is supposed to do.
+  raise it for every vector query in the product. Tripling the neighbour list is
+  the most expensive thing left in this function and the first dial to turn back
+  if timeouts return, though since the compute upgrade below it is no longer
+  near the budget. It moves results materially: across six probes only about a
+  third of the old top twenty held, and average `match_score` rose (53.4 to
+  54.8, 63.5 to 65.5), which is what deeper recall is supposed to do.
 
-**The real ceiling is the instance, not the query.** `shared_buffers` is 224MB
-and `contact_intelligence` alone is 274MB with a 103MB HNSW index, so the table
-cannot be held in cache and a cold read is disk. The same search measured **0.23s
-warm and 7.31s cold** after the ef_search change, against an 8s timeout. That
-spread, not the SQL, is what is left to give.
+**The ceiling used to be the instance, and on 2026-09-23 it was raised.** The
+project ran on Micro: 224MB `shared_buffers` against a 447MB database, of which
+`contact_intelligence` alone is 274MB with a 103MB HNSW index. Nothing important
+stayed cached, so a cold read was disk, and the same search measured 0.23s warm
+against **7.31s cold** with an 8s statement timeout behind it.
 
-Two things follow, and they are worth reading before touching any of the numbers
-above:
+It is now Small, and 512MB of `shared_buffers` holds the whole database.
+Measured on the restarted instance, same queries:
 
-- **`hnsw.ef_search` is what makes the cold case expensive.** 120 touches 2,640
-  index pages where 40 touched 1,136, and on a cold cache every one of those is
-  a read. Warm, the difference is 0.3-0.6s and invisible; cold, it is most of
-  the remaining headroom. If timeouts come back, lower this before anything
-  else.
-- **A compute upgrade is the only thing that removes the cold case.** Every
-  other lever trades recall for latency. More RAM does not.
+```
+                              Micro        Small
+cold search                   7.31s        1.06s
+warm search                   0.23s        0.12s
+six unseen query vectors      1.8-2.8s     0.40s each
+vectorless fallback           0.51s        0.30s
+```
 
-Until then the API's timeout retry is the backstop, and it is deliberately not
-a narrower version of the same query: it drops the vector and the keywords and
-lands on the bounded relationship floor, measured at 0.11s warm and 1.59s cold.
-A retry that can itself be slow is not a backstop.
+What that changes about the numbers above: `hnsw.ef_search` at 120 touches 2,640
+index pages where 40 touched 1,136, and while those pages were coming off disk
+that was most of the remaining headroom. Cached, it is not, so the note that
+used to read "lower this before anything else" now reads: it is still the
+largest single cost in the function, and still the first dial to turn back, but
+it is no longer close to the budget.
+
+The API's timeout retry stays as the backstop, and it is deliberately not a
+narrower version of the same query: it drops the vector and the keywords and
+lands on the bounded relationship floor. A retry that can itself be slow is not
+a backstop.
+
+**The next time this bites will be growth, not configuration.**
+`contact_intelligence` is 274MB for 11,755 people, about 23KB each. Around 20k
+the database outgrows Small's `shared_buffers` and the cold case comes back.
+Re-measure at that point rather than waiting for a timeout to report it.
+
+The 2026-09-23 version upgrade (17.6.1.104 to 17.6.1.166) moved pgvector 0.8.0
+to 0.8.2. Checked afterwards rather than assumed: `ci_embedding_hnsw` is present,
+`indisvalid` and `indisready` both true, all 20 indexes on the table intact, and
+the semantic path still returns the deeper neighbour list.
 
 `p_countries` **pushes down into every recall path** rather than filtering their
 output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered

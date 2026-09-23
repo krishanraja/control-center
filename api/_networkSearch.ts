@@ -277,11 +277,12 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     //
     //   It is the single most expensive thing left in this search and the first
     //   dial to turn back if timeouts return. Measured on the same vector, 120
-    //   touches 2,640 index pages against 40's 1,136: roughly 0.3-0.6s warm,
-    //   and considerably more than that cold, because shared_buffers is 224MB
-    //   against a 274MB table plus a 103MB index and those pages are read from
-    //   disk. It buys real recall (about a third of the old top twenty held,
-    //   and average match_score rose), which is why it stays.
+    //   touches 2,640 index pages against 40's 1,136. On Micro those pages came
+    //   off disk and that was most of the 8s budget; the 2026-09-23 upgrade to
+    //   Small put 512MB of shared_buffers against a 447MB database, so the whole
+    //   thing is cached and the cold search went 7.31s to 1.06s. It buys real
+    //   recall (about a third of the old top twenty held, average match_score
+    //   rose), which is why it stays.
     p_pool: 250,
     p_floor: 150,
     ...over,
@@ -304,16 +305,21 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   //
   // So it lands on the shape that cannot be slow. Without keywords and without
   // a vector, network_search is union member (a), which migration
-  // 20260923104235 bounds at the 2,000 strongest relationships: measured at
-  // 0.11s warm and 1.59s cold, whatever was asked. Narrowing the pool instead,
-  // which is what this retry did first, was the wrong lever, because the pool
-  // was never what blew the budget.
+  // 20260923104235 bounds at the 2,000 strongest relationships: 0.30s on the
+  // current instance. Narrowing the pool instead, which is what this retry did
+  // first, was the wrong lever, because the pool was never what blew the budget.
   //
-  // What blows it is a COLD read. Measured after the merge: the same search is
-  // 0.23s warm and 7.31s cold, because shared_buffers is 224MB against a 274MB
-  // table and a 103MB HNSW index, and hnsw.ef_search=120 touches 2,640 index
-  // pages against 40's 1,136. A narrower pool does not make those pages any
-  // warmer; dropping the vector skips them entirely.
+  // What blew it was a COLD read. On the Micro instance this ran on until
+  // 2026-09-23, shared_buffers was 224MB against a 447MB database, so the same
+  // search measured 0.23s warm and 7.31s cold, and hnsw.ef_search=120 touches
+  // 2,640 index pages against 40's 1,136, every one of them off disk. A
+  // narrower pool does not make those pages warmer; dropping the vector skips
+  // them entirely.
+  //
+  // Small holds the whole database in cache and the cold search is now 1.06s,
+  // so this path should fire rarely. It stays because "rarely" is not "never":
+  // the corpus grows, and a retry is the difference between a weaker answer and
+  // no answer.
   //
   // Both tiers are named in `degraded`, so the banner says semantic matching
   // and keyword matching did not run, which is exactly what happened. The rows
