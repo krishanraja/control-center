@@ -198,6 +198,14 @@ test('walk every surface on a phone and record what it measures', async ({ page 
     const frame = hasShell ? sel : 'main'
     const hole = await largestHole(page, frame)
 
+    // The screenshot comes FIRST, before any probe that moves the page.
+    // `underBottomNav` scrolls every scroller to its end to see what the nav
+    // strands there — necessary, and it leaves the page scrolled. Shooting
+    // afterwards produced phone renders with the top of every surface scrolled
+    // away, which reads as missing content that is not missing at all: an
+    // instrument reporting its own side effect as a finding.
+    await page.screenshot({ path: path.join(OUT, `phone${vp.width}-${route.id}.png`) })
+
     const m: PhoneMeasure = {
       route: route.id,
       name: route.name,
@@ -205,15 +213,15 @@ test('walk every surface on a phone and record what it measures', async ({ page 
       height: vp.height,
       windowScroll,
       clipped: await phoneClipped(page),
-      underNav: await underBottomNav(page),
       squeezed: await squeezedText(page, frame, 70),
       smallTargets: await smallTapTargets(page),
       holeFraction: Math.round(hole.fraction * 100) / 100,
       rawErrors: await rawErrorStrings(page, frame),
+      // Last: it scrolls the page and nothing may be measured after it.
+      underNav: await underBottomNav(page),
       crashed,
     }
     results.push(m)
-    await page.screenshot({ path: path.join(OUT, `phone${vp.width}-${route.id}.png`) })
     console.log(
       `${route.name.padEnd(30)} scroll=${m.windowScroll} CLIPPED=${m.clipped.length} underNav=${m.underNav.length} ` +
       `squeezed=${m.squeezed.length} smallTap=${m.smallTargets.length} hole=${m.holeFraction}${m.crashed ? ' CRASHED' : ''}`,
