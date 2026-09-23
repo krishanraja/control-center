@@ -978,7 +978,19 @@ than a promise the caller has to keep.
 
 Candidate recall is a UNION of orthogonal paths, one of which is
 **query-independent** (the strongest relationships in the network). That is what
-a nonsense query falls back to. The no-vector path stays fully exhaustive.
+a nonsense query falls back to.
+
+**The no-vector path is the floor going deep, not a full scan** (migration
+`20260923104235`). It used to score every person on the reasoning that a search
+without a semantic tier should at least be exhaustive; measured, that was 6.2s
+for 11,704 people against an 8s statement timeout, which made the DEGRADED path
+the one most likely to fail outright. It is now the same relationship ordering
+as the floor, bounded at `greatest(p_floor, 2000)`. The lexical, venture and
+geography paths are untouched, so anyone whose words, venture fit or country
+matches is still reached however cold the relationship; what it drops is people
+below 2,000 on relationship who match none of those. 2,000 candidates is still
+three times the ~650 the everyday path scores when a query vector is present, so
+the degraded path stays the deeper of the two.
 
 **The lexical recall path is bounded** (migration `20260923102803`). It reads at
 most `p_pool * 4` keyword matches and ranks those by `ts_rank_cd`, rather than
@@ -999,10 +1011,22 @@ Two other costs worth knowing before tuning this function:
 - The **relationship floor** (path e) and the **soft geography path** (path f)
   are served by `ci_relationship_floor_idx` and `ci_geo_relationship_floor_idx`.
   Before those existed the floor seq-scanned the whole table on every search.
-- **`p_pool` has never applied to the semantic path.** pgvector's
-  `hnsw.ef_search` defaults to 40 and caps the neighbour scan, so a request for
-  250 returns 40. Raising it changes ranking and adds latency, so it is an open
-  decision rather than a silent default.
+- **`p_pool` does not apply to the semantic path, and never did.** pgvector's
+  `hnsw.ef_search` bounds the neighbour scan and defaulted to 40, so a request
+  for 250 returned 40. Migration `20260923104235` sets it to **120 on the
+  function**, not on the role, because raising it for `authenticator` would
+  raise it for every vector query in the product. Tripling the neighbour list
+  costs 0.3-0.6s per search and is the most expensive thing left in this
+  function; it is the first dial to turn back if timeouts return. It also moves
+  results materially: across six probes only about a third of the old top twenty
+  held, and average `match_score` rose (53.4 to 54.8, 63.5 to 65.5), which is
+  what deeper recall is supposed to do.
+
+**The real ceiling is the instance, not the query.** `shared_buffers` is 224MB
+and `contact_intelligence` alone is 274MB with a 103MB HNSW index, so the table
+cannot be held in cache and a cold candidate set is disk. Identical queries
+measure 0.1-0.5s warm and 2-5s cold. That spread, not the SQL, is what is left
+between here and the 8s statement timeout.
 
 `p_countries` **pushes down into every recall path** rather than filtering their
 output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered

@@ -268,11 +268,14 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     //   back: 6.47s before, 0.26s after, 18 of the top 20 unchanged and the top
     //   five identical.
     //
-    // - p_pool has never meant anything to the SEMANTIC tier. pgvector's
-    //   hnsw.ef_search defaults to 40 and caps the neighbour scan, so asking for
-    //   250 returns 40. That is why 250 and 400 produced an identical top twenty
-    //   above: both were really 40. Raising it is a ranking decision with a
-    //   latency cost, so it is still open rather than quietly done.
+    // - p_pool still does not reach the SEMANTIC tier, and never did.
+    //   pgvector's hnsw.ef_search bounds the neighbour scan, defaulted to 40,
+    //   and capped it regardless of the LIMIT. That is why 250 and 400 produced
+    //   an identical top twenty above: both were really 40. Migration
+    //   20260923104235 sets it to 120 ON THE FUNCTION, so the number to change
+    //   is there and not here. It is the single most expensive thing left in
+    //   this search, roughly 0.3-0.6s per call, and the first dial to turn back
+    //   if timeouts ever return.
     p_pool: 250,
     p_floor: 150,
     ...over,
@@ -292,10 +295,10 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   // duplicates, and the smaller pool and floor cut the number of people scored.
   // The answer is weaker and the response says so.
   //
-  // Honest about what this does NOT save: with no query vector, network_search
-  // scores the whole corpus by design (union member (a)), and neither the pool
-  // nor the floor bounds that. A search that timed out with the embedding
-  // already unavailable will most likely time out again, and the error stands.
+  // The no-vector case used to be beyond saving here, because union member (a)
+  // scored the whole corpus and no argument bounded it. Migration
+  // 20260923104235 bounds it at 2,000 by relationship, so the retry is now
+  // worth making whether or not the embedding arrived.
   if (error && /statement timeout|57014/i.test(error.message || '')) {
     degraded.push('search:narrowed_after_timeout')
     const tRetry = Date.now()
