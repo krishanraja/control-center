@@ -509,6 +509,9 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     try {
       const raw = await callClaude({
         agent: 'enrich-person',
+        // Bulk: 3,284 calls on 2026-09-15 alone. An enrichment backfill is not
+        // worth rescuing with a second provider; it can wait for the reset.
+        fallback: false,
         system: JUDGMENT_SYSTEM,
         user: evidence,
         maxTokens: 900,

@@ -107,6 +107,8 @@ export async function classifyIntent(posts: Post[], timeoutMs = 12_000): Promise
   try {
     raw = await callClaude({
       agent: 'network-intent',
+      // Bulk: 557 calls in a day. Same reasoning as enrich-person.
+      fallback: false,
       model: JUDGE_MODEL,
       system: SYSTEM,
       user: body,
