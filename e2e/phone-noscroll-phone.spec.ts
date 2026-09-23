@@ -93,6 +93,53 @@ async function strandedUnderNav(page: Page) {
   })
 }
 
+/**
+ * Controls the floating chrome is sitting on, with nowhere to scroll clear.
+ *
+ * The phone has two fixed controls — the bottom nav and the create button —
+ * and on a 360px screen they land on whatever is under them. On the Visibility
+ * deck, which is a STAGE and so has nowhere to scroll, four research links
+ * wrapped to a second row and that row sat behind the nav permanently.
+ *
+ * Something that CAN be scrolled clear is ordinary, and a modal backdrop
+ * covering the page is the point of a backdrop; neither counts.
+ */
+async function coveredByFixedChrome(page: Page) {
+  return page.evaluate(() => {
+    const bad: string[] = []
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>('button, a[href], [role="button"], input'))) {
+      const cs = getComputedStyle(el)
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue
+      if (cs.position === 'fixed' || el.matches('.sr-only, .sr-only *')) continue
+      const r = el.getBoundingClientRect()
+      if (r.width < 8 || r.height < 8 || r.top > innerHeight || r.bottom < 0) continue
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) as HTMLElement | null
+      if (!top || top === el || el.contains(top) || top.contains(el)) continue
+      if (top.closest('[role="dialog"], [aria-modal="true"]')) continue
+      const topRect = top.getBoundingClientRect()
+      if (topRect.width * topRect.height > innerWidth * innerHeight * 0.8) continue
+      let scrollable = false
+      for (let a: HTMLElement | null = el.parentElement; a; a = a.parentElement) {
+        const acs = getComputedStyle(a)
+        if ((acs.overflowY === 'auto' || acs.overflowY === 'scroll') && a.scrollHeight > a.clientHeight + 2) {
+          scrollable = true
+          break
+        }
+      }
+      if (scrollable) continue
+      for (let n: HTMLElement | null = top; n; n = n.parentElement) {
+        if (getComputedStyle(n).position === 'fixed') {
+          const label = (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 32)
+          const over = (n.getAttribute('aria-label') || n.textContent || n.tagName).trim().slice(0, 20)
+          bad.push(`"${label}" is under "${over}"`)
+          break
+        }
+      }
+    }
+    return Array.from(new Set(bad)).slice(0, 6)
+  })
+}
+
 test.describe.configure({ mode: 'serial' })
 
 for (const route of AUDIT_ROUTES) {
@@ -117,5 +164,8 @@ for (const route of AUDIT_ROUTES) {
 
     const stranded = await strandedUnderNav(page)
     expect(stranded, `${route.name} leaves content stranded under the bottom nav:\n${stranded.join('\n')}`).toEqual([])
+
+    const covered = await coveredByFixedChrome(page)
+    expect(covered, `${route.name} has controls the floating chrome sits on:\n${covered.join('\n')}`).toEqual([])
   })
 }

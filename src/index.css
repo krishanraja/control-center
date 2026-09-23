@@ -415,8 +415,15 @@
     width: max(100%, 44px);
     height: max(100%, 44px);
     transform: translate(-50%, -50%);
-    /* Behind the glyph, so it never eats its own hover or paints over it. */
-    z-index: -1;
+    /* NO `z-index: -1` here. It reads as "behind the glyph", and it is — but
+       negative z-index also drops the box behind the nearest ancestor that
+       paints a background, at which point `elementFromPoint` returns that
+       ancestor and the expanded area is not clickable at all. The first
+       version of this utility had it, and the hit-test probe correctly kept
+       reporting the 17px close and the 26px checkbox as unreachable after
+       they had supposedly been fixed.
+       The pseudo-element belongs to the control, so a press on it activates
+       the control; being transparent, it paints nothing over anything. */
   }
   /* Inside a zoomed mobile root the CSS pixel is 1/1.2 of a physical one, so
      44 CSS px would only be 36.7 real ones. The wrapper publishes --z. */

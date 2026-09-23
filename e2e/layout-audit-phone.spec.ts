@@ -41,6 +41,8 @@ interface PhoneMeasure {
   squeezed: string[]
   /** Interactive targets smaller than 44 physical px on either axis. */
   smallTargets: string[]
+  /** Controls a FIXED element (the create button, the nav) is sitting on. */
+  coveredByFixed: string[]
   holeFraction: number
   rawErrors: string[]
   crashed: string | null
@@ -170,6 +172,73 @@ async function smallTapTargets(page: Page) {
   })
 }
 
+/**
+ * Controls the floating chrome is sitting on top of.
+ *
+ * The phone has two fixed controls — the bottom nav and the create button —
+ * and on a 360px screen they land on whatever happens to be under them. Found
+ * by accident while checking `.tap-44`: the queue's snooze button reported as
+ * unreachable, and the element at its centre was `BUTTON.btn-contrast fixed
+ * right-4 z-40`, the create button. The hit area was fine. The control was
+ * simply underneath something else.
+ *
+ * This is the phone's version of the desk's `--capture-gutter`: a floating
+ * control needs its corner reserved, and a surface that does not reserve it
+ * loses whatever it puts there.
+ */
+async function coveredByFixedChrome(page: Page) {
+  return page.evaluate(() => {
+    const bad: string[] = []
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>('button, a[href], [role="button"], input'))) {
+      const cs = getComputedStyle(el)
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue
+      if (cs.position === 'fixed' || el.matches('.sr-only, .sr-only *')) continue
+      const r = el.getBoundingClientRect()
+      if (r.width < 8 || r.height < 8 || r.top > innerHeight || r.bottom < 0) continue
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) as HTMLElement | null
+      if (!top || top === el || el.contains(top) || top.contains(el)) continue
+      // Only flag a collision the reader cannot undo. Something behind the
+      // bottom nav that can be scrolled clear is ordinary; something with
+      // nowhere to scroll is stuck under the chrome forever. Without this the
+      // probe reported every row that happened to sit low on a scrollable
+      // page, which is noise, and buried the one real hit.
+      let scrollable = false
+      for (let a: HTMLElement | null = el.parentElement; a; a = a.parentElement) {
+        const acs = getComputedStyle(a)
+        if ((acs.overflowY === 'auto' || acs.overflowY === 'scroll') && a.scrollHeight > a.clientHeight + 2) {
+          scrollable = true
+          break
+        }
+      }
+      if (scrollable) continue
+      // Only a FIXED ancestor counts: an ordinary overlap is a layout bug the
+      // other probes catch, but floating chrome covers things silently.
+      // A dialog, sheet or drawer covering the surface behind it is what a
+      // dialog is for. Only unannounced chrome counts.
+      //
+      // The dialog's OVERLAY is a sibling of its content rather than a
+      // descendant, so `closest('[role=dialog]')` misses it — and a backdrop
+      // covering the page is the most expected overlap there is. Anything
+      // fixed that covers most of the viewport is a modal layer, not chrome
+      // that has landed on something by accident.
+      if (top.closest('[role="dialog"], [aria-modal="true"]')) continue
+      const topRect = top.getBoundingClientRect()
+      if (topRect.width * topRect.height > innerWidth * innerHeight * 0.8) continue
+      let n: HTMLElement | null = top
+      while (n) {
+        if (getComputedStyle(n).position === 'fixed') {
+          const label = (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 28)
+          const over = (n.getAttribute('aria-label') || n.textContent || n.tagName).trim().slice(0, 20)
+          bad.push(`"${label}" is under "${over}"`)
+          break
+        }
+        n = n.parentElement
+      }
+    }
+    return Array.from(new Set(bad)).slice(0, 8)
+  })
+}
+
 test.describe.configure({ mode: 'serial' })
 
 test.skip(!process.env.LAYOUT_AUDIT, 'set LAYOUT_AUDIT=1 to run the layout audit')
@@ -183,7 +252,13 @@ test('walk every surface on a phone and record what it measures', async ({ page 
   await mockAudit(page)
 
   for (const route of AUDIT_ROUTES) {
+    // A hash change is NOT a reload, so every surface used to inherit whatever
+    // the last one left behind — an open sheet, a scrolled container, a deck
+    // mid-triage. From the sixth route onward the shell was simply absent and
+    // the probes reported "FRAME NOT FOUND" as if the app had no layout.
+    // Each surface is measured cold.
     await page.goto(`/${route.hash}`)
+    await page.reload()
     await page.waitForTimeout(2500)
 
     const crashed = await page.evaluate(() => {
@@ -215,6 +290,7 @@ test('walk every surface on a phone and record what it measures', async ({ page 
       clipped: await phoneClipped(page),
       squeezed: await squeezedText(page, frame, 70),
       smallTargets: await smallTapTargets(page),
+      coveredByFixed: await coveredByFixedChrome(page),
       holeFraction: Math.round(hole.fraction * 100) / 100,
       rawErrors: await rawErrorStrings(page, frame),
       // Last: it scrolls the page and nothing may be measured after it.
@@ -224,7 +300,7 @@ test('walk every surface on a phone and record what it measures', async ({ page 
     results.push(m)
     console.log(
       `${route.name.padEnd(30)} scroll=${m.windowScroll} CLIPPED=${m.clipped.length} underNav=${m.underNav.length} ` +
-      `squeezed=${m.squeezed.length} smallTap=${m.smallTargets.length} hole=${m.holeFraction}${m.crashed ? ' CRASHED' : ''}`,
+      `squeezed=${m.squeezed.length} smallTap=${m.smallTargets.length} covered=${m.coveredByFixed.length} hole=${m.holeFraction}${m.crashed ? ' CRASHED' : ''}`,
     )
   }
 
