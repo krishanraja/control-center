@@ -185,10 +185,88 @@ export const JUDGE_ASK: Record<string, string> = {
   connection: 'One news item, not a pattern',
   fun: 'Nobody would enjoy this',
   standing: 'Not yours to say',
+  // The roster grew past the eight on 2026-09-24 and this map did not, so the
+  // split.the.bill pick, held down only by the voice check, read "The panel
+  // could not name one thing" when the panel had named it exactly.
+  voice_mechanics: 'Breaks a house writing rule',
+  prosecutor: 'Argues it should not run at all',
+  substance: 'Too short to judge',
+  duplicate: 'Already in the system',
 }
 
 export const judgeAsk = (judge: string | null): string =>
   (judge && JUDGE_ASK[judge]) || 'The panel could not name one thing'
+
+/** One judge's mark, as much of it as ranking needs. `useJudgeVerdicts`
+ *  returns a superset of this, so its rows pass straight in. */
+export interface JudgeScore {
+  judge: string
+  score: number | null
+  adversarial: boolean
+  deterministic: boolean
+}
+
+/** What separates two pieces the panel scored the same. */
+export interface ReadyStanding {
+  /** Model judges that gave it 8 or more. */
+  praised: number
+  /** The lowest model judge, and which one. */
+  floor: number | null
+  floorJudge: string | null
+}
+
+/**
+ * The tie-break under the panel's standing, from the per-judge marks.
+ *
+ * WHY IT EXISTS. On 2026-09-24 all 25 ready pieces stood at exactly 7. The
+ * lower median of whole-number marks sits flat, so ranking a lane by it
+ * ranked nothing, and the list came out in whatever order the rows arrived.
+ *
+ * WHAT IT COUNTS, AND WHAT IT LEAVES OUT. Only model judges. The prosecutor
+ * argues for killing, so its mark in the range would read as an endorsement.
+ * A deterministic check gives a fixed number when a rule trips (the voice check
+ * always gives 4), which says a rule broke, not how good the piece is. An
+ * abstention is missing, never a zero, because "could not read it" is not a
+ * low mark.
+ *
+ * NO MEAN, ANYWHERE. A count above a line and a lowest mark, never an average,
+ * for the reason check-judges.ts fails the engine's build on one: averaging
+ * lets a strong objection disappear into the other marks.
+ */
+export function readyStanding(judges: JudgeScore[]): ReadyStanding | null {
+  const marks = judges.filter(j => !j.adversarial && !j.deterministic && typeof j.score === 'number')
+  if (!marks.length) return null
+  let low = marks[0]!
+  for (const j of marks) if ((j.score as number) < (low.score as number)) low = j
+  return {
+    praised: marks.filter(j => (j.score as number) >= 8).length,
+    floor: low.score,
+    floorJudge: low.judge,
+  }
+}
+
+/**
+ * Order for a lane's ready pieces: the panel's standing, then how many judges
+ * rated it 8 or more, then its lowest model judge, then the newest verdict.
+ *
+ * Praise before floor on purpose. The floor on a ready piece is nearly always
+ * `consequence` at 3 (17 of 25 on 2026-09-24), so it barely separates them,
+ * while how many judges rated it 8 or more ranges from 0 to 4. A piece with no
+ * marks yet (fetch pending or failed) ranks after the marked ones at the same
+ * standing, never above them.
+ */
+export function compareReady(
+  a: { verdict: LadderVerdict; standing: ReadyStanding | null },
+  b: { verdict: LadderVerdict; standing: ReadyStanding | null },
+): number {
+  const byScore = (b.verdict.score ?? -1) - (a.verdict.score ?? -1)
+  if (byScore) return byScore
+  const byPraise = (b.standing?.praised ?? -1) - (a.standing?.praised ?? -1)
+  if (byPraise) return byPraise
+  const byFloor = (b.standing?.floor ?? -1) - (a.standing?.floor ?? -1)
+  if (byFloor) return byFloor
+  return (b.verdict.judgedAt ?? '').localeCompare(a.verdict.judgedAt ?? '')
+}
 
 /**
  * What a weak piece needs from Krish, which is not the same for every one.

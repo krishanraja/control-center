@@ -677,6 +677,10 @@
     if (e.mode) put('mode', lit(e.mode));
     if (e.value) put('value', lit(String(e.value).slice(0, 120)));
     if (e.reasonCode) put('reason_code', lit(e.reasonCode));
+    // The panel run this verdict answers. judge_calibration joins on it and on
+    // nothing else, so a bin without it is invisible to the loop that scores
+    // the judges: every bin from this desk was, until 2026-09-24.
+    if (e.panelRunId) put('panel_run_id', lit(e.panelRunId) + '::uuid');
     // His own words, riding with the verdict. The table has taken free text
     // since it was built (revise.ts writes open feedback here) and capping at
     // 1600 is the table's own rule, not a new one.
@@ -1028,6 +1032,7 @@
       const recorded = await ledger({
         subjectId: r.id, action: 'binned', mode: 'seed', value: r.lane_slot,
         reasonCode: code, beforeHash: before, charsBefore: seedTextOf(r).length,
+        panelRunId: r.panel_run_id,
         instruction: note, dwellMs: Date.now() - card.__seedAt,
       });
       finish(card, r, {
@@ -1223,7 +1228,8 @@
   /* ── stages ───────────────────────────────────────────────────────── */
   const QUERIES = {
     triage: `select id, idea, thesis, created_at, brand_fit_score, pillar_id, source_url,
-                    lane_slot, (meta ? 'auto_triage') as auto
+                    lane_slot, (meta ? 'auto_triage') as auto,
+                    meta->'ladder'->>'panel_run_id' as panel_run_id
                from public.content_ideas
               where lane_slot is null and state in ('seeded','researching')
                 and buried_at is null
@@ -1237,7 +1243,8 @@
                 -- blurb belongs to, which is not a question with an answer.
                 and coalesce(source_type, '') <> 'pool_headline'
               order by brand_fit_score desc nulls last, created_at desc limit 60;`,
-    draft:  `select id, idea, thesis, created_at, lane_slot, (meta ? 'auto_triage') as auto
+    draft:  `select id, idea, thesis, created_at, lane_slot, (meta ? 'auto_triage') as auto,
+                    meta->'ladder'->>'panel_run_id' as panel_run_id
                from public.content_ideas
               where lane_slot is not null and coalesce(body,'') = '' and buried_at is null
                 and state not in ('dropped','published','absorbed')

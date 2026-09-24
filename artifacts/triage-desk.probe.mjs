@@ -34,7 +34,9 @@ const FORMATS = [
   { slug: 'lift_the_lid', label: 'lift.the.lid', hero: false, cadence_label: 'standing', mandate: 'Sharper or dependent.' },
 ]
 const SEEDS = [
-  { id: '11111111-1111-4111-8111-111111111111', idea: 'Seed one: who pays for the inference', thesis: 'A thesis.', created_at: '2026-09-20T10:00:00Z', brand_fit_score: 9, pillar_id: null, source_url: null, lane_slot: null, auto: false },
+  // Seed one was judged by the ladder, so its bin must carry the run id: that
+  // is the only field judge_calibration joins a decision on.
+  { id: '11111111-1111-4111-8111-111111111111', idea: 'Seed one: who pays for the inference', thesis: 'A thesis.', created_at: '2026-09-20T10:00:00Z', brand_fit_score: 9, pillar_id: null, source_url: null, lane_slot: null, auto: false, panel_run_id: '3f1c9a2e-5d44-4a7b-9c11-6b2e8f0a7d33' },
   { id: '22222222-2222-4222-8222-222222222222', idea: 'Seed two: the gap between the claim and the receipt', thesis: 'Another thesis.', created_at: '2026-09-20T11:00:00Z', brand_fit_score: 7, pillar_id: null, source_url: null, lane_slot: 'split_the_bill', auto: true },
 ]
 
@@ -100,6 +102,7 @@ console.log('A. the reason is in the press, not behind it')
   ok('a binned event', /'binned'/.test(event))
   ok('carrying the reason code', event.includes("'wrong_register'"))
   ok('carrying his words', event.includes('money story wearing a gap headline'))
+  ok('carrying the panel run it answers', /panel_run_id/.test(event) && event.includes("'3f1c9a2e-5d44-4a7b-9c11-6b2e8f0a7d33'::uuid"))
   const receipt = await page.locator('article.card.settled').first().innerText()
   ok('the receipt names the reason', receipt.includes('Set aside: wrong register'))
   ok('the receipt confirms the note', receipt.includes('your note saved with it, 45 characters'))

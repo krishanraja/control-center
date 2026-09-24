@@ -554,6 +554,38 @@ export const SURFACES: Record<ServedTable, SurfaceContract> = {
   },
 }
 
+// ── the decide surface ─────────────────────────────────────────────────────
+//
+// Why Krish approved, binned or moved an idea on DecideCard. These go to
+// content_edit_events.reason_code, which judge_calibration and the weekly
+// compiler read, not to /api/feedback, so they sit beside SURFACES rather than
+// inside it and are not part of the feedback mirror. They live in this file
+// because it is the one home for reason vocabularies: they were declared in
+// src/lib/editLedger.ts on 2026-09-24 and check-served-surfaces failed CI on
+// it. Codes are append-only, for the same reason as everything above.
+export const DECISION_REASONS: Record<'approved' | 'binned' | 'rerouted', ReasonChip[]> = {
+  approved: [
+    { code: 'pattern_is_real', label: 'The pattern is real' },
+    { code: 'nobody_has_said_it', label: 'Nobody has said it' },
+    { code: 'i_have_lived_this', label: 'I have lived this' },
+    { code: 'sells_the_practice', label: 'It sells the practice' },
+    { code: 'timing', label: 'Timing' },
+  ],
+  binned: [
+    { code: 'been_said_already', label: 'Been said already' },
+    { code: 'nothing_to_prove_it', label: 'Nothing to prove it' },
+    { code: 'not_my_lane', label: 'Not my lane' },
+    { code: 'no_one_acts_on_it', label: 'No one acts on it' },
+    { code: 'thin_needs_more', label: 'Thin, needs more' },
+  ],
+  rerouted: [
+    { code: 'it_is_about_money', label: 'It is about money' },
+    { code: 'it_is_about_building', label: 'It is about building' },
+    { code: 'a_pattern_over_time', label: 'A pattern over time' },
+    { code: 'different_reader', label: 'Different reader' },
+  ],
+}
+
 // ── lookups ────────────────────────────────────────────────────────────────
 
 export const SERVED_TABLES = Object.keys(SURFACES) as ServedTable[]
