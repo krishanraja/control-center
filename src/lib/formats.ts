@@ -142,9 +142,9 @@ export function formatSpelling(value?: string | null): FormatSpelling {
  *  rather than crashing, and scripts/check-content-taxonomy.mts fails the build
  *  when a subchannel has no line. A gap takes down CI, never the app. */
 const STANDING_QUESTION: Readonly<Record<string, string>> = Object.freeze({
-  split_the_bill: 'Stories about what something really costs to run, and who ends up holding the bill.',
-  mind_the_gap: 'Stories about what is actually happening, traced against what everyone says is happening.',
-  lift_the_lid: 'Stories that take a product apart and ask whether it leaves you sharper, or dependent.',
+  split_the_bill: 'Stories about where the money moves in AI, and who ends up better or worse off.',
+  mind_the_gap: 'Stories that notice a pattern across several threads, and say what it means is coming.',
+  lift_the_lid: 'Stories that take a build apart to show what goes together, and why this one worked.',
 })
 
 /** The reader-facing line for a format, or null when none is written yet. */
