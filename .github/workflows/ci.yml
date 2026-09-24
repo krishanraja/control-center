@@ -226,6 +226,20 @@ jobs:
       # worked — wrong prompt key, unparseable response shape — and no
       # execution list would ever have said so.
       - run: npx tsx scripts/check-anthropic-fallback.mts
+      # Model routing is a cost and quality policy, and until 2026-09-24 it was
+      # the one policy guard that did not run here. It existed only as the
+      # `check:model-routing` npm script, so nothing failed when a route was
+      # decided in the repo and never deployed. That is exactly what happened:
+      # the 2026-09-12 audit moved the Task Lever Rater to Sonnet 5 at 2k
+      # tokens, the mirror was committed, the runtime was not updated, and
+      # production kept calling claude-opus-5 at 16k for twelve days with this
+      # guard green — because it asserts against the mirror, which was correct.
+      # Wiring it in does not close that gap on its own (see
+      # check-model-routing-live.mts, which reads the runtime and needs a
+      # credential CI does not hold). What it does close is the other half: a
+      # cloud export can no longer put a retired model back into a mirror
+      # without failing here.
+      - run: npx tsx scripts/check-model-routing.mts
       # NOW.md is the one file agents are promised is current, and
       # docs/history/LOG.md is where superseded material goes instead of being
       # deleted. Both have a schema (docs/steward/SCHEMA.md). A branch can
