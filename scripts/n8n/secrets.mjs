@@ -114,6 +114,72 @@ export function redactKnown(json, env = process.env) {
   })
 }
 
+/**
+ * Placeholder tokens present in `json` whose env var is NOT set.
+ *
+ * redactKnown drops an unset pair silently, so a partially populated
+ * environment redacts partially and the workflows it could not clean report as
+ * drift. On 2026-09-24 that was most of the fleet: one of seventeen variables
+ * was set, 53 of 106 mirrors reported drift, and 14 of them were real. An
+ * unresolvable comparison is not a difference and must not be shown as one.
+ */
+export function unresolvedPlaceholders(json, env = process.env) {
+  const out = new Set()
+  walk(json, s => {
+    for (const [token, varName] of Object.entries(PLACEHOLDERS)) {
+      const real = env[varName]
+      if (s.includes(token) && !(typeof real === 'string' && real.length >= 20)) out.add(varName)
+    }
+    return s
+  })
+  return [...out].sort()
+}
+
+/**
+ * Credential-shaped literals still present after redaction.
+ *
+ * `unresolvedPlaceholders` asks whether the env var is SET. That is necessary
+ * and not sufficient, and the gap is not theoretical: on 2026-09-24, with
+ * SUPABASE_SERVICE_ROLE_KEY set, several cloud workflows still failed to redact
+ * because the cloud copy holds a DIFFERENT Supabase key than the one supplied.
+ * redactKnown is a literal string replace, so a rotated or second key is not a
+ * near-miss, it is a total miss, and the workflow then reports as drift with a
+ * ~380 character delta that is entirely secret.
+ *
+ * So this asks the question that actually matters: after redacting, does the
+ * cloud copy still contain something that is obviously a credential? If it
+ * does, the comparison is not trustworthy, whatever the env said.
+ *
+ * Deliberately high-confidence patterns only. A false positive here marks a
+ * real difference as unknown, which loses information; the patterns are
+ * therefore shapes nothing else in a workflow legitimately has.
+ */
+const CREDENTIAL_SHAPED = [
+  /eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}/,  // JWT (Supabase, n8n)
+  /\b\d{9,}:AA[A-Za-z0-9_-]{30,}/,                                   // Telegram bot token
+  /\bsk-[A-Za-z0-9_-]{20,}/,                                        // OpenAI / OpenRouter
+  /\b(?:rk|pk)_(?:live|test)_[A-Za-z0-9]{20,}/,                      // Stripe
+  /\bghp_[A-Za-z0-9]{30,}/,                                         // GitHub
+  /\bre_[A-Za-z0-9_-]{20,}/,                                        // Resend
+  /\bapify_api_[A-Za-z0-9]{25,}/,                                   // Apify
+  /\bpplx-[A-Za-z0-9]{25,}/,                                        // Perplexity
+]
+
+export function residualSecrets(json) {
+  const hits = new Set()
+  walk(json, s => {
+    for (const rx of CREDENTIAL_SHAPED) {
+      const m = rx.exec(s)
+      // The VALUE never leaves this function. Only its shape is reported, so a
+      // drift report can say "a credential is still in here" without becoming a
+      // place credentials are written down.
+      if (m) hits.add(`${m[0].slice(0, 4)}…${m[0].length}c`)
+    }
+    return s
+  })
+  return [...hits].sort()
+}
+
 /** True when the value still carries a placeholder anywhere inside it. */
 export function hasPlaceholder(json) {
   let found = false

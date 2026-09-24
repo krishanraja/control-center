@@ -28,6 +28,36 @@ if (!/blockers\.length && !force/.test(src)) bad('driftBlockers is defined but n
 if (!/--force/.test(src)) bad('there is no --force escape hatch documented')
 if (!/if \(failed \|\| blocked\) process\.exit\(1\)/.test(src)) bad('a blocked push does not fail the run')
 
+// Three hazards the drift guard cannot see, each one a way an --apply damages
+// production while reporting success. They are asserted at source level because
+// they are properties of the PUSH PATH rather than of driftBlockers, and each
+// one was found live on 2026-09-24.
+
+// A push into an archived twin prints "updated" and changes nothing. The cloud
+// map is keyed by name and last-wins, and "Nell | Mindmaker OS | Guest Speaker
+// Briefing" exists twice - once live, once archived.
+if (!/isArchived/.test(src)) {
+  bad('listCloudWorkflows does not filter archived copies, so a push can land in an archived twin and report success')
+}
+
+// buildPayload throws on a missing placeholder. Outside the try that escaped to
+// main().catch and exited mid-loop, leaving a half-finished deploy that read as
+// a config error.
+const applyLoop = src.slice(src.indexOf('for (const p of plan) {', src.indexOf('let pushed = 0')))
+if (/const payload = buildPayload\(/.test(applyLoop)) {
+  const tryAt = applyLoop.indexOf('try {')
+  const payloadAt = applyLoop.indexOf('const payload = buildPayload(')
+  if (tryAt < 0 || payloadAt < tryAt) {
+    bad('buildPayload runs outside the per-workflow try, so one missing secret aborts the loop mid-deploy')
+  }
+}
+
+// staticData is runtime cursor state. Pushing the repo's copy rewinds live
+// poll triggers; zara-layer-1's mirror carries a Drive cursor dated 2026-09-02.
+if (!/--no-static-data/.test(src)) {
+  bad('there is no way to push without overwriting live staticData, which rewinds poll cursors')
+}
+
 // Lift the pure functions out and exercise them.
 const start = src.indexOf('/** Every (nodeName, paramKey)')
 const end = src.indexOf('function summary(')
