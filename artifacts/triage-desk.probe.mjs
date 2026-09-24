@@ -59,9 +59,11 @@ async function open(browser, { seeds, refuseLedger = false }) {
         return []
       }
       if (/from public\.venture_formats/.test(q)) return formats
-      if (/count\(\*\) filter/.test(q)) return [{ triage: seeds.length, draft: 0, review: 0 }]
+      if (/count\(\*\) filter/.test(q)) return [{ triage: seeds.length, draft: 0, review: 0, told: 0, graded: 0 }]
       if (/^select id from public\.content_ideas/m.test(q.trim())) return [{ id: seeds[0].id }]
       if (/lane_slot is null and state in/.test(q)) return seeds
+      // The grading stage reads the ten ideas the ladder judged by id.
+      if (/i\.id in \(/.test(q)) return [{ id: '990db555-9509-4624-8d27-8229903e44d1', idea: 'A judged idea', thesis: 'Its thesis.', lane_slot: 'mind_the_gap', created_at: '2026-09-24T00:00:00Z' }]
       if (/from public\.system_config/.test(q)) return [{ value: '' }]
       return []
     }
@@ -140,6 +142,50 @@ console.log('E. a refused ledger is never shown as a tick')
   console.log('F. the end of a batch keeps the receipts')
   ok('the batch end is offered', await page.locator('.batch-end').count(), 1)
   ok('the receipt survived it', await page.locator('article.card.settled').count(), 1)
+  await page.close()
+}
+
+console.log('G. grading the judges records both disagreements')
+{
+  const { page, since, mark } = await open(browser, { seeds: SEEDS })
+  await page.getByRole('tab', { name: /Grade the judges/ }).click()
+  await page.waitForSelector('article.card .scorerow')
+  const card = page.locator('article.card').first()
+
+  ok('the eight axes are shown, never a single number', await card.locator('.scorecell').count(), 8)
+  ok('the prosecutor is reported separately', await card.locator('.verdict .who').textContent(),
+    'The prosecutor, arguing to kill it (7/10)')
+  ok('all three router fits are shown, losers included', await card.locator('.fit').count(), 3)
+
+  await card.locator('textarea.notes').fill('The evidence judge is right here.')
+  const at = await mark()
+  // The panel said 3 for this one. Say 8 and the disagreement must be recorded
+  // as the panel being too harsh, not as a bare score.
+  await card.locator('button.pick.score', { hasText: /^8$/ }).click()
+  await page.waitForSelector('article.card.settled')
+  const events = (await since(at)).filter(q => /insert into public\.content_edit_events/.test(q))
+  ok('two rows: the grade of the panel and his own score', events.length, 2)
+  ok('the panel is graded on mode panel_score', events.some(q => /'panel_score'/.test(q)))
+  ok('disagreement is recorded with a direction', events.some(q => /panel_too_harsh/.test(q)))
+  ok('his note rides with it', events.filter(q => q.includes('The evidence judge is right here')).length, 2)
+  const receipt = await page.locator('article.card.settled').first().innerText()
+  ok('the receipt names both numbers', receipt.includes('You said 8, the panel said 3'))
+  await page.close()
+}
+
+console.log('H. the grading stage remembers what was already graded')
+{
+  // Krish graded six of ten, reloaded, and was handed all ten again as though
+  // nothing had happened. The writes had worked; the page filtered on nothing.
+  // This asserts the filter is IN THE QUERY, because that is the only place it
+  // survives a reload.
+  const { page, since } = await open(browser, { seeds: SEEDS })
+  await page.getByRole('tab', { name: /Grade the judges/ }).click()
+  await page.waitForSelector('article.card')
+  const asked = (await since(0)).filter(q => /content_ideas/.test(q) && /i\.id in \(/.test(q))
+  ok('the stage asks for its rows', asked.length > 0)
+  ok('and excludes anything already scored',
+    asked.some(q => /not exists/.test(q) && /panel_score/.test(q)))
   await page.close()
 }
 

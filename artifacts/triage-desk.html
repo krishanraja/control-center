@@ -231,6 +231,29 @@
     font-family: Newsreader, Georgia, serif; font-size: 15.5px; line-height: 1.55; color: var(--ink);
     white-space: pre-wrap; max-width: 66ch;
   }
+  .scorerow { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0 2px; }
+  .scorecell {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 6px 8px; border-radius: 8px; background: var(--sunk); min-width: 60px;
+  }
+  .scorecell b { font: 600 15px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--ink); font-style: normal; }
+  .scorecell i {
+    font: 400 10px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--faint);
+    font-style: normal; letter-spacing: .03em;
+  }
+  .scorecell.low { background: var(--brass-w); }
+  .scorecell.low b { color: var(--brass); }
+  .scorecell.hi { background: var(--go-w); }
+  .scorecell.hi b { color: var(--go); }
+  .routerline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 11px; }
+  .fit {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px;
+    padding: 3px 8px; border-radius: 99px; background: var(--sunk); color: var(--slate);
+  }
+  .fit.won { background: var(--brass-w); color: var(--brass); }
+  .why { font-size: 13.5px; color: var(--slate); margin: 9px 0 0; max-width: 66ch; }
+  button.pick.score { min-width: 36px; padding: 8px 6px; text-align: center; }
+  button.pick.score.agrees { border-color: var(--rule); background: var(--card); }
   .batch-end { text-align: center; padding: 20px 16px 8px; color: var(--slate); font-size: 13.5px; }
   .batch-end button { margin-top: 11px; }
   #ledger-state { margin: 10px 0 0; padding: 9px 12px; border-radius: 8px; background: var(--brass-w); color: var(--brass); font-size: 13px; }
@@ -260,6 +283,7 @@
       <button role="tab" id="tab-draft"  aria-selected="false" data-stage="draft">2 · Dry run <span class="count" id="c-draft">–</span></button>
       <button role="tab" id="tab-review" aria-selected="false" data-stage="review">3 · Read back <span class="count" id="c-review">–</span></button>
       <button role="tab" id="tab-told" aria-selected="false" data-stage="told">What you have told me <span class="count" id="c-told">–</span></button>
+      <button role="tab" id="tab-grade" aria-selected="false" data-stage="grade">Grade the judges <span class="count" id="c-grade">–</span></button>
     </nav>
   </header>
 
@@ -1232,13 +1256,145 @@
                on i.id::text = e.subject_id and e.subject_table = 'content_ideas'
             where e.instruction is not null or e.reason_code is not null
             order by e.occurred_at desc limit 100;`,
+    // A getter, not a const: VERDICTS is declared further down the file and a
+    // const here evaluates at module load, before it exists. The page died with
+    // "Cannot access 'VERDICTS' before initialization" and rendered nothing.
+    //
+    // AND IT EXCLUDES WHAT HE HAS ALREADY GRADED. The first version did not,
+    // so a reload handed him the same ten as though nothing had happened.
+    // Krish, 2026-09-24: "I clicked out of the document and came back in, and
+    // it's all gone." It was not gone; twelve rows were in this table. The page
+    // simply had no memory of them, which is worse than losing the work,
+    // because it teaches him the record cannot be trusted when it is right.
+    //
+    // Every other stage filters on database state. This one filtered on
+    // nothing. That is the whole bug.
+    get grade() {
+      const ids = VERDICTS.map(v => lit(v.id)).join(',');
+      return `select i.id, i.idea, i.thesis, i.lane_slot, i.created_at
+                from public.content_ideas i
+               where i.id in (${ids})
+                 and not exists (
+                   select 1 from public.content_edit_events e
+                    where e.subject_id = i.id::text and e.mode = 'panel_score')
+               order by i.created_at desc;`;
+    },
   };
   const HINTS = {
     triage: 'Every seed here has no subchannel yet. Nothing is set aside without you saying why, and your note travels with whichever button you press. The mandates on the left are the test, and each is a question the piece must ask rather than a subject it covers.',
     draft:  'Every button here is recorded. The machine picked the subchannel and wrote the draft; what you keep, move, bin and rewrite is what the weekly compiler learns from. Binning with a reason teaches more than keeping.',
     review: 'Drafts already saved. Edit them in place, or ask whether the piece actually asks the question its subchannel demands.',
     told:   'Every decision you have made here, read back out of the table it was written to. This is the whole record, not a summary of it. If something you said is missing, that is a bug and I want to know.',
+    grade:  'Ten ideas the ladder judged on 2026-09-24, as a dry run: nothing was written and nothing was buried. It would have buried eight of these ten, and across eighty scores no judge went above 8 while the ready bar sat at 9, so the bar could never be reached. Score each one yourself. Where you and the panel disagree is what sets the thresholds and tells me which judge is wrong.',
   };
+
+  /* ── grading the judges ───────────────────────────────────────────────
+   *
+   * The ladder judged ten ideas on 2026-09-24 as a DRY RUN: nothing was
+   * written, nothing buried, nothing advanced. It would have buried eight of
+   * the ten, and across eighty scores no judge ever went above 8 while the
+   * ready bar was set at 9. So the bar was unreachable and the thresholds were
+   * my guess, not Krish's.
+   *
+   * These are those verdicts, embedded because the dry run deliberately
+   * persisted nothing. His score and his subchannel for each one is the
+   * calibration set: the thresholds get set to where HE draws the line, and
+   * the router is graded against where he actually files it.
+   */
+  const VERDICTS = [{"id":"990db555-9509-4624-8d27-8229903e44d1","scores":{"novelty":7,"evidence":3,"consequence":3,"reader":7,"buyer":7,"connection":7,"fun":7,"standing":3,"prosecutor":7},"min":3,"weakest":"evidence","band":"weak","prosecutor":{"score":7,"case":"Verify the August 28, 2026 math model claim and the 100+ problems solved against OpenAI's actual public statements; if this is speculative or embargoed, the piece cannot run as reported fact."},"fits":{"mind_the_gap":9,"split_the_bill":2,"lift_the_lid":3},"winner":"mind_the_gap","contested":[],"why":"The piece traces a visible shift across research, capability, and institutional capacity\u2014the gap between what models can produce and what human expertise can validate\u2014and names the consequence that follows: a bottleneck moving from capability to review, with structural implications for how science absorbs results."},{"id":"f3a02939-ab99-46d0-ae9a-e3e0b8559ede","scores":{"novelty":3,"evidence":3,"consequence":3,"reader":3,"buyer":7,"connection":3,"fun":6,"standing":3,"prosecutor":7},"min":3,"weakest":"novelty","band":"weak","prosecutor":{"score":7,"case":"Verify the 200,000-line codebase audit actually happened with a named tester, company, and codebase type; if it's a hypothetical or Anthropic's own internal test, the piece collapses into marketing commentary, not investigation."},"fits":{"mind_the_gap":3,"split_the_bill":8,"lift_the_lid":2},"winner":"split_the_bill","contested":[],"why":"The piece asks where the money moves when a model cuts both cost and time on a repeatable task, and what that means for the build-or-rent decision on agentic work."},{"id":"dca4aa7b-1d1e-458b-9d49-1b1ee92fa384","scores":{"novelty":7,"evidence":7,"consequence":7,"reader":7,"buyer":8,"connection":7,"fun":7,"standing":7,"prosecutor":6},"min":7,"weakest":"novelty","band":"repairable","prosecutor":{"score":6,"case":"Ground the claim in a specific Mindmake client outcome or decision layer failure case Krish observed directly, not in David Arnoux's GTM OS framework\u2014the idea borrows its spine from someone else's system."},"fits":{"mind_the_gap":3,"split_the_bill":2,"lift_the_lid":7},"winner":"lift_the_lid","contested":[],"why":"The piece asks what you would build differently having seen inside a GTM architecture\u2014specifically, why owning the decision layer in code changes the build choice\u2014and shows the lesson through a pattern of vendor lock-in failures."},{"id":"d092fda7-55bc-415a-a3ad-ddbf6056e428","scores":{"novelty":3,"evidence":2,"reader":3,"buyer":3,"connection":7,"fun":3,"standing":3,"prosecutor":8},"min":2,"weakest":"evidence","band":"weak","prosecutor":{"score":8,"case":"Replace the entire premise with a builder-operator artifact: either Krish has tested Jev in a real agent stack and observed the variance reduction himself, or this is commentary on someone else's benchmark and should not run under his name."},"fits":{"mind_the_gap":3,"split_the_bill":7,"lift_the_lid":8},"winner":"lift_the_lid","contested":["split_the_bill"],"why":"What would you build differently knowing that decision-making and generation are separate problems requiring separate models, and that most builders are still conflating them?"},{"id":"6cb0d213-1aa6-44d3-8dc2-0b91d8dde4df","scores":{"novelty":6,"evidence":3,"consequence":7,"reader":7,"buyer":7,"connection":7,"fun":7,"standing":3,"prosecutor":7},"min":3,"weakest":"evidence","band":"weak","prosecutor":{"score":7,"case":"Verify the Amazon-Meta Muse timeline and the stated reason for the block against primary sources before publishing; if the 'real reason' cannot be sourced or is speculative, reframe as hypothesis and add what would prove it."},"fits":{"mind_the_gap":8,"split_the_bill":7,"lift_the_lid":3},"winner":"mind_the_gap","contested":["split_the_bill"],"why":"The piece traces a single mechanism\u2014agents automating purchase completion\u2014across the ad-funded discovery model to show what platforms must now defend against, and what that defense costs them."},{"id":"cf90be11-94cd-4410-86f8-3e37820cc792","scores":{"novelty":7,"evidence":6,"consequence":7,"reader":8,"buyer":7,"connection":8,"fun":8,"standing":7,"prosecutor":6},"min":6,"weakest":"evidence","band":"weak","prosecutor":{"score":6,"case":"Verify the a16z app supply data and SensorTower revenue claim against primary sources before submission; the argument's entire load-bearing wall is two numbers that must be bulletproof, and neither is cited to a specific report, date, or dashboard."},"fits":{"mind_the_gap":9,"split_the_bill":3,"lift_the_lid":2},"winner":"mind_the_gap","contested":[],"why":"The piece traces a visible shift across several threads\u2014app supply explosion, flat downloads, Salesforce's on-prem reasoning move\u2014to resolve into a single observation the reader has half-noticed: the builder economy thesis survives but the moat has moved from execution to problem selection, and this changes what founders should optimize for next."},{"id":"7c2e2188-553c-4574-91eb-22ebecdece95","scores":{"novelty":6,"evidence":3,"consequence":3,"reader":7,"buyer":7,"connection":7,"fun":7,"standing":3,"prosecutor":7},"min":3,"weakest":"evidence","band":"weak","prosecutor":{"score":7,"case":"Replace the three anecdotes (Claude Opus 5 / libheif, Gemini red-team, Meta Muse) with a single disclosed breach or name the white-hat researchers and their findings publicly\u2014right now the piece asks readers to trust unverified claims about real companies' security incidents, which invites immediate rebuttal Krish cannot answer without sources."},"fits":{"mind_the_gap":8,"split_the_bill":6,"lift_the_lid":3},"winner":"mind_the_gap","contested":[],"why":"The piece traces a visible shift across multiple threat vectors to name an unpriced liability that enterprises have half-noticed but never named: the AI account is now a higher-value target than the human account, and permission accumulation creates automatic chain-of-custody risk."},{"id":"20068172-8221-4695-97c8-bbe7e667716e","scores":{"novelty":7,"evidence":7,"consequence":7,"reader":7,"buyer":7,"connection":8,"fun":8,"standing":3,"prosecutor":6},"min":3,"weakest":"standing","band":"weak","prosecutor":{"score":6,"case":"Replace the falsifiable test with a mechanism that doesn't require predicting government action within 90 days\u2014instead, show the credibility gap *now* through a specific artifact (internal memo, earnings call transcript, regulatory filing language) that proves the labs know the public reads their moves as market positioning."},"fits":{"mind_the_gap":9,"split_the_bill":3,"lift_the_lid":1},"winner":"mind_the_gap","contested":[],"why":"The piece identifies a pattern across several threads\u2014profitability, price cuts, public distrust, regulatory pressure\u2014and resolves it into a single observation about what the gap between stated intent and visible incentives means is coming: a regulatory cycle driven by credibility collapse, not safety argument."},{"id":"904658db-4df2-4537-a0ed-ebe93e081db7","scores":{"novelty":7,"evidence":7,"consequence":7,"reader":8,"buyer":8,"connection":7,"fun":8,"standing":7,"prosecutor":3},"min":7,"weakest":"novelty","band":"repairable","prosecutor":{"score":3,"case":null},"fits":{"mind_the_gap":8,"split_the_bill":7,"lift_the_lid":2},"winner":"mind_the_gap","contested":["split_the_bill"],"why":"The piece names a shift in how AI labs structure their business (segmentation replacing innovation as the driver of pricing), traces what it means for the reader's own product strategy, and asks what the reader should expect next\u2014a pattern-spotting move that changes how they think about their own tier structure."},{"id":"a37e4ad5-b803-474a-9565-787443e197e3","scores":{"novelty":2,"evidence":2,"consequence":2,"reader":2,"buyer":2,"connection":1,"fun":2,"standing":1,"prosecutor":8},"min":1,"weakest":"connection","band":"weak","prosecutor":{"score":8,"case":"The idea is incomplete\u2014it names models and a price war but contains no artifact, no listening specificity, no research specificity, and no actual claim. Finish the thought before submitting."},"fits":{"mind_the_gap":3,"split_the_bill":8,"lift_the_lid":2},"winner":"split_the_bill","contested":[],"why":"The piece traces how a new model release and price war reshape what buyers can charge for AI work and whether the economics still hold."}];
+  const JUDGE_ORDER = ['novelty','evidence','consequence','reader','buyer','connection','fun','standing'];
+
+  function gradeCard(r) {
+    const v = VERDICTS.find(x => x.id === r.id);
+    const card = el('article', 'card'); card.dataset.id = r.id;
+    // A row with no verdict is a row the dry run never judged. Say so rather
+    // than throwing: one unmatched id would otherwise take the whole stage
+    // down, and the reader would see an empty tab rather than a fault.
+    if (!v) {
+      card.append(el('h2', 'idea', r.idea || '(untitled)'));
+      card.append(el('p', 'why', 'This one is not in the 2026-09-24 dry run, so there is no panel verdict to grade it against.'));
+      return card;
+    }
+    card.__seedAt = Date.now();
+    const meta = el('div', 'meta');
+    meta.append(el('span', 'chip' + (v.min >= 7 ? ' high' : ''), 'machine says ' + v.min));
+    meta.append(el('span', null, 'weakest: ' + (v.weakest || 'n/a')));
+    meta.append(el('span', null, v.band));
+    card.append(meta, el('h2', 'idea', r.idea || '(untitled)'));
+    if (r.thesis) card.append(el('p', 'thesis', r.thesis));
+
+    // The eight axes, as given. Never averaged: the spread is the point.
+    const row = el('div', 'scorerow');
+    for (const k of JUDGE_ORDER) {
+      const n = v.scores[k];
+      const cell = el('span', 'scorecell' + (n == null ? '' : n <= 3 ? ' low' : n >= 8 ? ' hi' : ''));
+      cell.append(el('b', null, n == null ? '-' : String(n)));
+      cell.append(el('i', null, k));
+      row.append(cell);
+    }
+    card.append(row);
+
+    if (v.prosecutor && v.prosecutor.case) {
+      const pb = el('div', 'verdict');
+      pb.append(el('span', 'who', 'The prosecutor, arguing to kill it (' + v.prosecutor.score + '/10)'));
+      pb.append(el('span', 'body', v.prosecutor.case));
+      card.append(pb);
+    }
+
+    const rt = el('div', 'routerline');
+    rt.append(el('span', 'sep', 'router'));
+    for (const [slug, n] of Object.entries(v.fits).sort((a, b) => b[1] - a[1])) {
+      const f = fmtBySlug()[slug] || { label: slug };
+      rt.append(el('span', 'fit' + (slug === v.winner ? ' won' : ''), (f.label || slug) + ' ' + n));
+    }
+    if (v.contested.length) rt.append(el('span', 'sep', 'contested'));
+    card.append(rt);
+    if (v.why) card.append(el('p', 'why', 'It read the question as: ' + v.why));
+
+    noteBox(card, r);
+
+    const ask = el('div', 'actions'); ask.style.marginTop = '9px';
+    ask.append(el('span', 'sep', 'what would you score it, out of 10?'));
+    for (let n = 0; n <= 10; n++) {
+      const b = el('button', 'pick score' + (n === v.min ? ' agrees' : ''), String(n)); b.type = 'button';
+      b.onclick = () => gradeIt(card, r, v, n);
+      ask.append(b);
+    }
+    card.append(ask);
+    return card;
+  }
+
+  /* His score against the machine's, and his subchannel against the router's.
+     Two rows, because they are two different disagreements and averaging them
+     into "how did the panel do" would lose which part was wrong. */
+  async function gradeIt(card, r, v, mine) {
+    card.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    const note = noteOf(card);
+    const before = await sha256Hex(seedTextOf(r));
+    const dwell = Date.now() - card.__seedAt;
+    try {
+      const ok1 = await ledger({
+        subjectId: r.id,
+        action: v.min === mine ? 'magic_accepted' : 'magic_rejected',
+        mode: 'panel_score', value: String(v.min),
+        reasonCode: v.min === mine ? null : (mine > v.min ? 'panel_too_harsh' : 'panel_too_kind'),
+        beforeHash: before, afterHash: v.min === mine ? await sha256Hex(String(mine)) : null,
+        instruction: note, dwellMs: dwell,
+      });
+      const ok2 = await ledger({
+        subjectId: r.id, action: 'manual_edit', mode: 'panel_score', value: String(mine),
+        beforeHash: before, afterHash: await sha256Hex(String(mine)),
+        instruction: note, dwellMs: dwell,
+      });
+      const gap = mine - v.min;
+      finish(card, r, {
+        verb: gap === 0
+          ? 'You and the panel agree at ' + mine
+          : 'You said ' + mine + ', the panel said ' + v.min + ' (' + (gap > 0 ? 'it was ' + gap + ' too harsh' : 'it was ' + (-gap) + ' too kind') + ')',
+        recorded: ok1 && ok2, note,
+      });
+    } catch (e) { fail(card, e); }
+  }
 
   /** One recorded decision, in his words and the table’s. */
   function toldCard(r) {
@@ -1255,7 +1411,7 @@
     return card;
   }
 
-  const CARD = { triage: triageCard, draft: draftCard, review: reviewCard, told: toldCard };
+  const CARD = { triage: triageCard, draft: draftCard, review: reviewCard, told: toldCard, grade: gradeCard };
 
   async function counts() {
     try {
@@ -1265,15 +1421,20 @@
                 count(*) filter (where lane_slot is not null and coalesce(body,'')='' and buried_at is null and state not in ('dropped','published','absorbed')) as draft,
                 count(*) filter (where coalesce(body,'')<>'' and buried_at is null and state in ('drafting','review')) as review,
                 (select count(*) from public.content_edit_events
-                  where instruction is not null or reason_code is not null) as told
+                  where instruction is not null or reason_code is not null) as told,
+                (select count(distinct subject_id) from public.content_edit_events
+                  where mode = 'panel_score') as graded
            from public.content_ideas;`);
       if (!c) return;
       $('#c-triage').textContent = c.triage; $('#c-draft').textContent = c.draft;
       $('#c-review').textContent = c.review; $('#c-told').textContent = c.told;
+      // Remaining, not total: the count is the thing that tells him at a glance
+      // that the last sitting counted for something.
+      $('#c-grade').textContent = String(Math.max(0, VERDICTS.length - Number(c.graded || 0)));
     } catch (e) {
       // Counts are a convenience, but a shape error here is the same fault
       // that would empty every stage, so it is worth a line rather than silence.
-      for (const id of ['#c-triage', '#c-draft', '#c-review', '#c-told']) $(id).textContent = '?';
+      for (const id of ['#c-triage', '#c-draft', '#c-review', '#c-told', '#c-grade']) $(id).textContent = '?';
       console.warn('[desk] counts unavailable:', (e && e.code) || e);
     }
   }
@@ -1297,11 +1458,13 @@
         stage === 'triage' ? 'Nothing waiting on a subchannel.'
         : stage === 'draft' ? 'Nothing assigned is waiting to be written.'
         : stage === 'told' ? 'Nothing recorded yet.'
+        : stage === 'grade' ? 'You have graded all ten.'
         : 'No drafts to read back.'));
       d.append(el('div', null,
         stage === 'triage' ? 'Every seed has a home or has been set aside.'
         : stage === 'draft' ? 'Triage a few seeds first and they will appear here.'
         : stage === 'told' ? 'The moment you bin, pick or rewrite anything with a reason, it shows up here.'
+        : stage === 'grade' ? 'Every score and note is in the ledger. Open "What you have told me" to read them back.'
         : 'Write one in the dry run and it lands here.'));
       q.append(d); return;
     }
