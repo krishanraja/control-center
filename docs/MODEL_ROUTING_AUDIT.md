@@ -59,7 +59,42 @@ prints the active model inventory.
 > for it had been dead since it was written.
 >
 > A route is not deployed until the runtime says so. Item 2 below said as much
-> and is the reason this went unmeasured. `scripts/check-model-prices.mts` now scans
+> and is the reason this went unmeasured.
+>
+> **Deployed 2026-09-24.** All four are now live, applied through the n8n public
+> API as a per-node edit rather than `sync.mjs --apply`, because a whole-workflow
+> push would have stripped `settings` keys the pusher denylists and rewound
+> `zara-layer-1`'s Google Drive cursor from 2026-09-16 back to the mirror's
+> 2026-09-02, re-ingesting two weeks of files. Each write fetched the live
+> document, changed one node, and echoed everything else back unchanged; each was
+> then read back and asserted on node count, every other node's parameters,
+> `settings`, `staticData`, `credentials`, every `webhookId`, and `active` state.
+>
+> | Workflow | Was | Now | Rollback versionId |
+> |---|---|---|---|
+> | `sonnet-task-lever-rater` | opus-5, 16000 | sonnet-5, 2000, thinking disabled | `c1118178-8941-486e-a5fe-1b9ee62db6b9` |
+> | `cleo-omnichannel-content-factory` | gpt-4o | gpt-5.4-mini | `707b20a1-72a3-4c6d-bddb-98363425c30d` |
+> | `zara-layer-1-signal-inbox-drive-watcher` | gpt-4.1-nano + temperature 0.2 | gpt-5.4-nano, no sampling override | `1a42a4c0-b85f-414e-81e9-d986c549fd2e` |
+> | `hunter-job-sweep` | models/gemini-2.0-flash | models/gemini-3.6-flash | `bc59b72e-91db-41e4-be4a-a92cdca829fa` |
+>
+> `check-model-routing-live.mts` went from 20 findings to 3, and none of the 3 is
+> one of these. Two notes on what was NOT proven. The Zara temperature removal
+> was applied as part of the same write because the GPT-5 class rejects a
+> non-default sampling parameter, so swapping the model alone would have risked a
+> 400 per run; that is the reading of "removed the sampling override" above, not
+> a separate decision. And `sonnet-task-lever-rater` has not yet been observed
+> executing its LLM node on the new route: its last twenty runs all fetched zero
+> unrated rows, so the node does not fire. The parameters are verified, the
+> prompt is byte-identical, and historical output measured 56 tokens against the
+> new 2000 cap, but a live `stop_reason: end_turn` on the new body remains
+> inferred rather than checked.
+>
+> The three findings that remain are separate: `cleo-content-idea-capture` runs
+> `gpt-5-nano` against a mirror expecting `gpt-5.4-nano` and had its OpenAI node
+> replaced with a Claude one in the UI, which contradicts the row above and is a
+> decision rather than a push; and `cleo-synthesis-engine`'s MIRROR names the
+> retired `gemini-2.5-pro` in a telemetry label while the runtime has moved off
+> it, so that one is a repository fix. `scripts/check-model-prices.mts` now scans
 workflow JSON as well as TypeScript, so an unpriced Anthropic model cannot hide
 inside n8n.
 
