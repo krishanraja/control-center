@@ -34,6 +34,10 @@
 | [018](./018-weekly-cadence-and-manual-today.md) | Weekly cadence, one writer for tomorrow, and a manual-first Today | Accepted |
 | [019](./019-content-engine-owns-the-control-plane.md) | The Content Engine repository owns the control plane | Accepted |
 | [020](./020-governed-harness-event-inbox.md) | Governed harness event inbox | Accepted |
+| [021](./021-linkedin-reach-is-unconditional.md) | LinkedIn reach is unconditional | Accepted |
+| [022](./022-enrichment-reaches-the-surface.md) | Enrichment reaches the surface by trigger, not by convention | Accepted |
+| [023](./023-the-room-is-a-pilot.md) | "The room" is a pilot | Accepted |
+| [024](./024-openrouter-as-the-rescue-provider-only.md) | OpenRouter is the rescue provider, and only the rescue provider | Accepted |
 
 ---
 
