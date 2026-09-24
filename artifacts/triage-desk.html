@@ -283,7 +283,7 @@
       <button role="tab" id="tab-draft"  aria-selected="false" data-stage="draft">2 · Dry run <span class="count" id="c-draft">–</span></button>
       <button role="tab" id="tab-review" aria-selected="false" data-stage="review">3 · Read back <span class="count" id="c-review">–</span></button>
       <button role="tab" id="tab-told" aria-selected="false" data-stage="told">What you have told me <span class="count" id="c-told">–</span></button>
-      <button role="tab" id="tab-grade" aria-selected="false" data-stage="grade">Grade the judges <span class="count" id="c-grade">10</span></button>
+      <button role="tab" id="tab-grade" aria-selected="false" data-stage="grade">Grade the judges <span class="count" id="c-grade">–</span></button>
     </nav>
   </header>
 
@@ -1259,10 +1259,25 @@
     // A getter, not a const: VERDICTS is declared further down the file and a
     // const here evaluates at module load, before it exists. The page died with
     // "Cannot access 'VERDICTS' before initialization" and rendered nothing.
+    //
+    // AND IT EXCLUDES WHAT HE HAS ALREADY GRADED. The first version did not,
+    // so a reload handed him the same ten as though nothing had happened.
+    // Krish, 2026-09-24: "I clicked out of the document and came back in, and
+    // it's all gone." It was not gone; twelve rows were in this table. The page
+    // simply had no memory of them, which is worse than losing the work,
+    // because it teaches him the record cannot be trusted when it is right.
+    //
+    // Every other stage filters on database state. This one filtered on
+    // nothing. That is the whole bug.
     get grade() {
       const ids = VERDICTS.map(v => lit(v.id)).join(',');
-      return `select id, idea, thesis, lane_slot, created_at
-                from public.content_ideas where id in (${ids});`;
+      return `select i.id, i.idea, i.thesis, i.lane_slot, i.created_at
+                from public.content_ideas i
+               where i.id in (${ids})
+                 and not exists (
+                   select 1 from public.content_edit_events e
+                    where e.subject_id = i.id::text and e.mode = 'panel_score')
+               order by i.created_at desc;`;
     },
   };
   const HINTS = {
@@ -1406,15 +1421,20 @@
                 count(*) filter (where lane_slot is not null and coalesce(body,'')='' and buried_at is null and state not in ('dropped','published','absorbed')) as draft,
                 count(*) filter (where coalesce(body,'')<>'' and buried_at is null and state in ('drafting','review')) as review,
                 (select count(*) from public.content_edit_events
-                  where instruction is not null or reason_code is not null) as told
+                  where instruction is not null or reason_code is not null) as told,
+                (select count(distinct subject_id) from public.content_edit_events
+                  where mode = 'panel_score') as graded
            from public.content_ideas;`);
       if (!c) return;
       $('#c-triage').textContent = c.triage; $('#c-draft').textContent = c.draft;
       $('#c-review').textContent = c.review; $('#c-told').textContent = c.told;
+      // Remaining, not total: the count is the thing that tells him at a glance
+      // that the last sitting counted for something.
+      $('#c-grade').textContent = String(Math.max(0, VERDICTS.length - Number(c.graded || 0)));
     } catch (e) {
       // Counts are a convenience, but a shape error here is the same fault
       // that would empty every stage, so it is worth a line rather than silence.
-      for (const id of ['#c-triage', '#c-draft', '#c-review', '#c-told']) $(id).textContent = '?';
+      for (const id of ['#c-triage', '#c-draft', '#c-review', '#c-told', '#c-grade']) $(id).textContent = '?';
       console.warn('[desk] counts unavailable:', (e && e.code) || e);
     }
   }
@@ -1438,11 +1458,13 @@
         stage === 'triage' ? 'Nothing waiting on a subchannel.'
         : stage === 'draft' ? 'Nothing assigned is waiting to be written.'
         : stage === 'told' ? 'Nothing recorded yet.'
+        : stage === 'grade' ? 'You have graded all ten.'
         : 'No drafts to read back.'));
       d.append(el('div', null,
         stage === 'triage' ? 'Every seed has a home or has been set aside.'
         : stage === 'draft' ? 'Triage a few seeds first and they will appear here.'
         : stage === 'told' ? 'The moment you bin, pick or rewrite anything with a reason, it shows up here.'
+        : stage === 'grade' ? 'Every score and note is in the ledger. Open "What you have told me" to read them back.'
         : 'Write one in the dry run and it lands here.'));
       q.append(d); return;
     }

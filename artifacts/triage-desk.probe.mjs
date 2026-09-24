@@ -59,11 +59,11 @@ async function open(browser, { seeds, refuseLedger = false }) {
         return []
       }
       if (/from public\.venture_formats/.test(q)) return formats
-      if (/count\(\*\) filter/.test(q)) return [{ triage: seeds.length, draft: 0, review: 0 }]
+      if (/count\(\*\) filter/.test(q)) return [{ triage: seeds.length, draft: 0, review: 0, told: 0, graded: 0 }]
       if (/^select id from public\.content_ideas/m.test(q.trim())) return [{ id: seeds[0].id }]
       if (/lane_slot is null and state in/.test(q)) return seeds
       // The grading stage reads the ten ideas the ladder judged by id.
-      if (/where id in \(/.test(q)) return [{ id: '990db555-9509-4624-8d27-8229903e44d1', idea: 'A judged idea', thesis: 'Its thesis.', lane_slot: 'mind_the_gap', created_at: '2026-09-24T00:00:00Z' }]
+      if (/i\.id in \(/.test(q)) return [{ id: '990db555-9509-4624-8d27-8229903e44d1', idea: 'A judged idea', thesis: 'Its thesis.', lane_slot: 'mind_the_gap', created_at: '2026-09-24T00:00:00Z' }]
       if (/from public\.system_config/.test(q)) return [{ value: '' }]
       return []
     }
@@ -170,6 +170,22 @@ console.log('G. grading the judges records both disagreements')
   ok('his note rides with it', events.filter(q => q.includes('The evidence judge is right here')).length, 2)
   const receipt = await page.locator('article.card.settled').first().innerText()
   ok('the receipt names both numbers', receipt.includes('You said 8, the panel said 3'))
+  await page.close()
+}
+
+console.log('H. the grading stage remembers what was already graded')
+{
+  // Krish graded six of ten, reloaded, and was handed all ten again as though
+  // nothing had happened. The writes had worked; the page filtered on nothing.
+  // This asserts the filter is IN THE QUERY, because that is the only place it
+  // survives a reload.
+  const { page, since } = await open(browser, { seeds: SEEDS })
+  await page.getByRole('tab', { name: /Grade the judges/ }).click()
+  await page.waitForSelector('article.card')
+  const asked = (await since(0)).filter(q => /content_ideas/.test(q) && /i\.id in \(/.test(q))
+  ok('the stage asks for its rows', asked.length > 0)
+  ok('and excludes anything already scored',
+    asked.some(q => /not exists/.test(q) && /panel_score/.test(q)))
   await page.close()
 }
 
