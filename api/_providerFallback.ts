@@ -1,4 +1,4 @@
-import { OPENAI_JUDGE_MODEL, OPENAI_GENERATION_MODEL, JUDGE_MODEL } from './_models.js'
+import { RESCUE_JUDGE_MODEL, RESCUE_GENERATION_MODEL, JUDGE_MODEL } from './_models.js'
 import * as meter from './_meter.js'
 
 /**
@@ -11,12 +11,13 @@ import * as meter from './_meter.js'
  *   You will regain access on 2026-10-01 at 00:00 UTC.
  *
  * Eight days, with the query planner, the reranker and the per-person
- * explanations dark for all of them. The Gemini layer in n8n exists for exactly
- * this and the Vercel functions had no equivalent.
+ * explanations dark for all of them. None of the three was a model failure;
+ * all three were BILLING failures on one account, which is why the answer is a
+ * second billing relationship rather than a second model.
  *
- * Krish's ruling, 2026-09-23: fall back to OpenAI quickly and automatically,
- * without breaking the bank. Each of those three words is a design constraint
- * and they pull against each other, so this is what each one bought:
+ * Krish's ruling, 2026-09-23: fall back quickly and automatically, without
+ * breaking the bank. Each of those words is a design constraint and they pull
+ * against each other, so this is what each one bought:
  *
  * QUICKLY — the breaker. Anthropic hands us the reset time in the error text,
  *   so the first failure records it and every later call skips Anthropic
@@ -26,37 +27,47 @@ import * as meter from './_meter.js'
  *   is its own process and a per-process breaker re-learns the outage on every
  *   cold start.
  *
- * AUTOMATICALLY — the fallback sits inside callClaude, so every existing call
- *   site inherits it without being touched, and the ones that must NOT inherit
- *   it opt out by name (below).
+ * AUTOMATICALLY — the fallback sits inside callClaude, callClaudeMessages and
+ *   streamClaude, so every existing call site inherits it without being
+ *   touched, and the ones that must NOT inherit it opt out by name (below).
  *
- * WITHOUT BREAKING THE BANK — three separate limits, because one is a hope:
- *   1. The cheap tier only. A judge call falls back to the nano model and
- *      everything else to mini. Never a like-for-like swap to a premium model:
- *      the point is to keep the lights on, not to reproduce Sonnet.
- *   2. Bulk paths opt out. enrich-person alone ran 3,284 calls in a day on
+ * WITHOUT BREAKING THE BANK — two limits, and they are the real ones:
+ *   1. Bulk paths opt out. enrich-person alone ran 3,284 calls in a day on
  *      2026-09-15. Interactive surfaces are worth paying to keep alive; a
  *      backfill can wait for the reset. This is the single biggest saving here
  *      and it is a list, not a guess.
- *   3. A daily ceiling on fallback calls, counted from the meter.
+ *   2. A daily ceiling on rescue calls, counted from the meter.
  *
- * The ceiling is counted in CALLS, not dollars, and that is deliberate. Pricing
- * it in dollars would mean putting a rate for the OpenAI models into
- * _prices.ts, and this repo's rule on that is explicit: an unknown model prices
- * at zero and says so, because "a guessed rate produces a plausible wrong
- * number that nobody questions". I do not have verified rates for these model
- * ids, so a dollar ceiling computed from them would be exactly that wrong
- * number, guarding a budget it was not really measuring. A call ceiling against
- * a bounded max_tokens is a real limit that needs no rate to be true. When the
- * rates are confirmed, add them to _prices.ts and the meter starts costing this
- * traffic with no change here.
+ * A third limit used to exist — a demotion to the cheap OpenAI tier — and it
+ * is gone as of 2026-09-24. It was there on the assumption that a like-for-like
+ * rescue was unaffordable. Probing OpenRouter on the live credential showed
+ * that is not true: inference is Anthropic list price with no per-token markup,
+ * and prompt caching survives the hop at the exact multipliers _prices.ts
+ * models (5m write 1.25x, 1h write 2.0x, read 0.1x, measured). A demotion would
+ * now buy nothing but a quality cliff on the surfaces Krish reads during an
+ * outage, so the understudy is the same model. See _models.ts RESCUE_*.
+ *
+ * Cost is no longer inferred. OpenRouter returns `usage.cost` per call and the
+ * meter records that number, which is why the rescue models deliberately have
+ * no row in _prices.ts: the biller's own figure beats a derived one, and this
+ * repo's rule is that a guessed rate produces a plausible wrong number nobody
+ * questions.
  */
 
 /** system_config keys. Values are plain, so they are editable by hand. */
 const BREAKER_KEY = 'anthropic_unavailable_until'
-const CAP_KEY = 'openai_fallback_daily_call_cap'
+/** The current key. */
+const CAP_KEY = 'rescue_fallback_daily_call_cap'
+/**
+ * The key this setting had while the rescue was OpenAI.
+ *
+ * Read as a fallback rather than dropped, because renaming a live config key
+ * silently reverts the deployed cap to the default and nothing says so. The new
+ * key wins where both exist; delete the old row once it is set.
+ */
+const LEGACY_CAP_KEY = 'openai_fallback_daily_call_cap'
 
-/** Fallback calls per UTC day before this stops rescuing anything.
+/** Rescue calls per UTC day before this stops rescuing anything.
  *  Deliberately low enough to notice and high enough to cover a working day of
  *  interactive use: the planner and the explain pass are roughly two calls per
  *  search. */
@@ -67,6 +78,11 @@ const DEFAULT_DAILY_CAP = 400
  *  per surface per quarter hour, and the cost in the other direction is staying
  *  dark after the provider has recovered. */
 const BLIND_BREAKER_MS = 15 * 60_000
+
+/** The provider the meter records rescue spend under. */
+export const RESCUE_PROVIDER = 'openrouter' as const
+
+const RESCUE_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 
 /**
  * Failures that mean "Anthropic will not serve this request, and trying again
@@ -97,11 +113,16 @@ export function parseResetAt(message: string, now = new Date()): Date | null {
   return when
 }
 
-/** Which OpenAI model stands in for an Anthropic one. Cheap tier only. */
+/**
+ * Which OpenRouter model stands in for an Anthropic one.
+ *
+ * Like-for-like since 2026-09-24. The mapping is by TIER, not by exact id, so a
+ * dated snapshot (claude-haiku-4-5-20251001) still finds its understudy.
+ */
 export function understudyFor(anthropicModel: string): string {
   return anthropicModel.startsWith(JUDGE_MODEL)
-    ? (process.env.OPENAI_JUDGE_MODEL || OPENAI_JUDGE_MODEL)
-    : (process.env.OPENAI_GENERATION_MODEL || OPENAI_GENERATION_MODEL)
+    ? (process.env.RESCUE_JUDGE_MODEL || RESCUE_JUDGE_MODEL)
+    : (process.env.RESCUE_GENERATION_MODEL || RESCUE_GENERATION_MODEL)
 }
 
 /** Whether a thrown error is worth answering with the other provider. */
@@ -127,18 +148,25 @@ async function config(): Promise<{ until: number; cap: number }> {
   }
   let until = 0
   let cap = DEFAULT_DAILY_CAP
+  let sawCurrentCapKey = false
   try {
     const { supabase } = await import('./_supabase.js')
-    const { data } = await supabase.from('system_config').select('key,value').in('key', [BREAKER_KEY, CAP_KEY])
+    const { data } = await supabase.from('system_config').select('key,value').in('key', [BREAKER_KEY, CAP_KEY, LEGACY_CAP_KEY])
     for (const r of data || []) {
       const row = r as { key: string; value: unknown }
       if (row.key === BREAKER_KEY) {
         const t = new Date(String(row.value ?? '').replace(/^"|"$/g, '')).getTime()
         if (!Number.isNaN(t)) until = t
       }
-      if (row.key === CAP_KEY) {
+      if (row.key === CAP_KEY || row.key === LEGACY_CAP_KEY) {
+        // The current key wins wherever it is set, so a lingering legacy row
+        // cannot quietly override a deliberate new one.
+        if (row.key === LEGACY_CAP_KEY && sawCurrentCapKey) continue
         const n = Number(String(row.value ?? '').replace(/^"|"$/g, ''))
-        if (Number.isFinite(n) && n >= 0) cap = n
+        if (Number.isFinite(n) && n >= 0) {
+          cap = n
+          if (row.key === CAP_KEY) sawCurrentCapKey = true
+        }
       }
     }
   } catch {
@@ -187,7 +215,7 @@ export async function closeBreaker(): Promise<void> {
   } catch { /* the cache already reflects it; the next process re-learns */ }
 }
 
-/** Today's fallback calls against the ceiling, from the meter. */
+/** Today's rescue calls against the ceiling, from the meter. */
 async function withinDailyCap(cap: number): Promise<boolean> {
   const day = new Date().toISOString().slice(0, 10)
   const now = Date.now()
@@ -195,7 +223,7 @@ async function withinDailyCap(cap: number): Promise<boolean> {
   let used = 0
   try {
     const { supabase } = await import('./_supabase.js')
-    const { data } = await supabase.from('meter_daily').select('runs').eq('provider', 'openai').eq('day', day)
+    const { data } = await supabase.from('meter_daily').select('runs').eq('provider', RESCUE_PROVIDER).eq('day', day)
     used = (data || []).reduce((a, r) => a + Number((r as { runs?: number }).runs || 0), 0)
   } catch {
     // Unknown usage counts as none. The cap is a backstop against a runaway
@@ -215,79 +243,207 @@ export interface FallbackOpts {
   maxTokens?: number
   temperature?: number
   timeoutMs?: number
-  /** Ask OpenAI for strict JSON. Every JSON-returning caller in this repo
-   *  already tolerates prose via robustJson, so this is a quality lever, not a
-   *  correctness one. */
+  /**
+   * Ask for strict JSON.
+   *
+   * Kept in the signature and deliberately NOT sent for an Anthropic slug:
+   * probed on 2026-09-24, `response_format: {type:'json_object'}` is accepted
+   * and then ignored there — the reply came back as a fenced markdown block.
+   * Every JSON-returning caller in this repo already tolerates prose via
+   * robustJson, so sending a parameter that does nothing would only suggest a
+   * guarantee that is not there.
+   */
   json?: boolean
+  /** Adaptive thinking. Off unless asked for, matching the primary path. */
+  think?: boolean
 }
 
-let cachedOpenAIKey: string | null | undefined
-async function getOpenAIKey(): Promise<string | null> {
-  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY
-  if (cachedOpenAIKey !== undefined) return cachedOpenAIKey
+/** Turns a multi-turn history into the rescue provider's message array. */
+export interface RescueTurn { role: 'user' | 'assistant'; content: string }
+
+let cachedRescueKey: string | null | undefined
+async function getRescueKey(): Promise<string | null> {
+  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY
+  if (cachedRescueKey !== undefined) return cachedRescueKey
   try {
     const { supabase } = await import('./_supabase.js')
-    const { data } = await supabase.from('app_secrets').select('value').eq('key', 'openai_api_key').maybeSingle()
-    cachedOpenAIKey = data && typeof (data as { value?: unknown }).value === 'string'
+    const { data } = await supabase.from('app_secrets').select('value').eq('key', 'openrouter_api_key').maybeSingle()
+    cachedRescueKey = data && typeof (data as { value?: unknown }).value === 'string'
       ? (data as { value: string }).value
       : null
   } catch {
-    cachedOpenAIKey = null
+    cachedRescueKey = null
   }
-  return cachedOpenAIKey
+  return cachedRescueKey
 }
 
 /**
- * Answer with OpenAI instead. Throws if it cannot, so the caller's own degrade
- * path still runs: a fallback that swallows its failure would turn a named
- * outage into an unexplained empty answer, which is the failure mode this repo
- * has spent the month removing.
+ * The request body, shared by the buffered and streaming paths so they cannot
+ * drift apart on the parameters that matter.
+ *
+ * `usage.include` is what makes the meter honest: the reply then carries
+ * `usage.cost` in real dollars and the meter records that rather than deriving
+ * a number from a price table that has no row for these slugs.
+ *
+ * `reasoning` is always explicit. The two paths disagree by default — the
+ * direct Anthropic API runs adaptive thinking on Sonnet 5 when `thinking` is
+ * omitted, while OpenRouter measured `reasoning_tokens: 0` for the same
+ * omission — and a rescue whose thinking policy depends on which provider
+ * answered is a rescue that behaves differently from the thing it replaces.
  */
-export async function askOpenAI(opts: FallbackOpts): Promise<string> {
-  const { cap } = await config()
-  if (!(await withinDailyCap(cap))) throw new Error(`openai_fallback_daily_cap_reached_${cap}`)
-  const key = await getOpenAIKey()
-  if (!key) throw new Error('openai_fallback_unavailable: no OPENAI_API_KEY')
+function rescueBody(model: string, messages: RescueTurn[], system: string, opts: {
+  maxTokens?: number; temperature?: number; think?: boolean; stream?: boolean
+}): Record<string, unknown> {
+  return {
+    model,
+    max_tokens: opts.maxTokens ?? 4000,
+    reasoning: opts.think ? { effort: 'medium' } : { enabled: false },
+    usage: { include: true },
+    ...(opts.stream ? { stream: true } : {}),
+    ...(opts.temperature === undefined ? {} : { temperature: opts.temperature }),
+    messages: [
+      ...(system ? [{ role: 'system', content: system }] : []),
+      ...messages,
+    ],
+  }
+}
 
+/** Read the OpenRouter usage object into the shape the meter wants. */
+export function readRescueUsage(usage: unknown): {
+  inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; usd: number
+} {
+  const u = (usage || {}) as Record<string, unknown>
+  const n = (v: unknown) => Number(v) || 0
+  const d = (u.prompt_tokens_details || {}) as Record<string, unknown>
+  return {
+    // OpenRouter reports prompt_tokens INCLUSIVE of cached tokens, so the
+    // uncached remainder is what belongs in `input` — otherwise a cached prefix
+    // is counted twice and the meter over-reports volume on the cheapest calls.
+    inputTokens: Math.max(0, n(u.prompt_tokens) - n(d.cached_tokens) - n(d.cache_write_tokens)),
+    outputTokens: n(u.completion_tokens),
+    cacheReadTokens: n(d.cached_tokens),
+    cacheWriteTokens: n(d.cache_write_tokens),
+    usd: n(u.cost),
+  }
+}
+
+async function guardRescue(): Promise<string> {
+  const { cap } = await config()
+  if (!(await withinDailyCap(cap))) throw new Error(`rescue_daily_cap_reached_${cap}`)
+  const key = await getRescueKey()
+  if (!key) throw new Error('rescue_unavailable: no OPENROUTER_API_KEY')
+  return key
+}
+
+/**
+ * Answer through OpenRouter instead. Throws if it cannot, so the caller's own
+ * degrade path still runs: a fallback that swallows its failure would turn a
+ * named outage into an unexplained empty answer, which is the failure mode this
+ * repo has spent the month removing.
+ */
+export async function askRescue(opts: FallbackOpts): Promise<string> {
+  const key = await guardRescue()
   const model = understudyFor(opts.model)
   const ctrl = new AbortController()
   const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
   try {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    const r = await fetch(RESCUE_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
-        ...(opts.temperature === undefined ? {} : { temperature: opts.temperature }),
-        max_completion_tokens: opts.maxTokens ?? 4000,
-        messages: [
-          { role: 'system', content: opts.system },
-          { role: 'user', content: opts.user },
-        ],
-      }),
+      body: JSON.stringify(rescueBody(model, [{ role: 'user', content: opts.user }], opts.system, opts)),
       signal: opts.timeoutMs ? ctrl.signal : undefined,
     })
     const j = await r.json().catch(() => ({})) as {
       choices?: Array<{ message?: { content?: string } }>
-      usage?: { prompt_tokens?: number; completion_tokens?: number }
+      usage?: unknown
       error?: { message?: string }
     }
-    if (!r.ok) throw new Error(`openai_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
-    // Metered like any other spend. An unmetered provider reads as free, which
-    // is the exact bug the n8n layer had when the dashboard showed $0.00 beside
-    // a real bill. These model ids have no row in _prices.ts, so this lands as
-    // `unpriced-model` with real token counts and no dollars: visibly a gap,
-    // which is what it is until the rates are confirmed.
-    await meter.openaiCall({
-      agent: opts.agent, model,
-      inputTokens: j?.usage?.prompt_tokens || 0,
-      outputTokens: j?.usage?.completion_tokens || 0,
-    })
+    if (!r.ok) throw new Error(`rescue_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+    await meter.rescueCall({ agent: opts.agent, model, ...readRescueUsage(j?.usage) })
     const text = j?.choices?.[0]?.message?.content
-    if (!text) throw new Error('openai_empty_response')
+    if (!text) throw new Error('rescue_empty_response')
     return text
   } finally {
     if (tid) clearTimeout(tid)
   }
+}
+
+/** Multi-turn rescue, for the writing-assistant chat. */
+export async function askRescueMessages(
+  system: string,
+  messages: RescueTurn[],
+  opts: { agent?: string | null; model: string; maxTokens?: number; temperature?: number; think?: boolean },
+): Promise<string> {
+  const key = await guardRescue()
+  const model = understudyFor(opts.model)
+  const r = await fetch(RESCUE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify(rescueBody(model, messages, system, opts)),
+  })
+  const j = await r.json().catch(() => ({})) as {
+    choices?: Array<{ message?: { content?: string } }>
+    usage?: unknown
+    error?: { message?: string }
+  }
+  if (!r.ok) throw new Error(`rescue_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+  await meter.rescueCall({ agent: opts.agent, model, ...readRescueUsage(j?.usage) })
+  const text = j?.choices?.[0]?.message?.content
+  if (!text) throw new Error('rescue_empty_response')
+  return text
+}
+
+/**
+ * Streaming rescue, for Ask Marcus and the tab chats.
+ *
+ * These were the two surfaces with NO rescue at all: 24 callClaude sites
+ * inherited the fallback and streamClaude inherited nothing, so the most
+ * human-facing surfaces in the OS went dark for all three outages while the
+ * background jobs kept answering.
+ *
+ * `onText` receives the same plain text deltas the Anthropic path emits, so the
+ * caller's SSE plumbing does not need to know which provider answered.
+ */
+export async function streamRescue(
+  opts: FallbackOpts & { messages?: RescueTurn[] },
+  onText: (chunk: string) => void,
+): Promise<{ usd: number }> {
+  const key = await guardRescue()
+  const model = understudyFor(opts.model)
+  const turns = opts.messages?.length ? opts.messages : [{ role: 'user' as const, content: opts.user }]
+  const r = await fetch(RESCUE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify(rescueBody(model, turns, opts.system, { ...opts, stream: true })),
+  })
+  if (!r.ok || !r.body) {
+    const body = await r.text().catch(() => '')
+    throw new Error(`rescue_${r.status}:${body.slice(0, 120)}`)
+  }
+  const reader = r.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let usage: unknown = null
+  // The usage frame arrives LAST, after finish_reason, so the meter write has
+  // to wait for the stream to end rather than firing on the first chunk.
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      const payload = line.slice(6).trim()
+      if (!payload || payload === '[DONE]') continue
+      let frame: any
+      try { frame = JSON.parse(payload) } catch { continue }
+      const delta = frame?.choices?.[0]?.delta?.content
+      if (typeof delta === 'string' && delta) onText(delta)
+      if (frame?.usage) usage = frame.usage
+    }
+  }
+  const u = readRescueUsage(usage)
+  await meter.rescueCall({ agent: opts.agent, model, ...u })
+  return { usd: u.usd }
 }

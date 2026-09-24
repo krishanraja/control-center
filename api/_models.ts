@@ -40,9 +40,46 @@ export const LADDER_MODEL = 'claude-opus-4-8'
 
 /** OpenAI is used only where the implementation is OpenAI-specific. Nano is
  * for extraction/ranking; mini is for bounded structured generation. These
- * are API models and are billed as API usage. */
+ * are API models and are billed as API usage.
+ *
+ * NOTE these are no longer the outage understudies. api/_providerFallback.ts
+ * rescues through OpenRouter now; see RESCUE_* below. `_goalGate.ts` and
+ * `_skill-prompt.ts` still call OpenAI directly because their implementations
+ * are OpenAI-specific, and they keep these. */
 export const OPENAI_JUDGE_MODEL = 'gpt-5.4-nano'
 export const OPENAI_GENERATION_MODEL = 'gpt-5.4-mini'
+
+/**
+ * Who answers when Anthropic will not: the same models, through OpenRouter.
+ *
+ * This was a cheap-tier demotion (nano/mini) until 2026-09-24, on the
+ * assumption that a like-for-like rescue was the expensive option. Probing the
+ * live OpenRouter credential showed that assumption was wrong, and the numbers
+ * are worth keeping because they are the whole argument:
+ *
+ *   - Inference is Anthropic LIST PRICE with no per-token markup.
+ *     claude-sonnet-5 $2/$10 per 1M, claude-haiku-4.5 $1/$5 — the same rows
+ *     _prices.ts already carries. OpenRouter's margin is on credit top-ups.
+ *   - Prompt caching survives the hop intact, at the exact multipliers
+ *     _prices.ts models: a 5m write measured 1.25x input, a 1h write 2.0x, a
+ *     read 0.1x. An 8,348 token prefix cost $0.0209 to write and $0.0017 to
+ *     read back.
+ *
+ * So the rescue costs what the primary costs, and a demotion would buy nothing
+ * except a quality cliff on the surfaces Krish reads during an outage. The
+ * spend controls that made the cheap tier safe are unchanged and are what keep
+ * this bounded: bulk paths opt out by name, and a daily call ceiling applies.
+ *
+ * Krish's ruling, 2026-09-24: like-for-like, because a fallback that quietly
+ * gets worse is a fallback that lies about being up.
+ *
+ * These are OpenRouter slugs, which use dots where Anthropic's API ids use
+ * dashes. That is not a typo and _prices.ts must not be asked to price them:
+ * OpenRouter reports the real cost per call and the meter records that number
+ * instead of deriving one.
+ */
+export const RESCUE_JUDGE_MODEL = 'anthropic/claude-haiku-4.5'
+export const RESCUE_GENERATION_MODEL = 'anthropic/claude-sonnet-5'
 
 // Prices are NOT here. api/_prices.ts owns them, and owns them better: an
 // unknown model prices at zero and says so through isPriced(), rather than a

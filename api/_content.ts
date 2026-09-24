@@ -8,7 +8,7 @@ import * as meter from './_meter.js'
 
 import { UTILITY_MODEL, MODEL_PRICES, thinkingParam } from './_models.js'
 import { fetchWithRetry, RETRY_STATUS } from './_retry.js'
-import { askOpenAI, anthropicIsShut, openBreaker, shouldFallBack } from './_providerFallback.js'
+import { askRescue, askRescueMessages, anthropicIsShut, openBreaker, shouldFallBack } from './_providerFallback.js'
 
 /** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
  *  replacing them with the comma/period Krish would actually use. Safe to run
@@ -467,6 +467,20 @@ export async function hasAnthropicKey(): Promise<boolean> {
 }
 
 /**
+ * The key itself, for the one caller that has to hold it: api/_stream.ts.
+ *
+ * Separate from hasAnthropicKey on purpose. A call site that only needs to
+ * decide whether to attempt a call gets the boolean; a call site that has to
+ * build the Authorization header gets this. Exported rather than duplicated so
+ * the app_secrets recovery path is shared, which is the whole reason it exists
+ * — the streaming routes read process.env directly and returned early, so the
+ * recovery written for them was unreachable from them.
+ */
+export async function anthropicKey(): Promise<string | null> {
+  return getAnthropicKey()
+}
+
+/**
  * The one entry point, so the OpenAI fallback is inherited rather than wired
  * up twenty times. See _providerFallback.ts for why it exists and what keeps
  * it cheap; the short version is that Anthropic has been unavailable three
@@ -479,23 +493,23 @@ export async function hasAnthropicKey(): Promise<boolean> {
 export async function callClaude(opts: ClaudeOpts): Promise<string> {
   const model = opts.model || UTILITY_MODEL
   const mayFallBack = opts.fallback !== false
-  const toOpenAI = (why: string) => {
+  const toRescue = (why: string) => {
     console.warn(`anthropic_fallback agent=${opts.agent || 'unattributed'} model=${model} reason=${why.slice(0, 120)}`)
-    return askOpenAI({
+    return askRescue({
       agent: opts.agent, model, system: opts.system, user: userText(opts),
       maxTokens: opts.maxTokens, temperature: opts.temperature,
-      timeoutMs: opts.timeoutMs, json: opts.json,
+      timeoutMs: opts.timeoutMs, json: opts.json, think: opts.think === true,
     })
   }
 
   // The breaker first, so a known outage costs nothing. Anthropic states its
   // own reset time and this one runs to 2026-10-01: without this, that is eight
   // days of every request paying a doomed round trip before doing any work.
-  if (mayFallBack && await anthropicIsShut()) return toOpenAI('breaker_open')
+  if (mayFallBack && await anthropicIsShut()) return toRescue('breaker_open')
 
   const apiKey = await getAnthropicKey()
   if (!apiKey) {
-    if (mayFallBack) return toOpenAI('ANTHROPIC_API_KEY not configured')
+    if (mayFallBack) return toRescue('ANTHROPIC_API_KEY not configured')
     throw new Error('ANTHROPIC_API_KEY not configured')
   }
   // A deadline, because there was none. An upstream that stalls otherwise burns
@@ -549,12 +563,12 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
       void openBreaker((e as Error)?.message || '')
       if (mayFallBack) {
         try {
-          return await toOpenAI((e as Error)?.message || 'anthropic_error')
+          return await toRescue((e as Error)?.message || 'anthropic_error')
         } catch (fe: unknown) {
           // Both providers down. Throw the ANTHROPIC error, not this one: it is
           // the cause, the fallback failure is a consequence, and the surfaces
           // downstream print whichever one they are handed.
-          console.warn(`openai_fallback_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
+          console.warn(`rescue_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
         }
       }
     }
@@ -580,19 +594,40 @@ function firstText(j: any): string {
 
 export interface ChatTurn { role: 'user' | 'assistant'; content: string }
 
-/** Multi-turn Anthropic Messages call for the Cleo writing-assistant chat. */
+/**
+ * Multi-turn Anthropic Messages call for the Cleo writing-assistant chat.
+ *
+ * Carries the same rescue as callClaude as of 2026-09-24. It had none: the
+ * fallback was wired into callClaude only, so 24 call sites inherited it and
+ * the composer inherited nothing. During the 2026-09-23 lockout that meant the
+ * writing assistant failed while the background enrichment kept answering,
+ * which is exactly backwards. `fallback: false` opts out for symmetry with
+ * callClaude, though no caller uses it yet.
+ */
 export async function callClaudeMessages(
   system: string,
   messages: ChatTurn[],
-  opts: { model?: string; maxTokens?: number; temperature?: number; think?: boolean; agent?: string } = {},
+  opts: { model?: string; maxTokens?: number; temperature?: number; think?: boolean; agent?: string; fallback?: boolean } = {},
 ): Promise<string> {
-  const apiKey = await getAnthropicKey()
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
   const model = opts.model || UTILITY_MODEL
+  const mayFallBack = opts.fallback !== false
   const clean = messages
     .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
     .slice(-16)
   if (!clean.length || clean[0].role !== 'user') clean.unshift({ role: 'user', content: 'Help me with this draft.' })
+  const toRescue = (why: string) => {
+    console.warn(`anthropic_fallback agent=${opts.agent || 'unattributed'} model=${model} surface=chat reason=${why.slice(0, 120)}`)
+    return askRescueMessages(system, clean, {
+      agent: opts.agent, model, maxTokens: opts.maxTokens, temperature: opts.temperature, think: opts.think === true,
+    })
+  }
+
+  if (mayFallBack && await anthropicIsShut()) return toRescue('breaker_open')
+  const apiKey = await getAnthropicKey()
+  if (!apiKey) {
+    if (mayFallBack) return toRescue('ANTHROPIC_API_KEY not configured')
+    throw new Error('ANTHROPIC_API_KEY not configured')
+  }
   const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -610,7 +645,20 @@ export async function callClaudeMessages(
     // RETRY_STATUS was already exhausted by fetchWithRetry; anything reaching
     // here is either terminal or an overload that outlasted three attempts.
     const transient = RETRY_STATUS.has(r.status) ? ' (transient, retried)' : ''
-    throw new Error(`anthropic_${r.status}${transient}:${(j?.error?.message || '').slice(0, 120)}`)
+    const msg = `anthropic_${r.status}${transient}:${(j?.error?.message || '').slice(0, 120)}`
+    if (shouldFallBack(new Error(msg))) {
+      void openBreaker(msg)
+      if (mayFallBack) {
+        try {
+          return await toRescue(msg)
+        } catch (fe: unknown) {
+          // Both providers down. Throw the ANTHROPIC error, not this one: it is
+          // the cause and the fallback failure is a consequence.
+          console.warn(`rescue_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
+        }
+      }
+    }
+    throw new Error(msg)
   }
   await meter.anthropicCall({ agent: opts.agent, model, usage: j?.usage })
   return firstText(j)

@@ -144,13 +144,54 @@ for (const [id, files] of geminiModels) {
   for (const f of [...files].sort()) failures.push(`${f}: Gemini model "${id}" - ${why}`)
 }
 
-// The API side has no cross-provider fallback by design (a user-facing surface
-// should fail loudly rather than answer from a model nobody chose), but it must
-// still survive an overload.
+// ── The API side ───────────────────────────────────────────────────────────
+//
+// This block used to open "the API side has no cross-provider fallback by
+// design (a user-facing surface should fail loudly rather than answer from a
+// model nobody chose)". That stopped being true on 2026-09-23, when three
+// Anthropic outages in one month settled the argument the other way: failing
+// loudly is only the better answer when somebody is there to hear it, and an
+// eight-day lockout is not that. The comment survived the change, which is the
+// ordinary way a guard starts describing a system that no longer exists.
+//
+// What it asserts now is that every transport still has BOTH halves — a retry
+// for the transient case and a rescue for the terminal one.
 const content = readFileSync(join(process.cwd(), 'api', '_content.ts'), 'utf8')
 if (!/RETRY_STATUS/.test(content)) failures.push('api/_content.ts: no RETRY_STATUS set, so a 429/529 is a hard failure')
 const proxy = readFileSync(join(process.cwd(), 'api', 'internal', 'sonnet-proxy.ts'), 'utf8')
 if (!/RETRY_STATUS/.test(proxy)) failures.push('api/internal/sonnet-proxy.ts: forwards an overload straight to n8n without retrying')
+
+// Each of these went dark for all three outages because the rescue was wired
+// into callClaude and nothing else. They are named individually rather than
+// checked as a group so a new transport cannot be added without either
+// inheriting the rescue or being argued about here.
+const RESCUED: Array<{ file: string; fn: string; why: string }> = [
+  { file: 'api/_content.ts', fn: 'callClaude', why: '24 call sites inherit this one' },
+  { file: 'api/_content.ts', fn: 'callClaudeMessages', why: 'the Cleo composer' },
+  { file: 'api/_stream.ts', fn: 'streamClaude', why: 'Ask Marcus and every tab chat' },
+]
+for (const { file, fn, why } of RESCUED) {
+  const src = file === 'api/_content.ts' ? content : readFileSync(join(process.cwd(), ...file.split('/')), 'utf8')
+  const body = src.slice(src.indexOf(`export async function ${fn}`))
+  const end = body.indexOf('\nexport ')
+  const scoped = end > 0 ? body.slice(0, end) : body
+  if (!/toRescue|askRescue|streamRescue/.test(scoped)) {
+    failures.push(`${file}: ${fn}() has no rescue provider - ${why} would go dark for the whole outage`)
+  }
+  if (!/anthropicIsShut/.test(scoped)) {
+    failures.push(`${file}: ${fn}() does not check the breaker, so a known outage still costs a doomed round trip per call`)
+  }
+}
+
+// The rescue models are OpenRouter slugs and must stay OUT of the price table:
+// the meter records OpenRouter's own usage.cost, and a second rate that has to
+// agree with the invoice is the two-price-tables bug this repo already paid for.
+const models = readFileSync(join(process.cwd(), 'api', '_models.ts'), 'utf8')
+const prices = readFileSync(join(process.cwd(), 'api', '_prices.ts'), 'utf8')
+for (const m of models.matchAll(/RESCUE_\w+_MODEL = '([^']+)'/g)) {
+  if (!m[1].includes('/')) failures.push(`api/_models.ts: rescue model "${m[1]}" is not an OpenRouter slug (expected a provider/ prefix)`)
+  if (prices.includes(`'${m[1]}'`)) failures.push(`api/_prices.ts: rescue model "${m[1]}" has a rate row - the meter uses the provider's own cost, so this is a second price that will drift`)
+}
 
 if (failures.length) {
   console.error(`FAIL: ${failures.length} Anthropic fallback invariant(s) broken.\n`)

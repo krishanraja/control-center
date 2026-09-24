@@ -79,8 +79,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!turns.length) { res.status(400).json({ error: 'messages required' }); return }
   const question = turns[turns.length - 1].content
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) { res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' }); return }
+  // No env gate here any more. This route used to 500 on a missing or rotated
+  // ANTHROPIC_API_KEY before streamClaude ever ran, which made both the
+  // app_secrets recovery and the rescue provider unreachable from the exact
+  // surface they were written for. streamClaude resolves the key and decides.
 
   const [grounding, goals] = await Promise.all([
     groundTab(tab, lane),
@@ -100,7 +102,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const reply = (await streamClaude({
       agent: 'marcus',
-      apiKey,
       model: SYNTHESIS_MODEL,
       temperature: 0.4,
       maxTokens: 700,

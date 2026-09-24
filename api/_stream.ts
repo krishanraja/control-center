@@ -1,8 +1,9 @@
 import type { VercelResponse } from '@vercel/node'
-import { supportsSampling } from './_content.js'
+import { supportsSampling, anthropicKey } from './_content.js'
 import { thinkingParam } from './_models.js'
 import * as meter from './_meter.js'
 import { fetchWithRetry } from './_retry.js'
+import { anthropicIsShut, openBreaker, shouldFallBack, streamRescue } from './_providerFallback.js'
 
 /**
  * Server-sent events for the model calls a human sits and waits on.
@@ -48,7 +49,9 @@ export function fail(res: VercelResponse, error: string, detail?: string): void 
 }
 
 export interface StreamClaudeOpts {
-  apiKey: string
+  /** Optional. Omit it and the key is resolved here, which also reaches the
+   *  app_secrets recovery path the routes could not reach for themselves. */
+  apiKey?: string
   model: string
   maxTokens: number
   system: string
@@ -75,6 +78,10 @@ export interface StreamClaudeOpts {
    *  SSE itself (`message_start` carries input, `message_delta` carries output),
    *  so a streamed call is metered exactly like a blocking one. */
   agent?: string
+  /** Opt out of the rescue provider, matching callClaude. Nothing uses it yet:
+   *  every streaming route is a human waiting on an answer, which is the case
+   *  the rescue is FOR. */
+  fallback?: boolean
 }
 
 /**
@@ -85,12 +92,50 @@ export interface StreamClaudeOpts {
  * payload. Streaming is an addition to those, never a replacement.
  */
 export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
+  const mayFallBack = opts.fallback !== false
+
+  /**
+   * Stream the same answer from the rescue provider instead.
+   *
+   * Only ever called while `out` is still empty. Once a delta has gone to the
+   * client there is no honest switch: the client would receive the first half
+   * of one answer followed by the whole of another, and no amount of metering
+   * would make that a correct reply.
+   */
+  const toRescue = async (why: string): Promise<string> => {
+    console.warn(`anthropic_fallback agent=${opts.agent || 'unattributed'} model=${opts.model} surface=stream reason=${why.slice(0, 120)}`)
+    let acc = ''
+    await streamRescue({
+      agent: opts.agent,
+      model: opts.model,
+      system: opts.system,
+      user: opts.messages[opts.messages.length - 1]?.content || '',
+      messages: opts.messages,
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      think: opts.think === true,
+    }, (chunk) => { acc += chunk; opts.onText(chunk) })
+    return acc
+  }
+
+  // The breaker first, before a socket is opened. Ask Marcus and the tab chats
+  // are the surfaces a human is sitting in front of, and during the 2026-09-23
+  // lockout they were also the only surfaces with no rescue at all: the
+  // fallback was wired into callClaude, and this function was not callClaude.
+  if (mayFallBack && await anthropicIsShut()) return toRescue('breaker_open')
+
+  const apiKey = opts.apiKey || await anthropicKey()
+  if (!apiKey) {
+    if (mayFallBack) return toRescue('ANTHROPIC_API_KEY not configured')
+    throw new Error('ANTHROPIC_API_KEY not configured')
+  }
+
   // Only the opening request is retried. Once a byte has been written to the
   // client there is no honest retry: it would replay a partial answer.
   const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'x-api-key': opts.apiKey,
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     },
@@ -108,7 +153,19 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
 
   if (!r.ok || !r.body) {
     const text = await r.text().catch(() => '')
-    throw new Error(`anthropic_${r.status}: ${text.slice(0, 300)}`)
+    const msg = `anthropic_${r.status}: ${text.slice(0, 300)}`
+    // Nothing has reached the client yet, so switching provider here is honest.
+    if (shouldFallBack(new Error(msg))) {
+      void openBreaker(msg)
+      if (mayFallBack) {
+        try {
+          return await toRescue(msg)
+        } catch (fe: unknown) {
+          console.warn(`rescue_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
+        }
+      }
+    }
+    throw new Error(msg)
   }
 
   const reader = r.body.getReader()
@@ -119,6 +176,7 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
   // plucked from it. Cache figures only appear on message_start.
   let usage: Record<string, unknown> = {}
 
+  try {
   for (;;) {
     const { done, value } = await reader.read()
     if (done) break
@@ -167,6 +225,34 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
         }
       }
     }
+  }
+
+  } catch (e: unknown) {
+    // A stream that died before emitting a single character can still be
+    // answered by the other provider, and this is the common shape of an
+    // overload: the connection opens, the error frame arrives, no text ever
+    // does. The `!out` guard is the whole safety argument — once a delta has
+    // been written, switching would splice two different answers together.
+    //
+    // An abort is the client leaving, not a provider failing. Rescuing it would
+    // spend money answering nobody.
+    const aborted = (e as Error)?.name === 'AbortError' || opts.signal?.aborted
+    if (!out && !aborted) {
+      const msg = (e as Error)?.message || 'anthropic_stream_error'
+      if (shouldFallBack(new Error(msg))) void openBreaker(msg)
+      if (mayFallBack) {
+        try {
+          return await toRescue(msg)
+        } catch (fe: unknown) {
+          console.warn(`rescue_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
+        }
+      }
+    }
+    // Meter what the failed attempt already cost before giving up on it.
+    if (Object.keys(usage).length) {
+      await meter.anthropicCall({ agent: opts.agent, model: opts.model, usage, failed: true })
+    }
+    throw e
   }
 
   await meter.anthropicCall({ agent: opts.agent, model: opts.model, usage })

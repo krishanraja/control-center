@@ -48,7 +48,7 @@ function db(): Promise<Db | null> {
 // changing provider. meter_daily has no CHECK on provider — the primary key is
 // (provider, unit_kind, unit_key, day, bucket) — so widening this union is the
 // whole change.
-export type MeterProvider = 'apify' | 'n8n' | 'anthropic' | 'google' | 'openai'
+export type MeterProvider = 'apify' | 'n8n' | 'anthropic' | 'google' | 'openai' | 'openrouter'
 export type MeterUnitKind = 'actor' | 'workflow' | 'agent'
 
 export interface MeterRow {
@@ -365,38 +365,61 @@ export async function anthropicCall(e: {
 }
 
 /**
- * The OpenAI fallback's spend, recorded the same way Anthropic's is.
+ * The rescue provider's spend, recorded the same way Anthropic's is.
  *
  * Not optional. The fleet already learned this once: n8n's LLM calls went
  * unmetered and the dashboard reported $0.00 beside a real bill, which made the
  * whole automation layer look free. A rescue provider that nobody measures is
  * the same bug with a better excuse.
  *
- * These model ids have no row in _prices.ts, so rows land as `unpriced-model`
- * with real token counts and no dollars beside them. That is this repo's
- * deliberate unknown-model behaviour rather than an omission: a guessed rate
- * would read as fact. Add the rates there and this traffic costs itself.
+ * THE DOLLARS COME FROM THE BILLER, NOT FROM _prices.ts, and that is deliberate
+ * rather than an oversight to tidy up later. OpenRouter returns `usage.cost` in
+ * real dollars on every call, so `usd` here is the charge itself instead of a
+ * figure derived from a rate table. The rescue slugs (anthropic/claude-sonnet-5
+ * and friends, dots not dashes) therefore have NO row in _prices.ts and must
+ * not be given one: a second rate that has to agree with the invoice and is
+ * edited independently eventually disagrees, silently, and this repo has
+ * already paid for that lesson once with two identical price tables.
+ *
+ * The category is `priced` when a cost came back and `unpriced-model` when it
+ * did not, which keeps the same contract the Anthropic rows have: a row with
+ * real tokens and no dollars is visibly a gap rather than a quiet zero.
+ *
+ * One consequence, stated rather than hidden: `usdUncached` is left unset, so
+ * it defaults to `usd` and the cache-saving surface reports ZERO saving on
+ * rescue traffic even when a cached read plainly saved money. Computing the
+ * counterfactual would need a rate for these slugs, which is the rate table
+ * this function exists to avoid. A saving of zero is wrong by less than an
+ * invented saving would be, and it only ever shows during an outage.
  */
-export async function openaiCall(e: {
+export async function rescueCall(e: {
   agent?: string | null
   model: string
   inputTokens?: number
   outputTokens?: number
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
+  /** The provider's own charge for this call, in USD. */
+  usd?: number
   failed?: boolean
 }): Promise<void> {
-  const tokens = (e.inputTokens || 0) + (e.outputTokens || 0)
+  const cached = (e.cacheReadTokens || 0) + (e.cacheWriteTokens || 0)
+  const tokens = (e.inputTokens || 0) + (e.outputTokens || 0) + cached
   if (!tokens) return
+  const usd = Number(e.usd) || 0
   await add({
-    provider: 'openai',
+    provider: 'openrouter',
     unitKind: 'agent',
     unitKey: normalizeAgent(e.agent),
     bucket: e.model,
     label: normalizeAgent(e.agent),
-    category: isPriced(e.model) ? 'priced' : 'unpriced-model',
-    usd: priceUsd(e.model, e.inputTokens || 0, e.outputTokens || 0),
+    category: usd > 0 ? 'priced' : 'unpriced-model',
+    usd,
     runs: 1,
     failed: e.failed ? 1 : 0,
     units: tokens,
     unitName: 'tokens',
+    cacheReadTokens: e.cacheReadTokens || 0,
+    cacheWriteTokens: e.cacheWriteTokens || 0,
   })
 }
