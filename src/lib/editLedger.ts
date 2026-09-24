@@ -287,31 +287,12 @@ export async function recordMagicVerdict(input: {
 // reads and the code the compiler counts cannot drift apart, which is the
 // failure that put five spellings of one venture in five files.
 
-/** `reason_code` must match ^[a-z][a-z0-9_]{0,63}$ or the ledger refuses it. */
-export interface ReasonOption { code: string; label: string }
-
-export const DECISION_REASONS: Record<'approved' | 'binned' | 'rerouted', ReasonOption[]> = {
-  approved: [
-    { code: 'pattern_is_real', label: 'The pattern is real' },
-    { code: 'nobody_has_said_it', label: 'Nobody has said it' },
-    { code: 'i_have_lived_this', label: 'I have lived this' },
-    { code: 'sells_the_practice', label: 'It sells the practice' },
-    { code: 'timing', label: 'Timing' },
-  ],
-  binned: [
-    { code: 'been_said_already', label: 'Been said already' },
-    { code: 'nothing_to_prove_it', label: 'Nothing to prove it' },
-    { code: 'not_my_lane', label: 'Not my lane' },
-    { code: 'no_one_acts_on_it', label: 'No one acts on it' },
-    { code: 'thin_needs_more', label: 'Thin, needs more' },
-  ],
-  rerouted: [
-    { code: 'it_is_about_money', label: 'It is about money' },
-    { code: 'it_is_about_building', label: 'It is about building' },
-    { code: 'a_pattern_over_time', label: 'A pattern over time' },
-    { code: 'different_reader', label: 'Different reader' },
-  ],
-}
+/** `reason_code` must match ^[a-z][a-z0-9_]{0,63}$ or the ledger refuses it.
+ *  The chips live in src/lib/servedSurfaces.ts with every other reason list, so
+ *  check-served-surfaces can see them; they are re-exported here because this
+ *  is the writer that sends them. */
+export type { ReasonChip as ReasonOption } from './servedSurfaces'
+export { DECISION_REASONS } from './servedSurfaces'
 
 /** Several reasons can be true at once. The first is the reason_code the
  *  compiler counts; the rest ride in delta_features so nothing he said is

@@ -15,14 +15,20 @@ import { SupplyDrawer } from './SupplyDrawer'
 import { SlideOver } from '../shared/SlideOver'
 import { isActiveIdea } from '../../lib/contentEngine'
 import { shiftIsOnBeat } from '../../lib/contentV2'
+import { ladderVerdict } from '../../lib/ladder'
+import { JudgedReady } from './JudgedReady'
+import { DecideCard } from './DecideCard'
 
 // One format, everything about it in one column, in the order you act on it.
 //
 //   1. Ideas ready to shape: what the editorial radar judged worth a look.
-//   2. In progress: the pieces already moving, by state.
-//   3. Also here: what the engine surfaced this week and the shifts it tracks,
+//   2. Ready to write: what the judging panel judged ready, best first. A tap
+//      opens DecideCard in place of the column, the same card the decide
+//      queue and the Not lifted list serve (see JudgedReady for why).
+//   3. In progress: the pieces already moving, by state, less the ones in 2.
+//   4. Also here: what the engine surfaced this week and the shifts it tracks,
 //      folded shut until you want them. They are context, not obligations.
-//   4. Supply: the seed rail, the feed and the unsorted pile, in a drawer.
+//   5. Supply: the seed rail, the feed and the unsorted pile, in a drawer.
 //
 // "Do this next" used to lead this list and has moved up to the tab, because it
 // reads the whole active pile rather than one lane's. Inside a lane it was
@@ -60,14 +66,24 @@ export function LaneRoom({
   const mobile = variant === 'mobile'
   const [supplyOpen, setSupplyOpen] = useState(false)
   const [alsoOpen, setAlsoOpen] = useState(false)
+  // The piece open in DecideCard, and the ones he has settled this visit. The
+  // decision lands in content_edit_events and the row itself does not change,
+  // so without the local list a settled piece would be ranked straight back
+  // into the list, which reads as the press having failed.
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [settled, setSettled] = useState<string[]>([])
 
-  const { mine, active, derived, unclassified } = useMemo(() => {
+  const { mine, active, inFlight, derived, unclassified } = useMemo(() => {
     const live = ideas.filter(i => !i.library_at)
     const mine = live.filter(i => routeOf(i).route === lane)
     const active = mine.filter(isActiveIdea)
     return {
       mine,
       active,
+      // One piece, one place. A ready piece is ranked in Ready to write, so
+      // the board leaves it out rather than showing the same card twice in
+      // one column.
+      inFlight: active.filter(i => ladderVerdict(i)?.band !== 'ready'),
       derived: active.filter(i => routeOf(i).derived).length,
       // Still unrouted after the router had its say: the ones it refused by
       // name and the ones it honestly could not call. Both belong in Supply,
@@ -92,6 +108,12 @@ export function LaneRoom({
       .filter(s => !['retired', 'library'].includes(s.status)).length,
     [v2.shifts, lane],
   )
+
+  const undecided = useMemo(() => {
+    const done = new Set(settled)
+    return mine.filter(i => !done.has(i.id))
+  }, [mine, settled])
+  const openIdea = openId ? mine.find(i => i.id === openId) ?? null : null
 
   const alsoHereBody = (
     <div className="flex flex-col gap-5">
@@ -160,64 +182,83 @@ export function LaneRoom({
         )}
       </header>
 
-      <div className={fit ? 'shrink-0' : undefined}>
-        <EditorialOpportunityList ideas={ideas} seriesKey={lane} />
-      </div>
-
-      <InProgress ideas={active} testIdPrefix={`content-${lane}`} fit={fit} />
-
-      {/* An empty format is a real state and it needs to say WHY it is empty and
-          what to do about it. It used to render the series banner, two silent
-          nulls and a folded disclosure, which is how the room came to be a
-          screen of nothing under a logo. The distinction that matters: nothing
-          routed here is a different problem from nothing anywhere, and on
-          2026-09-09 it was the first one, with 104 live ideas carrying no
-          lane_slot and reachable only from a drawer behind a button. */}
-      {active.length === 0 && !loading && (
-        <div
-          className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-4"
-          data-testid={`content-lane-empty-${lane}`}
-        >
-          <p className="text-body text-ink-muted">
-            Nothing is routed to {seriesLabel} yet.
-          </p>
-          {unclassified.length > 0 ? (
-            <>
-              <p className="text-label text-ink-faint mt-1 leading-relaxed">
-                {unclassified.length} live idea{unclassified.length === 1 ? '' : 's'} {unclassified.length === 1 ? 'is' : 'are'} waiting
-                for a format. Until one is routed, this room has nothing to show
-                and the count above it is honest at zero.
-              </p>
-              {!mobile && (
-                <button
-                  type="button"
-                  onClick={() => setSupplyOpen(true)}
-                  data-testid={`content-lane-empty-supply-${lane}`}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-label font-semibold text-ink-muted hover:bg-white/[0.08]"
-                >
-                  <Layers size={12} /> Sort the {unclassified.length} unrouted
-                </button>
-              )}
-            </>
-          ) : (
-            <p className="text-label text-ink-faint mt-1 leading-relaxed">
-              Nothing is in flight anywhere either. Start from something you
-              already have rather than waiting for the Friday sweep.
-            </p>
-          )}
+      {/* A decision replaces the column rather than opening under it: the
+          same depth-layer rule DecideCard follows, and on a desk stage the only
+          way to give the card its height without a scroll box inside a scroll
+          box. The header stays, so he never loses which lane he is in. */}
+      {openIdea ? (
+        <div className={fit ? 'min-h-0 flex-1 overflow-y-auto' : undefined} data-testid={`content-decide-${lane}`}>
+          <DecideCard
+            idea={openIdea}
+            variant={variant}
+            onBack={() => setOpenId(null)}
+            onSettled={() => { setSettled(s => [...s, openIdea.id]); setOpenId(null) }}
+          />
         </div>
+      ) : (
+        <>
+          <div className={fit ? 'shrink-0' : undefined}>
+            <EditorialOpportunityList ideas={ideas} seriesKey={lane} />
+          </div>
+
+          <JudgedReady ideas={undecided} fit={fit} onOpen={setOpenId} />
+
+          <InProgress ideas={inFlight} testIdPrefix={`content-${lane}`} fit={fit} />
+
+          {/* An empty format is a real state and it needs to say WHY it is empty and
+              what to do about it. It used to render the series banner, two silent
+              nulls and a folded disclosure, which is how the room came to be a
+              screen of nothing under a logo. The distinction that matters: nothing
+              routed here is a different problem from nothing anywhere, and on
+              2026-09-09 it was the first one, with 104 live ideas carrying no
+              lane_slot and reachable only from a drawer behind a button. */}
+          {active.length === 0 && !loading && (
+            <div
+              className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-4"
+              data-testid={`content-lane-empty-${lane}`}
+            >
+              <p className="text-body text-ink-muted">
+                Nothing is routed to {seriesLabel} yet.
+              </p>
+              {unclassified.length > 0 ? (
+                <>
+                  <p className="text-label text-ink-faint mt-1 leading-relaxed">
+                    {unclassified.length} live idea{unclassified.length === 1 ? '' : 's'} {unclassified.length === 1 ? 'is' : 'are'} waiting
+                    for a format. Until one is routed, this room has nothing to show
+                    and the count above it is honest at zero.
+                  </p>
+                  {!mobile && (
+                    <button
+                      type="button"
+                      onClick={() => setSupplyOpen(true)}
+                      data-testid={`content-lane-empty-supply-${lane}`}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-label font-semibold text-ink-muted hover:bg-white/[0.08]"
+                    >
+                      <Layers size={12} /> Sort the {unclassified.length} unrouted
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p className="text-label text-ink-faint mt-1 leading-relaxed">
+                  Nothing is in flight anywhere either. Start from something you
+                  already have rather than waiting for the Friday sweep.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Context, folded shut. What the engine chose this week and the register
+              it chose from. Neither needs you; both are worth a look on a slow day.
+
+              On a desk it opens in a drawer rather than inline. Inline it was an
+              unbounded block inside a no-scroll stage: seven surfaced cards and
+              thirty-one tracked shifts have no height a frame can honour, so
+              opening it either pushed the page off the bottom or forced a scroll
+              box inside a scroll box. Context belongs beside the work, and the
+              drawer is where this desk already puts everything of that kind. */}
+          {alsoHere}
+        </>
       )}
-
-      {/* Context, folded shut. What the engine chose this week and the register
-          it chose from. Neither needs you; both are worth a look on a slow day.
-
-          On a desk it opens in a drawer rather than inline. Inline it was an
-          unbounded block inside a no-scroll stage: seven surfaced cards and
-          thirty-one tracked shifts have no height a frame can honour, so
-          opening it either pushed the page off the bottom or forced a scroll
-          box inside a scroll box. Context belongs beside the work, and the
-          drawer is where this desk already puts everything of that kind. */}
-      {alsoHere}
 
       {!mobile && (
         <SupplyDrawer open={supplyOpen} onClose={() => setSupplyOpen(false)} mine={mine} unclassified={unclassified} />

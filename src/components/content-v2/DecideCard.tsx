@@ -129,6 +129,7 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
   const [asking, setAsking] = useState<Asking>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [receipt, setReceipt] = useState<string | null>(null)
+  const [approved, setApproved] = useState(false)
   const [openedAt] = useState(() => Date.now())
 
   const judges = useJudgeVerdicts(v?.panelRunId ?? null, door === 'scores')
@@ -149,6 +150,7 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
       await recordDecision({ ideaId: idea.id, kind: asking.kind, reasons, panelRunId: runId, dwellMs: Date.now() - openedAt })
     }
     setReceipt(VERB[asking.kind])
+    setApproved(asking.kind === 'approved')
     setAsking(null)
   }
 
@@ -165,7 +167,21 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
             ? 'The checks that disagreed with you will be told.'
             : 'This one was never judged, so there is nothing to tell.'}
         </p>
-        <div><button type="button" onClick={onSettled} className="btn-contrast tap-44 min-h-[44px] rounded-xl px-5 text-label font-semibold">Next piece</button></div>
+        <div className="flex flex-wrap gap-2">
+          {/* The door from deciding to drafting. The approval is a ledger row
+              and moves nothing on its own, so without this "Write this" ended
+              at a receipt and the piece sat exactly where it was. The composer
+              link is the one six other surfaces already use. */}
+          {approved && (
+            <button type="button" data-testid="decide-start-writing"
+              onClick={() => { window.location.hash = `#/content?idea=${idea.id}` }}
+              className="btn-contrast tap-44 min-h-[44px] rounded-xl px-5 text-label font-semibold">Start writing</button>
+          )}
+          <button type="button" onClick={onSettled}
+            className={approved
+              ? 'tap-44 min-h-[44px] rounded-xl border border-white/12 px-4 text-label font-semibold text-ink hover:bg-white/[0.06]'
+              : 'btn-contrast tap-44 min-h-[44px] rounded-xl px-5 text-label font-semibold'}>Next piece</button>
+        </div>
       </div>
     )
   }
