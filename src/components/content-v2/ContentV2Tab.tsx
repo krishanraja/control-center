@@ -4,6 +4,7 @@ import { useContentV2 } from '../../hooks/useContentV2'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { LaneRoom } from './LaneRoom'
 import { LibraryRoom } from './LibraryRoom'
+import { SundayList } from './SundayList'
 import { ObligationStrip } from './ObligationStrip'
 import { MobileDecisionDeck } from './MobileDecisionDeck'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
@@ -77,6 +78,11 @@ type ViewId = 'queue' | RoomId
 
 const ROOMS: Array<{ id: RoomId; label: string }> = [
   ...SUBCHANNELS.map(f => ({ id: f.slug, label: f.label })),
+  // Before the Library, because this is work and the Library is reference.
+  // Named for what it holds rather than when it is read: "Sunday" is when
+  // Krish looks at it, which is not something a nav label should assert on
+  // his behalf.
+  { id: 'weak', label: 'Not lifted' },
   { id: 'library', label: 'Library' },
 ]
 const ROOM_SLUGS = SUBCHANNELS.map(f => f.slug)
@@ -280,7 +286,13 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
               {/* The Library is a reference surface — a calendar and a
                   backburner — and it is read by browsing, so it keeps its own
                   scroll even on a stage. Paging a calendar would be silly. */}
-              {room === 'library'
+              {room === 'weak'
+                ? (
+                  <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
+                    <SundayList ideas={ideas} />
+                  </div>
+                )
+                : room === 'library'
                 ? (
                   <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
                     <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
