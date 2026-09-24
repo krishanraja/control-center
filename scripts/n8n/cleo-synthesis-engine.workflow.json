@@ -660,7 +660,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Synthesis Engine\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, api_calls_count: 6 + $(\"Parse + Hard Filter\").item.json.survivors_count, metadata: { survivors_count: $(\"Parse + Hard Filter\").item.json.survivors_count, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, model_used: $(\"Parse + Hard Filter\").item.json.model_used } } }}",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Synthesis Engine\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", outcome_count: $(\"Parse + Hard Filter\").item.json.survivors_count, cost_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, cost_estimate_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, api_calls_count: 6 + $(\"Parse + Hard Filter\").item.json.survivors_count, metadata: { survivors_count: $(\"Parse + Hard Filter\").item.json.survivors_count, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, model_used: $(\"Parse + Hard Filter\").item.json.model_used } } }}",
         "options": {
           "timeout": 15000
         }
@@ -742,7 +742,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { idea: $json.hypothesis, thesis: $json.thesis, distribution: $json.distribution || [\"linkedin\",\"newsletter\"], confidence: $json.confidence, quality_score: \"green\", brand_fit_score: 10, source_type: \"synthesis_hypothesis\", source_ref: \"synthesis-engine-\" + $now.toFormat(\"yyyy-LL-dd\"), source_url: \"https://controlcenter.krishraja.com/?tab=intel\", source_snippet: ($json.thesis || \"\").slice(0, 280), source_captured_at: $now.toISO(), state: \"researching\", assigned_to: \"cleo\", pillar_id: $json.pillar_id, meta: { connected_threads: $json.connected_threads, falsifiable_test: $json.falsifiable_test, named_entities: $json.named_entities, why_non_obvious: $json.why_non_obvious, synthesis_run_at: $now.toISO() } } }}",
+        "jsonBody": "={{ { idea: $json.hypothesis, thesis: $json.thesis, distribution: $json.distribution || [\"linkedin\",\"newsletter\"], confidence: $json.confidence, quality_score: \"green\", brand_fit_score: 10, source_type: \"synthesis_hypothesis\", source_ref: \"synthesis-engine-\" + $now.toFormat(\"yyyy-LL-dd\"), source_url: \"https://controlcenter.krishraja.com/?tab=intel\", source_snippet: ($json.thesis || \"\").slice(0, 280), source_captured_at: $now.toISO(), state: \"researching\", horizon: \"evergreen\", expires_at: null, assigned_to: \"cleo\", pillar_id: $json.pillar_id, meta: { connected_threads: $json.connected_threads, falsifiable_test: $json.falsifiable_test, named_entities: $json.named_entities, why_non_obvious: $json.why_non_obvious, synthesis_run_at: $now.toISO() } } }}",
         "options": {
           "timeout": 30000
         }
@@ -798,7 +798,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Synthesis Engine\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, api_calls_count: 6, metadata: { survivors_count: 0, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, rejected_reasons: $(\"Parse + Hard Filter\").item.json.rejected_reasons, note: \"bar not met this week\" } } }}",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Synthesis Engine\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", outcome_count: 0, cost_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, cost_estimate_usd: $(\"Parse + Hard Filter\").item.json.cost_usd, api_calls_count: 6, metadata: { survivors_count: 0, rejected_count: $(\"Parse + Hard Filter\").item.json.rejected_count, rejected_reasons: $(\"Parse + Hard Filter\").item.json.rejected_reasons, note: \"bar not met this week\" } } }}",
         "options": {
           "timeout": 15000
         }
