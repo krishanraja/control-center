@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Mic, Megaphone, Layers, Upload } from '@/lib/icons'
+import { Mic, Megaphone, Layers, Upload, MapPin } from '@/lib/icons'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
@@ -25,8 +25,15 @@ import { FreshnessLine } from '../shared/FreshnessLine'
 import { AppFrame } from '../shared/AppFrame'
 import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { Eyebrow } from '../shared/Eyebrow'
+import { EventsLane } from '../events/EventsLane'
+import { useEvents } from '../../hooks/useEvents'
 
-type Lane = 'inbound' | 'outbound'
+// Three lanes as of 2026-09-24. The lane called Events used to read
+// visibility_targets, whose live queue that day was 46 press contacts, 9 podcasts
+// and one expired call for papers: no events at all. The name now belongs to the
+// `events` table, which has carried the city, the date verification and the two
+// axes since August and had never been rendered anywhere.
+type Lane = 'inbound' | 'events' | 'outbound'
 
 // Recorded/published guests leave Visibility — they're promoted into the Network
 // (contacts) as relationships, not opportunities.
@@ -110,8 +117,11 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const byVisStatus = useMemo(() => groupByVisStatus(targets), [targets])
   const outboundActive = targets.filter(t => t.status !== 'dropped' && t.status !== 'done').length
 
-  const loading = lane === 'inbound' ? guestsLoading : targetsLoading
-  const activeCount = lane === 'inbound' ? inboundActive : outboundActive
+  const { home: eventsHere, loading: eventsLoading } = useEvents()
+  const eventsHereCount = eventsHere.length
+
+  const loading = lane === 'inbound' ? guestsLoading : lane === 'events' ? eventsLoading : targetsLoading
+  const activeCount = lane === 'inbound' ? inboundActive : lane === 'events' ? eventsHereCount : outboundActive
 
   // Desktop triage cockpit — the active lane's untriaged queue (guests to pitch
   // / targets to apply), same swipe grammar as mobile.
@@ -119,6 +129,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const targetConfig = useMemo(() => buildVisibilityTargetsTriageConfig(targets, { toast }, targetsLoading), [targets, toast, targetsLoading])
   const triageConfig = lane === 'inbound' ? guestConfig : targetConfig
   const triageSurface = lane === 'inbound' ? 'guests' : 'visibility'
+  // Events is a board, never a deck. The decision on a room is not binary:
+  // "away, needs a trip" is a real third answer, and a swipe that cleared it
+  // would discard the row a booked trip makes live.
+  const deckable = lane === 'inbound' || lane === 'outbound'
 
   // v2 idiom: land in the bounded typed queue when one is waiting; closing it
   // browses the status lanes without a mid-session re-open.
@@ -190,7 +204,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   // under its one-line header and never scrolls. `scroll='none'` is what lets
   // the cockpit's rails size themselves off the real frame instead of the
   // `h-[calc(100vh-170px)]` guess they used to carry.
-  if (triageOpen) {
+  if (triageOpen && deckable) {
     return (
       <AppFrame
         scroll="none"
@@ -236,10 +250,26 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const filled = lanes.filter(l => l.rows.length > 0)
   const empty = lanes.filter(l => l.rows.length === 0).map(l => l.title)
 
+  // The rail says what THIS lane is made of. It used to read
+  // `lane === 'inbound' ? shows : target types`, so the events lane would have
+  // been handed a breakdown of calls for papers and newsletters: the same
+  // cross-lane mismatch the hero note above records, where the Guests board
+  // offered an Apply button for a row the reader could not see.
+  //
+  // For a room the useful decomposition is who hosts it, because host kind is the
+  // shortest answer to "will this be owners or sellers".
   const breakdown = lane === 'inbound'
     ? (Object.keys(TARGET_META) as GuestPodcastTarget[]).map(t => ({ label: TARGET_META[t].title, count: (byTarget[t] || []).length }))
-    : (['cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'other'] as const)
-        .map(t => ({ label: t.replace('_', ' '), count: targets.filter(x => x.type === t).length }))
+    : lane === 'events'
+      ? ([
+          ['operator', 'Owner-run rooms'],
+          ['community', 'Community'],
+          ['media', 'Media'],
+          ['vendor', 'Vendor-hosted'],
+          ['unknown', 'Not judged yet'],
+        ] as const).map(([k, label]) => ({ label, count: eventsHere.filter(e => (e.host_kind || 'unknown') === k).length }))
+      : (['cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'other'] as const)
+          .map(t => ({ label: t.replace('_', ' '), count: targets.filter(x => x.type === t).length }))
 
   return (
     <AppFrame
@@ -247,8 +277,8 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         <div className="pb-4 space-y-3">
           <SurfaceHeader
             title="Visibility"
-            description="Podcast guests to invite, and the stages, calls for papers and press to pitch."
-            icon={lane === 'inbound' ? <Mic size={18} className="text-accent" /> : <Megaphone size={18} className="text-accent" />}
+            description="Podcast guests to invite, rooms worth being in, and the stages and press to pitch."
+            icon={lane === 'inbound' ? <Mic size={18} className="text-accent" /> : lane === 'events' ? <MapPin size={18} className="text-accent" /> : <Megaphone size={18} className="text-accent" />}
             meta={<FreshnessLine lane="visibility" />}
             actions={
               <>
@@ -260,7 +290,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
                 >
                   <Upload size={14} /> Import
                 </button>
-                {triageConfig.items.length > 0 && (
+                {deckable && triageConfig.items.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setTriageOpen(true)}
@@ -281,12 +311,18 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
               <LaneTab active={lane === 'inbound'} onClick={() => setLane('inbound')}>
                 Guests <span className="ml-1.5 text-micro font-mono tabular-nums text-ink-faint">{inboundActive}</span>
               </LaneTab>
+              <LaneTab active={lane === 'events'} onClick={() => setLane('events')}>
+                {/* The count is rooms in the city he is in. An away room is real
+                    but it is not something he can do this week, and a badge over
+                    both would overstate the lane. */}
+                Events <span className="ml-1.5 text-micro font-mono tabular-nums text-ink-faint">{eventsHereCount}</span>
+              </LaneTab>
               <LaneTab active={lane === 'outbound'} onClick={() => setLane('outbound')}>
-                Events <span className="ml-1.5 text-micro font-mono tabular-nums text-ink-faint">{outboundActive}</span>
+                Speaking &amp; press <span className="ml-1.5 text-micro font-mono tabular-nums text-ink-faint">{outboundActive}</span>
               </LaneTab>
             </div>
             <span className="text-micro text-ink-faint">
-              {loading ? 'Loading…' : `${activeCount} active in this lane`}
+              {loading ? 'Loading…' : lane === 'events' ? `${activeCount} where you are` : `${activeCount} active in this lane`}
             </span>
           </div>
 
@@ -294,11 +330,16 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
               the lane on screen: on the Guests board it used to read "Apply to
               Section AI Strategy Summit", an event from the other half, with an
               Apply button acting on a row the reader could not see. */}
-          <NextVisibilityHero
-            guests={guests}
-            targets={targets}
-            lane={lane === 'inbound' ? 'inbound' : 'outbound'}
-          />
+          {/* Events orders itself: the room he can walk into is already at the
+              top of its board, so a second "do this next" above it would be two
+              answers to one question. */}
+          {lane !== 'events' && (
+            <NextVisibilityHero
+              guests={guests}
+              targets={targets}
+              lane={lane === 'inbound' ? 'inbound' : 'outbound'}
+            />
+          )}
         </div>
       }
     >
@@ -310,12 +351,27 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         <div className="p-5 space-y-3">
           <Eyebrow>Import {lane === 'inbound' ? 'guests' : 'opportunities'}</Eyebrow>
           {lane === 'inbound' ? <GuestImportDropzone /> : <VisibilityImportDropzone />}
+          {lane === 'events' && (
+            <p className="text-micro text-ink-faint leading-snug">
+              This door writes a speaking or press row, not an event. Events arrive
+              from the nightly sweep, or from an invite in your inbox.
+            </p>
+          )}
         </div>
       </SlideOver>
 
       <div className="grid grid-cols-1 lg:[grid-template-columns:minmax(0,2.4fr)_minmax(240px,1fr)] gap-5 items-start pb-2">
         <div className="space-y-3 min-w-0">
-          {showFocus ? (
+          {/* Events groups by ACTIONABILITY, not by status. Every other board here
+              groups by workflow status because the question is "where has this got
+              to"; for a room the question is "can I actually be there", which is a
+              function of where he is standing this week and of nothing on the row.
+              Focus Mode does not apply for the same reason: it regroups by
+              relevance_index, and the attend lane's own ordering already answers a
+              sharper question. */}
+          {lane === 'events' ? (
+            <EventsLane />
+          ) : showFocus ? (
             lane === 'inbound' ? (
               <FocusLanes
                 rows={guests}
@@ -355,19 +411,26 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
               <EmptyLanes names={empty} />
             </>
           )}
-          <BackburnerSection
-            table={lane === 'inbound' ? 'guests' : 'visibility_targets'}
-            items={lane === 'inbound'
-              ? buriedGuests.map(g => ({ id: g.id, title: g.name || '(unnamed)', buried_reason: g.buried_reason }))
-              : buriedTargets.map(t => ({ id: t.id, title: t.title || '(untitled)', buried_reason: t.buried_reason }))}
-          />
+          {/* Events has no backburner. A room is archived only when it is DEAD
+              (the date passed, the deadline passed, a temporary claim expired), and
+              a dead room is not something to restore. The lane it would otherwise
+              need is "away, needs a trip", and that is a lane on the board rather
+              than a drawer under it, because a booked trip makes those live. */}
+          {lane !== 'events' && (
+            <BackburnerSection
+              table={lane === 'inbound' ? 'guests' : 'visibility_targets'}
+              items={lane === 'inbound'
+                ? buriedGuests.map(g => ({ id: g.id, title: g.name || '(unnamed)', buried_reason: g.buried_reason }))
+                : buriedTargets.map(t => ({ id: t.id, title: t.title || '(untitled)', buried_reason: t.buried_reason }))}
+            />
+          )}
         </div>
 
         {/* The rail: what the lane is made of, and nothing that asks for a
             decision. Secondary material on the secondary side. */}
         <aside className="space-y-4 min-w-0">
           <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-            <Eyebrow>{lane === 'inbound' ? 'By show' : 'By type'}</Eyebrow>
+            <Eyebrow>{lane === 'inbound' ? 'By show' : lane === 'events' ? 'Who hosts them' : 'By type'}</Eyebrow>
             <ul className="mt-2 space-y-1">
               {breakdown.map(b => (
                 <li key={b.label} className="flex items-center justify-between gap-2 py-0.5 text-label">
@@ -377,6 +440,19 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
               ))}
             </ul>
           </section>
+
+          {lane === 'events' && (
+            <section className="rounded-xl border border-accent/25 bg-accent/[0.05] p-4">
+              <Eyebrow>How a room is judged</Eyebrow>
+              <p className="mt-2 text-label text-ink-muted leading-snug">
+                Peers is how much of the room runs a business with real revenue. Buyers is
+                how much of it could hire you or buy a pilot. A room of engineers scores
+                zero on Peers however good the talk is, and a room of sellers is marked
+                down on both. Rooms in other cities stay on the board, because a booked
+                trip makes them live.
+              </p>
+            </section>
+          )}
 
           {lane === 'outbound' && (
             <section className="rounded-xl border border-accent/25 bg-accent/[0.05] p-4">

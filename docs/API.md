@@ -121,6 +121,27 @@ await supabase
   .order('fit_score', { ascending: false })
 ```
 
+### Events (the attend lane)
+
+Read the VIEW, never the table: `events_recommendable` is
+`archived_at is null AND date_verified AND starts_at is not null`, so the rule
+that an unverified date can never be recommended is enforced by the database.
+`src/hooks/useEvents.ts` is the one reader and
+`scripts/check-events-honesty.mts` fails if anything goes round it.
+
+```typescript
+await supabase
+  .from('events_recommendable')
+  .select('*')
+  .gt('starts_at', new Date().toISOString())
+  .order('starts_at', { ascending: true })
+```
+
+Ranked server side by `events_for(p_home_city)`, which puts the home city and
+virtual first, then orders on `draw*0.55 + demand*0.45`, and returns an
+`actionability` string per row. **Away-city rows rank down, never out:** an away
+event is unactionable, not dead, and becomes live the moment a trip is booked.
+
 ### Customers
 
 ```typescript
@@ -373,6 +394,11 @@ All `api/*` functions auto-deploy on push to `main`.
 | Endpoint | Purpose |
 |---|---|
 | `/api/agents` | Roster summary |
+| `/api/events/discover` | Daily 06:45 cron. Luma city pages + Meetup search per city, deduped on `(source, source_ref)`. Eventbrite is deliberately not attempted (AWS WAF wall for datacenter IPs). Every source blocked and nothing found → `502` + alert, never a quiet zero |
+| `/api/events/score` | Daily 07:00 cron. Judges five densities 0-100 per room; both axes computed in `api/_eventScore.ts`. No Anthropic key → `503` and nothing written, because a zero reads as a verdict on the room ([ADR-025](./DECISIONS/025-draw-is-peer-density.md)) |
+| `/api/events/scrub` | Daily 06:15 cron. Calls `scrub_dead_events()`. Dead only, reason always named, and it passes NO city: archiving an away-city row destroyed 26 New York rows once already |
+| `/api/events/[id]` | `GET` one event; `PATCH` a decision, an outcome or a density. A hand-edited density re-derives both axes and marks the row `scored_source='manual'` so cron does not overwrite it |
+| `/api/pilot/home-city` | `GET` / `PUT` which city Krish is in (`system_config.operator_home_city`). Twin of `/api/pilot/timezone`, but the device is NOT the authority: a laptop opened in an airport must not re-point the lane |
 | `/api/agents/[name]` | Per-agent detail (brief + tasks + drive sync state) |
 | `/api/acquisition/overview` | Growth tab read spine: per-lane funnel, touch progress, autonomy, churn queue, frame conversion, content attribution (service-role — sends carry PII) |
 | `/api/acquisition/sends` | Queued-send list + batch approve/reject (`{ids[], action}`); approve pings the n8n dispatcher, reject feeds `feedback_queue` |

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from '@/lib/icons'
+import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText, MapPin } from '@/lib/icons'
 import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
 import { SkeletonList } from '../shared/Skeleton'
@@ -11,6 +11,8 @@ import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetSt
 import { GuestImportDropzone } from '../GuestImportDropzone'
 import { GuestCard } from '../GuestCard'
 import { VisibilityTargetCard } from '../VisibilityTargetCard'
+import { EventsLane } from '../events/EventsLane'
+import { useEvents } from '../../hooks/useEvents'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -25,7 +27,17 @@ import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { reasonsFor } from '../../lib/triageReasons'
 import { triagePromote, triageReject } from '../../lib/triageActions'
 
-type Lane = 'inbound' | 'outbound'
+// Three lanes, not two, as of 2026-09-24.
+//
+// 'outbound' used to be labelled "Events" and read visibility_targets. Measured
+// on the live table that day, its queue was 46 press contacts, 9 podcasts and one
+// call for papers whose deadline had passed in June: no events at all. The label
+// was the only thing about it that said events.
+//
+// So the name goes to the real thing, which reads `events` and has always had the
+// city, the date verification and the two axes. visibility_targets keeps its own
+// lane under the name it actually earns.
+type Lane = 'inbound' | 'events' | 'outbound'
 
 // Recorded/published guests leave Visibility — they're promoted into the Network
 // (contacts) as relationships, not opportunities. Active = still in the pitch funnel.
@@ -68,6 +80,9 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const { guests, loading: guestsLoading } = useRealtimeGuests({ statusIn: ACTIVE_STATUSES, filter: g => !g.buried_at && !isTestRecord(g) })
   const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
   const targets = useMemo(() => allTargets.filter(t => !t.buried_at && !isTestRecord(t)), [allTargets])
+  // The attend lane. Reads `events` through events_recommendable, so an
+  // unverified date can never reach the badge or the board.
+  const { home: eventsHere } = useEvents()
   const h = useHaptics()
   const { toast } = useToast()
   const { mode, setMode } = useFocusMode()
@@ -138,6 +153,9 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
   const inboundCount = guests.length
   const outboundCount = targets.filter(t => t.status !== 'done' && t.status !== 'dropped').length
+  // Rooms in the city he is standing in, which is the only number that answers
+  // "is there anything for me this week".
+  const eventsHereCount = eventsHere.length
 
   // Per-lane next-action: scheduled guests awaiting confirmation (inbound),
   // queued targets closest to deadline (outbound). Matches DesktopGuests.
@@ -176,15 +194,24 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
       <LaneTab active={lane === 'inbound'} onClick={() => { h.select(); setLane('inbound') }}>
         <Mic size={11} className="inline mr-1" />Guests
       </LaneTab>
+      <LaneTab active={lane === 'events'} onClick={() => { h.select(); setLane('events') }}>
+        <MapPin size={11} className="inline mr-1" />Events
+      </LaneTab>
       <LaneTab active={lane === 'outbound'} onClick={() => { h.select(); setLane('outbound') }}>
-        <Megaphone size={11} className="inline mr-1" />Events
+        <Megaphone size={11} className="inline mr-1" />Speaking
       </LaneTab>
     </div>
   )
 
   // ── Deck mode: the active lane's swipe deck owns the screen (lane toggle stays
-  // so you can flip inbound/outbound without leaving triage).
+  // so you can flip lanes without leaving triage).
+  //
+  // Events has no deck. A swipe deck is for clearing a pile of maybes, and the
+  // decision on a room is not binary: "away, needs a trip" is a real third answer
+  // and swiping it away would archive the thing a booked trip makes live. So the
+  // events lane is a board, and only the two triage lanes can enter deck mode.
   const activeTriage = lane === 'inbound' ? guestTriage : targetTriage
+  const deckable = lane === 'inbound' || lane === 'outbound'
 
   // First paint loads single-focus — one column shimmering in — not a blank flash.
   if ((guestsLoading || targetsLoading) && guests.length === 0 && allTargets.length === 0) {
@@ -206,7 +233,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   // directly above a hint line that says the same thing in more detail.
   // Identity renders on every other mobile surface, which is what the brand
   // rule is about; a card deck is a stage.
-  if (activeTriage.mode === 'deck') {
+  if (deckable && activeTriage.mode === 'deck') {
     return (
       <MobileShell scroll="none">
         <div className="px-4 pt-1 pb-3 flex-shrink-0">{laneTabs}</div>
@@ -282,9 +309,16 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
             <Mic size={11} className="inline mr-1" />
             Guests <span className="ml-1.5 text-micro text-ink-faint tabular-nums">{inboundCount}</span>
           </LaneTab>
+          <LaneTab active={lane === 'events'} onClick={() => { h.select(); setLane('events') }}>
+            <MapPin size={11} className="inline mr-1" />
+            {/* The count is the rooms in the city he is in, not the whole table.
+                An away room is real but it is not a thing he can do this week,
+                and a badge that counts both would overstate the lane. */}
+            Events <span className="ml-1.5 text-micro text-ink-faint tabular-nums">{eventsHereCount}</span>
+          </LaneTab>
           <LaneTab active={lane === 'outbound'} onClick={() => { h.select(); setLane('outbound') }}>
             <Megaphone size={11} className="inline mr-1" />
-            Events <span className="ml-1.5 text-micro text-ink-faint tabular-nums">{outboundCount}</span>
+            Speaking <span className="ml-1.5 text-micro text-ink-faint tabular-nums">{outboundCount}</span>
           </LaneTab>
         </div>
 
@@ -296,9 +330,15 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
             power feature for a desk, not for the three jobs he actually does on
             a phone (look, spot, triage). Desktop keeps it. */}
 
-        <NextVisibilityHero guests={guests} targets={targets} narrow />
+        {/* The hero reads guests and speaking targets. Events has its own
+            ordering, which already puts the room he can walk into tonight at the
+            top, so a second "do this next" above it would be two answers to one
+            question. */}
+        {lane !== 'events' && <NextVisibilityHero guests={guests} targets={targets} narrow />}
 
-        {lane === 'inbound' ? (
+        {lane === 'events' ? (
+          <EventsLane />
+        ) : lane === 'inbound' ? (
           <>
             {guestDeckItems.length > 0 && (
               <TriageEntry

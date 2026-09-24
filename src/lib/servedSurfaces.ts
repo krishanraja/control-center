@@ -28,6 +28,7 @@ export type ServedTable =
   | 'contacts'
   | 'guests'
   | 'visibility_targets'
+  | 'events'
   | 'pilot_deals'
   | 'nova_target_conferences'
   | 'content_ideas'
@@ -318,6 +319,52 @@ export const SURFACES: Record<ServedTable, SurfaceContract> = {
         plain('Quality', r.quality_score),
         plain('Organiser', r.organizer_reputation),
       ),
+    }),
+  },
+
+  // The attend lane (2026-09-24). Same vocabulary as visibility_targets, for the
+  // reason stated on nova_target_conferences below: it is the same judgment about
+  // the same kind of object, and splitting the codes would split the history Vera
+  // clusters on.
+  //
+  // `visibility_wrong_location` finally has a field behind it. It has been an
+  // offered reason since August while every agent-sourced visibility_targets row
+  // carried location = NULL, so the complaint was collectable and unanswerable.
+  // An events row always knows its city.
+  //
+  // Two codes are deliberately absent, because they are questions about SPEAKING
+  // and this lane is about ATTENDING: no_relevant_talk and unlikely_accepted.
+  // Offering them would invite a reason Vera cannot act on.
+  events: {
+    label: 'event',
+    defaultReason: 'visibility_other',
+    reasons: [
+      { code: 'visibility_wrong_audience',  label: 'Wrong room' },
+      { code: 'visibility_bad_timing',      label: 'Bad timing' },
+      { code: 'visibility_wrong_location',  label: 'Wrong city' },
+      { code: 'visibility_too_low_tier',    label: 'Too junior a room' },
+      { code: 'visibility_too_technical',   label: 'Too technical' },
+      { code: 'visibility_pay_to_play',     label: 'Pay-to-play' },
+      { code: 'visibility_off_vertical',    label: 'Off-vertical' },
+      { code: 'visibility_already_pitched', label: 'Already going' },
+      { code: 'visibility_other',           label: 'Other' },
+    ],
+    why: r => why(firstText(r.score_reason, r.seniority_note, r.description), {
+      agent: 'nova',
+      at: r.scored_at || r.updated_at || r.created_at || null,
+      // The rank the board sorts on, which is peers weighted slightly ahead of
+      // buyers. Same weights as api/_eventScore.ts and events_for().
+      score: num(r.draw_score) != null || num(r.demand_score) != null
+        ? Math.round((num(r.draw_score) ?? 0) * 0.55 + (num(r.demand_score) ?? 0) * 0.45)
+        : null,
+      factors: factors(
+        pct('Peers in the room', r.draw_score),
+        pct('Buyers in the room', r.demand_score),
+        plain('City', typeof r.city === 'string' ? r.city.replace(/_/g, ' ') : null),
+        plain('Host', typeof r.host_kind === 'string' ? r.host_kind : null),
+      ),
+      // An unscored row says so rather than presenting silence as a judgement.
+      footnote: r.scored_at ? null : 'Not judged yet. The nightly pass reads the room.',
     }),
   },
 
