@@ -48,6 +48,17 @@
 
   /* Ambient "thought-partner" field — hue drifts with OS mood. Defaults to
      Mindmake mint; Home overrides via document.documentElement mood vars. */
+  /* One height for the decide card and for every layer that replaces it.
+     Measured 2026-09-24: without it, opening the Scores layer grew the panel
+     by 169px and closing it shrank it again, because an absolutely positioned
+     layer filled its parent while the card was sized by its content. Krish:
+     "there should be an element of stability and predictability behind any
+     interaction". */
+  /* 36rem, not 34: reserving the footer's measured 140px pushed the card's
+     own content to 562px, and the layers stayed pinned at 544, so fixing the
+     press-jump created a layer-jump. One number governs both, and it has to
+     clear the taller of them. */
+  --decide-h: 36rem;
   --mood-1: var(--accent);
   --mood-2: var(--accent-2);
   --mood-3: var(--accent-3);

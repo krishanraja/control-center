@@ -5,6 +5,7 @@ import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { LaneRoom } from './LaneRoom'
 import { LibraryRoom } from './LibraryRoom'
 import { SundayList } from './SundayList'
+import { DecideCard } from './DecideCard'
 import { ObligationStrip } from './ObligationStrip'
 import { MobileDecisionDeck } from './MobileDecisionDeck'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
@@ -18,6 +19,7 @@ import { NextBestActionHero } from '../content/NextBestActionHero'
 import { isActiveIdea } from '../../lib/contentEngine'
 import { SUBCHANNELS, resolveFormat } from '../../lib/formats'
 import { routeIdea } from '../../lib/contentRouting'
+import { ladderVerdict } from '../../lib/ladder'
 import { useMediaQuery } from '../shared/motion'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
@@ -77,6 +79,11 @@ export type RoomId = string
 type ViewId = 'queue' | RoomId
 
 const ROOMS: Array<{ id: RoomId; label: string }> = [
+  // Decide leads, because it is the work. The subchannel rooms are browsing:
+  // the router assigns a subchannel now, which makes it an attribute rather
+  // than a destination, and organising the tab by destination meant visiting
+  // three places to answer one question.
+  { id: 'decide', label: 'To decide' },
   ...SUBCHANNELS.map(f => ({ id: f.slug, label: f.label })),
   // Before the Library, because this is work and the Library is reference.
   // Named for what it holds rather than when it is read: "Sunday" is when
@@ -99,7 +106,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   // time is worse than letting the page scroll, so it scrolls.
   const tallEnough = useMediaQuery('(min-height: 760px)')
   const deskStage = wideDesk && tallEnough
-  const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : (ROOM_SLUGS[0] ?? 'library'))
+  const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'decide')
   // Whether Krish has picked a room himself. Until he has, the landing room is
   // the machine's guess and may be corrected once the counts arrive; after he
   // has, it is a decision and nothing moves it.
@@ -118,6 +125,27 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     [triage.deck],
   )
 
+  // ── The decide queue ───────────────────────────────────────────────────
+  //
+  // What the ladder escalated: judged, not weak, not already ready. Those are
+  // the pieces it tried to lift and could not finish without him, which is the
+  // only pile that genuinely needs a human.
+  //
+  // `settled` is a local list of ids he has just decided, held because the
+  // decision is recorded in content_edit_events and the idea row itself does
+  // not change in the same tick. Without it the card he just settled would be
+  // handed straight back to him, which reads as the press having failed.
+  const [settled, setSettled] = useState<string[]>([])
+  const toDecide = useMemo(() => {
+    const seen = new Set(settled)
+    return ideas
+      .filter(i => !seen.has(i.id) && !i.buried_at && !i.library_at)
+      .map(i => ({ row: i, v: ladderVerdict(i) }))
+      .filter(({ v }) => v?.band === 'repairable')
+      .sort((a, b) => (b.v!.score ?? 0) - (a.v!.score ?? 0))
+      .map(({ row }) => row)
+  }, [ideas, settled])
+
   // Live means live. The badge used to filter only on `library_at`, while every
   // room filtered on `isActiveIdea`, which also drops buried cards. On
   // 2026-09-09 that gap read "Built With AI 4" and "The Money of AI 5" over two
@@ -131,8 +159,13 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     for (const slug of ROOM_SLUGS) perRoom[slug] = forLane(slug)
     perRoom.library = v2.shifts.filter(s => s.status === 'library').length
       + ideas.filter(i => i.library_at).length
+    perRoom.decide = toDecide.length
+    // Counted from the same predicate the room renders, for the reason the
+    // 2026-09-09 note below records: a badge reading 4 over an empty room is
+    // worse than no badge.
+    perRoom.weak = ideas.filter(i => !i.buried_at && ladderVerdict(i)?.band === 'weak').length
     return perRoom
-  }, [v2.shifts, ideas, liveIdeas])
+  }, [v2.shifts, ideas, liveIdeas, toDecide])
 
   // Land on a room that has work in it.
   //
@@ -286,7 +319,25 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
               {/* The Library is a reference surface — a calendar and a
                   backburner — and it is read by browsing, so it keeps its own
                   scroll even on a stage. Paging a calendar would be silly. */}
-              {room === 'weak'
+              {room === 'decide'
+                ? (
+                  <div className={deskStage ? 'min-h-0 flex-1' : undefined} data-testid="decide-room">
+                    {toDecide.length ? (
+                      <DecideCard
+                        key={toDecide[0]!.id}
+                        idea={toDecide[0]!}
+                        variant={variant}
+                        onSettled={() => setSettled(s => [...s, toDecide[0]!.id])}
+                      />
+                    ) : (
+                      <div className="py-10 text-center">
+                        <p className="text-body text-ink-muted">Nothing waiting on you.</p>
+                        <p className="mt-1 text-label text-ink-faint">Everything judged is either ready to write or on the Not lifted list.</p>
+                      </div>
+                    )}
+                  </div>
+                )
+                : room === 'weak'
                 ? (
                   <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
                     <SundayList ideas={ideas} />

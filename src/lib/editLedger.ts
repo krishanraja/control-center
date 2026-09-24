@@ -267,3 +267,144 @@ export async function recordMagicVerdict(input: {
     // Ambient.
   }
 }
+
+// ── The triage decision, and the reason for it ──────────────────────────────
+//
+// THIS IS THE KEYSTONE, and it was the one field missing.
+//
+// `judge_calibration` joins content_edit_events to panel_runs on panel_run_id
+// and counts, per judge, whether its pass/kill prediction matched what Krish
+// actually did. The view has existed since 2026-09-09 and has always returned
+// nothing, because no surface ever sent panel_run_id. The panel has been
+// scoring for a year and has never once been scored back.
+//
+// Every decision written here carries it. From the first press, the weekly
+// compiler has something to measure, and a judge that disagrees with Krish more
+// often than it agrees becomes a named proposal instead of a suspicion.
+//
+// The reason is a CODE, not prose. Codes cluster; sentences do not. The chips
+// that produce them live beside them in DECISION_REASONS so the label a human
+// reads and the code the compiler counts cannot drift apart, which is the
+// failure that put five spellings of one venture in five files.
+
+/** `reason_code` must match ^[a-z][a-z0-9_]{0,63}$ or the ledger refuses it. */
+export interface ReasonOption { code: string; label: string }
+
+export const DECISION_REASONS: Record<'approved' | 'binned' | 'rerouted', ReasonOption[]> = {
+  approved: [
+    { code: 'pattern_is_real', label: 'The pattern is real' },
+    { code: 'nobody_has_said_it', label: 'Nobody has said it' },
+    { code: 'i_have_lived_this', label: 'I have lived this' },
+    { code: 'sells_the_practice', label: 'It sells the practice' },
+    { code: 'timing', label: 'Timing' },
+  ],
+  binned: [
+    { code: 'been_said_already', label: 'Been said already' },
+    { code: 'nothing_to_prove_it', label: 'Nothing to prove it' },
+    { code: 'not_my_lane', label: 'Not my lane' },
+    { code: 'no_one_acts_on_it', label: 'No one acts on it' },
+    { code: 'thin_needs_more', label: 'Thin, needs more' },
+  ],
+  rerouted: [
+    { code: 'it_is_about_money', label: 'It is about money' },
+    { code: 'it_is_about_building', label: 'It is about building' },
+    { code: 'a_pattern_over_time', label: 'A pattern over time' },
+    { code: 'different_reader', label: 'Different reader' },
+  ],
+}
+
+/** Several reasons can be true at once. The first is the reason_code the
+ *  compiler counts; the rest ride in delta_features so nothing he said is
+ *  thrown away, and neither field ever holds free prose. */
+function reasonFields(codes: string[]): { reason_code: string | null; delta_features: string[] } {
+  const clean = codes.filter(c => /^[a-z][a-z0-9_]{0,63}$/.test(c))
+  return { reason_code: clean[0] ?? null, delta_features: clean }
+}
+
+/**
+ * Record what Krish decided about one idea, and why.
+ *
+ * Fire and forget, like every other writer here: the decision is the product
+ * and the ledger is the record of it. A ledger that is down must never be the
+ * reason a decision fails to stick. The failure reaches a console line so
+ * "he decided nothing" and "the ledger is refusing us" stop looking the same.
+ */
+export async function recordDecision(input: {
+  ideaId: string
+  kind: 'approved' | 'binned'
+  /** Codes from DECISION_REASONS. An empty list is allowed and is itself a
+   *  fact: he pressed through without saying why. */
+  reasons: string[]
+  /** The panel run these judges scored. Null when the piece was never judged,
+   *  which is honest rather than a blank uuid. */
+  panelRunId: string | null
+  dwellMs?: number | null
+}): Promise<void> {
+  if (!input.ideaId) return
+  try {
+    const { reason_code, delta_features } = reasonFields(input.reasons)
+    const posted = await postEvent({
+      idempotency_key: crypto.randomUUID(),
+      subject_table: 'content_ideas',
+      subject_id: input.ideaId,
+      artifact_kind: 'thesis',
+      action: input.kind,
+      surface: 'triage',
+      client: client(),
+      panel_run_id: input.panelRunId,
+      reason_code,
+      delta_features,
+      dwell_ms: input.dwellMs ?? null,
+    })
+    if (posted.error) console.warn(`[edit-ledger] decision not recorded: ${posted.error}`)
+  } catch {
+    // Ambient.
+  }
+}
+
+/**
+ * Record a subchannel Krish moved, against the one the router picked.
+ *
+ * Written as a manual_edit because that is what it is: he overwrote a value the
+ * machine chose. The table's change_has_result constraint wants a result, so
+ * the hashes are of the lane slugs themselves rather than of any body text,
+ * which keeps the row bounded and carries no topic.
+ */
+export async function recordReroute(input: {
+  ideaId: string
+  from: string | null
+  to: string
+  reasons: string[]
+  panelRunId: string | null
+}): Promise<void> {
+  if (!input.ideaId || !input.to) return
+  try {
+    const [beforeHash, afterHash] = await Promise.all([
+      sha256Hex(input.from || 'unrouted'),
+      sha256Hex(input.to),
+    ])
+    // Both constraints want real hashes. Without them the row would be refused
+    // at the table, so it is not sent at all rather than sent to fail.
+    if (!beforeHash || !afterHash) return
+    const { reason_code, delta_features } = reasonFields(input.reasons)
+    const posted = await postEvent({
+      idempotency_key: crypto.randomUUID(),
+      subject_table: 'content_ideas',
+      subject_id: input.ideaId,
+      artifact_kind: 'thesis',
+      action: 'manual_edit',
+      surface: 'triage',
+      client: client(),
+      panel_run_id: input.panelRunId,
+      mode: 'lane_slot',
+      value: input.to.slice(0, 120),
+      reason_code,
+      delta_features,
+      before_hash: beforeHash,
+      after_hash: afterHash,
+    })
+    if (posted.error) console.warn(`[edit-ledger] reroute not recorded: ${posted.error}`)
+  } catch {
+    // Ambient.
+  }
+}
