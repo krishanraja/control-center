@@ -324,10 +324,10 @@ that differs, so the snapshot cannot become a fifth copy. It needs
 rather than passing, and is out of CI for that reason. Run it after any change
 to `venture_formats`.
 
-<!-- krish-canon:start release=v2026.09.15.2 sha=08e0df47694b rendered=2026-09-15 -->
+<!-- krish-canon:start release=v2026.09.24.3 sha=7196ca1ef8ae rendered=2026-09-24 -->
 ## Krish canon
 
-Rendered from `krishanraja/ai-harness` at release v2026.09.15.2. Nothing inside these
+Rendered from `krishanraja/ai-harness` at release v2026.09.24.3. Nothing inside these
 markers is hand-maintained: an edit here is detected and proposed back to the canon,
 never silently overwritten, and never lost. Everything outside the markers belongs to
 this repository and is never read or rewritten by the harness.
