@@ -30,12 +30,26 @@ Classifier, Nell Guest Pitch Draft, Nell Guest Pitch Enrich (Exa), Nova
 Podchaser -> Visibility. All six are now done and verified live (retry settings
 present, Priya out of the classifier enum, `versionId == activeVersionId`).
 
-One known divergence remains, older than this change: `cleo-synthesis-engine`'s
-cloud copy still names its Anthropic node `Opus Synthesize` where this file says
-`Sonnet Synthesize` (both send `claude-sonnet-4-6`). The fallback builder is
-identical on both sides; the node name is not. Reconcile it deliberately, in
-whichever direction is right, rather than letting the next `--apply` rename it
-silently.
+That `cleo-synthesis-engine` node-name divergence (`Opus Synthesize` in cloud
+against `Sonnet Synthesize` here) is resolved: checked 2026-09-24, both sides
+name it `Sonnet Synthesize`. The file still differs from cloud on node
+parameters, so it is not in sync, but the rename is not the reason any more.
+
+Two corrections to what this file says elsewhere, both found on 2026-09-24.
+
+`sync.mjs` did NOT filter archived workflows, though the text below claimed both
+sides did. The cloud map is keyed by name and last-wins, and at least one name
+has a live copy and an archived copy (`Nell | Mindmaker OS | Guest Speaker
+Briefing`), so a push could land in the archived twin, print `updated`, and
+leave the live workflow untouched. It filters them now.
+
+`staticData` is pushed by default and should usually not be. n8n writes poll
+cursors into it, 55 of 106 mirrors carry a non-null copy, and
+`cleo-inspiration-sweep`'s names nodes that no longer exist in its own node
+list. The sharpest case is `zara-layer-1-signal-inbox-drive-watcher`, whose
+mirror holds `lastTimeChecked` dated 2026-09-02: pushing it rewinds an ACTIVE
+Google Drive trigger by weeks and re-ingests everything since. Pass
+`--no-static-data`.
 
 ## The repo being clean says nothing about the runtime
 

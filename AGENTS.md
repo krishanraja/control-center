@@ -262,16 +262,36 @@ does not follow a rename. Widening `PublicSeriesKey` to three would mean a third
 Content room and three new wordmarks, which is a product change and waits on
 Krish.
 
-**Two n8n snapshots in `scripts/n8n/` are stale as of 2026-09-20**, because the
-live workflows were changed that day and the mirrors were not:
-`cleo-inspiration-sweep.workflow.json` (53 nodes against 55 live, missing
-`Collect Mined Ids` and `Mark Messages Mined`, and its Seen Filter still points
-at the table rather than the `inspiration_messages_mined` view) and
-`cleo-content-lane-sourcing.workflow.json` (missing `Get Voice Block`, and its
-Plan Due Lanes still joins on a built string). `sync.mjs` pushes repo to cloud
-and its own drift guard blocks a stale push, which is the only reason this is a
-note and not an incident, but refresh from cloud before touching either.
-Refreshing needs `N8N_API_KEY`, which the cloud session does not carry.
+**Those two stale snapshots are reconciled as of 2026-09-24.**
+`cleo-inspiration-sweep.workflow.json` took `Collect Mined Ids` and
+`Mark Messages Mined`; `cleo-content-lane-sourcing.workflow.json` took
+`Get Voice Block`. Both were exported from cloud, redacted back to placeholders,
+and now report OK against the live copies. No node was lost in either direction.
+
+**The mirror state, measured 2026-09-24 rather than asserted:** 58 of 106
+mirrors in sync, 11 genuinely different, 37 that cannot be compared at all
+because a secret is missing or does not match what cloud holds, and 2 cloud
+workflows with no mirror. Run `node scripts/n8n/audit.mjs --verbose`, which now
+prints the changed lines instead of character counts and reports an
+uncomparable file as UNKNOWN rather than as drift.
+
+**Direction of truth is per workflow, and the repo is not automatically right.**
+`scripts/n8n/README.md` says git wins, and every recorded incident has gone the
+other way. Both happen: cloud was ahead on the two above, and the repo is ahead
+on four routes the 2026-09-12 model audit changed and nobody deployed. Decide
+per workflow, with the diff in front of you.
+
+**A guard reading the mirrors cannot see the runtime, and for twelve days it
+did not.** `sonnet-task-lever-rater` ran `claude-opus-5` at `max_tokens: 16000`
+on a two-hourly cron while `check-model-routing.mts` asserted, for that exact
+file, `excludes: ['claude-opus-5', 'max_tokens: 16000']` and passed on every
+run. It was reading the mirror, and the mirror was right.
+`scripts/check-model-routing-live.mts` reads the n8n API and asserts the same
+policy against what is actually running. It needs `N8N_API_KEY`, so it prints
+NOT CHECKED and exits 0 without one rather than reporting green on something it
+never looked at. Run it wherever the key lives. Also note
+`check-model-routing.mts` itself was not in CI until 2026-09-24, which is how
+the undeployed routes went unremarked.
 
 **The Google key is free-tier, so no *pro* Gemini model is reachable (2026-09-20).**
 All 23 Gemini fallback nodes now call `gemini-3.6-flash`, and that is not a

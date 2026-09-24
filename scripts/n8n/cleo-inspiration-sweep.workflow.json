@@ -635,7 +635,7 @@
         192
       ],
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst d = (items[0] && items[0].json) || {};\nlet raw = '';\nlet model_used = 'claude-sonnet-4-6';\nif (d.content && d.content[0] && d.content[0].text) { raw = d.content[0].text; }\nelse if (d.candidates && d.candidates[0]) { raw = ((d.candidates[0].content || {}).parts || [{}])[0].text || ''; model_used = 'gemini-2.5-pro-fallback'; }\nconst usage = d.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst cost_usd = (inputTokens / 1000000) * 3.0 + (outputTokens / 1000000) * 15.0;\nconst minFit = parseInt($('Build Extraction Prompt').first().json.min_brand_fit || 6, 10);\nconst BLACKLIST = [/^how i /i, /^the (top|best) \\d/i, /^\\d+ ways /i, /^lessons (from|i learned)/i, /the future of /i, /^why .* matters$/i];\nlet arr = [];\ntry {\n  const m = raw.match(/\\[[\\s\\S]*\\]/);\n  if (m) arr = JSON.parse(m[0]);\n} catch (e) { arr = []; }\nif ((!Array.isArray(arr) || arr.length === 0) && raw.indexOf('[') !== -1) {\n  try {\n    const start = raw.indexOf('[');\n    const lastObj = raw.lastIndexOf('}');\n    if (start !== -1 && lastObj > start) {\n      arr = JSON.parse(raw.slice(start, lastObj + 1) + ']');\n    }\n  } catch (e) { arr = []; }\n}\nif (!Array.isArray(arr)) arr = [];\nconst rejected_reasons = {};\nfunction bump(k) { rejected_reasons[k] = (rejected_reasons[k] || 0) + 1; }\nconst survivors = [];\nfor (const r of arr) {\n  if (!r || r.is_idea === false) { bump(r && r.rejection_reason === 'duplicate_angle' ? 'duplicate_angle' : 'not_idea'); continue; }\n  if (!r.idea || String(r.idea).trim().length < 12) { bump('title_too_short'); continue; }\n  if (BLACKLIST.some(rx => rx.test(r.idea))) { bump('blacklisted_framing'); continue; }\n  if (!r.pillar_id) { bump('no_pillar'); continue; }\n  if (!r.source_url) { bump('no_source_url'); continue; }\n  if (typeof r.brand_fit_score !== 'number' || r.brand_fit_score < minFit) { bump('below_min_fit'); continue; }\n  if (!Array.isArray(r.evidence_present) || r.evidence_present.length === 0) { bump('no_evidence_listed'); continue; }\n  survivors.push(r);\n}\nreturn [{ json: { survivors, survivors_count: survivors.length, rejected_count: arr.length - survivors.length, rejected_reasons, raw_count: arr.length, model_used, cost_usd: Math.round(cost_usd * 100000) / 100000 } }];"
+        "jsCode": "const items = $input.all();\nconst d = (items[0] && items[0].json) || {};\nlet raw = '';\nlet model_used = 'claude-sonnet-4-6';\nif (d.content && d.content[0] && d.content[0].text) { raw = d.content[0].text; }\nelse if (d.candidates && d.candidates[0]) { raw = ((d.candidates[0].content || {}).parts || [{}])[0].text || ''; model_used = 'gemini-2.5-pro-fallback'; }\nconst usage = d.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst cost_usd = (inputTokens / 1000000) * 3.0 + (outputTokens / 1000000) * 15.0;\nconst minFit = parseInt($('Build Extraction Prompt').first().json.min_brand_fit || 6, 10);\nconst BLACKLIST = [/^how i /i, /^the (top|best) \\d/i, /^\\d+ ways /i, /^lessons (from|i learned)/i, /the future of /i, /^why .* matters$/i];\nlet arr = [];\ntry {\n  const m = raw.match(/\\[[\\s\\S]*\\]/);\n  if (m) arr = JSON.parse(m[0]);\n} catch (e) { arr = []; }\nif ((!Array.isArray(arr) || arr.length === 0) && raw.indexOf('[') !== -1) {\n  try {\n    const start = raw.indexOf('[');\n    const lastObj = raw.lastIndexOf('}');\n    if (start !== -1 && lastObj > start) {\n      arr = JSON.parse(raw.slice(start, lastObj + 1) + ']');\n    }\n  } catch (e) { arr = []; }\n}\nif (!Array.isArray(arr)) arr = [];\nconst rejected_reasons = {};\nfunction bump(k) { rejected_reasons[k] = (rejected_reasons[k] || 0) + 1; }\nconst survivors = [];\nfor (const r of arr) {\n  if (!r || r.is_idea === false) { bump(r && r.rejection_reason === 'duplicate_angle' ? 'duplicate_angle' : 'not_idea'); continue; }\n  if (!r.idea || String(r.idea).trim().length < 12) { bump('title_too_short'); continue; }\n  if (BLACKLIST.some(rx => rx.test(r.idea))) { bump('blacklisted_framing'); continue; }\n  if (!r.pillar_id) { bump('no_pillar'); continue; }\n  if (!r.source_url) { bump('no_source_url'); continue; }\n  if (typeof r.brand_fit_score !== 'number' || r.brand_fit_score < minFit) { bump('below_min_fit'); continue; }\n  if (!Array.isArray(r.evidence_present) || r.evidence_present.length === 0) { bump('no_evidence_listed'); continue; }\n  survivors.push(r);\n}\n// Did a model actually answer? A capped or failed call leaves `raw` empty, and\n// an empty raw parses to zero survivors, which is INDISTINGUISHABLE from a\n// legitimate quiet batch. Collect Mined Ids gates on this so a newsletter is\n// never marked read because both models refused. That is the same fault the\n// 2026-09-20 bookmark change fixed one level up, found again when the Anthropic\n// key hit its spend cap that afternoon.\nconst had_response = String(raw || '').trim().length > 0;\nreturn [{ json: { survivors, had_response, survivors_count: survivors.length, rejected_count: arr.length - survivors.length, rejected_reasons, raw_count: arr.length, model_used, cost_usd: Math.round(cost_usd * 100000) / 100000 } }];"
       }
     },
     {
@@ -983,7 +983,7 @@
           ]
         },
         "sendQuery": true,
-        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/inspiration_messages"
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/inspiration_messages_mined"
       },
       "alwaysOutputData": true,
       "executeOnce": true,
@@ -1544,6 +1544,62 @@
       "onError": "continueRegularOutput",
       "alwaysOutputData": true,
       "executeOnce": true
+    },
+    {
+      "id": "0f64a4e2-4e14-4fca-bea0-48e625c4d4a7",
+      "name": "Collect Mined Ids",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        416
+      ],
+      "parameters": {
+        "jsCode": "// Runs only after Parse + Filter Survivors, which is the first node that can\n// exist only if the extraction model returned something. Zero survivors is a\n// valid read and still counts as read: the bookmark records that the model saw\n// the newsletter, not that it liked it.\n//\n// BUT ZERO SURVIVORS FROM NO ANSWER IS NOT A READ. A capped or failed call\n// leaves the raw text empty, which parses to zero survivors and looks exactly\n// like a quiet batch. Marking those read would consume the newsletters for\n// nothing, which is the fault the bookmark move was made to stop. had_response\n// is the difference, and it is the whole point of this guard.\nconst parsed = $input.first().json || {};\nif (!parsed.had_response) {\n  return [{ json: {\n    ids: [],\n    id_count: 0,\n    skipped: 'no_model_response',\n    why: 'Neither the Anthropic call nor the Gemini fallback returned any text, so nothing read these newsletters. They stay unmined and come back on the next run.',\n    model_used: parsed.model_used || null,\n    survivors_count: 0,\n  } }];\n}\nlet newsletters = [];\ntry { newsletters = ($('Apply Canonical Labels').first().json.newsletters) || []; } catch (e) { newsletters = []; }\nconst ids = newsletters.map(n => n && n.id).filter(Boolean);\nreturn [{ json: {\n  ids,\n  id_count: ids.length,\n  model_used: parsed.model_used || null,\n  survivors_count: parsed.survivors_count || 0,\n} }];"
+      },
+      "notes": "The model has returned (or its Gemini fallback has). These are the messages it actually read."
+    },
+    {
+      "id": "8394884b-af10-4b2d-bd3a-ef447ef4262e",
+      "name": "Mark Messages Mined",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4032,
+        416
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/mark_inspiration_messages_mined",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { p: { run_ref: \"inspiration-sweep-\" + $now.toFormat(\"yyyy-LL-dd\"), ids: $json.ids } } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "notes": "Sets mined_at. Until this runs the newsletters stay unseen and come back next sweep, which is the safe failure: duplicate work, never lost work.",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
@@ -1644,7 +1700,7 @@
       "main": [
         [
           {
-            "node": "Drive List Files",
+            "node": "Drive Skip Empty",
             "type": "main",
             "index": 0
           }
@@ -1791,6 +1847,11 @@
         [
           {
             "node": "Has Survivors",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Collect Mined Ids",
             "type": "main",
             "index": 0
           }
@@ -2156,6 +2217,17 @@
         [
           {
             "node": "Build Extraction Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Mined Ids": {
+      "main": [
+        [
+          {
+            "node": "Mark Messages Mined",
             "type": "main",
             "index": 0
           }

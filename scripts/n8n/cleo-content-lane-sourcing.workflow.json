@@ -85,7 +85,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_cadence?select=*",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_cadence?select=*&active=is.true",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -113,7 +113,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?select=key,value&key=like.content_lane_*",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/venture_formats?select=slug,label,gear,cadence_label,target_per_week,mandate&kind=eq.subchannel&active=is.true",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -169,7 +169,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "function rows(nodeName){const out=[];for(const it of $(nodeName).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const configs=rows('Get Lane Configs');const recent=rows('Get Recent Drafts');\nconst byKey={};for(const c of configs){byKey[c.key]=(typeof c.value==='string')?JSON.parse(c.value):c.value;}\nfunction keyFor(cc){return cc.slot?('content_lane_'+cc.lane+'_'+cc.slot):('content_lane_'+cc.lane);}\nconst DAY=86400000,now=Date.now();\nfunction hasRecentDraft(lane,slot,iv){const cutoff=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=cutoff);}\nconst due=[];\nfor(const cc of cadence){\n  if(!['overdue','due_soon','no_data'].includes(cc.status))continue;\n  if(hasRecentDraft(cc.lane,cc.slot,cc.interval_days))continue;\n  const cfg=byKey[keyFor(cc)];if(!cfg)continue;\n  due.push({json:{lane:cc.lane,slot:cc.slot||null,interval_days:cc.interval_days,format:cfg.format,research_prompt:cfg.research_prompt,draft_system:cfg.draft_system}});\n}\nreturn due;"
+        "jsCode": "// Joined on venture_formats.slug, not on a string built from names.\n//\n// Until 2026-09-20 this matched cadence rows to config rows by building\n// 'content_lane_' + lane + '_' + slot. The cadence table had been migrated to\n// lane 'publication' and the live subchannel slugs, while the config keys were\n// still content_lane_mindmaker_live_paid and _built. Nothing matched, every\n// lane hit the continue below, and this produced nothing for 26 days while the\n// heartbeat reported success. A slug both sides read from the same table\n// cannot drift that way.\n//\n// The prompts are DERIVED, never stored: the format's own mandate from\n// venture_formats, the voice from system_config.content_voice_block. Storing\n// either would be the second copy that caused this.\nconst NL='\\n';\nfunction rows(n){const o=[];for(const it of $(n).all()){const j=it.json;if(Array.isArray(j))o.push(...j);else if(j&&j.data&&Array.isArray(j.data))o.push(...j.data);else if(j&&(j.key||j.id||j.lane||j.slug))o.push(j);}return o;}\nconst cadence=rows('Get Cadence');\nconst formats=rows('Get Lane Configs');\nconst recent=rows('Get Recent Drafts');\nconst vr=rows('Get Voice Block');\nconst rawVoice=vr.length?vr[0].value:'';\nconst voice=(typeof rawVoice==='string')?rawVoice:JSON.stringify(rawVoice||'');\nconst bySlug={};for(const f of formats){if(f&&f.slug)bySlug[f.slug]=f;}\nconst DAY=86400000,now=Date.now();\nfunction hasRecentDraft(lane,slot,iv){const cut=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=cut);}\nconst due=[];\nfor(const cc of cadence){\n  if(!['overdue','due_soon','no_data'].includes(cc.status))continue;\n  if(hasRecentDraft(cc.lane,cc.slot,cc.interval_days))continue;\n  const f=cc.slot?bySlug[cc.slot]:null;\n  if(!f)continue;\n  const mandate=String(f.mandate||'').trim();\n  if(!mandate)continue;\n  const research=['You are researching one piece for '+f.label+'.','','THE MANDATE decides what belongs here and what does not:',mandate,'','Find the single strongest subject that fits it right now. Cite every load-bearing fact with a url and a date. Where the record is silent say unknown rather than dropping the case, because dropping incomplete cases turns a comparison into a highlight reel of whoever published most. Hold the strongest counter-case. Return the angle plus 8 or more cited sources.'].join(NL);\n  const draft=[voice,'','---','','THE FORMAT YOU ARE WRITING: '+f.label+' ('+(f.gear||'')+', '+(f.cadence_label||'')+').','','ITS MANDATE, which is the authority on what this piece is:',mandate,'','Keep the body within about 700 words so the JSON stays complete.'].join(NL);\n  due.push({json:{lane:cc.lane,slot:cc.slot,interval_days:cc.interval_days,format:f.label,research_prompt:research,draft_system:draft}});\n}\nreturn due;"
       },
       "id": "ab07431c-491d-41c3-8ce9-52f6b2d1fb31"
     },
@@ -228,7 +228,7 @@
         "url": "https://api.anthropic.com/v1/messages",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model:'claude-sonnet-4-6', max_tokens:4000, temperature:0.5, system: $('Plan Due Lanes').item.json.draft_system + ' Keep the body within ~700 words so the JSON stays complete.', messages:[{role:'user', content:'Research to ground the piece (cite named facts, do not invent):\\n' + (((($json.choices||[])[0]||{}).message||{}).content||'') + '\\n\\nWrite the piece now. Return ONLY a single JSON object: {\"title\":string,\"body\":string,\"visual_suggestion\":string|null,\"sources\":[url]}.' }] } }}",
+        "jsonBody": "={{ { model:'claude-sonnet-5', max_tokens:4000, system: $('Plan Due Lanes').item.json.draft_system, messages:[{role:'user', content:'Research to ground the piece (cite named facts, do not invent):\\n' + (((($json.choices||[])[0]||{}).message||{}).content||'') + '\\n\\nWrite the piece now. Return ONLY a single JSON object: {\"title\":string,\"body\":string,\"visual_suggestion\":string|null,\"sources\":[url]}.' }] } }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -274,7 +274,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const cfg=$('Plan Due Lanes').item.json;\nlet txt=(($json.content||[])[0]||{}).text||'{}';\nfunction rj(t){t=String(t).trim();if(t.startsWith('```'))t=t.split('```')[1].replace(/^json/,'').trim();try{return JSON.parse(t);}catch(e){}const i=t.indexOf('{'),j=t.lastIndexOf('}');if(i>=0&&j>i){try{return JSON.parse(t.slice(i,j+1));}catch(e){}}return null;}\nlet d=rj(txt)||{title:'(parse failed)',body:String(txt).slice(0,2000)};\nconst pres=$('Perplexity Research').item.json;\nconst ptext=(((pres.choices||[])[0]||{}).message||{}).content||'';\nconst cites=pres.citations||[];\nfunction slug(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,50);}\nconst row={idea:(d.title||'Untitled draft'),body:(d.body||''),lane:cfg.lane,lane_slot:cfg.slot,state:'drafting',source_type:'lane_sourcing',distribution:[],source_url:((d.sources&&d.sources[0])||cites[0]||null),source_snippet:String(ptext).slice(0,500),meta:{research:cites.slice(0,8),sources:(d.sources||cites||[]),visual_suggestion:(d.visual_suggestion||null),generated_by:'lane_sourcing',lane_format:cfg.format},concept_id:'concept:content:'+cfg.lane+':'+slug(d.title||'')+'-'+Date.now()};\nreturn { insert_row: row };",
+        "jsCode": "const cfg=$('Plan Due Lanes').item.json;\nconst where=cfg.slot||cfg.lane||'unnamed lane';\n\n// A REFUSED DRAFT IS NOT A DRAFT.\n//\n// On 2026-09-20 the Anthropic key hit its spend cap. Sonnet Draft carries\n// neverError, so the refusal became ordinary output, flowed through here, and\n// was written as two content_ideas rows titled 'Untitled draft' with an empty\n// body. The old line responsible was:\n//\n//   let d=rj(txt)||{title:'(parse failed)',body:String(txt).slice(0,2000)};\n//\n// which turned every failure into a row rather than a stop. Each case below\n// throws instead, so the execution goes red, the fleet monitor sees a failed\n// run, and the queue stays clean. Nothing is written on a bad draft.\nif($json && $json.type==='error'){\n  const m=(($json.error)||{}).message||'no message given';\n  throw new Error('Anthropic refused the draft for '+where+': '+m);\n}\nconst pres=$('Perplexity Research').item.json;\nconst ptext=(((pres.choices||[])[0]||{}).message||{}).content||'';\nif(!String(ptext).trim()){\n  throw new Error('No research came back for '+where+', so there is nothing to ground a draft in.');\n}\nconst txt=(($json.content||[])[0]||{}).text||'';\nif(!String(txt).trim()){\n  throw new Error('Anthropic returned no text for '+where+'.');\n}\nfunction rj(t){t=String(t).trim();if(t.startsWith('```'))t=t.split('```')[1].replace(/^json/,'').trim();try{return JSON.parse(t);}catch(e){}const i=t.indexOf('{'),j=t.lastIndexOf('}');if(i>=0&&j>i){try{return JSON.parse(t.slice(i,j+1));}catch(e){}}return null;}\nconst d=rj(txt);\nif(!d){\n  throw new Error('The draft for '+where+' did not parse as JSON. First 200 characters: '+String(txt).slice(0,200));\n}\nif(!String(d.title||'').trim()||!String(d.body||'').trim()){\n  throw new Error('The draft for '+where+' parsed but carried no title or no body.');\n}\nconst cites=pres.citations||[];\nfunction slug(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,50);}\nconst row={idea:d.title,body:d.body,lane:cfg.lane,lane_slot:cfg.slot,state:'drafting',source_type:'lane_sourcing',distribution:[],source_url:((d.sources&&d.sources[0])||cites[0]||null),source_snippet:String(ptext).slice(0,500),meta:{research:cites.slice(0,8),sources:(d.sources||cites||[]),visual_suggestion:(d.visual_suggestion||null),generated_by:'lane_sourcing',lane_format:cfg.format},concept_id:'concept:content:'+cfg.lane+':'+slug(d.title)+'-'+Date.now()};\nreturn { insert_row: row };",
         "mode": "runOnceForEachItem"
       },
       "id": "5dd8ee66-918c-48a5-a37e-36d0f2f1cf2b"
@@ -335,7 +335,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "function rows(nm){const out=[];for(const it of $(nm).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const recent=rows('Get Recent Drafts');\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;for(const cc of cadence){if(!['overdue','due_soon','no_data'].includes(cc.status))continue;if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;due++;}\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | Mindmaker OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'success',outcome_count:due,status:'success',metadata:{lanes_due:due}}}];"
+        "jsCode": "// Counts what was PLANNED, not what was notionally due.\n//\n// Until 2026-09-20 this applied the status and recent-draft filters and stopped\n// there, while Plan Due Lanes applied one more: a format must exist for the\n// slot. So this wrote outcome success with lanes_due 3 on every run while the\n// planner produced nothing, for 26 days, and the fleet health signal stayed\n// green on a workflow doing no work. Both numbers are reported now, and a gap\n// between them is issues_detected, the vocabulary the rest of the fleet\n// already uses for ran-but-wrong.\nfunction rows(n){const o=[];for(const it of $(n).all()){const j=it.json;if(Array.isArray(j))o.push(...j);else if(j&&j.data&&Array.isArray(j.data))o.push(...j.data);else if(j&&(j.key||j.id||j.lane||j.slug))o.push(j);}return o;}\nconst cadence=rows('Get Cadence');\nconst recent=rows('Get Recent Drafts');\nconst formats=rows('Get Lane Configs');\nconst bySlug={};for(const f of formats){if(f&&f.slug)bySlug[f.slug]=f;}\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;const missing=[];\nfor(const cc of cadence){\n  if(!['overdue','due_soon','no_data'].includes(cc.status))continue;\n  if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;\n  due++;\n  const f=cc.slot?bySlug[cc.slot]:null;\n  if(!f||!String((f&&f.mandate)||'').trim())missing.push(cc.slot||cc.lane||'unnamed');\n}\nconst planned=due-missing.length;\nconst ok=missing.length===0;\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | Mindmaker OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'planned:'+planned+' due:'+due,outcome_count:planned,status:ok?'success':'issues_detected',metadata:{lanes_due:due,lanes_planned:planned,lanes_without_a_format:missing}}}];"
       },
       "id": "3348bb2b-9be8-4211-b53a-866973d77753"
     },
@@ -385,6 +385,35 @@
           "name": "Supabase OS (service_role, verified)"
         }
       }
+    },
+    {
+      "id": "d1514732-539d-4740-be79-4831f3a34008",
+      "name": "Get Voice Block",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?select=key,value&key=eq.content_voice_block",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      },
+      "notes": "The one voice source. Read, never copied into a config row."
     }
   ],
   "connections": {
@@ -426,17 +455,6 @@
         [
           {
             "node": "Get Lane Configs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Lane Configs": {
-      "main": [
-        [
-          {
-            "node": "Get Recent Drafts",
             "type": "main",
             "index": 0
           }
@@ -513,10 +531,33 @@
           }
         ]
       ]
+    },
+    "Get Lane Configs": {
+      "main": [
+        [
+          {
+            "node": "Get Voice Block",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Voice Block": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "availableInMCP": true
   },
   "staticData": {
     "node:Daily 13:00 UTC": {

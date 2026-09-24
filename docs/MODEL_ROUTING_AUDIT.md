@@ -36,7 +36,30 @@ Claude Code subscription allowance.
 
 `npm run check:model-routing` enforces these assignments, blocks GPT-4.1 nano,
 GPT-4o and Opus 5 from active n8n workflows, verifies proxy authentication, and
-prints the active model inventory. `scripts/check-model-prices.mts` now scans
+prints the active model inventory.
+
+> **Correction, 2026-09-24. The table above records changes that were made in
+> the REPOSITORY and never deployed.** Four of them were still running the old
+> route in production twelve days later: Task Lever Rater on `claude-opus-5` at
+> 16k (on a two-hourly cron), Omnichannel emergency fallback on `gpt-4o`, Zara
+> Drive watcher on `gpt-4.1-nano`, and Hunter Job Sweep on `gemini-2.0-flash`,
+> which Google shut down on 2026-06-01.
+>
+> The guard could not see it. It asserts against the checked-in mirrors, the
+> mirrors were correct, and nothing in the repository read the runtime. It was
+> also not wired into CI at all until 2026-09-24 — it existed only as an npm
+> script while twenty other guards ran on every push.
+>
+> Both halves are now closed. `check-model-routing.mts` runs in CI, and
+> `check-model-routing-live.mts` asserts the same policy table against the live
+> n8n API. They share one table (`scripts/modelRoutePolicy.mts`) so the runtime
+> half cannot go stale on its own. A third bug surfaced while wiring it: the
+> shared model regex could never match `gpt-4o`, because alternation is
+> first-match and the numeric branch came first, so the `forbiddenActive` entry
+> for it had been dead since it was written.
+>
+> A route is not deployed until the runtime says so. Item 2 below said as much
+> and is the reason this went unmeasured. `scripts/check-model-prices.mts` now scans
 workflow JSON as well as TypeScript, so an unpriced Anthropic model cannot hide
 inside n8n.
 

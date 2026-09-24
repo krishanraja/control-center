@@ -146,10 +146,33 @@ const RETIRED: Readonly<Record<string, string>> = {
   'gemini-2.5-pro': '404, retired for new users',
   'gemini-3.1-pro-preview': 'free-tier quota limit 0 on this project',
 }
+/**
+ * Whether a model id is actually INVOKED, rather than merely mentioned.
+ *
+ * The first version of this check flagged Cleo Inspiration Sweep for calling
+ * gemini-2.5-pro. It does not. The string is a telemetry label inside a parse
+ * node — `model_used = 'gemini-2.5-pro-fallback'` — while the URL right above
+ * it calls gemini-3.6-flash. Flagging that is exactly the disease this file
+ * exists to cure: a guard nobody trusts is a guard nobody reads, and the
+ * previous audit hid four real regressions inside forty-two false ones.
+ *
+ * So an id counts only where a request would actually carry it: in a Google
+ * generateContent URL, or as the value of a `model` field.
+ *
+ * (Those stale labels are a real if smaller bug — the fallback reports a model
+ * it no longer uses, so the telemetry names the wrong one. Same pattern is in
+ * cleo-synthesis-engine. Not this guard's job.)
+ */
+function invokes(source: string, id: string): boolean {
+  const q = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`models/${q}(?::|["'\\\\/\\s])`).test(source)
+    || new RegExp(`model\\s*\\\\?["']?\\s*:\\s*\\\\?["']${q}\\\\?["']`).test(source)
+}
+
 for (const w of live) {
   const source = JSON.stringify(w.nodes ?? [])
   for (const [id, why] of Object.entries(RETIRED)) {
-    if (source.includes(id)) {
+    if (invokes(source, id)) {
       const where = w.active ? 'active' : 'inactive'
       const msg = `LIVE "${w.name}" (${where}) calls retired ${id} - ${why}`
       // An inactive workflow is not serving anyone today, but it is armed: the

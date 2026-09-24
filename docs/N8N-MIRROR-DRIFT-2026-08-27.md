@@ -61,7 +61,7 @@ breaks either way, and the surface lights up the moment the schema lands.
 ## Doing it properly, in order
 
 1. **Reconcile first.** Export the live workflow to the mirror
-   (`node scripts/n8n/sync.mjs` pull, or the n8n UI export), commit that as its
+   (the n8n UI export (there is no `sync.mjs` pull mode; the reverse direction is manual by design), or the n8n UI export), commit that as its
    own change with no edits mixed in, and confirm `node scripts/n8n/audit.mjs
    --filter=marcus-synthesis` reports zero drift. Never patch on top of
    unacknowledged drift.
