@@ -288,7 +288,7 @@ export interface AxisOption {
 
 export const TONE_PRESETS: AxisOption[] = [
   { value: 'punchier', label: 'Punchier', hint: 'Compress. Shorter declaratives, harder verb choices, uneven rhythm. Cut every word that the reader already understands.' },
-  { value: 'contrarian', label: 'More contrarian', hint: 'Sharpen the antagonist. Discard the lazy version of the take out loud ("Not X, Y") then commit to the spikier read. Spike points at the idea, never the reader.' },
+  { value: 'contrarian', label: 'More contrarian', hint: 'Sharpen the antagonist and commit to the spikier read, stated directly. Spike points at the idea, never the reader.' },
   { value: 'warmer', label: 'Warmer', hint: 'More human, more generous. Touch the feeling once and move. Keep the teeth on the ideas, not the people.' },
   { value: 'formal', label: 'More formal', hint: 'Exec-to-exec, Gear A. Unbothered authority, commercially grounded, zero flattery. Still no corporate hedging.' },
 ]
@@ -596,7 +596,7 @@ export const CHANNEL_ADAPTS: LaneAdapt[] = [
   {
     value: 'signal_noise',
     label: 'Signal & Noise',
-    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending. The adversarial register belongs to the room, not the research: the finding still comes from the source format\'s evidence bar. Devil\'s-advocate the idea, never sneer at the people who hold it.',
+    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong, commercially grounded, hard verdict ending. The adversarial register belongs to the room, not the research: the finding still comes from the source format\'s evidence bar. Devil\'s-advocate the idea, never sneer at the people who hold it.',
   },
 ]
 
