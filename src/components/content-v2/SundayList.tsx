@@ -1,62 +1,40 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ChevronDown, Gavel } from '@/lib/icons'
+import { AlertTriangle, Gavel } from '@/lib/icons'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { ladderVerdict, judgeAsk, whatItNeeds, type LadderVerdict } from '../../lib/ladder'
 import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { Eyebrow } from '../shared/Eyebrow'
+import { DecideCard } from './DecideCard'
 import { relativeTimeOr } from '../../lib/ageHelpers'
 
-// The Sunday list: everything the machine judged weak, grouped by the judge
-// that did it.
+// Everything the machine judged weak, grouped by the judge that did it.
 //
-// ── Why this exists and why it is grouped this way ───────────────────────
+// ── WHY THIS IS A LIST AND THE DECIDE ROOM IS NOT ────────────────────────
 //
-// The ladder used to bury a weak piece by itself. Krish ruled that out on
-// 2026-09-24 after the measurement that killed the idea: the Jev seed, which
-// he graded 7, was scored 3 by `consequence`, `reader` and `standing` on FOUR
-// independent expansions and panels. Not noise — a settled disagreement
-// between him and three rubrics, with nothing random in it to average away.
-// The machine would have buried it every time, correctly by its own lights,
-// and he would never have known.
+// Both surfaces speak the same language now, but they answer different
+// questions and the shapes follow from that. The decide room asks "what do I
+// do with this one", so it serves one piece at a time. This asks "IS ONE
+// RUBRIC DOING ALL THE KILLING", which only a survey can answer: one at a
+// time you would settle eleven pieces without ever noticing that nine of them
+// died on the same judge.
 //
-// So nothing buries. Weak pieces come here instead.
+// So the grouping stays, and it is by killing judge rather than by date. Date
+// answers "what happened this week", which nobody needs. By judge the answer
+// is in the group sizes, and the line above them says it out loud when one
+// rubric holds more than half.
 //
-// GROUPED BY THE KILLING JUDGE, not by date or channel, and that is the whole
-// design. A list sorted by date answers "what happened this week", which is a
-// question nobody needs answered. Grouped by judge it answers the one that
-// matters: IS ONE RUBRIC DOING ALL THE KILLING? One judge holding nine of
-// eleven pieces is a broken rubric, and it is visible in a glance rather than
-// after somebody thinks to run a query. That is the fastest route to the
-// thing that is actually wrong, and it is why the group header carries the
-// count before it carries anything else.
+// ── WHY TAPPING A ROW OPENS DecideCard ───────────────────────────────────
 //
-// The judge names are rendered as what the judge WANTED, never as its rubric
-// key. "reader" tells Krish nothing; "Will not reach the person it is for"
-// tells him whether he agrees. Agreeing or not is the entire job of this
-// screen — every override he makes here is a training row the panel cannot
-// get any other way.
+// Because a second decision surface would be a fork of the one that already
+// captures a reason in one tap and carries panel_run_id to the ledger. The
+// house rule is extend the primitive, and that applies to an interaction as
+// much as to a style. A row here opens the same card the queue serves, with a
+// Back control, and every overrule it records is the most valuable
+// calibration row the system can produce: the machine said weak, he said no.
 //
-// ── What each row must say ───────────────────────────────────────────────
-//
-// Not the score. The score is the least useful number on the card: he has
-// already been told it is weak by being shown this screen at all. What he
-// cannot work out for himself is WHAT THE PIECE NEEDS, and the three answers
-// are genuinely different jobs:
-//
-//   your standing            the repair had research and still could not
-//                            close it — it wants a client, a deal, a moment
-//                            he lived, and no lookup will ever supply one
-//   a lookup that never ran  the repair had nothing to work from, which is a
-//                            failure of the machine rather than the idea
-//   a decision               it never got that far
-//
-// Rendering those three the same way would make the list uniform and useless.
-
-const NEEDS_TONE: Record<string, string> = {
-  'your standing': 'bg-violet-500/12 text-violet-200 ring-1 ring-violet-400/20',
-  'a lookup that never ran': 'bg-amber-500/12 text-amber-200 ring-1 ring-amber-400/20',
-  'a decision': 'bg-white/[0.06] text-ink-muted ring-1 ring-white/10',
-}
+// Nothing here buries. The ladder stopped burying on 2026-09-24 after the Jev
+// seed, which Krish graded 7, was scored 3 by three judges on four separate
+// rewrites. A settled disagreement is not the machine's to resolve.
 
 interface WeakItem {
   row: ContentIdeaRow
@@ -64,132 +42,99 @@ interface WeakItem {
   needs: ReturnType<typeof whatItNeeds>
 }
 
-// Opening a piece is a hash route, not a callback passed down from the tab.
-// That is the house mechanism (ContentIdeaCardActionable does the same), and
-// it is the one that survives a reload: a weak piece Krish opens from here and
-// comes back to is still the piece he was looking at.
-const openIdea = (id: string) => { window.location.hash = `#/content?idea=${id}` }
+/** What a piece needs, as a word rather than a score. He already knows it is
+ *  weak by being shown this screen; what he cannot work out is which of three
+ *  genuinely different jobs it is. */
+const NEEDS: Record<string, { label: string; cls: string }> = {
+  'your standing': { label: 'Needs you', cls: 'bg-violet-500/12 text-violet-200 ring-1 ring-violet-400/20' },
+  'a lookup that never ran': { label: 'Never researched', cls: 'bg-amber-500/12 text-amber-200 ring-1 ring-amber-400/20' },
+  'a decision': { label: 'Undecided', cls: 'bg-white/[0.06] text-ink-muted ring-1 ring-white/10' },
+}
 
-function Row({ item }: { item: WeakItem }) {
+function Row({ item, onOpen }: { item: WeakItem; onOpen: () => void }) {
   const { row, verdict, needs } = item
-  const [open, setOpen] = useState(false)
-  const last = verdict.attempts[verdict.attempts.length - 1]
-
+  const n = NEEDS[needs]!
   return (
-    <li className="rounded-xl border border-white/8 bg-white/[0.02]">
-      <div className="p-3">
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        data-testid={`sunday-row-${row.id}`}
+        className="tap-44 w-full rounded-xl border border-white/8 bg-white/[0.02] p-3 text-left transition-colors hover:border-white/15"
+      >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            {/* The angle the expansion landed on, when there is one, because
-                that is the piece the panel actually judged. Falling back to
-                the seed silently would show Krish a headline and attribute a
-                verdict on an argument to it. */}
+            {/* The angle the panel actually judged. Showing the seed and
+                attributing a verdict on the argument to it would be a small
+                lie in the one place he reads to overturn one. */}
             <p className="text-body text-ink">{verdict.expansion.angle || row.idea}</p>
-            {verdict.expansion.angle ? (
-              <p className="mt-1 text-micro text-ink-faint">Seed: {row.idea}</p>
-            ) : null}
+            {verdict.expansion.angle ? <p className="mt-1 text-micro text-ink-faint">Seed: {row.idea}</p> : null}
           </div>
-          <span className={`flex-shrink-0 rounded-full px-2 py-1 text-micro font-semibold ${NEEDS_TONE[needs]}`}>
-            {needs === 'your standing' ? 'Needs you' : needs === 'a lookup that never ran' ? 'Never researched' : 'Undecided'}
-          </span>
+          <span className={`flex-shrink-0 rounded-full px-2 py-1 text-micro font-semibold ${n.cls}`}>{n.label}</span>
         </div>
-
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-micro text-ink-faint">
           <span className="tabular-nums">Panel {verdict.score ?? '—'}/10</span>
-          {verdict.firstScore !== null && verdict.firstScore !== verdict.score ? (
-            <span className="tabular-nums">from {verdict.firstScore}</span>
-          ) : null}
-          {/* Says whether the second reading was a different expansion or the
-              same one. A piece called weak twice on two genuinely different
-              readings is a much stronger claim than one called weak twice on
-              the same words, and the row would otherwise flatten them. */}
+          {/* Two different readings agreeing is a much stronger claim than the
+              same words read twice, and a row that flattens them is hiding the
+              difference. */}
           {verdict.confirmation ? (
-            <span>{verdict.confirmation.reExpanded ? 'weak on two different readings' : 'weak on a second reading'}</span>
+            <span>{verdict.confirmation.reExpanded ? 'weak on two rewrites' : 'weak on a second reading'}</span>
           ) : null}
           <span>{relativeTimeOr(verdict.judgedAt, 'not dated')}</span>
         </div>
-
-        <div className="mt-2.5 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => openIdea(row.id)}
-            data-testid="sunday-disagree"
-            className="tap-44 rounded-lg bg-white/[0.06] px-3 py-1.5 text-label font-semibold text-ink hover:bg-white/[0.1]"
-          >
-            I disagree
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(v => !v)}
-            aria-expanded={open}
-            className="tap-44 flex items-center gap-1 rounded-lg px-2 py-1.5 text-label text-ink-muted hover:text-ink"
-          >
-            What it tried
-            <ChevronDown size={12} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
-          </button>
-        </div>
-      </div>
-
-      {open ? (
-        <div className="border-t border-white/8 px-3 py-2.5">
-          {last?.detail ? (
-            <p className="text-label text-ink-muted">{last.detail}</p>
-          ) : (
-            <p className="text-label text-ink-faint">No repair was attempted.</p>
-          )}
-          {last?.researched && last.sources?.length ? (
-            <div className="mt-2">
-              <Eyebrow>Looked at</Eyebrow>
-              <ul className="mt-1 space-y-0.5">
-                {last.sources.slice(0, 4).map(s => (
-                  // Wrapped, never truncated. A half URL is not a source: the
-                  // point of listing these is that Krish can see WHERE the
-                  // research came from and go and look, and "thehackernews.com/2026/09/cl…"
-                  // fails at exactly that.
-                  <li key={s} className="break-all text-micro text-ink-faint">{s}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      </button>
     </li>
   )
 }
 
-export function SundayList({ ideas }: { ideas: ContentIdeaRow[] }) {
+export function SundayList({ ideas, variant }: { ideas: ContentIdeaRow[]; variant: 'desktop' | 'mobile' }) {
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [settled, setSettled] = useState<string[]>([])
+
   const groups = useMemo(() => {
+    const done = new Set(settled)
     const items: WeakItem[] = []
     for (const row of ideas) {
+      if (done.has(row.id)) continue
       const verdict = ladderVerdict(row)
       if (!verdict || verdict.band !== 'weak') continue
       items.push({ row, verdict, needs: whatItNeeds(verdict) })
     }
     const by = new Map<string, WeakItem[]>()
-    for (const it of items) {
-      const k = it.verdict.weakest || 'panel'
-      by.set(k, [...(by.get(k) || []), it])
-    }
+    for (const it of items) by.set(it.verdict.weakest || 'panel', [...(by.get(it.verdict.weakest || 'panel') || []), it])
     // Biggest group first: the rubric doing the most killing is the finding,
-    // so it goes where the eye lands rather than wherever the map happened to
-    // iterate.
+    // so it goes where the eye lands rather than wherever the map iterated.
     return [...by.entries()].sort((a, b) => b[1].length - a[1].length)
-  }, [ideas])
+  }, [ideas, settled])
 
   const total = groups.reduce((n, [, g]) => n + g.length, 0)
   const dominant = groups[0]
-  // One judge holding more than half of a list worth reading is a rubric
-  // problem, not a bad week. Stated on the page rather than left for Krish to
-  // work out from the group sizes, because the whole reason to group by judge
-  // is to make this sentence possible.
   const lopsided = Boolean(dominant && total >= 4 && dominant[1].length / total > 0.5)
+
+  const open = useMemo(
+    () => groups.flatMap(([, g]) => g).find(i => i.row.id === openId)?.row ?? null,
+    [groups, openId],
+  )
+
+  // One piece, opened from the list. The same card the queue serves, so the
+  // reason capture and the panel_run_id it carries are not written twice.
+  if (open) {
+    return (
+      <DecideCard
+        idea={open}
+        variant={variant}
+        onBack={() => setOpenId(null)}
+        onSettled={() => { setSettled(s => [...s, open.id]); setOpenId(null) }}
+      />
+    )
+  }
 
   if (!total) {
     return (
-      <div className="py-10 text-center">
+      <div className="py-10 text-center" data-testid="sunday-list">
         <p className="text-body text-ink-muted">Nothing was judged weak.</p>
         <p className="mt-1 text-label text-ink-faint">
-          When the machine cannot lift a piece, it lands here instead of disappearing.
+          When the machine cannot lift a piece it lands here, because nothing is buried.
         </p>
       </div>
     )
@@ -199,7 +144,7 @@ export function SundayList({ ideas }: { ideas: ContentIdeaRow[] }) {
     <div data-testid="sunday-list">
       <SurfaceHeader
         title="What the machine could not lift"
-        description="Nothing is buried. Every piece here is one the panel judged weak and could not repair, waiting on you to agree or overrule."
+        description="Nothing is buried. Every piece here was judged weak and could not be repaired, waiting on you to agree or overrule."
         icon={<Gavel size={18} />}
         meta={<span className="tabular-nums">{total} {total === 1 ? 'piece' : 'pieces'}</span>}
       />
@@ -221,11 +166,11 @@ export function SundayList({ ideas }: { ideas: ContentIdeaRow[] }) {
         {groups.map(([judge, items]) => (
           <section key={judge} data-testid={`sunday-group-${judge}`}>
             <div className="flex items-baseline gap-2">
-              <Eyebrow>{judgeAsk(judge)}</Eyebrow>
+              <Eyebrow tone="accent">{judgeAsk(judge)}</Eyebrow>
               <span className="text-micro tabular-nums text-ink-faint">{items.length}</span>
             </div>
             <ul className="mt-2 space-y-2">
-              {items.map(it => <Row key={it.row.id} item={it} />)}
+              {items.map(it => <Row key={it.row.id} item={it} onOpen={() => setOpenId(it.row.id)} />)}
             </ul>
           </section>
         ))}

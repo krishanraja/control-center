@@ -112,11 +112,16 @@ function ReasonChips({ kind, picked, toggle }: {
   )
 }
 
-export function DecideCard({ idea, onSettled, variant }: {
+export function DecideCard({ idea, onSettled, variant, onBack }: {
   idea: ContentIdeaRow
   /** Called once the decision is recorded, so the tab can advance. */
   onSettled: () => void
   variant: 'desktop' | 'mobile'
+  /** Present when the card was opened FROM a list rather than served as the
+   *  next in a queue. The Sunday list opens this same card on a row, because
+   *  a second decision surface would be a fork of the one that already
+   *  records reasons and carries panel_run_id. */
+  onBack?: () => void
 }) {
   const mobile = variant === 'mobile'
   const v = useMemo(() => ladderVerdict(idea), [idea])
@@ -261,8 +266,13 @@ export function DecideCard({ idea, onSettled, variant }: {
     <>
       <article data-testid="decide-card" className="flex min-h-[var(--decide-h)] flex-col rounded-2xl border border-white/8 border-l-[3px] border-l-accent bg-white/[0.02] p-4 sm:p-5">
         <div className="flex items-center gap-2.5">
-          <IconTile icon={PenLine} size="sm" tone="accent" />
-          <Eyebrow tone="accent">Decide now</Eyebrow>
+          {onBack ? (
+            <button type="button" onClick={onBack} data-testid="decide-close"
+              className="tap-44 inline-flex min-h-[32px] items-center rounded-lg border border-white/10 px-3 text-label text-ink-muted hover:text-ink">
+              Back
+            </button>
+          ) : <IconTile icon={PenLine} size="sm" tone="accent" />}
+          <Eyebrow tone="accent">{onBack ? 'Overrule this' : 'Decide now'}</Eyebrow>
         </div>
 
         <h2 className="mt-3 max-w-[34ch] text-title font-semibold leading-snug text-ink" data-testid="decide-claim">

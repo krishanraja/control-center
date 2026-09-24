@@ -44,7 +44,7 @@ const ladder = (o: {
       agreed: true, re_expanded: o.reExpanded !== false,
     },
   } : {}),
-  panel_run_id: 'run-1',
+  panel_run_id: '3f1c9a2e-5d44-4a7b-9c11-6b2e8f0a7d33',
   router: { fits: { mind_the_gap: 4, split_the_bill: 3, lift_the_lid: 5 }, winner: 'lift_the_lid', contested: [], why: 'x' },
   router_disagrees: false,
 })
@@ -94,6 +94,7 @@ const calmMorning = {
 }
 
 async function mock(page: Page, ideas: unknown[]) {
+  const posted: Record<string, unknown>[] = []
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
@@ -118,6 +119,12 @@ async function mock(page: Page, ideas: unknown[]) {
   // registration order, and the other way round the catch-all shadows this and
   // the screen renders its empty state forever.
   await page.route('**/rest/v1/content_ideas*', (r: Route) => r.fulfill({ json: ideas }))
+  await page.route('**/rest/v1/judge_verdicts*', (r: Route) => r.fulfill({ json: [] }))
+  await page.route('**/api/content-edits', (r: Route) => {
+    try { posted.push(JSON.parse(r.request().postData() || '{}')) } catch { /* recorded as absent */ }
+    return r.fulfill({ json: { ok: true } })
+  })
+  return posted
 }
 
 test.describe('the Sunday list', () => {
@@ -159,17 +166,36 @@ test.describe('the Sunday list', () => {
     await expect(unresearched).toContainText('Never researched')
   })
 
-  test('shows what the repair tried, with its sources, on demand', async ({ page }) => {
+  test('a row opens the same decide card, not a second one', async ({ page }) => {
+    // A separate decision surface here would be a fork of the one that
+    // already captures a reason in one tap and carries panel_run_id. The
+    // header says Overrule rather than Decide, and Back returns to the survey.
     await mock(page, IDEAS)
     await page.goto('/#/content')
     await page.getByTestId('content-room-weak').click()
+    await page.getByTestId('sunday-row-i1').click()
+    await expect(page.getByTestId('decide-card')).toBeVisible()
+    await expect(page.getByTestId('decide-card')).toContainText('Overrule this')
+    await page.getByTestId('decide-close').click()
+    await expect(page.getByTestId('sunday-list')).toBeVisible()
+  })
 
-    const jev = page.locator('li', { hasText: "Jev's real claim" })
-    await expect(jev).not.toContainText('None of that exists in the sourced material')
-    await jev.getByRole('button', { name: 'What it tried' }).click()
-    await expect(jev).toContainText('None of that exists in the sourced material')
-    // Wrapped in full, never truncated: a half URL is not a source.
-    await expect(jev).toContainText('langchain.com/blog/jev-agent-evals-langsmith')
+  test('an overrule from the Sunday list reaches the ledger with its run id', async ({ page }) => {
+    const posted = await mock(page, IDEAS)
+    await page.goto('/#/content')
+    await page.getByTestId('content-room-weak').click()
+    await page.getByTestId('sunday-row-i1').click()
+    await page.getByTestId('decide-write').click()
+    await page.getByTestId('reason-i_have_lived_this').click()
+    await page.getByTestId('decide-commit').click()
+
+    expect(posted).toHaveLength(1)
+    // The machine said weak and he said write it. That disagreement is the
+    // most valuable calibration row the system can produce, and before this
+    // surface existed it went nowhere.
+    expect(posted[0]!.action).toBe('approved')
+    expect(posted[0]!.panel_run_id).toBe('3f1c9a2e-5d44-4a7b-9c11-6b2e8f0a7d33')
+    expect(posted[0]!.reason_code).toBe('i_have_lived_this')
   })
 
   test('never shows a ready piece or one that was never judged', async ({ page }) => {

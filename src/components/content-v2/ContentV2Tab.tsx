@@ -340,7 +340,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
                 : room === 'weak'
                 ? (
                   <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
-                    <SundayList ideas={ideas} />
+                    <SundayList ideas={ideas} variant={variant} />
                   </div>
                 )
                 : room === 'library'
