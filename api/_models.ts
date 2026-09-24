@@ -58,7 +58,8 @@ export const OPENAI_GENERATION_MODEL = 'gpt-5.4-mini'
  * are worth keeping because they are the whole argument:
  *
  *   - Inference is Anthropic LIST PRICE with no per-token markup.
- *     claude-sonnet-5 $2/$10 per 1M, claude-haiku-4.5 $1/$5 — the same rows
+ *     anthropic/claude-sonnet-5 $2/$10 per 1M, anthropic/claude-haiku-4.5
+ *     $1/$5 — the same rows
  *     _prices.ts already carries. OpenRouter's margin is on credit top-ups.
  *   - Prompt caching survives the hop intact, at the exact multipliers
  *     _prices.ts models: a 5m write measured 1.25x input, a 1h write 2.0x, a

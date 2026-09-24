@@ -22,6 +22,24 @@ const SELF = 'check-model-prices.mts'
 /** Model ids include a numeric version. Surface names such as claude-code do not. */
 const MODEL = /claude-(?=[a-z0-9-]*\d)[a-z0-9]+(?:-[a-z0-9]+)*/g
 
+/**
+ * An OpenRouter slug is not an Anthropic model id, and must not be priced here.
+ *
+ * They are spelled with a provider prefix and dots for dots:
+ * `anthropic/claude-haiku-4.5`. MODEL above stops at the dot, so the slug reads
+ * as `claude-haiku-4` — a model that does not exist, has no rate anywhere, and
+ * failed this guard the moment the rescue provider landed. Adding a row for it
+ * would have been the exact error this file exists to prevent: an invented
+ * price for a model nobody calls.
+ *
+ * The rescue slugs stay unpriced deliberately. OpenRouter returns the real cost
+ * per call and api/_meter.ts records that figure, so a rate here would be a
+ * second number that has to agree with the invoice — and
+ * check-anthropic-fallback now FAILS if one is ever added. Stripping the slugs
+ * before matching keeps both guards telling the same story.
+ */
+const OPENROUTER_SLUG = /\b[a-z0-9-]+\/claude-[a-z0-9.-]+/g
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
@@ -35,7 +53,7 @@ const seen = new Map<string, string>()
 for (const file of ROOTS.flatMap(r => walk(r))) {
   // The price table itself declares the families; it is not a call site.
   if (file.endsWith('api/_prices.ts')) continue
-  const src = readFileSync(file, 'utf8')
+  const src = readFileSync(file, 'utf8').replace(OPENROUTER_SLUG, '')
   for (const m of src.match(MODEL) || []) {
     if (!seen.has(m)) seen.set(m, file)
   }

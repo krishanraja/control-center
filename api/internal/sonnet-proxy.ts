@@ -3,6 +3,10 @@ import { guardBearerExport } from '../_auth.js'
 import { PROXY_ALLOWED_MODELS } from '../_models.js'
 import * as meter from '../_meter.js'
 import { fetchWithRetry, RETRY_STATUS } from '../_retry.js'
+import {
+  anthropicIsShut, openBreaker, shouldFallBack, askRescueMessages,
+  asAnthropicResponse, flattenContent, understudyFor, RESCUE_PROVIDER,
+} from '../_providerFallback.js'
 
 // Internal-only Anthropic proxy. n8n workflows that can't share the
 // Anthropic credential (workflow-level credential scoping in n8n Cloud)
@@ -29,6 +33,7 @@ interface AnthropicBody {
   model?: string
   max_tokens?: number
   system?: string
+  temperature?: number
   messages?: unknown
 }
 
@@ -62,6 +67,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ ok: false, error: 'messages required' })
   }
 
+  /**
+   * Answer through the rescue provider and hand n8n Anthropic's own shape back.
+   *
+   * This is the single highest-leverage place in the repo to put a fallback.
+   * Forty-five Anthropic nodes across the checked-in mirrors call the provider
+   * directly, and eleven of them grew a hand-written Gemini branch: a body
+   * builder that had to find the prompt, a second HTTP node, and a parse node
+   * that had to read Google's response shape instead of Anthropic's. Nine of
+   * the eleven were broken from the day they were written, and nothing said so
+   * because `neverError: true` renders a 404 as a green node.
+   *
+   * A workflow that goes through here needs none of that. It sends one request,
+   * gets Anthropic's shape back whoever answered, and its existing parse node
+   * keeps working. The fallback becomes a property of the transport rather than
+   * eleven copies of a pattern that has to be maintained by hand.
+   */
+  const toRescue = async (why: string) => {
+    console.warn(`sonnet_proxy_rescue caller=${caller} model=${body.model} reason=${why.slice(0, 120)}`)
+    const turns = (body.messages as Array<{ role?: string; content?: unknown }>)
+      .filter(m => m?.role === 'user' || m?.role === 'assistant')
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: flattenContent(m.content) }))
+      .filter(m => m.content)
+    if (!turns.length) throw new Error('rescue_no_usable_turns')
+    const text = await askRescueMessages(
+      typeof body.system === 'string' ? body.system : '',
+      turns,
+      {
+        agent: caller,
+        model: body.model as string,
+        maxTokens: body.max_tokens,
+        temperature: body.temperature,
+      },
+    )
+    // Tokens are metered inside askRescueMessages against the OpenRouter
+    // provider with the biller's own cost. The counts echoed back to n8n are
+    // zeros rather than a re-derived guess: the workflow's own telemetry nodes
+    // multiply them by a hardcoded Anthropic rate, and feeding those a real
+    // token count for a call the meter has ALREADY priced would double-count
+    // the same spend in two places under two different numbers.
+    return asAnthropicResponse(text, understudyFor(body.model as string), { inputTokens: 0, outputTokens: 0 })
+  }
+
+  // A known outage costs nothing here either. The two workflows on the proxy
+  // today run on a schedule, so without this each tick pays a doomed round trip.
+  if (await anthropicIsShut()) {
+    try {
+      const payload = await toRescue('breaker_open')
+      res.setHeader('X-Rescued-By', RESCUE_PROVIDER)
+      return res.status(200).json(payload)
+    } catch (e) {
+      console.warn(`sonnet_proxy_rescue_failed: ${(e as Error)?.message?.slice(0, 120)}`)
+      return res.status(503).json({ ok: false, error: 'anthropic_unavailable_and_rescue_failed', detail: (e as Error).message })
+    }
+  }
+
   try {
     // An overload forwarded verbatim becomes an n8n node failure, and the
     // workflow behind it then falls back to a second provider for something
@@ -89,6 +149,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.warn(`sonnet_proxy_exhausted caller=${caller} model=${body.model} status=${r.status}`)
       }
     } catch { /* an unparseable body is Anthropic's problem, not the meter's */ }
+
+    if (!r.ok) {
+      const msg = `anthropic_${r.status}:${text.slice(0, 160)}`
+      if (shouldFallBack(new Error(msg))) {
+        void openBreaker(msg)
+        try {
+          const payload = await toRescue(msg)
+          res.setHeader('X-Rescued-By', RESCUE_PROVIDER)
+          return res.status(200).json(payload)
+        } catch (fe) {
+          // Fall through to the verbatim upstream status. The caller's own
+          // error branch is better than an invented one, and the Anthropic
+          // failure is the cause rather than this consequence.
+          console.warn(`sonnet_proxy_rescue_failed: ${(fe as Error)?.message?.slice(0, 120)}`)
+        }
+      }
+    }
     res.status(r.status).setHeader('Content-Type', 'application/json').send(text)
   } catch (e) {
     res.status(502).json({ ok: false, error: 'upstream_error', detail: (e as Error).message })

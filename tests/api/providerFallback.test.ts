@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseResetAt, understudyFor, shouldFallBack, readRescueUsage } from '../../api/_providerFallback.js'
+import { parseResetAt, understudyFor, shouldFallBack, readRescueUsage, asAnthropicResponse, flattenContent } from '../../api/_providerFallback.js'
 import { JUDGE_MODEL, SYNTHESIS_MODEL, RESCUE_JUDGE_MODEL, RESCUE_GENERATION_MODEL } from '../../api/_models.js'
 
 // The three decisions the fallback makes before it spends anything: how long to
@@ -120,4 +120,37 @@ test('a timeout is NOT one of them', () => {
 test('an unrelated failure does not reach for another provider', () => {
   assert.equal(shouldFallBack(new Error('rerank_unparseable')), false)
   assert.equal(shouldFallBack(new Error('planner_unparseable')), false)
+})
+
+test('a rescued answer wears the shape every n8n parse node already reads', () => {
+  // The whole n8n story rests on this one function. Every checked-in parse node
+  // reads content[0].text, and the eleven hand-written Gemini branches existed
+  // only because Google answers in candidates[0].content.parts[0].text. Nine of
+  // the eleven were broken from the day they were written. Translating once
+  // here means a workflow never learns a fallback happened, so it cannot have a
+  // broken fallback parser.
+  const r = asAnthropicResponse('the answer', 'anthropic/claude-sonnet-5', { inputTokens: 0, outputTokens: 0 })
+  const content = r.content as Array<{ type: string; text: string }>
+  assert.equal(content[0].type, 'text')
+  assert.equal(content[0].text, 'the answer')
+  assert.equal(r.type, 'message')
+  assert.equal(r.role, 'assistant')
+  // A downstream node switching on stop_reason must not take an untested
+  // branch just because the rescue answered.
+  assert.equal(r.stop_reason, 'end_turn')
+  // And it still says what it was, in a field nothing existing reads.
+  assert.equal(r._rescued_by, 'openrouter')
+})
+
+test('content blocks flatten to text, and an image says so instead of vanishing', () => {
+  assert.equal(flattenContent('plain'), 'plain')
+  assert.equal(flattenContent([{ type: 'text', text: 'one' }, { type: 'text', text: 'two' }]), 'one\n\ntwo')
+  // Silently dropping an image would produce a confident answer to a question
+  // the model never saw, which is worse than the outage it is rescuing.
+  assert.match(
+    flattenContent([{ type: 'image', source: {} }, { type: 'text', text: 'describe it' }]),
+    /image omitted/,
+  )
+  assert.equal(flattenContent(undefined), '')
+  assert.equal(flattenContent({ nope: true }), '')
 })

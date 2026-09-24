@@ -447,3 +447,60 @@ export async function streamRescue(
   await meter.rescueCall({ agent: opts.agent, model, ...u })
   return { usd: u.usd }
 }
+
+/**
+ * A rescue answer, dressed as an Anthropic Messages response.
+ *
+ * This is what lets the n8n fleet inherit the rescue without touching a single
+ * workflow. Every checked-in parse node reads Anthropic's native shape —
+ * `content[0].text` — and the Gemini branches only existed because Google
+ * answers in a different one: `candidates[0].content.parts[0].text`. Nine of
+ * eleven of those branches were broken for months precisely because the shape
+ * adapter was written per workflow, by hand, eleven times.
+ *
+ * Translating once, here, deletes that entire class of bug. A workflow cannot
+ * have a broken fallback parser if it never learns that a fallback happened.
+ *
+ * `stop_reason` is 'end_turn' rather than something honest like 'rescued'
+ * because a downstream node switching on it would take a branch nobody tested.
+ * The rescue announces itself in `_rescued_by`, which is additive and which no
+ * existing node reads.
+ */
+export function asAnthropicResponse(
+  text: string,
+  model: string,
+  usage: { inputTokens: number; outputTokens: number },
+): Record<string, unknown> {
+  return {
+    id: `msg_rescue_${Date.now().toString(36)}`,
+    type: 'message',
+    role: 'assistant',
+    model,
+    content: [{ type: 'text', text }],
+    stop_reason: 'end_turn',
+    stop_sequence: null,
+    usage: { input_tokens: usage.inputTokens, output_tokens: usage.outputTokens },
+    _rescued_by: RESCUE_PROVIDER,
+  }
+}
+
+/**
+ * Anthropic message content -> plain text.
+ *
+ * The proxy forwards whatever a workflow sent, and a workflow may send either a
+ * bare string or an array of content blocks. Flattening to text is lossy for an
+ * image block, and deliberately so: the rescue path is text only, and a
+ * workflow sending images is better served by the outage than by an answer that
+ * silently ignored half its input. Those say so, rather than going quiet.
+ */
+export function flattenContent(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  const parts: string[] = []
+  for (const block of content) {
+    const b = block as { type?: string; text?: string }
+    if (b?.type === 'text' && typeof b.text === 'string') parts.push(b.text)
+    else if (b?.type === 'image') parts.push('[image omitted: the rescue provider is text only]')
+  }
+  return parts.join('\n\n')
+}
