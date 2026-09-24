@@ -72,7 +72,15 @@ export function EventsLane({ onOpen }: { onOpen?: (id: string) => void }) {
         <p className="text-micro text-ink-muted">Reading the rooms.</p>
       )}
 
-      {error && (
+      {/* A failed refresh over rows we already have is STALE, not broken, and the
+          two need different words: the reader can still act on what is here. */}
+      {error && events.length > 0 && (
+        <p className="text-micro text-amber-300">
+          These are the last rooms we read. The refresh just failed, so something
+          new may be missing.
+        </p>
+      )}
+      {error && events.length === 0 && (
         <p className="text-micro text-rose-300">
           Could not read the lane: {error}
         </p>

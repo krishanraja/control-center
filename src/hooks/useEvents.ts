@@ -134,8 +134,23 @@ export function useEvents(opts: { city?: HomeCity; upcomingOnly?: boolean } = {}
       const { data, error: err } = await q
       if (cancelled) return
       if (err) {
-        console.warn('[useEvents] fetch error', err.message)
-        setRows([])
+        // KEEP WHAT WE HAVE. This polls every 60 seconds, so a single failed
+        // refresh used to blank a populated lane and then fill it again a minute
+        // later. That is worse than stale in both directions: the reader is told
+        // there is nothing on this week when there is, and anything counting the
+        // rows sees a real zero. The rows are last known good and the error says
+        // the refresh failed, which is two true statements instead of one false
+        // one.
+        //
+        // NOT COVERED BY A BROWSER TEST, deliberately and with the reason
+        // recorded. Reproducing it needs the 60s poll to fire on an instance that
+        // already holds rows: a remount starts empty and proves nothing, and
+        // page.clock.install() freezes the app's own timers so the lane never
+        // populates in the first place. What IS covered is the symptom that led
+        // here - e2e/events-lane.spec.ts reading a row count of 0 on a loaded CI
+        // runner while the cards were on screen - and the two banner branches in
+        // EventsLane are distinguished by events.length, which typechecks.
+        console.warn('[useEvents] refresh failed, keeping the last good rows', err.message)
         setError(err.message)
       } else {
         setRows((data as EventRow[]) || [])

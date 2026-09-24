@@ -104,13 +104,25 @@ test('switching city changes the list, which is the whole complaint', async ({ p
   // Read the counts the lane states about itself rather than counting cards:
   // StatusLane previews six rows per lane behind a "Show N more", so the number
   // of visible cards is a fact about the preview cap, not about the filter.
+  //
+  // Read BOTH numbers in one evaluate, and wait for a settled state. Two separate
+  // getAttribute calls can straddle a re-render, and on a loaded CI runner this
+  // read 0 for the total while the cards were plainly on screen. `Number(null)`
+  // is 0, so a missing attribute is indistinguishable from a real zero, which is
+  // exactly the kind of assertion that reports the wrong defect.
   const counts = async () => {
-    const el = page.getByTestId('events-summary')
-    await expect(el).toBeVisible()
-    return {
-      home: Number(await el.getAttribute('data-home')),
-      total: Number(await el.getAttribute('data-total')),
-    }
+    let snap = { home: 0, total: 0 }
+    await expect.poll(async () => {
+      snap = await page.getByTestId('events-summary').evaluate(el => ({
+        home: Number(el.getAttribute('data-home')),
+        total: Number(el.getAttribute('data-total')),
+      }))
+      return snap.total
+    }, {
+      message: 'the events lane never reported a row count',
+      timeout: 15_000,
+    }).toBeGreaterThan(0)
+    return snap
   }
 
   // The rooms he can walk into, by title. The COUNT is not the assertion: a
