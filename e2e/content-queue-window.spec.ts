@@ -79,14 +79,42 @@ async function mockQueue(page: Page, rows: Array<{ week: string }>) {
   return urls
 }
 
+/**
+ * Wait for the query itself, not for a proxy for it.
+ *
+ * The three tests below used to assert on `urls` straight after awaiting the
+ * "to decide" text. That text is not evidence the request landed: the deck
+ * renders its shell first, so on a loaded runner the assertion could read `urls`
+ * while it was still empty. `urls[0]` was then undefined, `decodeURIComponent`
+ * turned that into the string "undefined", the regex missed, and the failure
+ * reported as "the window is missing" when the window was fine and the test was
+ * early.
+ *
+ * Worse, the proxy was AMBIGUOUS. `getByText('to decide')` matches two elements
+ * once the deck has data: the "To decide" room tab and the "of 1 to decide"
+ * count. So the wait only ever passed by resolving BEFORE the count rendered,
+ * and on a fully loaded page it is a strict-mode violation. The spec was
+ * depending on being early, which is the opposite of what it was written to do.
+ *
+ * It was latent for as long as this job ran 102 tests on two workers and surfaced
+ * the moment it ran 109, failing on a different one of the three each run
+ * depending on which lost the race. Waiting on the captured URL removes both
+ * problems: the timing and the ambiguous locator.
+ */
+async function firstQuery(urls: string[]): Promise<string> {
+  await expect.poll(() => urls.length, {
+    message: 'the content queue never issued a content_decisions request',
+    timeout: 15_000,
+  }).toBeGreaterThan(0)
+  return decodeURIComponent(urls[0])
+}
+
 test('the queue asks for a bounded week window, newest first', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   const urls = await mockQueue(page, [CURRENT_CARD])
   await page.goto('/#/content')
-  await expect(page.getByText('to decide', { exact: false })).toBeVisible()
 
-  expect(urls.length).toBeGreaterThan(0)
-  const q = decodeURIComponent(urls[0])
+  const q = await firstQuery(urls)
   // The bound itself. Losing this line is the original bug.
   expect(q).toContain('week=gte.')
   // And it must be a recent week, not the beginning of time.
@@ -122,11 +150,10 @@ test('the ancient card is excluded by the window the app sends', async ({ page }
   await page.setViewportSize({ width: 390, height: 844 })
   const urls = await mockQueue(page, [ANCIENT_CARD, CURRENT_CARD])
   await page.goto('/#/content')
-  await expect(page.getByText('to decide', { exact: false })).toBeVisible()
 
   // Postgrest would never have returned this row: prove the filter the client
   // sent actually excludes its week.
-  const bound = decodeURIComponent(urls[0]).match(/week=gte\.([0-9]{4}-W[0-9]{2})/)?.[1]
+  const bound = (await firstQuery(urls)).match(/week=gte\.([0-9]{4}-W[0-9]{2})/)?.[1]
   expect(bound).toBeTruthy()
   expect(ANCIENT_CARD.week < bound!).toBe(true)
 })
