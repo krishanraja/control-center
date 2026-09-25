@@ -76,6 +76,9 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
         body: JSON.stringify({ id, state: 'published', ...(url.trim() ? { published_url: url.trim() } : {}) }),
       })
       const body = await r.json().catch(() => ({} as any))
+      if (r.status === 409 && body?.reason === 'fact_gate') {
+        h.error(); toast(body.error, 'error'); return
+      }
       if (!r.ok || body?.ok === false) throw new Error(String(r.status))
       h.success(); toast('Published and logged.', 'success')
       setPubOpen(false); setPubUrl('')
@@ -93,7 +96,8 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
       })
       const body = await r.json().catch(() => ({} as any))
       if (!r.ok || body?.ok === false) {
-        if (r.status === 409 && body?.reason === 'state_guard') {
+        // The honest-state guard and the fact gate both refuse with 409 and a plain reason.
+        if (r.status === 409 && (body?.reason === 'state_guard' || body?.reason === 'fact_gate')) {
           h.error(); toast(body.error || 'Develop it first.', 'error'); open(id); return
         }
         throw new Error(String(r.status))

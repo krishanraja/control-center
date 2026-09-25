@@ -49,7 +49,8 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
       const body = await r.json().catch(() => ({} as any))
       if (!r.ok || body?.ok === false) {
         // Honest-state guard (409): a card can't enter review/approved empty.
-        if (r.status === 409 && body?.reason === 'state_guard') {
+        // The fact gate (409): nor with a claim that has not been verified.
+        if (r.status === 409 && (body?.reason === 'state_guard' || body?.reason === 'fact_gate')) {
           h.error(); toast(body.error || 'Develop it first.', 'error'); return
         }
         throw new Error(String(r.status))
