@@ -13,6 +13,11 @@ import { useCallback, useEffect, useState } from 'react'
  *
  * Plain words throughout (Krish, 2026-09-25: no words "someone needs to
  * interpret"): each claim still to fix says what is wrong in a sentence.
+ *
+ * Below the facts sits the rest of the checklist his house rules make
+ * mechanical (content-engine api/_publishChecks.ts): no em dashes or
+ * exclamation marks, no "Not X, Y", reading age 12, and a dated prediction
+ * with a confidence. The engine refuses approval until the blocking ones pass.
  */
 
 type Claim = {
@@ -24,6 +29,7 @@ type Claim = {
 }
 type FactCheck = { ran_at: string; claims: Claim[]; blocking: number; passed: boolean; set_aside?: unknown[] }
 type Gate = { ok: boolean; reason: string | null }
+type Check = { id: string; name: string; ok: boolean; blocking: boolean; detail: string }
 
 const LIVE = new Set(['follow_the_money', 'mind_the_gap', 'under_the_hood'])
 const PASSING = new Set(['verified', 'verified_on_file', 'verified_web'])
@@ -44,6 +50,8 @@ export function whyNot(c: Claim): string {
 export function FactCheckStrip({ ideaId }: { ideaId: string }) {
   const [gate, setGate] = useState<Gate | null>(null)
   const [check, setCheck] = useState<FactCheck | null>(null)
+  const [rules, setRules] = useState<Check[]>([])
+  const [ready, setReady] = useState(false)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -51,7 +59,10 @@ export function FactCheckStrip({ ideaId }: { ideaId: string }) {
     try {
       const r = await fetch(`/api/content-ideas/${ideaId}/fact-check`)
       const j = await r.json().catch(() => ({}))
-      if (r.ok && j?.ok) { setGate(j.gate || null); setCheck(j.fact_check || null) }
+      if (r.ok && j?.ok) {
+        setGate(j.gate || null); setCheck(j.fact_check || null)
+        setRules(Array.isArray(j.checks) ? j.checks : []); setReady(j.ready === true)
+      }
     } catch { /* the strip still offers the button */ }
   }, [ideaId])
 
@@ -97,6 +108,22 @@ export function FactCheckStrip({ ideaId }: { ideaId: string }) {
             </li>
           ))}
         </ul>
+      ) : null}
+      {rules.length ? (
+        <div className="mt-3 border-t border-[#102017]/12 pt-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-[#102017]/60">Before it can be approved</span>
+            <span data-testid="house-rules-status" className="text-micro font-semibold text-[#102017]/70">{ready ? 'Ready' : `${rules.filter(c => c.blocking && !c.ok).length} to go`}</span>
+          </div>
+          <ul className="mt-1.5 space-y-1" aria-label="House rules checklist">
+            {rules.map(c => (
+              <li key={c.id} className="flex gap-2 text-label leading-snug text-[#102017]/80">
+                <span aria-hidden="true" className={`mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 ${c.ok ? 'border-emerald-700 bg-emerald-600' : c.blocking ? 'border-[#102017]/60 bg-transparent' : 'border-amber-700 bg-amber-400'}`} />
+                <span><strong className="font-semibold text-[#102017]">{c.name}.</strong> <span className="sr-only">{c.ok ? 'Passes.' : c.blocking ? 'Not yet.' : 'Check.'}</span>{c.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {error ? <p role="alert" className="mt-2 text-label text-red-800">{error}</p> : null}
       {!gate?.ok ? (

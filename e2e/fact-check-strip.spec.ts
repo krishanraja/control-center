@@ -34,7 +34,7 @@ const FAILING = {
   ],
 }
 
-async function open(page: Page, gate: { ok: boolean; reason: string | null }, factCheck: unknown, onPost?: () => void) {
+async function open(page: Page, gate: { ok: boolean; reason: string | null }, factCheck: unknown, onPost?: () => void, extra: Record<string, unknown> = {}) {
   await page.clock.setFixedTime(new Date('2026-09-25T18:30:00Z'))
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
@@ -48,7 +48,7 @@ async function open(page: Page, gate: { ok: boolean; reason: string | null }, fa
       state = { gate: { ok: false, reason: '1 claim failed the fact check. Fix or cut it, then run it again.' }, factCheck: FAILING }
       return r.fulfill({ json: { ok: true, passed: false, blocking: 1 } })
     }
-    return r.fulfill({ json: { ok: true, gate: state.gate, fact_check: state.factCheck } })
+    return r.fulfill({ json: { ok: true, gate: state.gate, fact_check: state.factCheck, ...extra } })
   })
   await page.goto(`/#/content?idea=${IDEA_ID}`)
   await expect(page.getByText(IDEA.idea, { exact: true }).last()).toBeVisible({ timeout: 20_000 })
@@ -75,4 +75,33 @@ test('a passed check says so, and offers nothing to press', async ({ page }) => 
   await expect(strip.getByTestId('fact-check-status')).toHaveText('Passed')
   await expect(strip.getByText('The one fact in this exact version passed.')).toBeVisible()
   await expect(strip.getByRole('button', { name: 'Check the facts' })).toHaveCount(0)
+})
+
+// The rest of Krish's rulings that a machine can check (content-engine
+// api/_publishChecks.ts). The engine refuses approval until the blocking ones
+// pass, so the strip says which are left, in his words, before he presses
+// Approve. The checks below are the engine's real output for piece 2's text.
+test('the checklist says what is left before approval, and a warning does not hold it up', async ({ page }) => {
+  const checks = [
+    { id: 'FACTS', name: 'Every fact checked twice', blocking: true, ok: true, detail: 'This exact version passed the fact check.' },
+    { id: 'R2', name: 'No "Not X, Y"', blocking: true, ok: true, detail: 'None found.' },
+    { id: 'NO_EM_DASH', name: 'No em dashes', blocking: true, ok: true, detail: 'None found.' },
+    { id: 'NO_EXCLAMATION', name: 'No exclamation marks', blocking: true, ok: true, detail: 'None found.' },
+    { id: 'R7', name: 'Reading age 12', blocking: false, ok: false, detail: 'Reads at about age 12.5, a little above 12. Shorten the longest sentences.' },
+    { id: 'CALL', name: 'A dated prediction with a confidence', blocking: true, ok: false, detail: 'The prediction has no confidence yet. Krish sets how sure we are, as a percentage.' },
+    { id: 'R6', name: 'Plain words', blocking: false, ok: false, detail: 'Make sure each is explained where it first appears: model routing, token, prompt, API.' },
+  ]
+  await open(page, { ok: true, reason: null }, { ...FAILING, passed: true, blocking: 0, claims: [FAILING.claims[0]] }, undefined, { checks, ready: false })
+  const strip = page.getByTestId('fact-check-strip')
+  const list = strip.getByRole('list', { name: 'House rules checklist' })
+  await expect(strip.getByTestId('house-rules-status')).toHaveText('1 to go')
+  await expect(list.getByRole('listitem')).toHaveCount(7)
+  await expect(list.getByText('Krish sets how sure we are, as a percentage.')).toBeVisible()
+  await expect(list.getByText('a little above 12')).toBeVisible()
+})
+
+test('a piece that keeps every rule says it is ready', async ({ page }) => {
+  const checks = [{ id: 'CALL', name: 'A dated prediction with a confidence', blocking: true, ok: true, detail: 'Has a date to check by and a confidence.' }]
+  await open(page, { ok: true, reason: null }, { ...FAILING, passed: true, blocking: 0, claims: [FAILING.claims[0]] }, undefined, { checks, ready: true })
+  await expect(page.getByTestId('house-rules-status')).toHaveText('Ready')
 })

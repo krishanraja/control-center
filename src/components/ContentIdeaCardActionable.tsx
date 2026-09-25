@@ -50,7 +50,7 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
       if (!r.ok || body?.ok === false) {
         // Honest-state guard (409): a card can't enter review/approved empty.
         // The fact gate (409): nor with a claim that has not been verified.
-        if (r.status === 409 && (body?.reason === 'state_guard' || body?.reason === 'fact_gate')) {
+        if (r.status === 409 && (body?.reason === 'state_guard' || body?.reason === 'fact_gate' || body?.reason === 'publish_gate')) {
           h.error(); toast(body.error || 'Develop it first.', 'error'); return
         }
         throw new Error(String(r.status))
