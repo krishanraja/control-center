@@ -23,10 +23,13 @@ export function googleConfigured(): boolean {
   return !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)
 }
 
-export async function googleAccessToken(scopes: string[]): Promise<string | null> {
+// `impersonate: false` asks for a token as the service account itself. GA4 is
+// granted by adding the SA's own email as a property Viewer, not through
+// domain-wide delegation, so impersonating a Workspace user there would fail.
+export async function googleAccessToken(scopes: string[], opts: { impersonate?: boolean } = {}): Promise<string | null> {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
-  const subject = process.env.GOOGLE_IMPERSONATE_SUBJECT
+  const subject = opts.impersonate === false ? undefined : process.env.GOOGLE_IMPERSONATE_SUBJECT
   if (!email || !key) return null
   key = key.replace(/\\n/g, '\n') // env stores PEM newlines escaped
 
@@ -166,5 +169,31 @@ export async function createDriveDoc(input: { name: string; content: string }): 
     return { id: j.id, url: j.webViewLink || `https://docs.google.com/document/d/${j.id}/edit` }
   } catch {
     return null
+  }
+}
+
+/**
+ * Run one GA4 Data API report as the service account. Returns the raw report
+ * or { error } so a caller can say WHY a key is missing (not shared, API off,
+ * wrong property id) rather than writing a fake zero.
+ *
+ * Needs: the Google Analytics Data API enabled in the SA's GCP project, and the
+ * SA email added as Viewer on the property. `propertyId` is the numeric id from
+ * GA Admin → Property details, not the G- measurement id.
+ */
+export async function runGa4Report(propertyId: string, body: Record<string, unknown>): Promise<{ report: any } | { error: string }> {
+  const token = await googleAccessToken(['https://www.googleapis.com/auth/analytics.readonly'], { impersonate: false })
+  if (!token) return { error: 'no service-account token (GOOGLE_SERVICE_ACCOUNT_* unset or key invalid)' }
+  try {
+    const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:runReport`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const j: any = await r.json().catch(() => ({}))
+    if (!r.ok) return { error: `GA4 ${r.status}: ${j?.error?.message || 'request failed'}` }
+    return { report: j }
+  } catch (e: any) {
+    return { error: String(e?.message || e) }
   }
 }
