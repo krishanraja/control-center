@@ -47,7 +47,7 @@ lead or yes.
 | The Threshold | 3 of 5 (60%) | Substack | |
 | How It Actually Works | 2 of 4 (50%) | Shorts | |
 | The Teardown | 2 of 4 (50%) | Substack | |
-| Follow the Money | 3 of 7 (43%) | Substack | Carries the single Lead |
+| The Money Trail (Follow the Money until 2026-09-25) | 3 of 7 (43%) | Substack | Carries the single Lead |
 | One Number | 2 of 5 (40%) | Shorts | See below, the most useful result |
 | Nobody's Taken This | 1 of 3 (33%) | Shorts | |
 | The Receipt | 1 of 5 (20%) | Substack | |

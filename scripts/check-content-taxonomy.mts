@@ -135,18 +135,17 @@ if (RETIRED_LABELS.includes('follow.the.money') || RETIRED_LABELS.includes('unde
 }
 
 // DELIBERATELY NOT ENFORCED, pending a ruling from Krish. 'The Artifact',
-// 'Follow the Money', 'Money Trace', 'First Version' and 'The Third Why' are
-// named as retired publication formats in the 2026-09-19 fleet brief, and all
-// five are ALSO live entries in a different vocabulary: the nine story shapes in
-// content-engine's api/_formats.ts, whose own header says it records "form, not
-// subject". 'Follow the Money' and 'The Artifact' are live there today, and
+// 'Money Trace', 'First Version' and 'The Third Why' are named as retired
+// publication formats in the 2026-09-19 fleet brief, and are ALSO live entries
+// in a different vocabulary: the story shapes in content-engine's
+// api/_formats.ts, whose own header says it records "form, not subject".
 // 'The Artifact' was itself the 2026-08-29 rename away from a retired name.
-// Two vocabularies collide on those five strings and a lint must not pick a
-// winner. See makeyourmindup:project-documentation/02_REPO_BRIEF.md, which is
-// where that adjudication actually lives. Since 2026-09-25 'Follow the Money'
-// also shares its words with the live subchannel follow.the.money; whether the
-// story shape is renamed is Krish's call, and this guard still does not make it.
-const CONTESTED = ['The Artifact', 'Follow the Money', 'Money Trace', 'First Version', 'The Third Why']
+// Two vocabularies collide on those strings and a lint must not pick a winner.
+// See makeyourmindup:project-documentation/02_REPO_BRIEF.md, which is where
+// that adjudication actually lives. 'Follow the Money' left this list on
+// 2026-09-25: Krish made follow.the.money a subchannel's name and approved
+// renaming the story shape to 'The Money Trail'.
+const CONTESTED = ['The Artifact', 'Money Trace', 'First Version', 'The Third Why']
 for (const c of CONTESTED) {
   if (RETIRED_LABELS.includes(c)) {
     bad(`'${c}' is enforced as a retired label while it is still a live story shape; that ruling is Krish's, not this guard's`)
