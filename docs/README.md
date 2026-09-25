@@ -101,7 +101,7 @@ working.
 | Tab | Hash | Purpose | Primary tables |
 |---|---|---|---|
 | Home | `#home` | The canon, one screen, no scrolling: OS goals → this week's ≤3 objectives → today's 3, one vitals line (MRR · ships · waiting), ONE contextual CTA, the Focus and Intel doors (Intel opens the daily drawer) | `goals`, `daily_focus`, `ships`, `decisions_waiting`, `silent_failures`, `home_intelligence` |
-| Content | `#content` | Content Engine v2: one room per subchannel (mind.the.gap / split.the.bill / lift.the.lid) plus Library, and the mobile Queue decision deck; the brief editor. How to drive it: [`CONTENT-ENGINE-OPERATING-GUIDE.md`](./CONTENT-ENGINE-OPERATING-GUIDE.md) | `content_ideas`, `weekly_briefs`, `shifts`, `content_decisions` |
+| Content | `#content` | Content Engine v2: one room per subchannel (mind.the.gap / follow.the.money / under.the.hood) plus Library, and the mobile Queue decision deck; the brief editor. How to drive it: [`CONTENT-ENGINE-OPERATING-GUIDE.md`](./CONTENT-ENGINE-OPERATING-GUIDE.md) | `content_ideas`, `weekly_briefs`, `shifts`, `content_decisions` |
 | People | `#people` | Every human pipeline: Pipeline / **Network** (default lane) / Visibility | `leads`, `contacts`, `contact_intelligence`, `guests`, `visibility_targets` |
 | Growth | `#growth` | The weekly growth loop: Map, Work, Signals, Council, Governance ([`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md)) | growth + governance tables per the runbook |
 | OS | `#os` | Queue (the ruling deck) + Org / Intel / Flows / Systems subtabs | `tasks`, `agents`, `workflow_runs`, `system_health`, `zara_signals` |

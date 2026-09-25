@@ -88,7 +88,7 @@ export const IDEAS = Array.from({ length: 22 }, (_, i) => ({
   // the alias ledger rather than dropping it. The desk opens on the first room,
   // so if none of these lands there the whole file measures an empty page.
   lane: LANES[i % LANES.length],
-  lane_slot: i === 3 ? 'built' : (['mind_the_gap', 'split_the_bill', 'lift_the_lid'] as const)[i % 3],
+  lane_slot: i === 3 ? 'built' : (['mind_the_gap', 'follow_the_money', 'under_the_hood'] as const)[i % 3],
   draft_link: null, assigned_to: null, scheduled_for: null, published_at: null, published_url: null,
   confidence: 0.6, brand_fit_score: 0.7, quality_score: 'green',
   pillar_id: null, related_idea_ids: null, parent_idea_id: null,
@@ -111,7 +111,7 @@ export const SHIFTS = Array.from({ length: 8 }, (_, i) => ({
   // Same rotation, same reason: one retired spelling, the rest live, and some
   // with no lane at all so the cross-cutting section still has something in it.
   status: 'active',
-  lane: i === 1 ? 'built' : (i % 2 ? (['mind_the_gap', 'split_the_bill', 'lift_the_lid'] as const)[i % 3] : null),
+  lane: i === 1 ? 'built' : (i % 2 ? (['mind_the_gap', 'follow_the_money', 'under_the_hood'] as const)[i % 3] : null),
   first_seen_on: '2026-07-01', last_evidence_on: '2026-09-10',
   momentum: 8 - i, momentum_history: [{ week: WEEK, momentum: 8 - i }],
   day_span_total: 9, source_count_total: 5, story_count: 12,

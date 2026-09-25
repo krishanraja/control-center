@@ -222,7 +222,7 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // That looked like it was blocked on n8n. It was not. The factory's Route by
 // Channel switch already accepts all three live slugs, added additively on
 // 2026-09-19 beside the old spellings, which the live workflow confirms:
-// split_the_bill routes where paid did, lift_the_lid where built did, and
+// follow_the_money routes where paid did, under_the_hood where built did, and
 // mind_the_gap to the house branch. The wire was ready and only this list was
 // short. Reading the switch shows that; inferring it from the short list does
 // not, which is how it was called an n8n blocker for a day.

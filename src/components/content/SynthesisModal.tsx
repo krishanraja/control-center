@@ -21,9 +21,9 @@ interface LaneChoice {
 // here would drift, which is exactly what happened to the two rows this
 // replaced. They named formats retired on 2026-09-17.
 const LANE_STEER: Record<string, string> = {
-  split_the_bill: 'What does it really cost to run, and who ends up holding the bill. Take one load-bearing number apart against dated evidence and attribute every figure to whoever produced it. The reader is the buyer with a renewal quote in front of them, never the vendor pricing it.',
+  follow_the_money: 'What does it really cost to run, and who ends up holding the bill. Take one load-bearing number apart against dated evidence and attribute every figure to whoever produced it. The reader is the buyer with a renewal quote in front of them, never the vendor pricing it.',
   mind_the_gap: 'The gap between what everyone says is happening and what is actually happening, traced through ONE topic. The topic is the spine and the gap is the argument. A piece that surveys several topics is not this format.',
-  lift_the_lid: 'Take a launch or a live product surface apart and separate what ships from what was demoed. Does this make its user sharper, or dependent. Archive the surface before recording, because pricing pages move.',
+  under_the_hood: 'Take a launch or a live product surface apart and separate what ships from what was demoed. Does this make its user sharper, or dependent. Archive the surface before recording, because pricing pages move.',
 }
 const LANES: LaneChoice[] = SUBCHANNELS.map(f => ({
   lane: 'publication',

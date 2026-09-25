@@ -46,7 +46,7 @@ const ladder = (o: { band: string; score: number; weakest: string; angle?: strin
     researched: true, sources: ['https://example.org/a', 'https://example.org/b'], briefed: 7,
   }],
   panel_run_id: RUN_ID,
-  router: { fits: { mind_the_gap: 4, split_the_bill: 3, lift_the_lid: 6 }, winner: o.winner || 'lift_the_lid', contested: [], why: 'x' },
+  router: { fits: { mind_the_gap: 4, follow_the_money: 3, under_the_hood: 6 }, winner: o.winner || 'under_the_hood', contested: [], why: 'x' },
   router_disagrees: o.disagrees === true,
 })
 
@@ -61,7 +61,7 @@ const IDEAS = [
   row('i1', 'Jev proves the agent stack should be split by decision type', ladder({
     band: 'repairable', score: 6, weakest: 'consequence',
     angle: 'Most agent stacks never split decisions by type, and that is what Jev actually proves.',
-    winner: 'lift_the_lid', disagrees: true,
+    winner: 'under_the_hood', disagrees: true,
   }), 'mind_the_gap'),
   row('i2', 'A second piece waiting', ladder({ band: 'repairable', score: 5, weakest: 'reader', angle: 'A second angle.' })),
   // Ready and weak must never appear in the decide queue.
@@ -136,7 +136,7 @@ test.describe('the decide surface', () => {
   test('states where the router disagrees with the filing', async ({ page }) => {
     await mock(page)
     await openDecide(page)
-    await expect(page.getByTestId('decide-disagrees')).toContainText('lift_the_lid')
+    await expect(page.getByTestId('decide-disagrees')).toContainText('under_the_hood')
   })
 
   test('nothing above the footer moves when a button is pressed', async ({ page }) => {
@@ -158,7 +158,7 @@ test.describe('the decide surface', () => {
     // decline, five for an approve, four and a longer question for a reroute.
     // Reserving for one and not the others would leave the jump in place on
     // whichever is tallest.
-    for (const press of ['decide-bin', 'decide-write', 'decide-channel-split_the_bill'] as const) {
+    for (const press of ['decide-bin', 'decide-write', 'decide-channel-follow_the_money'] as const) {
       await page.getByTestId(press).click()
       await expect(page.getByTestId('decide-why')).toBeVisible()
       expect(await box()).toEqual(before)
@@ -217,7 +217,7 @@ test.describe('the decide surface', () => {
   test('moving a subchannel records both sides of the disagreement', async ({ page }) => {
     const posted = await mock(page)
     await openDecide(page)
-    await page.getByTestId('decide-channel-split_the_bill').click()
+    await page.getByTestId('decide-channel-follow_the_money').click()
     await page.getByTestId('reason-it_is_about_money').click()
     await page.getByTestId('decide-commit').click()
 
@@ -225,7 +225,7 @@ test.describe('the decide surface', () => {
     const e = posted[0]!
     expect(e.action).toBe('manual_edit')
     expect(e.mode).toBe('lane_slot')
-    expect(e.value).toBe('split_the_bill')
+    expect(e.value).toBe('follow_the_money')
     expect(e.panel_run_id).toBe(RUN_ID)
     // change_has_result: the table refuses a change with no result, so both
     // hashes must be real or the row never lands.

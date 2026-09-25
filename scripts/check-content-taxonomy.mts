@@ -122,9 +122,17 @@ const RETIRED_LABELS = [
   'Techonomic',
   'The Builder Economy',
   'inspect.the.build',
-  'follow.the.money',
+  'split.the.bill',   // renamed follow.the.money by Krish, 2026-09-25
+  'lift.the.lid',     // renamed under.the.hood by Krish, 2026-09-25
   'Newsflash',
 ]
+
+// follow.the.money sat in the list above until 2026-09-25, when Krish made it
+// the live name of the money subchannel. Pinned so a merge cannot put it back
+// and have the guard reject a live name.
+if (RETIRED_LABELS.includes('follow.the.money') || RETIRED_LABELS.includes('under.the.hood')) {
+  bad("'follow.the.money' or 'under.the.hood' is listed as retired; since 2026-09-25 they are live subchannel names")
+}
 
 // DELIBERATELY NOT ENFORCED, pending a ruling from Krish. 'The Artifact',
 // 'Follow the Money', 'Money Trace', 'First Version' and 'The Third Why' are
@@ -135,7 +143,9 @@ const RETIRED_LABELS = [
 // 'The Artifact' was itself the 2026-08-29 rename away from a retired name.
 // Two vocabularies collide on those five strings and a lint must not pick a
 // winner. See makeyourmindup:project-documentation/02_REPO_BRIEF.md, which is
-// where that adjudication actually lives.
+// where that adjudication actually lives. Since 2026-09-25 'Follow the Money'
+// also shares its words with the live subchannel follow.the.money; whether the
+// story shape is renamed is Krish's call, and this guard still does not make it.
 const CONTESTED = ['The Artifact', 'Follow the Money', 'Money Trace', 'First Version', 'The Third Why']
 for (const c of CONTESTED) {
   if (RETIRED_LABELS.includes(c)) {
@@ -151,10 +161,11 @@ const hitsRetired = (label: string) =>
 for (const dead of ['The Money of AI', 'Built With AI', 'Mindmaker Live', 'Techonomic']) {
   if (!hitsRetired(dead)) bad(`self-test: '${dead}' is retired and the matcher missed it`)
 }
-// lift.the.lid is in this list deliberately. It was retired on 2026-09-18,
-// reinstated on 2026-09-19 as one of three standing subchannels, and sat in
-// RETIRED_LABELS in between, where it would have rejected the live format.
-for (const live of ['mind.the.gap', 'split.the.bill', 'lift.the.lid', 'makeyourmindup', 'Mindmake', 'Signal & Noise', 'Maven']) {
+// The three live subchannels are in this list deliberately. The build
+// subchannel was retired on 2026-09-18 and reinstated on 2026-09-19, and sat
+// in RETIRED_LABELS in between, where it would have rejected the live format;
+// follow.the.money did the same until 2026-09-25.
+for (const live of ['mind.the.gap', 'follow.the.money', 'under.the.hood', 'makeyourmindup', 'Mindmake', 'Signal & Noise', 'Maven']) {
   if (hitsRetired(live)) bad(`self-test: '${live}' is live and the matcher flagged it as retired`)
 }
 
@@ -219,7 +230,7 @@ if (/value:\s*'publication'/.test(adaptBlock)) {
       .split('})')[0]
       .matchAll(/^\s{2}([a-z_]+):/gm)].map(m => m[1]),
   )
-  const live = ['split_the_bill', 'mind_the_gap', 'lift_the_lid']
+  const live = ['follow_the_money', 'mind_the_gap', 'under_the_hood']
   for (const f of live) {
     if (!declared.has(f)) bad(`no wordmark exists for '${f}' and NO_WORDMARK_FOR does not say why; a surface would fall back to a retired one without saying so`)
   }
@@ -266,7 +277,7 @@ const HEADINGS = [
 // not live keys and are exempt from the disjointness check. mind_the_gap is a
 // live format with no corpus section and is declared in NO_CORPUS_PLAYBOOK, so
 // it is exempt here too: a key with no heading is exactly what it says it is.
-const LIVE_KEYS = ['split_the_bill', 'lift_the_lid', 'publication', 'signal_noise', 'maven'] as const
+const LIVE_KEYS = ['follow_the_money', 'under_the_hood', 'publication', 'signal_noise', 'maven'] as const
 const patternFor = (k: string) => {
   const m = new RegExp(`^ {2}${k}:\\s*/(.*)/([a-z]*),`, 'm').exec(ct)
   return m ? new RegExp(m[1], m[2]) : null
@@ -324,6 +335,29 @@ for (const k of LIVE_KEYS) {
         if (line.includes(name)) {
           bad(`${f}:${i + 1} carries the retired name '${name}' in code. Retired names live in formats.generated.json and resolve through resolveFormat(); a label comes from venture_formats. If this line is genuinely historical, move it into a comment or add the file to ALLOWED with its reason.`)
         }
+      }
+    })
+  }
+
+  // 2026-09-25: Krish renamed two subchannels, "every single instance front and
+  // back end, with zero exceptions". So the two old names are stricter than the
+  // ones above: not in code, a comment, a test, a migration or a doc. They live
+  // only in the alias ledger, which is what lets an old link or an append-only
+  // row still resolve, and in this guard, which has to name what it forbids.
+  const RENAMED = /split\\?[._-]the\\?[._-]bill|lift\\?[._-]the\\?[._-]lid/i
+  const RENAME_ALLOWED = [
+    'src/lib/formats.generated.json', // the alias ledger
+    'scripts/check-content-taxonomy.mts', // this guard
+    'supabase/migrations/20260925120000_subchannels_become_follow_the_money_and_under_the_hood.sql', // the rename itself
+  ]
+  for (const f of execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(Boolean)) {
+    if (RENAME_ALLOWED.includes(f)) continue
+    let body: string
+    try { body = readFileSync(f, 'utf8') } catch { continue }
+    if (body.includes('\u0000')) continue
+    body.split('\n').forEach((line, i) => {
+      if (RENAMED.test(line)) {
+        bad(`${f}:${i + 1} carries a subchannel name Krish retired on 2026-09-25. The live names are follow.the.money (follow_the_money) and under.the.hood (under_the_hood).`)
       }
     })
   }

@@ -44,7 +44,7 @@ export type ContentRoute = string | null
 
 /** The slugs the router can actually reach, for anything that needs to know
  *  which rooms fill themselves and which wait for a person. */
-export const ROUTABLE_SLUGS = ['split_the_bill', 'lift_the_lid'] as const
+export const ROUTABLE_SLUGS = ['follow_the_money', 'under_the_hood'] as const
 export const UNROUTABLE_SLUGS = SUBCHANNELS
   .map(f => f.slug)
   .filter(slug => !ROUTABLE_SLUGS.includes(slug as typeof ROUTABLE_SLUGS[number]))
@@ -118,7 +118,7 @@ const PAID: Rule[] = [
       'metering', 'metered', 'free tier', 'paywall', 'monetise', 'monetize',
       'monetisation', 'monetization',
     ],
-    reason: 'Pricing and packaging, which is what split.the.bill is for',
+    reason: 'Pricing and packaging, which is what follow.the.money is for',
   },
   {
     terms: [
@@ -127,7 +127,7 @@ const PAID: Rule[] = [
       'unit economics', 'ad market', 'advertising', 'adtech', 'cpm', 'spend',
       'billing', 'acquisition', 'acquiring', 'buying', 'roi', 'cost', 'costs',
     ],
-    reason: 'Revenue, cost and market structure, which is what split.the.bill is for',
+    reason: 'Revenue, cost and market structure, which is what follow.the.money is for',
   },
 ]
 
@@ -141,7 +141,7 @@ const BUILT: Rule[] = [
       'benchmark', 'benchmarks', 'fine-tune', 'fine-tuning', 'rag', 'context window',
       'prompt', 'prompts', 'inference', 'latency', 'throughput',
     ],
-    reason: 'Building and running the thing, which is what lift.the.lid is for',
+    reason: 'Building and running the thing, which is what under.the.hood is for',
   },
   {
     terms: [
@@ -149,7 +149,7 @@ const BUILT: Rule[] = [
       'stack', 'codebase', 'repo', 'integration', 'broke', 'broken', 'regression',
       'postmortem', 'post-mortem', 'rollback',
     ],
-    reason: 'How it was built and what broke, which is what lift.the.lid is for',
+    reason: 'How it was built and what broke, which is what under.the.hood is for',
   },
 ]
 
@@ -180,12 +180,12 @@ export interface RoutableIdea {
  *
  * Order is load bearing. A refusal beats a format, because a pricing story
  * about a breach is a breach story. `mindmake_build` beats everything, because
- * Krish's own builds are lift.the.lid by definition and never need guessing.
+ * Krish's own builds are under.the.hood by definition and never need guessing.
  */
 export function routeIdea(idea: RoutableIdea): RouteVerdict {
   const meta = (idea.meta || {}) as Record<string, unknown>
   if (meta.mindmake_build === true) {
-    return { route: 'lift_the_lid', reason: 'One of your own builds', refused: false }
+    return { route: 'under_the_hood', reason: 'One of your own builds', refused: false }
   }
 
   // Title first and body second, but both, because a headline can be coy about
@@ -208,7 +208,7 @@ export function routeIdea(idea: RoutableIdea): RouteVerdict {
   if (paid && built) {
     return { route: null, reason: 'Reads as both formats, so it needs your call', refused: false }
   }
-  if (paid) return { route: 'split_the_bill', reason: paid.reason, refused: false }
-  if (built) return { route: 'lift_the_lid', reason: built.reason, refused: false }
+  if (paid) return { route: 'follow_the_money', reason: paid.reason, refused: false }
+  if (built) return { route: 'under_the_hood', reason: built.reason, refused: false }
   return { route: null, reason: 'No clear signal for a money or a build story. mind.the.gap is never guessed, so it may still be one.', refused: false }
 }

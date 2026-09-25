@@ -62,7 +62,7 @@ comment on table public.suggestion_surfaces is
 
 insert into public.suggestion_surfaces (slug, label, what, subject, sort_order) values
   ('slate_pick',        'slate pick',          'Which ideas make the week''s slate, and in what order.', 'content_ideas', 10),
-  ('format_assignment', 'format assignment',   'Which subchannel a piece belongs to. The boundary between split.the.bill and lift.the.lid is a question, not a surface, so this is a judgement and gets reviewed like one.', 'content_ideas', 20),
+  ('format_assignment', 'format assignment',   'Which subchannel a piece belongs to. The boundary between follow.the.money and under.the.hood is a question, not a surface, so this is a judgement and gets reviewed like one.', 'content_ideas', 20),
   ('headline',          'headline',            'The headline and the opening line.', 'content_ideas', 30),
   ('derivative_plan',   'derivative plan',     'Which assets one piece should fan out into, and which are worth skipping.', 'content_assets', 40),
   ('artifact_design',   'your.call design',    'The interactive opening artifact: the claim under test, the evidence shown, and the question put to the reader.', 'content_assets', 50),
@@ -128,7 +128,7 @@ insert into public.handoff_reasons (slug, label, says, fix_hint, severity) value
    'This piece names a format that venture_formats does not have, so there is no mandate to write against and I will not guess one.',
    'The caller is looking up by a retired slug. Resolve it through format_aliases first, which is what that ledger is for.', 'blocking'),
   ('format_ambiguous_question',     'two formats could claim this',
-   'This subject fits split.the.bill and lift.the.lid equally and the question it asks is not clear enough to separate them.',
+   'This subject fits follow.the.money and under.the.hood equally and the question it asks is not clear enough to separate them.',
    'The boundary is the question, never the surface. Sharpen the thesis to ask either what it costs and who pays, or whether it makes its user sharper, and the format falls out.', 'blocking'),
   ('rubric_unmatched_slot',         'no rubric for this slot',
    'The final pass has no rubric for this slot, so it would fall back to the generic house register and quietly lose the format''s voice.',
@@ -144,7 +144,7 @@ insert into public.handoff_reasons (slug, label, says, fix_hint, severity) value
    'Either find a subject whose paper trail is already public, or commission the research separately and as its own decision.', 'blocking'),
   ('source_not_archived',           'the source could rot',
    'This rests on a pricing page or changelog that is not archived, and those change. The piece would stop being checkable within a week.',
-   'Archive the surface before recording. lift.the.lid''s mandate makes this a hard gate for exactly this reason.', 'blocking'),
+   'Archive the surface before recording. under.the.hood''s mandate makes this a hard gate for exactly this reason.', 'blocking'),
   ('no_outcome_data',               'nothing came back from the platform',
    'No numbers arrived for this piece. That is not zero reach, it is an absent measurement, and the two must never be averaged together.',
    'Either wire the platform, or enter the number by hand. A gap recorded as a gap is honest; a gap recorded as a zero makes every comparison lie.', 'advisory'),

@@ -32,12 +32,12 @@ function verdict(weakest: string, score = 7, judgedAt = '2026-09-24T19:00:00Z'):
   return v
 }
 
-// lift.the.lid, all three standing at 7.
+// under.the.hood, all three standing at 7.
 const KOA = marks({ prosecutor: 3, novelty: 6, connection: 7, evidence: 7, fun: 7, consequence: 7, buyer: 7, reader: null, standing: null })
 const DECISION_LAYER = marks({ consequence: 3, voice_mechanics: 4, prosecutor: 6, novelty: 6, connection: 7, evidence: 7, fun: 7, standing: 7, buyer: 7, reader: 7 })
 const MUSE_TOGGLES = marks({ standing: 2, reader: 3, buyer: 3, voice_mechanics: 4, evidence: 7, consequence: 7, connection: 7, prosecutor: 7, novelty: 7, fun: 7 })
 
-// split.the.bill, all three standing at 7.
+// follow.the.money, all three standing at 7.
 const MUSE_PRICING = marks({ voice_mechanics: 4, prosecutor: 6, novelty: 7, reader: 7, evidence: 7, consequence: 7, standing: 7, fun: 8, connection: 8, buyer: 8 })
 const INTERCOM = marks({ consequence: 3, prosecutor: 6, reader: 7, evidence: 7, novelty: 7, standing: 7, buyer: 8, connection: 8, fun: 8 })
 const FRONTIER_PREMIUM = marks({ consequence: 3, voice_mechanics: 4, novelty: 6, standing: 6, fun: 7, evidence: 7, prosecutor: 7, reader: 7, buyer: 7, connection: 8 })
@@ -78,14 +78,14 @@ const rank = (pieces: Array<[string, string, JudgeScore[]]>) => pieces
   .sort(compareReady)
   .map(p => p.id)
 
-test('all tied at 7: lift.the.lid ranks on its lowest model judge', () => {
+test('all tied at 7: under.the.hood ranks on its lowest model judge', () => {
   assert.deepEqual(
     rank([['decision-layer', 'consequence', DECISION_LAYER], ['muse-toggles', 'standing', MUSE_TOGGLES], ['koa', 'novelty', KOA]]),
     ['koa', 'decision-layer', 'muse-toggles'],
   )
 })
 
-test('all tied at 7: split.the.bill ranks on praise, then floor', () => {
+test('all tied at 7: follow.the.money ranks on praise, then floor', () => {
   assert.deepEqual(
     rank([['frontier', 'consequence', FRONTIER_PREMIUM], ['intercom', 'consequence', INTERCOM], ['muse-pricing', 'voice_mechanics', MUSE_PRICING]]),
     ['muse-pricing', 'intercom', 'frontier'],

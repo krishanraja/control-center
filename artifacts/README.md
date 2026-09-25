@@ -34,8 +34,8 @@ stale the first time one is edited.
 
 THE HERO FORMAT'S GAP IS DECLARED, NOT PAPERED OVER. The corpus was last
 written on 2026-08-28, when the canon still said the publication ran exactly
-two channels. split.the.bill inherits The Money of AI's playbook and
-lift.the.lid inherits Built with AI's, because those are the lineages they were
+two channels. follow.the.money inherits The Money of AI's playbook and
+under.the.hood inherits Built with AI's, because those are the lineages they were
 renamed from. mind.the.gap was added on 2026-09-17 and has no section at all,
 so the desk says so on the card and writes that draft to the house register and
 the mandate alone rather than lending it a sibling's voice. Writing that

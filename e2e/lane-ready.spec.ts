@@ -6,7 +6,7 @@ import { test, expect, type Page, type Route } from '@playwright/test'
  * WHAT THIS FILE HOLDS.
  *
  * 1. THE ORDER COMES FROM THE MARKS. On 2026-09-24 every ready piece stood at
- *    exactly 7, so a sort on the standing sorted nothing. The three lift.the.lid
+ *    exactly 7, so a sort on the standing sorted nothing. The three under.the.hood
  *    rows below are that day's real spreads, and the spec asserts the order the
  *    marks give, which is not the order they arrive in.
  * 2. ONE QUERY FOR THE LANE. The marks are read from judge_verdicts in a single
@@ -38,7 +38,7 @@ const ladder = (o: { band: string; score: number; weakest: string; angle: string
   expansion: { angle: o.angle, parties: ['the platform', 'the buyer'], scenarios: 2, decision_rule: true, known: 3, inferred: 2 },
   attempts: [],
   panel_run_id: o.run,
-  router: { fits: { mind_the_gap: 4, split_the_bill: 5, lift_the_lid: 6 }, winner: 'lift_the_lid', contested: [], why: 'x' },
+  router: { fits: { mind_the_gap: 4, follow_the_money: 5, under_the_hood: 6 }, winner: 'under_the_hood', contested: [], why: 'x' },
   router_disagrees: false,
 })
 
@@ -50,16 +50,16 @@ const row = (id: string, idea: string, lane: string, l: unknown, state = 'seeded
 
 // Arrival order is deliberately the reverse of the ranked order.
 const IDEAS = [
-  row('toggles', 'Seed: permission toggles', 'lift_the_lid', ladder({ band: 'ready', score: 7, weakest: 'standing', run: RUN.toggles,
+  row('toggles', 'Seed: permission toggles', 'under_the_hood', ladder({ band: 'ready', score: 7, weakest: 'standing', run: RUN.toggles,
     angle: 'The permission toggles were meant to be the trust interface, and they are not.' })),
-  row('decision', 'Seed: the decision layer', 'lift_the_lid', ladder({ band: 'ready', score: 7, weakest: 'consequence', run: RUN.decision,
+  row('decision', 'Seed: the decision layer', 'under_the_hood', ladder({ band: 'ready', score: 7, weakest: 'consequence', run: RUN.decision,
     angle: 'The decision layer is where lock-in and business logic collide.' })),
-  row('koa', 'Seed: the Koa split', 'lift_the_lid', ladder({ band: 'ready', score: 7, weakest: 'novelty', run: RUN.koa,
+  row('koa', 'Seed: the Koa split', 'under_the_hood', ladder({ band: 'ready', score: 7, weakest: 'novelty', run: RUN.koa,
     angle: 'Splitting the in-house model from the open ones is a build-or-buy answer.' })),
-  row('pricing', 'Seed: the takedown', 'split_the_bill', ladder({ band: 'ready', score: 7, weakest: 'voice_mechanics', run: RUN.pricing,
+  row('pricing', 'Seed: the takedown', 'follow_the_money', ladder({ band: 'ready', score: 7, weakest: 'voice_mechanics', run: RUN.pricing,
     angle: 'The takedown is a pricing dispute wearing a security notice.' })),
   // In the lane but not ready: this one belongs on the in-progress board.
-  row('moving', 'A piece still being researched', 'lift_the_lid', ladder({ band: 'repairable', score: 6, weakest: 'reader', run: RUN.extra,
+  row('moving', 'A piece still being researched', 'under_the_hood', ladder({ band: 'repairable', score: 6, weakest: 'reader', run: RUN.extra,
     angle: 'Still being worked.' }), 'researching'),
 ]
 
@@ -130,7 +130,7 @@ const rowIds = (page: Page) => page.getByTestId('ready-to-write').locator('[data
 test.describe('ready to write', () => {
   test('ranks pieces tied at 7 by their marks, not by arrival', async ({ page }) => {
     const { verdictQueries } = await mock(page)
-    await openLane(page, 'lift_the_lid')
+    await openLane(page, 'under_the_hood')
     await expect(page.getByTestId('ready-row-koa').getByTestId('ready-praise')).toBeVisible()
     expect(await rowIds(page)).toEqual(['ready-row-koa', 'ready-row-decision', 'ready-row-toggles'])
     // One query for the whole lane, never one per row.
@@ -139,7 +139,7 @@ test.describe('ready to write', () => {
 
   test('names the voice check in words rather than a shrug', async ({ page }) => {
     await mock(page)
-    await openLane(page, 'split_the_bill')
+    await openLane(page, 'follow_the_money')
     const r = page.getByTestId('ready-row-pricing')
     await expect(r.getByTestId('ready-weakest')).toHaveText('Weakest check: Breaks a house writing rule')
     await expect(r.getByTestId('ready-praise')).toHaveText('3 checks rated it 8 or more')
@@ -147,8 +147,8 @@ test.describe('ready to write', () => {
 
   test('a ready piece is not shown twice in one column', async ({ page }) => {
     await mock(page)
-    await openLane(page, 'lift_the_lid')
-    const board = page.getByTestId('content-lift_the_lid-in-progress')
+    await openLane(page, 'under_the_hood')
+    const board = page.getByTestId('content-under_the_hood-in-progress')
     await expect(board).toContainText('A piece still being researched')
     // The count, not the cards: on a desk the board pages to its height, so a
     // duplicate can sit on a page nobody is looking at and a text check passes
@@ -158,7 +158,7 @@ test.describe('ready to write', () => {
 
   test('deciding one carries its panel run to the ledger, then opens the composer', async ({ page }) => {
     const { posted } = await mock(page)
-    await openLane(page, 'lift_the_lid')
+    await openLane(page, 'under_the_hood')
     await page.getByTestId('ready-row-koa').click()
     await expect(page.getByTestId('decide-card')).toBeVisible()
     await expect(page.getByTestId('decide-claim')).toHaveText('Splitting the in-house model from the open ones is a build-or-buy answer.')
@@ -178,7 +178,7 @@ test.describe('ready to write', () => {
 
   test('back returns to the ranked list, and a settled piece leaves it', async ({ page }) => {
     await mock(page)
-    await openLane(page, 'lift_the_lid')
+    await openLane(page, 'under_the_hood')
     await page.getByTestId('ready-row-toggles').click()
     await page.getByTestId('decide-close').click()
     expect(await rowIds(page)).toEqual(['ready-row-koa', 'ready-row-decision', 'ready-row-toggles'])
@@ -191,9 +191,9 @@ test.describe('ready to write', () => {
   })
 
   test('past three, the rest are one press away', async ({ page }) => {
-    const more = [...IDEAS, row('fourth', 'Seed: a fourth', 'lift_the_lid', ladder({ band: 'ready', score: 7, weakest: 'reader', run: 'f0000000-0000-4000-8000-000000000006', angle: 'A fourth ready piece.' }))]
+    const more = [...IDEAS, row('fourth', 'Seed: a fourth', 'under_the_hood', ladder({ band: 'ready', score: 7, weakest: 'reader', run: 'f0000000-0000-4000-8000-000000000006', angle: 'A fourth ready piece.' }))]
     await mock(page, more)
-    await openLane(page, 'lift_the_lid')
+    await openLane(page, 'under_the_hood')
     expect(await rowIds(page)).toHaveLength(3)
     await page.getByTestId('ready-show-all').click()
     await expect(page.getByRole('dialog').locator('[data-testid^="ready-row-"]')).toHaveCount(4)

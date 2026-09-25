@@ -223,6 +223,13 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
             label="Content views"
             variant="pill"
             testIdPrefix="content-room"
+            // Seven rooms wrap to five rows on a 360px phone since the
+            // subchannels took their final names on 2026-09-25, and the fifth
+            // row pushed the queue's last button under the bottom nav. Shorter
+            // chips keep five rows inside the stage; the width cannot be saved
+            // without shrinking the names below legibility. The phone shell
+            // renders at 1.2x, so 37px lands at 44px, the touch-target floor.
+            className={mobile ? '[&>button]:py-1 [&>button]:min-h-[37px]' : undefined}
           />
         </div>
         {/* The only way into the engine that starts from something YOU have.
@@ -356,7 +363,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
                         reached if that ever stops being true. It used to read
                         'built', a slug retired on 2026-09-17 that survives
                         only as a read-side alias, so the fallback resolved to
-                        lift.the.lid: the 0.5-a-week standing format rather
+                        under.the.hood: the 0.5-a-week standing format rather
                         than the hero. ROOM_SLUGS is in venture_formats sort
                         order, so [0] is whatever the hero is today. */}
                     <LaneRoom lane={room === 'queue' ? (ROOM_SLUGS[0] ?? 'general') : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} fit={deskStage} />

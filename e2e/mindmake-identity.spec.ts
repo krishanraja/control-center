@@ -273,8 +273,8 @@ test('375px mobile keeps the real mark and both official series wordmarks legibl
   expect(compact.glyphPixels).toBeGreaterThanOrEqual(24)
 
   // The rooms carried the two official series wordmarks until 2026-09-17, when
-  // both names retired. No wordmark exists for split.the.bill, mind.the.gap or
-  // lift.the.lid, and pointing a live room at "Built With AI" artwork would put
+  // both names retired. No wordmark exists for follow.the.money, mind.the.gap or
+  // under.the.hood, and pointing a live room at "Built With AI" artwork would put
   // a name on the page that the page is not. So the room header degrades on
   // purpose, declared in NO_WORDMARK_FOR.
   //

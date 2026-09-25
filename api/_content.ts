@@ -176,7 +176,7 @@ export function laneToCorpusChannel(lane?: string | null, slot?: string | null):
  */
 export const NO_CORPUS_PLAYBOOK: Record<string, string> = {
   mind_the_gap:
-    'The corpus document in system_config.content_corpus was last written on 2026-08-28, when the canon still said the publication ran exactly two channels. mind.the.gap was added to venture_formats on 2026-09-17 and has no section in it. Until the corpus gains one, the hero format has no playbook and the engine says so. Writing that section is editorial work against venture_formats.mandate, not a rename, which is why it is declared here rather than pointed at split.the.bill or lift.the.lid.',
+    'The corpus document in system_config.content_corpus was last written on 2026-08-28, when the canon still said the publication ran exactly two channels. mind.the.gap was added to venture_formats on 2026-09-17 and has no section in it. Until the corpus gains one, the hero format has no playbook and the engine says so. Writing that section is editorial work against venture_formats.mandate, not a rename, which is why it is declared here rather than pointed at follow.the.money or under.the.hood.',
 }
 
 const CHANNEL_HEADING: Record<string, RegExp> = {
@@ -201,8 +201,8 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // register" so a bare "Publication" elsewhere cannot claim it.
   //
   // CANON 2026-09-17, replacing the 2026-08-28 two-channel canon: the
-  // publication runs THREE subchannels, split.the.bill, mind.the.gap and
-  // lift.the.lid. venture_formats is the authority; src/lib/formats.ts is the
+  // publication runs THREE subchannels, follow.the.money, mind.the.gap and
+  // under.the.hood. venture_formats is the authority; src/lib/formats.ts is the
   // dashboard's one reader of it.
   //
   // The corpus document has not been rewritten yet. Its playbook headings are
@@ -218,8 +218,8 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // the same day the corpus gains the section, and not before.
   //
   // Single anchored patterns only, never an alternation.
-  split_the_bill: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
-  lift_the_lid: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
+  follow_the_money: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
+  under_the_hood: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
   money_of_ai: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
   built_with_ai: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
   paid: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,

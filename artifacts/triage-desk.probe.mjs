@@ -29,15 +29,15 @@ const DESK = 'file://' + join(dirname(fileURLToPath(import.meta.url)), 'triage-d
 const CHROME = process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 
 const FORMATS = [
-  { slug: 'split_the_bill', label: 'split.the.bill', hero: false, cadence_label: 'Wednesdays', mandate: 'What it costs and who pays.' },
+  { slug: 'follow_the_money', label: 'follow.the.money', hero: false, cadence_label: 'Wednesdays', mandate: 'What it costs and who pays.' },
   { slug: 'mind_the_gap', label: 'mind.the.gap', hero: true, cadence_label: 'Fridays', mandate: 'The gap between claim and reality.' },
-  { slug: 'lift_the_lid', label: 'lift.the.lid', hero: false, cadence_label: 'standing', mandate: 'Sharper or dependent.' },
+  { slug: 'under_the_hood', label: 'under.the.hood', hero: false, cadence_label: 'standing', mandate: 'Sharper or dependent.' },
 ]
 const SEEDS = [
   // Seed one was judged by the ladder, so its bin must carry the run id: that
   // is the only field judge_calibration joins a decision on.
   { id: '11111111-1111-4111-8111-111111111111', idea: 'Seed one: who pays for the inference', thesis: 'A thesis.', created_at: '2026-09-20T10:00:00Z', brand_fit_score: 9, pillar_id: null, source_url: null, lane_slot: null, auto: false, panel_run_id: '3f1c9a2e-5d44-4a7b-9c11-6b2e8f0a7d33' },
-  { id: '22222222-2222-4222-8222-222222222222', idea: 'Seed two: the gap between the claim and the receipt', thesis: 'Another thesis.', created_at: '2026-09-20T11:00:00Z', brand_fit_score: 7, pillar_id: null, source_url: null, lane_slot: 'split_the_bill', auto: true },
+  { id: '22222222-2222-4222-8222-222222222222', idea: 'Seed two: the gap between the claim and the receipt', thesis: 'Another thesis.', created_at: '2026-09-20T11:00:00Z', brand_fit_score: 7, pillar_id: null, source_url: null, lane_slot: 'follow_the_money', auto: true },
 ]
 
 let failures = 0

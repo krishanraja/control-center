@@ -84,7 +84,7 @@ export function resolveFormat(value?: string | null): FormatDef | null {
   // (what the name MEANS NOW). Reading venture_formats first made every
   // historical `lane_slot = 'built_with_ai'` resolve to a retired format, whose
   // kind is not `subchannel`, so the rooms dropped it and the idea disappeared
-  // from the dashboard rather than appearing under lift.the.lid. That is the
+  // from the dashboard rather than appearing under under.the.hood. That is the
   // exact failure the ledger exists to prevent, so the ledger wins.
   //
   // Nothing loses the retired rows by this: RETIRED_FORMATS reads FORMATS
@@ -95,7 +95,7 @@ export function resolveFormat(value?: string | null): FormatDef | null {
   const direct = BY_SLUG.get(v)
   if (direct) return direct
   // Labels are matched last and case-insensitively, so "The Money of AI" and
-  // "split.the.bill" both land somewhere, but a near miss still fails.
+  // "follow.the.money" both land somewhere, but a near miss still fails.
   const lower = v.toLowerCase()
   const byLabel = FORMATS.find(f => f.label.toLowerCase() === lower)
   if (!byLabel) return null
@@ -111,7 +111,7 @@ export type FormatSpelling = 'current' | 'retired' | 'unknown'
  *
  * `resolveFormat` answers "what does this mean", which is a read-side question
  * and must be generous: an eight-month-old row saying `built_with_ai` is a
- * lift.the.lid piece. This answers "is this how we spell it today", which is a
+ * under.the.hood piece. This answers "is this how we spell it today", which is a
  * write-side question and must not be: `built_with_ai` is a retired spelling
  * even though it resolves cleanly, and writing it again would start the drift
  * over. The two questions were one function until 2026-09-20 and the single
@@ -142,9 +142,9 @@ export function formatSpelling(value?: string | null): FormatSpelling {
  *  rather than crashing, and scripts/check-content-taxonomy.mts fails the build
  *  when a subchannel has no line. A gap takes down CI, never the app. */
 const STANDING_QUESTION: Readonly<Record<string, string>> = Object.freeze({
-  split_the_bill: 'Stories about where the money moves in AI, and who ends up better or worse off.',
+  follow_the_money: 'Stories about where the money moves in AI, and who ends up better or worse off.',
   mind_the_gap: 'Stories that notice a pattern across several threads, and say what it means is coming.',
-  lift_the_lid: 'Stories that take a build apart to show what goes together, and why this one worked.',
+  under_the_hood: 'Stories that take a build apart to show what goes together, and why this one worked.',
 })
 
 /** The reader-facing line for a format, or null when none is written yet. */

@@ -64,12 +64,12 @@ from a copy.
 | Slug | Shown as | Cadence | Target/week | Hero |
 |---|---|---|---|---|
 | `mind_the_gap` | mind.the.gap | Fridays | 1 | yes |
-| `split_the_bill` | split.the.bill | Wednesdays | 1 | |
-| `lift_the_lid` | lift.the.lid | No fixed day | 0.5 | |
+| `follow_the_money` | follow.the.money | Wednesdays | 1 | |
+| `under_the_hood` | under.the.hood | No fixed day | 0.5 | |
 
 The boundary between them is a test on the **question**, not the surface:
-*what it costs and who pays* is split.the.bill; *sharper or dependent* is
-lift.the.lid; *what is happening against what everyone says is happening* is
+*what it costs and who pays* is follow.the.money; *sharper or dependent* is
+under.the.hood; *what is happening against what everyone says is happening* is
 mind.the.gap. Each room prints its own standing question under the heading.
 
 Older rows carry retired spellings (`paid`, `built`, `money_of_ai`,
@@ -246,14 +246,14 @@ of them deliberately leave the draft alone.
    Sweeps run twice. Supply accumulates without you.
 2. **Mon.** Lens radar. Purge.
 3. **Tue.** Creator scout.
-4. **Wed.** split.the.bill is due. Synthesis engine runs at noon.
+4. **Wed.** follow.the.money is due. Synthesis engine runs at noon.
 5. **Thu.** Investigations.
 6. **Fri.** mind.the.gap is due. Shift detection, then weekly surfacing, then
    the **weekly brief assembles at 18:00 UTC**.
 7. **Sat.** Build signals from your own repos.
 8. **Sun.** Synthesis engine again. Learning compiler.
 
-lift.the.lid has no fixed day and a target of 0.5 a week, so it is the one you
+under.the.hood has no fixed day and a target of 0.5 a week, so it is the one you
 place by hand when a product change deserves it.
 
 ---
@@ -295,7 +295,7 @@ having done almost nothing:
 - **Retired names in the UI: cleared 2026-09-20.** The Start from research
   picker offered "Paid" and "Built" as the format, the Deep research chips were
   labelled the same way, the mobile Queue fell back to the retired slug `built`
-  (landing on lift.the.lid rather than the hero), and ShiftsRoom described
+  (landing on under.the.hood rather than the hero), and ShiftsRoom described
   laneless shifts as touching "both" of two named formats. All fixed. Where a
   value is a wire contract with n8n or the control plane it was kept and only
   the words changed, with the contract named in a comment beside it.

@@ -3,7 +3,7 @@
 --
 -- content_cadence had four rows on 2026-09-20: cadence:techonomic (slot 'paid')
 -- and cadence:builder_economy_ig (slot 'built'), both naming formats retired on
--- 2026-09-17, plus split_the_bill and mind_the_gap. lift_the_lid, the third live
+-- 2026-09-17, plus follow_the_money and mind_the_gap. under_the_hood, the third live
 -- subchannel, had no row at all, so it could never be scheduled.
 --
 -- WHY A FLAG AND NOT A STATUS. The obvious move is to set the two dead rows to
@@ -27,12 +27,12 @@ update public.content_cadence
    set active = false, updated_at = now()
  where slot in ('paid', 'built');
 
--- lift.the.lid: 0.5 a week, which is a 14 day interval. It publishes when a
+-- under.the.hood: 0.5 a week, which is a 14 day interval. It publishes when a
 -- subject earns it rather than on a fixed day, which is why its cadence_label
 -- in venture_formats reads "No fixed day"; the interval is what the sourcing
 -- planner needs to decide whether a draft is overdue.
 insert into public.content_cadence (id, lane, slot, label, interval_days, target_per_week, status, active)
-values ('cadence:lift_the_lid', 'publication', 'lift_the_lid', 'lift.the.lid', 14, 0.5, 'no_data', true)
+values ('cadence:under_the_hood', 'publication', 'under_the_hood', 'under.the.hood', 14, 0.5, 'no_data', true)
 on conflict (id) do update
   set lane = excluded.lane,
       slot = excluded.slot,
@@ -42,8 +42,8 @@ on conflict (id) do update
       active = true,
       updated_at = now();
 
--- APPLIED and read back 2026-09-20: three active rows (lift_the_lid,
--- mind_the_gap, split_the_bill) matching the three subchannels in
+-- APPLIED and read back 2026-09-20: three active rows (under_the_hood,
+-- mind_the_gap, follow_the_money) matching the three subchannels in
 -- venture_formats, two inactive with their history intact.
 --
 -- The n8n side of this is Cleo | Mindmaker OS | Content Lane Sourcing

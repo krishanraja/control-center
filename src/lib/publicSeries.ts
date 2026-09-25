@@ -11,9 +11,9 @@ import { resolveFormat, formatLabel } from './formats'
  * BOTH WORDMARKS ARE RETIRED. They say "The Money of AI" and "Built With AI",
  * the names retired on 2026-09-17, and they are kept because the pieces already
  * published under them cannot be un-published. NO LIVE FORMAT POINTS AT ONE.
- * `paid` resolves to split.the.bill and `built` to lift.the.lid through
+ * `paid` resolves to follow.the.money and `built` to under.the.hood through
  * format_aliases, but the artwork does not follow a rename: putting a wordmark
- * reading "The Money of AI" on a split.the.bill piece mislabels it, which is
+ * reading "The Money of AI" on a follow.the.money piece mislabels it, which is
  * worse than shipping it with the publication mark and no format wordmark.
  *
  * WHAT IS OWED, and it is design work rather than a rename, which is why this
@@ -36,9 +36,9 @@ export type PublicSeriesKey = 'built' | 'paid'
 /** Every live subchannel, and why it has no wordmark. Read by any surface that
  *  would otherwise render a retired one, and by the taxonomy guard. */
 export const NO_WORDMARK_FOR: Readonly<Record<string, string>> = Object.freeze({
-  split_the_bill: 'No split.the.bill wordmark exists. The nearest asset reads "The Money of AI", the name this format carried until 2026-09-17, so it would mislabel the piece.',
+  follow_the_money: 'No follow.the.money wordmark exists. The nearest asset reads "The Money of AI", the name this format carried until 2026-09-17, so it would mislabel the piece.',
   mind_the_gap:   'No mind.the.gap wordmark exists, and no retired asset is even close: the format has no predecessor to borrow from.',
-  lift_the_lid:   'No lift.the.lid wordmark exists. The nearest asset reads "Built With AI", the name this format carried until 2026-09-17, so it would mislabel the piece.',
+  under_the_hood:   'No under.the.hood wordmark exists. The nearest asset reads "Built With AI", the name this format carried until 2026-09-17, so it would mislabel the piece.',
 })
 
 export const PUBLIC_SERIES_SOURCE_REVISION = '54ea43b9771d3b263718a4d40cecc68167b7a718'
@@ -115,7 +115,7 @@ export const SERIES_ASSET_KEY: Readonly<Record<string, PublicSeriesKey>> = Objec
  *  one by mistake. `publicSeriesLabel` asks what to call a thing today and is
  *  right for a room header. `VIDEO_SERIES_LABEL` was pointed at it, so a video
  *  review of a piece stored as `money_of_ai` rendered the "The Money of AI"
- *  wordmark under an accessible name reading "split.the.bill". A label that
+ *  wordmark under an accessible name reading "follow.the.money". A label that
  *  disagrees with the artwork beside it is worse than either alone, and the
  *  e2e suite caught it where every static guard passed. */
 export function publicSeriesAssetLabel(key: string): string {

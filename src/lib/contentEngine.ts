@@ -450,9 +450,9 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
  *  ContentComposer builds the key from the stored value, not a resolved one.
  */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
-  'publication:split_the_bill': ['substack', 'linkedin'],
+  'publication:follow_the_money': ['substack', 'linkedin'],
   'publication:mind_the_gap': ['substack', 'linkedin'],
-  'publication:lift_the_lid': ['substack', 'instagram', 'youtube', 'signal_noise'],
+  'publication:under_the_hood': ['substack', 'instagram', 'youtube', 'signal_noise'],
   // Historical rows, which carry the retired spelling verbatim.
   'publication:money_of_ai': ['substack', 'linkedin'],
   'publication:built_with_ai': ['substack', 'instagram', 'youtube', 'signal_noise'],
@@ -470,13 +470,13 @@ export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
 // factory produces a draft styled FOR a destination. That is not the same list
 // as MEDIA_CHANNELS and must not be collapsed into it.
 // 2026-09-20: the three subchannel slugs joined the factory's Route by Channel
-// switch on 2026-09-19, additively, so `split_the_bill` routes where `paid` did,
-// `lift_the_lid` where `built` did and `mind_the_gap` to house. Both spellings
+// switch on 2026-09-19, additively, so `follow_the_money` routes where `paid` did,
+// `under_the_hood` where `built` did and `mind_the_gap` to house. Both spellings
 // route today. The dashboard now sends the live slug; the retired spellings stay
 // in the TYPE so a historical row still compiles, and are absent from the
 // SELECTABLE list so nothing new is written with one.
 export type FactoryChannel =
-  | 'split_the_bill' | 'mind_the_gap' | 'lift_the_lid'
+  | 'follow_the_money' | 'mind_the_gap' | 'under_the_hood'
   | 'paid' | 'built'
   | 'linkedin' | 'signal_noise'
   | 'vertical_video' | 'dynamic'
@@ -543,9 +543,9 @@ export const FORMAT_ADAPTS: LaneAdapt[] = [
   // file is a copy, and on 2026-09-17 the copy here was three weeks out of date
   // while the table was right.
   {
-    value: 'split_the_bill',
-    label: 'split.the.bill',
-    hint: 'Adapt this into a split.the.bill piece. The standing question leads: what does it really cost to run, and who ends up holding the bill. Take one load-bearing number apart and attribute every figure to the party that produced it. The reader is a leader of a five to fifty million pound business who has just seen the renewal quote, never the vendor pricing it. Hold one genuine counterpoint, say plainly where the knowable record ends, and end on the question the evidence leaves open. The register is dry; the evidence handling is not. The joke is never the finding.',
+    value: 'follow_the_money',
+    label: 'follow.the.money',
+    hint: 'Adapt this into a follow.the.money piece. The standing question leads: what does it really cost to run, and who ends up holding the bill. Take one load-bearing number apart and attribute every figure to the party that produced it. The reader is a leader of a five to fifty million pound business who has just seen the renewal quote, never the vendor pricing it. Hold one genuine counterpoint, say plainly where the knowable record ends, and end on the question the evidence leaves open. The register is dry; the evidence handling is not. The joke is never the finding.',
   },
   {
     value: 'mind_the_gap',
@@ -553,9 +553,9 @@ export const FORMAT_ADAPTS: LaneAdapt[] = [
     hint: 'Adapt this into a mind.the.gap piece, the Friday hero. ONE topic, followed over time, showing where the claim and the reality separated. A piece that surveys several topics is not this format. The spine is the topic and the argument is the gap. Carry the human story underneath the technology rather than the technology itself.',
   },
   {
-    value: 'lift_the_lid',
-    label: 'lift.the.lid',
-    hint: 'Adapt this into a lift.the.lid piece. Take a launch, a release or a live product surface apart and separate what actually ships from what was demoed. The standing question, which the opening artifact also asks the reader: does this make its user sharper, or dependent. Pricing pages and changelogs move, so archive the surface before recording or the piece rots in a week.',
+    value: 'under_the_hood',
+    label: 'under.the.hood',
+    hint: 'Adapt this into an under.the.hood piece. Take a launch, a release or a live product surface apart and separate what actually ships from what was demoed. The standing question, which the opening artifact also asks the reader: does this make its user sharper, or dependent. Pricing pages and changelogs move, so archive the surface before recording or the piece rots in a week.',
   },
 ]
 

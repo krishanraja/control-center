@@ -73,20 +73,20 @@ async function mock(page: Page) {
  *  written before the rename has to keep reaching its room: that is what the
  *  alias ledger is for, and ShiftsRoom compared lanes with raw string equality
  *  until this spec caught it. */
-async function openAlsoHere(page: Page, lane: 'lift_the_lid' | 'split_the_bill') {
+async function openAlsoHere(page: Page, lane: 'under_the_hood' | 'follow_the_money') {
   await page.getByTestId(`content-room-${lane}`).click()
   await page.getByTestId(`content-also-here-${lane}`).locator('summary').click()
 }
 
 test.describe('the content rooms', () => {
-  test('lift.the.lid leads with its own shift, then labels the cross-cutting one', async ({ browser }) => {
+  test('under.the.hood leads with its own shift, then labels the cross-cutting one', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(AFTERNOON)
     await mock(page)
     await page.goto('/#/content')
 
-    await openAlsoHere(page, 'lift_the_lid')
+    await openAlsoHere(page, 'under_the_hood')
     await expect(page.getByText('Agent teams are moving into CI pipelines')).toBeVisible()
     await expect(page.getByTestId('shifts-cross-cutting')).toBeVisible()
     await expect(page.getByText('Governments claim pre-release veto power over frontier AI')).toBeVisible()
@@ -106,7 +106,7 @@ test.describe('the content rooms', () => {
     await mock(page)
     await page.goto('/#/content')
 
-    await openAlsoHere(page, 'lift_the_lid')
+    await openAlsoHere(page, 'under_the_hood')
     await page.getByText('Agent teams are moving into CI pipelines').click()
     await expect(page.getByTestId('shift-dossier')).toBeVisible()
     await expect(page.getByText(/For your org:/)).toBeVisible()
@@ -120,21 +120,21 @@ test.describe('the content rooms', () => {
     await mock(page)
     await page.goto('/#/content')
 
-    await openAlsoHere(page, 'lift_the_lid')
+    await openAlsoHere(page, 'under_the_hood')
     await page.getByText('Governments claim pre-release veto power over frontier AI').click()
     await expect(page.getByTestId('shift-dossier')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Accept' })).toBeVisible()
     await ctx.close()
   })
 
-  test('split.the.bill does not silently repeat lift.the.lid: no own shifts is said out loud', async ({ browser }) => {
+  test('follow.the.money does not silently repeat under.the.hood: no own shifts is said out loud', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(AFTERNOON)
     await mock(page)
     await page.goto('/#/content')
 
-    await openAlsoHere(page, 'split_the_bill')
+    await openAlsoHere(page, 'follow_the_money')
     await expect(page.getByTestId('shifts-own-empty')).toBeVisible()
     await expect(page.getByText('Agent teams are moving into CI pipelines')).toHaveCount(0)
     await expect(page.getByTestId('shifts-cross-cutting')).toBeVisible()

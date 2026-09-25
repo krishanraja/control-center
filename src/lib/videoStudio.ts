@@ -1403,7 +1403,7 @@ export function takeVideoStudioReturnFocus(): HTMLElement | null {
 // This pointed at formatLabel() for four hours on 2026-09-20 and was wrong. The
 // keys are stored on video_studio_jobs.series and the plate renders the retired
 // wordmark PNG beside this text, so sending the label through the rename ledger
-// captioned "The Money of AI" artwork as "split.the.bill". The words on a piece
+// captioned "The Money of AI" artwork as "follow.the.money". The words on a piece
 // of artwork are fixed at publication. Renaming a format does not repaint it.
 export const VIDEO_SERIES_LABEL: Record<VideoStudioSeries, string> = Object.freeze(
   Object.fromEntries(

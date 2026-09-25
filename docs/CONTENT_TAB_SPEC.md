@@ -10,8 +10,8 @@
 >
 > **The live model, as of 2026-09-17:** ONE content venture, **Mindmake's publication**
 > (`publication`), with **three** subchannels carried in `lane_slot`:
-> **mind.the.gap** (Fridays, hero), **split.the.bill** (Wednesdays) and
-> **lift.the.lid** (standing, no fixed day). The two names this banner used to
+> **mind.the.gap** (Fridays, hero), **follow.the.money** (Wednesdays) and
+> **under.the.hood** (standing, no fixed day). The two names this banner used to
 > carry, **Paid** / The Money of AI and **Built** / Built with AI, retired on
 > 2026-09-17 and survive only as read-side aliases for historical rows.
 > Signal & Noise is a distribution CHANNEL, not a lane. Builder Economy is fully

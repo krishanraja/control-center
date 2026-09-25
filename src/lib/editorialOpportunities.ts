@@ -61,8 +61,8 @@ export function parseEditorialSeries(value: unknown): EditorialSeries | null {
 // rename ledger rather than a pair of binary ternaries, which is what made a
 // third format structurally unrepresentable here.
 const SERIES_TO_SLUG: Record<EditorialSeries, string> = {
-  money_of_ai: 'split_the_bill',
-  built_with_ai: 'lift_the_lid',
+  money_of_ai: 'follow_the_money',
+  built_with_ai: 'under_the_hood',
 }
 
 /** The stored lens key for a format slug, or null when the radar has no lens

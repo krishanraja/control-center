@@ -45,7 +45,7 @@ const ladder = (o: {
     },
   } : {}),
   panel_run_id: '3f1c9a2e-5d44-4a7b-9c11-6b2e8f0a7d33',
-  router: { fits: { mind_the_gap: 4, split_the_bill: 3, lift_the_lid: 5 }, winner: 'lift_the_lid', contested: [], why: 'x' },
+  router: { fits: { mind_the_gap: 4, follow_the_money: 3, under_the_hood: 5 }, winner: 'under_the_hood', contested: [], why: 'x' },
   router_disagrees: false,
 })
 

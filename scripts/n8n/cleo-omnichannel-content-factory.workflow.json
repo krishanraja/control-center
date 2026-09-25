@@ -65,7 +65,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ [\"paid\", \"techonomic\", \"investigation\", \"split_the_bill\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'paid' : 'nomatch' }}",
+                    "leftValue": "={{ [\"paid\", \"techonomic\", \"investigation\", \"follow_the_money\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'paid' : 'nomatch' }}",
                     "rightValue": "paid",
                     "operator": {
                       "type": "string",
@@ -153,7 +153,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ [\"built\", \"builder_economy\", \"builder_economy_ig\", \"lift_the_lid\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'built' : 'nomatch' }}",
+                    "leftValue": "={{ [\"built\", \"builder_economy\", \"builder_economy_ig\", \"under_the_hood\"].includes(String($('Cleo Webhook').first().json.body.target_channel || '').toLowerCase()) ? 'built' : 'nomatch' }}",
                     "rightValue": "built",
                     "operator": {
                       "type": "string",

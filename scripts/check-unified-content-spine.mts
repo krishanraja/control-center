@@ -47,7 +47,7 @@ assert.equal(readEditorialOpportunity(source, 'built_with_ai')?.title, 'built_wi
 assert.equal(readEditorialDecision(source, 'money_of_ai')?.child_id, 'money-child')
 assert.equal(readEditorialDecision(source, 'built_with_ai'), null)
 assert.equal(editorialSeriesForKey('paid'), 'money_of_ai')
-assert.equal(publicKeyForEditorialSeries('built_with_ai'), 'lift_the_lid')
+assert.equal(publicKeyForEditorialSeries('built_with_ai'), 'under_the_hood')
 assert.equal(editorialOpportunityHref('source 1', 'money_of_ai'), '#/content?idea=source%201&lens=money_of_ai')
 
 // The editorial-route half moved to the engine with the route
@@ -79,17 +79,17 @@ assert.match(contentTab, /f\.kind === 'subchannel'/)
 
 // The behaviour those literals used to stand in for, asserted against the one
 // reader rather than against a source string.
-assert.equal(resolveFormat('built_with_ai')?.slug, 'lift_the_lid')
-assert.equal(resolveFormat('money_of_ai')?.slug, 'split_the_bill')
-assert.equal(resolveFormat('paid')?.slug, 'split_the_bill')
-assert.equal(resolveFormat('built')?.slug, 'lift_the_lid')
+assert.equal(resolveFormat('built_with_ai')?.slug, 'under_the_hood')
+assert.equal(resolveFormat('money_of_ai')?.slug, 'follow_the_money')
+assert.equal(resolveFormat('paid')?.slug, 'follow_the_money')
+assert.equal(resolveFormat('built')?.slug, 'under_the_hood')
 assert.equal(resolveFormat('not_a_format'), null)
 assert(SUBCHANNELS.length >= 3, 'the publication runs three subchannels, not two')
 
 // Reading is generous, writing is not. A retired spelling must route a
 // historical row to its live room AND be refused for a new one; when those were
 // one question the answer was wrong for whichever half lost the tie.
-assert.equal(formatSpelling('lift_the_lid'), 'current')
+assert.equal(formatSpelling('under_the_hood'), 'current')
 assert.equal(formatSpelling('built_with_ai'), 'retired')
 assert.equal(formatSpelling('built'), 'retired')
 assert.equal(formatSpelling('money_of_ai'), 'retired')

@@ -186,7 +186,7 @@ export const JUDGE_ASK: Record<string, string> = {
   fun: 'Nobody would enjoy this',
   standing: 'Not yours to say',
   // The roster grew past the eight on 2026-09-24 and this map did not, so the
-  // split.the.bill pick, held down only by the voice check, read "The panel
+  // follow.the.money pick, held down only by the voice check, read "The panel
   // could not name one thing" when the panel had named it exactly.
   voice_mechanics: 'Breaks a house writing rule',
   prosecutor: 'Argues it should not run at all',
