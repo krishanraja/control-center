@@ -157,18 +157,19 @@
     },
     {
       "name": "content-engine",
-      "product": "Mindmake Video and Carousel Studio",
+      "product": "Mindmake content engine",
       "docs_roots": [
         "docs",
         ".agents/skills"
       ],
-      "state_doc": "docs/CAROUSEL_ENGINE_STATE.md",
+      "state_doc": "docs/STATE.md",
       "history_dir": "docs/history",
       "truth_files": [],
       "docs_check": "python3 scripts/validate-skills.py",
       "rules_files": [
         "CLAUDE.md",
         "AGENTS.md",
+        "docs/NORTH_STAR.md",
         "docs/ENGINE_SESSION.md"
       ],
       "write_allowlist": [
