@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FactCheckStrip, isGatedSection } from './FactCheckStrip'
 import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge, Film, Layers,
@@ -1814,6 +1815,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
           </div>
         ) : null}
 
+        {!exactApproval && isGatedSection(idea.lane_slot) ? <FactCheckStrip ideaId={idea.id} /> : null}
         {!exactApproval ? (
           <div className="mt-3 rounded-xl border border-amber-700/20 bg-amber-600/[0.07] p-3">
             <p className="text-label leading-relaxed text-[#102017]/70">Outputs bind to an exact approved revision. Editing it retires that approval.</p>
