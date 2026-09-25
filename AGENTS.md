@@ -195,14 +195,19 @@ builds, tests or deploys it.
 `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:api`,
 `npm run typecheck:scripts`, and the structural guards —
 `check-goal-ladder`, `check-goal-gate`, `check-type-tokens`, `check-icons`,
-`check-icon-stroke`, `check-content-window`, `check-n8n-sync-guard`,
-`check-served-surfaces`, `check-bridges-never-send`,
-`check-enrichment-honesty`, `check-fleet-classifier`, `check-theme-tokens`,
-`check-mindmake-design`, `check-mindmake-gate`, `check-env-example`,
-`check-no-secrets`, `check-agent-stamps`, `check-model-prices`,
-`check-anthropic-fallback`
+`check-icon-stroke`, `check-safe-dates`, `check-content-window`,
+`check-n8n-sync-guard`, `check-served-surfaces`, `check-bridges-never-send`,
+`check-enrichment-honesty`, `check-events-honesty`, `check-fleet-classifier`,
+`check-theme-tokens`, `check-mindmake-design`, `check-mindmake-gate`,
+`check-env-example`, `check-no-secrets`, `check-agent-stamps`,
+`check-model-prices`, `check-anthropic-fallback`, `check-model-routing`
 (all `scripts/check-*.mts`, run with `npx tsx`). Each guard encodes an
 invariant that already shipped broken once; run them locally before pushing.
+`check-safe-dates` and `check-events-honesty` joined on 2026-09-23 and
+2026-09-24; `check-model-routing` joined 2026-09-24 after twelve days of
+running only as the unwired `check:model-routing` npm script, the reason a
+Task Lever Rater route decided on 2026-09-12 sat undeployed in production
+with no guard able to see it (`docs/MODEL_ROUTING_AUDIT.md`).
 
 This list is generated from `ci.yml`, not maintained by hand. It used to name
 nine guards that do not exist in `scripts/` — `check-content-vocabulary`,
@@ -211,11 +216,14 @@ nine guards that do not exist in `scripts/` — `check-content-vocabulary`,
 `check-selection`, `check-teardown-beat` — while omitting seven that CI really
 runs. Anyone reaching for "the vocabulary guard" found nothing, which is part
 of how five files came to hold five different labels for the same venture.
-A separate `e2e` job runs five Playwright specs at the default viewport AND every
-`*-desk.spec.ts` at 1440 and 1920 (its second step has no file filter, so the
-desk projects cover whatever matches their `testMatch`). Everything else,
-including `home-noscroll.spec.ts`, `mindmake-identity.spec.ts`, `growth.spec.ts`
-and `room.spec.ts`, is caught only by a full local run.
+A separate `e2e` job runs seven Playwright specs at the default viewport
+(`content-rooms`, `content-queue-window`, `composer`, `video-engine-mobile`,
+`growth-scroll`, `home-noscroll` since 2026-09-20, `events-lane` since
+2026-09-24) AND every `*-desk.spec.ts` at 1440 and 1920 (its second step has
+no file filter, so the desk projects cover whatever matches their
+`testMatch`). Everything else, including `mindmake-identity.spec.ts`,
+`growth.spec.ts`, `decide-card.spec.ts`, `sunday-list.spec.ts`,
+`lane-ready.spec.ts` and `room.spec.ts`, is caught only by a full local run.
 
 **CI was Node 18 until 2026-09-20, and that alone kept main red from 2026-09-19.**
 Node 18 has no `globalThis.crypto`, so `sha256Hex` in `src/lib/editLedger.ts`

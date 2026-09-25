@@ -26,6 +26,9 @@ const ALLOWED_TABLES = new Set([
   'content_ideas',
   'nova_target_conferences',
   'visibility_targets',
+  // The attend lane (2026-09-24). Reuses the visibility_* reason codes, so
+  // nothing new is needed in REASON_OPTIONS.
+  'events',
   // The Room (job 1). Mirrors src/lib/servedSurfaces.ts; check-served-surfaces
   // fails the build if the two drift.
   'pilot_deals',

@@ -344,11 +344,103 @@ export const CONTACTS = Array.from({ length: 60 }, (_, i) => ({
 }))
 
 /** Every table the audited surfaces read, with rows in it. */
+// ── The attend lane: rooms worth being in ───────────────────────────────────
+//
+// Populated deliberately across BOTH cities and all four actionability bands, so
+// the no-scroll gates measure a full board rather than an empty one. `{ ok: true }`
+// is a well-formed nothing, and a fixture that renders an empty page measures
+// nothing: Home, Intel and Focus were once scored as holes of 0.33-0.38 that said
+// more about the mock than the layout.
+//
+// The mix is the real one from 2026-09-24 on purpose, developer meetups included,
+// so a screenshot shows what the ranking does with them rather than only what it
+// does with the rooms it likes.
+const EVENT_ROOMS: Array<[string, string, string, number, number, number]> = [
+  // title, city, host_kind, peers, buyers, days out
+  ['Entrepreneurs Organization New York · members dinner', 'new_york', 'operator', 88, 42, 9],
+  ['Founders Forum London', 'london', 'operator', 84, 55, 16],
+  ['Owner-manager roundtable, Mayfair', 'london', 'operator', 79, 38, 5],
+  ['On Deck founder cohort social', 'new_york', 'community', 71, 30, 24],
+  ['Sifted Summit', 'london', 'media', 62, 58, 40],
+  ['Retail Media Leadership Summit', 'london', 'media', 30, 74, 20],
+  ['Marketing Leadership Summit · PepsiCo, Mondelez, Samsung', 'new_york', 'vendor', 22, 68, 11],
+  ['Scaleup CFO breakfast', 'new_york', 'operator', 66, 49, 3],
+  ['The London Network Event, Startup Founders, Tech Entrepreneurs, Investors', 'london', 'community', 41, 33, 6],
+  ['London PyTorch #28', 'london', 'community', 0, 4, 7],
+  ['LLMday: In-Person Event on LLMs, AI & ML', 'new_york', 'community', 0, 8, 35],
+  ['AWS AI In Practice #7', 'london', 'vendor', 0, 15, 27],
+  ['The Harness Engineering & Model Wrangling Hackathon', 'new_york', 'community', 0, 2, 2],
+  ['Agentic AI Workshop: Getting Started with Claude Code', 'new_york', 'community', 0, 6, 6],
+]
+
+export const EVENTS = EVENT_ROOMS.map(([title, city, host_kind, peers, buyers, out], i) => ({
+  id: `evt-${i}`,
+  title,
+  host: host_kind === 'operator' ? 'A members organisation' : 'Open to all',
+  host_kind,
+  url: 'https://example.com/event',
+  description: 'Who is in the room decides whether this is worth an evening.',
+  starts_at: daysOut(out),
+  ends_at: null,
+  city,
+  venue: city === 'london' ? 'Central London' : 'Manhattan',
+  // Always true in the fixture because events_recommendable filters on it, so a
+  // false row would simply be absent and would test nothing about the layout.
+  // The guard covers the rule itself.
+  date_verified: true,
+  date_source_url: 'https://example.com/event',
+  item_kind: 'durable',
+  expires_at: null,
+  archived_at: null,
+  archive_reason: null,
+  cost_kind: i % 3 === 0 ? 'paid' : i % 3 === 1 ? 'free' : 'unknown',
+  ticket_price_usd: i % 3 === 0 ? 250 + i * 25 : null,
+  can_attend: true,
+  can_speak: i % 5 === 0,
+  speak_deadline_at: i % 5 === 0 ? daysOut(Math.max(1, out - 10)) : null,
+  draw_score: peers,
+  demand_score: buyers,
+  score_reason: peers >= 60
+    ? 'Owner-managers with real revenue, and the bar to be in the room is the revenue itself.'
+    : peers === 0
+      ? 'Almost entirely engineers and ML practitioners. Nobody here decides a budget.'
+      : 'Mixed room. Some P&L owners, a lot of people selling to them.',
+  goal_ids: [],
+  // A couple of rows carry named people, because that is what turns an away city
+  // into "away, named attendee" and it was empty on every live row.
+  named_attendees: i === 1
+    ? ['Ada Okonjo, CEO at Harbourline', 'Tom Reece, Founder at Stellwood']
+    : i === 4 ? ['Priya Raman, MD at Northgate'] : null,
+  scored_at: i === 13 ? null : daysAgo(1),
+  source: i % 2 === 0 ? 'luma' : 'meetup',
+  source_ref: `https://example.com/event/${i}`,
+  decision: i === 2 ? 'attend' : null,
+  decided_at: i === 2 ? daysAgo(1) : null,
+  outcome: null,
+  outcome_note: null,
+  outcome_at: null,
+  created_at: daysAgo(2),
+  updated_at: daysAgo(1),
+  peer_density: peers,
+  buyer_density: buyers,
+  practitioner_density: peers === 0 ? 92 : 10,
+  vendor_density: host_kind === 'vendor' ? 70 : 12,
+  seniority: peers >= 60 ? 82 : 45,
+  seniority_note: null,
+  score_version: 1,
+  // One unscored row on purpose: the card says "not judged yet" rather than
+  // showing a zero as a verdict, and that branch needs to render somewhere.
+  scored_source: i === 13 ? null : 'cron',
+}))
+
 export function auditTables(): Record<string, unknown[]> {
   return {
     ...contentTables(),
     guests: GUESTS,
     visibility_targets: VISIBILITY_TARGETS,
+    events: EVENTS,
+    events_recommendable: EVENTS,
+    event_hosts: [],
     customers: CUSTOMERS,
     customer_contacts: CONTACTS.slice(0, 6).map((c, i) => ({
       id: `contact-log-${i}`,

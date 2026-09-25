@@ -310,10 +310,86 @@ Replaces the dropped `nell_candidates` table.
 | `cascade_fired_at` | timestamp | Set when the confirm cascade has run |
 | `created_at` | timestamp | |
 
+### `events` (the attend lane)
+
+Rooms worth being in, for attending and for speaking. Live since August 2026 and
+reconciled into git by
+`supabase/migrations/20260924120000_events_attend_lane.sql`, which recorded the
+shape as read back from the database on 2026-09-24. Spec:
+`docs/MINDMAKE_OS_ARCHITECTURE.md` §3. Axes: [ADR-025](./DECISIONS/025-draw-is-peer-density.md).
+
+**Read through `events_recommendable`, never the table.** The view is
+`archived_at is null AND date_verified AND starts_at is not null`, so the rule
+that an unverified date can never be recommended is enforced by the database
+rather than remembered by each reader. `scripts/check-events-honesty.mts` fails if
+a reader goes round it.
+
+`events_for(p_home_city)` is the ranked read: home city and virtual first, then by
+`draw*0.55 + demand*0.45`, with an `actionability` string per row. **Away-city rows
+are ranked down, never filtered or archived** — an away event is unactionable, not
+dead, and becomes live the moment a trip is booked. Getting this wrong destroyed
+26 New York rows once already.
+
+`scrub_dead_events()` archives the dead only, on four conditions, naming the
+reason on every row it touches.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | uuid | Primary key |
+| `title` | text | NOT NULL |
+| `host` / `host_kind` | text | `operator`, `vendor`, `media`, `community`, `unknown`. Set by the scoring pass from the room it judged, not by discovery |
+| `url` / `description` / `venue` | text | |
+| `starts_at` / `ends_at` | timestamptz | |
+| `city` | text | `london`, `new_york`, `sydney`, `virtual`, `other` |
+| `date_verified` | bool | NOT NULL, default false. False can never be recommended |
+| `date_source_url` | text | Where the date came from |
+| `item_kind` | text | `durable` or `temporary`. A temporary claim is a STATE and states revert |
+| `expires_at` | timestamptz | For `temporary` items |
+| `archived_at` / `archive_reason` | timestamptz / text | Dead only, reason always named |
+| `cost_kind` / `ticket_price_usd` | text / numeric | `free`, `cheap`, `paid`, `unknown` |
+| `can_attend` / `can_speak` | bool | |
+| `speak_deadline_at` | timestamptz | |
+| `draw_score` | int | 0-100. **Peer density**: founders and owners running real businesses |
+| `demand_score` | int | 0-100. **Buyer density**: who could hire him or buy the pilot |
+| `peer_density`, `buyer_density`, `practitioner_density`, `vendor_density`, `seniority` | int | 0-100, judged by the model. Both axes are computed from these in `api/_eventScore.ts`; numbers are computed, never LLM-emitted |
+| `seniority_note` | text | |
+| `score_reason` | text | Who is in this room, in a sentence or two |
+| `named_attendees` | text[] | Confirmed people, "Name, Role at Company". The only hard evidence of who is in a room |
+| `goal_ids` | text[] | Which live goals this room serves |
+| `scored_at` / `scored_source` / `score_version` | timestamptz / text / int | `cron`, `manual`, `vps_legacy`. A `manual` score is not overwritten by cron; `vps_legacy` rows are re-scored because they predate ADR-025 |
+| `source` | text | NOT NULL. `gmail`, `host_watchlist`, `calendar`, `manual`, `luma`, `meetup`, `confstech` |
+| `source_ref` | text | UNIQUE with `source`, so a daily re-sweep is idempotent |
+| `decision` / `decided_at` | text / timestamptz | `attend`, `apply`, `ask_invite`, `decline`, `ask_someone` |
+| `outcome` / `outcome_note` / `outcome_at` | text | `worth_it`, `not_worth_it`. The only signal in the lane from the real world rather than a model |
+| `created_at` / `updated_at` | timestamptz | |
+
+### `event_hosts`
+
+The discovery watchlist. **It was empty until 2026-09-24 while 242 `events` rows
+claimed `source='host_watchlist'`**, which is most of why discovery found nothing.
+Seeded with operator and founder rooms per city by the migration above.
+
+| Column | Type | Description |
+|---|---|---|
+| `slug` | text | Primary key |
+| `name` | text | NOT NULL |
+| `host_kind` / `city` | text | |
+| `url` / `luma_url` | text | |
+| `on_their_list` | bool | NOT NULL, default false. Whether Krish is on their invite list. **Krish's flag, never the machine's** |
+| `notes` | text | |
+| `active` | bool | NOT NULL, default true |
+| `created_at` | timestamptz | |
+
 ### `visibility_targets` (PR #52)
 
-Speaking and PR opportunities. Replaces the dropped
-`nova_target_conferences` table.
+Speaking and PR opportunities: calls for papers, podcasts, newsletters and press
+relationships. Replaces the dropped `nova_target_conferences` table. Not events —
+those are `events` above.
+
+> **The column table below is stale** (verified 2026-09-24): it names
+> `name`, `kind` and `fit_score`, and the live columns are `title`, `type` and
+> `relevance_score`. `src/hooks/useVisibilityTargets.ts` is the accurate shape.
+> Left as-is here rather than half-corrected in an unrelated change.
 
 | Column | Type | Description |
 |---|---|---|

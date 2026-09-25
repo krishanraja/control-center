@@ -129,6 +129,15 @@ jobs:
       # provider was blocked" is a control-flow property, not a type, so it is
       # checked here.
       - run: npx tsx scripts/check-enrichment-honesty.mts
+      # The attend lane, same class of defect. Two rules, both of which cost an
+      # evening when broken and neither of which is visible on the card: a row
+      # with date_verified=false can never be recommended, and a scoring pass with
+      # no model available writes nothing rather than a zero (a zero reads as a
+      # verdict on the room and is the same pixels as an honest one). The last
+      # section runs the arithmetic over the real rooms that were the top of the
+      # lane on 2026-09-24, because a shape check cannot tell whether a developer
+      # meetup is actually rejected, and that is the whole point of the change.
+      - run: npx tsx scripts/check-events-honesty.mts
       # The fleet observer is the one health signal not self-reported by the
       # thing it measures, so its two classifiers decide what anyone believes
       # about a failure. Both are ordering sensitive and both shipped wrong
@@ -268,7 +277,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: placeholder
           VITE_UI_V2_ENABLED: 'true'
           VITE_VIDEO_ENGINE_ENABLED: 'true'
-      - run: npx playwright test --project=default e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts e2e/growth-scroll.spec.ts e2e/home-noscroll.spec.ts --reporter=line
+      - run: npx playwright test --project=default e2e/content-rooms.spec.ts e2e/content-queue-window.spec.ts e2e/composer.spec.ts e2e/video-engine-mobile.spec.ts e2e/growth-scroll.spec.ts e2e/home-noscroll.spec.ts e2e/events-lane.spec.ts --reporter=line
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder

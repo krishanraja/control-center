@@ -8,21 +8,22 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 |---|---|---|
 | Lint | `npm run lint` (`--max-warnings 0`) | yes |
 | Types | `npx tsc --noEmit` + `npm run typecheck:api` + `npm run typecheck:scripts` | yes |
-| Structural guards | every `- run:` line in `ci.yml`, verbatim | yes (25 of them) |
-| e2e (Playwright) | `npx playwright test` | five specs at 1280x800, plus every `*-desk.spec.ts` at 1440 and 1920 |
+| Structural guards | every `- run:` line in `ci.yml`, verbatim | yes (28 of them) |
+| e2e (Playwright) | `npx playwright test` | seven specs at 1280x800, plus every `*-desk.spec.ts` at 1440 and 1920 |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
 
 A lint **warning** blocks merge, because `--max-warnings 0`.
 
-The guards in CI, as of 2026-09-17, read out of `ci.yml` rather than from
+The guards in CI, as of 2026-09-24, read out of `ci.yml` rather than from
 memory: `check-goal-ladder`, `check-goal-gate`, `check-type-tokens`,
-`check-icons`, `check-icon-stroke`, `check-content-window`,
+`check-icons`, `check-icon-stroke`, `check-safe-dates`, `check-content-window`,
 `check-served-surfaces`, `check-bridges-never-send`,
-`check-enrichment-honesty`, `check-fleet-classifier`, `check-theme-tokens`,
-`check-mindmake-design`, `check-mindmake-gate`, `check-env-example`,
-`check-no-secrets`, `check-agent-stamps`, `check-model-prices`,
-`check-anthropic-fallback`, plus `check-n8n-sync-guard` behind its own
+`check-enrichment-honesty`, `check-events-honesty`, `check-fleet-classifier`,
+`check-theme-tokens`, `check-mindmake-design`, `check-mindmake-gate`,
+`check-env-example`, `check-no-secrets`, `check-agent-stamps`,
+`check-model-prices`, `check-anthropic-fallback`, `check-model-routing`,
+plus `check-n8n-sync-guard` behind its own
 condition — and SIX steps that are `npm run` scripts rather than `.mts`
 files, which a `scripts/check-*.mts` glob does not see:
 `check:harness-events`, `check:harness-mcp`, `check:editorial-text`,
@@ -62,6 +63,10 @@ database and no spec spends an embedding or a model call.
 | `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
 | `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
 | `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
+| `e2e/decide-card.spec.ts` | the decide surface: reason capture in one tap, `panel_run_id` reaching the ledger, and the fixed-height footer that stopped the card moving under a press | default |
+| `e2e/sunday-list.spec.ts` | the buried-by-judge survey, grouped by killing judge rather than by date, opening the same `DecideCard` | default |
+| `e2e/lane-ready.spec.ts` | each lane room's Ready to write section: per-judge ranking, no piece shown twice against the in-progress board | default |
+| `e2e/events-lane.spec.ts` | the Events lane under People → Visibility: city-aware ranking, a failed refresh keeping the last known rooms rather than blanking the lane | default, in CI since 2026-09-24 |
 | `e2e/content-desk.spec.ts` | the Content desk above 1400px, populated: no scroll, no nested scrollers, no hole, no squeezed text, no machine strings | **desk-1440 + desk-1920** |
 | `e2e/advisory-desk.spec.ts` | the Advisory two-pane card and the draft that no longer scrolls in a box | **desk-1440 + desk-1920** |
 | `e2e/network-desk.spec.ts` | one venture control, Where\|Venture over Role\|Tier, and the country overflow as a popover rather than a phone sheet | **desk-1440 + desk-1920** |
@@ -224,13 +229,14 @@ Run it against any database with the two network migrations applied.
 
 ## Known gaps
 
-- **CI runs five browser tests, not the suite** (corrected 2026-09-10; this
-  file and `AGENTS.md` previously said CI runs no browser tests at all, which
-  was wrong). The `e2e` job in `.github/workflows/ci.yml` runs
+- **CI runs seven browser tests, not the suite** (corrected 2026-09-10, then
+  again 2026-09-24 as `home-noscroll.spec.ts` and `events-lane.spec.ts`
+  joined; this file and `AGENTS.md` previously said CI runs no browser tests
+  at all, which was wrong). The `e2e` job in `.github/workflows/ci.yml` runs
   `content-rooms.spec.ts`, `content-queue-window.spec.ts`, `composer.spec.ts`,
-  `video-engine-mobile.spec.ts` and `growth-scroll.spec.ts`. Everything else
-  is local-only. Run the full e2e suite
-  yourself before merging UI work.
+  `video-engine-mobile.spec.ts`, `growth-scroll.spec.ts`,
+  `home-noscroll.spec.ts` and `events-lane.spec.ts`. Everything else is
+  local-only. Run the full e2e suite yourself before merging UI work.
 - **e2e coverage is broad but not total.** Growth, Network (search +
   add-person), Home's no-scroll contract, the pilot gate, the brief
   composer, Focus, the loading ladder, and the queue relocation are covered.
