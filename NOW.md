@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-25
-head: 3ad2ec3
+head: d006f60
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -54,6 +54,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-25 **A Check the facts button where Krish approves** (`d006f60`). Why: the content engine refuses to move a publication piece forward until every fact in its exact text is checked twice, and until now only an agent session could run the check, so the refusal named a step Krish had no button for. The composer's approval block now shows whether this exact version passed, the button, and each fact to fix in plain words with its source. Test: `e2e/fact-check-strip.spec.ts`.
 - 2026-09-25 **An approval the fact gate refuses now says why** (`3ad2ec3`). Why: the content engine stopped any publication piece reaching review, approval or publication until every claim in its exact body is verified (content-engine `a843cc8`), after Krish's "we cannot afford even a chance of factual errors slipping in". The approve and publish paths here showed "try again" for that refusal; they now show the engine's plain reason. The button that runs a check, and the claim table, are still to design.
 - 2026-09-25 **The subchannels take their final names, follow.the.money and under.the.hood, everywhere** (`a01e2a7`, `14814b4`, `79e0d07`, migrations `20260925120000` and `20260925123500`). Ruling (Krish, 2026-09-25): "those two and mind.the.gap are my FINAL FINAL choices for the 3 channels", renamed "every single instance front and back end, with zero exceptions". Why: the names are the publication's identity. Every mutable row and column was renamed in one migration with the triggers held; the old names survive only as aliases so the append-only ledger and verdict rows still resolve; `check-content-taxonomy` fails if either old name returns to any tracked file. The story shape that shared a name became The Money Trail.
 - 2026-09-25 **The growth snapshot reads GA4 for mindmake.co and makeyourmindup** (`91c4400`, PR #356). Why: the daily snapshot had no web analytics. Yesterday's sessions, users, pageviews and key events land in `growth_metrics`, top sources and landing pages in a new `web_analytics_daily` table; a property that is unset or unshared is skipped with its reason and never written as zero. The makeyourmindup tag lives on the Substack publication already counted by the snapshot.
