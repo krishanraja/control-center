@@ -17,8 +17,8 @@ import { runGa4Report } from '../_google.js'
  * Keys written (one row per metric_key per day, upsert on conflict):
  *   substack_publication_total, substack_tech0nomic_total, maven_students,
  *   app_paid_subs, app_mrr_usd, guests_confirmed_30d, visibility_accepted_30d,
- *   substack_makeyourmindup_total, and per GA4 property (prefix site_ for
- *   mindmake.co, mymu_ for the makeyourmindup Substack):
+ *   and per GA4 property (prefix site_ for mindmake.co, mymu_ for the
+ *   makeyourmindup newsletter, which is served from mindmakerlive.substack.com):
  *   <prefix>_sessions_1d, _users_1d, _pageviews_1d, _key_events_1d.
  *
  * GA4 keys are YESTERDAY's complete day and are written against that date, not
@@ -34,13 +34,15 @@ import { runGa4Report } from '../_google.js'
 const SUBSTACKS: Array<{ key: string; pub: string }> = [
   { key: 'substack_publication_total', pub: 'mindmakerlive' },
   { key: 'substack_tech0nomic_total', pub: 'tech0nomic' },
-  { key: 'substack_makeyourmindup_total', pub: 'makeyourmindup' },
 ]
 
 // GA4 properties, by numeric property id (GA Admin → Property details), not the
 // G- measurement id. The service account must be a Viewer on each.
 const GA4_PROPERTIES: Array<{ prefix: string; env: string; label: string }> = [
   { prefix: 'site', env: 'GA4_PROPERTY_MINDMAKE_SITE', label: 'mindmake.co' },
+  // Tag G-VC5V9LDE17 sits on mindmakerlive.substack.com (publication name
+  // "makeyourmindup"). makeyourmindup.substack.com is a separate, dormant
+  // publication with no tag; don't point anything at it.
   { prefix: 'mymu', env: 'GA4_PROPERTY_MAKEYOURMINDUP', label: 'makeyourmindup' },
 ]
 const GA4_METRICS: Array<{ name: string; suffix: string }> = [
@@ -58,7 +60,7 @@ const MAVEN_KEY = 'maven_students'
 const MAVEN_URL = 'https://maven.com/mindmaker'
 
 const MANUAL_KEYS = new Set([
-  'substack_publication_total', 'substack_tech0nomic_total', 'substack_makeyourmindup_total', 'maven_students',
+  'substack_publication_total', 'substack_tech0nomic_total', 'maven_students',
 ])
 
 type KeyResult = { ok: boolean; value?: number; error?: string; method?: string }
