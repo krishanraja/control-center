@@ -349,6 +349,7 @@ for (const k of LIVE_KEYS) {
     'src/lib/formats.generated.json', // the alias ledger
     'scripts/check-content-taxonomy.mts', // this guard
     'supabase/migrations/20260925120000_subchannels_become_follow_the_money_and_under_the_hood.sql', // the rename itself
+    'supabase/migrations/20260925123500_subchannel_rename_catches_up_idea_text.sql', // its follow-up
   ]
   for (const f of execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(Boolean)) {
     if (RENAME_ALLOWED.includes(f)) continue
