@@ -223,13 +223,14 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
             label="Content views"
             variant="pill"
             testIdPrefix="content-room"
-            // Seven rooms wrap to five rows on a 360px phone since the
-            // subchannels took their final names on 2026-09-25, and the fifth
-            // row pushed the queue's last button under the bottom nav. Shorter
-            // chips keep five rows inside the stage; the width cannot be saved
-            // without shrinking the names below legibility. The phone shell
-            // renders at 1.2x, so 37px lands at 44px, the touch-target floor.
-            className={mobile ? '[&>button]:py-1 [&>button]:min-h-[37px]' : undefined}
+            // Seven rooms wrapped to five rows on a 360px phone once the
+            // subchannels took their final names on 2026-09-25: the tabs took
+            // 251px of a 640px screen and pushed the queue's last button 34px
+            // under the bottom nav. Narrower chips in label type wrap to four
+            // rows (199px) with every name in full; the names are final and
+            // are never shortened. The phone shell renders at 1.2x, so 37px
+            // lands at 44px, the touch-target floor.
+            className={mobile ? '[&>button]:py-1 [&>button]:min-h-[37px] [&>button]:px-2.5 [&>button]:text-label' : undefined}
           />
         </div>
         {/* The only way into the engine that starts from something YOU have.
