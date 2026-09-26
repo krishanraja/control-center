@@ -4,6 +4,7 @@ import {
   MONEY_OF_AI_WORDMARK_SRC,
 } from '../../assets/videoBrandAssets'
 import { VIDEO_SERIES_LABEL, type VideoStudioSeries } from '../../lib/videoStudio'
+import { NO_WORDMARK_FOR } from '../../lib/publicSeries'
 
 type Placement = 'header' | 'card' | 'preview'
 
@@ -14,7 +15,10 @@ type SeriesAsset = {
   size: Record<Placement, string>
 }
 
-const SERIES_ASSET: Record<VideoStudioSeries, SeriesAsset> = {
+// Only the retired pair has official artwork. A live subchannel has no approved
+// wordmark yet (lib/publicSeries.ts NO_WORDMARK_FOR), so the plate sets its name
+// in plain type instead of borrowing another publication's mark.
+const SERIES_ASSET: Partial<Record<VideoStudioSeries, SeriesAsset>> = {
   // These viewBoxes remove only transparent canvas around the lettering in
   // the official 1200 by 630 assets. They align with complete source-pixel
   // cells, so the edge antialiasing remains intact without carrying the large
@@ -96,7 +100,7 @@ export function VideoBrandLockup({
         <img src={MINDMAKE_WORDMARK_SRC} alt="" className="h-auto w-full" draggable={false} />
       </span>
       <span className={placement === 'card' ? 'h-px w-full flex-none bg-white/[0.12]' : 'h-5 w-px flex-none bg-white/[0.12]'} aria-hidden="true" />
-      <svg
+      {asset ? (<svg
         data-testid={`video-series-wordmark-${series}`}
         data-min-letter-height="16"
         data-source-letter-box={asset.sourceLetterBox}
@@ -107,7 +111,13 @@ export function VideoBrandLockup({
         className={`pointer-events-none flex-none overflow-hidden ${asset.size[placement]}`}
       >
         <image href={asset.src} x="0" y="0" width="1200" height="630" />
-      </svg>
+      </svg>) : (
+        <span
+          data-testid={`video-series-label-${series}`}
+          title={NO_WORDMARK_FOR[series] || undefined}
+          className="flex-none font-mono text-label font-semibold leading-none text-[#f4f1e6]"
+        >{label}</span>
+      )}
     </div>
   )
 }

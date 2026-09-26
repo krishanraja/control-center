@@ -91,13 +91,13 @@ async function openBrief(page: Page) {
   await expect(page.getByText(`Weekly brief · ${WEEK}`)).toBeVisible()
 }
 
-async function openIdea(page: Page) {
+async function openIdea(page: Page, over: Partial<typeof IDEA> = {}) {
   await page.clock.setFixedTime(new Date('2026-09-08T18:30:00Z'))
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
   await answerPilotGate(page)
-  await page.route(/\/rest\/v1\/content_ideas(?:\?|$)/, (r: Route) => r.fulfill({ json: [IDEA] }))
+  await page.route(/\/rest\/v1\/content_ideas(?:\?|$)/, (r: Route) => r.fulfill({ json: [{ ...IDEA, ...over }] }))
   await page.goto(`/#/content?idea=${IDEA_ID}`)
   await expect(page.getByRole('button', { name: 'Outputs', exact: true }).last()).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText(IDEA.idea, { exact: true }).last()).toBeVisible()
@@ -175,6 +175,43 @@ test('the existing output panel sends one canonical publication format to Studio
   await page.getByRole('button', { name: 'Create exact Studio brief' }).click()
   await expect.poll(() => requestBody).not.toBeNull()
   expect(requestBody).toMatchObject({ production_kinds: ['video'], source_mode: 'short_native', editorial_format: 'third_why', confirm_hard_gates: true })
+})
+
+// Krish, 2026-09-26: teach the video side the three subchannel names. Until
+// then the Studio launcher only knew the two retired series, so no piece on a
+// live subchannel could get a brief.
+async function captureBrief(page: Page): Promise<() => Record<string, unknown> | null> {
+  let requestBody: Record<string, unknown> | null = null
+  await page.route(`**/api/content-ideas/${IDEA_ID}/production-brief`, async (route: Route) => {
+    requestBody = route.request().postDataJSON() as Record<string, unknown>
+    await route.fulfill({ json: { ok: true, created: true, status: 'ready_for_studio' } })
+  })
+  return () => requestBody
+}
+
+test('a piece on under.the.hood gets the formats of the series it replaced', async ({ page }) => {
+  await openIdea(page, { lane_slot: 'under_the_hood' })
+  const sent = await captureBrief(page)
+  await page.getByTestId('composer-rail-cuts').click()
+  await page.getByRole('button', { name: 'Studio', exact: true }).click()
+  await page.getByRole('button', { name: 'First Version', exact: true }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Create exact Studio brief' }).click()
+  await expect.poll(sent).not.toBeNull()
+  expect(sent()).toMatchObject({ editorial_format: 'first_version', confirm_hard_gates: true })
+})
+
+test('a mind.the.gap piece sends a brief with no format, because it has none yet', async ({ page }) => {
+  await openIdea(page, { lane_slot: 'mind_the_gap' })
+  const sent = await captureBrief(page)
+  await page.getByTestId('composer-rail-cuts').click()
+  await page.getByRole('button', { name: 'Studio', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Format' })).toHaveCount(0)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Create exact Studio brief' }).click()
+  await expect.poll(sent).not.toBeNull()
+  expect(sent()).toMatchObject({ production_kinds: ['video'], confirm_hard_gates: true })
+  expect(sent()).not.toHaveProperty('editorial_format')
 })
 
 test('the four canonical Studio formats stay readable and thumb-sized on mobile', async ({ browser }) => {

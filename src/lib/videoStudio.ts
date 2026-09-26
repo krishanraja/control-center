@@ -6,7 +6,9 @@ export function videoEngineEnabled(): boolean {
   return import.meta.env.VITE_VIDEO_ENGINE_ENABLED === 'true'
 }
 
-export type VideoStudioSeries = 'money_of_ai' | 'built_with_ai'
+// The retired pair names jobs made before the subchannels settled; new jobs
+// carry the live names (content-engine packages/contracts/src/series.ts).
+export type VideoStudioSeries = 'money_of_ai' | 'built_with_ai' | 'follow_the_money' | 'mind_the_gap' | 'under_the_hood'
 export type VideoStudioMode = 'extract' | 'solo' | 'short_native'
 export type VideoStudioPlatform = 'youtube_shorts' | 'linkedin' | 'tiktok' | 'instagram_reels'
 export type VideoStudioGate = 'story' | 'treatment' | 'final' | 'learning'
@@ -33,7 +35,7 @@ export type VideoStudioEditorialState =
 export type VideoStudioRunnerState = 'offline' | 'idle' | 'queued' | 'working' | 'attention'
 export type VideoStudioRouteState = 'standard' | 'requires_editorial_route'
 
-const SERIES = ['money_of_ai', 'built_with_ai'] as const
+const SERIES = ['money_of_ai', 'built_with_ai', 'follow_the_money', 'mind_the_gap', 'under_the_hood'] as const
 const MODES = ['extract', 'solo', 'short_native'] as const
 const PLATFORMS = ['youtube_shorts', 'linkedin', 'tiktok', 'instagram_reels'] as const
 const REVIEW_GATES = ['story', 'treatment', 'final', 'learning'] as const
@@ -1407,8 +1409,7 @@ export function takeVideoStudioReturnFocus(): HTMLElement | null {
 // of artwork are fixed at publication. Renaming a format does not repaint it.
 export const VIDEO_SERIES_LABEL: Record<VideoStudioSeries, string> = Object.freeze(
   Object.fromEntries(
-    (['money_of_ai', 'built_with_ai'] as VideoStudioSeries[])
-      .map(key => [key, publicSeriesAssetLabel(key)]),
+    SERIES.map(key => [key, publicSeriesAssetLabel(key)]),
   ) as Record<VideoStudioSeries, string>,
 )
 

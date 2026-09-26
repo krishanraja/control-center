@@ -2,7 +2,14 @@ import { CHANNEL_ADAPTS, VIDEO_FORMATS } from './contentEngine'
 
 export type ContentOutputFamily = 'article' | 'social' | 'audio' | 'video_script' | 'video' | 'carousel'
 
-export type StudioSeries = 'money_of_ai' | 'built_with_ai'
+// The retired pair stays for briefs made under it; a piece on a live
+// subchannel gets a brief in its own name (content-engine
+// packages/contracts/src/series.ts, Krish 2026-09-26).
+export const STUDIO_SERIES = ['money_of_ai', 'built_with_ai', 'follow_the_money', 'mind_the_gap', 'under_the_hood'] as const
+export type StudioSeries = typeof STUDIO_SERIES[number]
+export function isStudioSeries(value: unknown): value is StudioSeries {
+  return typeof value === 'string' && (STUDIO_SERIES as readonly string[]).includes(value)
+}
 export type StudioEditorialFormat = 'money_trace' | 'artifact' | 'verdict' | 'cold_open_cutdown' | 'builder_conversation' | 'build_itself' | 'third_why' | 'first_version'
 export const STUDIO_FORMATS_BY_SERIES: Record<StudioSeries, ReadonlyArray<{ value: StudioEditorialFormat; label: string }>> = {
   money_of_ai: [
@@ -12,6 +19,21 @@ export const STUDIO_FORMATS_BY_SERIES: Record<StudioSeries, ReadonlyArray<{ valu
     { value: 'cold_open_cutdown', label: 'Cold-open cutdown' },
   ],
   built_with_ai: [
+    { value: 'builder_conversation', label: 'Builder conversation' },
+    { value: 'build_itself', label: 'The Build Itself' },
+    { value: 'third_why', label: 'The Third Why' },
+    { value: 'first_version', label: 'First Version' },
+  ],
+  // follow.the.money and under.the.hood inherit the formats of the series they
+  // replaced; mind.the.gap has none yet, so its briefs name no format.
+  follow_the_money: [
+    { value: 'money_trace', label: 'Money Trace' },
+    { value: 'artifact', label: 'The Artifact' },
+    { value: 'verdict', label: 'Verdict' },
+    { value: 'cold_open_cutdown', label: 'Cold-open cutdown' },
+  ],
+  mind_the_gap: [],
+  under_the_hood: [
     { value: 'builder_conversation', label: 'Builder conversation' },
     { value: 'build_itself', label: 'The Build Itself' },
     { value: 'third_why', label: 'The Third Why' },

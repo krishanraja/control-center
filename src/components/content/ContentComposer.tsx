@@ -33,6 +33,7 @@ import { productionBriefStatusLabel,
   storedContentOutputs,
   storedProductionBriefs,
   STUDIO_FORMATS_BY_SERIES,
+  isStudioSeries,
   studioFormatLabel,
   type ContentOutputDefinition,
   type StudioEditorialFormat,
@@ -1646,13 +1647,13 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   const [family, setFamily] = useState<'written' | 'script' | 'studio'>('written')
   const [selected, setSelected] = useState('substack')
   const [sourceMode, setSourceMode] = useState<'extract' | 'solo' | 'short_native'>('short_native')
-  const [editorialFormat, setEditorialFormat] = useState<StudioEditorialFormat>('money_trace')
+  const [editorialFormat, setEditorialFormat] = useState<StudioEditorialFormat | null>('money_trace')
   const [hardGatesConfirmed, setHardGatesConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const cuts = useMemo(() => storedContentOutputs(idea.transformed_outputs), [idea.transformed_outputs])
   const briefs = useMemo(() => storedProductionBriefs(idea.transformed_outputs), [idea.transformed_outputs])
   const exactApproval = hasExactProductionApproval(idea.meta)
-  const studioSeries = idea.lane === 'publication' && (idea.lane_slot === 'money_of_ai' || idea.lane_slot === 'built_with_ai') ? idea.lane_slot : null
+  const studioSeries = idea.lane === 'publication' && isStudioSeries(idea.lane_slot) ? idea.lane_slot : null
   const canonicalSeries = Boolean(studioSeries)
   const studioFormats = studioSeries ? STUDIO_FORMATS_BY_SERIES[studioSeries] : []
   const launchers = useMemo(() => CONTENT_OUTPUTS.filter((definition) => (
@@ -1676,7 +1677,8 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   }, [family, idea.id])
 
   useEffect(() => {
-    if (studioSeries) setEditorialFormat(STUDIO_FORMATS_BY_SERIES[studioSeries][0]!.value)
+    // mind.the.gap has no formats yet, so its brief names none.
+    if (studioSeries) setEditorialFormat(STUDIO_FORMATS_BY_SERIES[studioSeries][0]?.value ?? null)
   }, [studioSeries, idea.id])
 
   const approveExactRevision = async () => {
@@ -1714,12 +1716,14 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
         if (!canonicalSeries) throw new Error(`Choose a subchannel before starting Studio: ${SUBCHANNELS.map(f => f.label).join(', ')}.`)
         if (!hardGatesConfirmed) throw new Error('Confirm the five production gates first.')
         const productionKind = definition.family === 'carousel' ? 'carousel' : 'video'
+        // A carousel needs a story format, and mind.the.gap has none yet.
+        if (productionKind === 'carousel' && !studioFormats.length) throw new Error('mind.the.gap has no carousel format yet. Make a Short, or give it a format first.')
         response = await fetch(`/api/content-ideas/${idea.id}/production-brief`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             production_kinds: [productionKind],
             source_mode: productionKind === 'carousel' ? 'written' : sourceMode,
-            editorial_format: editorialFormat,
+            ...(studioFormats.length && editorialFormat ? { editorial_format: editorialFormat } : {}),
             confirm_hard_gates: true,
           }),
         })
@@ -1767,7 +1771,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
 
         {family === 'studio' ? (
           <div className="mt-3 space-y-3 border-t border-[#102017]/12 pt-3">
-            {studioSeries ? (
+            {studioSeries && studioFormats.length ? (
               <fieldset>
                 <legend className="text-micro font-bold uppercase tracking-[0.14em] text-[#476154]">Format</legend>
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
