@@ -26,14 +26,18 @@ export function googleConfigured(): boolean {
 // `impersonate: false` asks for a token as the service account itself. GA4 is
 // granted by adding the SA's own email as a property Viewer, not through
 // domain-wide delegation, so impersonating a Workspace user there would fail.
-export async function googleAccessToken(scopes: string[], opts: { impersonate?: boolean } = {}): Promise<string | null> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+// `credentials` swaps in a different service account (see GA4 below).
+export async function googleAccessToken(
+  scopes: string[],
+  opts: { impersonate?: boolean; credentials?: { email?: string; key?: string } } = {},
+): Promise<string | null> {
+  const email = opts.credentials ? opts.credentials.email : process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  let key = opts.credentials ? opts.credentials.key : process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
   const subject = opts.impersonate === false ? undefined : process.env.GOOGLE_IMPERSONATE_SUBJECT
   if (!email || !key) return null
   key = key.replace(/\\n/g, '\n') // env stores PEM newlines escaped
 
-  const scopeKey = scopes.join(' ') + (subject ? `|${subject}` : '')
+  const scopeKey = `${email}|` + scopes.join(' ') + (subject ? `|${subject}` : '')
   const now = Math.floor(Date.now() / 1000)
   const cached = tokenCache.get(scopeKey)
   if (cached && cached.exp > now + 60) return cached.token
@@ -172,6 +176,16 @@ export async function createDriveDoc(input: { name: string; content: string }): 
   }
 }
 
+// GA4 prefers its own service account (GA4_SERVICE_ACCOUNT_*), so the property
+// Viewer grant belongs to an identity that can only read analytics. Falls back
+// to the shared GOOGLE_SERVICE_ACCOUNT_* when the GA pair is unset.
+function ga4Credentials(): { email?: string; key?: string; source: string } {
+  if (process.env.GA4_SERVICE_ACCOUNT_EMAIL || process.env.GA4_SERVICE_ACCOUNT_PRIVATE_KEY) {
+    return { email: process.env.GA4_SERVICE_ACCOUNT_EMAIL, key: process.env.GA4_SERVICE_ACCOUNT_PRIVATE_KEY, source: 'GA4_SERVICE_ACCOUNT_*' }
+  }
+  return { email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, source: 'GOOGLE_SERVICE_ACCOUNT_*' }
+}
+
 /**
  * Run one GA4 Data API report as the service account. Returns the raw report
  * or { error } so a caller can say WHY a key is missing (not shared, API off,
@@ -182,8 +196,9 @@ export async function createDriveDoc(input: { name: string; content: string }): 
  * GA Admin → Property details, not the G- measurement id.
  */
 export async function runGa4Report(propertyId: string, body: Record<string, unknown>): Promise<{ report: any } | { error: string }> {
-  const token = await googleAccessToken(['https://www.googleapis.com/auth/analytics.readonly'], { impersonate: false })
-  if (!token) return { error: 'no service-account token (GOOGLE_SERVICE_ACCOUNT_* unset or key invalid)' }
+  const creds = ga4Credentials()
+  const token = await googleAccessToken(['https://www.googleapis.com/auth/analytics.readonly'], { impersonate: false, credentials: creds })
+  if (!token) return { error: `no service-account token (${creds.source} unset or key invalid)` }
   try {
     const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:runReport`, {
       method: 'POST',
@@ -191,7 +206,8 @@ export async function runGa4Report(propertyId: string, body: Record<string, unkn
       body: JSON.stringify(body),
     })
     const j: any = await r.json().catch(() => ({}))
-    if (!r.ok) return { error: `GA4 ${r.status}: ${j?.error?.message || 'request failed'}` }
+    // Name the identity on failure: a 403 means THIS email lacks Viewer on the property.
+    if (!r.ok) return { error: `GA4 ${r.status} as ${creds.email} (${creds.source}): ${j?.error?.message || 'request failed'}` }
     return { report: j }
   } catch (e: any) {
     return { error: String(e?.message || e) }

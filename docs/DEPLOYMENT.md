@@ -147,6 +147,8 @@ The full list lives in `.env.example`. Two scopes:
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | SA PEM (literal `\n` newlines). **Sensitive.** |
 | `GOOGLE_IMPERSONATE_SUBJECT` | Workspace user the SA impersonates (`krish@themindmaker.ai`) |
 | `GOOGLE_DRIVE_FOLDER_ID` | Shared Drive folder for generated docs (optional) |
+| `GA4_SERVICE_ACCOUNT_EMAIL` | Optional dedicated SA for GA4 reads; falls back to `GOOGLE_SERVICE_ACCOUNT_EMAIL`. Must be Viewer on both properties |
+| `GA4_SERVICE_ACCOUNT_PRIVATE_KEY` | PEM for the GA4 SA (literal `\n` newlines). **Sensitive.** |
 | `GA4_PROPERTY_MINDMAKE_SITE` | Numeric GA4 property id for mindmake.co (G-SMXQH8E4CM). SA must be a property Viewer |
 | `GA4_PROPERTY_MAKEYOURMINDUP` | Numeric GA4 property id for the makeyourmindup newsletter (G-VC5V9LDE17, tagged on mindmakerlive.substack.com). SA must be a property Viewer |
 
