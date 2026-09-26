@@ -20,3 +20,9 @@ card. The channel name is set as type (IBM Plex Mono, lowercase, joined by
 dots), never as an image, because the brand book sets channel names that
 way. Do not edit these files; a new version gets a new file name and a new
 pin.
+
+Where the kit lives: `krishanraja/makeyourmindup`, `docs/brandbooknew/`
+(`makeyourmindup-brand-kit.zip`, and the book alone in
+`makeyourmindup-brand-book.zip`), rebuilt by `npm run brand-kit` in that
+repository's `apps/cover`. Checked 2026-09-26 against kit v1.4: both files
+above hash-match the kit's copies exactly, so nothing here changes.
