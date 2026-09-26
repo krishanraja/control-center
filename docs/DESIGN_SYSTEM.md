@@ -164,6 +164,19 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
   overshoot). Gestures/keyframes documented inline in `index.css`.
 - Reduced motion suppresses animation, transition duration, active scale and
   smooth scrolling. State changes still land immediately in their final state.
+- An entrance keyframe moves with the individual `translate` / `scale`
+  properties, never `transform`. Tailwind's positioning utilities live on
+  `transform`, so a keyframe that writes it strips `-translate-x-1/2` for the
+  whole run: the phone's bottom sheets rose half off-screen and snapped sideways
+  as they landed (fixed 2026-09-26, held by `e2e/sheet-motion-phone.spec.ts`).
+- No `backdrop-filter` on a full-screen dialog scrim on the phone shell. The
+  ambient field animates under it forever, so the blur re-renders the whole
+  viewport every frame a sheet moves. `index.css` switches it off for
+  `[data-slot='dialog-overlay']` on the narrow shell; the desk keeps it.
+- A route change is a React transition (`useHashRoute`), and every tab chunk is
+  warmed in idle time after boot (`App.tsx`), so switching tabs never blocks the
+  tap or flashes the route skeleton. `BottomNav` highlights the tapped tab
+  immediately rather than waiting on the route.
 
 ---
 
