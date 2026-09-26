@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-26
-head: bb08cc8
+head: 4570bdd
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -54,6 +54,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-26 **Live subchannel videos carry the makeyourmindup plate** (`4570bdd`). Ruling (Krish, 2026-09-26): "Make your mind up, Mark, plus the channel name." Why: the video plate put the Mindmake mark beside the new channel names; it now matches the Studio's makeyourmindup lockup (content-engine `c370006`), which goes live once his approval is captured in the Studio.
 - 2026-09-26 **The makeyourmindup mark and logo are pinned here for the Video Studio** (`bb08cc8`). Ruling (Krish, 2026-09-26): "Make your mind up, Mark, plus the channel name", then "placement approved". Why: the Studio loads official marks from a public repository by commit and hash, and content-engine never tracks image files.
 - 2026-09-26 **mind.the.gap gets The Fork in the Studio composer** (`dab81bd`). Ruling (Krish, 2026-09-26): "The Fork is good". Why: mind.the.gap had no format, so it could not request a carousel; The Fork tells its story in the order its timeline draws it (then, now, the fork, our call). The engine side is content-engine `3d8e473`.
 - 2026-09-26 **GA4 reads as its own service account** (`5206394`, PR #358). Why: the first GA4 run got a 403 on both properties because the shared Google identity is not a Viewer on them; a dedicated read-only pair now takes that grant, falling back to the shared one when unset.
