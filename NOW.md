@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-26
-head: ea3fa31
+head: dab81bd
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -54,6 +54,8 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-26 **mind.the.gap gets The Fork in the Studio composer** (`dab81bd`). Ruling (Krish, 2026-09-26): "The Fork is good". Why: mind.the.gap had no format, so it could not request a carousel; The Fork tells its story in the order its timeline draws it (then, now, the fork, our call). The engine side is content-engine `3d8e473`.
+- 2026-09-26 **GA4 reads as its own service account** (`5206394`, PR #358). Why: the first GA4 run got a 403 on both properties because the shared Google identity is not a Viewer on them; a dedicated read-only pair now takes that grant, falling back to the shared one when unset.
 - 2026-09-26 **Phone sheets rise straight and tab switches stop stuttering** (`ea3fa31`, PR #357). Why: the drawers juddered on every open (the More drawer rose half off the screen, then snapped into place) and tab switches hitched. Entrance keyframes now compose with the sheet's own transform, the phone drops a full-screen blur that re-rendered every frame, and route changes are React transitions. Test: `e2e/sheet-motion-phone.spec.ts`.
 - 2026-09-26 **A piece on any of the three subchannels can get a Studio brief** (`2c60cd0`). Ruling (Krish, 2026-09-26): teach the video side the three names. Why: the composer's Studio launcher only knew the two retired series, so a routed piece could not reach video or carousel while the launcher's own error told Krish to pick one of the three. Now follow.the.money and under.the.hood offer their predecessors' formats, mind.the.gap sends a brief with no format (it has none yet), the Studio views accept live-name jobs, and a subchannel without an approved wordmark shows its name in plain type. The engine side is content-engine `47f3944`.
 - 2026-09-25 **The approval checklist where Krish approves, and the Content rooms fit a small phone again** (`37538b7`, `60cbedc`). Why: the content engine now refuses approval until his house rules a machine can check pass (content-engine `a032649`: the fact check, no "Not X, Y", no em dashes, reading age, a dated prediction with a confidence), so the fact-check strip lists each one under "Before it can be approved" and every approve path shows the reason for a refusal. Separately, CI's phone check had failed on every push since the subchannel rename: on a 360px phone the seven room tabs wrapped to five rows and pushed the queue's last button under the bottom nav. Narrower chips wrap to four rows with every name in full, and `main` is green again.
