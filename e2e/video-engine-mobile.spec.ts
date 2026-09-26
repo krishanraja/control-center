@@ -747,6 +747,29 @@ test.describe('Video Engine mobile reviewer', () => {
     expect(desktopOverflow).toBeLessThanOrEqual(1)
   })
 
+  test('a live subchannel is branded makeyourmindup: the mark, its colour and its name as type', async ({ page }) => {
+    // Krish, 2026-09-26: "Make your mind up, Mark, plus the channel name."
+    await page.setViewportSize({ width: 375, height: 667 })
+    const review = cloneReview()
+    review.series = 'mind_the_gap'
+    await installVideoStudioMock(page, review)
+    await page.goto('/#/content')
+    const cardLockup = page.getByTestId('video-brand-lockup-card')
+    await expect(cardLockup).toHaveAttribute('aria-label', 'mind.the.gap by makeyourmindup')
+    await expect(cardLockup).toHaveAttribute('data-official-asset-source', 'krishanraja/control-center')
+    await expect(cardLockup.getByTestId('video-series-label-mind_the_gap')).toHaveText('mind.the.gap')
+    expect(await cardLockup.locator('img').getAttribute('src')).toMatch(/makeyourmindup-mark/)
+    await expect(cardLockup.locator('svg')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Open review' }).click()
+    for (const id of ['video-brand-lockup-header', 'video-brand-lockup-preview']) {
+      const lockup = page.getByTestId(id)
+      await expect(lockup).toHaveAttribute('aria-label', 'mind.the.gap by makeyourmindup')
+      const loaded = await lockup.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)
+      expect(loaded).toBe(true)
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+  })
+
   for (const series of ['money_of_ai', 'built_with_ai'] as const) {
     const label = series === 'money_of_ai' ? 'The Money of AI' : 'Built With AI'
     test(`${label} uses a contained high-contrast official wordmark in every responsive placement`, async ({ page }, testInfo) => {

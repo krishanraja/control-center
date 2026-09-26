@@ -3,6 +3,7 @@ import {
   MINDMAKE_WORDMARK_SRC,
   MONEY_OF_AI_WORDMARK_SRC,
 } from '../../assets/videoBrandAssets'
+import MAKEYOURMINDUP_MARK_SRC from '../../assets/brand/makeyourmindup/makeyourmindup-mark.png'
 import { VIDEO_SERIES_LABEL, type VideoStudioSeries } from '../../lib/videoStudio'
 import { NO_WORDMARK_FOR } from '../../lib/publicSeries'
 
@@ -15,9 +16,10 @@ type SeriesAsset = {
   size: Record<Placement, string>
 }
 
-// Only the retired pair has official artwork. A live subchannel has no approved
-// wordmark yet (lib/publicSeries.ts NO_WORDMARK_FOR), so the plate sets its name
-// in plain type instead of borrowing another publication's mark.
+// Only the retired pair has official series artwork. A live subchannel has
+// none by design (lib/publicSeries.ts NO_WORDMARK_FOR): the brand book sets
+// channel names as type, so its plate is the makeyourmindup mark with the name
+// in mono, never another publication's artwork.
 const SERIES_ASSET: Partial<Record<VideoStudioSeries, SeriesAsset>> = {
   // These viewBoxes remove only transparent canvas around the lettering in
   // the official 1200 by 630 assets. They align with complete source-pixel
@@ -45,6 +47,23 @@ const SERIES_ASSET: Partial<Record<VideoStudioSeries, SeriesAsset>> = {
       preview: 'h-[17.25px] w-[189.5px]',
     },
   },
+}
+
+// A live subchannel is branded makeyourmindup (Krish, 2026-09-26: "Make your
+// mind up, Mark, plus the channel name"): the publication's mark, the
+// channel's brand-book colour as a dot, and its name set as type, exactly as
+// the Studio draws it (content-engine config/studio.json,
+// makeyourmindup-video-v1).
+const CHANNEL_COLOR: Partial<Record<VideoStudioSeries, string>> = {
+  follow_the_money: '#FFD84D',
+  mind_the_gap: '#FF6A4D',
+  under_the_hood: '#B7A6FF',
+}
+
+const MARK_SIZE: Record<Placement, string> = {
+  header: 'w-[26px] sm:w-[28px]',
+  card: 'w-[26px]',
+  preview: 'w-[26px]',
 }
 
 const MINDMAKE_SIZE: Record<Placement, string> = {
@@ -87,6 +106,26 @@ export function VideoBrandLockup({
 }) {
   const asset = SERIES_ASSET[series]
   const label = VIDEO_SERIES_LABEL[series]
+  const channelColor = CHANNEL_COLOR[series]
+
+  if (channelColor) return (
+    <div
+      data-testid={`video-brand-lockup-${placement}`}
+      data-placement={placement}
+      data-official-asset-source="krishanraja/control-center"
+      aria-label={`${label} by makeyourmindup`}
+      className={`pointer-events-none inline-flex w-fit flex-row items-center gap-2 rounded-xl border border-white/[0.12] bg-[#0a100d] px-2.5 shadow-e1 ${placement === 'card' ? 'h-auto py-2' : 'h-9 sm:h-10'} ${className}`}
+    >
+      <span className={`grid flex-none place-items-center ${MARK_SIZE[placement]}`} aria-hidden="true">
+        <img src={MAKEYOURMINDUP_MARK_SRC} alt="" className="h-auto w-full" draggable={false} />
+      </span>
+      <span className="h-2 w-2 flex-none rounded-full" style={{ background: channelColor }} aria-hidden="true" />
+      <span
+        data-testid={`video-series-label-${series}`}
+        className="flex-none font-mono text-label font-semibold lowercase leading-none text-[#f4f1e6]"
+      >{label}</span>
+    </div>
+  )
 
   return (
     <div
