@@ -1,8 +1,8 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-09-25
-head: 60cbedc
+as_of: 2026-09-26
+head: ea3fa31
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet.
 
-## Where it is right now (as of 2026-09-25)
+## Where it is right now (as of 2026-09-26)
 
 - **Every machine output is a suggestion, and the bank that learns from it is live** (migration `20260919100000`). `public.suggestions` cannot hold a row without a reason, cannot be silent (it proposes or it names a `handoff_reasons` slug, never neither), and `suggestion_verdicts` refuses any delta key that could carry a subject, which is the anti-echo rule enforced by a CHECK rather than a comment. Ten surfaces, all on the `propose` rung of `autonomy_ladder`; the machine can ask for promotion with evidence and nothing advances itself. Zero rows until the first slate lands.
 - **One intake is live** (migration `20260919120000`): `intake_items` holds 623 rows, one per thing that ever arrived by any of nine active sources (247 ideas promoted, 338 Gmail newsletters, 17 Drive files and 21 Hunter posts assessed), and `content_ideas.source_type` is a foreign key on `intake_sources` where it was a CHECK of seventeen literals. A dated bridge trigger mirrors every directly written idea until the six writers move. `intake_by_source` and `intake_drops_by_reason` are the desk's reads. Runner spec: `makeyourmindup/engine/INTAKE_RUNNER_SPEC.md`.
@@ -54,6 +54,8 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-26 **Phone sheets rise straight and tab switches stop stuttering** (`ea3fa31`, PR #357). Why: the drawers juddered on every open (the More drawer rose half off the screen, then snapped into place) and tab switches hitched. Entrance keyframes now compose with the sheet's own transform, the phone drops a full-screen blur that re-rendered every frame, and route changes are React transitions. Test: `e2e/sheet-motion-phone.spec.ts`.
+- 2026-09-26 **A piece on any of the three subchannels can get a Studio brief** (`2c60cd0`). Ruling (Krish, 2026-09-26): teach the video side the three names. Why: the composer's Studio launcher only knew the two retired series, so a routed piece could not reach video or carousel while the launcher's own error told Krish to pick one of the three. Now follow.the.money and under.the.hood offer their predecessors' formats, mind.the.gap sends a brief with no format (it has none yet), the Studio views accept live-name jobs, and a subchannel without an approved wordmark shows its name in plain type. The engine side is content-engine `47f3944`.
 - 2026-09-25 **The approval checklist where Krish approves, and the Content rooms fit a small phone again** (`37538b7`, `60cbedc`). Why: the content engine now refuses approval until his house rules a machine can check pass (content-engine `a032649`: the fact check, no "Not X, Y", no em dashes, reading age, a dated prediction with a confidence), so the fact-check strip lists each one under "Before it can be approved" and every approve path shows the reason for a refusal. Separately, CI's phone check had failed on every push since the subchannel rename: on a 360px phone the seven room tabs wrapped to five rows and pushed the queue's last button under the bottom nav. Narrower chips wrap to four rows with every name in full, and `main` is green again.
 - 2026-09-25 **A Check the facts button where Krish approves** (`d006f60`). Why: the content engine refuses to move a publication piece forward until every fact in its exact text is checked twice, and until now only an agent session could run the check, so the refusal named a step Krish had no button for. The composer's approval block now shows whether this exact version passed, the button, and each fact to fix in plain words with its source. Test: `e2e/fact-check-strip.spec.ts`.
 - 2026-09-25 **An approval the fact gate refuses now says why** (`3ad2ec3`). Why: the content engine stopped any publication piece reaching review, approval or publication until every claim in its exact body is verified (content-engine `a843cc8`), after Krish's "we cannot afford even a chance of factual errors slipping in". The approve and publish paths here showed "try again" for that refusal; they now show the engine's plain reason. The button that runs a check, and the claim table, are still to design.
