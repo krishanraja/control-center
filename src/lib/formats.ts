@@ -28,7 +28,7 @@ export type FormatKind = 'subchannel' | 'holding' | 'any' | 'retired'
 export interface FormatDef {
   slug: string
   label: string
-  /** "Wednesdays", "Fridays", "No fixed day". The table's own wording. */
+  /** "Mondays", "Wednesdays", "Fridays". The table's own wording. */
   cadence_label: string
   /** 1 for a weekly slot, 0.5 for the standing one, 0 for anything not commissioned. */
   target_per_week: number
