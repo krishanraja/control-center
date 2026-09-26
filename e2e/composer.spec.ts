@@ -201,17 +201,29 @@ test('a piece on under.the.hood gets the formats of the series it replaced', asy
   expect(sent()).toMatchObject({ editorial_format: 'first_version', confirm_hard_gates: true })
 })
 
-test('a mind.the.gap piece sends a brief with no format, because it has none yet', async ({ page }) => {
+test('a mind.the.gap piece sends The Fork, chosen for it without a tap', async ({ page }) => {
   await openIdea(page, { lane_slot: 'mind_the_gap' })
   const sent = await captureBrief(page)
   await page.getByTestId('composer-rail-cuts').click()
   await page.getByRole('button', { name: 'Studio', exact: true }).click()
-  await expect(page.getByRole('group', { name: 'Format' })).toHaveCount(0)
+  const fork = page.getByRole('button', { name: 'The Fork', exact: true })
+  await expect(fork).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Money Trace', exact: true })).toHaveCount(0)
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Create exact Studio brief' }).click()
   await expect.poll(sent).not.toBeNull()
-  expect(sent()).toMatchObject({ production_kinds: ['video'], confirm_hard_gates: true })
-  expect(sent()).not.toHaveProperty('editorial_format')
+  expect(sent()).toMatchObject({ production_kinds: ['video'], editorial_format: 'the_fork', confirm_hard_gates: true })
+})
+
+test('a piece on under.the.hood sends its own first format when none is tapped', async ({ page }) => {
+  await openIdea(page, { lane_slot: 'under_the_hood' })
+  const sent = await captureBrief(page)
+  await page.getByTestId('composer-rail-cuts').click()
+  await page.getByRole('button', { name: 'Studio', exact: true }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Create exact Studio brief' }).click()
+  await expect.poll(sent).not.toBeNull()
+  expect(sent()).toMatchObject({ editorial_format: 'builder_conversation' })
 })
 
 test('the four canonical Studio formats stay readable and thumb-sized on mobile', async ({ browser }) => {

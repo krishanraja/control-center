@@ -1677,7 +1677,7 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
   }, [family, idea.id])
 
   useEffect(() => {
-    // mind.the.gap has no formats yet, so its brief names none.
+    // Each subchannel starts on its own first format (mind.the.gap: The Fork).
     if (studioSeries) setEditorialFormat(STUDIO_FORMATS_BY_SERIES[studioSeries][0]?.value ?? null)
   }, [studioSeries, idea.id])
 
@@ -1716,8 +1716,8 @@ function OutputsPanel({ idea }: { idea: ContentIdeaRow }) {
         if (!canonicalSeries) throw new Error(`Choose a subchannel before starting Studio: ${SUBCHANNELS.map(f => f.label).join(', ')}.`)
         if (!hardGatesConfirmed) throw new Error('Confirm the five production gates first.')
         const productionKind = definition.family === 'carousel' ? 'carousel' : 'video'
-        // A carousel needs a story format, and mind.the.gap has none yet.
-        if (productionKind === 'carousel' && !studioFormats.length) throw new Error('mind.the.gap has no carousel format yet. Make a Short, or give it a format first.')
+        // A carousel needs a story format.
+        if (productionKind === 'carousel' && !studioFormats.length) throw new Error('This subchannel has no carousel format yet. Make a Short, or give it a format first.')
         response = await fetch(`/api/content-ideas/${idea.id}/production-brief`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
