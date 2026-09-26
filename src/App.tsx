@@ -20,7 +20,6 @@ import { useHashRoute } from './hooks/useHashRoute'
 import { videoEngineEnabled } from './lib/videoStudio'
 import { isTypingTarget } from './lib/hotkeys'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
-import { useReducedMotion } from './components/shared/motion'
 import { parseEditorialSeries } from './lib/editorialOpportunities'
 
 /**
@@ -33,15 +32,20 @@ import { parseEditorialSeries } from './lib/editorialOpportunities'
  * The shell (sidebar, bottom nav, command palette, capture, modals) stays eager
  * because it's always on screen or latency-sensitive (⌘K must open instantly).
  */
-const DesktopHome = lazy(() => import('./components/desktop/DesktopHome').then(m => ({ default: m.DesktopHome })))
-const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
-const MobileHome = lazy(() => import('./components/mobile/MobileHome').then(m => ({ default: m.MobileHome })))
-const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
+const loadDesktopHome = () => import('./components/desktop/DesktopHome')
+const DesktopHome = lazy(() => loadDesktopHome().then(m => ({ default: m.DesktopHome })))
+const loadDesktopCustomers = () => import('./components/desktop/DesktopCustomers')
+const DesktopCustomers = lazy(() => loadDesktopCustomers().then(m => ({ default: m.DesktopCustomers })))
+const loadMobileHome = () => import('./components/mobile/MobileHome')
+const MobileHome = lazy(() => loadMobileHome().then(m => ({ default: m.MobileHome })))
+const loadMobileCustomers = () => import('./components/mobile/MobileCustomers')
+const MobileCustomers = lazy(() => loadMobileCustomers().then(m => ({ default: m.MobileCustomers })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
 const VideoEngineReviewer = lazy(() => import('./components/video-studio/VideoEngineReviewer').then(m => ({ default: m.VideoEngineReviewer })))
 // The one Content tab (docs/CONTENT-ENGINE-V2-SPEC.md): rooms on the desk,
 // a decision deck on the phone. There is no second surface behind a flag.
-const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
+const loadContentV2Tab = () => import('./components/content-v2/ContentV2Tab')
+const ContentV2Tab = lazy(() => loadContentV2Tab().then(m => ({ default: m.ContentV2Tab })))
 // Growth: ONE tab, five sections in the order of the weekly loop. Map (the ICP
 // touchpoint map, growth_touchpoints), Work (the Higgsfield creative board,
 // growth_creative_queue), Signals (GEO probes over growth_geo_probes plus the
@@ -49,15 +53,25 @@ const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').t
 // and Governance (the per-lane control plane: profit governor, autonomy ladder,
 // direction lock, tool registry). Merged from the old 'acquisition' + 'growth'
 // pair on 2026-08-04; the retired cold-email machinery is no longer rendered.
-const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => ({ default: m.GrowthTab })))
+const loadGrowthTab = () => import('./components/growth/GrowthTab')
+const GrowthTab = lazy(() => loadGrowthTab().then(m => ({ default: m.GrowthTab })))
 // Simplified-IA wrapper tabs (VITE_IA_V3_ENABLED): People = Pipeline + Network +
 // Visibility lanes; OS = Org + Intel + Flows + Systems subtabs.
-const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
-const OsTab = lazy(() => import('./components/os/OsTab').then(m => ({ default: m.OsTab })))
+const loadPeopleTab = () => import('./components/people/PeopleTab')
+const PeopleTab = lazy(() => loadPeopleTab().then(m => ({ default: m.PeopleTab })))
+const loadOsTab = () => import('./components/os/OsTab')
+const OsTab = lazy(() => loadOsTab().then(m => ({ default: m.OsTab })))
 // Focus & Purpose: the operator's own hub (docs/FOCUS-PURPOSE.md). Reached
 // from the morning check-in, the anxious-day auto-route (?steady=1), the
 // Focus doorway row on Home, and the drawer.
-const FocusPurposeTab = lazy(() => import('./components/focusPurpose/FocusPurposeTab').then(m => ({ default: m.FocusPurposeTab })))
+const loadFocusPurposeTab = () => import('./components/focusPurpose/FocusPurposeTab')
+const FocusPurposeTab = lazy(() => loadFocusPurposeTab().then(m => ({ default: m.FocusPurposeTab })))
+
+// The chunks each shell's tabs need, warmed in idle time after boot (see the
+// effect in App). The composer and the video reviewer are left cold: they are
+// deep-link takeovers, and the composer carries the 437kB editor.
+const MOBILE_TAB_CHUNKS = [loadMobileHome, loadMobileCustomers, loadGrowthTab, loadContentV2Tab, loadPeopleTab, loadOsTab, loadFocusPurposeTab]
+const DESK_TAB_CHUNKS = [loadDesktopHome, loadDesktopCustomers, loadGrowthTab, loadContentV2Tab, loadPeopleTab, loadOsTab, loadFocusPurposeTab]
 
 // Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
 // old hand-maintained duplicate list can never drift from the sidebar again.
@@ -142,7 +156,18 @@ export default function App() {
   const videoEngineOn = videoEngineEnabled()
   const videoReviewOpen = tab === 'content' && videoEngineOn && Boolean(route.params.video)
   const mainRef = useRef<HTMLElement>(null)
-  const reducedMotion = useReducedMotion()
+
+  // Warm every tab's chunk once the first screen has settled. Code-splitting
+  // keeps the first load small, but it meant the first visit to each tab
+  // waited on a network fetch and swapped a skeleton in and out mid-tap.
+  // Fetching them in idle time after boot makes every switch a local render.
+  useEffect(() => {
+    const warm = () => { for (const load of narrow ? MOBILE_TAB_CHUNKS : DESK_TAB_CHUNKS) load().catch(() => {}) }
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }
+    if (w.requestIdleCallback) { w.requestIdleCallback(warm, { timeout: 4000 }); return }
+    const t = window.setTimeout(warm, 2500)
+    return () => window.clearTimeout(t)
+  }, [narrow])
 
   useEffect(() => {
     if (tab === 'content' && route.params.video && !videoEngineOn) navigate('content')
@@ -193,7 +218,6 @@ export default function App() {
   const handleTab = (id: string) => {
     const normalised = id === 'execution' ? 'exec' : id
     navigate(normalised)
-    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
   }
 
   // A deep-linked brief editor or content composer takes over the whole screen

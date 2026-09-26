@@ -32,7 +32,14 @@ export function BottomNav({ active, onChange }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const ultraNarrow = useNarrowViewport(360)
   const reducedMotion = useReducedMotion()
-  const drawerActive = MOBILE_DRAWER_TABS.some(t => t.id === active)
+  // The tapped tab lights up on the tap itself. The route now changes as a
+  // React transition (useHashRoute), so `active` arrives once the new tab has
+  // rendered; waiting for it left the highlight a beat behind the finger.
+  const [tapped, setTapped] = useState<string | null>(null)
+  React.useEffect(() => { setTapped(null) }, [active])
+  const shown = tapped ?? active
+  const drawerActive = MOBILE_DRAWER_TABS.some(t => t.id === shown)
+  const go = (id: string) => { setTapped(id); onChange(id) }
 
   return (
     <>
@@ -42,10 +49,10 @@ export function BottomNav({ active, onChange }: Props) {
             <NavButton
               key={tab.id}
               tab={tab}
-              active={active === tab.id}
+              active={shown === tab.id}
               ultraNarrow={ultraNarrow}
               reducedMotion={reducedMotion}
-              onClick={() => { h.select(); onChange(tab.id) }}
+              onClick={() => { h.select(); go(tab.id) }}
             />
           ))}
           {MOBILE_DRAWER_TABS.length > 0 && (
@@ -54,7 +61,7 @@ export function BottomNav({ active, onChange }: Props) {
               aria-label="More"
               aria-current={drawerActive ? 'page' : undefined}
               className={`${NAV_BUTTON_CLS} ${
-                reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
+                reducedMotion ? '' : 'transition-[color,transform] duration-200 active:scale-95'
               } ${drawerActive ? 'text-accent' : 'text-ink-muted'}`}
             >
               {/* More is a real tab button now. It used to be the one control in
@@ -73,8 +80,8 @@ export function BottomNav({ active, onChange }: Props) {
       {drawerOpen && (
         <MobileMoreDrawer
           tabs={MOBILE_DRAWER_TABS}
-          active={active}
-          onSelect={(id) => { h.select(); onChange(id); setDrawerOpen(false) }}
+          active={shown}
+          onSelect={(id) => { h.select(); go(id); setDrawerOpen(false) }}
           onClose={() => setDrawerOpen(false)}
         />
       )}
@@ -128,7 +135,7 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, reducedMotion, onCl
       aria-label={tab.label}
       aria-current={active ? 'page' : undefined}
       className={`${NAV_BUTTON_CLS} ${
-        reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
+        reducedMotion ? '' : 'transition-[color,transform] duration-200 active:scale-95'
       } ${active ? 'text-accent' : 'text-ink-muted'}`}
     >
       <NavIndicator active={active} reducedMotion={reducedMotion} />

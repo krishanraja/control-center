@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { startTransition, useCallback, useEffect, useState } from 'react'
 
 export interface HashRoute {
   tab: string
@@ -29,7 +29,16 @@ export function useHashRoute() {
   )
 
   useEffect(() => {
-    const onHash = () => setRoute(parseHash(window.location.hash))
+    // A route change is a transition. Mounting a tab is the heaviest render
+    // this app does, and as an urgent update it blocked the main thread while
+    // the tap's press feedback and the nav highlight were mid-animation, which
+    // read as a stutter on every switch. As a transition React renders the new
+    // tab in yielding slices, and on a tab's first visit it keeps the old one
+    // on screen while the chunk loads instead of flashing the route skeleton.
+    const onHash = () => {
+      const next = parseHash(window.location.hash)
+      startTransition(() => setRoute(next))
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
@@ -62,8 +71,11 @@ export function useHashRoute() {
           }
         }, 150)
       } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
+        // Instant, not smooth: the window and `main` never scroll in this
+        // shell, so this only ever undoes a stray offset, and animating that
+        // 60ms after the new tab painted slid the whole page under the finger.
+        window.scrollTo({ top: 0 })
+        document.querySelector('main')?.scrollTo({ top: 0 })
       }
     }, 60)
   }, [])
