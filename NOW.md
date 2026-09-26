@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-09-26
-head: dab81bd
+head: bb08cc8
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -54,6 +54,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-09-26 **The makeyourmindup mark and logo are pinned here for the Video Studio** (`bb08cc8`). Ruling (Krish, 2026-09-26): "Make your mind up, Mark, plus the channel name", then "placement approved". Why: the Studio loads official marks from a public repository by commit and hash, and content-engine never tracks image files.
 - 2026-09-26 **mind.the.gap gets The Fork in the Studio composer** (`dab81bd`). Ruling (Krish, 2026-09-26): "The Fork is good". Why: mind.the.gap had no format, so it could not request a carousel; The Fork tells its story in the order its timeline draws it (then, now, the fork, our call). The engine side is content-engine `3d8e473`.
 - 2026-09-26 **GA4 reads as its own service account** (`5206394`, PR #358). Why: the first GA4 run got a 403 on both properties because the shared Google identity is not a Viewer on them; a dedicated read-only pair now takes that grant, falling back to the shared one when unset.
 - 2026-09-26 **Phone sheets rise straight and tab switches stop stuttering** (`ea3fa31`, PR #357). Why: the drawers juddered on every open (the More drawer rose half off the screen, then snapped into place) and tab switches hitched. Entrance keyframes now compose with the sheet's own transform, the phone drops a full-screen blur that re-rendered every frame, and route changes are React transitions. Test: `e2e/sheet-motion-phone.spec.ts`.
