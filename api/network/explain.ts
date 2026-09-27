@@ -3,6 +3,7 @@ import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson, hasAnthropicKey } from '../_content.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
+import { RETIRED_VENTURES } from '../_venturePositioning.js'
 
 // POST /api/network/explain
 //   { question, contact_ids: string[] }
@@ -24,13 +25,14 @@ const MAX_IDS = 12
 
 const SYSTEM = `You are explaining why each person answers a question about Krish Raja's professional network.
 
-You get the question and a numbered list of people, each with their role, company, relationship tier and the stored judgment about them.
+You get the question and a numbered list of people. Each has FACTS (title, company, industry, place, LinkedIn headline, the opening of their LinkedIn summary, past roles, skills, where a profile was read) and a stored JUDGMENT (who, why_them, hook, risk) written earlier by a model.
 
 Return STRICT JSON ONLY, no prose and no code fences:
 { "explanations": [{ "i": number, "why": string, "move": string }] }
 
 Rules:
-- "why" is ONE short sentence, grounded ONLY in that person's supplied fields, saying why they answer THIS question. Cite the concrete thing: their role, their company, the stored reason.
+- "why" is ONE short sentence saying why this person answers THIS question, grounded in the FACTS first. Cite the concrete thing that matches: the title, the company, the past role, the skill, the line in their headline. "Ran retail media partnerships at a supermarket group for six years" beats "has relevant experience".
+- The stored judgment can be stale or written for a different purpose, sometimes a business Krish no longer runs (${[...RETIRED_VENTURES].join(', ')}). Use it only where the facts agree with it, and never repeat a retired business's name or reasoning.
 - "move" is the opening move: the channel and the first line's angle, in one short sentence. "Reply to their thread on procurement with the Maven cohort link" not "reach out to them". Name the channel from what the record shows is available (has_email, has_linkedin, has_twitter, best_channel, reachable_via) and never one it does not have.
 - Where "posted" is present the person has said something publicly in the last quarter and "posting_about" says what kind of thing it was. That is the strongest opening available: respond to what they actually said, quoting or paraphrasing it. Where there is no "posted", fall back to the stored hook, then to a reciprocated email, then to what to find out first.
 - Never invent a fact that is not in front of you. A "move" that assumes a relationship the record does not show is an invented fact.
@@ -67,12 +69,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // intent. The model was being asked to name a channel it could not see and
     // to spot a warm path from data it had never been given, which is how a
     // "move" turns into "reach out to them".
+    //
+    // And the facts. This pass used to see the stored judgment plus the
+    // import's title and company, and nothing the enrichment bought: no
+    // headline, no summary, no career, no skills, not even the current title
+    // for the 939 people whose job the profile scrape had updated. Someone
+    // ranked on "ex-Amazon" was then explained from a why_them that never
+    // mentioned Amazon, or called a poor match. Career and skills live in the
+    // dossier; they are read by path so the rest of that blob stays behind.
     const { data, error } = await supabase
       .from('contact_intelligence')
       .select(`contact_id, who, why_them, hook, risk, roles, network_tier, completeness,
                best_channel, reachable_via, reciprocated_email,
                intent_stance, intent_score, intent_evidence, last_post_at,
-               contacts(full_name, title, company, email, linkedin_url, twitter_handle)`)
+               current_title, current_company, headline, summary, industry, seniority, country,
+               contacts(full_name, title, company, location, email, linkedin_url, twitter_handle,
+                        career:dossier->_direct->facts->career,
+                        skills:dossier->_direct->facts->skills)`)
       .in('contact_id', ids)
     if (error) throw new Error(error.message)
 
@@ -92,9 +105,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const intentLive = Number.isFinite(lastPost)
         && Date.now() - lastPost < 90 * 86_400_000
         && Number(r.intent_score ?? 0) > 0
+      const career = Array.isArray(c.career) ? (c.career as Array<Record<string, unknown>>) : []
+      const skills = Array.isArray(c.skills) ? (c.skills as unknown[]) : []
       return {
         i,
-        name: c.full_name, title: c.title, company: c.company,
+        name: c.full_name,
+        // FACTS. The profile's current title and company win over the import's,
+        // the same precedence network_search now returns.
+        title: r.current_title || c.title,
+        company: r.current_company || c.company,
+        industry: r.industry,
+        seniority: r.seniority,
+        place: c.location || r.country,
+        headline: r.headline,
+        summary: typeof r.summary === 'string' ? r.summary.slice(0, 400) : null,
+        past_roles: career.slice(0, 6)
+          .map(e => [e.title, e.company].filter(Boolean).join(' at '))
+          .filter(Boolean),
+        skills: skills.slice(0, 12).map(String),
+        // JUDGMENT, stored earlier. See the prompt: facts first.
         tier: r.network_tier, roles: r.roles,
         who: r.who, why_them: r.why_them, hook: r.hook, risk: r.risk,
         // The warm paths. Named so the model can cite one instead of inventing

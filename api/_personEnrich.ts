@@ -8,6 +8,7 @@ import {
   outcomeFrom, skipped, empty, errored, ok,
   summarise, type OutcomeSummary, type ProviderOutcome,
 } from './_quota.js'
+import { SENIORITY, BEST_CHANNELS, VENTURE_BRIEF } from './_networkQuery.js'
 
 // Structured person enrichment.
 //
@@ -381,18 +382,29 @@ function factsBlock(f: PersonFacts): string {
   ].filter(Boolean).join('\n')
 }
 
-const JUDGMENT_SYSTEM = `You assess a person for an operator's professional network and return ONLY JSON.
+// Who the operator is, and the vocabularies the ranker matches on, both read
+// from the planner so there is one copy of each.
+//
+// The prompt used to say "worth knowing to this operator specifically" without
+// ever saying who the operator was, so why_them came back generic ("useful if
+// the operator needs media buys"). And it asked for its own seniority and
+// channel words, which the planner never emits, so every enriched person
+// scored zero on any seniority constraint (migration 20260927160000).
+const JUDGMENT_SYSTEM = `You assess a person for Krish Raja's professional network and return ONLY JSON.
+
+The operator is Krish Raja. ${VENTURE_BRIEF}
+Judge the person against these ventures only.
 
 Schema:
 {
   "who": "one sentence, what they actually do now",
-  "why_them": "2-3 sentences: why this person is worth knowing to this operator specifically",
+  "why_them": "2-3 sentences: why this person is worth knowing to Krish specifically, naming the venture it serves",
   "hook": "one concrete opening line or shared surface — something real from the evidence, not flattery",
   "risk": "one sentence on what would make this a waste of time, or 'none apparent'",
   "roles": ["subset of: buyer, partner, introducer, guest, operator_peer, investor, hire, none"],
-  "seniority": "ic | manager | director | vp | c_level | founder | owner | unknown",
+  "seniority": "${SENIORITY.join(' | ')}",
   "industry": "short label or null",
-  "best_channel": "linkedin | email | intro | event | unknown",
+  "best_channel": "${BEST_CHANNELS.join(' | ')} | intro | event | unknown",
   "reachable_via": ["short list of surfaces where they are actually reachable"],
   "confidence": "low | medium | high",
   "sells_competing_services": true | false

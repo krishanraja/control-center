@@ -7,6 +7,12 @@
 // the intent line arriving, then both being length-capped — and each time every
 // existing row kept a doc built by the previous version.
 //
+// It covers EVERY row, not only those with a summary (20260927160000). The
+// composition now changes for people nobody enriched too (the judgment and the
+// placeholders left the index), and a rebuild that skipped them would leave
+// 9,000 docs on the old text. That migration rebuilds all of them itself, as
+// postgres; this script is for the next composition change.
+//
 // ── Why the cap exists, since this job is how it gets applied ──────────────
 // Enrichment put the whole LinkedIn "about" blob into the doc: summary averaged
 // 893 characters and ran to 2,000, so enriched docs averaged 1,488 against 423
@@ -36,7 +42,7 @@ const sb = createClient(SUPA_URL, SUPA_KEY)
 const COMMIT = process.argv.includes('--commit')
 const BATCH = 200
 
-interface Row { contact_id: string; summary: string | null; intel_doc: string | null }
+interface Row { contact_id: string; name_quality: string; intel_doc: string | null }
 
 async function main() {
   let after = ''
@@ -48,8 +54,7 @@ async function main() {
   for (;;) {
     let q = sb
       .from('contact_intelligence')
-      .select('contact_id, summary, intel_doc')
-      .not('summary', 'is', null)
+      .select('contact_id, name_quality, intel_doc')
       .order('contact_id', { ascending: true })
       .limit(BATCH)
     if (after) q = q.gt('contact_id', after)
@@ -66,11 +71,12 @@ async function main() {
       if (len > longest) longest = len
       touched++
       if (!COMMIT) continue
-      // Writing summary back unchanged is what fires the trigger. The value is
-      // identical; the recomposition is the point.
+      // Writing name_quality back unchanged is what fires the trigger: it is
+      // watched, NOT NULL, and present on every row, which summary is not. The
+      // value is identical; the recomposition is the point.
       const { error: uerr } = await sb
         .from('contact_intelligence')
-        .update({ summary: r.summary })
+        .update({ name_quality: r.name_quality })
         .eq('contact_id', r.contact_id)
       if (uerr) throw new Error(`${r.contact_id}: ${uerr.message}`)
       rebuilt++
@@ -78,7 +84,7 @@ async function main() {
     process.stdout.write(`\r  ${touched} examined, ${rebuilt} rebuilt`)
   }
 
-  console.log(`\n\n${touched} rows carry a summary. Average doc before: ${Math.round(before / Math.max(touched, 1))} chars, longest ${longest}.`)
+  console.log(`\n\n${touched} rows examined. Average doc before: ${Math.round(before / Math.max(touched, 1))} chars, longest ${longest}.`)
   if (!COMMIT) { console.log('\nDry run. Re-run with --commit to rebuild.'); return }
 
   const { count } = await sb

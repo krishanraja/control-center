@@ -363,7 +363,7 @@ function intelPayload(contactId: string, r: Row) {
     roles: [],
     surface_when: [],
     network_tier: '4_owned_network',
-    tier_weight: 1,
+    // tier_weight is derived from network_tier by the trigger (20260927160000).
     confidence: 'low',
     intel_method: INTEL_METHOD,
     evidence: [`${r.community.label} member roster`],

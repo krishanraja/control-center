@@ -124,6 +124,8 @@ const EMPTY: SearchState = {
 // spinner up forever, which is what "the search hangs" actually was.
 const REQUEST_TIMEOUT_MS = 30_000
 const EXPLAIN_TIMEOUT_MS = 30_000
+/** The explain route's MAX_IDS. One model call per batch, run in parallel. */
+const EXPLAIN_BATCH = 12
 
 export interface Filters {
   venture?: string | null
@@ -154,53 +156,63 @@ export function useNetworkSearch() {
   // than an error banner over good results — but silence made a failed pass
   // identical to a pass that ran and had nothing to add, and the retry is one
   // click away.
+  //
+  // Every row on screen gets a reason, in batches of EXPLAIN_BATCH run side by
+  // side. It used to be the first twelve only, so rows 13 to 25 showed the
+  // stored why_them: a question-independent judgment, many of them written in
+  // August about a venture Krish has since retired. Each batch merges the
+  // moment it lands, so the top of the list is never waiting on the bottom.
   const explain = useCallback(async (question: string, results: NetworkResult[], mine: number) => {
-    const ids = results.slice(0, 12).map(r => r.contact_id)
+    const ids = results.map(r => r.contact_id)
     if (!question || !ids.length) { setState(s => ({ ...s, explaining: false })); return }
     lastExplain.current = { question, results }
-    const ctrl = new AbortController()
-    const tid = setTimeout(() => ctrl.abort(), EXPLAIN_TIMEOUT_MS)
-    try {
-      const r = await fetch('/api/network/explain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, contact_ids: ids }),
-        signal: ctrl.signal,
-      })
-      const j = await r.json().catch(() => ({})) as {
-        ok?: boolean
-        explanations?: Record<string, string>
-        moves?: Record<string, string>
-        reason?: string
-      }
-      if (mine !== seq.current) return
-      if (j.ok === false) {
+    const batches: string[][] = []
+    for (let i = 0; i < ids.length; i += EXPLAIN_BATCH) batches.push(ids.slice(i, i + EXPLAIN_BATCH))
+
+    let failed = false
+    let failReason: string | null = null
+    await Promise.all(batches.map(async batch => {
+      const ctrl = new AbortController()
+      const tid = setTimeout(() => ctrl.abort(), EXPLAIN_TIMEOUT_MS)
+      try {
+        const r = await fetch('/api/network/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, contact_ids: batch }),
+          signal: ctrl.signal,
+        })
+        const j = await r.json().catch(() => ({})) as {
+          ok?: boolean
+          explanations?: Record<string, string>
+          moves?: Record<string, string>
+          reason?: string
+        }
+        if (mine !== seq.current) return
+        if (j.ok === false) {
+          failed = true
+          failReason = failReason || (typeof j.reason === 'string' && j.reason ? j.reason : null)
+          return
+        }
+        const map = j.explanations || {}
+        const moves = j.moves || {}
         setState(s => ({
-          ...s, explaining: false, explainFailed: true,
-          explainReason: typeof j.reason === 'string' && j.reason ? j.reason : null,
+          ...s,
+          results: s.results.map(x => (
+            map[x.contact_id] || moves[x.contact_id]
+              ? { ...x, why_match: map[x.contact_id] || x.why_match, move: moves[x.contact_id] || x.move }
+              : x
+          )),
         }))
-        return
+      } catch {
+        // A throw here is the client's own abort or a network failure, so there
+        // is no upstream sentence to quote; say nothing rather than guess.
+        failed = true
+      } finally {
+        clearTimeout(tid)
       }
-      const map = j.explanations || {}
-      const moves = j.moves || {}
-      setState(s => ({
-        ...s,
-        explaining: false,
-        explainFailed: false,
-        explainReason: null,
-        results: s.results.map(x => (
-          map[x.contact_id] || moves[x.contact_id]
-            ? { ...x, why_match: map[x.contact_id] || x.why_match, move: moves[x.contact_id] || x.move }
-            : x
-        )),
-      }))
-    } catch {
-      // A throw here is the client's own abort or a network failure, so there
-      // is no upstream sentence to quote; say nothing rather than guess.
-      if (mine === seq.current) setState(s => ({ ...s, explaining: false, explainFailed: true, explainReason: null }))
-    } finally {
-      clearTimeout(tid)
-    }
+    }))
+    if (mine !== seq.current) return
+    setState(s => ({ ...s, explaining: false, explainFailed: failed, explainReason: failed ? failReason : null }))
   }, [])
 
   const run = useCallback(async (

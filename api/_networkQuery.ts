@@ -40,7 +40,10 @@ export const CONSTRAINT_FIELDS = [
   // people with a known country and roughly 4,600.
   'seniority', 'geo', 'country', 'industry', 'company', 'title',
   'roles', 'surface_when', 'reachable_via', 'best_channel',
-  'network_tier', 'confidence', 'primary_venture', 'mindmake_buyer_family',
+  // mindmaker_, the column's spelling. This said mindmake_ and network_search
+  // only knew mindmaker_, so the constraint fell to ELSE 0 and scored everyone
+  // zero. The scorer now accepts both (20260927160000).
+  'network_tier', 'confidence', 'primary_venture', 'mindmaker_buyer_family',
   // What someone is publicly DOING about AI, from their own recent posts. This
   // is the field that makes "who is stuck on AI" and "who is hiring for AI"
   // answerable by asking rather than by scrolling: the stance is on the row and
@@ -57,8 +60,24 @@ export const CONSTRAINT_FIELDS = [
 // sanitizePlan also guards against a stale/model-emitted retired slug below.
 const VENTURES = ['mindmake', 'signal_noise', 'builder_economy'] as const
 const ROLES = ['buyer', 'partner', 'introducer', 'guest', 'operator_peer', 'investor', 'hire'] as const
-const SENIORITY = ['founder_cxo', 'vp_director', 'manager_senior', 'ic_unknown'] as const
+
+// The vocabularies the scorer matches on. EXPORTED so the enrichment judgment
+// (api/_personEnrich.ts) asks its model for exactly these words. It used to ask
+// for its own (c_level, director, linkedin...), wrote them onto 2,411 people,
+// and every seniority constraint the planner emitted then scored every
+// enriched person zero. public.seniority_band() and public.channel_canon()
+// map stray spellings onto these as a backstop; this is the source.
+export const SENIORITY = ['founder_cxo', 'vp_director', 'manager_senior', 'ic_unknown'] as const
+export const BEST_CHANNELS = ['email', 'linkedin_dm', 'instagram_dm', 'phone'] as const
 const TIERS = ['1_reciprocated', '2_core_network', '3_known_network', '4_owned_network', '5_cold_lead'] as const
+
+/** What Krish runs now, for any model judging a person or a question against
+ *  it. One copy: the planner and the enrichment judgment both read this, so a
+ *  person is never assessed against a business the planner does not know. */
+export const VENTURE_BRIEF = `His ventures:
+- mindmake — AI advisory, education and products. Buyers are senior operators at non-vendor companies who must build AI capability.
+- signal_noise — a B2B/AI go-to-market podcast. Needs guests with a real operator story.
+- builder_economy — building in the age of AI. Community, cohort and audience.`
 
 export interface Constraint {
   field: string
@@ -81,12 +100,9 @@ export interface QueryPlan {
 
 const SYSTEM = `You translate a question about Krish Raja's professional network into a search plan.
 
-His network is 10,670 resolved people. Each carries: a one-line "who", a "why_them" judgment, a conversational "hook", a risk note, roles, per-venture fit scores, seniority, country, industry, company, title, and a relationship tier.
+His network is about 11,700 people. Search matches on what is known about each of them: a one-line description of what they do, title, company, industry, location, and, for everyone whose LinkedIn profile was read, their headline, the opening of their summary, their past roles and employers, and their skills. Each also carries roles, per-venture fit scores, seniority and a relationship tier.
 
-His ventures:
-- mindmake — AI advisory, education and products. Buyers are senior operators at non-vendor companies who must build AI capability.
-- signal_noise — a B2B/AI go-to-market podcast. Needs guests with a real operator story.
-- builder_economy — building in the age of AI. Community, cohort and audience.
+${VENTURE_BRIEF}
 
 Return STRICT JSON ONLY, no prose and no code fences:
 {
@@ -104,8 +120,9 @@ Rules:
 - "constraints" are SOFT. They are weighted boosts, never filters, so include one whenever the question implies it even if you are unsure — a wrong constraint costs a little ranking, a missing one costs the right answer. Weight 1.0 for something stated outright, 0.5-0.7 for something implied.
 - Allowed "field" values, and nothing else: ${JSON.stringify(CONSTRAINT_FIELDS)}
 - Geography goes in a "geo" constraint. Emit the ISO-3166 alpha-2 country code where you know it: GB for the UK, Britain, England, Scotland or a British city; AU for Australia or an Australian city; US for the USA, America or an American city. Otherwise emit the plain English country name. A city is fine as a value ("London"), it resolves to its country. Add a geo constraint whenever a place is named. His three markets are the United States, the United Kingdom and Australia, so those are the ones that come up; do not invent a location he did not mention.
-- Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ["email","linkedin_dm","instagram_dm","phone"]. intent_stance: ["asking","struggling","hiring","evaluating","building","teaching","commenting","selling"] — what they are publicly doing about AI right now, read from their own recent posts. Use it when the question is about who is stuck, hiring, piloting, building or asking for help with AI. "asking" and "struggling" are the buying signals; "selling" means a vendor, never a buyer.
+- Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ${JSON.stringify(BEST_CHANNELS)}. intent_stance: ["asking","struggling","hiring","evaluating","building","teaching","commenting","selling"] — what they are publicly doing about AI right now, read from their own recent posts. Use it when the question is about who is stuck, hiring, piloting, building or asking for help with AI. "asking" and "struggling" are the buying signals; "selling" means a vendor, never a buyer.
 - "industry", "company" and "title" match on substring, so prefer a short distinctive fragment: "media agency", not "independent media agency group".
+- "company" and "title" mean where they are NOW. For someone's past ("used to work at Google", "ex-Amazon", "has run a retail media network") put the name or phrase in "keywords" only, which also match past roles; a "company" constraint would score every former employee zero.
 - Set "venture" only when the question is actually about one of his ventures. It re-ranks everyone, so a wrong guess is expensive.
 - Never invent a person, a company, or a filter he did not imply.
 - If the question carries no discernible intent, say so plainly in "restated" and leave the other fields empty rather than guessing at constraints.

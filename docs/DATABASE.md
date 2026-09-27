@@ -1007,11 +1007,17 @@ deterministic test is `public.looks_like_a_competitor`, recomputed by the
 `ci_rebuild_doc_trg` trigger; `competitor_source = 'model'` marks a verdict
 from enrichment, which the rule may never overwrite.
 
-A note on `contact_intelligence.tier_weight`: it holds **two scales at once**.
-Measured 2026-09-16, `2_core_network` appears with both `3` and `85`, so some
-rows are on a 1-5 rank and others on a 1-100 weight. Nothing user-facing should
-read it until that is reconciled; derive closeness from `network_tier`, which
-is consistent. `api/bridges/index.ts` has the mapping.
+A note on `contact_intelligence.tier_weight`: it is **derived**, one scale,
+since `20260927160000`. It used to hold two: the import wrote 0-100 and
+`enrich-person`, `add-person` and `import-circle` wrote 1-3, so every enriched
+person ranked below a cold lead on the ranker's largest relationship term.
+`ci_rebuild_doc_trg` now sets it from `network_tier` through
+`public.tier_weight_for()` (100 / 85 / 70 / 50 / 15, the same numbers as
+`TIER_STRENGTH` in `api/bridges/index.ts`), so no writer can put a second
+scale in it. The same trigger pins `1_reciprocated` whenever
+`reciprocated_email` is true, and normalises `seniority` (`seniority_band()`)
+and `best_channel` (`channel_canon()`) onto the planner's vocabulary. Probe P10
+in `scripts/network/probes.sql` counts every departure and must read zero.
 
 ## `contact_intelligence` — the network judgment layer
 
@@ -1129,18 +1135,35 @@ partial index on the browse default (tiers 1-3, real judgment, actual humans).
 `SECURITY INVOKER`, granted to `service_role` only.
 
 ```
-match_score = 100 x venture_multiplier x weighted_mean(
+Q = weighted_mean over the terms that ran (the QUESTION):
     0.34 semantic       cosine, rescaled onto the measured band [0.30, 0.62]
     0.16 lexical        ts_rank_cd, rescaled in-set, x coverage squared
-    0.22 constraint     weighted partial credit, 0.5 when unconstrained
+    0.22 constraint     weighted partial credit, only when there are constraints
                         (`geo` matches the RESOLVED geo_code; `country` folds into it)
-    0.18 relationship   tier_weight, warmth, reciprocated, log(source_count)
-    0.10 actionability  reachable, confidence, intel_method, name_quality
-)
+R = (0.18 relationship + 0.10 actionability) / 0.28 (WHO THEY ARE TO KRISH):
+    relationship        tier_weight, warmth, reciprocated, least(source_count, 5)/5
+    actionability       reachable, confidence, completeness, followers/badges, live intent
+
+match_score = 100 x venture_multiplier x competitor(0.45) x Q x (0.65 + 0.35 R)
+recommend mode (no question, no constraints): 100 x venture_multiplier x competitor x R
 ```
 
-Weights renormalise over the terms actually present, so a recommend-mode call
-with no text query is not silently scored out of 0.50.
+**The question decides; the relationship adjusts** (`20260927160000`,
+[ADR-027](./DECISIONS/027-the-question-decides.md)). Until then all five terms
+were added, so half of every score ignored the question and a warm contact who
+matched nothing scored ~38, above a stranger who was the answer. Among people
+who answer equally, the warmer one still ranks higher, by up to about a third.
+
+**The retrieval text is facts.** `intel_doc` is composed by
+`public.ci_retrieval_text()`: what they do, title, company, industry, place,
+headline (200), the opening of the summary (300), up to six past roles and
+twelve skills from `contacts.dossier._direct.facts`, the live intent line, and
+the name last. `why_them`, `hook` and `risk` are not matched against; they are
+a model's opinion, often written for a retired venture, and they put words like
+"AI" and "data" into thousands of docs that were not about either. A trigger
+on `contacts` rebuilds the doc when the dossier, title, company, location or
+name changes, because `enrich-person` writes the dossier after the
+intelligence row.
 
 **Constraints are SOFT.** They contribute weighted partial credit; they never
 filter. The only hard filters are `is_person`, `do_not_contact`, and whatever
