@@ -13,6 +13,7 @@ import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCapture
 import { CreateSheet } from './components/CreateSheet'
 import { TabChatHost } from './components/TabChat'
 import { FocusRitual } from './components/home/FocusRitual'
+import { StrategistSheet } from './components/strategist/StrategistSheet'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
 import { VALID_TAB_IDS } from './lib/tabs'
@@ -439,6 +440,10 @@ export default function App() {
           {/* Focus Ritual (unified): one guided stepper across week / today,
               mounted once so it z-stacks above both shells. */}
           <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
+          {/* The strategist (ADR-026): say how it is going, or read a goal.
+              One sheet for every way in (the ladder, the + sheet, the
+              palette), mounted once here like the two above. */}
+          <StrategistSheet narrow={narrow} tab={tab} onNavigate={navigate} />
           {/* Evening shutdown: only the once-a-day after-5pm prompt now.
               Tomorrow's ONE is chosen here, which is what red mode reads. The
               floating dock it used to render is gone; shutdown and the worry

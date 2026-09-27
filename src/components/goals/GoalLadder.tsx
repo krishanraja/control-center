@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Check, Plus, Target, X } from '@/lib/icons'
+import { Check, MessageSquare, Plus, Target, X } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useQuickCreateListener } from '../../lib/quickCreate'
 import { openFocusRitual } from '../../lib/focusRitual'
+import { openStrategist } from '../../lib/strategist'
 import { isWeekend } from '../../lib/civilDate'
 import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 import { Eyebrow } from '../shared/Eyebrow'
@@ -94,6 +95,10 @@ export function GoalLadder({ variant = 'desktop' }: {
       h.success()
       setAdding(null); setTitle(''); setGate(null)
       refresh()
+      // A new OS goal gets read the way a strategist would read it, straight
+      // away (ADR-026). The sheet is a read, never a write: nothing it says
+      // changes the goal until he acts on it.
+      openStrategist({ mode: 'goal', goalId: result.goal.id, fresh: true })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save')
       h.error()
@@ -134,8 +139,24 @@ export function GoalLadder({ variant = 'desktop' }: {
   }
 
   const saveEdit = async (id: string) => {
-    const ok = await patch({ goalId: id, title: editTitle.trim() })
-    if (ok) { h.success(); setEditing(null) }
+    const before = os.find(g => g.id === id)
+    const next = editTitle.trim()
+    const ok = await patch({ goalId: id, title: next })
+    if (ok) {
+      h.success(); setEditing(null)
+      // A retitled OS goal is a different goal to read (ADR-026).
+      if (before && before.title.trim() !== next) openStrategist({ mode: 'goal', goalId: id, fresh: true })
+    }
+  }
+
+  // The phone's editor closes itself on a save; the read opens once it has
+  // gone, so one sheet never opens inside another.
+  const saveSheet = async (g: CanonGoal, text: string) => {
+    const ok = await patch({ goalId: g.id, title: text })
+    if (ok && g.horizon === 'os' && g.title.trim() !== text.trim()) {
+      window.setTimeout(() => openStrategist({ mode: 'goal', goalId: g.id, fresh: true }), 320)
+    }
+    return ok
   }
 
   // Retiring is a status change, never a DELETE (canon Rule A: decay stays
@@ -277,6 +298,19 @@ export function GoalLadder({ variant = 'desktop' }: {
       <section aria-label="OS goals" className="min-w-0">
         <div className="flex items-baseline gap-2 mb-2">
           <Eyebrow>OS</Eyebrow>
+          {/* Say how it is going and get the read back (ADR-026). Desk only,
+              the same recipe as "+ Add"; a phone reaches it from the + sheet. */}
+          {!compact && (
+            <button
+              type="button"
+              data-testid="ladder-talk"
+              onClick={() => { h.select(); openStrategist({ mode: 'talk' }) }}
+              aria-label="Talk it through with Marcus"
+              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
+            >
+              <MessageSquare size={10} /> Talk it through
+            </button>
+          )}
           {/* One OS goal, rarely edited (ADR-016). The composer is offered
               only at cold start; after that, tap the line to edit it. */}
           {!compact && os.length === 0 && (
@@ -284,7 +318,7 @@ export function GoalLadder({ variant = 'desktop' }: {
               type="button"
               onClick={() => openAdd('os')}
               aria-label="Add an OS goal"
-              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
             >
               <Plus size={10} /> Add
             </button>
@@ -442,7 +476,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         label={sheetGoal?.horizon === 'os' ? 'OS goal' : 'Weekly objective'}
         value={sheetGoal?.title ?? ''}
         placeholder={sheetGoal?.horizon === 'os' ? 'What is the whole system for?' : 'What moves an OS goal this week?'}
-        onSave={async text => sheetGoal ? await patch({ goalId: sheetGoal.id, title: text }) : false}
+        onSave={async text => sheetGoal ? await saveSheet(sheetGoal, text) : false}
         danger={sheetGoal ? {
           label: sheetGoal.horizon === 'os' ? 'Retire this goal' : 'Drop this objective',
           confirmLabel: 'Tap again to confirm',

@@ -1,0 +1,5 @@
+{"kind": "headline", "text": "Finishing the deck keeps the work private for another week.", "rule": "private"}
+{"kind": "reframe", "direction": "inward", "why": "A finished deck nobody has seen does not move a pilot.", "wording": "Show the diagnostic deck to two named leaders before it is finished"}
+{"kind": "ask", "to": {"contact_id": "c-fixture-002"}, "line": "Would you take a call on Thursday about the pilot?", "message": "I am working on a three week pilot that tells a leader where they stand on AI and what to do first.\nWould you be willing to take a 30-minute call on Thursday to see if it fits your quarter?\nIt would help because you are deciding on AI this quarter and the pilot is built for that decision.\nI can make this easy by sending the one-page scope first.\nIf it is not a fit, please say so.", "why": "Riley is deciding on AI this quarter and took a call with you in the spring.", "level": 6, "lens": "sell_first", "job": "fill_pilots"}
+{"kind": "close", "stop": "Stop after the easy-decline sentence. Do not explain the pilot again."}
+{"kind": "end"}

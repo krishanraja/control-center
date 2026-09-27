@@ -24,6 +24,11 @@ import { guard } from '../_auth.js'
  *       writes the ships row (channel 'ask', dedup key 'ask:<id>') so the
  *       ledger stays the one place output lands and a retry cannot double
  *       count.
+ *       Once today's ask has gone out its wording is fixed: a post that
+ *       changes ask_text on a sent ask is refused with 409 already_sent. It
+ *       used to overwrite it, so the record said he sent words he never
+ *       sent. The check is here and not only in the client, because a second
+ *       tab or a second device races any check the client makes.
  *
  * PATCH resolve an ask. Body: { id, outcome } with outcome one of
  *       yes | no | alternative | no_reply. 'no_reply' closes the loop after
@@ -35,6 +40,19 @@ import { guard } from '../_auth.js'
  */
 
 const OUTCOMES = new Set(['yes', 'no', 'alternative', 'no_reply'])
+
+/**
+ * True when a post would change the words of an ask that has already gone
+ * out. Same words (a retry, or marking it sent again) are not a change;
+ * whitespace at the ends is not a change either, since the post is trimmed.
+ */
+export function rewritesSentAsk(
+  existing: { sent_at?: string | null; ask_text?: string | null } | null | undefined,
+  askText: string,
+): boolean {
+  if (!existing || !existing.sent_at) return false
+  return (existing.ask_text ?? '').trim() !== askText.trim()
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && guard(req, res, ['PATCH', 'POST'])) return
@@ -96,9 +114,16 @@ async function post(req: VercelRequest, res: VercelResponse) {
   const tz = await resolveTz(req)
   const today = ymdIn(new Date(), tz)
 
-  const existing = await supabase.from('pilot_asks').select('id, sent_at')
+  const existing = await supabase.from('pilot_asks').select('id, sent_at, ask_text')
     .eq('ask_date', today).maybeSingle()
   if (existing.error) return res.status(500).json({ ok: false, error: existing.error.message })
+  if (rewritesSentAsk(existing.data, askText)) {
+    return res.status(409).json({
+      ok: false,
+      error: 'already_sent',
+      detail: 'Today\'s ask has already gone out, so its wording stays as it was sent.',
+    })
+  }
 
   const row = {
     ask_date: today,

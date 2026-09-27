@@ -1,5 +1,5 @@
 import { supabase } from './_supabase.js'
-import { getOperatorTz, shiftYmd, dayStartUtcIn, dayEndUtcIn } from './_timezone.js'
+import { getOperatorTz, shiftYmd, dayStartUtcIn, dayEndUtcIn, ymdIn } from './_timezone.js'
 
 // The twelve week scorecard (job 2, keep him honest).
 //
@@ -60,7 +60,9 @@ export const COLS: ScorecardCol[] = [
 
 export const STOP_RULE = {
   on: '2026-10-05',
-  reads: 'Fewer than 2 of 25 took a call, or no paid room. The network advantage is not real for this offer.',
+  // 'pilot', not 'room': the word was retired on 2026-09-16 (ADR-023), and
+  // this sentence is grounding for every prompt that reads the stop rule.
+  reads: 'Fewer than 2 of 25 took a call, or no paid pilot. The network advantage is not real for this offer.',
 } as const
 
 export const DAY_90 = '2026-12-05'
@@ -332,4 +334,85 @@ export function gapTo(totals: WeekValues): WeekValues {
       : Math.max(0, TARGETS[col] - totals[col])
   }
   return g
+}
+
+/** One week as the scorecard route returns it: values when the week has
+ *  started, nulls for a future week, and the operator overrides beside them. */
+export interface ScorecardWeek extends Partial<Record<`override_${ScorecardCol}`, number | null>> {
+  week_ending: string
+  frozen_at: string | null
+  plan_sent: number | null
+  variance_note: string | null
+  approaches_sent: number | null
+  calls_taken: number | null
+  paid_pilots: number | null
+  cash_invoiced_gbp: number | null
+  pieces_published: number | null
+  unasked_hours: number | null
+  unasked_measured: boolean
+}
+
+export interface ScorecardToDate {
+  /** The operator-civil date the scorecard was read on. */
+  today: string
+  week_ending: string
+  current: DerivedWeek
+  weeks: ScorecardWeek[]
+  totals: WeekValues
+  gap: WeekValues
+}
+
+/**
+ * The twelve weeks to date, the way GET /api/scorecard reports them. The one
+ * copy of the week loop: the route and the strategist's grounding both read
+ * it, so the number Krish sees on Home and the number a read cites cannot
+ * disagree about what counts.
+ *
+ * The current week is derived live; frozen weeks come from scorecard_weeks;
+ * operator overrides win either way; future weeks are empty and cost nothing.
+ */
+export async function scorecardToDate(tz: string): Promise<ScorecardToDate> {
+  const today = ymdIn(new Date(), tz)
+  const weekEnding = weekEndingFor(today)
+  const rows = await loadRows()
+
+  const current = mergeOverrides(await deriveWeek(weekEnding, tz), rows.get(weekEnding))
+
+  // Weeks to date resolve in parallel: a frozen week is one row read, an open
+  // week is six counts. Future weeks are empty and cost nothing.
+  const weeks = await Promise.all(WEEKS.map(async (w): Promise<ScorecardWeek> => {
+    const row = rows.get(w)
+    const future = w > weekEnding
+    const values = future
+      ? null
+      : (w === weekEnding ? current : await weekValues(w, row, tz))
+    const overrides: Partial<Record<`override_${ScorecardCol}`, number | null>> = {}
+    for (const col of COLS) overrides[overrideKey(col)] = row ? row[overrideKey(col)] ?? null : null
+    return {
+      week_ending: w,
+      frozen_at: row?.frozen_at ?? null,
+      plan_sent: row?.plan_sent ?? null,
+      variance_note: row?.variance_note ?? null,
+      approaches_sent: values ? values.approaches_sent : null,
+      calls_taken: values ? values.calls_taken : null,
+      paid_pilots: values ? values.paid_pilots : null,
+      cash_invoiced_gbp: values ? values.cash_invoiced_gbp : null,
+      pieces_published: values ? values.pieces_published : null,
+      unasked_hours: values ? values.unasked_hours : null,
+      unasked_measured: values ? values.unasked_measured : false,
+      ...overrides,
+    }
+  }))
+
+  const toDate = weeks.filter(w => w.approaches_sent != null).map(w => ({
+    approaches_sent: w.approaches_sent as number,
+    calls_taken: w.calls_taken as number,
+    paid_pilots: w.paid_pilots as number,
+    cash_invoiced_gbp: w.cash_invoiced_gbp as number,
+    pieces_published: w.pieces_published as number,
+    unasked_hours: w.unasked_hours as number,
+  }))
+  const totals = sumValues(toDate)
+
+  return { today, week_ending: weekEnding, current, weeks, totals, gap: gapTo(totals) }
 }

@@ -71,6 +71,42 @@ Room first, company second, raise third. Twelve week scorecard, weeks ending Fri
 
 The engine under one swing. Five jobs in priority order: fill the room, keep him honest, run the room, feed the demand engine, keep the edge. Gates: G1 jobs 1 and 2 now; G2 job 3 when the first room is booked; G3 job 5 when two leaders ask to keep it; G4 any new agent only when a paying leader asks in writing. The full reconciliation is `docs/plans/one-swing/CHARTER.md` and `docs/DECISIONS/016-ikigai-v4-one-swing.md`.
 
+## 0.7 The strategist (27 Sep 2026)
+
+**His words, verbatim, as evidence.** Recorded here and nowhere else: the
+commit that shipped the strategist carries only the two rulings below, because
+commit bodies feed the Content Engine.
+
+On what a goal should get back:
+
+> "If I enter a goal, the tool should actively act like a world class strategy consultant who knows that Krish is high agency, but can get caught building in isolation, needs to focus on selling and content creation. If someone needs something from me, I deliver 200%, but I just don't naturally feel like I'm worth disturbing anyone's time. This means I am still a one man show years later because I cant sell ahead of myself or ask anyone for help. I can set a big goal, and I can do micro tasks, but I cant strategically see what I could be missing (i.e how to create a partner model, how to find an investor/co-founder, how to get the right people to see what i do and want more."
+
+On how he wants to talk to it:
+
+> "It would also be cool if I could just talk into a regular text box with Wispr Flow and explain myself in my own language on a Monday morning, or update any major progress throughout the week, or give a summary of how my week went. Mostly some accomplishments but a lot more about how I'm feeling and what I'm thinking about what I'm doing. The system could turn that into recommendations, goals, next steps, etc."
+
+**What this evidence confirms rather than changes.** The pattern he names is
+the one the operating manual already records (section 1, the executive
+diagnosis; section 7, the request formula, the exposure ladder and the
+anti-self-rejection rules) and the one rules 2, 4 and 6 above already guard.
+The strategist quotes that record back and invents nothing about him. It names
+moves, never his psychology: the manual's "Do not diagnose Krish" holds, and a
+read may quote his own words back to him but may not interpret them.
+
+**The rulings.**
+
+- Ruling (Krish, 2026-09-27): investor and co-founder moves are live now. This
+  overrides 0.4's "room first, company second, raise third" for the
+  sequencing of capital. The fund as a route stays killed (0.5): raising or
+  starting a fund is still refused.
+- Ruling (Krish, 2026-09-27): what he says becomes recommendations, goals and
+  next steps. An objective drafted from his words is saved only when he taps
+  "Take it", through the Focus Ritual's weekly step and the goal gate, so "he
+  sets the objectives; the OS finds the moves" (ADR-016) stays true.
+
+**The binding deadline still holds.** Find the binding by 31 Oct 2026 (0.3).
+The strategist reads every goal and every note against it.
+
 ---
 
 # Version 3 material (6 to 11 August 2026), kept as history

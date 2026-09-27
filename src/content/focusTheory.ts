@@ -86,7 +86,7 @@ export const PURPOSE_LINES: PurposeLine[] = [
     source: 'Master Ikigai v4, R1.4 and R1.6',
   },
   {
-    line: 'Fewer than two of twenty five take a call, or no paid room by 5 October: that is the stop rule, and it means the network advantage is not real for this offer.',
+    line: 'Fewer than two of twenty five take a call, or no paid pilot by 5 October: that is the stop rule, and it means the network advantage is not real for this offer.',
     source: 'Master Ikigai v4, the twelve month commitment',
   },
   {
@@ -110,8 +110,11 @@ export function purposeFor(ymd: string): PurposeLine {
 
 export type TrapHandoff = 'ask' | 'compile' | null
 
+/** The six trap ids, as a literal union so a read that names one is checked. */
+export type TrapId = 'correcting' | 'overexplaining' | 'avoiding_ask' | 'polishing' | 'relitigating' | 'spiralling'
+
 export interface Trap {
-  id: string
+  id: TrapId
   /** Chip label. Phrased as the state, not an accusation. */
   chip: string
   /** The counter-move. Imperative, at most two sentences, then stop. */
@@ -298,8 +301,16 @@ export const SITUATIONS: Situation[] = [
 
 // ── The decision rules: test an impulse against who he is ────────────────────
 
+/**
+ * The eight rule ids, as a literal union. DecisionRule.id is typed by it, so
+ * a rule added below without a name here fails to compile, and
+ * tests/api/strategist.test.ts reads this union back out of the source to
+ * catch the other direction: a name here with no rule below.
+ */
+export type RuleId = 'pushed' | 'cold' | 'slow_pay' | 'alone' | 'no_ownership' | 'private' | 'no_edge' | 'protected'
+
 export interface DecisionRule {
-  id: string
+  id: RuleId
   /** The failure condition, phrased as something the idea does. Tap what applies. */
   chip: string
   /** What the rule says about an idea that trips it. His own conclusion, quoted back. */
@@ -464,4 +475,133 @@ export function selfRejectionHint(marker: string): string {
  */
 export function isAnxiousReading(anxiety: number | null | undefined): boolean {
   return typeof anxiety === 'number' && anxiety >= 4
+}
+
+// ── The exposure ladder: how big an ask is, in words ─────────────────────────
+
+export interface LadderLevel {
+  level: number
+  /** The kind of request at this level. */
+  request: string
+  /** What it feels like it will cost. Shown so the fear is named, not obeyed. */
+  feared: string
+  /** The manual's predicted rejection for this level. Kept as data from the
+   *  table and never shown or posted: his prediction is his own, and a
+   *  machine-filled number would make learningFor() lie to him. */
+  pct: number
+  /** The correct learning, whatever the answer turns out to be. */
+  learning: string
+}
+
+/**
+ * The twelve rows of the exposure ladder, verbatim from
+ * docs/focus-purpose/OPERATING-MANUAL.md section 7 (the feared outcome loses
+ * only its quotation marks). tests/api/strategist.test.ts parses the manual's
+ * table and fails on any drift, so edit the manual first.
+ */
+export const EXPOSURE_LADDER: LadderLevel[] = [
+  { level: 1, request: 'Ask a colleague for a one-line preference', feared: 'I am annoying', pct: 30, learning: 'A normal request is not a character claim' },
+  { level: 2, request: 'Ask for a 15-minute advice call', feared: 'They will think I am incompetent', pct: 40, learning: 'Advice-seeking can signal respect and judgment' },
+  { level: 3, request: 'Ask for feedback on one offer sentence', feared: 'They will dismiss the work', pct: 40, learning: 'Specificity lowers effort for the helper' },
+  { level: 4, request: 'Ask a warm contact for an introduction', feared: 'I am exploiting the relationship', pct: 50, learning: 'A respectful request gives them agency' },
+  { level: 5, request: 'Ask for a referral to one buyer type', feared: 'They will not want to risk reputation', pct: 55, learning: 'Referrals require fit, not universal approval' },
+  { level: 6, request: 'Ask for a meeting with a named decision-maker', feared: 'I do not deserve access', pct: 60, learning: 'Access is a commercial variable, not a worth verdict' },
+  { level: 7, request: 'Ask for personal help with a bounded practical task', feared: 'I am a burden', pct: 60, learning: 'Capacity differs from care' },
+  { level: 8, request: 'Ask a senior person for sponsorship or advocacy', feared: 'They will see me as presumptuous', pct: 65, learning: 'Senior people can decide their own boundaries' },
+  { level: 9, request: 'State a fee without discounting', feared: 'They will reject me as overpriced', pct: 65, learning: 'Price tests scope-value fit, not personal value' },
+  { level: 10, request: 'Ask for budget and a decision date', feared: 'I will look pushy', pct: 70, learning: 'Clarity is commercially respectful' },
+  { level: 11, request: 'Ask for exception or favourable treatment', feared: 'They will resent me', pct: 75, learning: 'A respectful exception request is not entitlement' },
+  { level: 12, request: 'Ask for commitment from an economic buyer', feared: 'A direct no will be humiliating', pct: 75, learning: 'A clean no prevents false pipeline' },
+]
+
+/** The ladder row for a level, or null when the level is not 1 to 12. */
+export function ladderLevel(n: number): LadderLevel | null {
+  if (!Number.isInteger(n)) return null
+  return EXPOSURE_LADDER.find(l => l.level === n) ?? null
+}
+
+// ── The strategist's lenses ──────────────────────────────────────────────────
+
+/**
+ * What a strategy consultant who had read his record would check a goal for.
+ * Krish, 2026-09-27: he can set a big goal and do micro tasks, but cannot see
+ * the middle (a partner model, an investor or co-founder, getting the right
+ * people to see the work). Each lens is one of those gaps, tied to the rule it
+ * tests and to the jobs a move under it may serve. The six are fixed; a read
+ * names each as a move, later, or covered.
+ */
+export type LensId = 'sell_first' | 'partner' | 'capital_cofounder' | 'distribution' | 'help' | 'isolation'
+
+/** The open jobs a lens move may serve (api/_mission.ts JOBS). run_pilots and
+ *  keep_edge are behind closed gates and no lens offers them. */
+export type LensJob = 'fill_pilots' | 'keep_honest' | 'feed_demand'
+
+export interface Lens {
+  id: LensId
+  /** Plain words, shown as the lens's label. */
+  label: string
+  /** The decision rule this lens tests, or null when its authority is the
+   *  operating manual rather than a rule. */
+  rule: RuleId | null
+  /** The jobs a move under this lens may serve, first is the default. null is
+   *  only ever an investor move: no job of the five covers raising money, and
+   *  the read says so rather than borrowing one. */
+  jobs: ReadonlyArray<LensJob | null>
+  /** Where in the corpus the lens comes from, shown faintly as its source. */
+  source: string
+  /** The question the lens must answer about the goal or the note. */
+  asks: string
+}
+
+export const LENS_ORDER: LensId[] = ['sell_first', 'partner', 'capital_cofounder', 'distribution', 'help', 'isolation']
+
+export const LENSES: Record<LensId, Lens> = {
+  sell_first: {
+    id: 'sell_first',
+    label: 'Sell before you build',
+    rule: 'slow_pay',
+    jobs: ['fill_pilots'],
+    source: 'Purpose workbook, decision rule 3',
+    asks: 'Who pays for this inside ninety days, and what is the smallest pilot they could say yes to this week?',
+  },
+  partner: {
+    id: 'partner',
+    label: 'A partner model',
+    rule: 'alone',
+    jobs: ['fill_pilots', 'keep_honest'],
+    source: 'Purpose workbook, decision rule 4 and the binding',
+    asks: 'Who could sell this with him, or send him buyers, and what would they get for it?',
+  },
+  capital_cofounder: {
+    id: 'capital_cofounder',
+    label: 'An investor or a co-founder',
+    rule: 'no_ownership',
+    jobs: ['keep_honest', null],
+    source: 'Purpose workbook, decision rule 5, and the ruling of 27 September 2026',
+    asks: 'Who could fund this or build it with him, and what would they need to see first?',
+  },
+  distribution: {
+    id: 'distribution',
+    label: 'The right people seeing the work',
+    rule: 'cold',
+    jobs: ['feed_demand'],
+    source: 'Purpose workbook, decision rule 2',
+    asks: 'Which people who already know him should see this work, and by what warm route?',
+  },
+  help: {
+    id: 'help',
+    label: 'Asking for help',
+    rule: null,
+    jobs: ['fill_pilots', 'keep_honest'],
+    source: 'Operating manual, the request formula and the exposure ladder',
+    asks: 'What one bounded thing could someone he knows do for him this week?',
+  },
+  isolation: {
+    id: 'isolation',
+    label: 'Building alone',
+    rule: 'private',
+    jobs: ['keep_honest'],
+    source: 'Purpose workbook, decision rule 6',
+    asks: 'What is being built or decided alone right now, and who sees it before it is finished?',
+  },
 }

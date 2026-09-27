@@ -18,6 +18,16 @@ export interface StreamOpts<T> {
   signal?: AbortSignal
   /** Pull the text out of a non-streaming JSON body. */
   jsonText?: (body: T) => string
+  /**
+   * Every named event other than `delta`, as it lands: `stage`, `section`,
+   * and also `done` and `error` BEFORE this function acts on them, so a route
+   * that streams structure rather than prose (api/strategist.ts sends one
+   * validated section per event) can be read without a second parser, and an
+   * in-band error's code reaches the caller before the throw that carries its
+   * sentence. Optional: the prose routes never pass it and behave exactly as
+   * they did.
+   */
+  onEvent?: (name: string, data: unknown) => void
 }
 
 export interface StreamResult<T> {
@@ -34,7 +44,7 @@ export async function streamText<T = Record<string, unknown>>(
   init: RequestInit,
   opts: StreamOpts<T>,
 ): Promise<StreamResult<T>> {
-  const { onText, timeoutMs = 90_000, jsonText } = opts
+  const { onText, timeoutMs = 90_000, jsonText, onEvent } = opts
 
   // One controller for both the caller's abort and our own timeout, so a
   // cancelled stream actually closes the socket rather than being abandoned
@@ -63,7 +73,11 @@ export async function streamText<T = Record<string, unknown>>(
       const body = await res.json().catch(() => null) as T | null
       if (!res.ok) {
         const err = (body as { error?: string } | null)?.error
-        throw new Error(err || `Request failed (${res.status})`)
+        // The message is unchanged for every caller. The status and the body
+        // ride along, so a route that refuses with a code AND a sentence
+        // ({ error, detail }) can have its sentence shown by a caller that
+        // wants it.
+        throw Object.assign(new Error(err || `Request failed (${res.status})`), { status: res.status, body })
       }
       const text = body && jsonText ? jsonText(body) : ''
       if (text) onText(text)
@@ -97,6 +111,8 @@ export async function streamText<T = Record<string, unknown>>(
         if (!payload) continue
         let parsed: unknown
         try { parsed = JSON.parse(payload) } catch { continue }
+
+        if (event !== 'delta') onEvent?.(event, parsed)
 
         if (event === 'delta') {
           const chunk = (parsed as { text?: string }).text || ''

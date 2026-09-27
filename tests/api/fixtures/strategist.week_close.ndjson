@@ -1,0 +1,12 @@
+{"kind": "headline", "text": "The week produced one call and a finished deck, and no one outside has seen the deck yet.", "rule": "private"}
+{"kind": "heard", "text": "You said it was a good week in some ways and you still feel like you are doing it on your own.", "trap": null}
+{"kind": "lens", "lens": "partner", "status": "move", "read": "Every approach this week came from you.", "missing": "A second person sending buyers.", "move": {"text": "Ask one introducer on Monday to test a referral fee on the pilot.", "job": "fill_pilots", "by": "2026-10-05"}}
+{"kind": "lens", "lens": "isolation", "status": "later", "read": "The deck is finished and unseen.", "missing": "A buyer's eyes on it.", "move": null}
+{"kind": "objective", "text": "Show the finished deck to two named leaders", "job": "keep_honest", "serves": "os:fixture-two-paid-pilots", "lens": "isolation", "why": "It is done, and nobody has seen it.", "play": false}
+{"kind": "objective", "text": "Agree a referral fee with one introducer", "job": "fill_pilots", "serves": "os:fixture-two-paid-pilots", "lens": "partner", "why": "The binding is due in 33 days.", "play": false}
+{"kind": "progress", "goal_id": "weekly:fixture-finish-the-deck", "verdict": "done", "why": "You said it is done."}
+{"kind": "progress", "goal_id": "weekly:fixture-send-five-approaches", "verdict": "carry", "why": "Three of five went out."}
+{"kind": "ask", "to": {"contact_id": "c-fixture-001"}, "line": "Would you introduce me to one portfolio chief executive this month?", "message": "I am working on a three week diagnostic pilot for leaders of PE-backed media businesses.\nWould you be willing to introduce me to one chief executive in your portfolio who is deciding on AI this quarter?\nIt would help because the first pilots should come from people who already trust the work.\nI can make this easy by sending a three-sentence note you can forward.\nIf it is not appropriate or you do not have capacity, please say so.", "why": "They sit on two portfolio boards and replied to your last piece.", "level": 4, "lens": "partner", "job": "fill_pilots"}
+{"kind": "learning", "text": "The call came from the approach, not from the deck."}
+{"kind": "close", "stop": "Stop after the easy-decline sentence. Do not explain the pilot again."}
+{"kind": "end"}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Plus, Inbox, MapPin, Film, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle,
+  Plus, Inbox, MapPin, Film, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle, MessageSquare,
   type LucideIcon,
 } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
@@ -9,6 +9,7 @@ import { ContentIdeaModal } from './QuickCaptureIdea'
 import { StartFromResearch } from './content/StartFromResearch'
 import { AddPersonModal } from './network/AddPersonFromImage'
 import { openFocusRitual } from '../lib/focusRitual'
+import { openStrategist } from '../lib/strategist'
 import { requestCreate } from '../lib/quickCreate'
 import { useHaptics } from '../hooks/useHaptics'
 import { IconTile } from './shared/IconTile'
@@ -66,6 +67,9 @@ export function CreateSheet({ tab }: { tab: string }) {
             { id: 'today3', label: "Set today's 3", hint: 'Pick the three things today is for', icon: ListChecks, run: go(() => openFocusRitual('daily')) },
             { id: 'weekly', label: 'Add a weekly objective', hint: 'What moves an OS goal this week', icon: CalendarCheck, run: go(() => requestCreate('goal:weekly')) },
             { id: 'os', label: 'Add an OS goal', hint: 'What the whole system is for', icon: Target, run: go(() => requestCreate('goal:os')) },
+            // The strategist (ADR-026): say it or type it, and it comes back
+            // as next steps, objectives to take and one move.
+            { id: 'strategist', label: "Tell Marcus how it's going", hint: 'Say it or type it. It comes back as next steps', icon: MessageSquare, run: go(() => openStrategist({ mode: 'talk' })) },
           ]
         case 'content':
           return [
@@ -158,6 +162,7 @@ function ActionRow({ action }: { action: CreateAction }) {
   return (
     <button
       type="button"
+      data-testid={`create-${action.id}`}
       onClick={action.run}
       className="flex w-full items-center gap-3.5 rounded-xl px-2 py-3 text-left transition-colors active:bg-white/[0.06]"
     >

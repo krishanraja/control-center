@@ -1,10 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { resolveTz, ymdIn } from '../_timezone.js'
+import { resolveTz } from '../_timezone.js'
 import {
-  WEEKS, TARGETS, STOP_RULE, DAY_90, COLUMNS, COLS,
-  weekEndingFor, deriveWeek, mergeOverrides, loadRows, weekValues, sumValues, gapTo,
-  overrideKey, type ScorecardCol, type ScorecardRow,
+  TARGETS, STOP_RULE, DAY_90, COLUMNS, COLS,
+  weekEndingFor, scorecardToDate, overrideKey, type ScorecardRow,
 } from '../_scorecard.js'
 import { guard } from '../_auth.js'
 
@@ -42,57 +41,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function get(req: VercelRequest, res: VercelResponse) {
   try {
     const tz = await resolveTz(req)
-    const today = ymdIn(new Date(), tz)
-    const weekEnding = weekEndingFor(today)
-    const rows = await loadRows()
-
-    const current = mergeOverrides(await deriveWeek(weekEnding, tz), rows.get(weekEnding))
-
-    // Weeks to date resolve in parallel: a frozen week is one row read, an open
-    // week is six counts. Future weeks are empty and cost nothing.
-    const weeks = await Promise.all(WEEKS.map(async (w) => {
-      const row = rows.get(w)
-      const future = w > weekEnding
-      const values = future
-        ? null
-        : (w === weekEnding ? current : await weekValues(w, row, tz))
-      const overrides: Partial<Record<`override_${ScorecardCol}`, number | null>> = {}
-      for (const col of COLS) overrides[overrideKey(col)] = row ? row[overrideKey(col)] ?? null : null
-      return {
-        week_ending: w,
-        frozen_at: row?.frozen_at ?? null,
-        plan_sent: row?.plan_sent ?? null,
-        variance_note: row?.variance_note ?? null,
-        approaches_sent: values ? values.approaches_sent : null,
-        calls_taken: values ? values.calls_taken : null,
-        paid_pilots: values ? values.paid_pilots : null,
-        cash_invoiced_gbp: values ? values.cash_invoiced_gbp : null,
-        pieces_published: values ? values.pieces_published : null,
-        unasked_hours: values ? values.unasked_hours : null,
-        unasked_measured: values ? values.unasked_measured : false,
-        ...overrides,
-      }
-    }))
-
-    const toDate = weeks.filter(w => w.approaches_sent != null).map(w => ({
-      approaches_sent: w.approaches_sent as number,
-      calls_taken: w.calls_taken as number,
-      paid_pilots: w.paid_pilots as number,
-      cash_invoiced_gbp: w.cash_invoiced_gbp as number,
-      pieces_published: w.pieces_published as number,
-      unasked_hours: w.unasked_hours as number,
-    }))
-    const totals = sumValues(toDate)
+    // The week loop lives in api/_scorecard.ts (scorecardToDate), the one copy
+    // the strategist's grounding reads too.
+    const { week_ending, current, weeks, totals, gap } = await scorecardToDate(tz)
 
     return res.status(200).json({
       ok: true,
-      week_ending: weekEnding,
+      week_ending,
       current,
       weeks,
       targets: TARGETS,
       columns: COLUMNS,
       totals,
-      gap: gapTo(totals),
+      gap,
       stop_rule: STOP_RULE,
       day_90: DAY_90,
       unasked_measured: current.unasked_measured,

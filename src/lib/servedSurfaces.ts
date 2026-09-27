@@ -633,6 +633,48 @@ export const DECISION_REASONS: Record<'approved' | 'binned' | 'rerouted', Reason
   ],
 }
 
+// ── the strategist ─────────────────────────────────────────────────────────
+//
+// What Marcus proposes after reading a goal or one of Krish's notes: a drafted
+// weekly objective, a next step for today, an ask (2026-09-27, ADR-026). "Not
+// this" writes a `rejected` verdict to suggestion_verdicts through
+// /api/suggestions/verdict, not to /api/feedback, so like DECISION_REASONS it
+// sits beside SURFACES rather than inside it and is not part of the feedback
+// mirror. It is still a whole SurfaceContract, because the symmetry rule holds
+// here too: a thing that can be refused says why it was served.
+//
+// The why reads the section itself (the strategist's wire types in
+// src/types/strategist.ts): its own `why`, and for an ask, the exposure ladder
+// level in words. Never a percentage: his prediction is his own.
+export const STRATEGIST_SURFACE: SurfaceContract = {
+  label: 'suggestion',
+  defaultReason: 'other',
+  reasons: [
+    { code: 'wrong_person', label: 'Wrong person' },
+    { code: 'wrong_timing', label: 'Wrong timing' },
+    { code: 'not_my_voice', label: 'Not how I would say it' },
+    { code: 'already_done', label: 'Already done' },
+    { code: 'other',        label: 'Other' },
+  ],
+  why: r => {
+    const ladder = (r.ladder && typeof r.ladder === 'object' ? r.ladder : null) as Record<string, any> | null
+    const lensLabel = typeof r.lens_label === 'string' ? r.lens_label : null
+    return why(firstText(r.why), {
+      agent: 'marcus',
+      sourceLabel: firstText(r.source, lensLabel),
+      factors: factors(
+        plain('Lens', lensLabel),
+        plain('Job', typeof r.job_label === 'string' ? r.job_label : null),
+        ladder && typeof ladder.level === 'number'
+          ? { label: 'Ladder', value: `Level ${ladder.level}: ${String(ladder.request || '').trim()}` }
+          : null,
+        plain('Feels like', ladder?.feared),
+        plain('Whatever the answer', ladder?.learning),
+      ),
+    })
+  },
+}
+
 // ── lookups ────────────────────────────────────────────────────────────────
 
 export const SERVED_TABLES = Object.keys(SURFACES) as ServedTable[]

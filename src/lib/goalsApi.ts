@@ -25,8 +25,15 @@ export interface GateVerdictWire {
   model_used: boolean
 }
 
+/** The goal a create just wrote. The strategist reads it by id straight after. */
+export interface CreatedGoal {
+  id: string
+  title: string
+  horizon: GoalHorizon
+}
+
 export type CreateGoalResult =
-  | { ok: true }
+  | { ok: true; goal: CreatedGoal }
   | { ok: false; gate: GateVerdictWire }
 
 export function goalSlug(s: string): string {
@@ -48,11 +55,17 @@ export async function createGoal(input: {
   override?: boolean
 }): Promise<CreateGoalResult> {
   const title = input.title.trim()
-  const r = await requestJson<{ ok?: boolean; error?: string; gate?: GateVerdictWire }>('/api/objectives', {
+  const id = `${input.horizon}:${goalSlug(title)}`
+  const r = await requestJson<{
+    ok?: boolean
+    error?: string
+    gate?: GateVerdictWire
+    objective?: { id?: unknown; title?: unknown; horizon?: unknown } | null
+  }>('/api/objectives', {
     method: 'POST',
     timeoutMs: GATE_TIMEOUT_MS,
     body: {
-      id: `${input.horizon}:${goalSlug(title)}`,
+      id,
       title,
       horizon: input.horizon,
       parent_id: input.parentId || null,
@@ -70,7 +83,19 @@ export async function createGoal(input: {
     return { ok: false, gate: j.gate }
   }
   if (!r.ok || !j || j.ok === false) throw new Error(j?.error || `The server could not save that (${r.status}).`)
-  return { ok: true }
+  // The route answers with the row it wrote (api/objectives/index.ts). The id
+  // the client built is the fallback, because it is the id the route was
+  // asked to write: an older deploy that answers a bare { ok: true } still
+  // hands the caller a goal it can read by id.
+  const o = j.objective
+  return {
+    ok: true,
+    goal: {
+      id: typeof o?.id === 'string' && o.id ? o.id : id,
+      title: typeof o?.title === 'string' && o.title ? o.title : title,
+      horizon: o?.horizon === 'os' || o?.horizon === 'weekly' ? o.horizon : input.horizon,
+    },
+  }
 }
 
 /**

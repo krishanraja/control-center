@@ -1,0 +1,9 @@
+{"kind": "headline", "text": "Three approaches went out and one reply wants a call, so the next move is to book it before the week ends.", "rule": "slow_pay"}
+{"kind": "heard", "text": "You said the deck is finally done and one reply is asking for a call next week.", "trap": null}
+{"kind": "lens", "lens": "sell_first", "status": "move", "read": "One reply asking for a call is the first live thread this month.", "missing": "A date on it.", "move": {"text": "Reply today with two call times and the one-page scope.", "job": "fill_pilots"}}
+{"kind": "progress", "goal_id": "weekly:fixture-finish-the-deck", "verdict": "done", "why": "You said it is finally done."}
+{"kind": "progress", "goal_id": "weekly:fixture-send-five-approaches", "verdict": "carry", "why": "Three of five are out, and two days are left."}
+{"kind": "next_step", "text": "Reply to the call request with two times and the scope", "goal_id": "weekly:fixture-send-five-approaches", "job": "fill_pilots"}
+{"kind": "ask", "to": {"contact_id": "c-fixture-001"}, "line": "Would you introduce me to one portfolio chief executive this month?", "message": "I am working on a three week diagnostic pilot for leaders of PE-backed media businesses.\nWould you be willing to introduce me to one chief executive in your portfolio who is deciding on AI this quarter?\nIt would help because the first pilots should come from people who already trust the work.\nI can make this easy by sending a three-sentence note you can forward.\nIf it is not appropriate or you do not have capacity, please say so.", "why": "They sit on two portfolio boards and replied to your last piece.", "level": 4, "lens": "partner", "job": "fill_pilots"}
+{"kind": "close", "stop": "Stop after the easy-decline sentence. Do not explain the pilot again."}
+{"kind": "end"}

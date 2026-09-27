@@ -124,6 +124,26 @@ export const WORK = {
   },
   'focus.suggest':       { agent: 'marcus', doing: 'reading the week', sub: 'One move per objective, then the leverage picks', expectedMs: 20_000 },
 
+  // ── The strategist (ADR-026) ───────────────────────────────────────────
+  // Both waits are named by the server, not a timer: api/strategist.ts sends a
+  // `stage` event as it moves, and the stages below are in the order of
+  // StrategistStage ('grounding', 'thinking', 'writing', 'saving'), so the
+  // sheet indexes into them. The first streamed section replaces the wait.
+  'strategist.read':     {
+    agent: 'marcus',
+    doing: 'reading what you said',
+    sub: 'It ends in one move. Nothing becomes a goal until you take it.',
+    stages: ['Reading your week and your network', 'Thinking it through', 'Writing it down', 'Keeping the read'],
+    expectedMs: 40_000,
+  },
+  'strategist.goal':     {
+    agent: 'marcus',
+    doing: 'reading the goal like a strategist',
+    sub: 'What is missing, then one move',
+    stages: ['Reading the goal, the scorecard and your network', 'Thinking it through', 'Writing the read', 'Keeping the read'],
+    expectedMs: 60_000,
+  },
+
   // ── Work no agent performs: plain reads, local transforms, IO ───────────
   'agent.trigger':       { doing: 'starting the agent run' },
   'file.import':         { doing: 'importing' },

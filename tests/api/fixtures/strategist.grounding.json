@@ -1,0 +1,76 @@
+{
+  "_note": "SYNTHETIC. Every person, company, goal and figure here is invented for tests. The repo is public and NOW.md never_publish covers named leads and scorecard figures, so nothing in this file comes from the live database.",
+  "today": "2026-09-28",
+  "tz": "America/New_York",
+  "week_start": "2026-09-28",
+  "subject": { "source": "goal", "goal": { "id": "os:fixture-two-paid-pilots", "title": "Two paid pilots and a selling partner by December", "horizon": "os", "status": "active", "job": "fill_pilots" } },
+  "canon": [
+    { "id": "os:fixture-two-paid-pilots", "title": "Two paid pilots and a selling partner by December", "horizon": "os", "status": "active", "job": "fill_pilots" },
+    { "id": "weekly:fixture-send-five-approaches", "title": "Send five warm approaches to named leaders", "horizon": "weekly", "status": "active", "job": "fill_pilots", "parent_id": "os:fixture-two-paid-pilots" },
+    { "id": "weekly:fixture-finish-the-deck", "title": "Finish the diagnostic deck", "horizon": "weekly", "status": "active", "job": "keep_honest", "parent_id": "os:fixture-two-paid-pilots" }
+  ],
+  "today_picks": [],
+  "scorecard": {
+    "week_ending": "2026-10-02",
+    "current": { "approaches_sent": 3, "calls_taken": 1, "paid_pilots": 0, "cash_invoiced_gbp": 0, "pieces_published": 2, "unasked_hours": 14.5 },
+    "totals": { "approaches_sent": 7, "calls_taken": 1, "paid_pilots": 0, "cash_invoiced_gbp": 0, "pieces_published": 4, "unasked_hours": 31.5 },
+    "targets": { "approaches_sent": 25, "calls_taken": 5, "paid_pilots": 1, "cash_invoiced_gbp": 15000, "pieces_published": 12, "unasked_hours": 0 },
+    "gap": { "approaches_sent": 18, "calls_taken": 4, "paid_pilots": 1, "cash_invoiced_gbp": 15000, "pieces_published": 8, "unasked_hours": 31.5 }
+  },
+  "stop_rule": { "on": "2026-10-05", "reads": "Fewer than 2 of 25 took a call, or no paid pilot. The network advantage is not real for this offer." },
+  "pilot_deals": { "drafted": 4, "sent": 7, "call_taken": 1 },
+  "today_ask": { "exists": false, "sent": false, "outcome": null },
+  "week_notes": [],
+  "last_week_close": null,
+  "previous_read": null,
+  "network_counts": { "partner": 140, "introducer": 260, "investor": 31 },
+  "candidates": [
+    {
+      "contact_id": "c-fixture-001",
+      "full_name": "Morgan Fixture",
+      "title": "Operating Partner",
+      "company": "Samplestone Capital",
+      "network_tier": "2_core_network",
+      "roles": ["introducer", "partner"],
+      "who": "Sits on two portfolio boards in media and data.",
+      "hook": "Replied to your last piece on board AI decisions.",
+      "best_channel": "email",
+      "why_them": "PRIVATE-WHY-THEM-SENTINEL owes you a favour",
+      "risk": "PRIVATE-RISK-SENTINEL tends to overpromise",
+      "email": "morgan@fixture.invalid"
+    },
+    {
+      "contact_id": "c-fixture-002",
+      "full_name": "Riley Synthetic",
+      "title": "Chief Executive",
+      "company": "Placeholder Media Group",
+      "network_tier": "1_reciprocated",
+      "roles": ["buyer"],
+      "who": "Runs a PE-backed media business deciding on AI this quarter.",
+      "hook": "Took a call with you in the spring.",
+      "best_channel": "linkedin"
+    },
+    {
+      "contact_id": "c-fixture-003",
+      "full_name": "Casey Testrow",
+      "title": "Principal",
+      "company": "Example Growth Partners",
+      "network_tier": "3_known_network",
+      "roles": ["investor"],
+      "who": "Invests in data and adtech companies at the growth stage.",
+      "hook": "Met at a panel you spoke on.",
+      "best_channel": "email"
+    },
+    {
+      "contact_id": "c-fixture-cold",
+      "full_name": "Jordan Coldrow",
+      "title": "Director",
+      "company": "Nobody Knows Ltd",
+      "network_tier": "4_cold",
+      "roles": ["buyer"],
+      "who": "A stranger.",
+      "hook": null,
+      "best_channel": "email"
+    }
+  ]
+}

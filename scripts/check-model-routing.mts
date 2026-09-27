@@ -28,10 +28,17 @@ for (const route of ROUTES) {
     if (source.includes(forbidden)) failures.push(`${route.file}: contains ${forbidden} (${route.rationale})`)
   }
 }
+// The API routes honour `excludes` exactly as the workflow mirrors do. They
+// did not until 2026-09-27: an API route's excludes were declared, type-checked
+// and never read, so a route could name the model its own policy forbids with
+// this guard green.
 for (const route of API_ROUTES) {
   const source = readFileSync(join(process.cwd(), route.file), 'utf8')
   for (const expected of route.includes) {
     if (!source.includes(expected)) failures.push(`${route.file}: missing ${expected} (${route.rationale})`)
+  }
+  for (const forbidden of route.excludes || []) {
+    if (source.includes(forbidden)) failures.push(`${route.file}: contains ${forbidden} (${route.rationale})`)
   }
 }
 

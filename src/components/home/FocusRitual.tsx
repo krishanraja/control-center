@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Sparkles, Check, Target, ArrowLeft, ArrowRight,
   CheckCircle2, Inbox, Plus, X, RotateCcw, History,
@@ -21,7 +21,7 @@ import { isWeekend, getZone } from '../../lib/civilDate'
 import { SlideOver } from '../shared/SlideOver'
 import {
   createGoal, patchGoal, acceptProposed, rejectProposed,
-  type GateVerdictWire,
+  type GateVerdictWire, type CreatedGoal,
 } from '../../lib/goalsApi'
 import { Working } from '../shared/Working'
 import { Pending } from '../shared/Pending'
@@ -30,6 +30,12 @@ import { useWork } from '../../lib/loadingVoice'
 import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { OptionChips, ServesPicker, VentureChips } from '../goals/GoalPickers'
 import { JOB_OPTIONS, jobLabel } from '../../content/jobs'
+import { TalkFlow, OsReadDisclosure, AddedObjectiveRead } from '../strategist/StrategistSheet'
+import type { TakeResult } from '../strategist/StrategistRead'
+import { takeObjectiveForRitual } from '../../lib/strategist'
+import { postVerdict, verdictForTaken, editDelta } from '../../lib/suggestionsApi'
+import { Eyebrow } from '../shared/Eyebrow'
+import type { ObjectiveSection } from '../../types/strategist'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -108,7 +114,7 @@ export function FocusRitual({
   const done = () => { h.tap(); closeFocusRitual() }
 
   const body =
-    current === 'weekly'  ? <WeeklyStep />
+    current === 'weekly'  ? <WeeklyStep narrow={narrow} />
     : current === 'daily' ? <DailyStep onLocked={goNext} />
     : <SummaryStep onNavigate={onNavigate} onClose={done} />
 
@@ -209,7 +215,15 @@ const STEP_TITLE: Record<StepId, string> = {
 // completed, or dropped right here; Marcus-proposed weekly goals arrive as
 // accept/pass chips (a pass feeds his learning loop). Every action writes
 // immediately through the one goal wire path — there is no separate commit.
-function WeeklyStep() {
+// The strategist lives here too (ADR-026), inline and never as a sheet: the
+// ritual's own Escape snoozes the day, so a sheet opened on top of it would
+// take the day with it when dismissed. His words go in at the top; objectives
+// drafted from them come back as "Take it" rows that call this step's own
+// add(), so the gate runs on them exactly as on anything he types. After a
+// manual add, a short read of that objective renders under the list. The OS
+// goal's read waits behind a disclosure below the composer and costs nothing
+// until he opens it.
+function WeeklyStep({ narrow }: { narrow: boolean }) {
   const canonWork = useWork('canon.read')
   const { canon, loading, refresh } = useGoalCanon()
   const h = useHaptics()
@@ -228,6 +242,12 @@ function WeeklyStep() {
   const [job, setJob] = useState('')
   const [gate, setGate] = useState<GateVerdictWire | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  // The objective he last added by hand, read straight after (ADR-026).
+  const [lastAdded, setLastAdded] = useState<CreatedGoal | null>(null)
+  // Wording the strategist drafted that is now in the composer (handed over
+  // from the sheet, or held by the gate). Its verdict is written when he adds
+  // it: accepted as offered, tweaked if he changed it.
+  const seedRef = useRef<{ text: string; suggestionId: string | null } | null>(null)
   // The gate runs a model pass on every add, and a Carry is a write. Past a
   // few seconds a disabled button with no sentence reads as a hang.
   const busyMs = useElapsed(busy != null)
@@ -236,38 +256,98 @@ function WeeklyStep() {
 
   useEffect(() => { if (!servesId && os.length > 0) setServesId(os[0].id) }, [os, servesId])
 
+  // "Take it" from the strategist's sheet lands here: the wording prefilled,
+  // his to add, change or leave. Taken once, so it never comes back.
+  useEffect(() => {
+    const handed = takeObjectiveForRitual()
+    if (!handed) return
+    setText(handed.text)
+    if (handed.serves) setServesId(handed.serves)
+    if (handed.job) setJob(handed.job)
+    seedRef.current = { text: handed.text, suggestionId: handed.suggestionId }
+  }, [])
+
   const activeCount = weekly.filter(g => g.status === 'active').length
   const osTitle = useMemo(() => new Map(os.map(g => [g.id, g.title])), [os])
 
-  const run = async (key: string, fn: () => Promise<void>, okMsg?: string) => {
-    if (busy) return
+  const run = async (key: string, fn: () => Promise<void>, okMsg?: string): Promise<boolean> => {
+    if (busy) return false
     setBusy(key)
     try {
       await fn()
       refresh()
       h.success()
       if (okMsg) toast(okMsg, 'success')
+      return true
     } catch (e) {
       h.error()
       toast(failureMessage(e), 'error', { action: { label: 'Retry', onClick: () => { void run(key, fn, okMsg) } } })
+      return false
     } finally {
       setBusy(null)
     }
   }
 
-  const add = (override = false) => {
-    const t = text.trim()
-    if (!t || !servesId) return
-    if (activeCount >= 3) { toast('Three is the week. Complete or drop one first.', 'error'); h.error(); return }
-    void run('add', async () => {
-      const result = await createGoal({ title: t, horizon: 'weekly', parentId: servesId, venture: venture || null, job: job || null, override })
-      if (result.ok === false) { setGate(result.gate); throw new Error('Blocked by the gate below.') }
-      setText(''); setVenture(''); setJob(''); setGate(null)
+  /**
+   * Add a weekly objective: what he wrote in the composer, or (draft) one the
+   * strategist drafted that he chose to take. One path either way, the gate
+   * included. A drafted one the gate holds moves into the composer, so the
+   * verdict sits beside words he can edit.
+   */
+  const add = (override = false, draft?: { title: string; parentId: string | null; job: string | null; suggestionId: string | null }): Promise<boolean> => {
+    const t = (draft ? draft.title : text).trim()
+    const parent = draft ? (draft.parentId && os.some(g => g.id === draft.parentId) ? draft.parentId : servesId) : servesId
+    if (!t || !parent) return Promise.resolve(false)
+    if (activeCount >= 3) { toast('Three is the week. Complete or drop one first.', 'error'); h.error(); return Promise.resolve(false) }
+    return run('add', async () => {
+      const result = await createGoal({
+        title: t,
+        horizon: 'weekly',
+        parentId: parent,
+        venture: draft ? null : venture || null,
+        job: draft ? draft.job : job || null,
+        override,
+      })
+      if (result.ok === false) {
+        if (draft) {
+          setText(t); setServesId(parent); setJob(draft.job || '')
+          seedRef.current = { text: t, suggestionId: draft.suggestionId }
+        }
+        setGate(result.gate)
+        throw new Error('Blocked by the gate below.')
+      }
+      if (!draft) {
+        const seed = seedRef.current
+        seedRef.current = null
+        if (seed) {
+          const verdict = verdictForTaken(seed.text, t)
+          void postVerdict({
+            suggestion_id: seed.suggestionId,
+            verdict,
+            final: { text: t },
+            delta: verdict === 'accepted' ? null : editDelta(seed.text, t),
+          })
+        }
+        setText(''); setVenture(''); setJob('')
+        setLastAdded(result.goal)
+      }
+      setGate(null)
     })
+  }
+
+  const takeDrafted = async (o: ObjectiveSection): Promise<TakeResult> => {
+    const ok = await add(false, { title: o.text, parentId: o.serves || null, job: o.job, suggestionId: o.suggestion_id ?? null })
+    return ok ? 'saved' : false
   }
 
   return (
     <div className="space-y-3">
+      {/* His words first: say how it is going, and take what comes back. */}
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-3">
+        <Eyebrow>Say how it is going</Eyebrow>
+        <TalkFlow narrow={narrow} onTake={takeDrafted} inline />
+      </div>
+
       <p className="text-label text-ink-faint leading-snug">
         {weekend
           ? 'The week has closed. Anything set now is for the week that starts Monday.'
@@ -401,7 +481,12 @@ function WeeklyStep() {
             <div className="relative">
               <textarea
                 value={text}
-                onChange={e => { setText(e.target.value); if (gate) setGate(null) }}
+                onChange={e => {
+                  setText(e.target.value)
+                  // Emptied: whatever he writes next is his, not the draft.
+                  if (!e.target.value.trim()) seedRef.current = null
+                  if (gate) setGate(null)
+                }}
                 placeholder="Write a weekly objective…"
                 rows={2}
                 className="w-full bg-sunk border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-ink placeholder:text-ink-faint focus:border-violet-400/40 focus:outline-none resize-none"
@@ -473,7 +558,15 @@ function WeeklyStep() {
             )}
           </div>
         )}
+
+        {/* The short read of what he just added. */}
+        {lastAdded && (
+          <AddedObjectiveRead key={lastAdded.id} goalId={lastAdded.id} title={lastAdded.title} narrow={narrow} onTake={takeDrafted} />
+        )}
       </div>
+
+      {/* The OS goal's read: nothing is fetched or run until he opens it. */}
+      {os.length > 0 && <OsReadDisclosure goalId={os[0].id} narrow={narrow} onTake={takeDrafted} />}
     </div>
   )
 }

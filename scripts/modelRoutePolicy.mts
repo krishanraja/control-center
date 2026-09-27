@@ -73,6 +73,17 @@ export const API_ROUTES: RouteAssertion[] = [
     rationale: 'full skill generation belongs on the OpenAI generation route',
     includes: ['OPENAI_GENERATION_MODEL', 'process.env.OPENAI_SKILL_MODEL'],
   },
+  {
+    // A read of a goal or of his week is synthesis with reasoning. The long
+    // reads think (the OS goal, a Monday note, a week's close); the short ones
+    // do not. Both are Sonnet 5 under the goal-strategist stamp, and never the
+    // ladder's Opus: a read is not a ladder, and the cost policy has no
+    // exception for it.
+    file: 'api/strategist.ts',
+    rationale: 'a strategist read is synthesis with reasoning: Sonnet 5, adaptive thinking on the long reads, never Opus',
+    includes: ['SYNTHESIS_MODEL', 'think: true', "agent: 'goal-strategist'", 'maxDuration: 300'],
+    excludes: ['LADDER_MODEL', 'claude-opus'],
+  },
 ]
 
 /**

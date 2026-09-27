@@ -27,6 +27,17 @@ export const FACE =
 export const DOOR =
   'A paid three week pilot, fixed fee, that tells the leader where they stand, what is coming for their business, and what to do first. Sold to people he already knows. Never cold. Always call it a pilot, never a room.'
 
+/** The binding: the one element of the ikigai still marked Open. Source:
+ *  docs/focus-purpose/PURPOSE-WORKBOOK.md section 0 (what it is) and 0.3 (the
+ *  deadline). The strategist reads every goal and note against it, so the date
+ *  and the sentence live here once rather than in each prompt. */
+export const BINDING = {
+  due: '2026-10-31',
+  status: 'open',
+  what: 'A partner or co-founder who owns the selling or polices it weekly, plus an autonomous engine underneath, with enough evolution that he does not get bored.',
+  reads: 'Find the binding by 31 Oct 2026. No partner by then: hire the accountability rather than continue solo.',
+} as const
+
 export type Job = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge'
 
 export interface JobDef {

@@ -5,6 +5,7 @@ import { supabase, logKrishAction } from '../lib/supabase'
 import { useHaptics } from '../hooks/useHaptics'
 import { setMode, setAmbient, getAmbient } from '../lib/theme'
 import { TABS as CANONICAL_TABS } from '../lib/tabs'
+import { openStrategist } from '../lib/strategist'
 import { Dialog, DialogContent, DialogSrTitle } from '@/components/ui/dialog'
 
 interface Props {
@@ -79,6 +80,15 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
                   <span className="text-micro text-ink-faint">tab</span>
                 </Command.Item>
               ))}
+            </Command.Group>
+
+            {/* The strategist (ADR-026). The palette closes first; the sheet
+                opens once it has, so two dialogs never hold focus at once. */}
+            <Command.Group heading="Marcus">
+              <Command.Item value="marcus talk it through tell marcus how it's going strategist" data-testid="palette-strategist" onSelect={() => { h.select(); onClose(); window.setTimeout(() => openStrategist({ mode: 'talk' }), 0) }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-ink-muted cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-ink data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <span>Tell Marcus how it&rsquo;s going</span>
+                <span className="text-micro text-ink-faint">talk</span>
+              </Command.Item>
             </Command.Group>
 
             <Command.Group heading="Appearance">
