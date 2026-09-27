@@ -29,7 +29,7 @@ export function googleConfigured(): boolean {
 // `credentials` swaps in a different service account (see GA4 below).
 export async function googleAccessToken(
   scopes: string[],
-  opts: { impersonate?: boolean; credentials?: { email?: string; key?: string } } = {},
+  opts: { impersonate?: boolean; credentials?: { email?: string; key?: string }; onError?: (reason: string) => void } = {},
 ): Promise<string | null> {
   const email = opts.credentials ? opts.credentials.email : process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   let key = opts.credentials ? opts.credentials.key : process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
@@ -58,7 +58,8 @@ export async function googleAccessToken(
     const signer = crypto.createSign('RSA-SHA256')
     signer.update(`${header}.${payload}`)
     assertion = `${header}.${payload}.${b64url(signer.sign(key))}`
-  } catch {
+  } catch (e: any) {
+    opts.onError?.(`private key could not sign: ${String(e?.message || e)}`)
     return null // malformed key
   }
 
@@ -69,7 +70,13 @@ export async function googleAccessToken(
       body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
     })
     const j: any = await r.json().catch(() => ({}))
-    if (!r.ok || !j?.access_token) return null
+    if (!r.ok || !j?.access_token) {
+      // Google's own words: invalid_grant "Invalid JWT Signature" means the key
+      // does not belong to this email (or was deleted); "account not found"
+      // means the email is wrong.
+      opts.onError?.(`token exchange ${r.status}: ${j?.error || ''} ${j?.error_description || ''}`.trim())
+      return null
+    }
     tokenCache.set(scopeKey, { token: j.access_token, exp: now + (j.expires_in || 3600) })
     return j.access_token
   } catch {
@@ -180,10 +187,37 @@ export async function createDriveDoc(input: { name: string; content: string }): 
 // Viewer grant belongs to an identity that can only read analytics. Falls back
 // to the shared GOOGLE_SERVICE_ACCOUNT_* when the GA pair is unset.
 function ga4Credentials(): { email?: string; key?: string; source: string } {
-  if (process.env.GA4_SERVICE_ACCOUNT_EMAIL || process.env.GA4_SERVICE_ACCOUNT_PRIVATE_KEY) {
-    return { email: process.env.GA4_SERVICE_ACCOUNT_EMAIL, key: process.env.GA4_SERVICE_ACCOUNT_PRIVATE_KEY, source: 'GA4_SERVICE_ACCOUNT_*' }
+  const own = !!(process.env.GA4_SERVICE_ACCOUNT_EMAIL || process.env.GA4_SERVICE_ACCOUNT_PRIVATE_KEY)
+  const source = own ? 'GA4_SERVICE_ACCOUNT_*' : 'GOOGLE_SERVICE_ACCOUNT_*'
+  let email = (own ? process.env.GA4_SERVICE_ACCOUNT_EMAIL : process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL)?.trim()
+  let key = (own ? process.env.GA4_SERVICE_ACCOUNT_PRIVATE_KEY : process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)?.trim()
+  // Accept the three ways a key gets pasted from the downloaded JSON: the bare
+  // PEM, the PEM still wrapped in its JSON quotes, or the whole JSON file.
+  if (key?.startsWith('{')) {
+    try {
+      const j = JSON.parse(key)
+      key = j.private_key
+      email = email || j.client_email
+    } catch { /* leave as-is; the PEM check below names it */ }
   }
-  return { email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, source: 'GOOGLE_SERVICE_ACCOUNT_*' }
+  if (key && /^["']/.test(key) && /["'],?$/.test(key)) key = key.replace(/^["']|["'],?$/g, '')
+  return { email, key, source }
+}
+
+// Say which of the three things is wrong before asking Google, so a failed run
+// names the fix rather than "unset or key invalid".
+function ga4CredentialProblem(c: { email?: string; key?: string; source: string }): string | null {
+  const prefix = c.source.replace('*', '')
+  if (!c.email) return `${prefix}EMAIL is unset`
+  if (!/@.+\.iam\.gserviceaccount\.com$/.test(c.email)) return `${prefix}EMAIL "${c.email}" is not a service-account address (…@….iam.gserviceaccount.com)`
+  if (!c.key) return `${prefix}PRIVATE_KEY is unset`
+  if (!c.key.includes('BEGIN PRIVATE KEY')) return `${prefix}PRIVATE_KEY is not a PEM key: paste the JSON's private_key value, from -----BEGIN PRIVATE KEY----- to -----END PRIVATE KEY-----`
+  try {
+    crypto.createPrivateKey(c.key.replace(/\\n/g, '\n'))
+  } catch (e: any) {
+    return `${prefix}PRIVATE_KEY does not parse as a key (${String(e?.message || e)}); it was likely cut short or its line breaks were lost`
+  }
+  return null
 }
 
 /**
@@ -197,8 +231,15 @@ function ga4Credentials(): { email?: string; key?: string; source: string } {
  */
 export async function runGa4Report(propertyId: string, body: Record<string, unknown>): Promise<{ report: any } | { error: string }> {
   const creds = ga4Credentials()
-  const token = await googleAccessToken(['https://www.googleapis.com/auth/analytics.readonly'], { impersonate: false, credentials: creds })
-  if (!token) return { error: `no service-account token (${creds.source} unset or key invalid)` }
+  const problem = ga4CredentialProblem(creds)
+  if (problem) return { error: problem }
+  let tokenError = ''
+  const token = await googleAccessToken(['https://www.googleapis.com/auth/analytics.readonly'], {
+    impersonate: false,
+    credentials: creds,
+    onError: reason => { tokenError = reason },
+  })
+  if (!token) return { error: `no token for ${creds.email} (${creds.source}): ${tokenError || 'unknown'}` }
   try {
     const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:runReport`, {
       method: 'POST',
