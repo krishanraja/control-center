@@ -461,6 +461,12 @@ export interface EnrichOptions {
   useApify?: boolean
   /** Skip web research (Perplexity/Exa/Brave) — faster, cheaper. */
   skipWeb?: boolean
+  /** Do not call People Data Labs. Recorded as skipped, not blocked: a
+   *  provider the operator switched off for a run is a decision, not a credit
+   *  wall, so it raises no alert and marks nobody blocked_quota. Added
+   *  2026-09-27 when PDL was out of credit and every profile read otherwise
+   *  paged Krish's phone once. */
+  skipPdl?: boolean
   /** Also read the person's recent LinkedIn posts. A second paid actor run, so
    *  it is opt-in per person rather than on by default: what someone published
    *  last month is a reason to message them, which only matters for people the
@@ -492,7 +498,9 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
   const [li, posts, pdl, apollo, web] = await Promise.all([
     apifyP,
     postsP,
-    peopleDataLabs(input),
+    opts.skipPdl
+      ? Promise.resolve({ fields: {}, outcome: skipped('peopledatalabs') } as PdlOut)
+      : peopleDataLabs(input),
     apolloPerson(input),
     opts.skipWeb
       ? Promise.resolve({ text: '', sources: [], outcomes: [] as ProviderOutcome[] })

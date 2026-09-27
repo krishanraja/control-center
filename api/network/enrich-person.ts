@@ -6,7 +6,7 @@ import { vectorLiteral } from '../_embeddings.js'
 import { blockedMessage, isBlocking, type ProviderOutcome } from '../_quota.js'
 import { raiseQuotaAlert } from '../_alert.js'
 
-// POST /api/network/enrich-person   { contact_id, use_apify?, skip_web? }
+// POST /api/network/enrich-person   { contact_id, use_apify?, skip_web?, skip_pdl? }
 //
 // Phase 3: deepen a person already in the network. Runs PDL + Apollo + the
 // Perplexity/Exa/Brave cascade (+ the paid Apify LinkedIn profile scrape when
@@ -39,6 +39,8 @@ interface Body {
   use_apify?: boolean
   /** Skip Perplexity/Exa/Brave — faster and cheaper when the profile is enough. */
   skip_web?: boolean
+  /** Leave People Data Labs out of this run. Skipped, not blocked: no alert. */
+  skip_pdl?: boolean
   /** Also read recent LinkedIn posts and derive the intent signal. A second
    *  paid actor run per person. */
   with_posts?: boolean
@@ -110,6 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }, {
       useApify: b.use_apify !== false,
       skipWeb: b.skip_web === true,
+      skipPdl: b.skip_pdl === true,
       // Off unless asked. A second paid actor run per person, and only worth it
       // for people Krish would actually message.
       withPosts: b.with_posts === true,

@@ -1,6 +1,6 @@
 # ADR-027: In a network search, the question decides and the relationship adjusts
 
-- **Status:** Proposed. Migration `20260927160000` is written and measured, not yet applied to production.
+- **Status:** Accepted. Migration `20260927160000` applied to production 2026-09-27; probes P10 to P12 read clean after it.
 - **Date:** 2026-09-27
 
 ## Context
