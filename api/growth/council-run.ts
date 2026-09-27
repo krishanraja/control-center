@@ -4,6 +4,8 @@ import { supabase } from '../_supabase.js'
 import { notifyOps } from '../_alert.js'
 import { callClaude, robustJson, VOICE_GUARDRAILS } from '../_content.js'
 import { mondayOf } from '../_growth.js'
+import { cleanCopy as CLEAN } from '../_webInsightsCore.js'
+import { WEB_PROPERTIES, type HealthVerdict, type HealthFlag } from '../../src/lib/webProperties.js'
 
 /**
  * /api/growth/council-run - the weekly growth council.
@@ -21,7 +23,8 @@ import { mondayOf } from '../_growth.js'
  * HONESTY IS THE POINT. Every number in a review is computed here from real
  * rows: attribution.events (through growth_attribution_weekly and the fleet_*
  * views), the customers table, growth_geo_probes, growth_touchpoints and,
- * since 2026-09-09, the week's AEO digest (growth_aeo_digests). The
+ * since 2026-09-09, the week's AEO digest (growth_aeo_digests) and, since
+ * 2026-09-27, the product's own site read (web_property_insights). The
  * evidence bundle carries an explicit `unknowns` list and the writing pass is
  * instructed that an unknown must be stated as unknown. Nothing infers traffic
  * we cannot see: a product with no emitter reads "unknown", never "zero".
@@ -129,6 +132,21 @@ interface Evidence {
     watch_list: string[]
     stats: Record<string, unknown> | null
   }
+  // Google Analytics for the product's own site (web_property_insights, written
+  // daily by api/growth/web-insights.ts). Visits are set only when the site's
+  // verdict is ok or quiet; any other verdict, or no row, keeps traffic unknown.
+  web: {
+    status: 'present' | 'missing'
+    domain: string | null
+    as_of: string | null
+    health: HealthVerdict | null
+    flags: HealthFlag[]
+    sessions_7d: number | null
+    sessions_prev_7d: number | null
+    top_source: string | null
+    top_page: string | null
+    ai_visits_7d: number | null
+  }
 }
 
 function num(v: unknown): number { const n = Number(v); return Number.isFinite(n) ? n : 0 }
@@ -139,6 +157,39 @@ function domainOf(url: string): string | null {
 
 function daysBetween(fromISO: string, toISO: string): number {
   return Math.floor((Date.parse(toISO) - Date.parse(fromISO)) / 86_400_000)
+}
+
+/** The newest site read for a product, or missing. Visits only for a verdict that proves they were counted. */
+function webEvidence(slug: ProductSlug, rows: Array<Record<string, any>> | null): Evidence['web'] {
+  const p = WEB_PROPERTIES.find(w => w.councilSlug === slug)
+  const missing: Evidence['web'] = {
+    status: 'missing', domain: p?.label ?? null, as_of: null, health: null, flags: [],
+    sessions_7d: null, sessions_prev_7d: null, top_source: null, top_page: null, ai_visits_7d: null,
+  }
+  if (!p || !rows) return missing
+  const row = rows.find(r => r.property === p.prefix)
+  if (!row) return missing
+  const health = (row.health ?? null) as HealthVerdict | null
+  const counted = health === 'ok' || health === 'quiet'
+  const top = row.top && typeof row.top === 'object' ? row.top : {}
+  const first = (v: unknown) => (Array.isArray(v) && v[0] && typeof v[0].name === 'string' ? String(v[0].name) : null)
+  const ai = Array.isArray(top.ai) ? top.ai.reduce((s: number, r: any) => s + num(r?.sessions), 0) : 0
+  return {
+    status: 'present',
+    domain: p.label,
+    as_of: row.as_of ? String(row.as_of) : null,
+    health,
+    flags: Array.isArray(row.health_flags) ? row.health_flags as HealthFlag[] : [],
+    sessions_7d: counted && row.totals?.cur ? num(row.totals.cur.sessions) : null,
+    sessions_prev_7d: counted && row.totals?.prev ? num(row.totals.prev.sessions) : null,
+    top_source: counted ? first(top.sources) : null,
+    top_page: counted ? first(top.pages) : null,
+    ai_visits_7d: counted ? ai : null,
+  }
+}
+
+function webCounted(w: Evidence['web']): boolean {
+  return w.status === 'present' && (w.health === 'ok' || w.health === 'quiet') && w.sessions_7d != null
 }
 
 /** Collapse the weekly rows for one app+week into an event -> count map. */
@@ -155,9 +206,11 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
   weekly: WeeklyRow[]; health: HealthRow[]; funnel: FunnelRow[]; revenue: RevenueRow[]
   touchpoints: Array<Record<string, any>>; probes: Array<Record<string, any>>; customers: Array<Record<string, any>>
   digests: Array<Record<string, any>>
+  web: Array<Record<string, any>> | null
 }): Promise<Evidence> {
   const unknowns: string[] = []
   const nowISO = new Date().toISOString()
+  const web = webEvidence(slug, ctx.web)
 
   // --- answer-engine research (the AEO digest for this week) -------------
   const digest = ctx.digests.find(d => d.product_slug === slug) ?? null
@@ -256,7 +309,10 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
     }
   }
   if (status === 'no_emitter_wired') {
-    unknowns.push(`Traffic for ${slug} is UNKNOWN: nothing emits into the attribution warehouse under any of ${APP_CANDIDATES[slug].join(', ')}. Do not report zero traffic, report no measurement.`)
+    // The site read stands in for the warehouse only when it proves visits were counted.
+    if (!webCounted(web)) {
+      unknowns.push(`Traffic for ${slug} is UNKNOWN: nothing emits into the attribution warehouse, and Google Analytics on ${web.domain ?? 'its site'} reads ${web.health ?? 'nothing yet'}. Do not report zero traffic.`)
+    }
   } else if (status === 'stale') {
     unknowns.push(`Traffic for ${slug} since ${lastEventAt} is UNKNOWN: the emitter last fired ${daysSince} days ago, so recent weeks are unmeasured rather than empty.`)
   }
@@ -341,14 +397,18 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
       warehouse_gross_usd: app ? Math.round(rRows.reduce((s, r) => s + num(r.gross_cents), 0)) / 100 : null,
     },
     aeo,
+    web,
   }
 }
 
 /** The deterministic one-line receipt that ships inside every review. */
 function measuredLine(e: Evidence): string {
   const a = e.attribution
+  const w = e.web
   const traffic =
-    a.status === 'no_emitter_wired' ? 'traffic unknown (no emitter)'
+    a.status === 'no_emitter_wired' && webCounted(w)
+      ? `web ${w.sessions_7d} visits in the 7 days to ${w.as_of} (Google Analytics on ${w.domain}${w.flags.includes('consent_gated') ? ', visitors who allowed cookies only' : ''})`
+      : a.status === 'no_emitter_wired' ? 'traffic unknown (no emitter)'
       : a.status === 'no_events_ever' ? 'traffic unknown (emitter wired, zero events ever)'
         : `landed ${num(a.this_week.landed)} this week (${a.status}${a.days_since_last_event != null ? `, last event ${a.days_since_last_event}d ago` : ''})`
   const geo = e.geo.probes
@@ -384,23 +444,6 @@ function fallbackReview(e: Evidence) {
   return { findings, kill_list: [] as string[], double_down: [] as string[] }
 }
 
-/**
- * Krish's hard rule is no em dashes, and a model that is told that will reach
- * for the ASCII stand-ins instead. So the sweep kills the real characters AND
- * the substitutes: "--", and a hyphen used as a spaced dash. Word-internal
- * hyphens (AI-native, full-time) are left alone.
- */
-const CLEAN = (s: unknown, max: number) =>
-  String(s ?? '')
-    .replace(/[—―–]/g, ',')
-    .replace(/\s*-{2,}\s*/g, ', ')
-    .replace(/\s+-\s+/g, ', ')
-    .replace(/\s*,(\s*,)+/g, ',')
-    .replace(/\s+([,.;:])/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, max)
-
 async function writeReview(e: Evidence): Promise<{ findings: Record<string, string>; kill_list: string[]; double_down: string[] }> {
   const system = [
     "You are the growth council in Krish Raja's mind/make OS. You write one blunt, quantitative weekly review per product. Krish reads it and rules on it.",
@@ -408,6 +451,7 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'ABSOLUTE RULE: the evidence carries an `unknowns` array. Each entry there MUST be reflected in your findings, stated as unknown. Never convert an unknown into a zero. "No emitter wired" is not "no traffic".',
     'Tone: blunt, specific, structural. Name the constraint, not the mood. No hedging, no encouragement, no summary of the summary.',
     'touchpoints.known_structure carries what the map already knows about each channel: the diagnosed blocker, the flagged assumption, what shipped and when. Use it. If a structural blocker is recorded there, name it, because a metric that cannot move until that blocker clears is not a performance problem.',
+    'evidence.web is Google Analytics for the product\'s own site. When attribution has no emitter, use its visits as traffic and say how it was measured; when web.status is missing or its health is not ok or quiet, traffic stays unknown.',
     'evidence.aeo carries this week\'s answer-engine research: the strongest signal, the call themes, the biggest competitor gap and the top article recommendations with their target queries. When status is present, at least one finding or double_down must address it (name the target query to write for, or the domain to displace). When status is missing, say the research is unknown this week; never read a missing digest as no demand.',
     VOICE_GUARDRAILS,
     'Respond with ONLY a JSON object:',
@@ -503,6 +547,22 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     .filter(d => d.subject && d.subject.kind === 'venture' && d.subject.product_slug)
     .map(d => ({ ...d, product_slug: d.subject.product_slug }))
 
+  // The sites' own reads. Tolerant on purpose: the table arrives with a
+  // migration that may not be applied yet, and the council must not die on a
+  // missing table. An error is null, which every product reads as web missing.
+  let webRows: Array<Record<string, any>> | null = null
+  try {
+    const since = new Date(Date.parse(weekStart) - 7 * 86_400_000).toISOString().slice(0, 10)
+    const webRead = await supabase.from('web_property_insights')
+      .select('property, as_of, health, health_flags, totals, top')
+      .gte('as_of', since)
+      .order('as_of', { ascending: false })
+      .limit(20)
+    webRows = webRead.error ? null : ((webRead.data || []) as Array<Record<string, any>>)
+  } catch {
+    webRows = null
+  }
+
   const ctx = {
     weekly: (weekly.data || []) as WeeklyRow[],
     health: (health.data || []) as HealthRow[],
@@ -512,6 +572,7 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     probes: (probes.data || []) as Array<Record<string, any>>,
     customers: (customers.data || []) as Array<Record<string, any>>,
     digests,
+    web: webRows,
   }
   const decided = new Set(
     (existing.data || []).filter((r: any) => r.krish_decision).map((r: any) => String(r.product_slug)),

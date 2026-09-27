@@ -644,8 +644,9 @@ map:
    to do next, your ruling. Source of the week's clips.
 2. **To do** (`work`, the landing section): the 3 to 5 clips to make this
    week, from brief to posted.
-3. **What's moving** (`signals`): whether AI answers mention you and where
-   you rank on Google.
+3. **What's moving** (`signals`): three reads of whether anyone finds you:
+   whether AI answers mention you, who visits your four sites (Site visits,
+   one honest read per site per day), and where you rank on Google.
 4. **Where they are** (`map`): the places your buyers already go; add one,
    answer the open questions, mark what is covered. Reference, not a step.
 5. **Spend limits** (`governance`): budget, autonomy, what agents may say.

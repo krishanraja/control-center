@@ -139,6 +139,11 @@ export const WORK = {
   'contacts.read':       { doing: 'loading your contacts' },
   'canon.read':          { doing: 'loading the canon' },
   'calibration.read':    { doing: 'loading your items' },
+  // Growth, What's moving: the Site visits panel. The refresh runs the whole
+  // four-site check (Google Analytics, page probes, at most one model call per
+  // site), so it names its length.
+  'web.read':            { doing: 'reading the site visits' },
+  'web.refresh':         { doing: 'checking the four sites', expectedMs: 60_000 },
 } as const satisfies Record<string, WorkDef>
 
 export type WorkKey = keyof typeof WORK

@@ -147,10 +147,23 @@ The full list lives in `.env.example`. Two scopes:
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | SA PEM (literal `\n` newlines). **Sensitive.** |
 | `GOOGLE_IMPERSONATE_SUBJECT` | Workspace user the SA impersonates (`krish@themindmaker.ai`) |
 | `GOOGLE_DRIVE_FOLDER_ID` | Shared Drive folder for generated docs (optional) |
-| `GA4_SERVICE_ACCOUNT_EMAIL` | Optional dedicated SA for GA4 reads; falls back to `GOOGLE_SERVICE_ACCOUNT_EMAIL`. Must be Viewer on both properties |
+| `GA4_SERVICE_ACCOUNT_EMAIL` | Optional dedicated SA for GA4 reads; falls back to `GOOGLE_SERVICE_ACCOUNT_EMAIL`. Must be Viewer on the Google Analytics **account**: one grant covers all four properties and any added later |
 | `GA4_SERVICE_ACCOUNT_PRIVATE_KEY` | PEM for the GA4 SA (literal `\n` newlines). **Sensitive.** |
-| `GA4_PROPERTY_MINDMAKE_SITE` | Numeric GA4 property id for mindmake.co (G-SMXQH8E4CM). SA must be a property Viewer |
-| `GA4_PROPERTY_MAKEYOURMINDUP` | Numeric GA4 property id for the makeyourmindup newsletter (G-VC5V9LDE17, tagged on mindmakerlive.substack.com). SA must be a property Viewer |
+| `GA4_PROPERTY_MINDMAKE_SITE` | Numeric GA4 property id for mindmake.co (G-SMXQH8E4CM). No code default: unset means the site reads as not connected |
+| `GA4_PROPERTY_MAKEYOURMINDUP` | Numeric GA4 property id for the makeyourmindup newsletter (G-VC5V9LDE17, tagged on mindmakerlive.substack.com). No code default |
+| `GA4_PROPERTY_FULLTIME` | Optional override for fulltime.fm (G-W2QL8RKFJ1). The code default is `556143202` (`src/lib/webProperties.ts`), so leave it unset unless the property moves |
+| `GA4_PROPERTY_LEGIBILITY` | Optional override for legibility.io (G-J5173WPD98). The code default is `556114272` |
+| `PLAUSIBLE_API_KEY` | Plausible Stats API key for mindmake.co (`api/_plausible.ts`). GA there counts only visitors who press Allow, by design; Plausible counts every visit. Unset = the mindmake.co card asks for it once. **Sensitive.** Needs a redeploy to take effect |
+
+The four sites live in one registry, `src/lib/webProperties.ts`; adding a site
+is one entry there, not an env var and not a migration. Two Google
+switches sit in the SA's GCP project: the **Google Analytics Data API** (required:
+without it every read fails) and the **Google Analytics Admin API** (optional:
+enabled in the SA project, it lets the check verify streams, key events and the
+property time zone, and find the right property when an id is wrong). With the
+Admin API off, sites that record visits carry "Wiring not checked" and nothing
+else changes. Preview deployments have no GA env, so every card there reads
+"Not connected"; that is expected, not a bug.
 
 > **External integrations (Apollo / Google / enrichment).** Apollo + Google +
 > the enrichment providers power the **direct (non-n8n)** enrich/draft/briefing

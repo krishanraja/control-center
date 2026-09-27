@@ -1,5 +1,6 @@
 import { supabase } from './_supabase.js'
 import { getOperatorTz, ymdIn } from './_timezone.js'
+import { webProperty } from '../src/lib/webProperties.js'
 
 /**
  * What each tab knows about itself.
@@ -180,7 +181,7 @@ interface NetworkHealth {
 }
 
 async function groundGrowth(): Promise<string> {
-  const [touch, council, stalls, probes, metrics] = await Promise.all([
+  const [touch, council, stalls, probes, metrics, sites] = await Promise.all([
     supabase.from('growth_touchpoints')
       .select('product_slug, channel, watering_hole, coverage_status, cost_efficiency_score, assumption_flag, rationale')
       .order('cost_efficiency_score', { ascending: false, nullsFirst: false }).limit(25),
@@ -192,8 +193,16 @@ async function groundGrowth(): Promise<string> {
       .eq('status', 'open').order('started_at', { ascending: false }).limit(10),
     supabase.from('growth_geo_probes').select('engine, we_cited, run_at')
       .gte('run_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(400),
+    // The per-site GA keys (source ga4) would fill this limit four keys a day
+    // per site; the sites get their own verdict line below instead.
     supabase.from('growth_metrics').select('metric_key, metric_date, value')
+      .neq('source', 'ga4')
       .order('metric_date', { ascending: false }).limit(60),
+    // Missing table (migration not applied) is an error here, and reads as
+    // "not read yet" below rather than failing the tab.
+    supabase.from('web_property_insights').select('property, as_of, health, insight, run_at')
+      .gte('run_at', new Date(Date.now() - 8 * 86_400_000).toISOString())
+      .order('run_at', { ascending: false }).limit(12),
   ])
 
   const probeRows = probes.data || []
@@ -203,6 +212,14 @@ async function groundGrowth(): Promise<string> {
   for (const r of metrics.data || []) {
     const k = r.metric_key as string
     if (!latestByKey.has(k)) latestByKey.set(k, { d: r.metric_date as string, v: n(r.value) })
+  }
+
+  const latestSite = new Map<string, { health: string; insight: string }>()
+  if (!sites.error) {
+    for (const r of sites.data || []) {
+      const k = r.property as string
+      if (!latestSite.has(k)) latestSite.set(k, { health: String(r.health), insight: String(r.insight || '') })
+    }
   }
 
   return [
@@ -223,6 +240,9 @@ async function groundGrowth(): Promise<string> {
     latestByKey.size
       ? `Latest growth metrics: ${[...latestByKey.entries()].map(([k, v]) => `${k} ${v.v} (${v.d})`).join(' · ')}`
       : 'Latest growth metrics: none.',
+    latestSite.size
+      ? `Sites (latest read): ${[...latestSite.entries()].map(([k, v]) => `${webProperty(k)?.label ?? k} ${v.health}, ${v.insight}`).join(' · ')}`
+      : 'Sites: not read yet.',
   ].join('\n\n')
 }
 

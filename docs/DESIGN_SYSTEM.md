@@ -692,6 +692,16 @@ Every string the product renders:
 **Do not** hand-roll a card, button, pill, or hero — extend the primitive so
 both device classes and both themes stay coherent.
 
+### DoThisNextHero on a phone (2026-09-27)
+
+With `narrow`, a headline longer than `NARROW_GLYPH_MAX_CHARS` (32) renders
+without its glyph: no badge, no icon in the button. At 360px the badge, the gap
+and the button's glyph left a long instruction a column about 70px wide, so it
+wrapped to five lines and pushed the section pills under the bottom nav. The
+words and the button stay. This used to be a special case at one call site
+(Growth's site step); it is the primitive's rule now, so every tab's phone hero
+gets it and no call site strips `icon` itself.
+
 ---
 
 ## Where the system lives

@@ -145,6 +145,7 @@ async function runCheck(dryRun: boolean) {
   const { data: rows, error } = await supabase
     .from('growth_metrics')
     .select('metric_key, metric_date, value')
+    .in('metric_key', WATCHED_KEYS as unknown as string[])
     .gte('metric_date', since)
     .order('metric_date', { ascending: true })
     .limit(2000)

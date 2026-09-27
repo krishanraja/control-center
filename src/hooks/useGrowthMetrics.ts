@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 /**
- * Daily growth-metric snapshots for the Home scoreboard (and the stall chips).
- * One anon fetch of the last 45 days of growth_metrics, 5-minute poll. Daily
+ * Daily growth-metric snapshots for the Growth scoreboard (and the stall chips).
+ * One anon fetch of the last 45 days of growth_metrics for GROWTH_KEYS only,
+ * 5-minute poll. The per-site GA keys are read by the Site visits panel, so
+ * they must not crowd these rows out of the limit. Daily
  * data does not justify a realtime channel (ADR-002 channel budget).
  */
 
@@ -47,6 +49,7 @@ export function useGrowthMetrics() {
       const { data, error } = await supabase
         .from('growth_metrics')
         .select('metric_key, metric_date, value')
+        .in('metric_key', GROWTH_KEYS as unknown as string[])
         .gte('metric_date', since)
         .order('metric_date', { ascending: true })
         .limit(1000)

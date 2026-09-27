@@ -1,10 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import { runGa4Report } from '../_google.js'
+import { runGa4Batch } from '../_google.js'
+import { ymdIn, shiftYmd, isValidTz } from '../_timezone.js'
+import { WEB_PROPERTIES, ga4PropertyId, webMetricKeys, type WebProperty, type WebPrefix, type HealthVerdict } from '../../src/lib/webProperties.js'
+import {
+  snapshotRequests, parseDaily, parseDatedBreakdown, reportMeta, planRestate, classifyGaError, shortGaError, RESTATE_DAYS,
+} from '../_webInsightsCore.js'
 
 /**
- * /api/growth/snapshot — daily growth-metrics snapshot for the Home scoreboard.
+ * /api/growth/snapshot — daily growth-metrics snapshot for the Growth scoreboard.
  *
  *   GET (cron)                          — Vercel cron daily 05:30 UTC, or
  *                                         Bearer CRON_SECRET. ?dry_run=1 computes
@@ -17,45 +22,36 @@ import { runGa4Report } from '../_google.js'
  * Keys written (one row per metric_key per day, upsert on conflict):
  *   substack_publication_total, substack_tech0nomic_total, maven_students,
  *   app_paid_subs, app_mrr_usd, guests_confirmed_30d, visibility_accepted_30d,
- *   and per GA4 property (prefix site_ for mindmake.co, mymu_ for the
- *   makeyourmindup newsletter, which is served from mindmakerlive.substack.com):
- *   <prefix>_sessions_1d, _users_1d, _pageviews_1d, _key_events_1d.
+ *   and per GA4 property in src/lib/webProperties.ts (four: site_ for
+ *   mindmake.co, mymu_ for the makeyourmindup newsletter on
+ *   mindmakerlive.substack.com, fulltime_ for fulltime.fm, legibility_ for
+ *   legibility.io): <prefix>_sessions_1d, _users_1d, _pageviews_1d,
+ *   _key_events_1d.
  *
- * GA4 keys are YESTERDAY's complete day and are written against that date, not
- * today's. Top source/medium and landing pages for the same day land in
- * web_analytics_daily. A property whose env id is unset is skipped by name.
+ * GA4 keys are written against their own day, not today's. Each run restates
+ * the last 3 complete days in the PROPERTY's timezone, because Google keeps
+ * revising a day for up to 48 hours; a changed value is recorded as a
+ * correction. An empty or missing day is written as 0 only when the property
+ * is proven to receive data (this read has a nonzero day, or the last site
+ * check said ok or quiet). Otherwise the day is held, nothing is written, and
+ * any zero this snapshot stored for it earlier is removed. Top source/medium
+ * and landing pages land in web_analytics_daily for the written days only.
  *
  * A failed or unparseable external fetch writes NOTHING for that key (never a
- * fake zero). Per-key outcomes land in system_config.growth_snapshot_status and
- * an audit_log row; the scoreboard reads staleness off metric_date age, so a
- * dead feed surfaces as a stale marker without any extra plumbing.
+ * fake zero). Per-key outcomes and a per-site `ga` block land in
+ * system_config.growth_snapshot_status and an audit_log row, with every Google
+ * error shortened so no service-account email is written; the scoreboard reads
+ * staleness off metric_date age, so a dead feed surfaces as a stale marker
+ * without any extra plumbing.
  */
+
+export const config = { maxDuration: 120 }
 
 const SUBSTACKS: Array<{ key: string; pub: string }> = [
   { key: 'substack_publication_total', pub: 'mindmakerlive' },
   { key: 'substack_tech0nomic_total', pub: 'tech0nomic' },
 ]
 
-// GA4 properties, by numeric property id (GA Admin → Property details), not the
-// G- measurement id. The service account must be a Viewer on each.
-const GA4_PROPERTIES: Array<{ prefix: string; env: string; label: string }> = [
-  { prefix: 'site', env: 'GA4_PROPERTY_MINDMAKE_SITE', label: 'mindmake.co' },
-  // Tag G-VC5V9LDE17 sits on mindmakerlive.substack.com (publication name
-  // "makeyourmindup"). makeyourmindup.substack.com is a separate, dormant
-  // publication with no tag; don't point anything at it.
-  { prefix: 'mymu', env: 'GA4_PROPERTY_MAKEYOURMINDUP', label: 'makeyourmindup' },
-]
-const GA4_METRICS: Array<{ name: string; suffix: string }> = [
-  { name: 'sessions', suffix: 'sessions_1d' },
-  { name: 'activeUsers', suffix: 'users_1d' },
-  { name: 'screenPageViews', suffix: 'pageviews_1d' },
-  { name: 'keyEvents', suffix: 'key_events_1d' },
-]
-const GA4_BREAKDOWNS: Array<{ dim: string; dim_type: string }> = [
-  { dim: 'sessionSourceMedium', dim_type: 'source_medium' },
-  { dim: 'landingPagePlusQueryString', dim_type: 'landing_page' },
-]
-const GA4_TOP_N = 25
 const MAVEN_KEY = 'maven_students'
 const MAVEN_URL = 'https://maven.com/mindmaker'
 
@@ -189,59 +185,133 @@ async function ownDbMetrics(): Promise<Record<string, KeyResult>> {
   return out
 }
 
-type Ga4Breakdown = { property: string; metric_date: string; dim_type: string; dim_value: string; sessions: number; users: number; key_events: number }
+type Breakdown = ReturnType<typeof parseDatedBreakdown>[number]
+type Latest = { health: HealthVerdict; property_id: string | null; id_source: string | null }
 
-function yesterdayUtc(): string {
-  return new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+interface GaStatus {
+  id_source: 'env' | 'default' | 'discovered' | 'none'
+  tz: string | null
+  empty_reason: string | null
+  row_count: number | null
+  thresholded: boolean
+  host_filter: 'on' | 'off'
+  writes: number
+  holds: Array<{ metric_date: string; reason: string }>
+  deletes: number
+  corrections: Array<{ metric_key: string; metric_date: string; from: number; to: number }>
+  breakdowns: { source_medium: string; landing_page: string }
 }
 
-// One property: headline totals for yesterday plus the top source/medium and
-// landing pages. A report that succeeds with no rows is a real zero (no
-// traffic); a report that fails writes nothing and carries its reason.
-async function ga4Property(p: { prefix: string; env: string; label: string }, date: string): Promise<{ perKey: Record<string, KeyResult>; rows: Ga4Breakdown[] }> {
-  const perKey: Record<string, KeyResult> = {}
-  const propertyId = (process.env[p.env] || '').trim()
-  const fail = (error: string) => {
-    for (const m of GA4_METRICS) perKey[`${p.prefix}_${m.suffix}`] = { ok: false, error }
-    return { perKey, rows: [] as Ga4Breakdown[] }
-  }
-  if (!propertyId) return fail(`${p.env} unset`)
+interface GaResult {
+  p: WebProperty
+  perKey: Record<string, KeyResult>
+  status: GaStatus
+  expectedDates: string[]
+  writes: ReturnType<typeof planRestate>['writes']
+  deletes: ReturnType<typeof planRestate>['deletes']
+  rows: Breakdown[]
+}
 
-  const dateRanges = [{ startDate: date, endDate: date }]
-  const totals = await runGa4Report(propertyId, { dateRanges, metrics: GA4_METRICS.map(m => ({ name: m.name })) })
-  if ('error' in totals) return fail(totals.error)
-  const values = totals.report?.rows?.[0]?.metricValues || []
-  GA4_METRICS.forEach((m, i) => {
-    const v = Number(values[i]?.value ?? 0)
-    perKey[`${p.prefix}_${m.suffix}`] = Number.isFinite(v)
-      ? { ok: true, value: v, method: 'ga4' }
-      : { ok: false, error: `unparseable ${m.name}` }
-  })
-
-  const rows: Ga4Breakdown[] = []
-  for (const b of GA4_BREAKDOWNS) {
-    const r = await runGa4Report(propertyId, {
-      dateRanges,
-      dimensions: [{ name: b.dim }],
-      metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'keyEvents' }],
-      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-      limit: GA4_TOP_N,
-    })
-    if ('error' in r) { console.warn(`[growth/snapshot] ${p.label} ${b.dim_type}:`, r.error); continue }
-    for (const row of r.report?.rows || []) {
-      const mv = row.metricValues || []
-      rows.push({
-        property: p.prefix,
-        metric_date: date,
-        dim_type: b.dim_type,
-        dim_value: String(row.dimensionValues?.[0]?.value ?? '(not set)'),
-        sessions: Number(mv[0]?.value) || 0,
-        users: Number(mv[1]?.value) || 0,
-        key_events: Number(mv[2]?.value) || 0,
-      })
+// The newest site check per property: its verdict gates the zero rule, and a
+// property id it discovered wins over the env/default one. The table may not
+// exist yet (migration not applied): any error reads as "never checked", which
+// holds unproven zeros rather than writing them.
+async function latestInsights(): Promise<Record<string, Latest>> {
+  try {
+    const { data, error } = await supabase
+      .from('web_property_insights')
+      .select('property, health, property_id, id_source, run_at')
+      .order('run_at', { ascending: false })
+      .limit(20)
+    if (error || !Array.isArray(data)) return {}
+    const out: Record<string, Latest> = {}
+    for (const r of data as Array<Record<string, unknown>>) {
+      const k = String(r.property ?? '')
+      if (!k || out[k]) continue
+      out[k] = {
+        health: r.health as HealthVerdict,
+        property_id: typeof r.property_id === 'string' && r.property_id ? r.property_id : null,
+        id_source: typeof r.id_source === 'string' ? r.id_source : null,
+      }
     }
+    return out
+  } catch {
+    return {}
   }
-  return { perKey, rows }
+}
+
+// One property: the last RESTATE_DAYS days of headline flows plus the top
+// source/medium and landing pages, in one batch. planRestate decides what is
+// written, held or removed; a failed read writes nothing and carries its reason.
+async function gaProperty(p: WebProperty, latest: Latest | undefined, now: Date): Promise<GaResult> {
+  const keys = webMetricKeys(p)
+  const perKey: Record<string, KeyResult> = {}
+  const resolved = latest?.id_source === 'discovered' && latest.property_id
+    ? { id: latest.property_id, from: 'discovered' as const }
+    : ga4PropertyId(p, process.env)
+  const status: GaStatus = {
+    id_source: resolved.from, tz: null, empty_reason: null, row_count: null, thresholded: false, host_filter: 'on',
+    writes: 0, holds: [], deletes: 0, corrections: [], breakdowns: { source_medium: 'held', landing_page: 'held' },
+  }
+  const result: GaResult = { p, perKey, status, expectedDates: [], writes: [], deletes: [], rows: [] }
+  const fail = (error: string) => {
+    for (const k of keys) perKey[k] = { ok: false, error }
+    return result
+  }
+  if (resolved.from === 'none') return fail(`${p.env} unset and no default`)
+
+  let batch = await runGa4Batch(resolved.id, snapshotRequests(p, { hostFilter: true }))
+  if ('error' in batch && classifyGaError(batch) === 'invalid_argument') {
+    // hostName with session metrics is not proven on every property; read
+    // unfiltered rather than not at all, and say so.
+    status.host_filter = 'off'
+    batch = await runGa4Batch(resolved.id, snapshotRequests(p, { hostFilter: false }))
+  }
+  if ('error' in batch) return fail(shortGaError(batch.error))
+  const [daily, sources, landings] = batch.reports || []
+  if (!daily) return fail('GA4 returned no report')
+
+  const meta = reportMeta(daily)
+  const tz = meta.timeZone && isValidTz(meta.timeZone) ? meta.timeZone : 'UTC'
+  Object.assign(status, { tz, empty_reason: meta.emptyReason, row_count: meta.rowCount, thresholded: meta.subjectToThresholding })
+  const today = ymdIn(now, tz)
+  const expectedDates = Array.from({ length: RESTATE_DAYS }, (_, i) => shiftYmd(today, i - RESTATE_DAYS))
+  result.expectedDates = expectedDates
+
+  const { data: storedRows, error: storedErr } = await supabase
+    .from('growth_metrics')
+    .select('metric_key, metric_date, value, source')
+    .in('metric_key', keys)
+    .in('metric_date', expectedDates)
+  // Without the stored rows neither a correction nor a stale ga4 zero can be
+  // seen, so the plan would be half a plan. Write nothing this run.
+  if (storedErr) return fail(`read stored: ${storedErr.message}`)
+  const stored = (storedRows || []).map(r => ({
+    metric_key: String(r.metric_key), metric_date: String(r.metric_date), value: Number(r.value), source: String(r.source),
+  }))
+
+  const plan = planRestate({ prefix: p.prefix, expectedDates, rows: parseDaily(daily), lastHealth: latest?.health ?? null, stored })
+  result.writes = plan.writes
+  result.deletes = plan.deletes
+  Object.assign(status, { writes: plan.writes.length, holds: plan.holds, deletes: plan.deletes.length, corrections: plan.corrections })
+
+  const last = expectedDates[expectedDates.length - 1]
+  const heldLast = plan.holds.find(h => h.metric_date === last)
+  for (const k of keys) {
+    const w = plan.writes.find(x => x.metric_key === k && x.metric_date === last)
+    perKey[k] = w
+      ? { ok: true, value: w.value, method: 'ga4' }
+      : { ok: false, error: `held: ${heldLast?.reason ?? 'no reading for the latest day'}` }
+  }
+
+  const written = new Set(plan.writes.map(w => w.metric_date))
+  const keep = (rows: Breakdown[]) => rows.filter(r => written.has(r.metric_date))
+  const outcome = (rows: Breakdown[]) => !written.size ? 'held' : rows.length ? `ok ${rows.length} rows` : 'empty'
+  const sm = keep(parseDatedBreakdown(sources, p.prefix, 'source_medium'))
+  const lp = keep(parseDatedBreakdown(landings, p.prefix, 'landing_page'))
+  status.breakdowns = { source_medium: outcome(sm), landing_page: outcome(lp) }
+  result.rows = [...sm, ...lp]
+  return result
 }
 
 async function upsertMetric(metric_key: string, value: number, source: string, meta: Record<string, unknown>, date?: string) {
@@ -261,38 +331,81 @@ async function runSnapshot(dryRun: boolean) {
   SUBSTACKS.forEach((s, i) => { perKey[s.key] = counts[i] })
   perKey[MAVEN_KEY] = await mavenCount()
 
-  const gaDate = yesterdayUtc()
-  const ga = await Promise.all(GA4_PROPERTIES.map(p => ga4Property(p, gaDate)))
+  const now = new Date()
+  const latest = await latestInsights()
+  const ga = await Promise.all(WEB_PROPERTIES.map(p => gaProperty(p, latest[p.prefix], now)))
   const gaKeys = new Set<string>()
-  const gaRows: Ga4Breakdown[] = []
+  const gaRows: Breakdown[] = []
+  const gaStatus = {} as Record<WebPrefix, GaStatus>
+  const ga4Dates = {} as Record<WebPrefix, string[]>
   for (const g of ga) {
     for (const [k, r] of Object.entries(g.perKey)) { perKey[k] = r; gaKeys.add(k) }
     gaRows.push(...g.rows)
+    gaStatus[g.p.prefix] = g.status
+    ga4Dates[g.p.prefix] = g.expectedDates
   }
 
   const written: string[] = []
   const skipped: string[] = []
+  const waRows: Breakdown[] = []
   if (!dryRun) {
     for (const [key, r] of Object.entries(perKey)) {
+      if (gaKeys.has(key)) continue
       if (r.ok && typeof r.value === 'number') {
-        const err = gaKeys.has(key)
-          ? await upsertMetric(key, r.value, 'ga4', { method: r.method }, gaDate)
-          : await upsertMetric(key, r.value, 'snapshot', { method: r.method })
+        const err = await upsertMetric(key, r.value, 'snapshot', { method: r.method })
         if (err) { r.ok = false; r.error = `upsert: ${err}`; skipped.push(key) }
         else written.push(key)
       } else {
         skipped.push(key)
       }
     }
-    if (gaRows.length) {
+    for (const g of ga) {
+      const tz = g.status.tz
+      const capturedAt = new Date().toISOString()
+      let upsertErr: string | null = null
+      if (g.writes.length) {
+        const { error } = await supabase
+          .from('growth_metrics')
+          .upsert(g.writes.map(w => ({
+            metric_key: w.metric_key, metric_date: w.metric_date, value: w.value, source: 'ga4',
+            meta: { method: 'ga4', restated: true, provisional: w.provisional, tz }, captured_at: capturedAt,
+          })), { onConflict: 'metric_key,metric_date' })
+        upsertErr = error?.message || null
+        if (upsertErr) { g.status.writes = 0; g.status.corrections = [] }
+      }
+      // Breakdowns only for days whose headline flows actually landed.
+      if (!upsertErr) waRows.push(...g.rows)
+      // Only a zero this snapshot wrote itself: the source and value guards sit
+      // in the query, so a manual or reconcile row can never be removed here.
+      let deleted = 0
+      for (const d of g.deletes) {
+        const { error } = await supabase
+          .from('growth_metrics')
+          .delete()
+          .eq('metric_key', d.metric_key)
+          .eq('metric_date', d.metric_date)
+          .eq('source', 'ga4')
+          .eq('value', 0)
+        if (error) console.warn(`[growth/snapshot] ${g.p.label} delete ${d.metric_key} ${d.metric_date}:`, error.message)
+        else deleted++
+      }
+      g.status.deletes = deleted
+      for (const key of webMetricKeys(g.p)) {
+        const r = perKey[key]
+        if (upsertErr && r.ok) { r.ok = false; r.error = `upsert: ${upsertErr}`; delete r.value }
+        if (r.ok) written.push(key)
+        else skipped.push(key)
+      }
+    }
+    if (waRows.length) {
       const { error: waErr } = await supabase
         .from('web_analytics_daily')
-        .upsert(gaRows.map(r => ({ ...r, captured_at: new Date().toISOString() })), { onConflict: 'property,metric_date,dim_type,dim_value' })
+        .upsert(waRows.map(r => ({ ...r, captured_at: new Date().toISOString() })), { onConflict: 'property,metric_date,dim_type,dim_value' })
       if (waErr) console.warn('[growth/snapshot] web_analytics_daily failed:', waErr.message)
     }
     await supabase.from('system_config').upsert({
       key: 'growth_snapshot_status',
-      value: JSON.stringify({ ran_at: new Date().toISOString(), per_key: perKey }),
+      value: JSON.stringify({ ran_at: new Date().toISOString(), per_key: perKey, ga: gaStatus }),
       updated_at: new Date().toISOString(),
     })
     const { error: logErr } = await supabase.from('audit_log').insert({
@@ -300,11 +413,11 @@ async function runSnapshot(dryRun: boolean) {
       actor: 'growth-snapshot-cron',
       target: 'growth_metrics',
       display_message: `Growth snapshot: ${written.length} written, ${skipped.length} skipped`,
-      details: JSON.stringify({ written, skipped, per_key: perKey }),
+      details: JSON.stringify({ written, skipped, per_key: perKey, ga: gaStatus }),
     })
     if (logErr) console.warn('[growth/snapshot] audit_log failed:', logErr.message)
   }
-  return { per_key: perKey, written, skipped, ga4_date: gaDate, ga4_breakdown_rows: gaRows.length, dry_run: dryRun }
+  return { per_key: perKey, written, skipped, ga4_dates: ga4Dates, ga: gaStatus, ga4_breakdown_rows: gaRows.length, dry_run: dryRun }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
