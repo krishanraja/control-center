@@ -399,6 +399,7 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/events/scrub` | Daily 06:15 cron. Calls `scrub_dead_events()`. Dead only, reason always named, and it passes NO city: archiving an away-city row destroyed 26 New York rows once already |
 | `/api/events/[id]` | `GET` one event; `PATCH` a decision, an outcome or a density. A hand-edited density re-derives both axes and marks the row `scored_source='manual'` so cron does not overwrite it |
 | `/api/pilot/home-city` | `GET` / `PUT` which city Krish is in (`system_config.operator_home_city`). Twin of `/api/pilot/timezone`, but the device is NOT the authority: a laptop opened in an airport must not re-point the lane |
+| `/api/pilot/asks` | The daily ask. `GET` today's ask and the single oldest unresolved one; `POST` upserts today's (`mark_sent` also writes the ships row); `PATCH` records the outcome. A `POST` that changes the words of an ask already sent gets `409 already_sent` (2026-09-27, [below](#post-apipilotasks-a-sent-ask-keeps-its-words)) |
 | `/api/agents/[name]` | Per-agent detail (brief + tasks + drive sync state) |
 | `/api/acquisition/overview` | Growth tab read spine: per-lane funnel, touch progress, autonomy, churn queue, frame conversion, content attribution (service-role — sends carry PII) |
 | `/api/acquisition/sends` | Queued-send list + batch approve/reject (`{ids[], action}`); approve pings the n8n dispatcher, reject feeds `feedback_queue` |
@@ -443,6 +444,8 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/reject` | Generic reject handler (writes feedback_queue) |
 | `/api/skills/*` | Skill Forge endpoints (OpenAI-backed) |
 | `/api/status` | N8N workflow + execution status snapshot |
+| `/api/strategist` | The strategist ([ADR-026](./DECISIONS/026-the-strategist.md)). `GET` the latest read of a goal or of this week's notes; `POST` a goal or a note and get the read back as server-sent events. Guarded on both methods. See [The strategist](#the-strategist-apistrategist) |
+| `/api/suggestions/verdict` | `POST` Krish's verdict on one strategist suggestion into `suggestion_verdicts`. Guarded, and refuses any surface that is not the strategist's |
 | `/api/sync` | Inbound write from the VPS sync pipeline (guarded by `SYNC_SECRET`) |
 | `/api/sync-brief` | Inbound write for `agents.brief_content` edits |
 | `/api/task` | Task CRUD |
@@ -472,6 +475,160 @@ n8n, but accept a `{ "mode": "direct" }` body to bypass n8n and run server-side
 
 Apollo lead **search + bulk reveal** (not exposed as an API route) runs via
 `scripts/apollo/burn.ts` — see `docs/APOLLO_CREDIT_BURNDOWN.md`.
+
+---
+
+## The strategist (`/api/strategist`)
+
+Reads a goal, or a note Krish dictated or typed, and streams back what a
+strategy consultant who knows his record would say, ending in one move. The
+decision and its rules are [ADR-026](./DECISIONS/026-the-strategist.md); the
+wire types are `src/types/strategist.ts`.
+
+### Auth
+
+Both methods, and the verdict route, call `guard()` (`api/_auth.ts`), which
+re-checks the dashboard's access cookie. `middleware.ts` does not gate
+`/api/*`, and a read names warm contacts and quotes his notes.
+
+### `GET /api/strategist`
+
+| Query | Returns |
+|---|---|
+| `?goalId=<id>` | The latest complete read of that goal |
+| `?week=current&tz=<IANA zone>` | The latest complete read of a note this week. It looks at this week and next week, because a `week_open` note sent on a Saturday or Sunday is filed under the coming Monday |
+| anything else | `400 {ok:false, error:'goal_or_week_required'}` |
+
+The body is `{ok:true, read, last_attempt_at, last_status}`.
+
+- `read` is the latest read only (`StrategistReadWire`), or null. There is no
+  list and no history: FOCUS-PURPOSE constraint 1.
+- `read.read` is filled only when the row is complete. The note's text is never
+  returned.
+- Each ask's person, and a role ask's introducer, carry `email` and
+  `linkedin_url`, read from `contacts` at request time and never stored.
+- `last_attempt_at` and `last_status` describe the latest attempt of any
+  status. The client uses them to wait 24 hours after a failure before anything
+  runs by itself.
+- Before migration `20260927100000` is applied, GET returns an empty 200.
+
+### `POST /api/strategist`
+
+The body is one of:
+
+```
+{ source: 'goal', goalId }
+{ source: 'note', kind: 'week_open' | 'update' | 'week_close', body }
+```
+
+A note's `body` is at most 12,000 characters. `config.maxDuration` is 300.
+
+**Refused before the stream opens**, as JSON `{ok:false, error, detail}`, where
+`detail` is a plain sentence:
+
+| Status | `error` |
+|---|---|
+| 400 | `source_required`, `goal_required`, `unknown_note_kind`, `note_required`, `note_too_long`, `goal_dropped`, `unsupported_horizon` |
+| 404 | `goal_not_found` |
+| 500 | `goal_read_failed` |
+
+Then the row is written to `strategist_reads` as `pending`, before the model
+runs, so a failed read never loses what he said. The stream opens, and from
+there every failure is said in-band: nothing answers with a status.
+
+**Server-sent events**, in this order:
+
+| Event | Payload |
+|---|---|
+| comment | `: open` once, then `: ping` every 10 seconds, because a thinking model streams nothing while it thinks and `streamText` gives up after 90 seconds of silence |
+| `stage` | `{stage}`: `grounding`, `thinking`, `writing` (sent before the first section), `saving` |
+| `section` | `{index, section}`: one line that passed validation, in the order it was written. An ask's person, and a role ask's introducer, carry `email` and `linkedin_url` (null when unknown) |
+| `done` | `{ok:true, read_id, suggestion_ids, persisted, persist_error?, read, notes}` |
+| `error` | `{error, detail, read_id}`, sent in place of `done` |
+
+- `done.read` is the whole read, with suggestion ids stamped on its objectives,
+  asks and next steps, and contact details attached. `suggestion_ids` is in
+  that order: objectives, then asks, then next steps.
+- `persisted: true` means the read row was saved. If the suggestion rows fail
+  and the read saves, `persisted` stays true, `persist_error` names the
+  failure, and `suggestion_ids` is empty. Before the migration, `persisted` is
+  false and `read_id` is null, and the read still shows. Nothing reruns by
+  itself.
+- `notes` lists the repairs made on the way (for example, a second `play` flag
+  cleared) and `grounding:<name>` for anything that could not be read, such as
+  `grounding:strategist_reads_missing`.
+- `error.error` is `strategist_read_incomplete`, `anthropic_failed`,
+  `timed_out` (the model is raced against 240 seconds) or `grounding_failed`.
+  `detail` is a plain sentence, never provider text. It says "What you said is
+  kept" only for a note whose pending row was written, and otherwise says
+  nothing was saved.
+- `delta` is never sent: this route streams structure, not prose. The client
+  reads it through `streamText`'s `onEvent` (`docs/DESIGN_SYSTEM.md`).
+
+**The model.** `SYNTHESIS_MODEL` through `streamClaude`, stamped
+`agent: 'goal-strategist'`, from two literal call sites. The OS goal,
+`week_open` and `week_close` think, with `maxTokens: 12000`. A weekly objective
+and an `update` do not think, with `maxTokens: 2500`. Neither sets a
+temperature. `scripts/modelRoutePolicy.mts` holds the route to this, and never
+to Opus.
+
+**What it writes.**
+
+- `strategist_reads`: the note, the status, and on success the validated read
+  with contact details stripped. An incomplete read names
+  `strategist_read_incomplete` and keeps its failed checks in
+  `producer.reasons`.
+- `suggestions`: one row per objective, ask and next step, on the surfaces
+  `strategist_objective`, `strategist_ask` and `strategist_next_step`, with
+  subject `strategist_reads`. `producer` is `{agent:'goal-strategist',
+  persona:'marcus', model, prompt_rev, think, shape}`.
+- `audit_log`: `strategist_read_complete` or `strategist_read_incomplete`,
+  actor `marcus`, and the read id. Nothing he said.
+
+It never sends anything, never writes a goal, and never fills his prediction.
+Provider errors go to `console.warn` only.
+
+### `POST /api/suggestions/verdict`
+
+Krish's response to one thing the strategist proposed. The body is
+`{suggestion_id, verdict, final?, delta?, reason_code?, note?}`.
+
+- `verdict` is `accepted`, `tweaked`, `replaced`, `rejected` or `deferred`. A
+  `rejected` verdict needs a `reason_code`, or a `note` of eight characters or
+  more.
+- `delta` keys must be form-only (`delta_keys_are_form_only`). The client sends
+  `chars_before`, `chars_after` and `pct_shorter`, never the words.
+- `final` is capped at 20,000 characters of JSON.
+- The actor is never taken from the body. `round` and `seconds_to_verdict` are
+  computed on the server.
+- Only the strategist's three surfaces are accepted. The content engine's
+  suggestions are judged from its own repository (ADR-019).
+
+| Status | Body |
+|---|---|
+| 201 | `{ok:true, id, round}` |
+| 400 | `{ok:false, error}`: `suggestion_id_not_uuid`, `unknown_verdict`, `delta_not_an_object`, `delta_key_not_form_only:<key>`, `reject_needs_reason`, `unknown_reason_code` (not one of the strategist's "Not this" reasons in `src/lib/servedSurfaces.ts`), `note_too_long` (over 2,000 characters), `final_too_large` |
+| 403 | `surface_not_allowed:<surface>` |
+| 404 | `suggestion_not_found` |
+| 409 | `round_conflict`: another verdict took the same round twice running. Try again |
+| 500 | A named database failure, for example the migration not yet applied |
+
+The client posts verdicts best effort, after the action they describe. A
+verdict that fails never undoes the action.
+
+### `POST /api/pilot/asks`: a sent ask keeps its words
+
+When today's ask has `sent_at` and a post changes `ask_text`, the route answers
+`409 {ok:false, error:'already_sent', detail}`. The same words, a retry, or a
+repeat `mark_sent` behave as before. It used to overwrite the text, so the
+record could say he sent words he never sent. The check is on the server
+because a second tab or device races any check the client makes, and the write
+itself is conditional: an update to an unsent ask only matches while it is
+still unsent, and a miss is re-read (the same words are a retry, anything else
+is the 409). Once sent, its prediction is fixed too: a later post never
+changes or nulls `predicted_no_pct`, because `learningFor()` holds the outcome
+against the guess made before sending. `AskCard` offers Copy only once today's
+ask is sent.
 
 ---
 

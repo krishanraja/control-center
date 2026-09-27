@@ -192,6 +192,10 @@ export interface AskSection {
   ladder: AskLadder
   lens: StrategistLensId | null
   job: StrategistJob | null
+  /** Only on the capital lens, as on its move: an investor ask (job null) or
+   *  a co-founder ask. Optional on the wire, so a read stored before it
+   *  existed still reads. */
+  target?: 'cofounder' | 'investor' | null
   /** Set on an investor ask only: no job covers raising money. */
   job_note: string | null
   suggestion_id?: string | null

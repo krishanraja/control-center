@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, type ReactNode } from 'react'
 import { MoreHorizontal } from '@/lib/icons'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { Eyebrow } from './Eyebrow'
@@ -25,6 +25,16 @@ import { useHaptics } from '../../hooks/useHaptics'
  *
  * Desktop keeps its inline editing — a pointer plus a wide row is the right
  * mechanics there. Same action, different device, different shape.
+ *
+ * Three options for LONG text, the dictated kind (the strategist's note,
+ * ADR-026), each off by default so a title editor stays as it was:
+ *   - `grow`: the field grows with the words instead of showing three rows of
+ *     them, up to about half the screen (VoiceField `grow`).
+ *   - `onChange`: every change, as it happens, so the caller can keep a draft.
+ *     Cancel is a swipe, the scrim or Escape, and none of them may cost him a
+ *     paragraph he dictated.
+ *   - `header`: a small control above the field (a chip row saying what the
+ *     text is), chosen before the one action runs.
  */
 export function FocusedEditor({
   open,
@@ -35,6 +45,9 @@ export function FocusedEditor({
   saveLabel = 'Save',
   onSave,
   danger,
+  onChange,
+  grow = false,
+  header,
 }: {
   open: boolean
   onClose: () => void
@@ -46,6 +59,12 @@ export function FocusedEditor({
   onSave: (text: string) => Promise<boolean> | boolean
   /** Optional destructive action, kept behind "…" with one confirm tap. */
   danger?: { label: string; confirmLabel: string; run: () => Promise<boolean> | boolean }
+  /** Every change as it happens, for a caller that keeps a draft. */
+  onChange?: (text: string) => void
+  /** Grow with the text (long, dictated text) instead of three fixed rows. */
+  grow?: boolean
+  /** A small control above the field, e.g. a chip row naming what this is. */
+  header?: ReactNode
 }) {
   const h = useHaptics()
   const [text, setText] = useState(value)
@@ -57,6 +76,11 @@ export function FocusedEditor({
   useEffect(() => {
     if (open) { setText(value); setMenuOpen(false); setArmed(false) }
   }, [open, value])
+
+  const change = (t: string) => {
+    setText(t)
+    onChange?.(t)
+  }
 
   const save = async () => {
     if (busy || !text.trim()) return
@@ -99,7 +123,9 @@ export function FocusedEditor({
           )}
         </div>
 
-        <VoiceField value={text} onChange={setText} rows={3} placeholder={placeholder} autoFocus />
+        {header && <div className="pb-3">{header}</div>}
+
+        <VoiceField value={text} onChange={change} rows={3} placeholder={placeholder} autoFocus grow={grow} />
 
         {danger && menuOpen && (
           <button

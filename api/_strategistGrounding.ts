@@ -38,8 +38,12 @@ import type {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-/** The three roles a strategist read looks for in the warm network. */
-export const CANDIDATE_ROLES = ['partner', 'introducer', 'investor'] as const
+/**
+ * The four roles a strategist read looks for in the warm network. Buyer comes
+ * first: the pilot is sold to people he already knows (THE OFFER), so the one
+ * move is often a direct ask to a leader he knows, not an introduction.
+ */
+export const CANDIDATE_ROLES = ['buyer', 'partner', 'introducer', 'investor'] as const
 export type CandidateRole = (typeof CANDIDATE_ROLES)[number]
 
 /** Six per role: enough to choose from, few enough to read. */
@@ -198,20 +202,37 @@ export interface StoredReadRow {
 
 /**
  * This week's earlier notes, oldest first, the newest WEEK_NOTES_KEPT of them.
- * The note being read now is excluded by id. A note whose read failed is still
- * what he said, so status does not filter; the headline rides along only when
- * the read completed. Each body is cut at WEEK_NOTE_CHARS and says it was cut.
+ * The note being read now is excluded by id, and so is any earlier row with
+ * the same words: a Retry or a "Read it as ..." re-read writes a new row with
+ * the same body, and the model must not read his note twice, once as "earlier
+ * this week". The same words twice earlier count once, the newest. A note
+ * whose read failed is still what he said, so status does not filter; the
+ * headline rides along only when the read completed. Each body is cut at
+ * WEEK_NOTE_CHARS and says it was cut.
  */
 export function weekNotesFrom(
   rows: ReadonlyArray<StoredReadRow> | null | undefined,
   excludeId: string | null | undefined,
   at: (iso: string) => string,
+  subjectBody?: string | null,
 ): StrategistGrounding['week_notes'] {
+  const same = (t: string) => t.replace(/\s+/g, ' ').trim()
+  const subject = typeof subjectBody === 'string' ? same(subjectBody) : ''
+  const seen = new Set<string>()
   const notes = (rows || [])
     .filter(r => r && r.id !== excludeId && NOTE_KINDS.includes(r.note_kind as NoteKind))
     .filter(r => typeof r.note_body === 'string' && r.note_body.trim())
-    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
-    .slice(-WEEK_NOTES_KEPT)
+    .filter(r => !subject || same(r.note_body as string) !== subject)
+    // Newest first, so the newest of any repeated body is the one kept.
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .filter(r => {
+      const key = same(r.note_body as string)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, WEEK_NOTES_KEPT)
+    .reverse()
   return notes.map(r => {
     const body = (r.note_body as string).trim()
     return {
@@ -345,7 +366,7 @@ export function assembleGrounding(p: GroundingParts): StrategistGrounding {
     stop_rule: { on: p.stop_rule.on, reads: p.stop_rule.reads },
     pilot_deals: p.deal_rows ? dealCounts(p.deal_rows) : null,
     today_ask: p.today_ask_row === undefined ? null : todayAskFrom(p.today_ask_row),
-    week_notes: weekNotesFrom(p.week_rows, p.exclude_read_id, p.at),
+    week_notes: weekNotesFrom(p.week_rows, p.exclude_read_id, p.at, p.subject.source === 'note' ? p.subject.body : null),
     last_week_close: lastWeekCloseFrom(p.last_close_row),
     previous_read: p.subject.source === 'goal' ? previousReadFrom(p.previous_row, p.at) : null,
     network_counts: p.network_counts,
@@ -624,7 +645,9 @@ export async function loadStrategistGrounding(
       .eq('source', 'note')
       .eq('week_start', opts.weekStart)
       .order('created_at', { ascending: false })
-      .limit(WEEK_NOTES_KEPT + 1) as unknown as PromiseLike<Result<StoredReadRow[]>>, true),
+      // Room for the row being read, and for retries of the same words,
+      // which weekNotesFrom drops.
+      .limit(WEEK_NOTES_KEPT * 3) as unknown as PromiseLike<Result<StoredReadRow[]>>, true),
     read<StoredReadRow>('last_week_close', supabase
       .from('strategist_reads')
       .select('id, created_at, headline, sections, status, week_start, source')

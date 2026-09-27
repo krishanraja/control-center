@@ -84,11 +84,19 @@ export function FocusRitual({
   }, [stepIds.length])
 
   // Escape dismisses the ritual, mirroring a backdrop click (soft "set later"
-  // snooze), in line with every other dialog in the app.
+  // snooze), in line with every other dialog in the app. An Escape something
+  // inside already answered, or pressed while a popover is open, is not for
+  // the ritual: a popover opened from the weekly step (the strategist's why
+  // badges, ADR-026) closes on Escape and marks the event handled, and closing
+  // it must not snooze the whole day.
+  // On the phone the sheet's own Escape handling also marks it handled, and
+  // its onClose is the same "set later", so nothing is lost there.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (e.defaultPrevented) return
+        if (document.querySelector('[data-radix-popper-content-wrapper]')) return
         e.preventDefault()
         alt.dismissToday()
         closeFocusRitual()

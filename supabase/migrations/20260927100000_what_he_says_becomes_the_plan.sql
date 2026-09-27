@@ -15,9 +15,10 @@
 -- next steps. A drafted objective is saved only when he taps "Take it", through
 -- the ritual and the goal gate.
 --
--- COMMITTED, NOT APPLIED. Apply only with Krish's explicit OK at that moment.
--- Until it is applied, api/strategist.ts still streams the read and reports
--- persisted: false, so nothing is lost and nothing reruns by itself.
+-- APPLIED LIVE 2026-09-27 with Krish's explicit OK (migration name:
+-- what_he_says_becomes_the_plan), read back as service role and as anon.
+-- Before it was applied, api/strategist.ts still streamed the read and
+-- reported persisted: false, so nothing was lost and nothing reran by itself.
 --
 -- ── Three properties this file enforces rather than documents ──────────────
 --

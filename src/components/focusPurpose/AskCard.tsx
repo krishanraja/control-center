@@ -200,19 +200,37 @@ export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresol
             </Tap>
           </div>
         </div>
-      ) : seeding ? (
-        <div className="flex flex-col gap-3" data-testid="ask-seed-compose">
+      ) : seeding || composing ? (
+        // One compose, for his own ask and for the strategist's seeded one
+        // (ADR-026). The seed changes the words around the field and the
+        // button, never the field, the softener hint or the guess chips, so
+        // the two cannot drift apart. `contents` keeps his own ask's pieces
+        // as direct children of the card, exactly as they were.
+        <div className={seeding ? 'flex flex-col gap-3' : 'contents'} data-testid={seeding ? 'ask-seed-compose' : 'ask-compose'}>
           <div>
             <h2 className="font-display text-title leading-tight text-ink">Today&rsquo;s ask</h2>
-            <p className="text-label text-ink-faint mt-1">Drafted from the read. Change anything until it sounds like you.</p>
+            <p className="text-label text-ink-faint mt-1">
+              {seeding
+                ? 'Drafted from the read. Change anything until it sounds like you.'
+                : 'Ask one person for one thing. Give them an easy way to say no.'}
+            </p>
           </div>
-          <VoiceField value={text} onChange={setText} rows={compact ? 4 : 3} />
+          <VoiceField
+            value={text}
+            onChange={setText}
+            rows={seeding ? (compact ? 4 : 3) : 2}
+            placeholder={seeding ? undefined : ASK_PLACEHOLDER}
+          />
           {softener && (
             <p className="text-label text-ink-muted leading-relaxed">{selfRejectionHint(softener)}</p>
           )}
-          {today && !today.sent_at && (
+          {seeding && today && !today.sent_at && (
             <p className="text-label text-ink-faint leading-relaxed break-words">Today&rsquo;s ask now: {today.ask_text}</p>
           )}
+          {/* The prediction appears once there is an ask to predict about.
+              Leading with it was the single most confusing thing on this
+              screen: an unexplained poll about a message not yet written.
+              It starts empty for a seeded ask too: the guess is his. */}
           {text.trim() !== '' && (
             <div className="flex flex-col gap-2">
               <span className="text-label text-ink-muted">Your guess: how likely is a yes?</span>
@@ -240,60 +258,23 @@ export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresol
           {error && <p className="text-label text-ink-muted">{error}</p>}
           <div className="flex flex-wrap items-center gap-2">
             <Tap onTap={() => commit(false)} disabled={saving || !text.trim()} feel="impactMedium" className="flex items-center justify-center">
-              {saving ? 'Saving' : today && !today.sent_at ? 'Replace today\u2019s ask' : 'Make it today\u2019s ask'}
+              {saving
+                ? 'Saving'
+                : !seeding
+                  ? 'Save the ask'
+                  : today && !today.sent_at ? 'Replace today\u2019s ask' : 'Make it today\u2019s ask'}
             </Tap>
-            <Tap onTap={() => void copy()} variant="quiet" className="!min-h-[48px] text-body flex items-center">
-              {copied ? 'Copied' : 'Copy'}
-            </Tap>
-          </div>
-        </div>
-      ) : composing ? (
-        <>
-          <div>
-            <h2 className="font-display text-title leading-tight text-ink">Today&rsquo;s ask</h2>
-            <p className="text-label text-ink-faint mt-1">Ask one person for one thing. Give them an easy way to say no.</p>
-          </div>
-          <VoiceField value={text} onChange={setText} rows={2} placeholder={ASK_PLACEHOLDER} />
-          {softener && (
-            <p className="text-label text-ink-muted leading-relaxed">{selfRejectionHint(softener)}</p>
-          )}
-          {/* The prediction appears once there is an ask to predict about.
-              Leading with it was the single most confusing thing on this
-              screen: an unexplained poll about a message not yet written. */}
-          {text.trim() !== '' && (
-            <div className="flex flex-col gap-2">
-              <span className="text-label text-ink-muted">Your guess: how likely is a yes?</span>
-              <div className="grid grid-cols-4 gap-1.5">
-                {PREDICTION_CHIPS.map(({ pct, label }) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onPointerDown={() => h.select()}
-                    onClick={() => setPredicted(predicted === pct ? null : pct)}
-                    className={`min-h-[44px] px-1 rounded-xl text-label leading-tight text-center border transition-all active:scale-95 touch-manipulation ${
-                      predicted === pct
-                        ? 'bg-white/[0.12] border-white/30 text-ink'
-                        : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.07]'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {error && <p className="text-label text-ink-muted">{error}</p>}
-          <div className="flex items-center gap-2">
-            <Tap onTap={() => commit(false)} disabled={saving || !text.trim()} feel="impactMedium" className="flex items-center justify-center">
-              {saving ? 'Saving' : 'Save the ask'}
-            </Tap>
-            {editing && today && (
+            {seeding ? (
+              <Tap onTap={() => void copy()} variant="quiet" className="!min-h-[48px] text-body flex items-center">
+                {copied ? 'Copied' : 'Copy'}
+              </Tap>
+            ) : editing && today && (
               <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); setEditing(false); setText(today.ask_text); setPredicted(today.predicted_no_pct) }}>
                 Cancel
               </Tap>
             )}
           </div>
-        </>
+        </div>
       ) : today && !today.sent_at ? (
         <>
           <div>

@@ -79,10 +79,18 @@ function hash(s: string): string {
   return (h >>> 0).toString(36)
 }
 
-export function runKey(input: StrategistRequest): string {
-  return input.source === 'goal'
-    ? `goal:${input.goalId}`
-    : `note:${input.kind}:${hash(input.body.trim())}`
+/**
+ * The key a run is stored and joined under. A goal's key is its id, so a
+ * second view asking for the same goal joins the read already streaming. A
+ * `fresh` read (the ladder just saved or retitled the goal) carries the open
+ * it belongs to, so it never joins a read of the old wording that is still
+ * streaming, while a double effect of the same open still joins itself.
+ */
+export function runKey(input: StrategistRequest, fresh?: string | number | null): string {
+  if (input.source === 'goal') {
+    return fresh != null && fresh !== '' ? `goal:${input.goalId}:fresh:${fresh}` : `goal:${input.goalId}`
+  }
+  return `note:${input.kind}:${hash(input.body.trim())}`
 }
 
 export function targetOf(input: StrategistRequest): StrategistTarget {
@@ -253,9 +261,10 @@ async function start(key: string, input: StrategistRequest): Promise<StrategistR
   }
 }
 
-/** Run a read. Joins one already streaming for the same input. */
-export function runStrategist(input: StrategistRequest): Promise<StrategistRunState> {
-  const key = runKey(input)
+/** Run a read. Joins one already streaming for the same input (and, for a
+ *  fresh goal read, the same open). */
+export function runStrategist(input: StrategistRequest, opts: { fresh?: string | number | null } = {}): Promise<StrategistRunState> {
+  const key = runKey(input, opts.fresh)
   const existing = inflight.get(key)
   if (existing) return existing
   const p = start(key, input).finally(() => { inflight.delete(key) })
@@ -295,9 +304,9 @@ export function useStrategist() {
     return () => { listeners.delete(l) }
   }, [])
 
-  const run = useCallback((input: StrategistRequest) => {
-    setKey(runKey(input))
-    return runStrategist(input)
+  const run = useCallback((input: StrategistRequest, opts: { fresh?: string | number | null } = {}) => {
+    setKey(runKey(input, opts.fresh))
+    return runStrategist(input, opts)
   }, [])
 
   const latest = useCallback((target: StrategistTarget) => latestStrategist(target), [])

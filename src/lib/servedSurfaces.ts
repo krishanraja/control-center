@@ -666,7 +666,7 @@ export const STRATEGIST_SURFACE: SurfaceContract = {
         plain('Lens', lensLabel),
         plain('Job', typeof r.job_label === 'string' ? r.job_label : null),
         ladder && typeof ladder.level === 'number'
-          ? { label: 'Ladder', value: `Level ${ladder.level}: ${String(ladder.request || '').trim()}` }
+          ? { label: 'How big an ask', value: `${String(ladder.request || '').trim()}, step ${ladder.level} of 12` }
           : null,
         plain('Feels like', ladder?.feared),
         plain('Whatever the answer', ladder?.learning),

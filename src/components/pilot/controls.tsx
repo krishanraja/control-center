@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useRef } from 'react'
 import { Mic, Square } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useDictation } from '../../hooks/useDictation'
@@ -71,7 +71,7 @@ export function Tap({
  * hides itself and the field degrades to plain typing.
  */
 export function VoiceField({
-  value, onChange, placeholder, rows = 2, autoFocus, onEnter, size = 'lede',
+  value, onChange, placeholder, rows = 2, autoFocus, onEnter, size = 'lede', grow = false,
 }: {
   value: string
   onChange: (s: string) => void
@@ -86,9 +86,24 @@ export function VoiceField({
    * one-line placeholder onto two.
    */
   size?: 'lede' | 'ui'
+  /**
+   * Grow with the words, from `rows` up to about half the screen, instead of
+   * holding them behind a fixed box (long, dictated text: the strategist's
+   * note). Past half the screen the field scrolls, so Save stays on screen.
+   */
+  grow?: boolean
 }) {
   const h = useHaptics()
   const ref = useRef<HTMLTextAreaElement>(null)
+
+  // Reset first so it shrinks as well as grows.
+  useLayoutEffect(() => {
+    if (!grow) return
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value, grow])
   const valueRef = useRef(value)
   valueRef.current = value
 
@@ -112,7 +127,7 @@ export function VoiceField({
           if (e.key === 'Enter' && !e.shiftKey && onEnter) { e.preventDefault(); onEnter() }
         }}
         placeholder={listening ? 'Listening…' : placeholder}
-        className={`w-full ${size === 'ui' ? 'px-3.5 py-3 text-ui' : 'px-4 py-3.5 text-lede'} ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
+        className={`w-full ${size === 'ui' ? 'px-3.5 py-3 text-ui' : 'px-4 py-3.5 text-lede'} ${supported ? 'pr-[60px]' : ''} ${grow ? 'max-h-[calc(50dvh/var(--z,1))] overflow-y-auto' : ''} rounded-xl bg-white/[0.03] border leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
           listening ? 'border-white/30' : 'border-white/10 focus:border-white/25'
         }`}
       />

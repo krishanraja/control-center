@@ -160,7 +160,23 @@ THE WILDCARD (exactly one per batch):
 - The wildcard obeys every truth rule above it. It is a different ANGLE on the same evidence, never different evidence. Do not invent a number, a person or an outcome to make it land.
 - If a swing would need a fact you were not given, do not take it. Return the batch with no wildcard rather than a made-up one.`
 
-/** The play block plus one line naming the batch size, for a proposal prompt. */
-export function proposalPlay(count: number): string {
-  return `${PROPOSAL_PLAY}\n- Of the ${count} proposals, exactly one carries "play": true.`
+/**
+ * The play block plus one line naming the batch size, for a proposal prompt.
+ *
+ * Two options, for a prompt where the proposals are only part of the output
+ * (the strategist's read drafts up to three objectives inside a read that
+ * keeps a calm register everywhere else):
+ *   - `scope` is a line written above the block, so the register it asks for
+ *     is fenced to the proposals and does not leak into the rest.
+ *   - `atMost` is for a batch of variable size: up to `count` proposals and at
+ *     most one swing, none being fine, instead of exactly one of exactly N.
+ */
+export function proposalPlay(count: number, opts: { scope?: string; atMost?: boolean } = {}): string {
+  const block = opts.atMost
+    ? PROPOSAL_PLAY.replace('THE WILDCARD (exactly one per batch):', 'THE WILDCARD (at most one per batch):')
+    : PROPOSAL_PLAY
+  const tail = opts.atMost
+    ? `- Of up to ${count} proposals, at most one carries "play": true. None is fine.`
+    : `- Of the ${count} proposals, exactly one carries "play": true.`
+  return `${opts.scope ? `${opts.scope}\n` : ''}${block}\n${tail}`
 }

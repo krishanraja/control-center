@@ -9,6 +9,7 @@ import { Pending } from '../shared/Pending'
 import { AskCard } from '../focusPurpose/AskCard'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useElapsed } from '../../hooks/useAsyncAction'
 import type { StrategistRunState } from '../../hooks/useStrategist'
 import { useWork } from '../../lib/loadingVoice'
@@ -19,7 +20,7 @@ import { postVerdict, editDelta, verdictForTaken } from '../../lib/suggestionsAp
 import { patchGoal } from '../../lib/goalsApi'
 import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { civilYmd, getZone } from '../../lib/civilDate'
-import { LENSES } from '../../content/focusTheory'
+import { DECISION_RULES, LENSES } from '../../content/focusTheory'
 import { jobLabel } from '../../content/jobs'
 import type { Compilation } from '../../lib/worryStates'
 import type {
@@ -52,8 +53,15 @@ import type {
 //     write from here), Mark done through patchGoal, Put on today through
 //     POST /api/daily-focus/slot, the worry through the worry compiler's
 //     compile step, a named person through contactAction (never sends), and
-//     the one move through AskCard with HIS prediction. Each is followed by a
-//     best-effort verdict for the learning bank.
+//     the one move through AskCard with HIS prediction. Each is followed by
+//     one best-effort verdict for the learning bank.
+//   - The one move runs in the manual's order: the words, then his guess,
+//     then contact, then "I sent it". The contact buttons for it appear only
+//     once he has made it today's ask with his own prediction, so nothing
+//     goes out that the ask log and the calibration never saw.
+//   - Inside the Focus Ritual there is no AskCard at all: the ritual can hold
+//     three reads, and three competing "today's ask" buttons is three moves.
+//     The move there is its words and Copy; today's ask is made on Home.
 //   - Nothing is ellipsised or clamped. A message is the message, whole.
 //   - No percentages. The ladder is named in words: what the ask is, what it
 //     can feel like, and what is true whatever the answer.
@@ -175,13 +183,31 @@ export function reachablePerson(to: AskRecipient): AskPerson | null {
 
 /**
  * The words that become today's ask (pilot_asks.ask_text). The short line, led
- * by a first name or the role so the log says who it was to. Never a full
- * name: that table is readable with the browser key.
+ * by a first name or a plain label so the log says who it was to. Never a full
+ * name, a company or the model's own description of a role: that table is
+ * readable with the browser key. The server refuses a line that carries a
+ * candidate's full name, surname or company (name_in_line), and the role's
+ * free text never reaches the log.
  */
 export function askSeedText(a: AskSection): string {
   const p = reachablePerson(a.to)
-  const who = p ? firstName(p.name) : a.to.kind === 'role' ? a.to.role : ''
+  const who = p
+    ? firstName(p.name)
+    : a.to.kind === 'role'
+      ? a.to.via.kind === 'existing_client' ? 'A client' : 'A reader'
+      : ''
   return who ? `${who}: ${a.line}` : a.line
+}
+
+/**
+ * The headline's source line: his rule, in the words of its own verdict. The
+ * rule's chip is the FAILURE condition ("Needs cold outbound"), which under a
+ * recommendation reads as the advice, so it is not used here.
+ */
+export function ruleSource(ruleId: string, ruleN: number): string {
+  const rule = DECISION_RULES.find(r => r.id === ruleId)
+  const first = rule ? (rule.verdict.match(/^[^.]+\./)?.[0] ?? rule.verdict) : ''
+  return first ? `Your rule ${ruleN}: ${first}` : `Your rule ${ruleN}`
 }
 
 function lensLabel(id: string | null | undefined): string | null {
@@ -212,13 +238,24 @@ const STATUS_WORD: Record<LensSection['status'], string> = {
   covered: 'Covered',
 }
 
-const PROGRESS_WORD: Record<ProgressSection['verdict'], { label: string; action: string; status: string; done: string }> = {
-  done: { label: 'Done', action: 'Mark done', status: 'done', done: 'Marked done.' },
-  carry: { label: 'Carry it', action: 'Keep it going', status: 'active', done: 'Kept going.' },
-  drop: { label: 'Drop it', action: 'Drop it', status: 'dropped', done: 'Dropped.' },
+/**
+ * What each progress verdict offers. Done and drop are real status changes,
+ * through patchGoal; drop asks twice, as the ladder's own drop does. Carry is
+ * information, not a button: the objective is already active, and the house
+ * Carry (ADR-018) is the ritual cloning a missed row into a new week, which
+ * it offers by itself.
+ */
+const PROGRESS_WORD: Record<ProgressSection['verdict'], {
+  label: string
+  action: { label: string; confirm: string | null; status: 'done' | 'dropped'; done: string } | null
+  note: string | null
+}> = {
+  done: { label: 'Done', action: { label: 'Mark done', confirm: null, status: 'done', done: 'Marked done.' }, note: null },
+  carry: { label: 'Keep going', action: null, note: 'Nothing to change. If it is still open when the week closes, the ritual offers to carry it.' },
+  drop: { label: 'Drop it', action: { label: 'Drop it', confirm: 'Tap again to drop it', status: 'dropped', done: 'Dropped.' }, note: null },
 }
 
-const BTN = 'inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 text-label transition-colors disabled:opacity-40'
+const BTN = 'tap-44 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 text-label transition-colors disabled:opacity-40'
 const BTN_PRIMARY = `${BTN} border-violet-400/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30`
 const BTN_QUIET = `${BTN} border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink`
 const NOT_THIS = 'tap-44 inline-flex min-h-[36px] items-center px-2 text-label text-ink-faint hover:text-ink-muted'
@@ -243,6 +280,16 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
   // toast: this renders inside the sheet and the ritual, and both sit above
   // the toast layer, so a toast from here would land behind them unseen.
   const [said, setSaid] = useState<Record<string, string>>({})
+  // A drop asks twice: the key of the progress row whose drop is armed.
+  const [armed, setArmed] = useState<string | null>(null)
+  // A progress verdict is only offered on an objective that is still active
+  // NOW: a stored read can be days old, and a row he has since marked done or
+  // dropped must not be changed back from here.
+  const { canon } = useGoalCanon()
+  const liveStatus = (goalId: string): string | null => {
+    const g = canon ? [...canon.os, ...canon.weekly].find(x => x.id === goalId) : null
+    return g ? g.status : null
+  }
 
   const mark = (key: string, v: 'taken' | 'set_aside') => setAnswered(a => ({ ...a, [key]: v }))
   const say = (key: string, line: string) => setSaid(m => ({ ...m, [key]: line }))
@@ -306,6 +353,8 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
     if (action.copies) copied = await copyText(a.message)
     if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
     say(key, copied ? action.note : 'Could not reach the clipboard. Select the message and copy it by hand.')
+    // One verdict per item. The move's was written when he made it today's
+    // ask, so contacting after that writes nothing more.
     if (!answered[key]) {
       mark(key, 'taken')
       void postVerdict({ suggestion_id: a.suggestion_id ?? null, verdict: 'accepted', final: { channel: action.kind } })
@@ -318,10 +367,13 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
   }
 
   const setGoal = async (p: ProgressSection, key: string) => {
-    if (busy) return
+    const action = PROGRESS_WORD[p.verdict].action
+    if (busy || !action) return
+    if (action.confirm && armed !== key) { h.impactRigid(); setArmed(key); return }
+    setArmed(null)
     setBusy(key)
     try {
-      await patchGoal({ goalId: p.goal_id, status: PROGRESS_WORD[p.verdict].status })
+      await patchGoal({ goalId: p.goal_id, status: action.status })
       mark(key, 'taken')
       h.success()
     } catch (e) {
@@ -342,13 +394,13 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
           {inline ? (
             <>
               <p className="text-ui font-semibold leading-snug text-ink break-words">{parts.headline.text}</p>
-              <p className="mt-1 text-micro text-ink-faint">Rule {parts.headline.rule_n}: {parts.headline.rule_chip}</p>
+              <p className="mt-1 text-micro text-ink-faint break-words">{ruleSource(parts.headline.rule, parts.headline.rule_n)}</p>
             </>
           ) : (
             <Claim
               size={narrow ? 'lede' : 'title'}
               compact={narrow}
-              source={`Rule ${parts.headline.rule_n}: ${parts.headline.rule_chip}`}
+              source={ruleSource(parts.headline.rule, parts.headline.rule_n)}
             >
               {parts.headline.text}
             </Claim>
@@ -431,6 +483,9 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
               const key = `progress-${i}`
               const w = PROGRESS_WORD[p.verdict]
               const done = answered[key] === 'taken'
+              const status = liveStatus(p.goal_id)
+              // Offered only while the objective is still active now.
+              const offer = w.action && status === 'active'
               return (
                 <li key={key} data-testid={`strategist-progress-${i}`} className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 flex flex-col gap-1.5 min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-2">
@@ -438,15 +493,21 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
                     <span className="text-micro text-ink-faint">{w.label}</span>
                   </div>
                   <p className="text-label leading-relaxed text-ink-muted break-words">{p.why}</p>
-                  <div>
-                    {done ? (
-                      <span className="inline-flex items-center gap-1 text-label text-ink-muted"><Check size={12} /> {w.done}</span>
-                    ) : (
-                      <button type="button" data-testid={`strategist-progress-act-${i}`} disabled={busy != null} onClick={() => void setGoal(p, key)} className={BTN_QUIET}>
-                        {busy === key ? <Working size={12} /> : null}{w.action}
-                      </button>
-                    )}
-                  </div>
+                  {w.note && <p className="text-label leading-relaxed text-ink-faint break-words">{w.note}</p>}
+                  {w.action && (
+                    <div>
+                      {done ? (
+                        <span className="inline-flex items-center gap-1 text-label text-ink-muted"><Check size={12} /> {w.action.done}</span>
+                      ) : offer ? (
+                        <button type="button" data-testid={`strategist-progress-act-${i}`} disabled={busy != null} onClick={() => void setGoal(p, key)} className={BTN_QUIET}>
+                          {busy === key ? <Working size={12} /> : null}
+                          {armed === key && w.action.confirm ? w.action.confirm : w.action.label}
+                        </button>
+                      ) : status && status !== 'active' ? (
+                        <span className="text-label text-ink-faint">{status === 'done' ? 'Already marked done.' : 'Already off the list.'}</span>
+                      ) : null}
+                    </div>
+                  )}
                   {saidLine(key)}
                 </li>
               )
@@ -469,7 +530,7 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-micro text-ink-faint">
                     <span className="inline-flex items-center gap-1 min-w-0"><Target size={10} className="opacity-60 shrink-0" /><span className="break-words">{o.serves_title}</span></span>
                     <span className="px-1 py-0.5 rounded bg-white/[0.06]">{jobLabel(o.job)}</span>
-                    {o.play && <span className="px-1 py-0.5 rounded bg-violet-500/15 text-violet-200">The swing</span>}
+                    {o.play && <span className="px-1 py-0.5 rounded bg-violet-500/15 text-violet-200">The bold one</span>}
                   </p>
                   <p className="text-label leading-relaxed text-ink-muted break-words">{o.why}</p>
                   <div className="flex flex-wrap items-center gap-2">
@@ -573,18 +634,32 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
         <section data-testid="strategist-move" className="flex flex-col gap-3 min-w-0">
           <Eyebrow tone="accent">The one move</Eyebrow>
           <AskBody ask={move} />
+          {/* Before it is today's ask: only Copy and the item's own controls.
+              The words, then HIS guess (AskCard), then contact, then "I
+              sent it": the manual's test is a prediction made before the
+              outcome, and a contact button above the guess let the ask go out
+              with no prediction and no log. */}
           <div className="flex flex-wrap items-center gap-2">
-            <ContactButtons ask={move} testId="strategist-contact-0" onContact={() => void contact(move, 'ask-0')} onCopy={() => void copy('ask-0', move.message, 'Message copied.')} />
-            {itemControls('ask-0', move)}
+            {answered['ask-0'] === 'taken' && !inline ? (
+              <ContactButtons ask={move} testId="strategist-contact-0" onContact={() => void contact(move, 'ask-0')} onCopy={() => void copy('ask-0', move.message, 'Message copied.')} />
+            ) : (
+              <button type="button" data-testid="strategist-copy-0" onClick={() => void copy('ask-0', move.message, 'Message copied.')} className={BTN_QUIET}>
+                <Copy size={12} /> Copy the message
+              </button>
+            )}
+            {answered['ask-0'] !== 'taken' && itemControls('ask-0', move)}
           </div>
           {saidLine('ask-0')}
           {rejectBar('ask-0', move.suggestion_id)}
-          {complete && (
+          {complete && !inline && (
             <AskCard
               variant={narrow ? 'mobile' : 'desktop'}
               hideUnresolved
               seed={{ text: askSeedText(move), suggestionId: move.suggestion_id ?? null }}
               onCommitted={(finalText) => {
+                // One verdict per item: a second commit of the same move
+                // (Replace today's ask after an edit) writes nothing more.
+                if (answered['ask-0']) return
                 const offered = askSeedText(move)
                 const verdict = verdictForTaken(offered, finalText)
                 mark('ask-0', 'taken')
@@ -596,6 +671,11 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
                 })
               }}
             />
+          )}
+          {complete && inline && (
+            <p data-testid="strategist-move-home" className="text-label leading-relaxed text-ink-muted break-words">
+              Make it today&rsquo;s ask on Home, with your own guess, once the ritual is done.
+            </p>
           )}
           {parts.close && (
             <p data-testid="strategist-close" className="text-label leading-relaxed text-ink-muted break-words">
@@ -619,7 +699,7 @@ function AskBody({ ask }: { ask: AskSection }) {
       <p className="text-label leading-relaxed text-ink-muted break-words">{ask.why}</p>
       {/* The ladder in words, never a percentage: his guess is his own. */}
       <div data-testid="strategist-ladder" className="text-label leading-relaxed text-ink-faint break-words">
-        <p>Ladder level {ask.ladder.level}: {ask.ladder.request}.</p>
+        <p>How big an ask: {ask.ladder.request}, step {ask.ladder.level} of 12.</p>
         <p>It can feel like: {ask.ladder.feared}.</p>
         <p>Whatever the answer: {ask.ladder.learning}.</p>
       </div>
@@ -747,7 +827,6 @@ function WorryHandoff({ worry }: { worry: WorrySection }) {
         <div data-testid="strategist-worry-result" className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 flex flex-col gap-1">
           <p className="text-body leading-relaxed text-ink break-words">{compiledLine(result)}</p>
           {result.reasoning && <p className="text-label leading-relaxed text-ink-muted break-words">{result.reasoning}</p>}
-          <p className="text-micro text-ink-faint">To keep it as a test or an action, compile it again from the Focus tab.</p>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
@@ -865,7 +944,7 @@ export function ReadView({
       {hasSections && (
         <>
           {state.status === 'failed' && state.sections.length > 0 && (
-            <p className="text-micro text-ink-faint">This much came through before it stopped. None of it was kept.</p>
+            <p className="text-micro text-ink-faint leading-relaxed">This much came through before it stopped. The read was not saved, but anything you take from it here still is.</p>
           )}
           <StrategistRead read={state.read} sections={state.sections} narrow={narrow} onTakeObjective={onTakeObjective} objectivesOnly={objectivesOnly} inline={inline} alreadyIn={alreadyIn} />
           {running && <Pending label={work.label} stage={stageLine} elapsedMs={elapsed} expectedMs={work.expectedMs} />}

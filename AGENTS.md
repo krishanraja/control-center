@@ -36,6 +36,7 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | A width-dependent LAYOUT choice | `hooks/useContainerWidth` on a box that is NOT the one being resized. `window.matchMedia` asks about the browser; no surface gets the browser | convention |
 | A tap target under 44px | `.tap-44` — grows the hit area with a pseudo-element and leaves the ink where it is | `e2e/layout-audit-phone.spec.ts` measures it by hit-test |
 | Goal reads/writes | `useGoalCanon` + `src/lib/goalsApi.ts` | `check-goal-ladder` / `check-goal-gate` (CI) |
+| Turning a goal or his own words into moves | The strategist: `api/strategist.ts`, opened over `openStrategist()` (`src/lib/strategist.ts`) into the one `StrategistSheet`. It proposes only: an objective becomes a goal through the ritual's `add()`, an ask through `AskCard`. Never a second coach, read or note box ([ADR-026](./docs/DECISIONS/026-the-strategist.md)) | `check-model-routing` + `check-bridges-never-send` (CI) |
 | Loading states | The ladder in `docs/DESIGN_SYSTEM.md`; every string in `src/lib/loadingVoice.ts` | convention |
 | Venture / product names | `ventureLabel()` in `src/lib/ventureOptions.ts` (mirrors `venture_registry`, normalises the three slug spellings). Never a second label map, never a title-cased slug | convention |
 | Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR). User-facing text wraps in full and is never ellipsised or line-clamped. | `scripts/check-editorial-text-integrity.mts` + review |
@@ -216,12 +217,14 @@ nine guards that do not exist in `scripts/` — `check-content-vocabulary`,
 `check-selection`, `check-teardown-beat` — while omitting seven that CI really
 runs. Anyone reaching for "the vocabulary guard" found nothing, which is part
 of how five files came to hold five different labels for the same venture.
-A separate `e2e` job runs seven Playwright specs at the default viewport
+A separate `e2e` job runs nine Playwright specs at the default viewport
 (`content-rooms`, `content-queue-window`, `composer`, `video-engine-mobile`,
 `growth-scroll`, `home-noscroll` since 2026-09-20, `events-lane` since
-2026-09-24) AND every `*-desk.spec.ts` at 1440 and 1920 (its second step has
-no file filter, so the desk projects cover whatever matches their
-`testMatch`). Everything else, including `mindmake-identity.spec.ts`,
+2026-09-24, `fact-check-strip` since 2026-09-25, `strategist` since
+2026-09-27) AND every `*-desk.spec.ts` at 1440 and 1920 AND every
+`*-phone.spec.ts` at 390 and 360 (those two steps have no file filter, so the
+desk and phone projects cover whatever matches their `testMatch`, which is how
+`strategist-phone.spec.ts` runs). Everything else, including `mindmake-identity.spec.ts`,
 `growth.spec.ts`, `decide-card.spec.ts`, `sunday-list.spec.ts`,
 `lane-ready.spec.ts` and `room.spec.ts`, is caught only by a full local run.
 

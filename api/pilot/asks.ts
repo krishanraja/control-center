@@ -54,6 +54,30 @@ export function rewritesSentAsk(
   return (existing.ask_text ?? '').trim() !== askText.trim()
 }
 
+/**
+ * The columns a post writes. Once the ask has gone out, its prediction is
+ * fixed too: learningFor() holds the outcome against the guess he made BEFORE
+ * he sent it, so a later post (a retry, a second tab, a body with no
+ * prediction at all) must never change or null it. The words are already
+ * held by rewritesSentAsk.
+ */
+export function askWriteFor(
+  existing: { sent_at?: string | null } | null | undefined,
+  askText: string,
+  predicted: number | null,
+  markSent: boolean,
+  today: string,
+  nowIso: string,
+): Record<string, unknown> {
+  const sent = Boolean(existing?.sent_at)
+  return {
+    ask_date: today,
+    ask_text: askText,
+    ...(sent ? {} : { predicted_no_pct: predicted }),
+    ...(markSent && !sent ? { sent_at: nowIso } : {}),
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && guard(req, res, ['PATCH', 'POST'])) return
 
@@ -125,19 +149,32 @@ async function post(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  const row = {
-    ask_date: today,
-    ask_text: askText,
-    predicted_no_pct: predicted,
-    ...(markSent && !existing.data?.sent_at ? { sent_at: new Date().toISOString() } : {}),
-  }
+  const row = askWriteFor(existing.data, askText, predicted, markSent, today, new Date().toISOString())
 
   let saved
   if (existing.data) {
-    const { data, error } = await supabase.from('pilot_asks')
-      .update(row).eq('id', existing.data.id).select().single()
+    // The check above read the row; another tab or device can send it before
+    // this write lands. So an update to an unsent ask only matches while it
+    // is still unsent, and a miss is re-read: the same words are a retry,
+    // anything else is the 409 the check above would have given.
+    let q = supabase.from('pilot_asks').update(row).eq('id', existing.data.id)
+    if (!existing.data.sent_at) q = q.is('sent_at', null)
+    const { data, error } = await q.select().maybeSingle()
     if (error) return res.status(500).json({ ok: false, error: error.message })
-    saved = data
+    if (data) {
+      saved = data
+    } else {
+      const again = await supabase.from('pilot_asks').select('*').eq('id', existing.data.id).maybeSingle()
+      if (again.error || !again.data) return res.status(500).json({ ok: false, error: again.error?.message || 'the ask could not be read back' })
+      if (rewritesSentAsk(again.data, askText)) {
+        return res.status(409).json({
+          ok: false,
+          error: 'already_sent',
+          detail: 'Today\'s ask has already gone out, so its wording stays as it was sent.',
+        })
+      }
+      saved = again.data
+    }
   } else {
     const { data, error } = await supabase.from('pilot_asks').insert(row).select().single()
     if (error) return res.status(500).json({ ok: false, error: error.message })

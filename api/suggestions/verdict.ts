@@ -1,6 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { validateVerdict, recordVerdict, STRATEGIST_SURFACES, type VerdictInput } from '../_suggestions.js'
+// The one vocabulary for "Not this" (src/lib/servedSurfaces.ts). A code the
+// sheet cannot offer is refused rather than written, so the bank's reasons
+// stay countable. Never a second list here.
+import { STRATEGIST_SURFACE } from '../../src/lib/servedSurfaces.js'
 
 /**
  * POST /api/suggestions/verdict
@@ -29,6 +33,9 @@ import { validateVerdict, recordVerdict, STRATEGIST_SURFACES, type VerdictInput 
 
 /** A verdict's final value is his edited wording, not a document. */
 const FINAL_MAX_CHARS = 20_000
+/** A note says why in a sentence or two. */
+const NOTE_MAX_CHARS = 2_000
+const REASON_CODES: ReadonlySet<string> = new Set(STRATEGIST_SURFACE.reasons.map(r => r.code))
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['POST'])) return
@@ -45,6 +52,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const problem = validateVerdict(v)
   if (problem) return res.status(400).json({ ok: false, error: problem })
+  if (v.reason_code && !REASON_CODES.has(v.reason_code)) {
+    return res.status(400).json({ ok: false, error: 'unknown_reason_code' })
+  }
+  if (v.note && v.note.length > NOTE_MAX_CHARS) return res.status(400).json({ ok: false, error: 'note_too_long' })
   if (v.final != null && JSON.stringify(v.final).length > FINAL_MAX_CHARS) {
     return res.status(400).json({ ok: false, error: 'final_too_large' })
   }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { whyFor, surfaceFor, type Why } from '../../lib/servedSurfaces'
@@ -73,8 +74,16 @@ export function WhyBadge(props: Props) {
     ? `Match score ${Math.round(why.score!)} of 100. Why this ${label} is here.`
     : `Why this ${label} is here.`
 
+  // Escape closes the popover, and only the popover. Radix's own layer did
+  // not answer Escape here (2026-09-27: no preventDefault and no close, inside
+  // a sheet or out of one), so an Escape meant for the badge fell through to
+  // whatever sat underneath: inside the Focus Ritual that snoozed the whole
+  // day. Handled on the content, marked handled, so the layers below it
+  // (the ritual's own Escape, a sheet's) can tell it was not for them.
+  const [open, setOpen] = useState(false)
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={trigger}
         title={trigger}
@@ -87,7 +96,15 @@ export function WhyBadge(props: Props) {
         {scored ? Math.round(why.score!) : '?'}
       </PopoverTrigger>
 
-      <PopoverContent align={align} className="w-72">
+      <PopoverContent
+        align={align}
+        className="w-72"
+        onKeyDown={e => {
+          if (e.key !== 'Escape') return
+          e.preventDefault()
+          setOpen(false)
+        }}
+      >
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <span className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Why you're seeing this

@@ -134,20 +134,38 @@ export function StrategistSheet({ narrow, tab, onNavigate }: {
 
 // ── the phone's way in ───────────────────────────────────────────────────────
 
+/**
+ * The house editor, used for dictation the way TalkBox is on the desk: the
+ * kind is his to pick before anything runs (chips above the field), every
+ * change is kept on this device as he dictates, so a swipe, a tap on the scrim
+ * or Escape never loses what he said, and the field grows with the words
+ * instead of showing three rows of them.
+ */
 function PhoneEntry({ presetKind, onSubmit, onClosed }: {
   presetKind: NoteKind | null
   onSubmit: (text: string) => void
   onClosed: (kind: NoteKind) => void
 }) {
   const { canon } = useGoalCanon()
-  const kind = presetKind ?? inferNoteKind((canon?.weekly.length ?? 0) > 0)
+  const [picked, setPicked] = useState<NoteKind | null>(presetKind)
+  const kind = picked ?? inferNoteKind((canon?.weekly.length ?? 0) > 0)
   const [draft] = useState(readTalkDraft)
   return (
     <FocusedEditor
       open
       onClose={() => onClosed(kind)}
-      label={noteKindLabel(kind)}
+      label="Tell Marcus how it is going"
+      header={
+        <OptionChips
+          label="What is this?"
+          options={NOTE_KIND_OPTIONS}
+          value={kind}
+          onChange={v => setPicked(v as NoteKind)}
+        />
+      }
       value={draft}
+      onChange={writeTalkDraft}
+      grow
       placeholder="Say how it is going, in your own words."
       saveLabel="Send to Marcus"
       onSave={text => {
@@ -176,7 +194,7 @@ function SheetBody({ mode, goalId, fresh, presetKind, phoneNote, narrow, nonce, 
   return (
     <div data-testid="strategist-sheet" data-mode={mode} className="flex flex-col gap-5 min-w-0">
       {mode === 'goal' && goalId
-        ? <GoalRead key={`${goalId}:${nonce}`} goalId={goalId} fresh={fresh} narrow={narrow} onTake={onTake} />
+        ? <GoalRead key={`${goalId}:${nonce}`} goalId={goalId} fresh={fresh} freshKey={fresh ? nonce : undefined} narrow={narrow} onTake={onTake} />
         : <TalkFlow key={nonce} presetKind={presetKind} initialNote={phoneNote} narrow={narrow} onTake={onTake} autoFocus={!narrow} />}
     </div>
   )
@@ -221,7 +239,12 @@ export function TalkFlow({
     // The server's cap, said before a call is spent on it. The words stay.
     if (body.length > NOTE_MAX_CHARS) { setTooLong(true); return }
     setTooLong(false)
-    void run({ source: 'note', kind, body }).then(s => { if (s.status === 'ready') clearTalkDraft() })
+    // The draft on this device goes only once the server has kept the note:
+    // a read that came back unkept (persisted:false, or no row) leaves what
+    // he said nowhere else.
+    void run({ source: 'note', kind, body }).then(s => {
+      if (s.status === 'ready' && s.persisted === true && s.readId) clearTalkDraft()
+    })
   }
 
   // The phone arrives with its note already said.
@@ -268,7 +291,7 @@ export function TalkFlow({
                 type="button"
                 data-testid="strategist-reread"
                 onClick={() => send(rekind, note.body)}
-                className="inline-flex min-h-[36px] items-center rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 text-label text-violet-200 hover:bg-violet-500/30"
+                className="tap-44 inline-flex min-h-[36px] items-center rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 text-label text-violet-200 hover:bg-violet-500/30"
               >
                 Read it as {noteKindLabel(rekind).toLowerCase()}
               </button>
@@ -308,7 +331,7 @@ export function TalkFlow({
               type="button"
               aria-expanded={showStored}
               onClick={() => setShowStored(v => !v)}
-              className="inline-flex items-center gap-1.5 self-start text-label text-ink-muted hover:text-ink"
+              className="tap-44 inline-flex min-h-[36px] items-center gap-1.5 self-start text-label text-ink-muted hover:text-ink"
             >
               {showStored ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               {storedWhen ? `Your last read, ${storedWhen}` : 'Your last read'}
@@ -343,9 +366,12 @@ const IDLE_STATE: StrategistRunState = {
  * the last attempt is not a failure under a day old, and nothing this session
  * came back unkept.
  */
-export function GoalRead({ goalId, fresh, narrow, onTake, inline = false }: {
+export function GoalRead({ goalId, fresh, freshKey, narrow, onTake, inline = false }: {
   goalId: string
   fresh: boolean
+  /** The open a fresh read belongs to (the bus nonce). A fresh read never
+   *  joins a read of the old wording still streaming for the same goal. */
+  freshKey?: string | number
   narrow: boolean
   onTake: (o: ObjectiveSection) => Promise<TakeResult> | TakeResult
   inline?: boolean
@@ -356,7 +382,7 @@ export function GoalRead({ goalId, fresh, narrow, onTake, inline = false }: {
   const [got, setGot] = useState<StrategistGetResponse | null>(null)
   const [looked, setLooked] = useState(false)
 
-  const read = () => { void run({ source: 'goal', goalId }) }
+  const read = () => { void run({ source: 'goal', goalId }, { fresh: fresh ? freshKey : undefined }) }
 
   useEffect(() => {
     let alive = true
@@ -400,7 +426,7 @@ export function GoalRead({ goalId, fresh, narrow, onTake, inline = false }: {
                 : 'There is no read of this goal yet.'}
           </p>
           <div>
-            <button type="button" data-testid="strategist-run" onClick={read} className="inline-flex min-h-[36px] items-center rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 text-label text-violet-200 hover:bg-violet-500/30">
+            <button type="button" data-testid="strategist-run" onClick={read} className="tap-44 inline-flex min-h-[36px] items-center rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 text-label text-violet-200 hover:bg-violet-500/30">
               Read it now
             </button>
           </div>
@@ -438,7 +464,7 @@ export function OsReadDisclosure({ goalId, narrow, onTake }: {
         aria-expanded={open}
         data-testid="strategist-os-toggle"
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-1.5 self-start text-label text-ink-muted hover:text-ink"
+        className="tap-44 inline-flex min-h-[36px] items-center gap-1.5 self-start text-label text-ink-muted hover:text-ink"
       >
         {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         What Marcus reads in the OS goal

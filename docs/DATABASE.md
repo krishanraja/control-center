@@ -710,6 +710,93 @@ tripwire. Both service role only. Migration `20260906120000_scorecard.sql`.
 
 Which job each of today's three picks serves. Nullable, same CHECK as `goals.job`.
 
+---
+
+## The strategist (ADR-026, 2026-09-27)
+
+Migration `20260927100000_what_he_says_becomes_the_plan.sql`. **Applied live
+2026-09-27** with Krish's explicit OK, and read back: anon is denied
+`strategist_reads`, and a strategist row in `suggestions` is invisible to anon
+while the engine's rows stay readable. Without it, `api/strategist.ts` still
+streams a read and reports `persisted: false`, and GET returns an empty 200. The decision is
+[ADR-026](./DECISIONS/026-the-strategist.md).
+
+### `strategist_reads`
+
+Every read the strategist made, of a goal or of what Krish said about his week,
+with the note itself. **Service role only**: RLS on, one `service_role` ALL
+policy, and `revoke all ... from anon, authenticated` so the browser key cannot
+reach it even by grant. Only the latest read is ever shown; the rest are kept
+so a Friday note can be read against the Monday one.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | uuid | Primary key |
+| `created_at` | timestamptz | |
+| `source` | text | `goal` or `note` |
+| `goal_id` | text | FK → `goals.id`, cascade on delete. Set on a goal read |
+| `note_kind` | text | `week_open`, `update` or `week_close`. Set on a note read |
+| `note_body` | text | What he said, dictated or typed, verbatim. At most 12,000 characters. Written before the model runs |
+| `week_start` | date | The operator's civil Monday the read belongs to. A `week_open` note sent at the weekend is filed under the coming Monday |
+| `status` | text | `pending` → `complete` or `incomplete` |
+| `sections` | jsonb | The validated read (`StrategistRead` in `src/types/strategist.ts`), with contact details stripped. Null until complete |
+| `headline` | text | The read's headline. Set when complete |
+| `handoff_reason` | text | FK → `handoff_reasons.slug`. Why an incomplete read stopped |
+| `producer` | jsonb | Agent, persona, model, prompt revision, thinking or not, the read's shape; the named failed checks (`reasons`) on an incomplete read, the repair `notes` on a complete one |
+| `last_attempt_at` | timestamptz | When the read was last tried. The client waits a day after a failure before anything runs by itself |
+
+CHECKs, each named for what it refuses:
+
+- a goal read needs a `goal_id` and carries no note;
+- a note read needs a `note_kind` and a non-blank `note_body`, and the note fits
+  in 12,000 characters;
+- a `complete` row has `sections` and a `headline`;
+- an `incomplete` row names its `handoff_reason`.
+
+Indexes: `(goal_id, created_at desc)` where there is a goal,
+`(week_start, created_at desc)` where `source = 'note'`, and
+`(status, last_attempt_at desc)`.
+
+**Why a new table.** His notes are mostly about what he thinks and how the work
+feels, and a read names warm contacts and cites scorecard figures.
+`suggestions`, `suggestion_verdicts`, `pilot_checkins`, `pilot_asks` and
+`worries` are all anon readable (checked live on 2026-09-27), so none of them
+can hold a note or a read.
+
+### Rows the same migration adds
+
+- `suggestion_surfaces`: `strategist_objective`, `strategist_ask` and
+  `strategist_next_step`, each with subject `strategist_reads`. A role-described
+  ask has no contact, and a drafted objective has no goal until he takes it, so
+  the subject is the read.
+- `autonomy_ladder`: all three at `propose`, with their bounds in plain words.
+  Nothing becomes a goal, today's ask or a slot until he taps it.
+- `handoff_reasons`: `strategist_read_incomplete`, severity `degraded`. Its
+  `says` is the fixed sentence he reads when a read stops. It is never provider
+  text, which can carry a secret's name.
+
+### The browser key cannot see the strategist's rows
+
+Three **restrictive** anon policies. A restrictive policy is ANDed with the
+permissive `anon read` and `anon write` policies from `20260919100000`, so it
+only ever narrows them:
+
+| Table | Policy | For | Rule |
+|---|---|---|---|
+| `suggestions` | `suggestions anon hides strategist` | select | `surface not like 'strategist\_%'` |
+| `suggestion_verdicts` | `suggestion_verdicts anon hides strategist` | select | `suggestion_id in (select s.id from public.suggestions s)` |
+| `suggestion_verdicts` | `suggestion_verdicts anon writes only what it sees` | insert | the same, as `with check` |
+
+The subquery runs under anon's own RLS, so for anon it sees no strategist
+suggestion, and a verdict on one is neither readable nor writable. The content
+engine's surfaces, and the brainstorm artifact that reads and rules on them
+with the anon key, are unaffected. The strategist's own verdicts are written by
+the service role through `POST /api/suggestions/verdict`.
+
+Read back after applying (the migration's footer has the queries): the service
+role can count `strategist_reads`; anon is refused on it; anon counts zero
+strategist rows in `suggestions`; anon still sees the content engine's rows.
+
 ## The `decisions_waiting` view (PR #55)
 
 Postgres view that unions five source tables into a single uniform
@@ -860,6 +947,15 @@ invoker function adds no write capability beyond what `workflow_runs`'
 existing policies already grant. Derives `agent_id` (`NOT NULL`, no default)
 from the workflow name prefix, falling back to the last known name in
 `workflow_runs` or `workflow_health`, then to `system`.
+
+**2026-09-27 (applied live)**: the first **restrictive** policies,
+in `20260927100000_what_he_says_becomes_the_plan.sql`. They subtract the
+strategist's rows from what anon can read in `suggestions` and read or write in
+`suggestion_verdicts`, and leave every other row as it was. Details under
+[The strategist](#the-strategist-adr-026-2026-09-27). The same migration adds
+`strategist_reads`, service role only with anon and authenticated revoked.
+`pilot_asks`, `pilot_checkins` and `worries` stay anon readable, and revoking
+anon on them is a recorded follow-up in ADR-026.
 
 ### Migration ledger
 

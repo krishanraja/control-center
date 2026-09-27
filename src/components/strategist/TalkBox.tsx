@@ -20,8 +20,9 @@ import { useHaptics } from '../../hooks/useHaptics'
 //   - It grows with what is in it. Nothing he said is ever behind a scrollbar
 //     inside the box, and nothing is clipped or counted.
 //   - An unsent draft is kept on this device (inside try/catch: storage can be
-//     missing or refuse), and cleared only once a read has come back, so a
-//     failed run never costs him what he said.
+//     missing or refuse), and cleared only once the server has kept the note
+//     (a read that came back persisted, with a read id), so a failed run, or
+//     a read that could not be saved, never costs him what he said.
 
 export const TALK_DRAFT_KEY = 'strategist.talk.draft'
 export const NOTE_MAX_CHARS = 12_000
@@ -60,7 +61,7 @@ export function TalkBox({
   /** Preselects the kind; otherwise it is inferred from the day. */
   kind?: NoteKind | null
   busy: boolean
-  /** Send the note. The draft is kept until a read comes back. */
+  /** Send the note. The draft is kept until the server has kept the note. */
   onSend: (kind: NoteKind, body: string) => void
   autoFocus?: boolean
   /** The ritual's inline box: a little shorter to start with. */

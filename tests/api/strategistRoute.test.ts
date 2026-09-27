@@ -5,7 +5,7 @@ import {
   parseStrategistRequest, candidatesFrom, contactDetailsFrom, dealCounts, todayAskFrom, weekNotesFrom,
   lastWeekCloseFrom, previousReadFrom, canonFrom, pickScores, assembleGrounding, askContactIds,
   withContacts, withoutContacts, sectionWithContacts, readWireFrom, readFailureEvent, isMissingTable,
-  WEEK_NOTES_KEPT, WEEK_NOTE_CHARS,
+  WEEK_NOTES_KEPT, WEEK_NOTE_CHARS, CANDIDATE_ROLES,
   type GroundingParts, type StoredReadRow, type GoalSubject,
 } from '../../api/_strategistGrounding.ts'
 import {
@@ -174,6 +174,37 @@ test('a failed read still keeps what he said, without a headline, and a long not
   assert.equal(out[0].body, 'note 1')
   assert.ok(out[1].body.endsWith('[the rest of this note is cut here]'))
   assert.equal(out[1].body.length, WEEK_NOTE_CHARS + ' [the rest of this note is cut here]'.length)
+})
+
+test('a retried or re-read note is not fed back as an earlier note, and repeats count once', () => {
+  const body = 'Monday. Two calls booked is what I want.'
+  const rows = [
+    noteRow(1, { note_body: body, status: 'incomplete' }),
+    noteRow(2, { note_body: `  ${body}  ` }),
+    noteRow(3, { note_body: 'Wednesday. The scope went out.' }),
+    noteRow(4, { note_body: 'Wednesday. The scope went out.' }),
+    noteRow(5, { note_body: 'Thursday. One reply.' }),
+  ]
+  // The note being read now is r6, with the same words as r1 and r2.
+  const out = weekNotesFrom(rows, 'r6', at, body)
+  assert.deepEqual(out.map(n => n.body), ['Wednesday. The scope went out.', 'Thursday. One reply.'])
+  // The newest of a repeated body is the one kept.
+  assert.equal(out[0].at, 'day 2026-09-24')
+  // Without a subject body (a goal read) only the repeats collapse.
+  assert.equal(weekNotesFrom(rows, null, at).length, 3)
+  // And through assembly, from the note being read.
+  const g = assembleGrounding(emptyParts({ subject: { source: 'note', kind: 'update', body }, week_rows: rows, exclude_read_id: 'r6' }))
+  assert.equal(g.week_notes.length, 2)
+})
+
+test('the candidates include warm buyers, and every fixture candidate has a role the loader searches', () => {
+  // THE OFFER: the pilot is sold to people he already knows, so the move can
+  // be a direct ask to a buyer and not only an introduction.
+  assert.ok((CANDIDATE_ROLES as readonly string[]).includes('buyer'))
+  for (const c of BASE.candidates) {
+    assert.ok(c.roles.some(r => (CANDIDATE_ROLES as readonly string[]).includes(r)),
+      `fixture candidate ${c.contact_id} has roles ${c.roles.join(', ')}, none of which the loader searches`)
+  }
 })
 
 test('last week\'s close gives its headline and learning; the previous read gives its asks', () => {

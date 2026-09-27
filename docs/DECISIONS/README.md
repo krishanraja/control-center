@@ -38,6 +38,8 @@
 | [022](./022-enrichment-reaches-the-surface.md) | Enrichment reaches the surface by trigger, not by convention | Accepted |
 | [023](./023-the-room-is-a-pilot.md) | "The room" is a pilot | Accepted |
 | [024](./024-openrouter-as-the-rescue-provider-only.md) | OpenRouter is the rescue provider, and only the rescue provider | Accepted |
+| [025](./025-draw-is-peer-density.md) | Draw is peer density, not technical-leader density | Accepted |
+| [026](./026-the-strategist.md) | The strategist turns a goal or his own words into the plan | Accepted |
 
 ---
 

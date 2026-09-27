@@ -310,7 +310,7 @@ the old page read as mixed type. Never hand-roll a new one.
 
 Locked 2026-08-22, after the goal-edit row rendered Save off the right edge
 of a phone, under a keyboard the app could not see. Three rules, one system
-each:
+each, and a fourth for dictation that joined on 2026-09-27:
 
 1. **A phone never edits inside a dense layout.** Any "edit this text" tap on
    a narrow viewport opens `shared/FocusedEditor`: a bottom sheet showing the
@@ -333,6 +333,36 @@ each:
    `shared/ChipOverflow` (+N into a sheet). A dynamic label that cannot fit
    moves into the sheet and remains whole. Do not abbreviate it with an
    ellipsis or clip it inside a chip.
+4. **Long dictation goes into a plain box.** Krish dictates with Wispr Flow,
+   which types into whatever field has focus, often in long runs.
+   `strategist/TalkBox` is the recipe (ADR-026):
+   - a plain `<textarea>`: no microphone of its own competing with his
+     dictation tool, no rich text, and no key handling beyond one shortcut;
+   - Enter is a new line; Cmd or Ctrl with Enter, or the button, sends;
+   - it grows with its text, so nothing he said sits behind a scrollbar inside
+     the box, and nothing is clipped. There is no character counter;
+   - the length cap (12,000 characters) is said in one plain sentence, and only
+     when he goes past it;
+   - an unsent draft is kept in `localStorage` inside try/catch, and cleared
+     only once the server has kept the note (a read that came back persisted,
+     with a read id), so a failed run, or a read that could not be saved,
+     never costs him what he said;
+   - the kind of note (Starting the week, Progress, How the week went) is
+     `OptionChips`, inferred from the day and his to change;
+   - with `autoFocus`, the box takes focus back one frame after the sheet has
+     moved focus to its own first control, caret at the end, so dictation can
+     start as soon as the sheet is up.
+
+   On a phone the sheet's entry goes through `FocusedEditor` first (rule 1),
+   extended in place with three options that are off by default: `grow` (the
+   field grows with the words up to about half the screen, through
+   `VoiceField`'s own `grow`), `onChange` (every change, so the draft is kept
+   as he dictates and a swipe, the scrim or Escape never loses it) and
+   `header` (the kind chips, chosen before anything runs). The sheet opens
+   only after the editor has closed. The
+   Focus Ritual's weekly step carries the box inline, beside its own composer,
+   because nothing may open a sheet inside the ritual: its Escape snoozes the
+   day.
 
 ## Options are not content
 
@@ -596,6 +626,47 @@ act on it in place, through an existing write path (a Today slot, a card),
 never a new one. The desk may open the rows by default; the phone opens on
 the sentence.
 
+## A draft enters the composer that owns it
+
+Locked 2026-09-27 with the strategist (ADR-026). When the machine drafts
+something Krish will commit (an ask, a weekly objective), the draft goes into
+the composer that already owns that write, and his tap is the commit. There is
+never a second composer beside the first.
+
+- **The ask: `focusPurpose/AskCard`, extended in place.** Three optional props:
+  - `seed?: {text, suggestionId}` prefills the compose field with the drafted
+    wording, which he edits freely. The prediction chips start empty: his guess
+    is his own, and a machine-filled one would make `learningFor()` tell him
+    about a guess he never made. The ladder level is shown elsewhere in words,
+    never as a percentage, so nothing anchors the guess either.
+  - The button reads "Make it today's ask", or "Replace today's ask" when an
+    unsent ask exists. When today's ask has gone out, or the server answers 409
+    `already_sent`, the seed is shown with Copy only. The card never offers a
+    save the server refuses.
+  - `onCommitted?(final, predictedNoPct)` fires once the seeded wording is
+    saved. That is where the caller posts its verdict.
+  - `hideUnresolved` leaves out the past day's unresolved ask, which does not
+    belong inside a read.
+  - A seeded ask names a first name or a role, never a full name, because
+    `pilot_asks` is anon readable.
+- **The objective: the Focus Ritual weekly step's own `add()`.** "Take it"
+  calls it, so the goal gate runs on a drafted objective exactly as on one he
+  typed. A drafted objective the gate holds moves into the composer, so the
+  gate's verdict sits beside words he can edit. From the strategist's sheet,
+  "Take it" closes the sheet and opens the ritual with the wording prefilled.
+- **Every taken or refused draft posts a verdict, after the real work and best
+  effort** (`src/lib/suggestionsApi.ts`). A verdict that fails never undoes the
+  action or shows an error.
+  - Taken as offered is `accepted`. Taken after an edit is `tweaked`, or
+    `replaced` when fewer than a third of the words are shared.
+  - The delta holds form-only keys (`chars_before`, `chars_after`,
+    `pct_shorter`), never the words.
+  - "Not this" is `rejected`, through the house `shared/RejectReasonBar`
+    (title "Why not this one?", cancel "Keep it"). Its chips come from
+    `STRATEGIST_SURFACE` in `src/lib/servedSurfaces.ts`, the one vocabulary
+    for reasons: Wrong person, Wrong timing, Not how I would say it, Already
+    done, Other. The same contract's `why` renders the `WhyBadge`.
+
 ## Create — the one + button
 
 On a phone there is ONE way to make something new: the mint + button,
@@ -654,7 +725,11 @@ Every string the product renders:
   spends exactly one proposal per batch on a real swing, marked `play: true`
   and surfaced as "The wild one". The swing obeys every truth rule: a different
   angle on the same evidence, never different evidence. Dull is a failure mode
-  here, the same way wrong is.
+  here, the same way wrong is. Where the proposals are only part of a longer
+  output (the strategist drafts up to three objectives inside a calm read),
+  `proposalPlay(n, { scope, atMost })` fences the register to the proposals
+  with a line above the block, and asks for at most one swing of up to `n`,
+  none being fine.
 
 ---
 
@@ -771,6 +846,51 @@ entry per operation. Do not type a loading string into a component.
   nothing. Plain reads stay neutral.
 - No em dashes (see `krish-voice`).
 
+### The one exception: a read that streams in sections
+
+Rung 3 is `ProcessingOverlay`, which owns the whole screen. A strategist read
+(ADR-026) runs well past ten seconds, but it arrives as validated sections, one
+at a time. An overlay would hide each section as it lands, and would cover the
+Focus Ritual the read can run inside. So for a read that streams structure:
+
+- **The sheet is the surface.** Until the first section arrives,
+  `Pending variant="block"` carries the rung 3 duties: staged narration, the
+  elapsed clock, the stated expectation (`expectedMs`) and the entry's `sub`
+  line. The sheet's own close is the exit.
+- **The stage comes from the server, not a timer.** `api/strategist.ts` sends a
+  `stage` event (`grounding`, `thinking`, `writing`, `saving`). The `stages` of
+  `strategist.read` and `strategist.goal` in `loadingVoice.ts` are in that
+  order, so the sheet indexes into them.
+- **The first section replaces the block.** After that, one `Pending` line
+  sits under the sections until `done`, so the region still has one loading
+  affordance (restraint rule 3).
+- **Inside the ritual the wait is a line,** never a block.
+- **A stream that ends without `done` has failed.** It says so in a sentence
+  with Try again. Any sections that came through stay on screen, marked as not
+  kept.
+
+This is the only sanctioned exception. A wait that has nothing to show until
+it ends is still rung 3.
+
+### Streaming structure: `streamText` `onEvent`
+
+`src/lib/streamText.ts` is the one streaming client, for prose and for
+structure.
+
+- `onEvent?(name, data)` fires for every named event except `delta`:
+  `stage`, `section`, and `done` and `error` BEFORE `streamText` acts on them.
+  A route that streams validated sections is read without a second parser, and
+  an in-band error's code reaches the caller before the throw that carries its
+  sentence. The prose routes never pass it and behave as before. `onText` is
+  still required, so a structure-only caller passes a no-op.
+- A JSON refusal throws an `Error` with the same message as before, now also
+  carrying `{status, body}`, so a route that refuses with a code and a
+  sentence (`{error, detail}`) can have its sentence shown.
+- A thinking model streams nothing while it thinks, and the client gives up
+  after 90 seconds of silence. A route that thinks writes a `: ping` comment
+  every 10 seconds (`api/strategist.ts`), and any bytes that arrive reset the
+  clock.
+
 ### Where the system lives
 
 | Concern | File |
@@ -783,7 +903,7 @@ entry per operation. Do not type a loading string into a component.
 | Background-refresh hairline | `src/components/shared/RefreshRail.tsx` |
 | Elapsed / stage / stage-walk | `src/hooks/useAsyncAction.ts` |
 | Every loading string | `src/lib/loadingVoice.ts` |
-| Streaming client (SSE, JSON fallback) | `src/lib/streamText.ts` |
+| Streaming client (SSE, JSON fallback, `onEvent` for structured events) | `src/lib/streamText.ts` |
 | Timed, offline-aware JSON requests (every write in the daily loop) | `src/lib/apiFetch.ts` |
 | The offline line and the "back online" toast | `src/components/shared/OfflineLine.tsx`, `src/hooks/useOnline.ts` |
 | Streaming server helper | `api/_stream.ts` |
@@ -860,3 +980,22 @@ wrong once here:
    when you touch them; never copy them.
 3. **Never hand-roll a tab switcher.** `shared/SegmentedNav` gives roving focus,
    arrow keys, Home/End and a `testIdPrefix` for the e2e suite.
+4. **A popover sits above every overlay.** A popover is opened from something,
+   so it is drawn over whatever that is. The stack, bottom to top:
+   - `BottomNav`, z-50, outside the zoom root;
+   - `SlideOver`, `BottomSheet`, `EveningShutdown` and the Focus Ritual,
+     z-[70];
+   - the composer shells, z-[90];
+   - `ProcessingOverlay`, z-[120];
+   - `ui/popover`, z-[125] since 2026-09-27 (ADR-026). At z-50 a `WhyBadge`
+     inside a `SlideOver` opened behind the panel and could not be seen.
+     `WhyBadge` also closes itself on Escape and marks the key handled
+     (2026-09-27): Radix's own layer did not answer Escape for it, so the key
+     fell through to whatever sat underneath, and inside the Focus Ritual
+     that snoozed the day. The ritual ignores an Escape already handled, or
+     pressed while a popover is open.
+
+   `ui/tooltip`, `ui/dropdown-menu` and the app's toasts are still z-50, so
+   they land behind any sheet. A surface inside a sheet says its messages
+   inline, and a tooltip or menu used inside a sheet moves to the popover
+   layer first.

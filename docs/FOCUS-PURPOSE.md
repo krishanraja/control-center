@@ -23,9 +23,11 @@ chat's context.
 |---|---|---|
 | Corpus | `docs/focus-purpose/OPERATING-MANUAL.md` | The evidence-graded manual: diagnosis, 43-framework library, conflicts, conversation OS, script bank, exposure ladder, 30-day programme, coaching prompt |
 | Corpus | `docs/focus-purpose/PURPOSE-WORKBOOK.md` | The ikigai distillation, v4 on top: the mission, the face, decision rules v2, the stop rule; v3 kept as history |
-| On-tap slice | `src/content/focusTheory.ts` | The typed, curated subset the product renders: traps, situations, rules, purpose lines, prediction chips, self-rejection markers. Static on purpose, like `pilotStoic.ts`: instant, offline, cannot drift silently |
+| On-tap slice | `src/content/focusTheory.ts` | The typed, curated subset the product renders: traps, situations, rules, purpose lines, prediction chips, self-rejection markers, the exposure ladder (`EXPOSURE_LADDER`, manual section 7, drift-tested against the manual's table) and the strategist's six lenses (`LENSES`). Static on purpose, like `pilotStoic.ts`: instant, offline, cannot drift silently |
 | Surface | `src/components/focusPurpose/` | The Focus & Purpose tab (`#/focus`) and the Home entry card |
+| Strategist | `api/strategist.ts` + `src/components/strategist/` | Reads a goal, or a note he dictated or typed, against the corpus (manual sections 1, 7 and 11, the decision rules, the lenses, the ladder) and ends in one move through `AskCard`. Proposes only. [ADR-026](./DECISIONS/026-the-strategist.md) |
 | Data | `public.pilot_asks` + `api/pilot/asks.ts` | The daily ask: one row per civil day, prediction before outcome |
+| Data | `public.strategist_reads` | His notes and the reads, service role only. Only the latest read is ever shown |
 
 Change flows downhill: edit the corpus, then the on-tap slice, then the
 surface. A surface line with no corpus backing is an invention; delete it.
@@ -58,6 +60,39 @@ that a system which adds self-consciousness makes him worse. Therefore:
 7. **One trap vocabulary.** The traps in `focusTheory.ts` mirror the manual's
    real-time diagnostic and if-then plans. Add a trap only when the corpus
    documents it; never invent one from a single bad week.
+
+### How the strategist keeps constraints 1 to 5
+
+The strategist (ADR-026) is the first surface here that writes long text back
+to him, and his notes are mostly about what he thinks and how the work feels.
+So each constraint is held in code, not by intent.
+
+1. **No archive.** `GET /api/strategist` returns only the latest read, and
+   never a note's text. The server keeps past notes in `strategist_reads` so a
+   Friday note can be read against the Monday one, and no view lists them.
+2. **No scores, no streaks, no charts.** The ask's ladder level is named in
+   words (the feared outcome and the correct learning), never as a percentage,
+   and the machine never fills his prediction. The read never counts or
+   trends anything about him. A figure appears only inside a sentence, and the
+   prompt allows only figures from the grounding: a number of 13 or more that
+   is in neither the prompt nor the grounding fails validation (call lengths
+   and dates are exempt), and smaller counts are held by the prompt rule.
+3. **Theory only at the point of action.** A lens appears only as a read that
+   ends in a move, later, or covered. A trap is named only when the note shows
+   one, with its counter-move from `TRAPS`, and only a `TRAPS` id is accepted,
+   so the trap vocabulary stays one (constraint 7). A rule appears as the
+   headline's source, never as a list.
+4. **Every read ends in one move.** The first ask is the move, rendered through
+   `AskCard` with his own prediction and a stop-talking point. A week's close
+   also ends on one learning line. Drafted objectives are taken or left, one
+   tap each, and nothing asks him to reflect.
+5. **The pilot register.** Generated text goes through `sanitizeVoice` before
+   it is checked, so there are no em dashes and no exclamation marks. The
+   prompt forbids reassurance and motivational language. It names moves, never
+   his psychology: diagnosis wording (`worth`, `unworthy`, `deserve`,
+   `imposter`, "you fear", "you feel") fails the headline and the lenses, and
+   only the heard line may quote his own words back. The offer is a pilot,
+   never a room.
 
 ## The surface
 
@@ -134,8 +169,17 @@ Lake 2008: requesters underestimate compliance by as much as half).
 
 `api/pilot/asks.ts`: GET today + single oldest unresolved; POST upsert per
 civil day, `mark_sent` also upserting the ledger row idempotently; PATCH
-records the outcome. Same posture as the rest of the pilot API: public read,
-unauthenticated operator writes, service role server-side only.
+records the outcome. Public read; POST and PATCH re-check the access cookie
+(`guard`); service role server-side only. Once today's ask has gone out its
+wording is fixed: a POST that changes `ask_text` on a sent ask gets 409
+`already_sent` (2026-09-27, ADR-026). It used to overwrite it, so the record
+could say he sent words he never sent. The check is on the server because a
+second tab or device races any check the client makes.
+
+`pilot_asks` is anon readable, so `ask_text` is public to anyone holding the
+browser key. The strategist seeds an ask with a first name or a role, never a
+full name. Revoking anon on the operator tables is a recorded follow-up in
+ADR-026.
 
 ## What moved, 2026-08-20
 
@@ -153,8 +197,9 @@ footer and by the spiralling/relitigating counter-moves. The dock primitives
   avoided-ask pattern (a worry that is really an unmade request compiling to
   the bounded ask). Candidate rule if the compiler feels too quick to close;
   change it with live testing, not speculatively.
-- The exposure ladder (manual §7) is in the corpus but not yet a surface. If
-  the daily ask plateaus at low-stakes requests, the ladder's levels are the
-  next slice to bring on tap, still without history views.
+- The exposure ladder (manual §7) is on tap as `EXPOSURE_LADDER` since
+  2026-09-27, and the strategist names each ask's level in words. It is still
+  not a surface of its own and has no history view. If the daily ask plateaus
+  at low-stakes requests, a ladder the ask card can climb is the next slice.
 - `ask` days rank nominations like money/growth days (`INTENT_KINDS.ask`);
   revisit once a few weeks of ask-intent days exist.
