@@ -211,7 +211,7 @@ function ga4CredentialProblem(c: { email?: string; key?: string; source: string 
   if (!c.email) return `${prefix}EMAIL is unset`
   if (!/@.+\.iam\.gserviceaccount\.com$/.test(c.email)) return `${prefix}EMAIL "${c.email}" is not a service-account address (…@….iam.gserviceaccount.com)`
   if (!c.key) return `${prefix}PRIVATE_KEY is unset`
-  if (!c.key.includes('BEGIN PRIVATE KEY')) return `${prefix}PRIVATE_KEY is not a PEM key: paste the JSON's private_key value, from -----BEGIN PRIVATE KEY----- to -----END PRIVATE KEY-----`
+  if (!c.key.includes('BEGIN PRIVATE KEY')) return `${prefix}PRIVATE_KEY is not a PEM key: paste the JSON's whole private_key value, including its BEGIN and END lines`
   try {
     crypto.createPrivateKey(c.key.replace(/\\n/g, '\n'))
   } catch (e: any) {
