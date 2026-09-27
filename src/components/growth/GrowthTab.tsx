@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useGrowth } from '../../hooks/useGrowth'
 import { BATCH_MAX, citationRate, mondayOf, pct } from '../../lib/growth'
 import { TouchpointMap } from './TouchpointMap'
@@ -12,15 +12,17 @@ import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
-import { Film, Gavel, HelpCircle } from '@/lib/icons'
+import { Film, Gavel, Globe, HelpCircle } from '@/lib/icons'
 import { useQuickCreateListener } from '../../lib/quickCreate'
+import { useWebInsights, webHero } from '../../hooks/useWebInsights'
 
 /**
  * The Growth tab. ONE surface, five sections, in the order of the weekly loop.
  *
  *   Map        where the ICP already is (growth_touchpoints, the spine)
  *   Work       what gets made for them (growth_creative_queue, batch-capped)
- *   Signals    whether anyone found us (growth_geo_probes + maya_striking_distance)
+ *   Signals    whether anyone found us (growth_geo_probes, web_property_insights,
+ *              maya_striking_distance)
  *   Council    the weekly kill and double-down call (growth_council_reviews)
  *   Governance what it costs and how much rope the agents have (lane control plane)
  *
@@ -61,11 +63,14 @@ export const GROWTH_PURPOSE = 'Find buyers where they already are, make them som
  * that are not steps at all. The ids are unchanged, so deep links and the e2e
  * test ids keep working.
  */
+/** How long the hero waits for the site read before rendering without it. */
+const WEB_HERO_WAIT_MS = 4000
+
 const SECTIONS: Array<{ id: GrowthSectionId; label: string; what: string }> = [
   // The week, in order.
   { id: 'council', label: 'Review', what: 'Every Sunday, one verdict per product: what to stop, what to do next, and your ruling on it. This is where the week\'s clips come from.' },
   { id: 'work', label: 'To do', what: 'The 3 to 5 clips to make this week, from brief to posted. You film. The card holds the script.' },
-  { id: 'signals', label: "What's moving", what: 'Whether anyone is finding you: do AI answers mention you, and where do you rank on Google.' },
+  { id: 'signals', label: "What's moving", what: 'Whether anyone is finding you: do AI answers mention you, who visits your four sites, and where you rank on Google.' },
   // Reference, not steps.
   { id: 'map', label: 'Where they are', what: 'The places your buyers already go, per product. Add one, answer the open questions, mark what is covered.' },
   { id: 'governance', label: 'Spend limits', what: 'The money and freedom each product\'s agents get: the budget, how much they may do alone, what they may say.' },
@@ -86,12 +91,25 @@ const SECTIONS: Array<{ id: GrowthSectionId; label: string; what: string }> = [
  * so it comes first. An unfilled batch is next, because that is the actual
  * output. Then the map's open questions, which sharpen everything downstream.
  * When none of that is true it says so plainly rather than inventing a chore.
+ *
+ * A site that is not being counted comes first: every other number on this tab
+ * is blind to it, and the fix is one sitting. Only the setup rungs (1 and 2)
+ * reach here, so it clears the moment access is fixed; rulings and growth
+ * actions stay on the Site visits cards.
  */
 function nextGrowthAction(
   counts: Record<GrowthSectionId, number>,
   overCap: boolean,
   weekLabel: string,
-): { descriptor: HeroDescriptor; go: GrowthSectionId; compose?: 'clip' } {
+  web: ReturnType<typeof webHero>,
+): { descriptor: HeroDescriptor; go: GrowthSectionId; compose?: 'clip'; focusWeb?: string } {
+  if (web) {
+    return {
+      descriptor: { headline: web.headline, sub: web.sub, actionLabel: 'Show me', icon: <Globe size={14} />, tone: 'amber' },
+      go: 'signals',
+      focusWeb: web.prefix,
+    }
+  }
   if (counts.council > 0) {
     return {
       descriptor: {
@@ -200,6 +218,21 @@ export function GrowthTab({
   // Same signal pattern as the two composers above: the hero points at the
   // first review that owes a ruling, and CouncilFeed brings it into view.
   const [councilFocus, setCouncilFocus] = useState(0)
+  // And the site action the hero names, on What's moving.
+  const web = useWebInsights()
+  const webNext = useMemo(() => webHero(web.data), [web.data])
+  const [webFocus, setWebFocus] = useState({ prefix: '', n: 0 })
+  // The site step outranks every other branch, and its read is slower than
+  // useGrowth's. Rendering before it lands showed the council or clip step and
+  // then swapped it (a tap in between went to the wrong place). So the hero
+  // waits for the web read, for at most WEB_HERO_WAIT_MS: a read that never
+  // answers must not hide the hero for good.
+  const [webWaitOver, setWebWaitOver] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => setWebWaitOver(true), WEB_HERO_WAIT_MS)
+    return () => window.clearTimeout(id)
+  }, [])
+  const heroReady = web.loaded || webWaitOver
 
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
@@ -208,8 +241,8 @@ export function GrowthTab({
     [],
   )
   const next = useMemo(
-    () => nextGrowthAction(counts, overCap, weekLabel),
-    [counts, overCap, weekLabel],
+    () => nextGrowthAction(counts, overCap, weekLabel, webNext),
+    [counts, overCap, weekLabel, webNext],
   )
 
   return (
@@ -238,9 +271,11 @@ export function GrowthTab({
       </div>
 
       {/* The one next thing, in the same component every other tab uses. */}
-      {!g.loading && !g.error && (
+      {!g.loading && !g.error && heroReady && (
         <div className="flex-shrink-0" data-testid="growth-hero">
           <DoThisNextHero
+            // A long headline on a phone drops its glyph inside the primitive
+            // (NARROW_GLYPH_MAX_CHARS), so the site step needs no special case here.
             descriptor={next.descriptor}
             narrow={variant === 'mobile'}
             // Setting the section was all this used to do, so on the common
@@ -250,6 +285,7 @@ export function GrowthTab({
               setSection(next.go)
               if (next.compose === 'clip') setClipCompose(n => n + 1)
               if (next.go === 'council') setCouncilFocus(n => n + 1)
+              if (next.focusWeb) setWebFocus(f => ({ prefix: next.focusWeb!, n: f.n + 1 }))
             }}
           />
         </div>
@@ -299,7 +335,7 @@ export function GrowthTab({
             {isGrowthScoreboardEnabled() && (
               <GrowthScoreboard variant={variant === 'mobile' ? 'mobile' : 'desktop'} />
             )}
-            <SignalsPanel g={g} variant={variant} />
+            <SignalsPanel g={g} variant={variant} webFocus={webFocus} onNavigate={onNavigate} />
           </div>
         ) : section === 'council' ? (
           <div className="space-y-4">

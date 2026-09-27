@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test'
 import { contentTables } from './populated'
+import { WEB_INSIGHTS } from './webInsights'
 
 /**
  * One populated data set for the whole-app layout audit.
@@ -498,6 +499,9 @@ export async function mockAudit(page: Page, tables = auditTables()) {
   await page.route('**/realtime/**', (r: Route) => r.abort())
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: tables[tableOf(r.request().url())] ?? [] }))
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+  // Growth > What's moving: four populated site cards and the shared step, so
+  // the no-scroll gates measure the Site visits panel rather than its empty note.
+  await page.route('**/api/growth/web-insights*', (r: Route) => r.fulfill({ json: WEB_INSIGHTS }))
   await page.route('**/api/network/geo', (r: Route) =>
     r.fulfill({ json: { countries: [
       { code: 'GB', name: 'United Kingdom', n: 1840, featured: true },
@@ -532,6 +536,7 @@ export const AUDIT_ROUTES: Array<{ id: string; hash: string; name: string }> = [
   { id: 'people-advisory', hash: '#/people?lane=pilots', name: 'People · Advisory' },
   { id: 'customers', hash: '#/customers', name: 'Customers' },
   { id: 'growth', hash: '#/growth', name: 'Growth' },
+  { id: 'growth-signals', hash: '#/growth?section=signals', name: "Growth · What's moving" },
   { id: 'content', hash: '#/content', name: 'Content' },
   { id: 'os-queue', hash: '#/os?sub=queue', name: 'OS · Queue' },
   { id: 'os-org', hash: '#/os?sub=org', name: 'OS · Org' },

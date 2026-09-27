@@ -50,6 +50,16 @@ const TONE_BTN: Record<HeroTone, string> = {
   neutral: 'bg-white/[0.06] border-white/15 text-ink-muted hover:bg-white/[0.1]',
 }
 
+/**
+ * On a phone, a headline longer than this goes without the glyph (the badge
+ * and the button's icon). At 360px the badge, the gap and the button's glyph
+ * left a long instruction a column about 70px wide, so it wrapped to five lines
+ * and pushed everything under it off the screen. The words and the button are
+ * unchanged. The rule lives here, not at a call site, so every tab's phone hero
+ * gets it (DESIGN_SYSTEM.md, "DoThisNextHero on a phone").
+ */
+export const NARROW_GLYPH_MAX_CHARS = 32
+
 interface Props {
   descriptor: HeroDescriptor
   /** The one-tap primary action. Omit when `clear` or when using `actionSlot`. */
@@ -61,7 +71,8 @@ interface Props {
 }
 
 export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: Props) {
-  const { headline, sub, actionLabel, icon, clear } = descriptor
+  const { headline, sub, actionLabel, clear } = descriptor
+  const icon = narrow && headline.length > NARROW_GLYPH_MAX_CHARS ? undefined : descriptor.icon
   const tone: HeroTone = descriptor.tone || (clear ? 'neutral' : 'violet')
   const reduced = useReducedMotion()
 

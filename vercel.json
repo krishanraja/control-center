@@ -193,6 +193,10 @@
       "schedule": "0 17 * * 0"
     },
     {
+      "path": "/api/growth/web-insights",
+      "schedule": "20 13 * * *"
+    },
+    {
       "path": "/api/health/fleet-reconcile",
       "schedule": "0 */6 * * *"
     },

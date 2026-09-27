@@ -134,3 +134,50 @@ lands one packet per subject per week on `POST /api/aeo/ingest`. Full spec:
   it), so its striking-distance rows are never read. "No gap" for Legibility
   is not a finding.
 
+## Site visits (2026-09-27)
+
+Growth > What's moving carries a third read between the GEO probes and the SEO
+sweep: one card per site Google Analytics reads (mindmake.co,
+mindmakerlive.substack.com, fulltime.fm, legibility.io). The registry is
+`src/lib/webProperties.ts`; adding a site is one entry there. The panel is
+`src/components/growth/WebPropertiesPanel.tsx`, reading
+`GET /api/growth/web-insights` through `src/hooks/useWebInsights.ts`. Full
+measurement rules: `docs/MEASUREMENT_SPINE.md`, "Google Analytics, four sites".
+
+- **Verdicts before numbers.** Each card opens on a health chip: Not
+  connected, Cannot check, Wrong property, Tag missing, Nothing received,
+  First days, Measuring (quiet week) or Measuring. Visit counts and the
+  sparkline show only when the read succeeded (`ok`, `quiet`, `provisional`).
+  An unmeasured site shows why, never a zero. Flags under the chip say what
+  the count leaves out: consent-gated, thresholded, Admin API off,
+  undercounting against PostHog, host filter off, last read failed.
+- **The ladder: one action per site.** Rung 1 is read access (a grant or a
+  missing id), rung 2 is wiring (wrong stream, tag missing, nothing
+  received, the Admin API), rung 3 is data (the Plausible key for
+  mindmake.co), rung 4 is a ruling Krish owes (what fulltime.fm is for,
+  whether legibility.io is live), rung 5 is a growth action chosen by the
+  model or a fixed fallback, retired after 14 days unacted. The lowest open
+  rung wins. Every action says why, the first step, which job it serves,
+  how many minutes, and what closes it; the check closes it on its own when
+  the detector sees it done. "Put on today" writes the title and job to
+  today's 3 through `/api/daily-focus/slot`.
+- **The shared action.** When two or more sites are refused for the same
+  reason (an account-level grant, or the Admin API), one step shows once at
+  the top of the panel and the cards it blocks read "Waiting on the step at
+  the top." Rungs 1 and 2 also take the Growth hero, first, because every
+  other number on the tab is blind to a site that is not being counted. The
+  hero's "Show me" scrolls to the step and rings it. Rulings and growth
+  actions stay on the cards.
+- **Check now.** Runs the whole check on demand (`POST` with
+  `{ action: 'refresh' }`, about a minute). Once every ten minutes; inside
+  the window the button still answers, with a toast saying when to try
+  again. The daily run is the Vercel cron at 13:20 UTC.
+- **Provisional.** For 48 hours after a tag goes live the card reads First
+  days and the numbers are marked as settling. fulltime.fm and legibility.io
+  were tagged on 2026-09-27, so they read provisional until about 09:57 UTC
+  on 2026-09-29.
+- **Measure only.** A site Krish rules "measure" keeps its visit read and gets
+  no actions: the card says "Measure only, by your ruling." A retired site
+  reads "Retired by your ruling. Only visits are read."
+- **Before the migration is applied** the panel says the table is not in the
+  database yet. That is the honest state, not a bug.

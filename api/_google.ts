@@ -220,37 +220,143 @@ function ga4CredentialProblem(c: { email?: string; key?: string; source: string 
   return null
 }
 
+export interface GaFailure { error: string; status: number; reason: string; activationUrl: string | null }
+
 /**
- * Run one GA4 Data API report as the service account. Returns the raw report
- * or { error } so a caller can say WHY a key is missing (not shared, API off,
- * wrong property id) rather than writing a fake zero.
- *
- * Needs: the Google Analytics Data API enabled in the SA's GCP project, and the
- * SA email added as Viewer on the property. `propertyId` is the numeric id from
- * GA Admin → Property details, not the G- measurement id.
+ * Pure: build a GaFailure from a non-2xx Google response. `reason` is Google's
+ * machine word (SERVICE_DISABLED, PERMISSION_DENIED, ...) so a caller can tell
+ * "the API is off" from "this email has no grant" without parsing prose, and
+ * `activationUrl` is the one-click page Google names when an API is off.
+ * `who` names the identity (email and credential source), never the key.
  */
-export async function runGa4Report(propertyId: string, body: Record<string, unknown>): Promise<{ report: any } | { error: string }> {
+export function gaFailure(status: number, body: any, who: string): GaFailure {
+  const err = body && typeof body === 'object' ? body.error : null
+  const details: any[] = Array.isArray(err?.details) ? err.details : []
+  const withReason = details.find(d => typeof d?.reason === 'string' && d.reason)
+  const reason = withReason ? String(withReason.reason) : (typeof err?.status === 'string' ? err.status : '')
+  const withUrl = details.find(d => typeof d?.metadata?.activationUrl === 'string' && d.metadata.activationUrl)
+  return {
+    error: `GA4 ${status} as ${who}: ${err?.message || 'request failed'}`,
+    status,
+    reason,
+    activationUrl: withUrl ? String(withUrl.metadata.activationUrl) : null,
+  }
+}
+
+/**
+ * Who Google Analytics sees when this app asks: the service-account email, its
+ * GCP project (where the Data and Admin APIs must be enabled) and which env pair
+ * it came from. Never the key.
+ */
+export function ga4Identity(): { email: string | null; project: string | null; source: string } {
+  const creds = ga4Credentials()
+  const email = creds.email || null
+  const project = email?.match(/@([^.]+)\.iam\.gserviceaccount\.com$/)?.[1] ?? null
+  return { email, project, source: creds.source }
+}
+
+// The one token path for every GA call (Data API and Admin API alike), so they
+// share one cache key. analytics.readonly covers both: nothing here writes to
+// Google Analytics.
+async function ga4Token(): Promise<{ token: string; email: string; source: string } | GaFailure> {
   const creds = ga4Credentials()
   const problem = ga4CredentialProblem(creds)
-  if (problem) return { error: problem }
+  if (problem) return { error: problem, status: 0, reason: 'CREDENTIALS', activationUrl: null }
   let tokenError = ''
   const token = await googleAccessToken(['https://www.googleapis.com/auth/analytics.readonly'], {
     impersonate: false,
     credentials: creds,
     onError: reason => { tokenError = reason },
   })
-  if (!token) return { error: `no token for ${creds.email} (${creds.source}): ${tokenError || 'unknown'}` }
+  if (!token) {
+    return { error: `no token for ${creds.email} (${creds.source}): ${tokenError || 'unknown'}`, status: 0, reason: 'CREDENTIALS', activationUrl: null }
+  }
+  return { token, email: creds.email as string, source: creds.source }
+}
+
+/**
+ * Run one GA4 Data API report as the service account. Returns the raw report
+ * or { error, status } so a caller can say WHY a key is missing (not shared,
+ * API off, wrong property id) rather than writing a fake zero.
+ *
+ * Needs: the Google Analytics Data API enabled in the SA's GCP project, and the
+ * SA email added as Viewer on the property (or its account). `propertyId` is
+ * the numeric id from GA Admin → Property details, not the G- measurement id.
+ */
+export async function runGa4Report(propertyId: string, body: Record<string, unknown>): Promise<{ report: any } | { error: string; status: number }> {
+  const t = await ga4Token()
+  if ('error' in t) return { error: t.error, status: t.status }
   try {
     const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:runReport`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${t.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     const j: any = await r.json().catch(() => ({}))
     // Name the identity on failure: a 403 means THIS email lacks Viewer on the property.
-    if (!r.ok) return { error: `GA4 ${r.status} as ${creds.email} (${creds.source}): ${j?.error?.message || 'request failed'}` }
+    if (!r.ok) return { error: `GA4 ${r.status} as ${t.email} (${t.source}): ${j?.error?.message || 'request failed'}`, status: r.status }
     return { report: j }
   } catch (e: any) {
-    return { error: String(e?.message || e) }
+    return { error: String(e?.message || e), status: 0 }
+  }
+}
+
+/**
+ * Each Data and Admin API call gets 20 s. A hung socket otherwise holds the
+ * whole site check until Vercel kills the function, and the heartbeat is left
+ * 'running'. A timeout lands as the NETWORK failure below, which the check
+ * already treats as unknown, never as zero.
+ */
+const GA_TIMEOUT_MS = 20_000
+
+/**
+ * Up to five Data API reports in one call and one quota charge
+ * (properties/{id}:batchRunReports). `reports` come back in request order.
+ * More than five is a programmer error and throws; Google would reject it.
+ */
+export async function runGa4Batch(propertyId: string, requests: Record<string, unknown>[]): Promise<{ reports: any[] } | GaFailure> {
+  if (requests.length > 5) throw new Error('runGa4Batch: at most 5 requests')
+  const t = await ga4Token()
+  if ('error' in t) return t
+  try {
+    const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:batchRunReports`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${t.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }),
+      signal: AbortSignal.timeout(GA_TIMEOUT_MS),
+    })
+    const j: any = await r.json().catch(() => null)
+    if (!r.ok) return gaFailure(r.status, j ?? {}, `${t.email} (${t.source})`)
+    // A 200 whose body could not be read (a timeout mid-body) is a failed read,
+    // never an empty report: an empty report would parse as zero visits.
+    if (!j) return { error: 'GA4 response body could not be read', status: 0, reason: 'NETWORK', activationUrl: null }
+    return { reports: Array.isArray(j?.reports) ? j.reports : [] }
+  } catch (e: any) {
+    return { error: String(e?.message || e), status: 0, reason: 'NETWORK', activationUrl: null }
+  }
+}
+
+/**
+ * Read-only GET on the Google Analytics Admin API, e.g.
+ * 'accountSummaries?pageSize=200', 'properties/556143202',
+ * 'properties/556143202/dataStreams', 'properties/556143202/keyEvents'.
+ * The Admin API is a separate switch in the SA's GCP project; when it is off
+ * Google answers 403 SERVICE_DISABLED with an activationUrl, which the
+ * GaFailure carries so the fix is one click.
+ */
+export async function ga4AdminGet(path: string): Promise<{ json: any } | GaFailure> {
+  const t = await ga4Token()
+  if ('error' in t) return t
+  try {
+    const r = await fetch(`https://analyticsadmin.googleapis.com/v1beta/${path}`, {
+      headers: { Authorization: `Bearer ${t.token}` },
+      signal: AbortSignal.timeout(GA_TIMEOUT_MS),
+    })
+    const j: any = await r.json().catch(() => null)
+    if (!r.ok) return gaFailure(r.status, j ?? {}, `${t.email} (${t.source})`)
+    if (!j) return { error: 'GA4 Admin response body could not be read', status: 0, reason: 'NETWORK', activationUrl: null }
+    return { json: j }
+  } catch (e: any) {
+    return { error: String(e?.message || e), status: 0, reason: 'NETWORK', activationUrl: null }
   }
 }
