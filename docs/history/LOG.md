@@ -59,3 +59,24 @@ moved here keep their body verbatim under a Historical banner.
 - reconciled at `600ba77c`: `n8n/workflows/README.md` claimed the n8n cloud editor was canonical (snapshot of 2026-05-25) while `scripts/n8n/README.md` and the live sync tooling say git wins. A banner at the top of the snapshot README now says so; the snapshots stay as the historical record they are.
 - reconciled at `600ba77c`: `docs/GLOSSARY.md` scope now points at `docs/MINDMAKE_OS_ARCHITECTURE.md` section 18 for OS-wide terms and says which wins.
 - note: steward and bootstrap commits are signed by the cloud session (`Claude <noreply@anthropic.com>`) rather than the `Krish Raja <hello@krishraja.com>` author standard in `docs/CONTRIBUTING.md`. Recorded here rather than hidden; the Actions steward pushes with the default token.
+
+## 2026-09-06
+
+- rolled from NOW.md (2026-09-27 reconciliation, ahead of the 30-day line to hold `NOW.md` under its 200-line cap): Pull-only OS shipped (#267, then #271, #272); every Telegram push killed, including four callers in this repo's own API, and the Maa reminders switched off.
+- rolled from NOW.md: one filename for the architecture doc (#268, #269); the repo, the VPS and the skills had tracked `MINDMAKE_` and `MINDMAKER_` against each other for nine days with no error.
+
+## 2026-09-05
+
+- rolled from NOW.md: the one swing shipped (`efcfe51e` to `e1f81545`), canon repointed to Ikigai v4: the Room (25 leaders who fit the face, drafted by the OS, sent by Krish), the scorecard, the demand-engine feed, the job search parked, and a runway sentence in COMPOUND.
+
+## 2026-09-04
+
+- rolled from NOW.md: COMPOUND Spend and Property tabs shipped (#253 to #259), and the Video Engine control plane (#260 to #266).
+
+## 2026-09-02
+
+- rolled from NOW.md: the Bridges lane shipped for warm-intro candidates (2026-09-01 to 02), plus a gated inspiration lane from favourite creators.
+
+## 2026-08-29
+
+- rolled from NOW.md: the Mindmake rebrand of the OS and the architecture doc; a committed Telegram bot token removed and a guard added so the next one fails the build.
