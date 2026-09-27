@@ -749,9 +749,22 @@ distrusting twenty rows.
 results are still real people ranked by relationship value; they just do not
 answer what was asked. **It is never an empty list.**
 
-Weakness is thresholded on `query_relevance`, not `match_score`. `match_score`
-cannot answer "did we understand the question", because a well-connected person
-scores ~38 on relationship and evidence no matter what was asked.
+Weakness is thresholded on `query_relevance`, not `match_score`. Until
+`20260927160000` a well-connected person scored ~38 on relationship and evidence
+no matter what was asked. Relationship now scales a match rather than adding to
+one ([ADR-027](./DECISIONS/027-the-question-decides.md)), but soft constraints
+can still score a person who matched none of the words, so `query_relevance`
+remains the honest test.
+
+### The per-person reason
+
+`/api/network/explain` writes one "why" and one opening move per person, twelve
+per call. The client sends every row on screen in parallel batches of twelve,
+so row 25 gets a reason for THIS question as well as row 1. The model is given
+the facts first (current title and company, headline, the opening of the
+summary, past roles, skills) and the stored judgment second, with an instruction
+to trust the judgment only where the facts agree and never to repeat a retired
+venture's reasoning.
 
 ### Geography
 

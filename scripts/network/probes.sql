@@ -24,6 +24,20 @@
 --       out of 200 rows and buried all 151 tier-1 contacts whose location was
 --       never recorded, which is a hard filter wearing a soft label.
 --   P9  unrecognised geography degrades to no filter, never to zero rows.
+--   P10 one scale, one vocabulary (20260927160000). tier_weight is a function
+--       of network_tier, seniority and best_channel are in the planner's
+--       words, and a reciprocated email is tier 1. Every count must be 0. The
+--       enrichment job broke all three at once and nothing noticed for twelve
+--       days, because nothing asserted them.
+--   P11 the question decides (20260927160000). A person with no query
+--       relevance must not outrank one who answers the question, however warm.
+--       `beaten_by_irrelevant` must be 0.
+--   P12 what was bought is searchable. Enriched people's career and skills
+--       reach the retrieval text, and placeholders never do.
+--
+--   P5's note above is historical: relationship now scales the match rather
+--   than adding to it, so a nonsense query no longer earns ~38. query_relevance
+--   is still the right thing to threshold, because soft constraints can score.
 
 \timing on
 \pset pager off
@@ -143,3 +157,42 @@ SELECT 'P9' AS probe,
        -- a city inside a location string wins over a same-looking state code.
        public.network_geo_canon('CA') AS bare_ca,
        public.network_geo_canon('San Francisco, CA') AS sf_ca;
+
+
+-- ── P10. One scale, one vocabulary ─────────────────────────────────────────
+SELECT 'P10' AS probe,
+       count(*) FILTER (WHERE tier_weight IS DISTINCT FROM public.tier_weight_for(network_tier)) AS tier_weight_off_scale,
+       count(*) FILTER (WHERE seniority IS NOT NULL
+                          AND seniority NOT IN ('founder_cxo','vp_director','manager_senior','ic_unknown')) AS seniority_off_vocab,
+       count(*) FILTER (WHERE best_channel IN ('linkedin','instagram')) AS channel_off_vocab,
+       count(*) FILTER (WHERE reciprocated_email AND network_tier <> '1_reciprocated') AS reciprocated_demoted
+FROM public.contact_intelligence;
+
+
+-- ── P11. The question decides ──────────────────────────────────────────────
+-- Keywords only, so it runs without an embedding. Among the top 25, count the
+-- people with query_relevance under 0.05 who sit ABOVE someone at 0.5 or more
+-- with no constraints in play. Before 20260927160000 a warm contact who matched
+-- nothing scored ~38 and did exactly this.
+WITH r AS (
+  SELECT row_number() OVER () AS rk, query_relevance AS rel
+  FROM public.network_search(p_keywords := 'retail media', p_limit := 25)
+)
+SELECT 'P11' AS probe,
+       count(*) FILTER (WHERE a.rel < 0.05 AND EXISTS (
+         SELECT 1 FROM r b WHERE b.rk > a.rk AND b.rel >= 0.5)) AS beaten_by_irrelevant
+FROM r a;
+
+
+-- ── P12. What was bought is searchable ─────────────────────────────────────
+-- `enriched_with_career` should be most of `enriched`; `placeholder_indexed`
+-- must be 0; `past_employer_hits` must be > 0 (an ex-Google person found on the
+-- career line, not a current employee).
+SELECT 'P12' AS probe,
+       count(*) FILTER (WHERE enriched_at IS NOT NULL) AS enriched,
+       count(*) FILTER (WHERE enriched_at IS NOT NULL AND intel_doc LIKE '%Career: %') AS enriched_with_career,
+       count(*) FILTER (WHERE intel_doc ~* '(no role data captured|insufficient profile data|no hook available)') AS placeholder_indexed,
+       count(*) FILTER (WHERE intel_tsv @@ to_tsquery('english', 'google')
+                          AND coalesce(current_company, '') !~* 'google'
+                          AND intel_doc ~* 'Career: [^·]*google') AS past_employer_hits
+FROM public.contact_intelligence;

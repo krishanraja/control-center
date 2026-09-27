@@ -6,7 +6,7 @@ import { vectorLiteral } from '../_embeddings.js'
 import { blockedMessage, isBlocking, type ProviderOutcome } from '../_quota.js'
 import { raiseQuotaAlert } from '../_alert.js'
 
-// POST /api/network/enrich-person   { contact_id, use_apify?, skip_web? }
+// POST /api/network/enrich-person   { contact_id, use_apify?, skip_web?, skip_pdl? }
 //
 // Phase 3: deepen a person already in the network. Runs PDL + Apollo + the
 // Perplexity/Exa/Brave cascade (+ the paid Apify LinkedIn profile scrape when
@@ -39,6 +39,8 @@ interface Body {
   use_apify?: boolean
   /** Skip Perplexity/Exa/Brave — faster and cheaper when the profile is enough. */
   skip_web?: boolean
+  /** Leave People Data Labs out of this run. Skipped, not blocked: no alert. */
+  skip_pdl?: boolean
   /** Also read recent LinkedIn posts and derive the intent signal. A second
    *  paid actor run per person. */
   with_posts?: boolean
@@ -48,11 +50,23 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Evidence tier from how many independent sources actually asserted this
  *  person. Distinct from consent_tier, which is a permission statement and is
- *  never touched here. */
-function tierFor(sourceCount: number): { tier: string; weight: number } {
-  if (sourceCount >= 3) return { tier: '2_core_network', weight: 3 }
-  if (sourceCount === 2) return { tier: '3_known_network', weight: 2 }
-  return { tier: '4_owned_network', weight: 1 }
+ *  never touched here.
+ *
+ *  It can only move a person UP. This used to overwrite whatever tier the row
+ *  carried, so buying someone's profile could demote them: 67 people with a
+ *  reciprocated email thread fell from 1_reciprocated to 2 or 3 in the
+ *  2026-09-15 backfill. The tier names sort in rank order, so the smaller one
+ *  is the stronger claim.
+ *
+ *  No weight here. tier_weight is derived from network_tier by the database
+ *  trigger (migration 20260927160000), because this function wrote 1-3 into a
+ *  column the ranker reads as 0-100 and every enriched person ranked below a
+ *  cold lead. */
+function tierFor(sourceCount: number, prior: string | null | undefined): string {
+  const fromEvidence = sourceCount >= 3 ? '2_core_network'
+    : sourceCount === 2 ? '3_known_network'
+    : '4_owned_network'
+  return prior && /^[1-5]_/.test(prior) && prior < fromEvidence ? prior : fromEvidence
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -78,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // is already known rather than from the name alone.
   const { data: priorIntel } = await supabase
     .from('contact_intelligence')
-    .select('who, source_list, source_count')
+    .select('who, source_list, source_count, network_tier')
     .eq('contact_id', id)
     .maybeSingle()
   const prior = (priorIntel || {}) as Record<string, any>
@@ -98,6 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }, {
       useApify: b.use_apify !== false,
       skipWeb: b.skip_web === true,
+      skipPdl: b.skip_pdl === true,
       // Off unless asked. A second paid actor run per person, and only worth it
       // for people Krish would actually message.
       withPosts: b.with_posts === true,
@@ -194,7 +209,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const priorSources: string[] = Array.isArray(prior.source_list) ? prior.source_list : []
   const sourceList = Array.from(new Set([...priorSources, ...facts.sourceList]))
-  const { tier, weight } = tierFor(sourceList.length)
+  const tier = tierFor(sourceList.length, prior.network_tier)
 
   const intelRow: Record<string, unknown> = {
     contact_id: id,
@@ -218,7 +233,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     industry: judgment?.industry || facts.industry || null,
     country: facts.country || null,
     network_tier: tier,
-    tier_weight: weight,
     confidence: judgment?.confidence || 'low',
     intel_method: 'direct_enrich_v1',
     evidence: [

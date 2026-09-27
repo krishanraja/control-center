@@ -18,9 +18,11 @@ import { SYNTHESIS_MODEL } from './_models.js'
  *  measures 0.000 across 20 rows, while "chief marketing officer bank AI
  *  governance" measures 0.394. Anything under 0.10 means we did not understand
  *  the question or the network does not contain the answer — the UI says so and
- *  STILL shows the rows. Note this thresholds query_relevance, not match_score:
- *  a well-connected person scores ~38 on relationship alone, so match_score
- *  cannot tell a nonsense query from a real one. */
+ *  STILL shows the rows. Note this thresholds query_relevance, not match_score.
+ *  Until 20260927160000 a well-connected person scored ~38 on relationship
+ *  alone; relationship now only scales a match, so that is no longer true, but
+ *  constraints still can: a person who fits three soft filters and none of the
+ *  words scores on the filters, and that is a different claim from "matched". */
 const WEAK_RELEVANCE = 0.10
 
 const RERANK_MODEL = SYNTHESIS_MODEL

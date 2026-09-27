@@ -40,6 +40,7 @@
 | [024](./024-openrouter-as-the-rescue-provider-only.md) | OpenRouter is the rescue provider, and only the rescue provider | Accepted |
 | [025](./025-draw-is-peer-density.md) | Draw is peer density, not technical-leader density | Accepted |
 | [026](./026-the-strategist.md) | The strategist turns a goal or his own words into the plan | Accepted |
+| [027](./027-the-question-decides.md) | In a network search, the question decides and the relationship adjusts | Accepted |
 
 ---
 

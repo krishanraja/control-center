@@ -176,7 +176,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     surface_when: [],
     // Evidence tier, not permission tier: one source we own.
     network_tier: '4_owned_network',
-    tier_weight: 1,
+    // tier_weight is derived from network_tier by the trigger (20260927160000).
     confidence: 'low',
     intel_method: 'screenshot_v1',
     evidence: [`Added from a screenshot${b.source_document_name ? ` (${b.source_document_name})` : ''} on ${now.slice(0, 10)}`],

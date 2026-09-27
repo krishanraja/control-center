@@ -74,6 +74,12 @@ const USE_APIFY = args.includes('--use-apify')
 // Krish would actually message and wasted on the cold tail: what a scraped lead
 // posted last month is not a reason to do anything.
 const WITH_POSTS = args.includes('--posts')
+// Leave People Data Labs out. For a run where PDL is switched off on purpose
+// (out of credit, or not worth its price for this batch): without it, every
+// person would come back "blocked", page Krish once each, and be skipped by
+// the next run. Only meaningful with --use-apify in profiles mode, where the
+// scrape is the evidence.
+const SKIP_PDL = args.includes('--no-pdl')
 // How many people are in flight at once.
 //
 // One at a time is roughly 15 seconds per person — profile scrape, posts
@@ -320,6 +326,7 @@ async function main() {
         contact_id: p.id,
         use_apify: USE_APIFY,
         skip_web: true,
+        skip_pdl: SKIP_PDL,
         with_posts: WITH_POSTS || MODE === 'posts',
       }),
     })
