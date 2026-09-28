@@ -1,8 +1,8 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-09-27
-head: 874b04d8
+as_of: 2026-09-28
+head: 7dac4ce
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet.
 
-## Where it is right now (as of 2026-09-27)
+## Where it is right now (as of 2026-09-28)
 
 - **The strategist is live: a goal or Krish's own words in, a strategy read and one outward move out** (ADR-026, migration `20260927100000` applied). Two entries, one engine: an OS goal fires the read when saved, edited, or added as a weekly objective in the Focus Ritual; a plain-text note reads his own words. Six lenses tied to his own decision rules score the plan, only warm-tier contacts get named, and the ask is drafted in the operating manual's request formula. It proposes only: a drafted objective becomes a goal only when he taps Take it, and nothing sends on its own. Notes and reads live in `strategist_reads`, service role only.
 - **Every machine output is a suggestion, and the bank that learns from it is live** (migration `20260919100000`). `public.suggestions` cannot hold a row without a reason, cannot be silent (it proposes or it names a `handoff_reasons` slug, never neither), and `suggestion_verdicts` refuses any delta key that could carry a subject, which is the anti-echo rule enforced by a CHECK rather than a comment. Ten surfaces, all on the `propose` rung of `autonomy_ladder`; the machine can ask for promotion with evidence and nothing advances itself. Zero rows until the first slate lands.
