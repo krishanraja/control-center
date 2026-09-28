@@ -19,7 +19,7 @@ import {
 import { Working } from '../shared/Working'
 import { useWork } from '../../lib/loadingVoice'
 import { useElapsed } from '../../hooks/useAsyncAction'
-import { streamText } from '../../lib/streamText'
+import { streamFailure, streamText } from '../../lib/streamText'
 import { recordMagicVerdict } from '../../lib/editLedger'
 import { Pending } from '../shared/Pending'
 import { BriefComposer } from './BriefComposer'
@@ -544,7 +544,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
       // Always land on the server's finished text: it has been through
       // sanitizeVoice and, when scoped, spliced back into the full draft.
       setPreview({ label, text: data?.revised ?? live, edit: { mode: opts.mode, value: opts.value, sourceText, at: Date.now() } }); h.success()
-    } catch (e: any) { h.error(); toast(`${opts.label} failed: ${e?.message || 'error'}`, 'error') }
+    } catch (e: any) { h.error(); toast(`${opts.label} failed: ${streamFailure(e)}`, 'error') }
     finally { setBusy(null) }
   }
 
@@ -2114,7 +2114,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
       setPreviewEdit({ mode, value, sourceText, at: Date.now() })
       h.success()
       if (scoped) { onClearSelection(); toast('Revised just that passage.', 'success') }
-    } catch (e: any) { h.error(); toast(`Refine failed: ${e?.message || 'error'}`, 'error') }
+    } catch (e: any) { h.error(); toast(`Refine failed: ${streamFailure(e)}`, 'error') }
     finally { setBusy(null) }
   }
 
