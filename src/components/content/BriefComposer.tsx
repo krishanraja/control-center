@@ -20,7 +20,7 @@ import { Skeleton } from '../shared/Skeleton'
 import { ComposerShell, ComposerRail, MetaDot, type ComposerTab } from './ComposerShell'
 import { EditPalette, busyKey } from './EditPalette'
 import { BottomSheet } from '../mobile/BottomSheet'
-import { streamText } from '../../lib/streamText'
+import { streamFailure, streamText } from '../../lib/streamText'
 
 interface StandingNote { id: string; text: string; at: string }
 
@@ -319,7 +319,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
       )
       setPreview({ label: span ? `${label} · selection` : label, md: data?.preview ?? text, mode })
     } catch (e) {
-      setError(String((e as Error).message || e))
+      setError(streamFailure(e))
     } finally {
       setMagicBusy(null)
       setMagicStream('')

@@ -30,6 +30,17 @@ export interface StreamOpts<T> {
   onEvent?: (name: string, data: unknown) => void
 }
 
+/** The sentence to show a person for a failed stream. A route that refuses
+ *  before its stream opens answers `{ error, detail }` (the engine's revise
+ *  routes when the model provider is down or over its limit); the thrown
+ *  message is the bare code, so the sentence is read from the body. */
+export function streamFailure(e: unknown): string {
+  const err = e as { message?: string; body?: { detail?: unknown } } | null
+  const detail = err?.body?.detail
+  if (typeof detail === 'string' && detail.trim()) return detail
+  return err?.message || String(e || 'error')
+}
+
 export interface StreamResult<T> {
   /** Everything that arrived, joined. */
   text: string
