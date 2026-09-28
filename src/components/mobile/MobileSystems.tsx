@@ -6,6 +6,8 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
 import { Working } from '../shared/Working'
+import { useEngineHealth } from '../../hooks/useEngineHealth'
+import { StudioRunners } from '../content-v2/StudioRunners'
 
 interface Service {
   id: string
@@ -33,6 +35,11 @@ export function MobileSystems() {
   const [refreshing, setRefreshing] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The Studio's Windows runners come from the content engine's own health
+  // route (system_health has no runner rows): which runner is active, which
+  // is the standby.
+  const engineHealth = useEngineHealth()
+  const studioRunners = engineHealth.health?.runners ?? null
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -149,6 +156,8 @@ export function MobileSystems() {
         <StatPill label="Warn"    value={warn.length}  color={warn.length > 0 ? 'text-amber-300' : 'text-ink-faint'} />
         <StatPill label="Healthy" value={ok.length}    color={ok.length > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
       </div>
+
+      {studioRunners ? <StudioRunners runners={studioRunners} onSwitched={engineHealth.refresh} /> : null}
 
       {error && (
         <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-5 text-lede text-red-200">

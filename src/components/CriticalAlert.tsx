@@ -7,6 +7,7 @@ import { humanAge } from '../lib/ageHelpers'
 import { SlideOver } from './shared/SlideOver'
 import { EngineAttention } from './content-v2/EngineAttention'
 import { useContentEngineRuns } from '../hooks/useContentEngineRuns'
+import { useEngineHealth } from '../hooks/useEngineHealth'
 import { contentEngineAttention } from '../lib/contentEngineSchedule'
 
 // A local dismiss, keyed by WHICH alarm was silenced. Pressing the banner
@@ -101,8 +102,12 @@ export function CriticalAlertMark({ className = '' }: { className?: string } = {
   const { visible, line, dismiss } = useCriticalAlert()
   const { runs, refresh: refreshRuns } = useContentEngineRuns()
   const [open, setOpen] = useState(false)
-  // The mark appears for a silent fleet OR a Content Engine that cannot run.
-  const engineNeedsSaying = contentEngineAttention(runs).attention.length > 0
+  // The mark appears for a silent fleet OR a Content Engine that cannot run,
+  // including a Studio runner that needs a person (2026-09-28): the active
+  // runner silent with work waiting, or a runner up with no role to work.
+  const engineHealth = useEngineHealth()
+  const runnerNeedsSaying = (engineHealth.health?.runners?.attention.length ?? 0) > 0
+  const engineNeedsSaying = contentEngineAttention(runs).attention.length > 0 || runnerNeedsSaying
   if (!visible && !engineNeedsSaying) return null
 
   return (

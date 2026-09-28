@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CONTENT_ENGINE_JOBS } from '../lib/contentEngineSchedule'
 import { requestJson } from '../lib/apiFetch'
+import { parseStudioRunners, type StudioRunners } from '../lib/studioRunners'
 
 // What the Content Engine says about itself.
 //
@@ -23,6 +24,8 @@ export interface EngineHealth {
   /** The jobs the engine's own vercel.json schedules. */
   jobs: string[]
   runner: { state: string; heartbeat_age_hours: number | null } | null
+  /** The Studio's Windows runners, active and standby, since 2026-09-28. Null from an older engine. */
+  runners: StudioRunners | null
   missingRequired: string[]
 }
 
@@ -35,10 +38,14 @@ export interface EngineHealthState {
   loading: boolean
 }
 
-export function useEngineHealth(): EngineHealthState {
+export function useEngineHealth(): EngineHealthState & { refresh: () => void } {
   const [state, setState] = useState<EngineHealthState>({
     health: null, scheduleDrift: null, unreachable: null, loading: true,
   })
+  // Re-read after an operator action (a runner switch) so the page shows what
+  // the engine now says rather than what it said before.
+  const [reads, setReads] = useState(0)
+  const refresh = useCallback(() => setReads(n => n + 1), [])
 
   useEffect(() => {
     let live = true
@@ -63,6 +70,7 @@ export function useEngineHealth(): EngineHealthState {
             ready: body.ready === true,
             jobs,
             runner: (body.runner as EngineHealth['runner']) ?? null,
+            runners: parseStudioRunners(body.runners),
             missingRequired: Array.isArray(body.missing_required)
               ? (body.missing_required as Array<{ name?: unknown }>).map(m => String(m.name ?? '')).filter(Boolean)
               : [],
@@ -82,7 +90,7 @@ export function useEngineHealth(): EngineHealthState {
       }
     })()
     return () => { live = false }
-  }, [])
+  }, [reads])
 
-  return state
+  return { ...state, refresh }
 }

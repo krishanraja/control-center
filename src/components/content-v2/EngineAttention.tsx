@@ -70,8 +70,12 @@ export function EngineAttention({ runs, onRan }: {
   // invisible; it is a count because a fresh ledger is a new deployment and not
   // seventeen emergencies.
   const silent = engine.unrecorded
+  // The Studio's runners (2026-09-28): the active one silent with work
+  // waiting, a standby up while the active one is down, a runner with no
+  // role. The roster and the switch live in OS, Systems.
+  const runnerAttention = engineHealth.health?.runners?.attention ?? []
 
-  if (!engine.attention.length && !drift && !notReady && !silent) return null
+  if (!engine.attention.length && !drift && !notReady && !silent && !runnerAttention.length) return null
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="engine-attention">
@@ -107,6 +111,12 @@ export function EngineAttention({ runs, onRan }: {
           </button>
         </div>
       ))}
+      {runnerAttention.length > 0 ? (
+        <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85" data-testid="engine-runner-attention">
+          {runnerAttention.map(item => <p key={item.code}>{item.line}</p>)}
+          <p className="mt-1 text-micro text-amber-100/70">The runners and the switch are in OS, under Systems.</p>
+        </div>
+      ) : null}
       {silent > 0 && (
         <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.05] px-4 py-2.5 text-label text-amber-100/85">
           {silent === 1

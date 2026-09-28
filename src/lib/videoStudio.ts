@@ -913,6 +913,53 @@ export async function decideVideoStudioLearningProposal(id: string, decision: 'a
   await mutate<{ ok: true }>('/api/video-studio/learning-proposals', { id, decision })
 }
 
+export interface StudioRunnerRoleTarget {
+  runner_id_hash: string
+  runner_id_prefix: string
+  role: 'active' | 'standby' | 'unassigned'
+}
+
+/**
+ * The runners with their full hashes, which only the operator route gives
+ * (the health route shows prefixes). Read when a switch is about to be made.
+ */
+export async function listStudioRunnerRoles(signal?: AbortSignal): Promise<{ active: StudioRunnerRoleTarget | null; others: StudioRunnerRoleTarget[] }> {
+  const response = await fetch('/api/video-studio/runner-roles', {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+  const body = recordValue(await readJson<Record<string, unknown>>(response))
+  const target = (value: unknown, role: StudioRunnerRoleTarget['role']): StudioRunnerRoleTarget | null => {
+    const r = recordValue(value)
+    return r && typeof r.runner_id_hash === 'string' && /^[a-f0-9]{64}$/.test(r.runner_id_hash)
+      ? { runner_id_hash: r.runner_id_hash, runner_id_prefix: r.runner_id_hash.slice(0, 8), role }
+      : null
+  }
+  const list = (value: unknown, role: StudioRunnerRoleTarget['role']) =>
+    (Array.isArray(value) ? value : []).map(item => target(item, role)).filter((item): item is StudioRunnerRoleTarget => item !== null)
+  return {
+    active: target(body?.active, 'active'),
+    others: [...list(body?.standby, 'standby'), ...list(body?.unassigned, 'unassigned')],
+  }
+}
+
+/** The audited switch. The engine refuses, by name, anything unsafe. */
+export async function switchStudioActiveRunner(input: {
+  to_runner_id_hash: string
+  expected_active_runner_id_hash: string
+  reason: string
+}): Promise<void> {
+  await mutate<{ ok: true }>('/api/video-studio/runner-roles', {
+    schema_version: 1,
+    action: 'switch_active',
+    to_runner_id_hash: input.to_runner_id_hash,
+    expected_active_runner_id_hash: input.expected_active_runner_id_hash,
+    reason: input.reason,
+  })
+}
+
 export async function listVideoStudioReviews(signal?: AbortSignal): Promise<VideoStudioReviewListItem[]> {
   const response = await fetch('/api/video-studio/reviews?status=actionable&limit=20', {
     method: 'GET',

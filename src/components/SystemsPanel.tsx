@@ -5,6 +5,8 @@ import { Working } from './shared/Working'
 import { SurfaceHeader } from './shared/SurfaceHeader'
 import { AppFrame } from './shared/AppFrame'
 import { Eyebrow } from './shared/Eyebrow'
+import { useEngineHealth } from '../hooks/useEngineHealth'
+import { StudioRunners } from './content-v2/StudioRunners'
 
 interface Service {
   id: string
@@ -102,6 +104,11 @@ export function SystemsPanel() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  // The Studio's Windows runners come from the content engine's own health
+  // route (system_health has no runner rows): which runner is active, which
+  // is the standby.
+  const engineHealth = useEngineHealth()
+  const studioRunners = engineHealth.health?.runners ?? null
 
   const load = useCallback(() => {
     setLoading(true)
@@ -244,6 +251,8 @@ export function SystemsPanel() {
     >
       <div className="space-y-5 pb-2">
       {error && <p className="text-label text-red-400">Failed to load: {error}</p>}
+
+      {studioRunners ? <StudioRunners runners={studioRunners} onSwitched={engineHealth.refresh} /> : null}
 
       {/* Grid */}
       {data && (
