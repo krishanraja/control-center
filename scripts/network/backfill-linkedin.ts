@@ -247,7 +247,15 @@ async function main() {
   // call, and api_usage_state.balance_usd is an hourly aggregate that lagged
   // by two orders of magnitude on the day this was needed.
   const actors: string[] = []
-  if (USE_APIFY && (MODE === 'profiles' || MODE === 'urls')) actors.push('dev_fusion/linkedin-profile-scraper')
+  // Price the actor that will actually run: the registry's primary for the
+  // task. This was a hard-coded slug, so swapping the actor in the registry
+  // would have quoted the old one's price against the new one's bill.
+  if (USE_APIFY && (MODE === 'profiles' || MODE === 'urls')) {
+    const { data: primary } = await sb.from('apify_actor_registry')
+      .select('actor_slug').eq('task_category', 'linkedin_profile_enrich')
+      .eq('killed', false).order('is_primary', { ascending: false }).limit(1)
+    actors.push(((primary || [])[0] as { actor_slug?: string } | undefined)?.actor_slug || 'harvestapi/linkedin-profile-scraper')
+  }
   if (USE_APIFY && (WITH_POSTS || MODE === 'posts')) actors.push('harvestapi/linkedin-profile-posts')
 
   if (actors.length) {

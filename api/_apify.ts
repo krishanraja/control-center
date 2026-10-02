@@ -200,9 +200,18 @@ export interface LinkedInProfile {
   raw: Record<string, unknown>
 }
 
-/** Registered primary at time of writing: dev_fusion/linkedin-profile-scraper,
- *  whose `required_input_shape` in the registry is {"profileUrls": []}. */
-const PROFILE_FALLBACKS = ['dev_fusion/linkedin-profile-scraper']
+/** harvestapi first since 2026-10-02. dev_fusion/linkedin-profile-scraper
+ *  began failing every profile on or before 2026-09-27 while still reporting
+ *  SUCCEEDED: an empty dataset, $0 charged, and "Failed to enrich" in its log,
+ *  for unknown profiles and for williamhgates alike. harvestapi returned 3 of 3
+ *  of the same profiles, at $0.004 a profile against $0.009. dev_fusion stays
+ *  as the fallback because it still answers sometimes. */
+const PROFILE_FALLBACKS = ['harvestapi/linkedin-profile-scraper', 'dev_fusion/linkedin-profile-scraper']
+
+/** harvestapi's input: a `urls` list and a mode. The mode is what is billed,
+ *  so it is pinned to the no-email tier; the email tier costs 2.5x and the
+ *  email it finds is not what this enrichment is for. */
+const HARVEST_PROFILE_MODE = 'Profile details no email ($4 per 1k)'
 
 /** Counts as actors actually emit them: a number, "12,345", or "1.2K".
  *  Returns undefined rather than 0 for anything unparseable, because a hub
@@ -238,7 +247,8 @@ export async function linkedInProfile(profileUrl: string, source = 'network-add-
     // Every registered profile actor so far takes a URL list; the registry's
     // required_input_shape names the key, so honour it when present and fall
     // back to the union of the common spellings when it is null.
-    buildInput: (_slug, shape) => {
+    buildInput: (slug, shape) => {
+      if (slug.startsWith('harvestapi/')) return { profileScraperMode: HARVEST_PROFILE_MODE, urls: [profileUrl] }
       if (shape && typeof shape === 'object') {
         const key = Object.keys(shape).find(k => /profileurls?|urls?|links?/i.test(k))
         if (key) return { [key]: [profileUrl] }
@@ -262,13 +272,19 @@ export async function linkedInProfile(profileUrl: string, source = 'network-add-
     dates: str(e?.caption) || str(e?.dateRange) || str(e?.duration),
   })).filter((e: { title?: string; company?: string }) => e.title || e.company)
 
+  // harvestapi nests location as an object and lists the current role apart
+  // from the history.
+  const loc = d.location && typeof d.location === 'object' ? d.location as Record<string, any> : null
+  const current = Array.isArray(d.currentPosition) ? (d.currentPosition[0] || {}) as Record<string, any> : null
+
   const profile: LinkedInProfile = {
     fullName: str(d.fullName) || [str(d.firstName), str(d.lastName)].filter(Boolean).join(' ') || undefined,
     headline: str(d.headline) || str(d.occupation),
     about: str(d.about) || str(d.summary),
-    company: str(d.companyName) || str(d.company) || positions[0]?.company,
-    title: str(d.jobTitle) || positions[0]?.title,
-    location: str(d.addressWithCountry) || str(d.location) || str(d.geoLocationName) || str(d.locationName),
+    company: str(d.companyName) || str(d.company) || str(current?.companyName) || positions[0]?.company,
+    title: str(d.jobTitle) || str(current?.position) || positions[0]?.title,
+    location: str(d.addressWithCountry) || str(d.location) || str(loc?.linkedinText) || str(loc?.parsed?.text)
+      || str(d.geoLocationName) || str(d.locationName),
     publicIdentifier: str(d.publicIdentifier) || str(d.username),
     // Followers is the one field here that was read strictly while every other
     // field probed spellings, and it cost us the signal: 22 profiles enriched
@@ -277,13 +293,14 @@ export async function linkedInProfile(profileUrl: string, source = 'network-add-
     // four different key names. It is the hub term in the ranker, so it is
     // parsed as defensively as everything else on this row.
     followerCount: parseCount(d.followers) ?? parseCount(d.followerCount) ?? parseCount(d.followersCount) ?? parseCount(d.followersCountText),
-    isInfluencer: d.isInfluencer === true,
-    isCreator: d.isCreator === true,
+    isInfluencer: d.isInfluencer === true || d.influencer === true,
+    isCreator: d.isCreator === true || d.creator === true,
     recommendationsReceived: parseCount(d.totalRecommendationsReceived),
     experienceCount: parseCount(d.experiencesCount) ?? (positions.length || undefined),
     experience: positions,
     skills: (Array.isArray(d.skills) ? d.skills : [])
-      .map((s: unknown) => (typeof s === 'string' ? s : str((s as Record<string, unknown>)?.title)))
+      .map((s: unknown) => (typeof s === 'string' ? s
+        : str((s as Record<string, unknown>)?.title) || str((s as Record<string, unknown>)?.name)))
       .filter((s: string | undefined): s is string => Boolean(s))
       .slice(0, 12),
     raw: d,
