@@ -7,6 +7,10 @@ moved here keep their body verbatim under a Historical banner.
 
 ## 2026-10-02
 
+- reconciled at `38921e53`: four non-steward commits since `fcfd1054`. NOW.md gained the Plausible ruling for mindmake.co and the semantic floor change; `docs/DATABASE.md` already carried the new band, checked against the migration. The canon block in `AGENTS.md` was synced by the harness and left alone.
+- moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
+  - 2026-09-07 **People: one graph, three doors, a Hunt lane** (`1410ae8c`). "Process my verdicts" fires a repository dispatch on the job-search tool so a run starts within a minute.
+  - 2026-09-07 **Subscriptions read as stale** (`e960bb4f`). Why: the customers ledger had not been written since 17 July because a nightly n8n reconciliation had errored on every run after an account key expired, and the header still looked fresh.
 - moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
   2026-09-07 **n8n git and cloud parity rebuilt, Kai retired, secret guard hardened** (#270). Why: git claimed to be the source of truth while 43 snapshots stood against 123 cloud workflows with 154 drift items, so an apply would have overwritten live definitions with stale ones.
 
