@@ -58,7 +58,7 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
   { prefix: 'site', label: 'mindmake.co', about: 'mindmake.co', host: 'mindmake.co', hostAliases: ['www.mindmake.co'],
     probeUrl: 'https://mindmake.co/', measurementId: 'G-SMXQH8E4CM', env: 'GA4_PROPERTY_MINDMAKE_SITE',
     venture: 'mindmake', touchpointSlug: 'mindmake', councilSlug: 'mindmake', posthogProduct: null,
-    plausibleSiteId: 'mindmake.co', repo: 'krishanraja/mindmake', sitemapUrl: 'https://mindmake.co/sitemap.xml',
+    plausibleSiteId: 'mindmake.co', plausible: 'declined', repo: 'krishanraja/mindmake', sitemapUrl: 'https://mindmake.co/sitemap.xml',
     rssUrl: null, substackArchiveUrl: null, jobs: ['fill_pilots'],
     goal: 'More senior leaders who fit the face ask for the free AI brief, and one of them books a pilot.',
     canon: { status: 'live' }, tagLiveAt: '2026-09-25T00:00:00Z', consentByDesign: true, neverPublishName: false },
