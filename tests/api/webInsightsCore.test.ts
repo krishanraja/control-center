@@ -33,7 +33,10 @@ const HOUR = 3_600_000
 const DAY = 24 * HOUR
 
 const P = (prefix: WebPrefix): WebProperty => webProperty(prefix) as WebProperty
-const SITE = P('site'), MYMU = P('mymu'), FULLTIME = P('fulltime'), LEGIBILITY = P('legibility')
+// SITE is the not-yet-ruled shape (no Plausible decision), so the rung-3 cases stay
+// covered after Krish ruled "GA is enough" for mindmake.co on 2026-10-02.
+const SITE: WebProperty = { ...P('site'), plausible: undefined }
+const MYMU = P('mymu'), FULLTIME = P('fulltime'), LEGIBILITY = P('legibility')
 
 /** Well past every tag's first 48 hours. */
 const LATER = '2026-10-10T13:20:00Z'
@@ -1123,14 +1126,15 @@ test('every detector kind fires on its fact and not on an unknown', () => {
 })
 
 test('plausible_ok also fires once the registry says declined', () => {
-  const orig = SITE.plausible
+  const live = P('site')
+  assert.equal(live.plausible, 'declined', 'Ruling (Krish, 2026-10-02): GA is enough for mindmake.co')
+  assert.equal(detectorFired(action({ detector: { kind: 'plausible_ok' } }), facts()), true)
   try {
-    ;(SITE as any).plausible = 'declined'
-    assert.equal(detectorFired(action({ detector: { kind: 'plausible_ok' } }), facts()), true)
+    ;(live as any).plausible = undefined
+    assert.equal(detectorFired(action({ detector: { kind: 'plausible_ok' } }), facts()), false)
   } finally {
-    ;(SITE as any).plausible = orig
+    ;(live as any).plausible = 'declined'
   }
-  assert.equal(detectorFired(action({ detector: { kind: 'plausible_ok' } }), facts()), false)
 })
 
 test('shared actions fire only when every member fires', () => {
