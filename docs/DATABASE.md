@@ -1136,7 +1136,7 @@ partial index on the browse default (tiers 1-3, real judgment, actual humans).
 
 ```
 Q = weighted_mean over the terms that ran (the QUESTION):
-    0.34 semantic       cosine, rescaled onto the measured band [0.30, 0.62]
+    0.34 semantic       cosine, rescaled onto the measured band [0.37, 0.62] (re-measured 2026-10-02 on the fact-based docs)
     0.16 lexical        ts_rank_cd, rescaled in-set, x coverage squared
     0.22 constraint     weighted partial credit, only when there are constraints
                         (`geo` matches the RESOLVED geo_code; `country` folds into it)
