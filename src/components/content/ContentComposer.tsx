@@ -280,7 +280,7 @@ function IdeaComposer({ ideaId, editorialSeries, narrow, onClose }: { ideaId: st
   return (
     <ComposerShell
       onClose={onClose}
-      eyebrow={idea.lane ? `${idea.lane.replace(/_/g, ' ')}${idea.lane_slot ? ` · ${idea.lane_slot}` : ''}` : undefined}
+      eyebrow={idea.lane ? `${idea.lane.replace(/_/g, ' ')}${idea.lane_slot ? ` · ${SUBCHANNELS.find(f => f.slug === idea.lane_slot)?.label ?? idea.lane_slot.replace(/_/g, ' ')}` : ''}` : undefined}
       title={<TitleField idea={idea} />}
       meta={
         <>
@@ -676,23 +676,35 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
               <button type="button" onClick={() => setSelection('')} aria-label="Clear selection" className="text-ink-faint active:text-ink-muted"><X size={13} /></button>
             </div>
           )}
-          <button
-            type="button" disabled={busy !== null} onClick={() => setAdjust(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-body font-medium border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40 active:bg-violet-500/30"
-          >
-            <SlidersHorizontal size={15} /> {selection ? 'Adjust selected passage' : 'Adjust the draft'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button" disabled={busy !== null} onClick={() => setAdjust(true)}
+              className="min-w-0 flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-body font-medium border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40 active:bg-violet-500/30"
+            >
+              <SlidersHorizontal size={15} /> {selection ? 'Adjust selected passage' : 'Adjust the draft'}
+            </button>
+            {/* Undo sits with the rewrite it undoes, so the tool row below
+                never grows past the screen when a rewrite lands. */}
+            {history.length > 0 && (
+              <button type="button" onClick={undo} aria-label="Undo"
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/12 text-ink-muted active:bg-white/[0.06]">
+                <RotateCcw size={16} />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* Secondary actions */}
-      <div className="px-3 pb-1 flex items-center gap-1.5 flex-shrink-0 text-ink-faint">
-        <MobileTool icon={<MessageSquare size={14} />} label="Cleo" onClick={() => setSheet('cleo')} />
-        <MobileTool icon={<Scissors size={14} />} label="Outputs" onClick={() => setSheet('cuts')} />
-        <MobileTool icon={<Paperclip size={14} />} label="Materials" onClick={() => setSheet('materials')} />
-        <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
-        <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
-        {history.length > 0 && !edit && <MobileTool icon={<RotateCcw size={14} />} label="Undo" onClick={undo} />}
+      {/* Equal cells, icon over label: at most six, so the row fits a 360px
+          screen whatever state the piece is in. It used to be a single line
+          of pills that ran 250px past the edge on a phone. */}
+      <div className="px-2 pb-1 flex items-stretch flex-shrink-0 text-ink-faint" data-testid="composer-tools">
+        <MobileTool icon={<MessageSquare size={16} />} label="Cleo" onClick={() => setSheet('cleo')} />
+        <MobileTool icon={<Scissors size={16} />} label="Outputs" onClick={() => setSheet('cuts')} />
+        <MobileTool icon={<Paperclip size={16} />} label="Materials" onClick={() => setSheet('materials')} />
+        <MobileTool icon={<Search size={16} />} label="Research" onClick={() => setSheet('research')} />
+        <MobileTool icon={<PenLine size={16} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
         {draft.trim() && (
           <button
             type="button"
@@ -700,12 +712,12 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
             disabled={!emDashes && !warns}
             aria-label={emDashes ? `Fix ${emDashes} em dash${emDashes === 1 ? '' : 'es'}`
               : warns ? `Fix ${warns} voice note${warns === 1 ? '' : 's'}` : 'Voice clean'}
-            className={`ml-auto flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-micro disabled:opacity-100 ${
-              emDashes ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
-                : warns ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-                  : 'border-white/10 text-ink-faint'}`}
+            className={`min-w-0 flex-1 flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-micro disabled:opacity-100 ${
+              emDashes ? 'bg-rose-500/10 text-rose-200'
+                : warns ? 'bg-amber-500/10 text-amber-200'
+                  : 'text-ink-faint'}`}
           >
-            <Check size={12} /> {emDashes ? `Fix ${emDashes}` : warns ? `Fix ${warns}` : 'voice ok'}
+            <Check size={16} /> <span className="leading-none">{emDashes ? `Fix ${emDashes}` : warns ? `Fix ${warns}` : 'Voice ok'}</span>
           </button>
         )}
       </div>
@@ -839,8 +851,8 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
 function MobileTool({ icon, label, onClick, active }: { icon: React.ReactNode; label: string; onClick: () => void; active?: boolean }) {
   return (
     <button type="button" onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-label press-effect ${active ? 'bg-white/[0.08] text-ink' : 'text-ink-faint active:bg-white/[0.06]'}`}>
-      {icon} {label}
+      className={`min-w-0 flex-1 flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-micro press-effect ${active ? 'bg-white/[0.08] text-ink' : 'text-ink-faint active:bg-white/[0.06]'}`}>
+      {icon}<span className="leading-none">{label}</span>
     </button>
   )
 }
@@ -2012,12 +2024,12 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
       </div>
 
       <div className={mobile
-        ? 'flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pt-2 pb-2 flex-shrink-0'
+        ? 'flex flex-wrap gap-2 pt-2 pb-2 flex-shrink-0'
         : 'flex flex-wrap gap-1 mt-2 mb-1.5'}>
         {quick.map(q => (
           <button key={q} type="button" disabled={busy} onClick={() => send(q)}
             className={mobile
-              ? 'whitespace-nowrap text-body px-3.5 py-2 rounded-full border border-white/12 bg-white/[0.04] text-ink-muted active:bg-white/[0.1] disabled:opacity-40 press-effect'
+              ? 'min-h-[40px] text-label px-3.5 py-2 rounded-full border border-white/12 bg-white/[0.04] text-ink-muted active:bg-white/[0.1] disabled:opacity-40 press-effect'
               : 'text-micro px-2 py-1 rounded-full border border-white/10 text-ink-faint hover:bg-white/[0.06] disabled:opacity-40'}>
             {q}
           </button>
