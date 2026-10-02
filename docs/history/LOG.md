@@ -5,6 +5,11 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-10-02
+
+- moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
+  2026-09-07 **n8n git and cloud parity rebuilt, Kai retired, secret guard hardened** (#270). Why: git claimed to be the source of truth while 43 snapshots stood against 123 cloud workflows with 154 drift items, so an apply would have overwritten live definitions with stale ones.
+
 ## 2026-09-24
 
 - reconciled at `eabae29c`: 23 non-steward commits since the last reconciliation (`71ea3bd6`). Most of the day's own work, the OpenRouter rescue provider (ADR-024), the runtime-reading model-routing guard and the mirror reconciliation it drove, the Events attend lane (ADR-025) and the content decide surface closing the judge-calibration loop, was already written into its own commit's docs (`AGENTS.md`'s mirror-state note, `docs/MODEL_ROUTING_AUDIT.md`, `docs/N8N-MIRROR-DRIFT-2026-08-27.md`, `scripts/n8n/README.md`), so no drift was found there. `NOW.md` re-headed to `eabae29c` with seven new bullets covering the work above plus a same-day CI outage (a duplicate `VITE_VIDEO_ENGINE_ENABLED` key had made every workflow run since 2026-09-23 create zero jobs) and a reader-facing copy fix on the rewritten subchannel mandates; the stale spend-cap "blocking the whole machine" line is corrected now that the OpenRouter rescue stands in for it, and a new "waiting on Krish" line records the rescue's own unfunded account. `AGENTS.md`'s CI section had drifted independently of this range: three guards added between 2026-09-23 and 2026-09-24 (`check-safe-dates`, `check-events-honesty`, `check-model-routing`) were missing from its guard list, and its e2e-spec count still said "five" against a `ci.yml` that has carried `home-noscroll.spec.ts` since 2026-09-20 and gained `events-lane.spec.ts` this range; both corrected. `docs/TESTING.md` carried the same two gaps (stale guard list and spec count) plus a missing row for four new specs (`decide-card`, `sunday-list`, `lane-ready`, `events-lane`); added.
