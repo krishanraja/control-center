@@ -165,6 +165,10 @@
   ],
   "crons": [
     {
+      "path": "/api/relationships/sync",
+      "schedule": "40 5 * * *"
+    },
+    {
       "path": "/api/discover-guest-scout",
       "schedule": "0 10 * * 1"
     },
@@ -266,6 +270,9 @@
     }
   ],
   "functions": {
+    "api/relationships/sync.ts": {
+      "maxDuration": 300
+    },
     "api/spend/ingest.ts": {
       "maxDuration": 300
     },

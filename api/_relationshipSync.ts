@@ -47,23 +47,28 @@ interface Tally {
 const later = (a?: string, b?: string) => (!a ? b : !b ? a : a > b ? a : b)
 const earlier = (a?: string, b?: string) => (!a ? b : !b ? a : a < b ? a : b)
 
-async function oauthToken(refresh: string): Promise<string | null> {
+async function oauthToken(refresh: string, onError: (e: string) => void): Promise<string | null> {
   const id = process.env.GOOGLE_OAUTH_CLIENT_ID
   const secret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
-  if (!id || !secret) return null
+  if (!id || !secret) { onError('GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET are not set'); return null }
   const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: id, client_secret: secret, refresh_token: refresh, grant_type: 'refresh_token' }),
   })
   const j: any = await r.json().catch(() => ({}))
-  return r.ok && j.access_token ? j.access_token : null
+  if (r.ok && j.access_token) return j.access_token
+  // Google's error code and description carry no secret and say what to fix
+  // (invalid_grant: the sign-in was revoked or expired; invalid_client: the
+  // Vercel keys do not match the client that issued the sign-in).
+  onError(`token refresh ${r.status}: ${[j.error, j.error_description].filter(Boolean).join(' - ') || 'no detail'}`)
+  return null
 }
 
 async function tokenFor(a: Account, scope: string, onError: (e: string) => void): Promise<string | null> {
   if (a.auth_kind === 'oauth') {
     if (!a.refresh_token) { onError('no refresh token: connect the account again'); return null }
-    return oauthToken(a.refresh_token)
+    return oauthToken(a.refresh_token, onError)
   }
   return googleAccessToken([scope], { subject: a.email, onError })
 }
