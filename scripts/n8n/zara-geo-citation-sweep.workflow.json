@@ -101,14 +101,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -120,10 +112,18 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify([$json]) }}"
+        "jsonBody": "={{ JSON.stringify([$json]) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "405aace1-e136-4930-bd83-8c08d6c7e1d7"
+      "id": "405aace1-e136-4930-bd83-8c08d6c7e1d7",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Heartbeat",
@@ -140,14 +140,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -159,10 +151,18 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify([{ workflow_id: 'zara-geo-citation-sweep', workflow_name: 'Zara | GEO Citation Sweep', agent_id: 'zara', status: 'success', outcome: 'probes:' + $items().length, outcome_count: $items().length, cost_estimate_usd: 0.15, api_calls_count: 8 }]) }}"
+        "jsonBody": "={{ JSON.stringify([{ workflow_id: 'zara-geo-citation-sweep', workflow_name: 'Zara | GEO Citation Sweep', agent_id: 'zara', status: 'success', outcome: 'probes:' + $items().length, outcome_count: $items().length, cost_estimate_usd: 0.15, api_calls_count: 8 }]) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "35d548ba-1ddb-4fd7-a8de-4c36d61ad506"
+      "id": "35d548ba-1ddb-4fd7-a8de-4c36d61ad506",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -224,7 +224,8 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "executionTimeout": 120
+    "executionTimeout": 120,
+    "availableInMCP": true
   },
   "staticData": {
     "node:Weekly Mon 15:30 UTC": {
