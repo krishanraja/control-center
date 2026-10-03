@@ -51,14 +51,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .limit(400)
     if (error) throw new Error(error.message)
 
-    const { data: known, error: kErr } = await supabase
-      .from('contacts').select('linkedin_url').not('linkedin_url', 'is', null)
-    if (kErr) throw new Error(kErr.message)
     const slugOf = (u: unknown) => {
       const m = /linkedin\.com\/(?:in|pub)\/([^/?#]+)/i.exec(String(u || ''))
       return m ? m[1].trim().toLowerCase() : null
     }
-    const haveSlugs = new Set((known || []).map((c: Record<string, unknown>) => slugOf(c.linkedin_url)).filter(Boolean))
+
+    // PostgREST returns 1,000 rows unless told otherwise, and 5,884 contacts
+    // carry a LinkedIn URL. Reading it in one go left five sixths of the
+    // exclusion set missing, so people who are already contacts looked like
+    // strangers. Paged, and the page size is asserted rather than assumed.
+    const haveSlugs = new Set<string>()
+    const PAGE = 1000
+    for (let from = 0; ; from += PAGE) {
+      const { data: page, error: kErr } = await supabase
+        .from('contacts').select('linkedin_url')
+        .not('linkedin_url', 'is', null)
+        .range(from, from + PAGE - 1)
+      if (kErr) throw new Error(kErr.message)
+      for (const c of (page || []) as Array<Record<string, unknown>>) {
+        const sl = slugOf(c.linkedin_url)
+        if (sl) haveSlugs.add(sl)
+      }
+      if (!page || page.length < PAGE) break
+    }
 
     const strangers = (rows || [])
       .filter((r: Record<string, unknown>) => !haveSlugs.has(slugOf(r.linkedin_url)))
@@ -75,6 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let spent = 0
     let created = 0
+    let joined = 0
     let noName = 0
     const failures: string[] = []
 
@@ -98,6 +114,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!name) { noName++; continue }
 
       const twoWay = Number(s.inbound_count || 0) > 0 && Number(s.outbound_count || 0) > 0
+
+      // Plenty of these people are already contacts with no LinkedIn URL on
+      // them, reached by email or imported from a roster. Matching on URL alone
+      // would have made a second Maggie Hulce rather than finding the first.
+      // An exact name match attaches the URL to the person who is already here,
+      // which is both the duplicate guard and the better outcome: it joins a
+      // LinkedIn identity to a mail one.
+      const { data: sameName } = await supabase
+        .from('contacts').select('id, linkedin_url, title, company')
+        .ilike('full_name', name).is('linkedin_url', null).limit(2)
+      if (sameName && sameName.length === 1) {
+        const existing = sameName[0] as Record<string, unknown>
+        const patch: Record<string, unknown> = { linkedin_url: url }
+        if (!String(existing.title || '').trim() && profile.title) patch.title = profile.title
+        if (!String(existing.company || '').trim() && profile.company) patch.company = profile.company
+        const { error: upErr } = await supabase.from('contacts').update(patch).eq('id', existing.id)
+        if (upErr) { failures.push(`${url}: ${upErr.message}`); continue }
+        joined++
+        continue
+      }
+      // Two people with the same name is not a match, it is a coin toss. Those
+      // get a new contact, and the duplicate is a person's call, not a guess.
+
       const { data: ins, error: iErr } = await supabase.from('contacts').insert({
         full_name: name,
         linkedin_url: url,
@@ -133,6 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: true,
       considered: strangers.length,
       created,
+      joined_to_existing: joined,
       no_name_returned: noName,
       spent_usd: Number(spent.toFixed(3)),
       budget_usd: budget,
