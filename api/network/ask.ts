@@ -38,6 +38,19 @@ const MODEL = SYNTHESIS_MODEL
 const CANDIDATE_POOL = 14
 const PROPOSE = 3
 
+/** The model is asked for plain words; this catches the slug it reaches for
+ *  anyway. "Send on linkedin_dm." is the sort of line that tells Krish the
+ *  thing was built for a database rather than for him. */
+function channelInWords(raw: string, fallback: string | null): string {
+  const t = raw.trim().toLowerCase().replace(/[_-]+/g, ' ')
+  if (!t) return fallback === 'linkedin' ? 'LinkedIn' : fallback || ''
+  if (/linkedin/.test(t)) return 'LinkedIn'
+  if (/mail/.test(t)) return 'email'
+  if (/twitter|^x$/.test(t)) return 'X'
+  if (/whatsapp/.test(t)) return 'WhatsApp'
+  return raw.trim()
+}
+
 const SYSTEM = `You help Krish Raja ask his own network for help, which is the thing he avoids.
 
 You get a NEED in his words and a numbered list of PEOPLE. Each person carries FACTS (title, company, past roles, skills, what they post about) and RELATIONSHIP (what the record proves: messages each way, meetings, how long since, who wrote last, which channel the relationship lives on).
@@ -49,7 +62,7 @@ The rules that matter:
 - "why_them" is one sentence on why THIS person can move THIS need, from the FACTS. Name the concrete thing: the role they held, the company they are at now, the thing they posted. Never "they have relevant experience".
 - "why_now" is one sentence from the RELATIONSHIP only, and it must be true of the numbers in front of you. "You have met four times and have not spoken in eight months" is a reason. "They would love to hear from you" is not. Where they wrote last and Krish never replied, say so: that is the strongest reason there is.
 - "ask" is the message, 40 to 90 words, in Krish's voice: plain, direct, warm, specific, no throat-clearing, no flattery, no em dashes. It makes ONE bounded request that can be answered in a single reply, and it names the thing he wants: an introduction to a named kind of person, a half hour, an opinion on a specific decision. An ask nobody can refuse cheaply is not a good ask. Open on the real thread between them where the RELATIONSHIP gives you one.
-- "channel" is where to send it, chosen from the relationship's home channel and what the record says is reachable. Never name a channel the person does not have.
+- "channel" is where to send it, in plain words a person would say: "LinkedIn", "email", "a reply to their last message". Never a slug like linkedin_dm, and never a channel the record does not show they have.
 - "give_back" is one short clause naming something Krish can genuinely offer this person: an introduction of his own, a look at something they are building, a slot on the podcast, what he is learning in the open. It must fit THIS person. Where nothing honest fits, return "".
 - "confidence" is low where the relationship is thin or the match is loose, and you say so in "why_them" rather than dressing it up. Three honest mediums beat one invented high.
 - Never invent a meeting, a reply, a shared project or a warmth the RELATIONSHIP does not show. The record is the only thing you know about these people.
@@ -201,7 +214,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         why_them: typeof a.why_them === 'string' ? a.why_them : '',
         why_now: typeof a.why_now === 'string' ? a.why_now : '',
         ask: typeof a.ask === 'string' ? a.ask : '',
-        channel: typeof a.channel === 'string' ? a.channel : (e?.home_channel || ''),
+        channel: channelInWords(typeof a.channel === 'string' ? a.channel : '', e?.home_channel ?? null),
         give_back: typeof a.give_back === 'string' ? a.give_back : '',
         confidence: a.confidence === 'high' || a.confidence === 'low' ? a.confidence : 'medium',
         // Returned so the card can show the proof rather than asking him to
