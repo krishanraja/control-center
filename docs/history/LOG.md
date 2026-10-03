@@ -7,6 +7,8 @@ moved here keep their body verbatim under a Historical banner.
 
 ## 2026-10-02
 
+- moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
+  2026-09-07 **Unified Content system** (PRs #274 to #278). Editorial radar with independent lenses, one output registry, approved ideas joined to Studio production.
 - reconciled at `38921e53`: four non-steward commits since `fcfd1054`. NOW.md gained the Plausible ruling for mindmake.co and the semantic floor change; `docs/DATABASE.md` already carried the new band, checked against the migration. The canon block in `AGENTS.md` was synced by the harness and left alone.
 - moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
   - 2026-09-07 **People: one graph, three doors, a Hunt lane** (`1410ae8c`). "Process my verdicts" fires a repository dispatch on the job-search tool so a run starts within a minute.
