@@ -68,11 +68,41 @@ async function tokenFor(a: Account, scope: string, onError: (e: string) => void)
   return googleAccessToken([scope], { subject: a.email, onError })
 }
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+// Gmail allows 250 quota units per user per second and messages.get costs 5,
+// so 50 reads a second is the ceiling. Starts are spaced to stay near 30.
+const MIN_GAP_MS = 33
+let nextSlot = 0
+async function pace(): Promise<void> {
+  const now = Date.now()
+  const at = Math.max(now, nextSlot)
+  nextSlot = at + MIN_GAP_MS
+  if (at > now) await sleep(at - now)
+}
+
+const RATE_LIMITED = /rateLimitExceeded|userRateLimitExceeded|Quota exceeded|RESOURCE_EXHAUSTED/i
+
+/** GET with backoff on rate limits. Google reports a per-user limit as 403,
+ *  not only 429, so both are retried when the body says so. */
 async function gget(url: string, token: string): Promise<any> {
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-  if (r.status === 429) throw new Error('rate_limited')
-  if (!r.ok) throw new Error(`google ${r.status}: ${(await r.text()).slice(0, 200)}`)
-  return r.json()
+  for (let attempt = 0; ; attempt++) {
+    await pace()
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (r.ok) return r.json()
+    const body = await r.text()
+    const limited = r.status === 429 || (r.status === 403 && RATE_LIMITED.test(body))
+    if (!limited || attempt >= 5) throw new GoogleError(r.status, body.slice(0, 200))
+    const after = Number(r.headers.get('retry-after'))
+    await sleep(Number.isFinite(after) && after > 0 ? after * 1000 : Math.min(32_000, 1000 * 2 ** attempt))
+  }
+}
+
+/** The run's time budget ended mid-window; the window is retried next run. */
+class OutOfTime extends Error {}
+
+class GoogleError extends Error {
+  constructor(readonly status: number, body: string) { super(`google ${status}: ${body}`) }
 }
 
 async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Promise<R[]> {
@@ -85,7 +115,7 @@ async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): 
 }
 
 /** Count one window of mail [from, to). Returns tallies keyed by address. */
-async function tallyMailWindow(token: string, fromIso: string, toIso: string, tallies: Map<string, Tally>): Promise<number> {
+async function tallyMailWindow(token: string, fromIso: string, toIso: string, tallies: Map<string, Tally>, deadline = Infinity): Promise<number> {
   const after = Math.floor(Date.parse(fromIso) / 1000)
   const before = Math.floor(Date.parse(toIso) / 1000)
   const ids: string[] = []
@@ -98,11 +128,18 @@ async function tallyMailWindow(token: string, fromIso: string, toIso: string, ta
   } while (page && ids.length < 5000)
 
   const hdrQs = MAIL_HEADERS.map(h => `metadataHeaders=${encodeURIComponent(h)}`).join('&')
-  await mapLimit(ids, 10, async id => {
+  // A message that cannot be read fails the whole window, so the cursor never
+  // moves past mail it did not count. Only a message deleted since the list
+  // call (404) is skipped.
+  await mapLimit(ids, 6, async id => {
+    if (Date.now() > deadline) throw new OutOfTime()
     let m: any
     try {
       m = await gget(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&${hdrQs}`, token)
-    } catch { return }
+    } catch (e) {
+      if (e instanceof GoogleError && e.status === 404) return
+      throw e
+    }
     const h: Record<string, string> = {}
     for (const x of m.payload?.headers || []) h[String(x.name).toLowerCase()] = String(x.value)
     if (h['list-unsubscribe'] || /bulk|list|junk/i.test(h['precedence'] || '') || (h['auto-submitted'] && h['auto-submitted'] !== 'no')) return
@@ -163,6 +200,24 @@ async function tallyCalendarWindow(token: string, fromIso: string, toIso: string
   return n
 }
 
+const errText = (e: unknown) => String((e as Error)?.message || e).slice(0, 200)
+
+/** Add one finished window's tallies into the run's. */
+function fold(into: Map<string, Tally>, win: Map<string, Tally>): void {
+  for (const [email, w] of win) {
+    const t = into.get(email)
+    if (!t) { into.set(email, w); continue }
+    t.inbound_count += w.inbound_count
+    t.outbound_count += w.outbound_count
+    t.meeting_count += w.meeting_count
+    t.display_name = w.display_name || t.display_name
+    t.first_at = earlier(t.first_at, w.first_at)
+    t.last_at = later(t.last_at, w.last_at)
+    t.last_inbound_at = later(t.last_inbound_at, w.last_inbound_at)
+    t.last_outbound_at = later(t.last_outbound_at, w.last_outbound_at)
+  }
+}
+
 async function merge(channel: string, account: string, tallies: Map<string, Tally>): Promise<void> {
   const rows = [...tallies.entries()].map(([email, t]) => ({ email_normalized: email, channel, account, ...t }))
   for (let i = 0; i < rows.length; i += 500) {
@@ -201,7 +256,13 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     const tallies = new Map<string, Tally>()
     while (Date.now() - t0 < budget * 0.7 && cursor < new Date().toISOString()) {
       const to = new Date(Math.min(Date.parse(cursor) + windowMs, Date.now())).toISOString()
-      messages += await tallyMailWindow(mailToken, cursor, to, tallies)
+      const win = new Map<string, Tally>()
+      try { messages += await tallyMailWindow(mailToken, cursor, to, win, t0 + budget) }
+      catch (e) {
+        if (e instanceof OutOfTime) { res.caughtUp = false; break }
+        res.error = `mail: ${errText(e)}`; res.caughtUp = false; break
+      }
+      fold(tallies, win)
       cursor = to
     }
     await merge('email', email, tallies)
@@ -219,7 +280,10 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     const tallies = new Map<string, Tally>()
     while (Date.now() - t0 < budget && cursor < new Date().toISOString()) {
       const to = new Date(Math.min(Date.parse(cursor) + windowMs * 8, Date.now())).toISOString()
-      events += await tallyCalendarWindow(calToken, cursor, to, tallies)
+      const win = new Map<string, Tally>()
+      try { events += await tallyCalendarWindow(calToken, cursor, to, win) }
+      catch (e) { res.error = [res.error, `calendar: ${errText(e)}`].filter(Boolean).join('; '); res.caughtUp = false; break }
+      fold(tallies, win)
       cursor = to
     }
     await merge('calendar', email, tallies)
