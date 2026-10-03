@@ -410,7 +410,15 @@ async function main() {
       tier_weight: int(r.tier_weight) ?? 0,
       priority: num(r.priority),
       fit: num(r.fit),
-      warmth: int(r.warmth),
+      // This file asserts a warmth without ever seeing a mailbox, so it writes
+      // the claim whole and ranks a capped copy. Only
+      // refresh_relationship_rollup(), which reads mail and calendar, may
+      // write a warmth above 50 or mark one 'measured'. Writing the raw claim
+      // into `warmth` is what put a guessed 100 above people Krish emails
+      // weekly until 2026-10-03.
+      warmth: int(r.warmth) === null ? null : Math.min(int(r.warmth) as number, 50),
+      warmth_claimed: int(r.warmth),
+      warmth_source: 'inferred',
       confidence: r.confidence || 'low',
       intel_method: r.intel_method || 'rules_v1',
       evidence: jsonArray(r.evidence),
