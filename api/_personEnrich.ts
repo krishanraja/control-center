@@ -9,6 +9,11 @@ import {
   summarise, type OutcomeSummary, type ProviderOutcome,
 } from './_quota.js'
 import { SENIORITY, BEST_CHANNELS, VENTURE_BRIEF } from './_networkQuery.js'
+import { CHEAP_LANE_CANDIDATES } from './_models.js'
+import {
+  laneState, serveLane, callLaneModel, recordLaneRow, maybeDecide, maybeDemote, errorCode, shadowPaused, DRIFT_RATE,
+  type LaneRow, type Agreement,
+} from './_cheapLane.js'
 
 // Structured person enrichment.
 //
@@ -367,7 +372,7 @@ function mergeFacts(
 
 // ── Judgment ────────────────────────────────────────────────────────────────
 
-function factsBlock(f: PersonFacts): string {
+export function factsBlock(f: PersonFacts): string {
   return [
     f.title ? `Title: ${f.title}` : '',
     f.company ? `Company: ${f.company}${f.industry ? ` (${f.industry})` : ''}` : '',
@@ -390,7 +395,7 @@ function factsBlock(f: PersonFacts): string {
 // the operator needs media buys"). And it asked for its own seniority and
 // channel words, which the planner never emits, so every enriched person
 // scored zero on any seniority constraint (migration 20260927160000).
-const JUDGMENT_SYSTEM = `You assess a person for Krish Raja's professional network and return ONLY JSON.
+export const JUDGMENT_SYSTEM = `You assess a person for Krish Raja's professional network and return ONLY JSON.
 
 The operator is Krish Raja. ${VENTURE_BRIEF}
 Judge the person against these ventures only.
@@ -424,7 +429,7 @@ Rules:
 - "none" is a valid and useful roles answer.
 - Return the JSON object only, with no prose, no markdown fence.`
 
-function parseJudgment(raw: string): Judgment | null {
+export function parseJudgment(raw: string): Judgment | null {
   const text = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
@@ -452,6 +457,138 @@ function parseJudgment(raw: string): Judgment | null {
         : undefined,
     }
   } catch { return null }
+}
+
+// ── The cheap lane: what "agrees with Claude" means for a judgment ───────────
+
+/**
+ * The fields that decide who he is shown. The network planner filters and
+ * ranks on exactly these (api/_networkQuery.ts names them as its controlled
+ * vocabularies), so a model that agrees on them leaves the network ranked the
+ * same way. who, why_them and hook are prose and are read by him, not ranked
+ * on; they are not part of the bar.
+ */
+export const RANKING_FIELDS = ['roles', 'seniority', 'best_channel', 'confidence', 'sells_competing_services'] as const
+
+/** Roles are a set, so they agree when they share at least half of their union. */
+function rolesAgree(a: string[], b: string[]): boolean {
+  const A = new Set(a.length ? a : ['none'])
+  const B = new Set(b.length ? b : ['none'])
+  const shared = [...A].filter(x => B.has(x)).length
+  const union = new Set([...A, ...B]).size
+  return union === 0 || shared / union >= 0.5
+}
+
+/** Field by field: does `b` agree with `a`? Pure, and the definition the bar uses. */
+export function judgmentAgreement(a: Judgment, b: Judgment): Agreement {
+  return {
+    roles: rolesAgree(a.roles, b.roles),
+    seniority: (a.seniority ?? null) === (b.seniority ?? null),
+    best_channel: (a.best_channel ?? null) === (b.best_channel ?? null),
+    confidence: a.confidence === b.confidence,
+    // Undefined is "the model did not answer", which the route writes as no
+    // verdict; it is compared as false, the same as the deterministic default.
+    sells_competing_services: Boolean(a.sells_competing_services) === Boolean(b.sells_competing_services),
+  }
+}
+
+const JUDGE_MAX_TOKENS = 900
+
+/** Claude's judgment, as it has always been asked for. */
+function claudeJudgment(evidence: string, timeoutMs: number): Promise<string> {
+  return callClaude({
+    agent: 'enrich-person',
+    // Bulk: 3,284 calls on 2026-09-15 alone. An enrichment backfill is not
+    // worth rescuing with a second provider; it can wait for the reset.
+    fallback: false,
+    system: JUDGMENT_SYSTEM,
+    user: evidence,
+    maxTokens: JUDGE_MAX_TOKENS,
+    temperature: 0.3,
+    timeoutMs,
+  })
+}
+
+/** A failed judgment call as an outcome, classified the way the route alerts on. */
+function judgmentFailure(api: string, e: unknown): ProviderOutcome {
+  const err = e as Error & { status?: number; body?: string }
+  if (err.status) return outcomeFrom(api, err.status, err.body || err.message)
+  const lane = /^lane_(\d{3}):/.exec(String(err?.message || ''))
+  if (lane) return outcomeFrom(api, Number(lane[1]), String(err.message))
+  return errored(api, String(err?.message || e))
+}
+
+/**
+ * The judgment for one person, from whichever model the lane says serves it.
+ *
+ * shadow / off: Claude serves, exactly as before. In shadow every candidate
+ *   also answers the same evidence, and Claude answers a second time, so the
+ *   row records how each candidate agreed with Claude against how far Claude
+ *   agrees with itself. The candidates run beside Claude, not after it, so
+ *   shadowing adds no time to an enrichment beyond the slowest call.
+ * on: the lane serves; DRIFT_RATE of calls also ask Claude and log a drift row.
+ */
+async function judge(evidence: string, timeoutMs: number): Promise<{ judgment: Judgment | null; outcome: ProviderOutcome }> {
+  const lane = await laneState('enrich-person')
+
+  if (lane.mode === 'on' && lane.primary) {
+    const drift = Math.random() < DRIFT_RATE
+    const [served, claudeRaw] = await Promise.all([
+      serveLane({
+        agent: 'enrich-person', state: lane, system: JUDGMENT_SYSTEM, user: evidence,
+        maxTokens: JUDGE_MAX_TOKENS, timeoutMs, parse: parseJudgment,
+      }).then(v => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e })),
+      drift ? claudeJudgment(evidence, timeoutMs).catch(() => null) : Promise.resolve(null),
+    ])
+    const claude = claudeRaw ? parseJudgment(claudeRaw) : null
+    if (drift && claude) {
+      const row: LaneRow = {
+        v: 1, agent: 'enrich-person', claude_self: null,
+        candidates: {
+          [lane.primary]: served.ok
+            ? { ok: true, agree: judgmentAgreement(claude, served.v.value), usd: served.v.answer.usd, ms: served.v.answer.ms }
+            : { ok: false, error: errorCode('e' in served ? served.e : null) },
+        },
+      }
+      await recordLaneRow('drift', row)
+      await maybeDemote('enrich-person', RANKING_FIELDS)
+    }
+    if (served.ok) return { judgment: served.v.value, outcome: ok('openrouter') }
+    return { judgment: null, outcome: judgmentFailure('openrouter', 'e' in served ? served.e : null) }
+  }
+
+  // Resting after OpenRouter refused every candidate on account grounds:
+  // Claude serves alone until the window passes (ACCOUNT_PAUSE_MS).
+  const shadow = lane.mode === 'shadow' && !shadowPaused('enrich-person')
+  const candidates = shadow ? CHEAP_LANE_CANDIDATES : []
+  const [primary, second, ...answers] = await Promise.allSettled([
+    claudeJudgment(evidence, timeoutMs),
+    shadow ? claudeJudgment(evidence, timeoutMs) : Promise.resolve(''),
+    ...candidates.map(model => callLaneModel({
+      agent: 'enrich-person', model, system: JUDGMENT_SYSTEM, user: evidence,
+      maxTokens: JUDGE_MAX_TOKENS, timeoutMs,
+    })),
+  ])
+
+  if (primary.status === 'rejected') return { judgment: null, outcome: judgmentFailure('anthropic', primary.reason) }
+  const judgment = parseJudgment(primary.value)
+  if (!judgment) return { judgment: null, outcome: empty('anthropic', 'judgment JSON did not parse') }
+
+  if (shadow) {
+    const again = second.status === 'fulfilled' ? parseJudgment(second.value) : null
+    const row: LaneRow = { v: 1, agent: 'enrich-person', claude_self: again ? judgmentAgreement(judgment, again) : null, candidates: {} }
+    candidates.forEach((model, i) => {
+      const a = answers[i]
+      if (a.status === 'rejected') { row.candidates[model] = { ok: false, error: errorCode(a.reason) }; return }
+      const theirs = parseJudgment(a.value.text)
+      row.candidates[model] = theirs
+        ? { ok: true, agree: judgmentAgreement(judgment, theirs), usd: a.value.usd, ms: a.value.ms }
+        : { ok: false, error: 'unparseable', usd: a.value.usd, ms: a.value.ms }
+    })
+    await recordLaneRow('shadow', row)
+    await maybeDecide('enrich-person', RANKING_FIELDS)
+  }
+  return { judgment, outcome: ok('anthropic') }
 }
 
 // ── The run ─────────────────────────────────────────────────────────────────
@@ -526,27 +663,12 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
       factsBlock(facts),
       web.text ? `WEB FINDINGS:\n${web.text}` : '',
     ].filter(Boolean).join('\n')
-    try {
-      const raw = await callClaude({
-        agent: 'enrich-person',
-        // Bulk: 3,284 calls on 2026-09-15 alone. An enrichment backfill is not
-        // worth rescuing with a second provider; it can wait for the reset.
-        fallback: false,
-        system: JUDGMENT_SYSTEM,
-        user: evidence,
-        maxTokens: 900,
-        temperature: 0.3,
-        timeoutMs: opts.timeoutMs ?? 25000,
-      })
-      judgment = parseJudgment(raw)
-      if (!judgment) outcomes.push(empty('anthropic', 'judgment JSON did not parse'))
-      else outcomes.push(ok('anthropic'))
-    } catch (e: unknown) {
-      const err = e as Error & { status?: number; body?: string }
-      outcomes.push(err.status
-        ? outcomeFrom('anthropic', err.status, err.body || err.message)
-        : errored('anthropic', String(err?.message || e)))
-    }
+    // Which model answers is the cheap lane's call (ADR-028). The outcome is
+    // classified the same way whichever served, so a credit wall at OpenRouter
+    // blocks and alerts exactly as one at Anthropic does.
+    const judged = await judge(evidence, opts.timeoutMs ?? 25000)
+    judgment = judged.judgment
+    outcomes.push(judged.outcome)
   }
 
   // ── Intent: patterns first, then judgment ────────────────────────────────

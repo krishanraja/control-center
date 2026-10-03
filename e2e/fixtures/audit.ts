@@ -152,7 +152,7 @@ function mondayOf(offsetWeeks = 0): string {
   return d.toISOString().slice(0, 10)
 }
 
-const goal = (id: string, title: string, horizon: 'os' | 'weekly', extra: Record<string, unknown> = {}) => ({
+export const goal = (id: string, title: string, horizon: 'os' | 'weekly', extra: Record<string, unknown> = {}) => ({
   id, title, horizon,
   parent_id: horizon === 'weekly' ? 'os-1' : null,
   venture: 'mindmake',
@@ -485,6 +485,78 @@ export function auditTables(): Record<string, unknown[]> {
   }
 }
 
+/**
+ * Today's move (ADR-028), populated, so every gate that walks Home measures
+ * it with the proposal in its first slot: the longest thing Today can hold.
+ * Three moves, a person on each, a draft on the second, an ask on the first,
+ * and what the first move survived. Every person here is synthetic.
+ */
+const FIXTURE_PERSON = (id: string, name: string, title: string, company: string) => ({
+  contact_id: id, name, title, company, best_channel: 'email', email: `${id}@fixture.test`, linkedin_url: null,
+})
+export const DAILY_MOVE = {
+  ok: true,
+  last_attempt_at: new Date().toISOString(),
+  last_status: 'complete',
+  read: {
+    id: 'daily-fixture', created_at: new Date().toISOString(), source: 'daily', goal_id: null, note_kind: null,
+    week_start: '2026-09-28', status: 'complete', last_attempt_at: new Date().toISOString(),
+    headline: 'No buyer call is booked this week and the stop rule reads on Monday.',
+    read_date: '2026-10-03',
+    answered: {},
+    read: {
+      v: 1, shape: 'daily',
+      headline: { kind: 'headline', text: 'No buyer call is booked this week and the stop rule reads on Monday, so the next move is a buyer, not more preparation.', rule: 'slow_pay', rule_n: 3, rule_chip: 'Slow to pay' },
+      heard: null, lenses: [], reframe: null, objectives: [], progress: [],
+      next_steps: [
+        {
+          kind: 'next_step', suggestion_id: 'sug-move-1', goal_id: null, job: 'fill_pilots',
+          text: 'Ask the operating chief who is deciding on AI this quarter for a 20-minute call about buying the three-week pilot, before the stop rule reads.',
+          why: 'A call with someone who can buy is what the stop rule counts, and none is booked this week.',
+          contact_id: 'c-fixture-riley', pilot_deal_id: null,
+          person: FIXTURE_PERSON('c-fixture-riley', 'Riley Stone', 'Chief operating officer', 'Fixture Media Holdings'),
+        },
+        {
+          kind: 'next_step', suggestion_id: 'sug-move-2', goal_id: null, job: 'fill_pilots',
+          text: 'Send the drafted introduction ask to the agency partnerships lead who replied in August.',
+          why: 'It has waited 16 days and needs no more work.',
+          contact_id: 'c-fixture-dana', pilot_deal_id: 'deal-fixture-1',
+          person: FIXTURE_PERSON('c-fixture-dana', 'Dana Clark', 'Agency partnerships lead', 'Northwind Ads'),
+          draft_url: 'https://mail.google.com/mail/u/0/#drafts?compose=fixture',
+        },
+        {
+          kind: 'next_step', suggestion_id: 'sug-move-3', goal_id: null, job: 'fill_pilots',
+          text: 'Ask a peer who sells to the same buyers which two leaders should see the pilot first.',
+          why: 'A named introduction gets a reply sooner than a cold approach.',
+          contact_id: 'c-fixture-jordan', pilot_deal_id: null,
+          person: FIXTURE_PERSON('c-fixture-jordan', 'Jordan Pike', 'Partner', 'Fixture Advisory'),
+        },
+      ],
+      asks: [{
+        kind: 'ask', suggestion_id: 'sug-ask-1',
+        to: { kind: 'named', person: FIXTURE_PERSON('c-fixture-riley', 'Riley Stone', 'Chief operating officer', 'Fixture Media Holdings') },
+        line: 'Would you take a short call about the pilot this week?',
+        message: 'I am running a paid three-week pilot that shows a leader where they stand on AI and what to do first.\nWould you be willing to take a 20-minute call this week to see if it fits?\nIf it is not a fit, please say so.',
+        why: 'Riley is deciding on AI this quarter.',
+        ladder: { level: 6, request: 'A short call', feared: 'They say no', learning: 'A no is about this request, not about you.' },
+        lens: 'sell_first', job: 'fill_pilots', job_note: null,
+      }],
+      worry: null, kill: null, learning: null,
+      close: { kind: 'close', stop: 'By tonight, the call is asked for.' },
+      challenge: {
+        verdict: 'kept',
+        objection: 'The draft to the agency lead is warmer and already written, and an introduction still adds a step before reaching someone who can buy.',
+        by: 'A second strategist (GPT-6.1 Sol)',
+        why: 'A call with a buyer counts toward the stop rule and an introduction does not.',
+      },
+    },
+  },
+}
+
+/** The daily move route: GET /api/strategist?daily=today. A predicate, not a
+ *  glob, because `?` in a Playwright glob is a wildcard. */
+export const isDailyMoveRead = (url: URL) => url.pathname === '/api/strategist' && url.searchParams.get('daily') === 'today'
+
 function tableOf(url: string): string {
   const m = url.match(/\/rest\/v1\/([a-z_]+)/)
   return m ? m[1] : ''
@@ -509,6 +581,7 @@ export async function mockAudit(page: Page, tables = auditTables()) {
       { code: 'US', name: 'United States', n: 980, featured: true },
     ] } }))
   await page.route('**/api/goals/ladder*', (r: Route) => r.fulfill({ json: GOAL_LADDER }))
+  await page.route(isDailyMoveRead, (r: Route) => r.fulfill({ json: DAILY_MOVE }))
   await page.route('**/api/objectives*', (r: Route) => r.fulfill({ json: GOAL_LADDER }))
   await page.route('**/api/scorecard*', (r: Route) => r.fulfill({ json: SCORECARD }))
   await page.route('**/api/pilot/ships*', (r: Route) => r.fulfill({ json: SHIPS }))

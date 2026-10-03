@@ -38,6 +38,46 @@ export const JUDGE_MODEL = 'claude-haiku-4-5'
 /** The investigation ladder — the one deliberate opus-tier spend. */
 export const LADDER_MODEL = 'claude-opus-4-8'
 
+/**
+ * The most capable Claude model. Nothing runs on it today.
+ *
+ * It wrote the daily move for one morning. On 2026-10-03 Krish asked whether
+ * it was worth its cost on the API, and the measured answer was about $8 to $20
+ * a month for a gain nothing had shown, so the move went back to Sonnet. It is
+ * kept callable for the day a read earns it: it always thinks (an explicit
+ * `{type:'disabled'}` is a 400), takes no sampling parameters, can decline
+ * through its safety classifiers with a 200 and stop_reason "refusal", is
+ * priced, and is rescued by itself. thinkingParam, NO_SAMPLING_MODELS,
+ * callClaude's refusalFallback and understudyFor handle each of those.
+ */
+export const TOP_TIER_MODEL = 'claude-fable-5-1'
+
+/**
+ * The daily move's decider: the one read a day that picks the single move he
+ * reacts to on Home (ADR-028).
+ *
+ * Sonnet 5 with adaptive thinking at high effort, the same tier as every other
+ * strategist read, so "never Opus" holds without an exception. The second
+ * opinion comes from another lab (DAILY_MOVE_CHALLENGER_MODEL), which is where
+ * a cross-check earns its keep. Measured on the 2026-10-03 dry run's token
+ * counts, the read and its challenge cost about $0.07 a day.
+ *
+ * It moves up a tier on evidence, not on instinct: if he sets aside more than
+ * half of the first moves over two weeks (the bank holds every verdict), try
+ * TOP_TIER_MODEL here and compare. scripts/modelRoutePolicy.mts pins this
+ * value, so the change is made on purpose or not at all.
+ */
+export const DAILY_MOVE_MODEL = 'claude-sonnet-5'
+
+/**
+ * The daily move's challenger: a model from another lab that reads the same
+ * state, argues the strongest case against the decider's pick, and may point
+ * at a runner-up. Different labs miss different things, which is the whole
+ * reason to pay a second provider for one call a day. An OpenRouter slug, so
+ * its cost arrives as OpenRouter's own figure and _prices.ts has no row for it.
+ */
+export const DAILY_MOVE_CHALLENGER_MODEL = 'openai/gpt-6.1-sol'
+
 /** OpenAI is used only where the implementation is OpenAI-specific. Nano is
  * for extraction/ranking; mini is for bounded structured generation. These
  * are API models and are billed as API usage.
@@ -82,6 +122,46 @@ export const OPENAI_GENERATION_MODEL = 'gpt-5.4-mini'
 export const RESCUE_JUDGE_MODEL = 'anthropic/claude-haiku-4.5'
 export const RESCUE_GENERATION_MODEL = 'anthropic/claude-sonnet-5'
 
+/** The top tier's understudy: the same Fable, like-for-like by the ruling
+ *  above. Without its own row the tier mapping would rescue Fable with Sonnet,
+ *  which is exactly the fallback that quietly gets worse. Keyed on the model,
+ *  never on a job: a job's model changes, and a job-keyed row once mapped every
+ *  Sonnet call in the fleet to Fable the moment the daily move moved to Sonnet. */
+export const RESCUE_TOP_TIER_MODEL = 'anthropic/claude-fable-5.1'
+
+/**
+ * The cheap lane (ADR-028): bulk work that leaves Anthropic, with the agents it
+ * may serve named one by one.
+ *
+ * CANDIDATES are measured, never assumed. The lane starts every agent in
+ * shadow: Claude still writes the answer that is kept, each candidate answers
+ * the same evidence beside it, and the agreement is logged. An agent moves only
+ * when a candidate clears the bar Krish set on 2026-10-03 (every reply parses,
+ * and the fields that drive ranking agree with Claude at least 90% of the time,
+ * or no worse than Claude agrees with itself). The serving order after that is
+ * the cheapest passing candidate first and the next passing one from a
+ * DIFFERENT provider as its fallback.
+ *
+ * Never Claude Sonnet or Opus as a fallback for these agents. A premium model
+ * standing in on a background job is the shape of the $1,800 Gemini bill that
+ * CFG-COST-001 exists to prevent; when the lane cannot answer, the job waits,
+ * the same as when Anthropic could not. Haiku is a candidate, not a fallback:
+ * it moves an agent only by passing the same bar as everything else.
+ *
+ * OpenRouter slugs. Their cost is read from OpenRouter's own usage.cost, which
+ * is why _prices.ts has no row for any of them (check-anthropic-fallback).
+ */
+export const CHEAP_LANE_CANDIDATES = [
+  'openai/gpt-6-luna',
+  'deepseek/deepseek-v4-flash',
+  'anthropic/claude-haiku-4.5',
+] as const
+export type CheapLaneCandidate = (typeof CHEAP_LANE_CANDIDATES)[number]
+
+/** The agents the cheap lane may serve. A new one is a decision, not a default. */
+export const CHEAP_LANE_AGENTS = ['enrich-person'] as const
+export type CheapLaneAgent = (typeof CHEAP_LANE_AGENTS)[number]
+
 // Prices are NOT here. api/_prices.ts owns them, and owns them better: an
 // unknown model prices at zero and says so through isPriced(), rather than a
 // guessed rate producing a plausible wrong number nobody questions. This module
@@ -123,8 +203,25 @@ export const PROXY_ALLOWED_MODELS = [
  */
 const THINKS_BY_DEFAULT = /^claude-(sonnet-5|opus-5|fable-5|mythos-5)/
 
+/**
+ * Models whose thinking cannot be switched off at all.
+ *
+ * The second half of the same trap. On Fable 5 and 5.1, Mythos 5.1, Opus 5.5
+ * and Sonnet 5.5, `{type:'disabled'}` is not "no thinking", it is a 400. Before
+ * this list, thinkingParam sent exactly that to any thinks-by-default model a
+ * caller asked not to think, so the first Fable call site would have failed on
+ * every request. For these models the field is omitted unless thinking is
+ * wanted, which runs adaptive thinking either way: a caller of one of them
+ * budgets max_tokens for thinking whatever it asks for.
+ */
+const ALWAYS_THINKS = /^claude-(fable-5|mythos-5|opus-5-5|sonnet-5-5)/
+
 export function thinksByDefault(model: string): boolean {
   return THINKS_BY_DEFAULT.test(model)
+}
+
+export function alwaysThinks(model: string): boolean {
+  return ALWAYS_THINKS.test(model)
 }
 
 /**
@@ -138,5 +235,31 @@ export function thinkingParam(model: string, want: boolean): Record<string, unkn
     // uses it, so omitting the field is both correct and a no-op.
     return {}
   }
+  if (alwaysThinks(model)) return want ? { thinking: { type: 'adaptive' } } : {}
   return { thinking: want ? { type: 'adaptive' } : { type: 'disabled' } }
+}
+
+/** How hard a thinking model works before it answers. GA, no beta header. */
+export type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
+/** Models that accept `output_config.effort`. Haiku 4.5 and Sonnet 4.5 reject it. */
+const TAKES_EFFORT = /^claude-(opus-4-[5-9]|opus-5|sonnet-4-6|sonnet-5|fable-5|mythos-5)/
+
+/** The effort field, or nothing when none was asked for or the model has none. */
+export function effortParam(model: string, effort?: Effort): Record<string, unknown> {
+  if (!effort || !TAKES_EFFORT.test(model)) return {}
+  return { output_config: { effort } }
+}
+
+/**
+ * Models that take the server-side refusal fallback (`fallbacks: "default"`,
+ * beta server-side-fallback-2026-07-01, Claude API only). A safety classifier
+ * can decline a request on these with an HTTP 200 and stop_reason "refusal";
+ * the fallback re-runs it on the model Anthropic routes that category to,
+ * inside the same call, instead of handing back nothing.
+ */
+const TAKES_REFUSAL_FALLBACK = /^claude-(fable-5-1|opus-5-5|opus-5(?!-)|sonnet-5-5)/
+
+export function takesRefusalFallback(model: string): boolean {
+  return TAKES_REFUSAL_FALLBACK.test(model)
 }

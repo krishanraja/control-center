@@ -30,7 +30,9 @@ const ROOTS = [
   // The strategist: its route, its pure half, its reads, the learning bank's
   // writer and verdict route, and the client that renders the drafts.
   'api/strategist.ts',
+  'api/strategist',
   'api/_strategist.ts',
+  'api/_dailyMove.ts',
   'api/_strategistGrounding.ts',
   'api/_suggestions.ts',
   'api/suggestions',

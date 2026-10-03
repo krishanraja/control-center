@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Check, Target } from '@/lib/icons'
+import { Check, Plus, Target } from '@/lib/icons'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -9,8 +9,17 @@ import { FocusedEditor } from '../shared/FocusedEditor'
 import { civilYmd } from '../../lib/civilDate'
 import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { jobLabel } from '../../content/jobs'
+import { openStrategist } from '../../lib/strategist'
+import type { DailyMoveState } from '../../hooks/useDailyMove'
+import { DailyMoveSlot } from './DailyMoveSlot'
 
 // TODAY, the third layer of the canon. Exactly 3 slots from daily_focus.
+//
+// The first slot proposes (ADR-028, 2026-10-03). When it is empty, today's
+// move from the strategist's morning read sits in it as a proposal he takes,
+// sets aside for the next one, or leaves for today. ADR-018 made Today manual
+// first; in the 25 days after, he set no slot by hand, so by his ruling the
+// machine now drafts the first and he edits. Slots 2 and 3 stay his.
 //
 // Manual first (2026-09-08): every slot is editable in place. Tap the text (or
 // an empty bar) and type; desktop edits inline, a phone opens the focused
@@ -32,7 +41,25 @@ import { jobLabel } from '../../content/jobs'
 
 type SlotN = 1 | 2 | 3
 
-export function TodayList({ compact = false }: { compact?: boolean } = {}) {
+/** Home's folds that reach Today (src/lib/homeFolds.ts). */
+export interface TodayFolds {
+  survived: boolean
+  why: boolean
+  slots: boolean
+  actions: boolean
+  card: boolean
+}
+
+const NO_FOLDS: TodayFolds = { survived: false, why: false, slots: false, actions: false, card: false }
+
+export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove }: {
+  compact?: boolean
+  /** Today's move, read once by Home, which also decides what it folds. */
+  daily: DailyMoveState
+  folds?: TodayFolds
+  /** Open the folded move by hand. */
+  onShowMove?: () => void
+}) {
   const { today, refresh } = useDailyFocus()
   const { canon } = useGoalCanon()
   const h = useHaptics()
@@ -60,9 +87,24 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
     }
   })
   const anySet = slots.some(s => s.text && s.text.trim())
+
+  // The move proposed in slot 1 when it is empty (ADR-028).
+  const proposalFor = (n: SlotN, has: boolean) =>
+    n === 1 && !has && editingN !== 1 && sheetN !== 1 ? daily.current : null
+  // An empty slot folds into the header's Add when Home is short of room,
+  // unless it is being written in or holds the proposal.
+  const folded = (n: SlotN, has: boolean) =>
+    folds.slots && !has && editingN !== n && !proposalFor(n, has)
+  const foldedSlots = slots.filter(t => folded(t.n, Boolean(t.text && t.text.trim()))).map(t => t.n)
+  const firstFolded: SlotN | null = foldedSlots.length ? foldedSlots[0] : null
   const doneCount = slots.filter(s => s.done).length
 
   const settle = (n: SlotN) => setOptimistic(prev => { const next = { ...prev }; delete next[n]; return next })
+  // The overlay comes off only once the row that carries the write is back.
+  // Dropped any sooner, the slot shows the old row for the length of the read:
+  // a taken move blinks empty before it reads as his. A failed read is the
+  // realtime path's to repair, never a reason to call a saved write failed.
+  const caughtUp = () => refresh().catch(() => undefined)
 
   const toggleComplete = async (n: SlotN) => {
     if (!today) return
@@ -76,7 +118,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         body: { date: today.focus_date, target_num: n },
         timeoutMs: 12_000,
       })
-      refresh()
+      await caughtUp()
       settle(n)
     } catch (e) {
       h.error()
@@ -98,7 +140,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         body: { date: today?.focus_date ?? civilYmd(new Date()), slot: n, text },
         timeoutMs: 12_000,
       })
-      refresh()
+      await caughtUp()
       settle(n)
       return true
     } catch (e) {
@@ -130,10 +172,22 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
 
   return (
     <section aria-label="Today" className="min-w-0">
-      <div className="flex items-baseline gap-2 mb-2">
+      <div className={`flex items-baseline gap-2 ${folds.actions ? 'mb-1' : 'mb-2'}`}>
         <Eyebrow>Today</Eyebrow>
         {anySet && (
           <span className="text-micro text-ink-faint tabular-nums font-mono">{doneCount}/3</span>
+        )}
+        {/* Folded empty slots (Home never scrolls): one Add opens the first. */}
+        {firstFolded !== null && (
+          <button
+            type="button"
+            onClick={() => startEdit(firstFolded)}
+            data-testid="today-add"
+            aria-label={`Set target ${firstFolded}`}
+            className="tap-44 ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
+          >
+            <Plus size={10} /> Add
+          </button>
         )}
       </div>
 
@@ -141,6 +195,34 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         {slots.map(t => {
           const has = Boolean(t.text && t.text.trim())
           const editing = editingN === t.n
+          if (folded(t.n, has)) return null
+          const proposal = proposalFor(t.n, has)
+          if (proposal) {
+            const { move, rank } = proposal
+            const asks = daily.wire?.read?.asks ?? []
+            const hasAsk = Boolean(move.contact_id) && asks.some(a => a.to.kind === 'named' && a.to.person.contact_id === move.contact_id)
+            return (
+              <DailyMoveSlot
+                key="daily-move"
+                move={move}
+                // The challenge was put to the read's first pick. Once that is
+                // set aside it describes a move that is no longer on screen.
+                challenge={rank === 1 ? daily.wire?.read?.challenge : null}
+                hasAsk={hasAsk}
+                compact={compact}
+                fold={{ survived: folds.survived, why: folds.why, actions: folds.actions, card: folds.card }}
+                onShow={onShowMove}
+                onTake={() => {
+                  void saveSlot(1, move.text).then(ok => {
+                    if (ok) daily.answer(move, 'accepted', { final: { text: move.text } })
+                  })
+                }}
+                onNotThis={(code, note) => daily.answer(move, 'rejected', { reason_code: code, note })}
+                onLater={() => daily.answer(move, 'deferred')}
+                onOpenAsk={() => openStrategist({ mode: 'daily' })}
+              />
+            )
+          }
           return (
             <li key={t.n} className="flex items-start gap-3">
               <button

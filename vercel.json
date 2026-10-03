@@ -267,6 +267,10 @@
     {
       "path": "/api/events/score",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/strategist/daily",
+      "schedule": "40 * * * *"
     }
   ],
   "functions": {
@@ -311,6 +315,9 @@
     },
     "api/pilot-deals/seed.ts": {
       "maxDuration": 60
+    },
+    "api/strategist/daily.ts": {
+      "maxDuration": 300
     }
   }
 }

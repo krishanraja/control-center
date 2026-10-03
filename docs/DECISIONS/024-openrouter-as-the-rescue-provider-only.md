@@ -1,6 +1,6 @@
 # ADR-024: OpenRouter is the rescue provider, and only the rescue provider
 
-- **Status:** Accepted
+- **Status:** Accepted. Extended by [ADR-028](./028-the-daily-move-and-the-cheap-lane.md) on 2026-10-03: OpenRouter also serves a named cheap lane, moved onto only by measured agreement, and the daily move's challenger.
 - **Date:** 2026-09-24
 
 ## Context

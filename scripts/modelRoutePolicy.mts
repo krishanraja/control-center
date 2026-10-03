@@ -84,6 +84,39 @@ export const API_ROUTES: RouteAssertion[] = [
     includes: ['SYNTHESIS_MODEL', 'think: true', "agent: 'goal-strategist'", 'maxDuration: 300'],
     excludes: ['LADDER_MODEL', 'claude-opus'],
   },
+  {
+    // The one read nobody asks for (ADR-028). Sonnet 5 writes it, like every
+    // strategist read, and a model from another lab argues against the first
+    // move. Krish weighed Fable for it on 2026-10-03 and ruled the cost was not
+    // worth an unproven gain, so this read is held off the top tier and the
+    // ladder alike, and moves up only by changing the pinned value below.
+    file: 'api/_dailyMove.ts',
+    rationale: 'the daily move is one Sonnet read a day plus a cross-lab challenge, never the top tier or the ladder',
+    includes: ['DAILY_MOVE_MODEL', "agent: 'daily-move'", 'refusalFallback: true', 'DAILY_MOVE_CHALLENGER_MODEL'],
+    excludes: ['LADDER_MODEL', 'TOP_TIER_MODEL', 'claude-fable', 'claude-opus'],
+  },
+  {
+    // The decider's model, pinned. A change here is a decision about money
+    // and has to be made in this file as well, where the reason sits beside it.
+    file: 'api/_models.ts',
+    rationale: 'the daily move stays on Sonnet 5 until his verdicts show the read needs a bigger model',
+    includes: ["export const DAILY_MOVE_MODEL = 'claude-sonnet-5'"],
+  },
+  {
+    file: 'api/strategist/daily.ts',
+    rationale: 'a daily read takes up to three model calls in series and must not be cut off by the default limit',
+    includes: ['writeDailyMove', 'maxDuration: 300', 'guardCronRoute'],
+  },
+  {
+    // Enrichment is bulk (3,284 judgments on 2026-09-15 alone). It moves off
+    // Claude only through the measured cheap lane (ADR-028): shadow first, a
+    // candidate promoted on agreement with Claude, demoted on drift. Claude
+    // stays the judgment of record until then, and is never its rescue.
+    file: 'api/_personEnrich.ts',
+    rationale: 'bulk judgment moves to a cheap lane only on measured agreement, and never falls back to Claude',
+    includes: ["laneState('enrich-person')", 'serveLane(', "recordLaneRow('shadow'", "recordLaneRow('drift'", 'fallback: false'],
+    excludes: ['SYNTHESIS_MODEL', 'LADDER_MODEL', 'DAILY_MOVE_MODEL'],
+  },
 ]
 
 /**

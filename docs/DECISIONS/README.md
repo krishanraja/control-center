@@ -31,16 +31,17 @@
 | [015](./015-mindmake-instrument-room.md) | Mindmake Instrument Room across Control Center and Video Engine | Accepted |
 | [016](./016-ikigai-v4-one-swing.md) | Ikigai v4 canon: the Control Center is the engine under one swing | Accepted |
 | [017](./017-portable-studio-session-gateway.md) | Portable Studio session gateway | Accepted |
-| [018](./018-weekly-cadence-and-manual-today.md) | Weekly cadence, one writer for tomorrow, and a manual-first Today | Accepted |
+| [018](./018-weekly-cadence-and-manual-today.md) | Weekly cadence, one writer for tomorrow, and a manual-first Today | Accepted; decision 4 overturned in part by ADR-028 |
 | [019](./019-content-engine-owns-the-control-plane.md) | The Content Engine repository owns the control plane | Accepted |
 | [020](./020-governed-harness-event-inbox.md) | Governed harness event inbox | Accepted |
 | [021](./021-linkedin-reach-is-unconditional.md) | LinkedIn reach is unconditional | Accepted |
 | [022](./022-enrichment-reaches-the-surface.md) | Enrichment reaches the surface by trigger, not by convention | Accepted |
 | [023](./023-the-room-is-a-pilot.md) | "The room" is a pilot | Accepted |
-| [024](./024-openrouter-as-the-rescue-provider-only.md) | OpenRouter is the rescue provider, and only the rescue provider | Accepted |
+| [024](./024-openrouter-as-the-rescue-provider-only.md) | OpenRouter is the rescue provider, and only the rescue provider | Accepted; extended by ADR-028 |
 | [025](./025-draw-is-peer-density.md) | Draw is peer density, not technical-leader density | Accepted |
-| [026](./026-the-strategist.md) | The strategist turns a goal or his own words into the plan | Accepted |
+| [026](./026-the-strategist.md) | The strategist turns a goal or his own words into the plan | Accepted; extended by ADR-028 |
 | [027](./027-the-question-decides.md) | In a network search, the question decides and the relationship adjusts | Accepted |
+| [028](./028-the-daily-move-and-the-cheap-lane.md) | The daily move, and a measured cheap lane | Accepted |
 
 ---
 

@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
+import { DAILY_MOVE, isDailyMoveRead } from './fixtures/audit'
 
 /**
  * The two-theme legibility contract.
@@ -90,6 +91,11 @@ async function mockApp(page: Page) {
 
   await page.route('**/api/pilot/timezone', (r: Route) =>
     r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
+
+  // Today's move (ADR-028) sits in Home's first slot with its own tinted
+  // controls. Without the read, the catch-all answers "no move" and the card
+  // is never painted, so neither theme would measure it.
+  await page.route(isDailyMoveRead, (r: Route) => r.fulfill({ json: DAILY_MOVE }))
 
   // Content reads the shift register; without it that route renders a bare
   // shell and the measurement below would have nothing to measure.
@@ -253,6 +259,9 @@ for (const theme of ['light', 'dark'] as const) {
         await mockApp(page)
         await page.goto(route.path, { waitUntil: 'networkidle' })
         await page.waitForTimeout(1200)
+
+        // The proposal is measured only if it painted.
+        if (route.name === 'home') await expect(page.getByTestId('daily-move-slot')).toBeVisible()
 
         // Content lands on an empty Queue. The shift cards are the surface worth
         // measuring, so step into the room that holds them.

@@ -28,7 +28,7 @@
 
 import {
   NOTE_MAX_CHARS, WARM_TIERS, incompleteSentence,
-  type StrategistGrounding, type StrategistCandidate, type CanonGoal, type ScoreKey, type ScoreValues,
+  type StrategistGrounding, type StrategistCandidate, type CanonGoal, type ScoreKey, type ScoreValues, type OpenDraft,
 } from './_strategist.js'
 import { describeDbError, type DbErrorLike } from './_suggestions.js'
 import type {
@@ -198,6 +198,7 @@ export interface StoredReadRow {
   sections?: unknown
   headline?: string | null
   last_attempt_at?: string | null
+  read_date?: string | null
 }
 
 /**
@@ -335,6 +336,8 @@ export interface GroundingParts {
   exclude_read_id: string | null
   network_counts: Record<string, number> | null
   search_lists: ReadonlyArray<ReadonlyArray<Record<string, unknown>>>
+  /** Daily reads only: drafted, unsent approaches. Null when unread. */
+  open_drafts?: OpenDraft[] | null
   /** How a stored timestamp is written for the model: a civil date in tz. */
   at: (iso: string) => string
 }
@@ -371,7 +374,33 @@ export function assembleGrounding(p: GroundingParts): StrategistGrounding {
     previous_read: p.subject.source === 'goal' ? previousReadFrom(p.previous_row, p.at) : null,
     network_counts: p.network_counts,
     candidates: candidatesFrom(p.search_lists),
+    ...(p.subject.source === 'daily' ? { open_drafts: p.open_drafts ?? null } : {}),
   }
+}
+
+/**
+ * Open drafts from pilot_deals rows joined to their contact, by an allowlist.
+ * The draft body and why_face never travel: the first is his to send, the
+ * second is a private judgement, and the read writes learning rows.
+ */
+export function openDraftsFrom(rows: ReadonlyArray<Record<string, unknown>> | null | undefined): OpenDraft[] {
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+  return (rows || [])
+    .filter(r => r && str(r.id))
+    .map(r => {
+      const c = (r.contacts && typeof r.contacts === 'object' ? r.contacts : {}) as Record<string, unknown>
+      return {
+        pilot_deal_id: String(r.id),
+        contact_id: str(r.contact_id),
+        full_name: str(c.full_name),
+        title: str(c.title),
+        company: str(c.company),
+        ask_kind: str(r.ask_kind),
+        ask_line: str(r.ask_line),
+        drafted_at: str(r.drafted_at),
+      }
+    })
+    .sort((a, b) => String(a.drafted_at || '').localeCompare(String(b.drafted_at || '')))
 }
 
 // ── The wire: contact details on for Krish, off for storage ──────────────────
@@ -439,7 +468,7 @@ export function readWireFrom(row: StoredReadRow, details: ContactDetails = {}): 
   return {
     id: String(row.id),
     created_at: String(row.created_at),
-    source: row.source === 'goal' ? 'goal' : 'note',
+    source: row.source === 'goal' ? 'goal' : row.source === 'daily' ? 'daily' : 'note',
     goal_id: row.goal_id ?? null,
     note_kind: NOTE_KINDS.includes(row.note_kind as NoteKind) ? row.note_kind as NoteKind : null,
     week_start: String(row.week_start),
@@ -447,6 +476,7 @@ export function readWireFrom(row: StoredReadRow, details: ContactDetails = {}): 
     headline: row.headline ?? null,
     read: complete ? withContacts(row.sections as StrategistRead, details) : null,
     last_attempt_at: String(row.last_attempt_at ?? row.created_at),
+    ...(row.source === 'daily' ? { read_date: row.read_date ?? null } : {}),
   }
 }
 
@@ -528,6 +558,7 @@ export async function loadGoalSubject(goalId: string): Promise<GoalSubjectResult
 export type GroundingInput =
   | { source: 'goal'; goal: GoalSubject }
   | { source: 'note'; kind: NoteKind; body: string }
+  | { source: 'daily' }
 
 export interface LoadedGrounding {
   grounding: StrategistGrounding
@@ -630,7 +661,16 @@ export async function loadStrategistGrounding(
     return r.error || typeof r.count !== 'number' ? null : r.count
   }
 
-  const [spineR, scoreR, dealsR, askR, weekR, closeR, prevR, counts, lists] = await Promise.all([
+  const draftsP = input.source === 'daily'
+    ? read<Array<Record<string, unknown>>>('open_drafts', supabase
+        .from('pilot_deals')
+        .select('id, contact_id, ask_kind, ask_line, drafted_at, contacts(full_name, title, company)')
+        .eq('state', 'drafted')
+        .order('drafted_at', { ascending: true })
+        .limit(10) as unknown as PromiseLike<Result<Array<Record<string, unknown>>>>)
+    : Promise.resolve({ data: null, error: null } as Result<Array<Record<string, unknown>>>)
+
+  const [spineR, scoreR, dealsR, askR, weekR, closeR, prevR, counts, lists, draftsR] = await Promise.all([
     goalsSpine('reading a goal or a note as his strategist')
       .then(s => s.spine)
       .catch((e: unknown) => { note('goals_unavailable', (e as Error)?.message || String(e)); return null }),
@@ -670,6 +710,7 @@ export async function loadStrategistGrounding(
       : Promise.resolve({ data: null, error: null } as Result<StoredReadRow>),
     Promise.all(CANDIDATE_ROLES.map(countFor)),
     Promise.all(CANDIDATE_ROLES.map(searchFor)),
+    draftsP,
   ])
 
   const networkCounts: Record<string, number> = {}
@@ -681,7 +722,9 @@ export async function loadStrategistGrounding(
     week_start: opts.weekStart,
     subject: input.source === 'goal'
       ? { source: 'goal', goal: input.goal }
-      : { source: 'note', kind: input.kind, body: input.body },
+      : input.source === 'note'
+        ? { source: 'note', kind: input.kind, body: input.body }
+        : { source: 'daily' },
     spine: spineR,
     scorecard: scoreR as GroundingParts['scorecard'],
     targets: scorecard.TARGETS as unknown as Record<string, unknown>,
@@ -694,6 +737,7 @@ export async function loadStrategistGrounding(
     exclude_read_id: opts.excludeReadId ?? null,
     network_counts: Object.keys(networkCounts).length ? networkCounts : null,
     search_lists: lists,
+    open_drafts: input.source === 'daily' ? (draftsR.error ? null : openDraftsFrom(draftsR.data)) : null,
     at,
   })
 
