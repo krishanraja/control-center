@@ -33,7 +33,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacts?select=id,full_name,first_name,last_name,email,linkedin_url,company,title,origin_venture,origin_campaign,consent_tier,heat_score,fit_scores,primary_venture,primary_play_type&and=(triage_status.eq.triaged)&or=(enrichment_status.eq.queued,consent_tier.in.(warm,customer))&dossier=is.null&order=heat_score.desc&limit=5",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacts?select=id,full_name,first_name,last_name,email,linkedin_url,company,title,origin_venture,origin_campaign,consent_tier,heat_score,fit_scores,primary_venture,primary_play_type&and=(triage_status.eq.triaged,or(email.like.*@*,linkedin_url.not.is.null,company.not.is.null))&or=(enrichment_status.eq.queued,consent_tier.in.(warm,customer))&dossier=is.null&order=heat_score.desc.nullslast&limit=5",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
@@ -191,7 +191,8 @@
       },
       "executeOnce": true,
       "onError": "continueRegularOutput",
-      "webhookId": "e01c9355-eaef-4ce1-aea2-08b54fdae087"
+      "webhookId": "e01c9355-eaef-4ce1-aea2-08b54fdae087",
+      "alwaysOutputData": true
     },
     {
       "id": "4e12b4ef-3a31-4fa8-90a2-aeb2de6b088f",
@@ -221,7 +222,7 @@
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
+        "nodeCredentialType": "anthropicApi",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -242,7 +243,7 @@
         "options": {
           "response": {
             "response": {
-              "neverError": true
+              "neverError": false
             }
           }
         }
@@ -252,6 +253,10 @@
         "httpHeaderAuth": {
           "id": "eoursuitt7vHBbP6",
           "name": "Anthropic Header"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       },
       "retryOnFail": true,
@@ -286,7 +291,7 @@
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
+        "nodeCredentialType": "anthropicApi",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -307,7 +312,7 @@
         "options": {
           "response": {
             "response": {
-              "neverError": true
+              "neverError": false
             }
           }
         }
@@ -317,6 +322,10 @@
         "httpHeaderAuth": {
           "id": "eoursuitt7vHBbP6",
           "name": "Anthropic Header"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       },
       "retryOnFail": true,

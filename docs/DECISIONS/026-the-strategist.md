@@ -1,6 +1,6 @@
 # ADR-026: The strategist turns a goal or his own words into the plan
 
-- Status: Accepted
+- Status: Accepted. Extended by [ADR-028](./028-the-daily-move-and-the-cheap-lane.md) on 2026-10-03: a daily read nobody asks for, on Sonnet 5 with a challenger from another lab. "Never Opus" holds.
 - Date: 2026-09-27
 - Deciders: Krish
 

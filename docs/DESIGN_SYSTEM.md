@@ -524,6 +524,40 @@ Both gates run in CI: `e2e/desk-noscroll-desk.spec.ts` at 1440 and 1920,
 that finds things; a list that stops at 390 has never seen a short Android with
 browser chrome.
 
+Extended again 2026-10-03 (Krish: "no scroll guaranteed everywhere"). Home is a
+stage that may neither scroll nor clip. It folds. This replaces, for Home, the
+2026-09-23 rule that an overrunning stage scrolls: on a 360x640 phone Home was
+195px over with the canon alone and 472px over with today's move in it.
+
+- **A stage of free text folds, by measurement.** `useFitFolds`, beside
+  `useFitRows` in `hooks/useFitRows.ts`, renders, compares the content's real
+  height to the box's, and folds one more step until it fits. It climbs in
+  layout effects, so every step lands before paint, and it starts again from
+  nothing whenever the box or its content changes size. The caller owns the
+  order, and the order is the hierarchy: Home's is `src/lib/homeFolds.ts`, where
+  the move he has to answer is the last thing a short screen gives up.
+- **A fold keeps what it folded one tap away.** A folded section is its eyebrow
+  line, a count and `shared/FoldToggle`. On the desk it opens in place and the
+  next fold in line gives way instead. On a phone a fold that is taller than
+  the screen can lend opens in the house sheet, never in place: five long
+  weekly objectives wrap to about 430px on a 360px phone (text is never
+  truncated here, see "Text integrity"), more than its whole stage, and a due
+  test with its note and three answers is about 260px. Editing from such a
+  sheet closes it first and opens `FocusedEditor` after, one sheet at a time.
+- **Overrun is a gate failure, not a feature.** When every fold is spent and
+  the content still does not fit, the stage scrolls rather than hide anything,
+  and says `data-fit="overrun"`. `e2e/home-fit-desk.spec.ts` and
+  `e2e/home-fit-phone.spec.ts` fail on it at 1920x1080, 1440x900, 1366x768,
+  1280x720, 390x844, 375x667 and 360x640, with the longest honest morning
+  (`mockWorstMorning`) and every fold opened by hand, and both no-scroll gates
+  fail on it for Home. With the folds switched off, eleven of those checks
+  fail; that is how the gate was proved able to fail.
+- **A probe measures what is painted.** A stage refits in the observer step of
+  the frame after a change, before paint. A check that runs between the change
+  and that frame measures a layout nobody ever sees, and so does one taken
+  while a sheet is still sliding in. `settled()` in `e2e/fixtures/dailyMove.ts`
+  waits for two still frames first.
+
 ## Persistent chrome is neutral, or it is not persistent
 
 Locked 2026-09-23, after Krish sent back a screenshot of Focus (Krish: "can you
@@ -757,7 +791,8 @@ Every string the product renders:
 `DoThisNextHero`, `AllClear` (serif), `StatusPill`, `PodChip`, `SwipeCard` /
 `SwipeDeck` / `SwipeCockpit`, `Skeleton`, `Toast`, `Modal`, `SlideOver`,
 `Eyebrow`, `IconTile`, `FocusedEditor`, `ChipOverflow`, `SegmentedNav`,
-`Working`, `AmbientField`, `ThemeToggle`. `components/mobile/`:
+`Working`, `AmbientField`, `ThemeToggle`, `FoldToggle` (the one control for a fold on
+a stage that never scrolls). `components/mobile/`:
 `primitives.tsx` (`HeroCard`, `StatPill`, `FeedCard`, `FeedRow`, `TabHeader`,
 `MobileShell`) and `BottomSheet`. Choice chips:
 `components/goals/GoalPickers.tsx` (`OptionChips` / `ServesPicker` /

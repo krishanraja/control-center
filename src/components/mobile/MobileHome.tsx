@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
@@ -15,17 +15,21 @@ import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useSpend, spendAlert } from '../../hooks/useSpend'
 import { HomeSkeleton } from '../shared/Skeleton'
 import { useFirstLoad } from '../shared/useDeferredPending'
+import { useDailyMove } from '../../hooks/useDailyMove'
+import { useFitFolds } from '../../hooks/useFitRows'
+import { HOME_FOLDS, foldsAt, type HomePin } from '../../lib/homeFolds'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 /**
- * Home on mobile: the canon on one fixed screen, no scroll.
+ * Home on mobile: the canon on one fixed screen, no scroll, guaranteed.
  *
  * Deliberately NOT the scrolling MobileShell: the frame is
  * 100dvh ÷ the zoom factor, overflow hidden, with BottomNav + pilot-dock
  * clearance reserved at the bottom (divided by --z because the nav renders
- * outside the zoom wrapper at native size). The layers compress via tight
- * gaps and single-line rows rather than scrolling.
+ * outside the zoom wrapper at native size). When the canon is taller than the
+ * screen it FOLDS, measured before paint (useFitFolds, src/lib/homeFolds.ts):
+ * Krish, 2026-10-03, "no scroll guaranteed everywhere".
  */
 export function MobileHome({ onNavigate }: {
   onNavigate?: NavigateFn
@@ -35,6 +39,14 @@ export function MobileHome({ onNavigate }: {
   const { spend } = useSpend()
   const intelAlert = spendAlert(spend)
   const firstPaint = useFirstLoad(loading, Boolean(canon))
+  // Today's move, read once here because Home decides what it folds.
+  const daily = useDailyMove()
+  const [pinned, setPinned] = useState<HomePin>(null)
+  const fit = useFitFolds(HOME_FOLDS.length, pinned)
+  const folds = foldsAt(fit.level, pinned)
+  // "Pick your 3" steps aside only while a move is proposed and the screen
+  // has run out: the move is then the ask, and the Add on Today sets the rest.
+  const ctaAside = folds.cta && Boolean(daily.current)
 
   // Bottom padding clears the nav only; the band the + button floats in
   // (56px tall, at safe+92 native) now belongs to the doors row below, so
@@ -65,36 +77,42 @@ export function MobileHome({ onNavigate }: {
       {/* The alarm is no longer a block here. It is the mark in the band above
           and the drawer behind it, which costs Home nothing and loses nothing:
           the full sentence is one tap away instead of 180px of a 640px screen.
-          Today's three slots fit again at every viewport as a result. */}
-      <div className="shrink-0 flex flex-col gap-2.5">
-        <DueTestsCard variant="mobile" />
-        <PilotStrip onNavigate={onNavigate} />
-      </div>
+          The instruments (a due test, drafted approaches) moved inside the
+          stage below on 2026-10-03, so a due test folds like the rest instead
+          of taking 220px the stage can never win back. */}
 
-      {/* The canon stack keeps the doors off its back — but it SCROLLS when it
-          overruns instead of clipping.
-          
-          It used to be `overflow-hidden`, on the reasoning that an over-tall
-          day should clip here rather than paint over the Focus door, and that
-          "on an ordinary day the canon fits". Measured on a 360x640 phone with
-          a real canon on 2026-09-23, an ordinary day does not: three OS goals
-          written the way Krish writes them ("Twenty-five paid advisory rooms by
-          the end of the quarter") wrap to two lines each, and "Pick your 3 for
-          today" — the primary action on the page — sat 63px below the bottom of
-          the screen with no way to reach it and nothing to say it was there.
-          The existing no-scroll spec covers 360x640 and passed, because its
-          fixture's goal titles are short enough to fit.
+      {/* The canon stack keeps the doors off its back, and never scrolls.
 
-          Clipping the third slot away with nothing said is the exact failure
-          that spec was written to catch; a short viewport that scrolls a little
-          is the graceful degradation Focus & Purpose already uses. On a phone
-          with room, nothing overflows and nothing scrolls, so the contract is
-          unchanged where it can be kept. */}
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pt-1">
-        <GoalLadder variant="mobile" />
-        {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
-        <TodayList compact />
-        {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
+          It used to scroll when it overran (2026-09-23): on a 360x640 phone
+          three OS goals written the long way pushed "Pick your 3 for today"
+          below the screen, and a short scroll beat clipping it away unseen.
+          Krish's ruling of 2026-10-03 replaces both: the stack folds. The
+          least important thing gives way first, each fold keeps what it
+          folded one tap away, and the climb happens before the browser paints,
+          so nothing is ever seen overflowing. `data-fit` says "overrun" only
+          when every fold is spent and it still does not fit, which the
+          no-scroll gates fail on at every supported size; even then it
+          scrolls rather than hide anything. */}
+      <div
+        ref={fit.boxRef}
+        data-testid="home-stage"
+        data-fit={fit.overrun ? 'overrun' : 'fit'}
+        data-fold-level={fit.level}
+        className={`flex-1 min-h-0 pt-1 ${fit.overrun ? 'overflow-y-auto' : 'overflow-hidden'}`}
+      >
+        <div ref={fit.contentRef} className="flex flex-col gap-2">
+          <DueTestsCard variant="mobile" fold={folds.tests} open={pinned === 'tests'} onPin={o => setPinned(o ? 'tests' : null)} />
+          <PilotStrip onNavigate={onNavigate} />
+          <GoalLadder variant="mobile" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} />
+          {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
+          <TodayList
+            compact
+            daily={daily}
+            folds={{ survived: folds.survived, why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}
+            onShowMove={() => setPinned('card')}
+          />
+          {cta && cta.target !== 'weekly' && !ctaAside && <CanonCta cta={cta} />}
+        </div>
       </div>
 
       {/* The doors panel: Focus, Market signals and Intel as three equal peers

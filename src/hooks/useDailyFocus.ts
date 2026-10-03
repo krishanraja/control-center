@@ -97,6 +97,15 @@ async function fetchAll(): Promise<void> {
   return inflight
 }
 
+// A refresh must read AFTER the call. fetchAll shares a read already in
+// flight, which is right for a mount and wrong for a write: a read that began
+// before the write returns the row without it, and a slot that holds its
+// optimistic text until the read lands would blink back to empty. So a refresh
+// waits out any read in flight, then reads again.
+function fetchFresh(): Promise<void> {
+  return inflight ? inflight.then(() => fetchAll()) : fetchAll()
+}
+
 function attach() {
   if (channel) return
   channel = supabase
@@ -128,7 +137,9 @@ export function useDailyFocus() {
     }
   }, [])
 
-  const refresh = useCallback(() => { fetchAll() }, [])
+  // Resolves when the row is back, so a write can hold what the operator
+  // meant until the server row carries it (TodayList's optimistic overlay).
+  const refresh = useCallback(() => fetchFresh(), [])
   return { ...cache, refresh }
 }
 

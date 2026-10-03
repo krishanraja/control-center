@@ -558,8 +558,8 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
       )}
 
       {parts.next_steps.length > 0 && (
-        <section className="flex flex-col gap-2 min-w-0" aria-label="Next steps">
-          <Eyebrow>Next steps</Eyebrow>
+        <section className="flex flex-col gap-2 min-w-0" aria-label={read?.shape === 'daily' ? 'Today\'s moves' : 'Next steps'}>
+          <Eyebrow>{read?.shape === 'daily' ? 'Today\'s moves, best first' : 'Next steps'}</Eyebrow>
           <ul className="flex flex-col gap-2">
             {parts.next_steps.map((n, i) => {
               const key = `next-${i}`
@@ -567,6 +567,18 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
               return (
                 <li key={key} data-testid={`strategist-next-${i}`} className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 flex flex-col gap-1.5 min-w-0">
                   <p className="text-body leading-relaxed text-ink break-words">{n.text}</p>
+                  {/* A daily move carries who it is about and why today (ADR-028). */}
+                  {n.person && (
+                    <p className="text-label leading-snug text-ink-muted break-words">
+                      {[n.person.name, n.person.title && n.person.company ? `${n.person.title} at ${n.person.company}` : (n.person.title || n.person.company || '')].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {n.why && <p className="text-label leading-relaxed text-ink-muted break-words">{n.why}</p>}
+                  {n.draft_url && (
+                    <a href={n.draft_url} target="_blank" rel="noopener noreferrer" className={`${BTN_QUIET} self-start`}>
+                      <ArrowUpRight size={12} /> Open draft
+                    </a>
+                  )}
                   <div className="flex flex-wrap items-center gap-2">
                     <PutOnToday
                       index={i}

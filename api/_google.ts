@@ -29,11 +29,13 @@ export function googleConfigured(): boolean {
 // `credentials` swaps in a different service account (see GA4 below).
 export async function googleAccessToken(
   scopes: string[],
-  opts: { impersonate?: boolean; credentials?: { email?: string; key?: string }; onError?: (reason: string) => void } = {},
+  // `subject` impersonates a named Workspace user instead of the default one,
+  // for reading more than one mailbox through the same delegation grant.
+  opts: { impersonate?: boolean; subject?: string; credentials?: { email?: string; key?: string }; onError?: (reason: string) => void } = {},
 ): Promise<string | null> {
   const email = opts.credentials ? opts.credentials.email : process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   let key = opts.credentials ? opts.credentials.key : process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
-  const subject = opts.impersonate === false ? undefined : process.env.GOOGLE_IMPERSONATE_SUBJECT
+  const subject = opts.impersonate === false ? undefined : (opts.subject || process.env.GOOGLE_IMPERSONATE_SUBJECT)
   if (!email || !key) return null
   key = key.replace(/\\n/g, '\n') // env stores PEM newlines escaped
 

@@ -1,6 +1,6 @@
 # ADR-018: Weekly cadence, one writer for tomorrow, and a manual-first Today
 
-- Status: Accepted
+- Status: Accepted. Decision 4 overturned in part by [ADR-028](./028-the-daily-move-and-the-cheap-lane.md) on 2026-10-03: when the first Today slot is empty, it proposes today's move.
 - Date: 2026-09-08
 - Deciders: Krish
 

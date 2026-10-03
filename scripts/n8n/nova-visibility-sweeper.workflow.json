@@ -99,7 +99,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.3, \"system\": \"You convert research notes into structured visibility_targets rows. Return ONLY a JSON array, no prose, no code fences. Each element: {title, type, event_url, cfp_url, deadline_at, event_start_at, audience, audience_type, audience_size, why_relevant, suggested_talk_title, relevance_score, quality_score, recommended_next_step}. type must be one of: cfp, conference, podcast, newsletter, guest_appearance, speaking. audience_type must be one of: business_leaders, mixed, technical. AUDIENCE GATE (critical): only keep events whose primary audience is non-technical business leaders, executives, founders, marketers, or operators. SKIP any event whose audience is primarily engineers, developers, ML researchers, data scientists, or technical practitioners (audience_type would be 'technical'). When in doubt about a developer-leaning event, skip it. Dates must be ISO 8601 or null. audience_size integer or null. relevance_score 0-100. quality_score: green if highly relevant + open + meaningful business-leader audience, amber if relevant but uncertain timing or fit, red if marginal. Skip any item without an event_url. Skip any item where deadline or event has already passed (today is 2026-06-02). If the research mentions an item but the url is unverifiable, omit it. Do not invent details. If a field is unknown, set it to null. No em dashes anywhere in the output. Use commas, colons, or parentheses instead.\", \"messages\": [{\"role\": \"user\", \"content\": \"Research notes from Perplexity:\\n\\n{{ $json.perplexity_text }}\\n\\nConvert to a JSON array of visibility_targets rows per the system prompt.\"}]}",
+        "jsonBody": "={\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.3, \"system\": \"You convert research notes into structured visibility_targets rows. Return ONLY a JSON array, no prose, no code fences. Each element: {title, type, event_url, cfp_url, deadline_at, event_start_at, audience, audience_type, audience_size, why_relevant, suggested_talk_title, relevance_score, quality_score, recommended_next_step}. type must be one of: cfp, conference, podcast, newsletter, guest_appearance, speaking. audience_type must be one of: business_leaders, mixed, technical. AUDIENCE GATE (critical): only keep events whose primary audience is non-technical business leaders, executives, founders, marketers, or operators. SKIP any event whose audience is primarily engineers, developers, ML researchers, data scientists, or technical practitioners (audience_type would be 'technical'). When in doubt about a developer-leaning event, skip it. Dates must be ISO 8601 or null. audience_size integer or null. relevance_score 0-100. quality_score: green if highly relevant + open + meaningful business-leader audience, amber if relevant but uncertain timing or fit, red if marginal. Skip any item without an event_url. Skip any item where deadline or event has already passed (today is {{ $now.toFormat('yyyy-MM-dd') }}). If the research mentions an item but the url is unverifiable, omit it. Do not invent details. If a field is unknown, set it to null. No em dashes anywhere in the output. Use commas, colons, or parentheses instead.\", \"messages\": [{\"role\": \"user\", \"content\": \"Research notes from Perplexity:\\n\\n{{ JSON.stringify($json.perplexity_text || '').slice(1, -1) }}\\n\\nConvert to a JSON array of visibility_targets rows per the system prompt.\"}]}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -114,13 +114,18 @@
             }
           ]
         },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "authentication": "predefinedCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "nodeCredentialType": "anthropicApi"
       },
       "credentials": {
         "httpHeaderAuth": {
           "id": "WbRjNMJrAbQGjvUg",
           "name": "Anthropic x-api-key (TOOLS.md) 2026-07-07"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       },
       "retryOnFail": true,
@@ -228,7 +233,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\n// Drop any row whose event_url already exists in visibility_targets.\nconst incoming = $('Parse + Validate').first().json.rows || [];\nconst existing = $input.first().json || [];\nconst seen = new Set(existing.map(r => r.event_url).filter(Boolean));\nconst fresh = incoming.filter(r => !seen.has(r.event_url));\nreturn fresh.map(r => ({ json: r }));\n"
+        "jsCode": "\n// Drop any row whose event_url already exists in visibility_targets.\n// The HTTP node returns one item per row, not one array, so every item is\n// collected (2026-10-03: 'existing.map is not a function' on 114 rows).\nconst incoming = $('Parse + Validate').first().json.rows || [];\nconst existing = $input.all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]);\nconst seen = new Set(existing.map(r => r && r.event_url).filter(Boolean));\nconst fresh = incoming.filter(r => !seen.has(r.event_url));\nreturn fresh.map(r => ({ json: r }));\n"
       }
     },
     {
@@ -290,7 +295,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ event_type: 'nova_visibility_sweep_insert', actor: 'nova', target: $json[0].id, details: JSON.stringify({ title: $json[0].title, type: $json[0].type, event_url: $json[0].event_url }) }) }}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'nova_visibility_sweep_insert', actor: 'nova', target: ($json[0] || $json).id, details: JSON.stringify({ title: ($json[0] || $json).title, type: ($json[0] || $json).type, event_url: ($json[0] || $json).event_url }) }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -599,13 +604,18 @@
             }
           ]
         },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "authentication": "predefinedCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "nodeCredentialType": "anthropicApi"
       },
       "credentials": {
         "httpHeaderAuth": {
           "id": "WbRjNMJrAbQGjvUg",
           "name": "Anthropic x-api-key (TOOLS.md) 2026-07-07"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       },
       "retryOnFail": true,
@@ -713,7 +723,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\n// Drop any row whose event_url already exists in visibility_targets.\nconst incoming = $('Parse + Validate (Product)').first().json.rows || [];\nconst existing = $input.first().json || [];\nconst seen = new Set(existing.map(r => r.event_url).filter(Boolean));\nconst fresh = incoming.filter(r => !seen.has(r.event_url));\nreturn fresh.map(r => ({ json: r }));\n"
+        "jsCode": "\n// Drop any row whose event_url already exists in visibility_targets.\n// The HTTP node returns one item per row, not one array, so every item is\n// collected (2026-10-03: 'existing.map is not a function' on 114 rows).\nconst incoming = $('Parse + Validate (Product)').first().json.rows || [];\nconst existing = $input.all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]);\nconst seen = new Set(existing.map(r => r && r.event_url).filter(Boolean));\nconst fresh = incoming.filter(r => !seen.has(r.event_url));\nreturn fresh.map(r => ({ json: r }));\n"
       }
     },
     {
@@ -775,7 +785,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ event_type: 'visibility-sweep-product', actor: 'nova', target: $json[0].id, details: JSON.stringify({ title: $json[0].title, type: $json[0].type, event_url: $json[0].event_url }) }) }}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'visibility-sweep-product', actor: 'nova', target: ($json[0] || $json).id, details: JSON.stringify({ title: ($json[0] || $json).title, type: ($json[0] || $json).type, event_url: ($json[0] || $json).event_url }) }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {

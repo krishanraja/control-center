@@ -193,6 +193,26 @@ for (const m of models.matchAll(/RESCUE_\w+_MODEL = '([^']+)'/g)) {
   if (prices.includes(`'${m[1]}'`)) failures.push(`api/_prices.ts: rescue model "${m[1]}" has a rate row - the meter uses the provider's own cost, so this is a second price that will drift`)
 }
 
+// The cheap lane and the daily move's challenger bill through OpenRouter too
+// (ADR-028), so the same rule holds: OpenRouter's own figure, no second rate.
+// And the lane's candidates are cheap by construction: a Sonnet, Opus or Fable
+// standing in on a bulk job is the shape CFG-COST-001 exists to prevent.
+const laneList = /CHEAP_LANE_CANDIDATES = \[([\s\S]*?)\] as const/.exec(models)
+if (!laneList) failures.push('api/_models.ts: CHEAP_LANE_CANDIDATES not found - the cheap lane guard cannot see the candidates')
+const openRouterSlugs = [
+  ...(laneList ? [...laneList[1].matchAll(/'([^']+)'/g)].map(m => ({ slug: m[1], what: 'cheap lane candidate' })) : []),
+  ...[...models.matchAll(/DAILY_MOVE_CHALLENGER_MODEL = '([^']+)'/g)].map(m => ({ slug: m[1], what: 'daily move challenger' })),
+]
+for (const { slug, what } of openRouterSlugs) {
+  if (!slug.includes('/')) failures.push(`api/_models.ts: ${what} "${slug}" is not an OpenRouter slug (expected a provider/ prefix)`)
+  if (prices.includes(`'${slug}'`)) failures.push(`api/_prices.ts: ${what} "${slug}" has a rate row - the meter uses OpenRouter's own cost`)
+}
+for (const m of laneList ? laneList[1].matchAll(/'([^']+)'/g) : []) {
+  if (/claude-(sonnet|opus|fable|mythos)/.test(m[1])) {
+    failures.push(`api/_models.ts: cheap lane candidate "${m[1]}" is a premium model - CFG-COST-001 forbids a premium stand-in on a bulk job`)
+  }
+}
+
 if (failures.length) {
   console.error(`FAIL: ${failures.length} Anthropic fallback invariant(s) broken.\n`)
   for (const f of failures) console.error(`  ${f}`)

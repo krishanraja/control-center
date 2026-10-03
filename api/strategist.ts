@@ -19,7 +19,7 @@ import {
 import { recordSuggestions, describeDbError } from './_suggestions.js'
 import type {
   StrategistRequest, StrategistStage, StrategistGetResponse, StrategistDoneEvent, StrategistErrorEvent,
-  StrategistSectionEvent, StrategistRead, ReadStatus,
+  StrategistSectionEvent, StrategistRead, ReadStatus, StrategistReadWire, AskPerson,
 } from '../src/types/strategist.js'
 
 /**
@@ -91,6 +91,7 @@ async function get(req: VercelRequest, res: VercelResponse) {
   const q = (req.query || {}) as Record<string, unknown>
   const goalId = typeof q.goalId === 'string' ? q.goalId.trim() : ''
   const week = q.week === 'current'
+  if (q.daily === 'today') return getDaily(res)
   if (!goalId && !week) {
     return res.status(400).json({ ok: false, error: 'goal_or_week_required', detail: 'Ask for a goal or for this week.' })
   }
@@ -136,6 +137,114 @@ async function get(req: VercelRequest, res: VercelResponse) {
     last_status: attempt?.status ?? null,
   }
   return res.json(body)
+}
+
+// ── GET ?daily=today: the morning's move (ADR-028) ───────────────────────────
+
+/**
+ * Today's daily read, with what he has already done with each item and the
+ * people and draft links attached fresh, never stored. Today is the
+ * operator-civil date the cron wrote it for, not the browser's: a read written
+ * in New York at five is today's read wherever he opens it.
+ */
+async function getDaily(res: VercelResponse) {
+  const { getOperatorTz } = await import('./_timezone.js')
+  const today = ymdIn(new Date(), await getOperatorTz())
+  const cols = `${WIRE_COLUMNS}, read_date`
+  const [completeR, attemptR] = await Promise.all([
+    supabase.from('strategist_reads').select(cols).eq('source', 'daily').eq('read_date', today)
+      .eq('status', 'complete').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('strategist_reads').select('status, last_attempt_at').eq('source', 'daily').eq('read_date', today)
+      .order('last_attempt_at', { ascending: false }).limit(1).maybeSingle(),
+  ])
+  const empty: StrategistGetResponse = { ok: true, read: null, last_attempt_at: null, last_status: null }
+  const firstError = completeR.error || attemptR.error
+  if (firstError) {
+    // Before migration 20261003120000 there is no read_date to ask for and no
+    // daily read can exist, which is not a failure.
+    if (isMissingTable(firstError) || /read_date/.test(firstError.message || '')) return res.json(empty)
+    return res.status(500).json({ ok: false, error: 'read_failed', detail: describeDbError(firstError) })
+  }
+  const row = completeR.data as unknown as StoredReadRow | null
+  const attempt = attemptR.data as unknown as { status: ReadStatus; last_attempt_at: string } | null
+  let wire = row ? readWireFrom(row) : null
+  if (wire?.read) {
+    const read = wire.read
+    const ids = [...read.next_steps, ...read.asks].map(x => x.suggestion_id).filter((x): x is string => !!x)
+    const contactIds = read.next_steps.map(m => m.contact_id).filter((x): x is string => !!x)
+    const dealIds = read.next_steps.map(m => m.pilot_deal_id).filter((x): x is string => !!x)
+    const [answered, people, drafts, details] = await Promise.all([
+      loadAnswered(ids),
+      loadPeople(contactIds),
+      loadDraftLinks(dealIds),
+      loadContactDetails(askContactIds(read)),
+    ])
+    wire = {
+      ...wire,
+      answered,
+      read: {
+        ...withContacts(read, details),
+        next_steps: read.next_steps.map(m => ({
+          ...m,
+          person: m.contact_id ? people[m.contact_id] ?? null : null,
+          draft_url: m.pilot_deal_id ? drafts[m.pilot_deal_id] ?? null : null,
+        })),
+      },
+    }
+  }
+  const body: StrategistGetResponse = {
+    ok: true,
+    read: wire,
+    last_attempt_at: attempt?.last_attempt_at ?? null,
+    last_status: attempt?.status ?? null,
+  }
+  return res.json(body)
+}
+
+type Answer = NonNullable<StrategistReadWire['answered']>[string]
+const ANSWERS = new Set(['accepted', 'rejected', 'deferred', 'replaced', 'tweaked'])
+
+/** The latest verdict on each item, by suggestion id. A failure reads as none. */
+async function loadAnswered(ids: string[]): Promise<Record<string, Answer>> {
+  if (!ids.length) return {}
+  const { data, error } = await supabase.from('suggestion_verdicts').select('suggestion_id, verdict, round')
+    .in('suggestion_id', ids).order('round', { ascending: true })
+  if (error) { console.warn(`daily_answers_unavailable: ${describeDbError(error)}`); return {} }
+  const out: Record<string, Answer> = {}
+  for (const r of (data || []) as Array<{ suggestion_id: string; verdict: string }>) {
+    if (ANSWERS.has(r.verdict)) out[r.suggestion_id] = r.verdict as Answer
+  }
+  return out
+}
+
+/** Who each move is about, from contacts, for the wire. */
+async function loadPeople(ids: string[]): Promise<Record<string, AskPerson>> {
+  if (!ids.length) return {}
+  const { data, error } = await supabase.from('contacts').select('id, full_name, title, company, email, linkedin_url').in('id', [...new Set(ids)])
+  if (error) { console.warn(`daily_people_unavailable: ${describeDbError(error)}`); return {} }
+  const out: Record<string, AskPerson> = {}
+  for (const c of (data || []) as Array<Record<string, unknown>>) {
+    const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+    out[String(c.id)] = {
+      contact_id: String(c.id), name: str(c.full_name) || 'Unnamed', title: str(c.title), company: str(c.company),
+      best_channel: null, email: str(c.email), linkedin_url: str(c.linkedin_url),
+    }
+  }
+  return out
+}
+
+/** The draft link for each drafted approach a move is about. Only an https
+ *  link: it becomes an anchor on Home, and a stored value is not trusted to be
+ *  one just because the system wrote it. */
+async function loadDraftLinks(ids: string[]): Promise<Record<string, string>> {
+  if (!ids.length) return {}
+  const { data, error } = await supabase.from('pilot_deals').select('id, draft_url').in('id', [...new Set(ids)])
+  if (error) { console.warn(`daily_drafts_unavailable: ${describeDbError(error)}`); return {} }
+  const out: Record<string, string> = {}
+  for (const d of (data || []) as Array<{ id: string; draft_url: string | null }>) {
+    if (d.draft_url && /^https:\/\//i.test(d.draft_url.trim())) out[d.id] = d.draft_url.trim()
+  }
+  return out
 }
 
 // ── POST: one read, streamed ─────────────────────────────────────────────────

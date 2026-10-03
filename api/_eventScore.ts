@@ -237,6 +237,10 @@ export async function scoreEvent(e: EventScoreInput): Promise<EventScoreResult> 
     maxTokens: 900,
     temperature: 0.2,
     think: false,
+    // The daily run scores its 25 events one after another with this same
+    // system prompt (about 1,300 tokens), so every call after the first reads
+    // it from the cache at a tenth of the price.
+    cacheSystem: true,
   })
   const parsed = robustJson(raw)
   if (!parsed || typeof parsed !== 'object') throw new Error('event_score_unparseable')
