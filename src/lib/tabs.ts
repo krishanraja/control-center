@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Home, DollarSign, FileText, Server,
-  HeartHandshake, Rocket, Compass,
+  HeartHandshake, Rocket, Compass, ListChecks,
   type LucideIcon,
 } from '@/lib/icons'
 
@@ -36,6 +36,10 @@ export const TABS: TabDef[] = [
   // Same drawer posture as the legacy IA: reached through the check-in, the
   // anxious-day route, and Home, with the drawer as the fallback door.
   { id: 'focus',     label: 'Focus',   desktopIcon: Compass,         mobileIcon: Compass,       desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
+  // The work board (Krish, 2026-10-03): what is waiting on him, in progress
+  // and done, written by Claude and Codex sessions, answered here. Reached by
+  // its link (#/board) and the drawer.
+  { id: 'board',     label: 'Board',   desktopIcon: ListChecks,      mobileIcon: ListChecks,    desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'drawer', mobilePriority: 'drawer' },
 ]
 

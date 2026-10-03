@@ -67,6 +67,9 @@ const OsTab = lazy(() => loadOsTab().then(m => ({ default: m.OsTab })))
 // Focus doorway row on Home, and the drawer.
 const loadFocusPurposeTab = () => import('./components/focusPurpose/FocusPurposeTab')
 const FocusPurposeTab = lazy(() => loadFocusPurposeTab().then(m => ({ default: m.FocusPurposeTab })))
+// The work board: written by Claude and Codex sessions, answered here.
+const loadWorkBoard = () => import('./components/board/WorkBoard')
+const WorkBoard = lazy(() => loadWorkBoard().then(m => ({ default: m.WorkBoard })))
 
 // The chunks each shell's tabs need, warmed in idle time after boot (see the
 // effect in App). The composer and the video reviewer are left cold: they are
@@ -311,6 +314,7 @@ export default function App() {
                       most phones, so the top keeps normal breathing room and the
                       purpose line is never clamped. */}
                   {tab === 'focus'     && <ErrorBoundary label="Focus"><div className="px-5 pt-6 [@media(max-height:860px)]:pt-4 h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+120px)]"><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
+                  {tab === 'board'     && <ErrorBoundary label="Board"><div className="px-4 pt-4 h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+120px)]"><WorkBoard /></div></ErrorBoundary>}
                 </Suspense>
               </div>
             ) : tab === 'content' ? (
@@ -369,6 +373,7 @@ export default function App() {
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'focus'     && <ErrorBoundary label="Focus"><FocusPurposeTab variant="desktop" steadyEntry={params.steady === '1'} /></ErrorBoundary>}
+                  {tab === 'board'     && <ErrorBoundary label="Board"><div className="px-8 pt-6 h-full overflow-y-auto pb-16"><WorkBoard /></div></ErrorBoundary>}
                 </Suspense>
               </div>
             )}
