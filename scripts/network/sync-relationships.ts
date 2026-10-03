@@ -35,7 +35,15 @@ async function main() {
     }
     console.log(`  contacts updated: ${j.contacts_updated ?? '?'}`)
     if (j.caughtUp) { console.log('\nAll accounts caught up.'); return }
-    if ((j.results || []).every((x: any) => x.error && !x.mail && !x.calendar)) { console.error('\nEvery account failed; stopping.'); process.exit(1) }
+    // An account that could not even start (no token) will not recover by
+    // repeating the call, so stop once everything else has caught up.
+    const results: any[] = j.results || []
+    const still = (s?: { from: string; to: string }) => !s || s.from === s.to
+    const stuck = results.filter(x => x.error && !x.caughtUp && still(x.mail) && still(x.calendar))
+    if (stuck.length && results.every(x => x.caughtUp || stuck.includes(x))) {
+      console.error(`\nCaught up except: ${stuck.map(x => `${x.account} (${x.error})`).join('; ')}`)
+      process.exit(1)
+    }
   }
 }
 

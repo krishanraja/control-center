@@ -274,7 +274,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     await supabase.from('google_accounts').update({ mail_cursor: cursor }).eq('email', email)
     res.mail = { from: from0, to: cursor, messages, people: tallies.size }
     if (Date.parse(cursor) < Date.now() - 3_600_000) res.caughtUp = false
-  } else res.error = `mail: ${lastErr || 'no token'}`
+  } else { res.error = `mail: ${lastErr || 'no token'}`; res.caughtUp = false }
 
   // Calendar
   const calToken = await tokenFor(a, CALENDAR_SCOPE, onError)
@@ -295,7 +295,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     await supabase.from('google_accounts').update({ calendar_cursor: cursor }).eq('email', email)
     res.calendar = { from: from0, to: cursor, events, people: tallies.size }
     if (Date.parse(cursor) < Date.now() - 3_600_000) res.caughtUp = false
-  } else res.error = [res.error, `calendar: ${lastErr || 'no token'}`].filter(Boolean).join('; ')
+  } else { res.error = [res.error, `calendar: ${lastErr || 'no token'}`].filter(Boolean).join('; '); res.caughtUp = false }
 
   await supabase.from('google_accounts').update({ last_sync_at: new Date().toISOString(), last_error: res.error || null }).eq('email', email)
   return res
