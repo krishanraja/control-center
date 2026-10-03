@@ -1,4 +1,4 @@
-import { RESCUE_JUDGE_MODEL, RESCUE_GENERATION_MODEL, JUDGE_MODEL } from './_models.js'
+import { RESCUE_JUDGE_MODEL, RESCUE_GENERATION_MODEL, RESCUE_DAILY_MOVE_MODEL, JUDGE_MODEL, DAILY_MOVE_MODEL, type Effort } from './_models.js'
 import * as meter from './_meter.js'
 
 /**
@@ -83,6 +83,22 @@ const BLIND_BREAKER_MS = 15 * 60_000
 export const RESCUE_PROVIDER = 'openrouter' as const
 
 const RESCUE_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
+/** The same endpoint, for the cheap lane (api/_cheapLane.ts), which shares the
+ *  key, the transport and the meter's cost reading with the rescue. */
+export const OPENROUTER_ENDPOINT = RESCUE_ENDPOINT
+
+/**
+ * The meter bucket prefix for cheap-lane calls.
+ *
+ * Both the rescue and the lane bill through OpenRouter and both meter under
+ * provider 'openrouter', and the rescue's daily ceiling is counted from those
+ * rows. Without a way to tell them apart, a single enrichment backfill in
+ * shadow (three candidate calls per person, thousands of people) would spend
+ * the ceiling by mid-morning and leave the interactive surfaces with no rescue
+ * on the day Anthropic went down. The lane writes `lane:<slug>`; the ceiling
+ * counts everything else.
+ */
+export const LANE_BUCKET_PREFIX = 'lane:'
 
 /**
  * Failures that mean "Anthropic will not serve this request, and trying again
@@ -120,9 +136,28 @@ export function parseResetAt(message: string, now = new Date()): Date | null {
  * dated snapshot (claude-haiku-4-5-20251001) still finds its understudy.
  */
 export function understudyFor(anthropicModel: string): string {
-  return anthropicModel.startsWith(JUDGE_MODEL)
-    ? (process.env.RESCUE_JUDGE_MODEL || RESCUE_JUDGE_MODEL)
-    : (process.env.RESCUE_GENERATION_MODEL || RESCUE_GENERATION_MODEL)
+  if (anthropicModel.startsWith(JUDGE_MODEL)) return process.env.RESCUE_JUDGE_MODEL || RESCUE_JUDGE_MODEL
+  // The daily move's Fable is rescued by Fable. Falling through to the
+  // generation tier would hand the one read a day that is allowed the best
+  // model to Sonnet on exactly the day it most needs to be right.
+  if (anthropicModel.startsWith(DAILY_MOVE_MODEL)) return RESCUE_DAILY_MOVE_MODEL
+  return process.env.RESCUE_GENERATION_MODEL || RESCUE_GENERATION_MODEL
+}
+
+/**
+ * OpenRouter slugs for models whose thinking cannot be switched off.
+ *
+ * The rescue sends `reasoning: {enabled: false}` when a caller does not want
+ * thinking, which OpenRouter passes upstream as thinking disabled, and these
+ * models answer that with a 400. Same trap as thinkingParam in _models.ts, on
+ * the other transport.
+ */
+const RESCUE_ALWAYS_THINKS = /^anthropic\/claude-(fable-5|mythos-5|opus-5\.5|sonnet-5\.5)/
+
+/** The `reasoning` field for a rescue call. */
+export function rescueReasoning(model: string, think: boolean | undefined, effort?: Effort): Record<string, unknown> {
+  if (RESCUE_ALWAYS_THINKS.test(model)) return { effort: effort ?? (think ? 'medium' : 'low') }
+  return think ? { effort: effort ?? 'medium' } : { enabled: false }
 }
 
 /** Whether a thrown error is worth answering with the other provider. */
@@ -223,7 +258,13 @@ async function withinDailyCap(cap: number): Promise<boolean> {
   let used = 0
   try {
     const { supabase } = await import('./_supabase.js')
-    const { data } = await supabase.from('meter_daily').select('runs').eq('provider', RESCUE_PROVIDER).eq('day', day)
+    // Rescue rows only. An understudy is always an Anthropic model (the
+    // like-for-like ruling), so its bucket is an anthropic/ slug; the cheap
+    // lane writes lane:<slug> and the daily move's challenger its own openai/
+    // slug, and neither may spend the ceiling the interactive surfaces need.
+    const { data } = await supabase.from('meter_daily').select('runs')
+      .eq('provider', RESCUE_PROVIDER).eq('day', day)
+      .like('bucket', 'anthropic/%')
     used = (data || []).reduce((a, r) => a + Number((r as { runs?: number }).runs || 0), 0)
   } catch {
     // Unknown usage counts as none. The cap is a backstop against a runaway
@@ -256,12 +297,18 @@ export interface FallbackOpts {
   json?: boolean
   /** Adaptive thinking. Off unless asked for, matching the primary path. */
   think?: boolean
+  /** The primary call's effort, carried over so the understudy works as hard. */
+  effort?: Effort
 }
 
 /** Turns a multi-turn history into the rescue provider's message array. */
 export interface RescueTurn { role: 'user' | 'assistant'; content: string }
 
 let cachedRescueKey: string | null | undefined
+/** The OpenRouter key, for the cheap lane. The rescue's own lookup, shared. */
+export async function openRouterKey(): Promise<string | null> {
+  return getRescueKey()
+}
 async function getRescueKey(): Promise<string | null> {
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY
   if (cachedRescueKey !== undefined) return cachedRescueKey
@@ -292,12 +339,12 @@ async function getRescueKey(): Promise<string | null> {
  * answered is a rescue that behaves differently from the thing it replaces.
  */
 function rescueBody(model: string, messages: RescueTurn[], system: string, opts: {
-  maxTokens?: number; temperature?: number; think?: boolean; stream?: boolean
+  maxTokens?: number; temperature?: number; think?: boolean; stream?: boolean; effort?: Effort
 }): Record<string, unknown> {
   return {
     model,
     max_tokens: opts.maxTokens ?? 4000,
-    reasoning: opts.think ? { effort: 'medium' } : { enabled: false },
+    reasoning: rescueReasoning(model, opts.think, opts.effort),
     usage: { include: true },
     ...(opts.stream ? { stream: true } : {}),
     ...(opts.temperature === undefined ? {} : { temperature: opts.temperature }),

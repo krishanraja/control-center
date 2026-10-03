@@ -14,9 +14,20 @@
 // questions, whereas an unpriced model shows up in the meter as real token
 // counts with no dollars beside them — visibly a gap, which is what it is.
 
-export interface ModelPrice { in: number; out: number }
+export interface ModelPrice {
+  in: number
+  out: number
+  /** USD per 1M cache-read tokens, where a model does not read back at the
+   *  standard tenth of its input rate. Absent means CACHE_MULTIPLIERS.read. */
+  cacheRead?: number
+}
 
 export const MODEL_PRICES: Record<string, ModelPrice> = {
+  // The daily move's decider (ADR-028). Fable 5.1 reads its cache back at
+  // $0.25, a fortieth of input rather than the usual tenth, so it carries its
+  // own cacheRead. Matched by prefix like every row, so it must stay ahead of
+  // any shorter claude-fable key that would also match it.
+  'claude-fable-5-1': { in: 10, out: 50, cacheRead: 0.25 },
   'claude-opus-5': { in: 5, out: 25 },
   'claude-opus-4-8': { in: 5, out: 25 },
   'claude-opus-4-7': { in: 5, out: 25 },
@@ -90,7 +101,7 @@ export function priceUsdDetailed(model: string, u: TokenUsage): number {
   return (
     (u.input / 1e6) * p.in +
     (u.output / 1e6) * p.out +
-    ((u.cacheRead || 0) / 1e6) * p.in * m.read +
+    ((u.cacheRead || 0) / 1e6) * (p.cacheRead ?? p.in * m.read) +
     ((u.cacheWrite5m || 0) / 1e6) * p.in * m.write5m +
     ((u.cacheWrite1h || 0) / 1e6) * p.in * m.write1h
   )

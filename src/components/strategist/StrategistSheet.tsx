@@ -6,7 +6,8 @@ import { FocusedEditor } from '../shared/FocusedEditor'
 import { Eyebrow } from '../shared/Eyebrow'
 import { OptionChips } from '../goals/GoalPickers'
 import { TalkBox, NOTE_MAX_CHARS, clearTalkDraft, readTalkDraft, writeTalkDraft } from './TalkBox'
-import { ReadView, type TakeResult } from './StrategistRead'
+import { ReadView, StrategistRead, type TakeResult } from './StrategistRead'
+import { requestOk } from '../../lib/apiFetch'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import {
   useStrategist, autoRunAllowed, readNotKept,
@@ -14,7 +15,7 @@ import {
 } from '../../hooks/useStrategist'
 import {
   useStrategistOpen, closeStrategist, leaveObjectiveForRitual,
-  NOTE_KIND_OPTIONS, inferNoteKind, noteKindLabel,
+  NOTE_KIND_OPTIONS, inferNoteKind, noteKindLabel, type StrategistMode,
 } from '../../lib/strategist'
 import { openFocusRitual } from '../../lib/focusRitual'
 import { relativeTime } from '../../lib/ageHelpers'
@@ -81,7 +82,7 @@ export function StrategistSheet({ narrow, tab, onNavigate }: {
   }
 
   const sheetOpen = bus.open && phase === 'sheet'
-  const label = bus.mode === 'goal' ? 'The read' : 'Talk it through'
+  const label = bus.mode === 'goal' ? 'The read' : bus.mode === 'daily' ? 'Today\'s move' : 'Talk it through'
 
   const body = sheetOpen ? (
     <SheetBody
@@ -182,7 +183,7 @@ function PhoneEntry({ presetKind, onSubmit, onClosed }: {
 // ── the sheet's body ─────────────────────────────────────────────────────────
 
 function SheetBody({ mode, goalId, fresh, presetKind, phoneNote, narrow, nonce, onTake }: {
-  mode: 'talk' | 'goal'
+  mode: StrategistMode
   goalId: string | null
   fresh: boolean
   presetKind: NoteKind | null
@@ -193,9 +194,58 @@ function SheetBody({ mode, goalId, fresh, presetKind, phoneNote, narrow, nonce, 
 }) {
   return (
     <div data-testid="strategist-sheet" data-mode={mode} className="flex flex-col gap-5 min-w-0">
-      {mode === 'goal' && goalId
-        ? <GoalRead key={`${goalId}:${nonce}`} goalId={goalId} fresh={fresh} freshKey={fresh ? nonce : undefined} narrow={narrow} onTake={onTake} />
-        : <TalkFlow key={nonce} presetKind={presetKind} initialNote={phoneNote} narrow={narrow} onTake={onTake} autoFocus={!narrow} />}
+      {mode === 'daily'
+        ? <DailyRead key={nonce} narrow={narrow} onTake={onTake} />
+        : mode === 'goal' && goalId
+          ? <GoalRead key={`${goalId}:${nonce}`} goalId={goalId} fresh={fresh} freshKey={fresh ? nonce : undefined} narrow={narrow} onTake={onTake} />
+          : <TalkFlow key={nonce} presetKind={presetKind} initialNote={phoneNote} narrow={narrow} onTake={onTake} autoFocus={!narrow} />}
+    </div>
+  )
+}
+
+/**
+ * Today's move as a full read (ADR-028): the moves best first, the ask drafted
+ * for any that is a request to a person, and what the first move survived. A
+ * read only, never a model call: the cron wrote it this morning.
+ */
+function DailyRead({ narrow, onTake }: { narrow: boolean; onTake: (o: ObjectiveSection) => TakeResult }) {
+  const [wire, setWire] = useState<StrategistReadWire | null | undefined>(undefined)
+  useEffect(() => {
+    let alive = true
+    requestOk<Partial<StrategistGetResponse> & { ok?: boolean; error?: string }>('/api/strategist?daily=today', { timeoutMs: 12_000 })
+      .then(j => { if (alive) setWire(j.read && typeof j.read === 'object' && j.read.read ? j.read : null) })
+      .catch(() => { if (alive) setWire(null) })
+    return () => { alive = false }
+  }, [])
+  if (wire === undefined) return null
+  if (!wire?.read) {
+    return (
+      <p data-testid="strategist-daily-none" className="text-body leading-relaxed text-ink-muted">
+        No move for today yet. One is written each morning from five, your time.
+      </p>
+    )
+  }
+  const c = wire.read.challenge
+  return (
+    <div data-testid="strategist-daily-read" className="flex flex-col gap-5 min-w-0">
+      <StrategistRead read={wire.read} sections={[]} narrow={narrow} onTakeObjective={onTake} />
+      {c && (
+        <section data-testid="strategist-daily-survived" className="flex flex-col gap-1.5 min-w-0">
+          <Eyebrow>What the first move survived</Eyebrow>
+          {c.verdict === 'unchallenged' || !c.objection ? (
+            <p className="text-body leading-relaxed text-ink-muted break-words">{c.why || 'No second opinion today.'}</p>
+          ) : (
+            <>
+              <p className="text-body leading-relaxed text-ink break-words">{c.by || 'A second strategist'} argued against it: {c.objection}</p>
+              {c.why && (
+                <p className="text-label leading-relaxed text-ink-muted break-words">
+                  {c.verdict === 'switched' ? 'Why it moved up: ' : 'Why it stayed first: '}{c.why}
+                </p>
+              )}
+            </>
+          )}
+        </section>
+      )}
     </div>
   )
 }

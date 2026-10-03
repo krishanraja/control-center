@@ -15,7 +15,9 @@ import { civilYmd } from './civilDate'
 // the goal just changed, so the sheet reads it now instead of showing the last
 // read of the old wording.
 
-export type StrategistMode = 'talk' | 'goal'
+/** 'daily' opens today's move as a full read: its asks, its runner-ups and
+ *  what it survived (ADR-028). */
+export type StrategistMode = 'talk' | 'goal' | 'daily'
 
 export interface StrategistOpen {
   open: boolean

@@ -19,7 +19,9 @@
 
 // ── Vocabularies ─────────────────────────────────────────────────────────────
 
-export type StrategistSource = 'goal' | 'note'
+/** 'daily' is the read nobody asked for: the morning's one move, written by
+ *  the cron from the whole state of his work (ADR-028). */
+export type StrategistSource = 'goal' | 'note' | 'daily'
 
 /** Starting the week, progress during it, how it went. */
 export type NoteKind = 'week_open' | 'update' | 'week_close'
@@ -28,7 +30,7 @@ export type NoteKind = 'week_open' | 'update' | 'week_close'
 export type GoalRung = 'os' | 'weekly'
 
 /** The shape a read takes: one per goal rung, one per note kind. */
-export type ReadShape = GoalRung | NoteKind
+export type ReadShape = GoalRung | NoteKind | 'daily'
 
 export type ReadStatus = 'pending' | 'complete' | 'incomplete'
 
@@ -149,6 +151,35 @@ export interface NextStepSection {
   goal_id: string | null
   job: StrategistJob | null
   suggestion_id?: string | null
+  /** Why this, today: one sentence tied to a goal, a date or a number. Daily
+   *  reads only; the other shapes leave it out. */
+  why?: string | null
+  /** The warm contact the move is about, by id. The text never names them:
+   *  a step he takes lands in daily_focus, which the browser key can read. */
+  contact_id?: string | null
+  /** The drafted approach the move is about, from OPEN DRAFTS. */
+  pilot_deal_id?: string | null
+  /** For the wire only, attached when the read is shown and never stored: the
+   *  person the move is about, and the draft link when there is one. */
+  person?: AskPerson | null
+  draft_url?: string | null
+}
+
+/**
+ * What the daily move survived, assembled by the server, never written by the
+ * decider as a line: a model from another lab argued the strongest case
+ * against the first move, and the decider kept it or switched to a runner-up.
+ * 'unchallenged' says the second opinion did not arrive, rather than leaving
+ * it to be assumed.
+ */
+export interface DailyChallenge {
+  verdict: 'kept' | 'switched' | 'unchallenged'
+  /** The objection, in the challenger's words, cleaned. Null when unchallenged. */
+  objection: string | null
+  /** Who objected, in plain words. */
+  by: string | null
+  /** Why the decider kept or switched, one sentence. */
+  why: string | null
 }
 
 /** A named warm contact from the grounding's candidate list. Contact details
@@ -263,6 +294,8 @@ export interface StrategistRead {
   kill: KillSection | null
   learning: LearningSection | null
   close: CloseSection
+  /** Daily reads only. */
+  challenge?: DailyChallenge | null
 }
 
 // ── The route ────────────────────────────────────────────────────────────────
@@ -325,6 +358,11 @@ export interface StrategistReadWire {
   /** Null unless status is 'complete'. Actionable items carry suggestion_id. */
   read: StrategistRead | null
   last_attempt_at: string
+  /** The civil date a daily read is for. Null on goal and note reads. */
+  read_date?: string | null
+  /** Daily reads only: what he already did with each item, by suggestion id,
+   *  so Home shows the next move rather than the one he set aside. */
+  answered?: Record<string, 'accepted' | 'rejected' | 'deferred' | 'replaced' | 'tweaked'>
 }
 
 /** GET /api/strategist?goalId= or ?week=current. */

@@ -36,7 +36,8 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | A width-dependent LAYOUT choice | `hooks/useContainerWidth` on a box that is NOT the one being resized. `window.matchMedia` asks about the browser; no surface gets the browser | convention |
 | A tap target under 44px | `.tap-44` — grows the hit area with a pseudo-element and leaves the ink where it is | `e2e/layout-audit-phone.spec.ts` measures it by hit-test |
 | Goal reads/writes | `useGoalCanon` + `src/lib/goalsApi.ts` | `check-goal-ladder` / `check-goal-gate` (CI) |
-| Turning a goal or his own words into moves | The strategist: `api/strategist.ts`, opened over `openStrategist()` (`src/lib/strategist.ts`) into the one `StrategistSheet`. It proposes only: an objective becomes a goal through the ritual's `add()`, an ask through `AskCard`. Never a second coach, read or note box ([ADR-026](./docs/DECISIONS/026-the-strategist.md)) | `check-model-routing` + `check-bridges-never-send` (CI) |
+| Turning a goal or his own words into moves | The strategist: `api/strategist.ts`, opened over `openStrategist()` (`src/lib/strategist.ts`) into the one `StrategistSheet`. It proposes only: an objective becomes a goal through the ritual's `add()`, an ask through `AskCard`. Never a second coach, read or note box ([ADR-026](./docs/DECISIONS/026-the-strategist.md)). Once a day it also writes today's move unasked (`api/_dailyMove.ts`), which `home/DailyMoveSlot` proposes in Today's first slot when it is empty; its answers go to the same bank ([ADR-028](./docs/DECISIONS/028-the-daily-move-and-the-cheap-lane.md)) | `check-model-routing` + `check-bridges-never-send` (CI) |
+| Moving a bulk job to a cheaper model | The cheap lane: `api/_cheapLane.ts`, for agents named in `CHEAP_LANE_AGENTS` only. Shadow-measured against Claude's agreement with itself, promoted on agreement, sent back to shadow on drift, never rescued by Claude ([ADR-028](./docs/DECISIONS/028-the-daily-move-and-the-cheap-lane.md)). Never a hand swap of the model id | `check-anthropic-fallback` + `check-model-routing` (CI) |
 | Loading states | The ladder in `docs/DESIGN_SYSTEM.md`; every string in `src/lib/loadingVoice.ts` | convention |
 | Venture / product names | `ventureLabel()` in `src/lib/ventureOptions.ts` (mirrors `venture_registry`, normalises the three slug spellings). Never a second label map, never a title-cased slug | convention |
 | Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR). User-facing text wraps in full and is never ellipsised or line-clamped. | `scripts/check-editorial-text-integrity.mts` + review |
@@ -184,6 +185,15 @@ builds, tests or deploys it.
   unstacking the day-boundary panel fails both the "beside, not under" test and
   the hole probe. A layout assertion that has never been seen to fail is a
   comment, not a test.
+- **`e2e/daily-move-desk.spec.ts` and `e2e/daily-move-phone.spec.ts` cover
+  today's move** (added 2026-10-03) through `e2e/fixtures/dailyMove.ts`, whose
+  Today row is stateful so Take it can be seen landing in slot 1. Two notes.
+  The slot blinking empty between the proposal and his text only showed with
+  `focusDelayMs` set: with an instant mock the refreshed row arrived before the
+  gap could render, so keep a delay on any test of an optimistic write. And
+  `e2e/theme-contrast.spec.ts` had never painted the card at all, because its
+  own catch-all answered the daily read with nothing; it now routes
+  `DAILY_MOVE` and asserts the card is on screen before measuring.
 - **`e2e/composer.spec.ts` covers the content composer** (the brief opening in
   it, the rail, and the full edit palette). There was no content coverage at all
   before it, which is part of how the brief surface came to have four one-click

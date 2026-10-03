@@ -1,6 +1,6 @@
 # ADR-026: The strategist turns a goal or his own words into the plan
 
-- Status: Accepted
+- Status: Accepted. Extended by [ADR-028](./028-the-daily-move-and-the-cheap-lane.md) on 2026-10-03: a daily read nobody asks for, on Claude Fable 5.1, the one exception to "never Opus".
 - Date: 2026-09-27
 - Deciders: Krish
 

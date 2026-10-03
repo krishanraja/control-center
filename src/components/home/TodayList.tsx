@@ -9,8 +9,17 @@ import { FocusedEditor } from '../shared/FocusedEditor'
 import { civilYmd } from '../../lib/civilDate'
 import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { jobLabel } from '../../content/jobs'
+import { openStrategist } from '../../lib/strategist'
+import { useDailyMove } from '../../hooks/useDailyMove'
+import { DailyMoveSlot } from './DailyMoveSlot'
 
 // TODAY, the third layer of the canon. Exactly 3 slots from daily_focus.
+//
+// The first slot proposes (ADR-028, 2026-10-03). When it is empty, today's
+// move from the strategist's morning read sits in it as a proposal he takes,
+// sets aside for the next one, or leaves for today. ADR-018 made Today manual
+// first; in the 25 days after, he set no slot by hand, so by his ruling the
+// machine now drafts the first and he edits. Slots 2 and 3 stay his.
 //
 // Manual first (2026-09-08): every slot is editable in place. Tap the text (or
 // an empty bar) and type; desktop edits inline, a phone opens the focused
@@ -35,6 +44,7 @@ type SlotN = 1 | 2 | 3
 export function TodayList({ compact = false }: { compact?: boolean } = {}) {
   const { today, refresh } = useDailyFocus()
   const { canon } = useGoalCanon()
+  const daily = useDailyMove()
   const h = useHaptics()
   const { toast } = useToast()
   const [editingN, setEditingN] = useState<SlotN | null>(null)
@@ -63,6 +73,11 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
   const doneCount = slots.filter(s => s.done).length
 
   const settle = (n: SlotN) => setOptimistic(prev => { const next = { ...prev }; delete next[n]; return next })
+  // The overlay comes off only once the row that carries the write is back.
+  // Dropped any sooner, the slot shows the old row for the length of the read:
+  // a taken move blinks empty before it reads as his. A failed read is the
+  // realtime path's to repair, never a reason to call a saved write failed.
+  const caughtUp = () => refresh().catch(() => undefined)
 
   const toggleComplete = async (n: SlotN) => {
     if (!today) return
@@ -76,7 +91,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         body: { date: today.focus_date, target_num: n },
         timeoutMs: 12_000,
       })
-      refresh()
+      await caughtUp()
       settle(n)
     } catch (e) {
       h.error()
@@ -98,7 +113,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         body: { date: today?.focus_date ?? civilYmd(new Date()), slot: n, text },
         timeoutMs: 12_000,
       })
-      refresh()
+      await caughtUp()
       settle(n)
       return true
     } catch (e) {
@@ -141,6 +156,31 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         {slots.map(t => {
           const has = Boolean(t.text && t.text.trim())
           const editing = editingN === t.n
+          const proposal = t.n === 1 && !has && !editing && sheetN !== 1 ? daily.current : null
+          if (proposal) {
+            const { move, rank } = proposal
+            const asks = daily.wire?.read?.asks ?? []
+            const hasAsk = Boolean(move.contact_id) && asks.some(a => a.to.kind === 'named' && a.to.person.contact_id === move.contact_id)
+            return (
+              <DailyMoveSlot
+                key="daily-move"
+                move={move}
+                // The challenge was put to the read's first pick. Once that is
+                // set aside it describes a move that is no longer on screen.
+                challenge={rank === 1 ? daily.wire?.read?.challenge : null}
+                hasAsk={hasAsk}
+                compact={compact}
+                onTake={() => {
+                  void saveSlot(1, move.text).then(ok => {
+                    if (ok) daily.answer(move, 'accepted', { final: { text: move.text } })
+                  })
+                }}
+                onNotThis={(code, note) => daily.answer(move, 'rejected', { reason_code: code, note })}
+                onLater={() => daily.answer(move, 'deferred')}
+                onOpenAsk={() => openStrategist({ mode: 'daily' })}
+              />
+            )
+          }
           return (
             <li key={t.n} className="flex items-start gap-3">
               <button

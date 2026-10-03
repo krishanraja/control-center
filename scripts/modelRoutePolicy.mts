@@ -84,6 +84,32 @@ export const API_ROUTES: RouteAssertion[] = [
     includes: ['SYNTHESIS_MODEL', 'think: true', "agent: 'goal-strategist'", 'maxDuration: 300'],
     excludes: ['LADDER_MODEL', 'claude-opus'],
   },
+  {
+    // The one read nobody asks for (ADR-028). Krish lifted "never Opus" for
+    // this read alone on 2026-10-03: it runs once a day, it picks the move the
+    // day is spent on, and a better pick is worth more than the read costs.
+    // The decider is Fable 5.1 with the refusal fallback on; a second lab
+    // argues against the first move. It is still never the ladder's model.
+    file: 'api/_dailyMove.ts',
+    rationale: 'the daily move is one top-tier read a day plus a cross-lab challenge, never the ladder',
+    includes: ['DAILY_MOVE_MODEL', "agent: 'daily-move'", 'refusalFallback: true', 'DAILY_MOVE_CHALLENGER_MODEL'],
+    excludes: ['LADDER_MODEL', 'SYNTHESIS_MODEL'],
+  },
+  {
+    file: 'api/strategist/daily.ts',
+    rationale: 'a daily read takes up to three model calls in series and must not be cut off by the default limit',
+    includes: ['writeDailyMove', 'maxDuration: 300', 'guardCronRoute'],
+  },
+  {
+    // Enrichment is bulk (3,284 judgments on 2026-09-15 alone). It moves off
+    // Claude only through the measured cheap lane (ADR-028): shadow first, a
+    // candidate promoted on agreement with Claude, demoted on drift. Claude
+    // stays the judgment of record until then, and is never its rescue.
+    file: 'api/_personEnrich.ts',
+    rationale: 'bulk judgment moves to a cheap lane only on measured agreement, and never falls back to Claude',
+    includes: ["laneState('enrich-person')", 'serveLane(', "recordLaneRow('shadow'", "recordLaneRow('drift'", 'fallback: false'],
+    excludes: ['SYNTHESIS_MODEL', 'LADDER_MODEL', 'DAILY_MOVE_MODEL'],
+  },
 ]
 
 /**

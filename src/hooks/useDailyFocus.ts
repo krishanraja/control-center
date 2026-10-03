@@ -128,7 +128,9 @@ export function useDailyFocus() {
     }
   }, [])
 
-  const refresh = useCallback(() => { fetchAll() }, [])
+  // Resolves when the row is back, so a write can hold what the operator
+  // meant until the server row carries it (TodayList's optimistic overlay).
+  const refresh = useCallback(() => fetchAll(), [])
   return { ...cache, refresh }
 }
 

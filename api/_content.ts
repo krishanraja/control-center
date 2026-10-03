@@ -6,7 +6,7 @@ import { priceUsd } from './_prices.js'
 import * as meter from './_meter.js'
 
 
-import { UTILITY_MODEL, MODEL_PRICES, thinkingParam } from './_models.js'
+import { UTILITY_MODEL, MODEL_PRICES, thinkingParam, effortParam, takesRefusalFallback, type Effort } from './_models.js'
 import { fetchWithRetry, RETRY_STATUS } from './_retry.js'
 import { askRescue, askRescueMessages, anthropicIsShut, openBreaker, shouldFallBack } from './_providerFallback.js'
 
@@ -378,6 +378,39 @@ export interface ClaudeOpts {
    *  2026-09-15; rescuing that volume with a second provider is how a fallback
    *  becomes the incident. Interactive surfaces leave it on. */
   fallback?: boolean
+  /** How hard a thinking model works (output_config.effort). Ignored by models
+   *  that take no effort, so a caller cannot 400 a Haiku call by passing one. */
+  effort?: Effort
+  /**
+   * Opt in to Anthropic's server-side refusal fallback on the models that take
+   * it (takesRefusalFallback). Those models can decline through a safety
+   * classifier with an HTTP 200 and stop_reason "refusal" and nothing to read;
+   * with this on, the API re-runs the request on the model it routes that
+   * category to, inside the same call. A refusal that survives the fallback is
+   * thrown as `anthropic_refusal:<category>`, never returned as an empty
+   * string, which is what reading content[0] of a refusal would have done.
+   */
+  refusalFallback?: boolean
+}
+
+/** The header and body field for the server-side refusal fallback, or nothing. */
+export function refusalFallbackParams(model: string, want: boolean | undefined): {
+  headers: Record<string, string>
+  body: Record<string, unknown>
+} {
+  if (!want || !takesRefusalFallback(model)) return { headers: {}, body: {} }
+  return {
+    headers: { 'anthropic-beta': 'server-side-fallback-2026-07-01' },
+    body: { fallbacks: 'default' },
+  }
+}
+
+/** A refusal is a 200 with nothing to say. Name it, so no caller reads it as an answer. */
+export function refusalOf(j: unknown): string | null {
+  const r = (j || {}) as { stop_reason?: unknown; stop_details?: { category?: unknown } | null }
+  if (r.stop_reason !== 'refusal') return null
+  const category = typeof r.stop_details?.category === 'string' ? r.stop_details.category : 'uncategorised'
+  return `anthropic_refusal:${category}`
 }
 
 export interface TokenUsage { input: number; output: number; model: string }
@@ -499,6 +532,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
       agent: opts.agent, model, system: opts.system, user: userText(opts),
       maxTokens: opts.maxTokens, temperature: opts.temperature,
       timeoutMs: opts.timeoutMs, json: opts.json, think: opts.think === true,
+      effort: opts.effort,
     })
   }
 
@@ -519,14 +553,17 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
   const ctrl = new AbortController()
   const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
   try {
+    const refusal = refusalFallbackParams(model, opts.refusalFallback)
     const r = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...refusal.headers },
       body: JSON.stringify({
         model,
         max_tokens: opts.maxTokens ?? 4000,
         ...thinkingParam(model, opts.think === true),
+        ...effortParam(model, opts.effort),
         ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.5 } : {}),
+        ...refusal.body,
         system: opts.system,
         messages: [{ role: 'user', content: userContent(opts) }],
       }),
@@ -548,10 +585,21 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
     }
     const inputTokens = Number(j?.usage?.input_tokens) || 0
     const outputTokens = Number(j?.usage?.output_tokens) || 0
-    if (opts.onUsage) opts.onUsage({ input: inputTokens, output: outputTokens, model })
+    // With the refusal fallback on, the message can come from the fallback
+    // model. The top-level `model` names whoever produced it, and the top-level
+    // usage is that attempt's, billed at that model's rates, so it is priced
+    // and reported as that model and never as the one asked for. A declined
+    // attempt before it is not metered: its usage entry has no documented shape.
+    const served = opts.refusalFallback && typeof j?.model === 'string' && j.model ? j.model : model
+    if (opts.onUsage) opts.onUsage({ input: inputTokens, output: outputTokens, model: served })
     // Unconditional, unlike onUsage: a route that does not care what it cost is
     // exactly the route whose spend nobody was watching.
-    await meter.anthropicCall({ agent: opts.agent, model, usage: j?.usage })
+    await meter.anthropicCall({ agent: opts.agent, model: served, usage: j?.usage })
+    // A refusal is metered (it can be billed) and then thrown. It is not
+    // fallback-worthy: another provider serving the same model would decline
+    // the same request, so it goes to the caller's own degrade path.
+    const declined = refusalOf(j)
+    if (declined) throw new Error(declined)
     return firstText(j)
   } catch (e: unknown) {
     if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
