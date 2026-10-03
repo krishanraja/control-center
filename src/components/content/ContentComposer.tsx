@@ -44,8 +44,8 @@ import { productionBriefStatusLabel,
 // Replaces the old infinite-scroll card. One screen: the draft is the canvas;
 // every tool (Cleo chat, Refine, Materials, Research, Standards) lives in a
 // single-panel rail so nothing stacks endlessly. One end CTA: Save Draft, which
-// produces a formatted Google Doc in Drive and pings Krish on Telegram. Flexible
-// order, never rigid. Esc / back returns to the pipeline.
+// produces a formatted Google Doc in Drive. Flexible order, never rigid.
+// Esc / back returns to the pipeline.
 // ─────────────────────────────────────────────────────────────────────────
 
 type RailTab = 'cleo' | 'refine' | 'cuts' | 'materials' | 'research' | 'standards'
@@ -1515,7 +1515,7 @@ function SavedToDocsModal({ result, onClose, onDone }: { result: SaveResult; onC
           </a>
         ) : (
           <p className="mt-3 text-label text-ink-muted leading-snug rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
-            Cleo is assembling the formatted doc now. The link will land here and she'll ping you on Telegram the moment it's ready.
+            Cleo is assembling the formatted doc now. The link will land here the moment it's ready.
           </p>
         )}
 

@@ -59,7 +59,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $('Log Content Performance').first().json.body?.agent_id || $('Log Content Performance').first().json.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $('Log Content Performance').first().json.body?.api_call_count || $('Log Content Performance').first().json.api_call_count || 0,\n  cost_usd: $('Log Content Performance').first().json.body?.total_cost || $('Log Content Performance').first().json.total_cost || 0,\n  outcome: $('Log Content Performance').first().json.body?.outcome || $('Log Content Performance').first().json.outcome || 'completed',\n  outcome_count: $('Log Content Performance').first().json.body?.result_count || $('Log Content Performance').first().json.result_count || 0,\n  quality_score: $('Log Content Performance').first().json.body?.quality_score || $('Log Content Performance').first().json.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log', doc_title: $('Log Content Performance').first().json.body?.doc_title, target_channel: $('Log Content Performance').first().json.body?.target_channel, doc_url: $('Log Content Performance').first().json.body?.doc_url })\n};\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "jsCode": "// The run log row. \"Write run log\" writes it over the stored Supabase\n// credential; this node used to POST it itself with the service-role key\n// written into its source (moved 2026-10-03).\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {\n  // Ignore missing webhook node\n}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $('Log Content Performance').first().json.body?.agent_id || $('Log Content Performance').first().json.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: $('Log Content Performance').first().json.body?.api_call_count || $('Log Content Performance').first().json.api_call_count || 0,\n  cost_usd: $('Log Content Performance').first().json.body?.total_cost || $('Log Content Performance').first().json.total_cost || 0,\n  outcome: $('Log Content Performance').first().json.body?.outcome || $('Log Content Performance').first().json.outcome || 'completed',\n  outcome_count: $('Log Content Performance').first().json.body?.result_count || $('Log Content Performance').first().json.result_count || 0,\n  quality_score: $('Log Content Performance').first().json.body?.quality_score || $('Log Content Performance').first().json.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log', doc_title: $('Log Content Performance').first().json.body?.doc_title, target_channel: $('Log Content Performance').first().json.body?.target_channel, doc_url: $('Log Content Performance').first().json.body?.doc_url })\n};\n\nreturn [{ json: payload }];",
         "mode": "runOnceForAllItems"
       },
       "name": "Log to Supabase",
@@ -70,6 +70,41 @@
         400
       ],
       "id": "f48e934a-6d48-4253-bc0e-a0bf29c10f2f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "65a339d6-f428-4489-863a-5f843c4d7296",
+      "name": "Write run log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "parameters": {
@@ -133,6 +168,17 @@
         [
           {
             "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Write run log",
             "type": "main",
             "index": 0
           }

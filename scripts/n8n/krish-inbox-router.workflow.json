@@ -20,30 +20,178 @@
       "webhookId": "3598af30-13e8-4fe5-9f6f-f01383277540"
     },
     {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Phase 2: route a classified inbox row to its target table.\n// The inbox_id gate runs first, as it always did; the read and the two writes\n// that follow are HTTP Request nodes on the stored Supabase credential (moved\n// out of \"Route + persist\" on 2026-10-03, with the service-role key).\nconst input = $input.first().json;\nconst body = input.body || input;\nconst inbox_id = body.inbox_id;\nif (!inbox_id) throw new Error('inbox_id required');\nreturn [{ json: { inbox_id } }];"
+      },
+      "id": "c2e8d2b4-dc08-4c26-a297-2512ae6e8270",
+      "name": "Check inbox id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks_inbox?id=eq.' + encodeURIComponent($('Check inbox id').first().json.inbox_id) + '&select=*' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "41ea5ef4-d4d8-43ef-beaa-0fd5fb1511f8",
+      "name": "Fetch inbox row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        280
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Works out where the inbox row goes. \"Insert target row\" makes the insert.\nconst inbox_id = $('Check inbox id').first().json.inbox_id;\nconst fetched = $input.first().json.body;\nconst row = (Array.isArray(fetched) ? fetched : [])[0];\nif (!row) throw new Error('inbox row not found');\nconst cls = row.classification || {};\nconst rawText = row.raw_text || '';\nconst firstAction = cls.first_action || rawText.slice(0, 200);\nconst agent = cls.primary_agent || 'agatha';\nconst targetTable = cls.target_table || 'tasks';\n\n// The slug fallback is gone. It called compute_concept_slug with p_text, but\n// the function takes p_name, so PostgREST never found it and every call\n// returned null. Dropping it changes nothing.\nconst concept_id = cls.suggested_concept_id || null;\n\nfunction headTitle(t) { return (t || '').replace(/\\s+/g, ' ').trim().slice(0, 80); }\n\nlet table = targetTable;\nlet target_table = targetTable;\nlet routed_to_agent = agent;\nlet insert;\n\nif (targetTable === 'leads') {\n  insert = {\n    full_name: headTitle(rawText), status: 'new', assignee_agent: agent,\n    why_relevant: firstAction, source: 'inbox',\n  };\n} else if (targetTable === 'visibility_targets') {\n  insert = {\n    title: headTitle(firstAction), status: 'queued', type: 'speaking',\n    why_relevant: firstAction,\n  };\n  routed_to_agent = 'nova';\n} else if (targetTable === 'guests') {\n  insert = { name: headTitle(rawText), status: 'scouted', one_liner: firstAction };\n  routed_to_agent = 'nell';\n} else if (targetTable === 'content_ideas') {\n  insert = {\n    idea: headTitle(firstAction), source_snippet: rawText, source_url: null,\n    state: 'seeded', source_type: 'inspiration_sweep',\n  };\n  routed_to_agent = 'cleo';\n} else if (targetTable === 'bets') {\n  insert = { title: headTitle(firstAction), hypothesis: rawText, status: 'live', kind: 'general' };\n  routed_to_agent = 'marcus';\n} else if (targetTable === 'customers') {\n  // No direct customer create. Create a task linked back via raw_text.\n  table = 'tasks';\n  target_table = 'tasks';\n  insert = {\n    title: 'Customer follow-up: ' + headTitle(firstAction), agent, status: 'waiting',\n    workstream: 'customer_acquisition', description: rawText, krish_reviewed: false,\n  };\n} else {\n  // tasks (and the unknown-bucket fallthrough)\n  table = 'tasks';\n  target_table = 'tasks';\n  insert = {\n    title: headTitle(firstAction), agent, status: 'waiting',\n    workstream: cls.task_type === 'content_idea' ? 'content' : 'general',\n    description: rawText, krish_reviewed: false,\n  };\n}\n\nreturn [{ json: { inbox_id, table, insert, target_table, routed_to_agent, concept_id, first_action: firstAction } }];"
+      },
+      "id": "1af3cd9e-3a66-4cee-8b18-106cf5cdf4a7",
+      "name": "Plan route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/' + $json.table }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.insert) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "900f57f1-0bba-49cb-acaa-30558e0289df",
+      "name": "Insert target row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        280
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
       "name": "Route + persist",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
+        1300,
         280
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Phase 2: route a classified inbox row to its target table.\nconst __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst input = $input.first().json;\nconst body = input.body || input;\nconst inbox_id = body.inbox_id;\nif (!inbox_id) throw new Error('inbox_id required');\n\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };\nconst Hrep = { ...H, 'Prefer': 'return=representation' };\nconst Hmin = { ...H, 'Prefer': 'return=minimal' };\n\nconst rows = await __req({ method: 'GET', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${inbox_id}&select=*`, headers: H, json: true });\nconst row = (rows || [])[0];\nif (!row) throw new Error('inbox row not found');\nconst cls = row.classification || {};\nconst rawText = row.raw_text || '';\nconst firstAction = cls.first_action || rawText.slice(0, 200);\nconst agent = cls.primary_agent || 'agatha';\nconst targetTable = cls.target_table || 'tasks';\n\n// Compute concept_id via RPC.\nasync function conceptSlug(text) {\n  try {\n    const r = await __req({ method: 'POST', url: `${SUPA}/rest/v1/rpc/compute_concept_slug`, headers: H, body: { p_text: text }, json: true });\n    return typeof r === 'string' ? r : (r && r.compute_concept_slug) || null;\n  } catch { return null; }\n}\nconst concept_id = cls.suggested_concept_id || await conceptSlug(firstAction);\n\nfunction firstWord(t) { return (t || '').trim().split(/\\s+/)[0] || ''; }\nfunction headTitle(t) { return (t || '').replace(/\\s+/g, ' ').trim().slice(0, 80); }\n\nlet target_id = null;\nlet target_table = targetTable;\nlet routed_to_agent = agent;\nlet failure = null;\n\ntry {\n  if (targetTable === 'leads') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/leads`, headers: Hrep, body: {\n      full_name: headTitle(rawText), status: 'new', assignee_agent: agent,\n      why_relevant: firstAction, source: 'inbox',\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n  } else if (targetTable === 'visibility_targets') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/visibility_targets`, headers: Hrep, body: {\n      title: headTitle(firstAction), status: 'queued', type: 'speaking',\n      why_relevant: firstAction,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'nova';\n  } else if (targetTable === 'guests') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/guests`, headers: Hrep, body: {\n      name: headTitle(rawText), status: 'scouted', one_liner: firstAction,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'nell';\n  } else if (targetTable === 'content_ideas') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/content_ideas`, headers: Hrep, body: {\n      idea: headTitle(firstAction), source_snippet: rawText, source_url: null,\n      state: 'seeded', source_type: 'inspiration_sweep',\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'cleo';\n  } else if (targetTable === 'bets') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/bets`, headers: Hrep, body: {\n      title: headTitle(firstAction), hypothesis: rawText, status: 'live', kind: 'general',\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'marcus';\n  } else if (targetTable === 'customers') {\n    // No direct customer create. Create a task linked back via raw_text.\n    target_table = 'tasks';\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/tasks`, headers: Hrep, body: {\n      title: 'Customer follow-up: ' + headTitle(firstAction), agent, status: 'waiting',\n      workstream: 'customer_acquisition', description: rawText, krish_reviewed: false,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n  } else {\n    // tasks (and the unknown-bucket fallthrough)\n    target_table = 'tasks';\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/tasks`, headers: Hrep, body: {\n      title: headTitle(firstAction), agent, status: 'waiting',\n      workstream: cls.task_type === 'content_idea' ? 'content' : 'general',\n      description: rawText, krish_reviewed: false,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n  }\n} catch (e) { failure = (e.message || String(e)).slice(0, 250); }\n\nconst patch = failure ? {\n  status: 'failed', archive_reason: 'classifier_failed', archived_at: new Date().toISOString(),\n} : {\n  status: 'in_flight', target_table, target_id, routed_to_agent, concept_id,\n};\nawait __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${inbox_id}`, headers: Hmin, body: patch, json: true });\n\nconst telegram_text = failure\n  ? `Inbox router failed: ${failure}`\n  : `Inbox routed to ${routed_to_agent}. \"${headTitle(firstAction)}\". Will return when it needs you.`;\n\nreturn [{ json: { ok: !failure, inbox_id, target_table, target_id, routed_to_agent, telegram_text } }];"
+        "jsCode": "// Reads the insert's answer and builds the inbox row's next state. \"Save\n// route\" writes it over the stored Supabase credential (moved out of this\n// node's source on 2026-10-03, with the service-role key).\nconst plan = $('Plan route').first().json;\nconst res = $input.first().json;\nfunction headTitle(t) { return (t || '').replace(/\\s+/g, ' ').trim().slice(0, 80); }\n\nlet target_id = null;\nlet failure = null;\nif (res.statusCode >= 200 && res.statusCode < 300) {\n  const ins = res.body;\n  target_id = (ins && ins[0] && ins[0].id) || null;\n} else {\n  const b = res.body || {};\n  failure = (`HTTP ${res.statusCode}: ` + (b.message || JSON.stringify(b))).slice(0, 250);\n}\n\nconst patch = failure ? {\n  status: 'failed', archive_reason: 'classifier_failed', archived_at: new Date().toISOString(),\n} : {\n  status: 'in_flight', target_table: plan.target_table, target_id,\n  routed_to_agent: plan.routed_to_agent, concept_id: plan.concept_id,\n};\n\nconst telegram_text = failure\n  ? `Inbox router failed: ${failure}`\n  : `Inbox routed to ${plan.routed_to_agent}. \"${headTitle(plan.first_action)}\". Will return when it needs you.`;\n\nreturn [{ json: {\n  ok: !failure, inbox_id: plan.inbox_id, target_table: plan.target_table, target_id,\n  routed_to_agent: plan.routed_to_agent, telegram_text, patch,\n} }];"
       },
       "id": "ir-route-002"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks_inbox?id=eq.' + encodeURIComponent($json.inbox_id) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patch) }}",
+        "options": {}
+      },
+      "id": "393f4f97-fe86-479e-b581-3186ed1aa41c",
+      "name": "Save route",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        280
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// What the webhook answers with, as before. \"Save route\" has saved the row.\nconst { patch, ...result } = $('Route + persist').first().json;\nreturn [{ json: result }];"
+      },
+      "id": "23d9a5b1-0445-4bac-b531-7b08eeccd79b",
+      "name": "Route result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        280
+      ]
     },
     {
       "name": "Telegram push",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        680,
+        1960,
         200
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: $json.telegram_text }) }}",
@@ -60,7 +208,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        680,
+        1960,
         360
       ],
       "parameters": {
@@ -76,7 +224,7 @@
       "main": [
         [
           {
-            "node": "Route + persist",
+            "node": "Check inbox id",
             "type": "main",
             "index": 0
           }
@@ -84,6 +232,72 @@
       ]
     },
     "Route + persist": {
+      "main": [
+        [
+          {
+            "node": "Save route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check inbox id": {
+      "main": [
+        [
+          {
+            "node": "Fetch inbox row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch inbox row": {
+      "main": [
+        [
+          {
+            "node": "Plan route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan route": {
+      "main": [
+        [
+          {
+            "node": "Insert target row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert target row": {
+      "main": [
+        [
+          {
+            "node": "Route + persist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save route": {
+      "main": [
+        [
+          {
+            "node": "Route result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route result": {
       "main": [
         [
           {
@@ -103,7 +317,8 @@
   "settings": {
     "executionOrder": "v1",
     "saveExecutionProgress": true,
-    "saveManualExecutions": true
+    "saveManualExecutions": true,
+    "availableInMCP": true
   },
   "staticData": null
 }

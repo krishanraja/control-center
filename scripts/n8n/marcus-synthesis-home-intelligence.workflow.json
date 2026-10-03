@@ -102,13 +102,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };\n\nconst mode = $input.first().json.mode;\nconst startedAt = $input.first().json.started_at;\n\nasync function q(path) {\n  try {\n    const resp = await __httpRequest({ method: 'GET', url: SB_URL + path, headers: H });\n    return Array.isArray(resp) ? resp : [];\n  } catch (e) { return []; }\n}\n\nconst qb = q.bind(this);\n\nconst sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();\n\nconst [\n  brief,\n  signals,\n  tasks,\n  auditLog,\n  veraAudit,\n  productHealth,\n  nellGuests,\n  mayaStriking,\n  mayaCompetitive,\n  opportunities,\n  businessMetrics,\n  systemHealth,\n  agents,\n  goals\n] = await Promise.all([\n  qb('/rest/v1/agents?id=eq.marcus&select=brief_content,mandate,personality,mission,kpi_label,kpi_target,kpi_current'),\n  qb('/rest/v1/zara_signals?select=signal_type,venture,company_name,description,source_url,signal_score,routed_to,surfaced_at,krish_rating,rating_notes&order=surfaced_at.desc&surfaced_at=gte.' + sevenDaysAgo + '&limit=50'),\n  qb('/rest/v1/tasks?select=owner,agent,venture,title,status,priority,urgency,next_step,blocked_by,created,updated_at&order=updated_at.desc&limit=60'),\n  qb('/rest/v1/audit_log?select=actor,event_type,details,created_at&order=created_at.desc&created_at=gte.' + sevenDaysAgo + '&limit=150'),\n  qb('/rest/v1/vera_audit?select=audit_date,audit_type,clean,quality_score,findings&order=audit_date.desc&audit_date=gte.' + sevenDaysAgo + '&limit=10'),\n  qb('/rest/v1/product_health?select=app_name,system_status,days_since_last_commit,http_status,open_issues,checked_at&order=checked_at.desc&limit=25'),\n  qb('/rest/v1/guests?select=name,podcast_target,one_liner,why_fit,status,fit_score,best_channel,created_at&order=created_at.desc&created_at=gte.' + sevenDaysAgo + '&limit=20'),\n  qb('/rest/v1/maya_striking_distance?select=product,query,current_position,previous_position,ctr,priority,found_at&order=found_at.desc&limit=15'),\n  qb('/rest/v1/maya_competitive_changes?select=product,competitor,change_type,previous_value,new_value,detected_at&order=detected_at.desc&detected_at=gte.' + sevenDaysAgo + '&limit=15'),\n  qb('/rest/v1/opportunities?select=company_name,venture,stage,owner,estimated_value,notes,updated_at&order=updated_at.desc&limit=20'),\n  qb('/rest/v1/business_metrics?select=label,value,target,status,unit,updated_at&order=updated_at.desc&limit=20'),\n  qb('/rest/v1/system_health?select=component,status,last_check,message&order=last_check.desc&limit=20'),\n  qb('/rest/v1/agents?select=id,name,role,pod,active,last_run,last_output,expected_runs_per_day&active=eq.true&order=id.asc'),\n  qb('/rest/v1/goals?select=title,why_now,current,source,venture,priority,definition_of_done&status=eq.active&order=priority.asc.nullslast,created_at.desc&limit=25')\n]);\n\nconst marcusBrief = brief[0] || {};\n\nreturn [{\n  json: {\n    mode,\n    started_at: startedAt,\n    week_of: new Date().toISOString().split('T')[0],\n    marcus_brief: marcusBrief.brief_content || '',\n    marcus_mission: marcusBrief.mission || '',\n    marcus_kpi: { label: marcusBrief.kpi_label, target: marcusBrief.kpi_target, current: marcusBrief.kpi_current },\n    signals,\n    tasks,\n    audit_log: auditLog,\n    vera_audit: veraAudit,\n    product_health: productHealth,\n    nell_candidates: nellGuests,\n    maya_striking: mayaStriking,\n    maya_competitive: mayaCompetitive,\n    opportunities,\n    business_metrics: businessMetrics,\n    system_health: systemHealth,\n    agents,\n    goals\n  }\n}];"
+        "jsCode": "// Assembles what \"Fetch OS state\" read into the shape this node always\n// returned. A read that failed is an empty list, as it was.\nconst plans = $('Plan OS reads').all();\nconst got = {};\n$input.all().forEach((res, i) => {\n  const k = res.pairedItem && typeof res.pairedItem.item === 'number' ? res.pairedItem.item : i;\n  const key = plans[k] && plans[k].json.key;\n  const r = res.json;\n  if (key) got[key] = r && r.statusCode >= 200 && r.statusCode < 300 && Array.isArray(r.body) ? r.body : [];\n});\nconst rows = key => got[key] || [];\n\nconst mode = plans[0].json.mode;\nconst startedAt = plans[0].json.started_at;\nconst marcusBrief = rows('brief')[0] || {};\n\nreturn [{\n  json: {\n    mode,\n    started_at: startedAt,\n    week_of: new Date().toISOString().split('T')[0],\n    marcus_brief: marcusBrief.brief_content || '',\n    marcus_mission: marcusBrief.mission || '',\n    marcus_kpi: { label: marcusBrief.kpi_label, target: marcusBrief.kpi_target, current: marcusBrief.kpi_current },\n    signals: rows('signals'),\n    tasks: rows('tasks'),\n    audit_log: rows('auditLog'),\n    vera_audit: rows('veraAudit'),\n    product_health: rows('productHealth'),\n    nell_candidates: rows('nellGuests'),\n    maya_striking: rows('mayaStriking'),\n    maya_competitive: rows('mayaCompetitive'),\n    opportunities: rows('opportunities'),\n    business_metrics: rows('businessMetrics'),\n    system_health: rows('systemHealth'),\n    agents: rows('agents'),\n    goals: rows('goals')\n  }\n}];"
       },
       "name": "Load OS State",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        688,
+        1280,
         304
       ],
       "id": "d1cd5923-3fcf-41dc-b789-13a06a92b416"
@@ -121,7 +121,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        912,
+        1480,
         304
       ],
       "id": "88814748-16bc-43dc-9b72-3d8b3588cfa5"
@@ -156,7 +156,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1120,
+        1680,
         304
       ],
       "credentials": {
@@ -201,7 +201,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1120,
+        1680,
         528
       ],
       "credentials": {
@@ -224,20 +224,20 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1392,
+        1900,
         400
       ],
       "id": "10d6b726-a8d3-4e4f-bdc4-9004c01c505d"
     },
     {
       "parameters": {
-        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };\nconst H_UPSERT = { ...H, 'Prefer': 'resolution=merge-duplicates,return=minimal' };\n\nconst d = $input.first().json;\nconst writesLog = { home_intelligence: false, marcus_synthesis: false, agatha_task: false, audit_log: false, workflow_runs: false };\n\nif (!d.ok || !d.home_summary) {\n  writesLog.error = 'LLM parse failed or empty, skipping Supabase writes';\n  return [{ json: { ...d, writes: writesLog } }];\n}\n\n// === Compute customer_signals and overdue lead follow-ups directly from DB ===\n// Brief tells Marcus to roll these up from customers/leads tables, but the\n// synthesis LLM has no DB tool. Computing deterministically here so the\n// brief's intent actually materialises on home_intelligence.\nlet computedCustomerSignals = [];\ntry {\n  const sevenDaysAgo = new Date(Date.now() - 7*24*3600*1000).toISOString();\n  const customersUrl = SB_URL + '/rest/v1/customers?select=product,kind,mrr_usd,source,became_paid_at,churned_at,signed_up_at&or=(became_paid_at.gte.' + encodeURIComponent(sevenDaysAgo) + ',churned_at.gte.' + encodeURIComponent(sevenDaysAgo) + ',signed_up_at.gte.' + encodeURIComponent(sevenDaysAgo) + ')';\n  const customers = await __httpRequest({ method: 'GET', url: customersUrl, headers: H });\n  const byProduct = {};\n  for (const c of (customers || [])) {\n    const p = c.product;\n    if (!byProduct[p]) byProduct[p] = { product: p, paid_added: 0, churned: 0, mrr_delta: 0, free_added: 0, sources: {} };\n    const b = byProduct[p];\n    if (c.became_paid_at && c.became_paid_at >= sevenDaysAgo) {\n      b.paid_added += 1;\n      b.mrr_delta += Number(c.mrr_usd || 0);\n      if (c.source) b.sources[c.source] = (b.sources[c.source] || 0) + 1;\n    }\n    if (c.churned_at && c.churned_at >= sevenDaysAgo) {\n      b.churned += 1;\n      b.mrr_delta -= Number(c.mrr_usd || 0);\n    }\n    if (c.signed_up_at && c.signed_up_at >= sevenDaysAgo && c.kind === 'free_signup') {\n      b.free_added += 1;\n    }\n  }\n  computedCustomerSignals = Object.values(byProduct).map(b => ({\n    product: b.product,\n    paid_added: b.paid_added,\n    churned: b.churned,\n    mrr_delta: Math.round(b.mrr_delta * 100) / 100,\n    free_added: b.free_added,\n    top_source: Object.entries(b.sources).sort((a,b) => b[1]-a[1])[0]?.[0] || null\n  }));\n} catch (e) { writesLog.customer_signals_error = String(e).slice(0, 200); }\n\nlet overdueLeadSignals = [];\ntry {\n  const nowIso = new Date().toISOString();\n  const leadsUrl = SB_URL + '/rest/v1/leads?select=id,full_name,company,why_relevant,next_step,follow_up_at&follow_up_at=lt.' + encodeURIComponent(nowIso) + '&status=in.(ready,contacted,conversation)&order=follow_up_at.asc&limit=3';\n  const overdueLeads = await __httpRequest({ method: 'GET', url: leadsUrl, headers: H });\n  for (const l of (overdueLeads || [])) {\n    const days = Math.round((new Date(l.follow_up_at).getTime() - Date.now()) / (24*3600*1000));\n    overdueLeadSignals.push({\n      signal: 'Follow up: ' + (l.full_name || 'unnamed lead') + ' - ' + (l.company || 'unknown company'),\n      source: 'Leads',\n      relevance: l.why_relevant || 'Lead awaiting next touch',\n      recommended_action: l.next_step || 'Re-engage with a one-line update',\n      urgency: 'high',\n      days_until: days,\n      event_id: l.id\n    });\n  }\n} catch (e) { writesLog.overdue_leads_error = String(e).slice(0, 200); }\n\nconst mergedExternalSignals = [...overdueLeadSignals, ...(d.home_external_signals || [])];\n// === end deterministic signals ===\n\nconst homePayload = {\n  id: 'current',\n  assessment: d.mode === 'deep' ? (d.insights.join(' | ') || null) : null,\n  summary: JSON.stringify(d.home_summary),\n  metrics: d.home_metrics,\n  external_signals: mergedExternalSignals,\n  customer_signals: computedCustomerSignals.length ? computedCustomerSignals : (d.home_customer_signals || []),\n  customer_voice: d.home_customer_voice || [],\n  generated_at: new Date().toISOString(),\n  updated_at: new Date().toISOString()\n};\ntry {\n  await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/home_intelligence?on_conflict=id', headers: H_UPSERT, body: JSON.stringify(homePayload) });\n  writesLog.home_intelligence = true;\n} catch (e) { writesLog.home_intelligence_error = String(e).slice(0, 200); }\n\nif (d.mode === 'deep') {\n  const synthPayload = {\n    week_of: d.week_of,\n    insights: d.insights,\n    cleo_recommendations: d.cleo_recommendation,\n    org_focus: d.org_focus,\n    generated_at: new Date().toISOString()\n  };\n  try {\n    await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/marcus_synthesis', headers: H, body: JSON.stringify(synthPayload) });\n    writesLog.marcus_synthesis = true;\n  } catch (e) { writesLog.marcus_synthesis_error = String(e).slice(0, 200); }\n\n  const taskPayload = {\n    agent: 'agatha',\n    venture: 'mindmaker-os',\n    title: 'Marcus Weekly Synthesis Ready, week of ' + d.week_of,\n    description: 'Marcus has produced weekly synthesis. Org focus: ' + d.org_focus + '\\n\\nInsights:\\n' + (d.insights || []).map((x, i) => (i + 1) + '. ' + x).join('\\n') + '\\n\\nCleo angle: ' + d.cleo_recommendation,\n    status: 'active',\n    priority: 'high',\n    next_step: 'Review insights, route to Cleo and Leo, decide escalation to Krish',\n    workstream: 'marcus-synthesis',\n    created: new Date().toISOString(),\n    updated_at: new Date().toISOString()\n  };\n  try {\n    await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/tasks', headers: H, body: JSON.stringify(taskPayload) });\n    writesLog.agatha_task = true;\n  } catch (e) { writesLog.agatha_task_error = String(e).slice(0, 200); }\n}\n\n\nif (d.mode === 'deep' && d.agent_plans && Array.isArray(d.agent_plans)) {\n  writesLog.agent_plans = 0;\n  for (const plan of d.agent_plans) {\n    if (!plan.agent_id) continue;\n    const planPayload = {\n      agent_id: plan.agent_id,\n      current_phase: plan.current_phase || 'Active',\n      objective: plan.objective || 'Support weekly goals',\n      next_milestone: plan.next_milestone || 'Complete weekly sprint',\n      updated_at: new Date().toISOString()\n    };\n    try {\n      await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/agent_plans?on_conflict=agent_id', headers: H_UPSERT, body: JSON.stringify(planPayload) });\n      writesLog.agent_plans++;\n    } catch (e) {\n      if (!writesLog.agent_plans_error) writesLog.agent_plans_error = '';\n      writesLog.agent_plans_error += `[${plan.agent_id}: ${e.message}] `;\n    }\n  }\n}\n\nconst auditPayload = {\n  actor: 'marcus',\n  event_type: d.mode === 'deep' ? 'monday-synthesis' : 'home-intel-update',\n  target: d.mode === 'deep' ? 'marcus_synthesis+home_intelligence' : 'home_intelligence',\n  details: 'mode=' + d.mode + ' week_of=' + d.week_of + ' model=' + d.model_used + ' insights=' + (d.insights || []).length + ' cost_usd=' + d.cost_estimate_usd,\n  changes: { writes: writesLog, duration_ms: d.duration_ms }\n};\ntry {\n  await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/audit_log', headers: H, body: JSON.stringify(auditPayload) });\n  writesLog.audit_log = true;\n} catch (e) { writesLog.audit_log_error = String(e).slice(0, 200); }\n\nconst runPayload = {\n  workflow_id: 'TI1ozQbPtI69qlgO',\n  workflow_name: 'OS — Marcus Synthesis + Home Intelligence',\n  agent_id: 'marcus',\n  run_at: d.started_at,\n  duration_ms: d.duration_ms,\n  api_calls: 1,\n  api_calls_count: 1,\n  cost_usd: d.cost_estimate_usd,\n  cost_estimate_usd: d.cost_estimate_usd,\n  outcome: d.mode === 'deep' ? 'synthesis+home-intel' : 'home-intel',\n  outcome_count: d.mode === 'deep' ? (d.insights || []).length : d.home_metrics.length,\n  status: d.ok ? 'success' : 'partial',\n  metadata: { mode: d.mode, model: d.model_used, input_tokens: d.input_tokens, output_tokens: d.output_tokens, writes: writesLog }\n};\ntry {\n  await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/workflow_runs', headers: H, body: JSON.stringify(runPayload) });\n  writesLog.workflow_runs = true;\n} catch (e) { writesLog.workflow_runs_error = String(e).slice(0, 200); }\n\nreturn [{ json: { ...d, writes: writesLog } }];"
+        "jsCode": "// The run's output with its write record: the same output this node always\n// returned. The reads and writes ran in the nodes before it, over the stored\n// Supabase credential (moved 2026-10-03, with the service-role key).\nconst d = $('Parse LLM Response').first().json;\nconst writesLog = { ...$('Build run row').first().json.log };\nconst r = $input.first().json;\nif (r && r.statusCode >= 200 && r.statusCode < 300) writesLog.workflow_runs = true;\nelse writesLog.workflow_runs_error = ('Error: HTTP ' + (r && r.statusCode) + ': ' + (r && r.body && r.body.message ? r.body.message : JSON.stringify(r && r.body))).slice(0, 200);\nreturn [{ json: { ...d, writes: writesLog } }];"
       },
       "name": "Write to Supabase",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1600,
+        3900,
         400
       ],
       "id": "5e3d947c-9be7-4176-a290-5e1e735163bd"
@@ -245,7 +245,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: '6773796504', parse_mode: 'Markdown', text: ($json.mode === 'deep' ? '*Marcus weekly synthesis* ready for Agatha\\nweek_of ' + $json.week_of + '\\nmodel ' + $json.model_used + '\\ncost $' + $json.cost_estimate_usd + '\\n\\n' + ($json.insights || []).map(function(x, i) { return (i+1) + '. ' + x; }).join('\\n\\n') + '\\n\\nFOCUS: ' + $json.org_focus + '\\nCLEO: ' + $json.cleo_recommendation : '🧠 *Marcus*: Home Intelligence updated.\\n\\n' + ($json.home_summary ? $json.home_summary.headline : '') + '\\n\\nDive deeper: https://controlcenter.krishraja.com') } }}",
@@ -261,7 +261,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1824,
+        4100,
         400
       ],
       "id": "272c1143-0682-4d03-8c3d-2c0c7b743ccf",
@@ -430,7 +430,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2044,
+        4300,
         400
       ],
       "parameters": {
@@ -605,6 +605,304 @@
           "name": "Supabase OS (service_role, verified)"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The fourteen reads \"Load OS State\" used to make itself with the service-role\n// key written into its source. One item each; \"Fetch OS state\" sends them over\n// the stored Supabase credential, in parallel as before (moved 2026-10-03).\nconst mode = $input.first().json.mode;\nconst startedAt = $input.first().json.started_at;\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();\n\nconst READS = [\n  [\"brief\", '/rest/v1/agents?id=eq.marcus&select=brief_content,mandate,personality,mission,kpi_label,kpi_target,kpi_current'],\n  [\"signals\", '/rest/v1/zara_signals?select=signal_type,venture,company_name,description,source_url,signal_score,routed_to,surfaced_at,krish_rating,rating_notes&order=surfaced_at.desc&surfaced_at=gte.' + sevenDaysAgo + '&limit=50'],\n  [\"tasks\", '/rest/v1/tasks?select=owner,agent,venture,title,status,priority,urgency,next_step,blocked_by,created,updated_at&order=updated_at.desc&limit=60'],\n  [\"auditLog\", '/rest/v1/audit_log?select=actor,event_type,details,created_at&order=created_at.desc&created_at=gte.' + sevenDaysAgo + '&limit=150'],\n  [\"veraAudit\", '/rest/v1/vera_audit?select=audit_date,audit_type,clean,quality_score,findings&order=audit_date.desc&audit_date=gte.' + sevenDaysAgo + '&limit=10'],\n  [\"productHealth\", '/rest/v1/product_health?select=app_name,system_status,days_since_last_commit,http_status,open_issues,checked_at&order=checked_at.desc&limit=25'],\n  [\"nellGuests\", '/rest/v1/guests?select=name,podcast_target,one_liner,why_fit,status,fit_score,best_channel,created_at&order=created_at.desc&created_at=gte.' + sevenDaysAgo + '&limit=20'],\n  [\"mayaStriking\", '/rest/v1/maya_striking_distance?select=product,query,current_position,previous_position,ctr,priority,found_at&order=found_at.desc&limit=15'],\n  [\"mayaCompetitive\", '/rest/v1/maya_competitive_changes?select=product,competitor,change_type,previous_value,new_value,detected_at&order=detected_at.desc&detected_at=gte.' + sevenDaysAgo + '&limit=15'],\n  [\"opportunities\", '/rest/v1/opportunities?select=company_name,venture,stage,owner,estimated_value,notes,updated_at&order=updated_at.desc&limit=20'],\n  [\"businessMetrics\", '/rest/v1/business_metrics?select=label,value,target,status,unit,updated_at&order=updated_at.desc&limit=20'],\n  [\"systemHealth\", '/rest/v1/system_health?select=component,status,last_check,message&order=last_check.desc&limit=20'],\n  [\"agents\", '/rest/v1/agents?select=id,name,role,pod,active,last_run,last_output,expected_runs_per_day&active=eq.true&order=id.asc'],\n  [\"goals\", '/rest/v1/goals?select=title,why_now,current,source,venture,priority,definition_of_done&status=eq.active&order=priority.asc.nullslast,created_at.desc&limit=25'],\n];\n\nreturn READS.map(([key, path]) => ({ json: { key, url: SB_URL + path, mode, started_at: startedAt } }));"
+      },
+      "id": "e15c3e65-8c87-4ca7-ae74-3d8f1e7d6ce7",
+      "name": "Plan OS reads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "2571b844-d0f5-419f-bcfe-967ee138b067",
+      "name": "Fetch OS state",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        304
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "writes-due",
+              "leftValue": "={{ !!($json.ok && $json.home_summary) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "370560e7-9dc7-4a1d-a456-9816aa981b7f",
+      "name": "Writes due?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2100,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The model's answer did not parse, so nothing is written, as before.\nconst d = $input.first().json;\nconst writesLog = { home_intelligence: false, marcus_synthesis: false, agatha_task: false, audit_log: false, workflow_runs: false };\nwritesLog.error = 'LLM parse failed or empty, skipping Supabase writes';\nreturn [{ json: { ...d, writes: writesLog } }];"
+      },
+      "id": "b35f1fdd-a49b-4e70-a3ac-5fb09d5239d8",
+      "name": "Skip writes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2300,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The two reads \"Write to Supabase\" made before writing, one item each.\n// \"Read week signals\" sends them over the stored Supabase credential; this\n// workflow used to make them with the service-role key written into its\n// source (moved 2026-10-03).\n// Brief tells Marcus to roll these up from customers/leads tables, but the\n// synthesis LLM has no DB tool. Computing deterministically here so the\n// brief's intent actually materialises on home_intelligence.\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst sevenDaysAgo = new Date(Date.now() - 7*24*3600*1000).toISOString();\nconst nowIso = new Date().toISOString();\nconst customersUrl = SB_URL + '/rest/v1/customers?select=product,kind,mrr_usd,source,became_paid_at,churned_at,signed_up_at&or=(became_paid_at.gte.' + encodeURIComponent(sevenDaysAgo) + ',churned_at.gte.' + encodeURIComponent(sevenDaysAgo) + ',signed_up_at.gte.' + encodeURIComponent(sevenDaysAgo) + ')';\nconst leadsUrl = SB_URL + '/rest/v1/leads?select=id,full_name,company,why_relevant,next_step,follow_up_at&follow_up_at=lt.' + encodeURIComponent(nowIso) + '&status=in.(ready,contacted,conversation)&order=follow_up_at.asc&limit=3';\nreturn [\n  { json: { key: 'customers', url: customersUrl, sevenDaysAgo } },\n  { json: { key: 'leads', url: leadsUrl, sevenDaysAgo } },\n];"
+      },
+      "id": "9e4ec396-08fc-4d3f-a096-788f3d4980d7",
+      "name": "Plan signal reads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2300,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "bc5a8bae-db11-4098-a61c-77e374137946",
+      "name": "Read week signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2500,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds every row the run writes, one item each, for \"Write week rows\". The\n// payloads are the ones this workflow always wrote; only the requests moved\n// to the stored Supabase credential (2026-10-03).\nconst d = $('Parse LLM Response').first().json;\nconst reads = $('Plan signal reads').all();\nconst writesLog = { home_intelligence: false, marcus_synthesis: false, agatha_task: false, audit_log: false, workflow_runs: false };\nconst errText = r => ('Error: HTTP ' + (r && r.statusCode) + ': ' + (r && r.body && r.body.message ? r.body.message : JSON.stringify(r && r.body))).slice(0, 200);\n\nconst got = {};\n$input.all().forEach((res, i) => {\n  const k = res.pairedItem && typeof res.pairedItem.item === 'number' ? res.pairedItem.item : i;\n  if (reads[k]) got[reads[k].json.key] = res.json;\n});\nconst sevenDaysAgo = reads[0].json.sevenDaysAgo;\nconst readOk = r => r && r.statusCode >= 200 && r.statusCode < 300 && Array.isArray(r.body);\n\n// === Compute customer_signals and overdue lead follow-ups directly from DB ===\nlet computedCustomerSignals = [];\nif (readOk(got.customers)) {\n  const customers = got.customers.body;\n  const byProduct = {};\n  for (const c of (customers || [])) {\n    const p = c.product;\n    if (!byProduct[p]) byProduct[p] = { product: p, paid_added: 0, churned: 0, mrr_delta: 0, free_added: 0, sources: {} };\n    const b = byProduct[p];\n    if (c.became_paid_at && c.became_paid_at >= sevenDaysAgo) {\n      b.paid_added += 1;\n      b.mrr_delta += Number(c.mrr_usd || 0);\n      if (c.source) b.sources[c.source] = (b.sources[c.source] || 0) + 1;\n    }\n    if (c.churned_at && c.churned_at >= sevenDaysAgo) {\n      b.churned += 1;\n      b.mrr_delta -= Number(c.mrr_usd || 0);\n    }\n    if (c.signed_up_at && c.signed_up_at >= sevenDaysAgo && c.kind === 'free_signup') {\n      b.free_added += 1;\n    }\n  }\n  computedCustomerSignals = Object.values(byProduct).map(b => ({\n    product: b.product,\n    paid_added: b.paid_added,\n    churned: b.churned,\n    mrr_delta: Math.round(b.mrr_delta * 100) / 100,\n    free_added: b.free_added,\n    top_source: Object.entries(b.sources).sort((a,b) => b[1]-a[1])[0]?.[0] || null\n  }));\n} else { writesLog.customer_signals_error = errText(got.customers); }\n\nlet overdueLeadSignals = [];\nif (readOk(got.leads)) {\n  for (const l of (got.leads.body || [])) {\n    const days = Math.round((new Date(l.follow_up_at).getTime() - Date.now()) / (24*3600*1000));\n    overdueLeadSignals.push({\n      signal: 'Follow up: ' + (l.full_name || 'unnamed lead') + ' - ' + (l.company || 'unknown company'),\n      source: 'Leads',\n      relevance: l.why_relevant || 'Lead awaiting next touch',\n      recommended_action: l.next_step || 'Re-engage with a one-line update',\n      urgency: 'high',\n      days_until: days,\n      event_id: l.id\n    });\n  }\n} else { writesLog.overdue_leads_error = errText(got.leads); }\n\nconst mergedExternalSignals = [...overdueLeadSignals, ...(d.home_external_signals || [])];\n// === end deterministic signals ===\n\nconst SB = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/';\nconst UPSERT = 'resolution=merge-duplicates,return=minimal';\nconst INSERT = 'return=minimal';\nconst writes = [];\n\nconst homePayload = {\n  id: 'current',\n  assessment: d.mode === 'deep' ? (d.insights.join(' | ') || null) : null,\n  summary: JSON.stringify(d.home_summary),\n  metrics: d.home_metrics,\n  external_signals: mergedExternalSignals,\n  customer_signals: computedCustomerSignals.length ? computedCustomerSignals : (d.home_customer_signals || []),\n  customer_voice: d.home_customer_voice || [],\n  generated_at: new Date().toISOString(),\n  updated_at: new Date().toISOString()\n};\nwrites.push({ key: 'home_intelligence', url: SB + 'home_intelligence?on_conflict=id', prefer: UPSERT, body: homePayload });\n\nif (d.mode === 'deep') {\n  const synthPayload = {\n    week_of: d.week_of,\n    insights: d.insights,\n    cleo_recommendations: d.cleo_recommendation,\n    org_focus: d.org_focus,\n    generated_at: new Date().toISOString()\n  };\n  writes.push({ key: 'marcus_synthesis', url: SB + 'marcus_synthesis', prefer: INSERT, body: synthPayload });\n\n  const taskPayload = {\n    agent: 'agatha',\n    venture: 'mindmaker-os',\n    title: 'Marcus Weekly Synthesis Ready, week of ' + d.week_of,\n    description: 'Marcus has produced weekly synthesis. Org focus: ' + d.org_focus + '\\n\\nInsights:\\n' + (d.insights || []).map((x, i) => (i + 1) + '. ' + x).join('\\n') + '\\n\\nCleo angle: ' + d.cleo_recommendation,\n    status: 'active',\n    priority: 'high',\n    next_step: 'Review insights, route to Cleo and Leo, decide escalation to Krish',\n    workstream: 'marcus-synthesis',\n    created: new Date().toISOString(),\n    updated_at: new Date().toISOString()\n  };\n  writes.push({ key: 'agatha_task', url: SB + 'tasks', prefer: INSERT, body: taskPayload });\n}\n\nif (d.mode === 'deep' && d.agent_plans && Array.isArray(d.agent_plans)) {\n  writesLog.agent_plans = 0;\n  for (const plan of d.agent_plans) {\n    if (!plan.agent_id) continue;\n    const planPayload = {\n      agent_id: plan.agent_id,\n      current_phase: plan.current_phase || 'Active',\n      objective: plan.objective || 'Support weekly goals',\n      next_milestone: plan.next_milestone || 'Complete weekly sprint',\n      updated_at: new Date().toISOString()\n    };\n    writes.push({ key: 'agent_plan', agent_id: plan.agent_id, url: SB + 'agent_plans?on_conflict=agent_id', prefer: UPSERT, body: planPayload });\n  }\n}\n\nwrites[0].log = writesLog;\nreturn writes.map(w => ({ json: w }));"
+      },
+      "id": "7208a2ee-ec16-4e4f-8594-b554c71554c1",
+      "name": "Plan writes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "={{ $json.prefer }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "1cbb278c-4f09-4186-9c45-0035d1785c8b",
+      "name": "Write week rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2900,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Records which writes landed, then builds the audit row, which carries that\n// record as it always did.\nconst d = $('Parse LLM Response').first().json;\nconst planned = $('Plan writes').all();\nconst writesLog = { ...planned[0].json.log };\nconst errText = r => ('Error: HTTP ' + (r && r.statusCode) + ': ' + (r && r.body && r.body.message ? r.body.message : JSON.stringify(r && r.body))).slice(0, 200);\nconst ok = r => r && r.statusCode >= 200 && r.statusCode < 300;\n\n$input.all().forEach((res, i) => {\n  const k = res.pairedItem && typeof res.pairedItem.item === 'number' ? res.pairedItem.item : i;\n  const w = planned[k] && planned[k].json;\n  if (!w) return;\n  const r = res.json;\n  if (w.key === 'agent_plan') {\n    if (ok(r)) writesLog.agent_plans++;\n    else {\n      if (!writesLog.agent_plans_error) writesLog.agent_plans_error = '';\n      writesLog.agent_plans_error += `[${w.agent_id}: ${errText(r)}] `;\n    }\n  } else if (ok(r)) writesLog[w.key] = true;\n  else writesLog[w.key + '_error'] = errText(r);\n});\n\nconst auditPayload = {\n  actor: 'marcus',\n  event_type: d.mode === 'deep' ? 'monday-synthesis' : 'home-intel-update',\n  target: d.mode === 'deep' ? 'marcus_synthesis+home_intelligence' : 'home_intelligence',\n  details: 'mode=' + d.mode + ' week_of=' + d.week_of + ' model=' + d.model_used + ' insights=' + (d.insights || []).length + ' cost_usd=' + d.cost_estimate_usd,\n  changes: { writes: writesLog, duration_ms: d.duration_ms }\n};\nreturn [{ json: { audit: auditPayload, log: writesLog } }];"
+      },
+      "id": "d102ade1-d785-4b74-97d6-c49b1ce60d06",
+      "name": "Build audit row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.audit) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c3600601-2590-42ba-8b64-2220c2fe46a3",
+      "name": "Write audit row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The run row, carrying the write record including the audit row's outcome.\nconst d = $('Parse LLM Response').first().json;\nconst writesLog = { ...$('Build audit row').first().json.log };\nconst r = $input.first().json;\nif (r && r.statusCode >= 200 && r.statusCode < 300) writesLog.audit_log = true;\nelse writesLog.audit_log_error = ('Error: HTTP ' + (r && r.statusCode) + ': ' + (r && r.body && r.body.message ? r.body.message : JSON.stringify(r && r.body))).slice(0, 200);\n\nconst runPayload = {\n  workflow_id: 'TI1ozQbPtI69qlgO',\n  workflow_name: 'OS — Marcus Synthesis + Home Intelligence',\n  agent_id: 'marcus',\n  run_at: d.started_at,\n  duration_ms: d.duration_ms,\n  api_calls: 1,\n  api_calls_count: 1,\n  cost_usd: d.cost_estimate_usd,\n  cost_estimate_usd: d.cost_estimate_usd,\n  outcome: d.mode === 'deep' ? 'synthesis+home-intel' : 'home-intel',\n  outcome_count: d.mode === 'deep' ? (d.insights || []).length : d.home_metrics.length,\n  status: d.ok ? 'success' : 'partial',\n  metadata: { mode: d.mode, model: d.model_used, input_tokens: d.input_tokens, output_tokens: d.output_tokens, writes: writesLog }\n};\nreturn [{ json: { run: runPayload, log: writesLog } }];"
+      },
+      "id": "75a4b2f3-9d78-49ee-a417-84f8bb96803a",
+      "name": "Build run row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3500,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.run) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "29f0af8d-4f10-4729-b8ab-47c0a88c9345",
+      "name": "Write run row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3700,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -628,7 +926,7 @@
       "main": [
         [
           {
-            "node": "Load OS State",
+            "node": "Plan OS reads",
             "type": "main",
             "index": 0
           }
@@ -639,7 +937,7 @@
       "main": [
         [
           {
-            "node": "Load OS State",
+            "node": "Plan OS reads",
             "type": "main",
             "index": 0
           }
@@ -701,7 +999,7 @@
       "main": [
         [
           {
-            "node": "Write to Supabase",
+            "node": "Writes due?",
             "type": "main",
             "index": 0
           }
@@ -845,6 +1143,145 @@
         [
           {
             "node": "Build Identity Prepend 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan OS reads": {
+      "main": [
+        [
+          {
+            "node": "Fetch OS state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch OS state": {
+      "main": [
+        [
+          {
+            "node": "Load OS State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writes due?": {
+      "main": [
+        [
+          {
+            "node": "Plan signal reads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip writes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip writes": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan signal reads": {
+      "main": [
+        [
+          {
+            "node": "Read week signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read week signals": {
+      "main": [
+        [
+          {
+            "node": "Plan writes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan writes": {
+      "main": [
+        [
+          {
+            "node": "Write week rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write week rows": {
+      "main": [
+        [
+          {
+            "node": "Build audit row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build audit row": {
+      "main": [
+        [
+          {
+            "node": "Write audit row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write audit row": {
+      "main": [
+        [
+          {
+            "node": "Build run row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build run row": {
+      "main": [
+        [
+          {
+            "node": "Write run row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write run row": {
+      "main": [
+        [
+          {
+            "node": "Write to Supabase",
             "type": "main",
             "index": 0
           }
