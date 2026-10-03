@@ -91,7 +91,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ from: 'CTRL <ctrl@themindmaker.ai>', reply_to: 'krish@themindmaker.ai', to: [$json.email], subject: $json.subject, text: $json.bodyTxt, headers: { 'List-Unsubscribe': '<https://krishraja10101.app.n8n.cloud/webhook/ctrl-unsub?e=' + encodeURIComponent($json.email) + '>' } }) }}",
+        "jsonBody": "={{ JSON.stringify({ from: 'CTRL <ctrl@themindmaker.ai>', reply_to: 'krish@mindmake.co', to: [$json.email], subject: $json.subject, text: $json.bodyTxt, headers: { 'List-Unsubscribe': '<https://krishraja10101.app.n8n.cloud/webhook/ctrl-unsub?e=' + encodeURIComponent($json.email) + '>' } }) }}",
         "options": {}
       },
       "onError": "continueRegularOutput",
