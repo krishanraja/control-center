@@ -15,7 +15,7 @@ export async function dispatchHunter(
   clientPayload: Record<string, string> = {},
 ): Promise<DispatchResult> {
   const token = process.env.HUNTER_DISPATCH_TOKEN || process.env.GITHUB_TOKEN || ''
-  if (!token) return { sent: false, error: 'no dispatch token configured' }
+  if (!token) return refused('no dispatch token configured')
   try {
     const r = await fetch(`https://api.github.com/repos/${HUNTER_REPO}/dispatches`, {
       method: 'POST',
@@ -29,8 +29,17 @@ export async function dispatchHunter(
     })
     if (r.status === 204) return { sent: true }
     const text = await r.text().catch(() => '')
-    return { sent: false, error: `github ${r.status}: ${text.slice(0, 120)}` }
+    return refused(`github ${r.status}: ${text.slice(0, 120)}`)
   } catch (e: unknown) {
-    return { sent: false, error: (e as Error)?.message?.slice(0, 120) || 'dispatch failed' }
+    return refused((e as Error)?.message?.slice(0, 120) || 'dispatch failed')
   }
+}
+
+// The runtime log is the only place a cron's refusal can be read afterwards:
+// the first tick answered 502 and the log held the status line alone. GitHub's
+// reply names the problem (a token that cannot see the repository answers 404)
+// and never carries the token, so it is safe to print.
+function refused(error: string): DispatchResult {
+  console.error(`hunter dispatch refused: ${error}`)
+  return { sent: false, error }
 }
