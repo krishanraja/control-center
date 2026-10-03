@@ -111,7 +111,8 @@ export const PROVIDERS: Record<string, ProviderCheck> = {
       },
     }),
   },
-  telegram: { build: k => ({ url: `https://api.telegram.org/bot${k}/getMe` }) },
+  // No telegram check: Telegram was retired on 2026-10-03 and its registry row
+  // is inactive (supabase/migrations/20261003220000_telegram_is_retired.sql).
   stripe: { build: k => ({ url: 'https://api.stripe.com/v1/balance', init: { headers: { Authorization: `Bearer ${k}` } } }) },
   'stripe-fractionl': { build: k => ({ url: 'https://api.stripe.com/v1/balance', init: { headers: { Authorization: `Bearer ${k}` } } }) },
 

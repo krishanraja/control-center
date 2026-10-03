@@ -383,7 +383,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"B2B Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
@@ -581,7 +581,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"B2C Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
@@ -815,7 +815,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Sunday Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
@@ -840,7 +840,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: \"\\u23ed\\ufe0f *Maya Daily*\\n\\nOutreach skipped today (product in skip list).\\nCompetitive intel + earned media still running.\", parse_mode: \"Markdown\" } }}",
@@ -864,13 +864,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// Read competitor changes from Supabase competitor_health\n// Emits an Apify-shaped payload so Comp Finalize downstream works unchanged\nconst d = $input.first().json;\nif (d.productDown) return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: product health check shows service down/5xx', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-skipped', display_message: 'Maya Competitive: skipped, product health check failing', details: '{\"reason\":\"product_down\"}' }) } }];\n\nconst ks = d.killSwitches || {};\nif (ks['comp-scan']) return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: comp-scan kill switch active', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-skipped', display_message: 'Maya Competitive: skipped, comp-scan kill switch active', details: '{}' }) } }];\n\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/competitor_health';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\n// Pull today's changes only (last 36h window to cover scheduling drift)\nconst since = new Date(Date.now() - 36*60*60*1000).toISOString();\nfunction buildQuery(params) {\n  const parts = [];\n  for (const k of Object.keys(params)) {\n    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));\n  }\n  return parts.join('&');\n}\nconst qp = buildQuery({\n  select: 'competitor_url,competitor_name,product,title,meta_description,change_summary,checked_at',\n  change_detected: 'eq.true',\n  checked_at: 'gte.' + since,\n  order: 'checked_at.desc',\n  limit: '50'\n});\n\nlet items = [];\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: SUPA_URL + '?' + qp,\n    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },\n    json: true\n  });\n  items = Array.isArray(resp) ? resp : [];\n} catch (e) {\n  return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: competitor_health fetch failed: ' + (e.message || 'unknown'), audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-error', display_message: 'Maya Competitive: competitor_health fetch failed', details: JSON.stringify({ error: String(e.message || e) }) }) } }];\n}\n\n// Emit Apify-shaped payload so Comp Finalize works without change\nreturn [{ json: { data: { items }, items } }];\n"
+        "jsCode": "// Emits an Apify-shaped payload so the Finalize step downstream works unchanged.\n// The guards ran in \"Comp guards\" and the read in the node before this one,\n// over the stored Supabase credential (moved 2026-10-03).\nconst g = $('Comp guards').first().json;\nif (g.skip) return [{ json: g.skip }];\n\nconst r = $input.first().json;\nif (!(r.statusCode >= 200 && r.statusCode < 300)) {\n  const message = 'HTTP ' + r.statusCode + (r.body && r.body.message ? ': ' + r.body.message : '');\n  return [{ json: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: competitor_health fetch failed: ' + message, audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-error', display_message: 'Maya Competitive: competitor_health fetch failed', details: JSON.stringify({ error: message }) }) } }];\n}\nconst items = Array.isArray(r.body) ? r.body : [];\n\n// Emit Apify-shaped payload so the Finalize step works without change\nreturn [{ json: { data: { items }, items } }];"
       },
       "name": "Comp Prep",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
+        2190,
         1264
       ],
       "id": "04464e91-0980-4696-8dc4-4fc7a831312b"
@@ -936,7 +936,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Comp Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
@@ -960,13 +960,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// Fetch unprocessed HARO queries from Supabase (3-day window, status=new)\nconst d = $input.first().json;\nif (d.productDown) return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: product health check shows service down/5xx', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-skipped', display_message: 'Maya Earned Media: skipped, product health check failing', details: '{\"reason\":\"product_down\"}' }) } }];\n\nconst ks = d.killSwitches || {};\nif (ks.haro) return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: HARO kill switch active', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-skipped', display_message: 'Maya Earned Media: skipped, HARO kill switch active', details: '{}' }) } }];\n\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/haro_queries';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\n\n// Fetch new queries from last 3 days\nconst threeDaysAgo = new Date(Date.now() - 3*24*60*60*1000).toISOString();\nfunction buildQuery(params) {\n  const parts = [];\n  for (const k of Object.keys(params)) {\n    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));\n  }\n  return parts.join('&');\n}\nconst qp = buildQuery({\n  select: 'id,journalist_name,outlet,category,query_text,deadline,requirements,email_to_pitch,received_at',\n  status: 'eq.new',\n  received_at: 'gte.' + threeDaysAgo,\n  order: 'received_at.desc',\n  limit: '50'\n});\n\nlet items = [];\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: SUPA_URL + '?' + qp,\n    headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },\n    json: true\n  });\n  items = Array.isArray(resp) ? resp : [];\n} catch (e) {\n  return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: HARO query fetch failed: ' + (e.message || 'unknown'), audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-error', display_message: 'Maya Earned Media: haro_queries fetch failed', details: JSON.stringify({ error: String(e.message || e) }) }) } }];\n}\n\n// Emit Apify-shaped payload so Earned Finalize works without change\nreturn [{ json: { data: { items }, items } }];\n"
+        "jsCode": "// Emits an Apify-shaped payload so the Finalize step downstream works unchanged.\n// The guards ran in \"Earned guards\" and the read in the node before this one,\n// over the stored Supabase credential (moved 2026-10-03).\nconst g = $('Earned guards').first().json;\nif (g.skip) return [{ json: g.skip }];\n\nconst r = $input.first().json;\nif (!(r.statusCode >= 200 && r.statusCode < 300)) {\n  const message = 'HTTP ' + r.statusCode + (r.body && r.body.message ? ': ' + r.body.message : '');\n  return [{ json: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: HARO query fetch failed: ' + message, audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-error', display_message: 'Maya Earned Media: haro_queries fetch failed', details: JSON.stringify({ error: message }) }) } }];\n}\nconst items = Array.isArray(r.body) ? r.body : [];\n\n// Emit Apify-shaped payload so the Finalize step works without change\nreturn [{ json: { data: { items }, items } }];"
       },
       "name": "Earned Prep",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
+        2190,
         1504
       ],
       "id": "bc75c6ab-6ae6-443f-9aba-a93a640b3e30"
@@ -1032,7 +1032,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Earned Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
@@ -1228,7 +1228,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: \"6773796504\", text: $(\"Atomize Finalize\").first().json.msg, parse_mode: \"Markdown\" } }}",
@@ -1820,7 +1820,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for Maya b2b-score\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>b2b-score</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+        "jsCode": "// LLM Health Check for Maya b2b-score\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>b2b-score</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1834,7 +1834,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for Maya b2c-draft\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>b2c-draft</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+        "jsCode": "// LLM Health Check for Maya b2c-draft\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>b2c-draft</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1848,7 +1848,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for Maya sunday\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>sunday</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+        "jsCode": "// LLM Health Check for Maya sunday\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>sunday</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1862,7 +1862,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for Maya atomize\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>atomize</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
+        "jsCode": "// LLM Health Check for Maya atomize\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Maya LLM call failed</b>\\n\\nStep: <code>atomize</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Maya will still complete but with degraded output.</i>';\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) {}\n}\nreturn items;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2198,6 +2198,92 @@
       ],
       "id": "adapt-gemini-337930845874",
       "name": "Adapt Gemini: Anthropic Atomize"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read competitor changes from Supabase competitor_health\n// The guards run here; \"Fetch competitor changes\" reads over the stored\n// Supabase credential and \"Comp Prep\" shapes the result for Comp Finalize\n// (moved out of this workflow's code with the service-role key, 2026-10-03).\nconst SKIP_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/competitor_health?select=competitor_url&limit=0';\nconst d = $input.first().json;\nif (d.productDown) return [{ json: { url: SKIP_URL, skip: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: product health check shows service down/5xx', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-skipped', display_message: 'Maya Competitive: skipped, product health check failing', details: '{\"reason\":\"product_down\"}' }) } } }];\n\nconst ks = d.killSwitches || {};\nif (ks['comp-scan']) return [{ json: { url: SKIP_URL, skip: { msg: '🚫 <b>Maya Competitive</b>\\nSkipped: comp-scan kill switch active', audit: JSON.stringify({ actor: 'maya', event_type: 'competitive-intel-skipped', display_message: 'Maya Competitive: skipped, comp-scan kill switch active', details: '{}' }) } } }];\n\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/competitor_health';\n\n// Pull today's changes only (last 36h window to cover scheduling drift)\nconst since = new Date(Date.now() - 36*60*60*1000).toISOString();\nfunction buildQuery(params) {\n  const parts = [];\n  for (const k of Object.keys(params)) {\n    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));\n  }\n  return parts.join('&');\n}\nconst qp = buildQuery({\n  select: 'competitor_url,competitor_name,product,title,meta_description,change_summary,checked_at',\n  change_detected: 'eq.true',\n  checked_at: 'gte.' + since,\n  order: 'checked_at.desc',\n  limit: '50'\n});\n\nreturn [{ json: { url: SUPA_URL + '?' + qp } }];"
+      },
+      "id": "83dde2b7-271f-4aaf-a0cf-ab1f25f04cd5",
+      "name": "Comp guards",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "731ce80c-eff0-40fe-b88b-742f7b8e831b",
+      "name": "Fetch competitor changes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1990,
+        1264
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch unprocessed HARO queries from Supabase (3-day window, status=new)\n// The guards run here; \"Fetch HARO queries\" reads over the stored Supabase\n// credential and \"Earned Prep\" shapes the result for Earned Finalize\n// (moved out of this workflow's code with the service-role key, 2026-10-03).\nconst SKIP_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/haro_queries?select=id&limit=0';\nconst d = $input.first().json;\nif (d.productDown) return [{ json: { url: SKIP_URL, skip: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: product health check shows service down/5xx', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-skipped', display_message: 'Maya Earned Media: skipped, product health check failing', details: '{\"reason\":\"product_down\"}' }) } } }];\n\nconst ks = d.killSwitches || {};\nif (ks.haro) return [{ json: { url: SKIP_URL, skip: { msg: '🚫 <b>Maya Earned Media</b>\\nSkipped: HARO kill switch active', audit: JSON.stringify({ actor: 'maya', event_type: 'earned-media-skipped', display_message: 'Maya Earned Media: skipped, HARO kill switch active', details: '{}' }) } } }];\n\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/haro_queries';\n\n// Fetch new queries from last 3 days\nconst threeDaysAgo = new Date(Date.now() - 3*24*60*60*1000).toISOString();\nfunction buildQuery(params) {\n  const parts = [];\n  for (const k of Object.keys(params)) {\n    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));\n  }\n  return parts.join('&');\n}\nconst qp = buildQuery({\n  select: 'id,journalist_name,outlet,category,query_text,deadline,requirements,email_to_pitch,received_at',\n  status: 'eq.new',\n  received_at: 'gte.' + threeDaysAgo,\n  order: 'received_at.desc',\n  limit: '50'\n});\n\nreturn [{ json: { url: SUPA_URL + '?' + qp } }];"
+      },
+      "id": "265b40f5-3c4e-469e-ae8b-1675c17a9493",
+      "name": "Earned guards",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        1504
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "2079699c-dfaf-437e-a596-bd1188d93e11",
+      "name": "Fetch HARO queries",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1990,
+        1504
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -2280,12 +2366,12 @@
             "index": 0
           },
           {
-            "node": "Comp Prep",
+            "node": "Comp guards",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Earned Prep",
+            "node": "Earned guards",
             "type": "main",
             "index": 0
           }
@@ -3196,6 +3282,50 @@
         [
           {
             "node": "Merge Atom LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comp guards": {
+      "main": [
+        [
+          {
+            "node": "Fetch competitor changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch competitor changes": {
+      "main": [
+        [
+          {
+            "node": "Comp Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Earned guards": {
+      "main": [
+        [
+          {
+            "node": "Fetch HARO queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch HARO queries": {
+      "main": [
+        [
+          {
+            "node": "Earned Prep",
             "type": "main",
             "index": 0
           }

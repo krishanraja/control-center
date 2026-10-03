@@ -215,7 +215,7 @@ export function SystemsPanel() {
               </span>
             </div>
             {overallOk && (
-              <p className="text-micro text-ink-muted pl-4">Nothing here needs you. Real failures page Telegram and land on Home.</p>
+              <p className="text-micro text-ink-muted pl-4">Nothing here needs you. Real failures land on Home.</p>
             )}
             {downServices.length > 0 && (
               <p className="text-micro text-red-300 pl-4">

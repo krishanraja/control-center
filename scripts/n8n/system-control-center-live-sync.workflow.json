@@ -78,7 +78,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Safe workflow run logger - no $('Webhook') dependency\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method, url, headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst inputData = $input.first()?.json || {};\nconst duration = 0; // No webhook header timing available\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: inputData.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: inputData.api_call_count || 0,\n  cost_usd: inputData.total_cost || 0,\n  outcome: inputData.outcome || 'completed',\n  outcome_count: inputData.result_count || 0,\n  quality_score: inputData.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nconst response = await __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];",
+        "jsCode": "// The run log row. \"Write run log\" writes it over the stored Supabase\n// credential; this node used to POST it itself with the service-role key\n// written into its source (moved 2026-10-03).\nconst inputData = $input.first()?.json || {};\nconst duration = 0; // No webhook header timing available\n\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: inputData.agent_id || 'system',\n  duration_ms: duration,\n  api_calls: inputData.api_call_count || 0,\n  cost_usd: inputData.total_cost || 0,\n  outcome: inputData.outcome || 'completed',\n  outcome_count: inputData.result_count || 0,\n  quality_score: inputData.quality_score || null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log' })\n};\n\nreturn [{ json: payload }];",
         "mode": "runOnceForAllItems"
       },
       "name": "Log to Supabase",
@@ -90,6 +90,41 @@
         300
       ],
       "id": "49757c54-c324-4765-b346-ab5ab40ca328"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "fe99484f-7817-4671-ad08-b0e8db398b39",
+      "name": "Write run log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -137,7 +172,7 @@
       "main": [
         [
           {
-            "node": "Respond to webhook",
+            "node": "Write run log",
             "type": "main",
             "index": 0
           }
@@ -147,6 +182,17 @@
     "Respond to webhook": {
       "main": [
         []
+      ]
+    },
+    "Write run log": {
+      "main": [
+        [
+          {
+            "node": "Respond to webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

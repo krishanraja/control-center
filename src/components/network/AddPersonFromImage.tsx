@@ -402,8 +402,8 @@ function Problem({ title, detail, alert, alertSent, children }: {
           {alertSent !== undefined && (
             <p className="mt-1.5 text-micro text-ink-faint">
               {alertSent
-                ? 'Alert sent to your Telegram.'
-                : 'Telegram alert could NOT be sent — this panel is the only notice.'}
+                ? 'Alert sent.'
+                : 'Nothing was sent to your phone, so this panel is the only notice.'}
             </p>
           )}
           {children}

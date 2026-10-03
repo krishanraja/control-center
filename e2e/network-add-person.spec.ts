@@ -218,14 +218,14 @@ test('an API out of credits stops the run and says which one, instead of half en
   // The specific provider and reason, not a generic failure.
   await expect(problem).toContainText('peopledatalabs')
   await expect(problem).toContainText('out of credits/quota')
-  await expect(problem).toContainText('Alert sent to your Telegram')
+  await expect(problem).toContainText('Alert sent.')
   // And the record is explicitly NOT presented as finished.
   await expect(problem).toContainText('blocked_quota')
   // No enrichment brief is rendered on this path.
   await expect(page.getByTestId('network-add-person-brief')).toHaveCount(0)
 })
 
-test('a failed Telegram alert says the panel is the only notice', async ({ page }) => {
+test('an alert that reached no phone says the panel is the only notice', async ({ page }) => {
   await mockApis(page, {
     enrich: {
       status: 402,
