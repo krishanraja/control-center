@@ -23,18 +23,132 @@
       "id": "rd-trigger-001"
     },
     {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks_inbox?status=eq.in_flight&select=id,target_table,target_id,updated_at,raw_text,routed_to_agent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "3a3bec9b-8ac7-432e-bdb4-0a130a5b0ea2",
+      "name": "Fetch in-flight rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        280
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Every in-flight row's routed target is read with one request per table\n// (\"Fetch targets\", over the stored Supabase credential). \"Scan + flip\" used\n// to make one request per row with the service-role key written into its\n// source (moved 2026-10-03).\nconst LOOKUPS = {\n  tasks: 'id,status,updated_at',\n  leads: 'id,deep_enriched_at,promoted_task_id',\n  visibility_targets: 'id,status,deep_enriched_at',\n  guests: 'id,status,pitch_draft',\n  content_ideas: 'id,state',\n  bets: 'id,status,est_mrr_impact_usd',\n};\nconst fetched = $input.first().json.body;\nconst inflight = Array.isArray(fetched) ? fetched : [];\n// Always all six, so \"Scan + flip\" runs even when nothing is in flight. An\n// empty list asks for no rows.\nreturn Object.entries(LOOKUPS).map(([table, cols]) => {\n  const ids = [...new Set(inflight.filter(r => r.target_table === table && r.target_id).map(r => r.target_id))];\n  return { json: { table, url: `https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/${table}?id=in.(${ids.join(',')})&select=${cols}` } };\n});"
+      },
+      "id": "e3d53153-c4cd-42fb-a558-1da1d1978cc9",
+      "name": "Plan lookups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "7e70ff6a-0bcf-4f85-889d-ebd254f9acf7",
+      "name": "Fetch targets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        280
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
       "name": "Scan + flip",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
+        1080,
         280
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Phase 2: for every in_flight inbox row, check if the routed row has\n// reached a state where Krish needs to look at it. If yes, flip the\n// inbox row to needs_krish (the decisions_waiting view surfaces it).\nconst __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };\nconst Hmin = { ...H, 'Prefer': 'return=minimal' };\n\nconst inflight = await __req({\n  method: 'GET',\n  url: `${SUPA}/rest/v1/tasks_inbox?status=eq.in_flight&select=id,target_table,target_id,updated_at,raw_text,routed_to_agent`,\n  headers: H, json: true,\n});\n\nlet flipped = 0; let stale = 0;\nconst sevenDaysAgoMs = Date.now() - 7 * 86400000;\n\nfor (const r of (inflight || [])) {\n  const target_table = r.target_table;\n  const target_id    = r.target_id;\n  if (!target_table || !target_id) continue;\n  const refIso = r.updated_at;\n  let needs = false;\n  try {\n    if (target_table === 'tasks') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/tasks?id=eq.${target_id}&select=status,updated_at`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = ['waiting','pending-agatha-review','pending-review','blocked'].includes(t.status) && t.updated_at && t.updated_at > refIso;\n    } else if (target_table === 'leads') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/leads?id=eq.${target_id}&select=deep_enriched_at,promoted_task_id`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = !!t.deep_enriched_at && !t.promoted_task_id;\n    } else if (target_table === 'visibility_targets') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/visibility_targets?id=eq.${target_id}&select=status,deep_enriched_at`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = t.status === 'enriched' || !!t.deep_enriched_at;\n    } else if (target_table === 'guests') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/guests?id=eq.${target_id}&select=status,pitch_draft`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = t.status === 'enriched' || !!t.pitch_draft;\n    } else if (target_table === 'content_ideas') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/content_ideas?id=eq.${target_id}&select=state`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = ['review','seeded'].includes(t.state);\n    } else if (target_table === 'bets') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/bets?id=eq.${target_id}&select=status,est_mrr_impact_usd`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = t.status === 'live' && t.est_mrr_impact_usd == null;\n    }\n  } catch { needs = false; }\n\n  // Time-out branch: 7 days in_flight without movement → mark failed.\n  const ageMs = Date.now() - new Date(r.updated_at).getTime();\n  if (!needs && ageMs > 7 * 86400000) {\n    await __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${r.id}`, headers: Hmin, body: {\n      status: 'failed', archive_reason: 'classifier_failed', archived_at: new Date().toISOString(),\n    }, json: true }).catch(() => {});\n    stale += 1;\n    continue;\n  }\n  if (needs) {\n    await __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${r.id}`, headers: Hmin, body: {\n      status: 'needs_krish',\n    }, json: true }).catch(() => {});\n    flipped += 1;\n  }\n}\n\nreturn [{ json: { ok: true, scanned: (inflight || []).length, flipped, stale, at: new Date().toISOString() } }];"
+        "jsCode": "// Phase 2: for every in_flight inbox row, check if the routed row has\n// reached a state where Krish needs to look at it. If yes, flip the\n// inbox row to needs_krish (the decisions_waiting view surfaces it).\n// The reads run before this node and the writes after it, over the stored\n// Supabase credential (moved out of this node's source on 2026-10-03, with\n// the service-role key). The rules are unchanged.\nconst fetched = $('Fetch in-flight rows').first().json.body;\nconst inflight = Array.isArray(fetched) ? fetched : [];\n\n// One lookup per table. A failed read leaves its table out, which is what\n// the old per-row catch did: no flip, and the time-out still applies.\nconst plans = $('Plan lookups').all();\nconst targets = {};\n$input.all().forEach((res, i) => {\n  const k = res.pairedItem && typeof res.pairedItem.item === 'number' ? res.pairedItem.item : i;\n  const table = plans[k] && plans[k].json.table;\n  const r = res.json;\n  if (!table || !r || r.statusCode < 200 || r.statusCode >= 300 || !Array.isArray(r.body)) return;\n  targets[table] = new Map(r.body.map(t => [t.id, t]));\n});\n\nconst patches = [];\nfor (const r of inflight) {\n  const target_table = r.target_table;\n  const target_id    = r.target_id;\n  if (!target_table || !target_id) continue;\n  const refIso = r.updated_at;\n  let needs = false;\n  if (targets[target_table]) {\n    const t = targets[target_table].get(target_id);\n    if (!t) continue;\n    if (target_table === 'tasks') {\n      needs = ['waiting','pending-agatha-review','pending-review','blocked'].includes(t.status) && t.updated_at && t.updated_at > refIso;\n    } else if (target_table === 'leads') {\n      needs = !!t.deep_enriched_at && !t.promoted_task_id;\n    } else if (target_table === 'visibility_targets') {\n      needs = t.status === 'enriched' || !!t.deep_enriched_at;\n    } else if (target_table === 'guests') {\n      needs = t.status === 'enriched' || !!t.pitch_draft;\n    } else if (target_table === 'content_ideas') {\n      needs = ['review','seeded'].includes(t.state);\n    } else if (target_table === 'bets') {\n      needs = t.status === 'live' && t.est_mrr_impact_usd == null;\n    }\n  }\n\n  // Time-out branch: 7 days in_flight without movement → mark failed.\n  const ageMs = Date.now() - new Date(r.updated_at).getTime();\n  if (!needs && ageMs > 7 * 86400000) {\n    patches.push({ json: { id: r.id, body: {\n      status: 'failed', archive_reason: 'classifier_failed', archived_at: new Date().toISOString(),\n    } } });\n    continue;\n  }\n  if (needs) {\n    patches.push({ json: { id: r.id, body: { status: 'needs_krish' } } });\n  }\n}\n\n// \"Write inbox status\" sends one PATCH per change. With none, the run ends here.\nreturn patches;"
       },
       "id": "rd-scan-002"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks_inbox?id=eq.' + $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "852a81ea-a570-467a-b926-043b392eec9e",
+      "name": "Write inbox status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        280
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -42,7 +156,51 @@
       "main": [
         [
           {
+            "node": "Fetch in-flight rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch in-flight rows": {
+      "main": [
+        [
+          {
+            "node": "Plan lookups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan lookups": {
+      "main": [
+        [
+          {
+            "node": "Fetch targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch targets": {
+      "main": [
+        [
+          {
             "node": "Scan + flip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan + flip": {
+      "main": [
+        [
+          {
+            "node": "Write inbox status",
             "type": "main",
             "index": 0
           }
@@ -53,7 +211,8 @@
   "settings": {
     "executionOrder": "v1",
     "saveExecutionProgress": true,
-    "saveManualExecutions": true
+    "saveManualExecutions": true,
+    "availableInMCP": true
   },
   "staticData": {
     "node:Every 15 min": {

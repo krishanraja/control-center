@@ -116,7 +116,7 @@
           "timeout": 120000
         },
         "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
+        "nodeCredentialType": "anthropicApi",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -139,6 +139,10 @@
         "httpHeaderAuth": {
           "id": "w8sWwz8EfYc1JA7G",
           "name": "Anthropic Header 2026-05-21"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       }
     },

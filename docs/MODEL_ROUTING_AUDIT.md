@@ -258,6 +258,113 @@ so the query failed on every run and the model was handed an empty "Closed bets
 still hold it in n8n's version history. Rotating the key today breaks all 28.
 The OPS bot token now appears in no workflow.
 
+## 2026-10-03: item 4, the admin key moved, and Telegram retired
+
+Krish, the same evening: "do 4, and ensure telegram is not a risk to my
+system (i sometimes get my bots hacked, and i use telegram for nothing any
+more)". He switched "Available in MCP" on for the three workflows still on a
+dead Anthropic credential first, and they moved the same way as the eight
+above: Guest Pitch Draft (`b73b9938`), Guest Pitch Enrich (Exa) (`b84fe61a`)
+and the inactive Objective Milestone Proposer (draft `a35925c2`, not
+published).
+
+**22 of the 28 no longer hold the service-role key.** Each was rebuilt on
+the brief's pattern where a Code node needed it: the request moves to an
+HTTP Request node on `Supabase OS (service_role, verified)`, node names that
+later steps read through `$('Name')` are kept, and the Code node keeps only
+the logic. Before any publish, the old and new code ran side by side in a
+local harness on synthetic data. Every test in n8n pinned the model, email
+and heartbeat steps, and made real requests only where they could write
+nothing: an id that does not exist, a column PostgREST refuses, an empty
+insert, or a filter that matches no row. Each live definition was then read
+back and scanned for secrets before its mirror was synced. "Was" is the
+version to restore.
+
+| Workflow | What changed | Proof | Was, now |
+|---|---|---|---|
+| System Status Board API | run log over the credential | 44852, row read back | `590c4729`, `cd70c8c6` |
+| Cleo Draft Post on Demand, Cleo LinkedIn Distribution, Nell Draft Outbound Messages, System Monthly All Hands, System Orchestrator, System Product Proposal to GitHub Issue, Cleo Log Content Performance | the same run-log node; bot token stripped where present | the Status Board run | in the mirrors' history |
+| System Control Center Live Sync | run log over the credential; it now answers after the write | the Status Board run | `c41af932`, `de6036d3` |
+| Agatha Content Angle Approval | run log over the credential; keys blanked in its disabled sender | clean read-back | `6382c670`, `ec368981` |
+| Vera Behavioural Auditor | keys blanked in its disabled audit step | clean read-back | `6f4bbf7d`, `49d23e05` |
+| Zara Content Pipeline | reads and one batched task insert over the credential | 44855, full chain | `3cd28c71`, `b017d8d6` |
+| Krish Inbox Classifier | reads and writes over the credential | 44857 to 44859 | `6a42d7e5`, `4a406ae8` |
+| Krish Inbox Return Detector | one read per table, one PATCH per change | 44860, 44861 | `57cdfbb4`, `a24494eb` |
+| Krish Inbox Router | read, insert and PATCH over the credential | 44862 to 44864 | `0dad1fa9`, `adea4e04` |
+| System Cost Advisor | two reads, one PATCH per row | 44866, 99 real runs read | `e1245f28`, `c852c4f5` |
+| Acquisition CTRL Nurture Scheduler | the planner split into one request per step | harness on every branch; 44867, 44868 | `5b0c0a32`, `8541ce2f` |
+| Marcus Synthesis + Home Intelligence | 14 reads as one parallel step; writes in three stages | harness on 5 cases; 44870 to 44872 | `2a2ee10e`, `f007b734` |
+| Maya Closed-Loop Revenue Engine | the Comp and Earned reads behind guards | harness; 44875, 44876 | `b08a3fd2`, `b4025237` |
+| Nell Guest Scout | rows built in code, one insert per table, outcomes recorded by the same-named node | harness on 4 cases; 44877 | `d9b9b7ac`, `17738fbe` |
+| System Proposal Executor | switched off, keys blanked (below) | clean read-back | `c6257ce6`, unpublished |
+| System Stripe Reconciliation | six Supabase nodes onto the credential, draft only | 44878 | `fc1a4929`, draft `1b6cc32d` |
+
+Stripe Reconciliation was listed as active in the count above because its
+mirror said so. It is inactive in n8n, so its edit is a draft and stays
+unpublished; the mirror now says `active: false`.
+
+**Still holding the key.** Six active workflows have MCP access off, so this
+session could not edit them: Acquisition CTRL Capture Intake, Acquisition
+CTRL Unsubscribe, Krish Focus Calibrator, Stripe Revenue Intake, System
+Status Update Receiver and Zara GEO Citation Sweep. Four inactive ones keep it
+inside Code nodes: Acquisition Send Dispatcher, Objective Milestone Proposer,
+Nell Apollo Contact Enrichment and Hunter Job Sweep (Hunter is left alone on
+purpose). Rotation kills their copies; each needs the same rebuild before it
+is switched back on. n8n's version history keeps the old key for every
+workflow in this section, which only rotation reaches.
+
+**Rotation order.** (1) Switch on "Available in MCP" for the six, so they
+move. (2) Rotate the service-role key. (3) The same hour, put the new value
+in the n8n credential and in Vercel's `SUPABASE_SERVICE_ROLE_KEY`, and in
+anything outside these two that still holds the old one. (4) Read back one
+Daily Brief run and one Status Board run.
+
+**Other secrets the rebuild found inline,** left for their own pass: the
+proxy secret in the Inbox Classifier, an email-sending key in the Nurture
+Scheduler, a GitHub token in Product Proposal to GitHub Issue, and an n8n
+admin key in the Proposal Executor's history. The last one should be revoked
+in n8n whatever else happens.
+
+**The Proposal Executor was a way in, and it is closed.** The 2026-09-09
+migration left `workflow_proposals` writable by the anonymous key, which
+ships in the browser by design, on every column. Anyone could rewrite a
+pending proposal's `proposed_changes` and `current_workflow_id`, approve it,
+and call the executor's open webhook, which applied it to n8n with an admin
+key: a stranger could rewrite any workflow, including the ones holding the
+Supabase, Anthropic and Gmail credentials. Ruling (Krish, 2026-10-03): switch
+the executor off and lock the table. The executor is unpublished with its
+keys blanked, and `20261003210000_proposals_browser_can_only_decide.sql`
+holds the browser to `status`, `approved_by`, `approved_at` and `updated_at`,
+moving a proposal from proposed or pending to approved or rejected only.
+Proved as anon in a rolled-back block: approving is allowed, writing
+`proposed_changes` or `current_workflow_id` is refused. It had applied
+nothing since 2026-08-29.
+
+**Telegram.** Nothing in n8n or this app listens to Telegram any more, and
+nothing sends to it:
+
+- Every Telegram node in the 108 workflow mirrors (106 current, the two
+  retired Priya workflows in `scripts/n8n/_retired/`) is disabled, and none
+  is a trigger.
+- The one inbound Telegram callback, System Krish Approval Callback, is
+  unpublished. It took approvals from any caller.
+- Bot tokens were blanked wherever this rebuild touched one. 14 active and
+  10 inactive workflows still carry one, each in a disabled node. Revoking
+  the bots at BotFather kills every copy at once, including n8n's history, so
+  they are left for that.
+- The app has been pull-only since 2026-09-06. The connections sweep no
+  longer probes the bot, `TELEGRAM_*` is gone from `.env.example`, and
+  `20261003220000_telegram_is_retired.sql` records the registry row as
+  inactive. Four lines of copy that still promised a Telegram ping are
+  corrected.
+
+The live Telegram surface left is OpenClaw on the VPS, which this session
+cannot reach. `openclaw.json` binds eight bot accounts to Claude Code agents
+that take instructions in chat (section 3.3 of the architecture doc), so a
+hijacked bot there reaches an agent with tools, not a disabled node. Removing
+those bindings, or allowlisting chat ids for any bot that stays, is the step
+that closes it.
+
 ## Remaining measurable work
 
 1. Provide `N8N_API_KEY` through the managed local environment, then run
@@ -273,17 +380,13 @@ The OPS bot token now appears in no workflow.
    model changes in one deploy.
 4. Replace inline workflow secrets with n8n credentials, then rotate.
    Placeholder injection prevents git leaks but still materialises secrets
-   inside cloud workflow definitions. Measured 2026-10-03, after the Daily Brief
-   moved: the Supabase service-role key is inline in 28 active workflows, 26 of
-   them in an enabled node. Two use it only in HTTP Request nodes
-   (`system-stripe-reconciliation-nightly`, `zara-geo-citation-sweep`), a
-   mechanical switch to the stored credential. The other 24 read it in Code
-   nodes and need the brief's pattern: the read moves to a node that can hold a
-   credential, and the Code node keeps the logic. The Telegram bot token is
-   inline in 32 active workflows, all in disabled nodes. Rotate the
-   service-role key only after the last workflow has moved, then update the
-   n8n Supabase credentials and Vercel's `SUPABASE_SERVICE_ROLE_KEY` with the
-   new value.
+   inside cloud workflow definitions. As of the evening of 2026-10-03, 22 of
+   the 28 workflows that held the Supabase service-role key no longer do
+   (section above). Six active ones wait on "Available in MCP" being switched
+   on: Acquisition CTRL Capture Intake, Acquisition CTRL Unsubscribe, Krish
+   Focus Calibrator, Stripe Revenue Intake, System Status Update Receiver and
+   Zara GEO Citation Sweep. Then rotate in the order given above. Telegram
+   tokens are left for revocation at BotFather rather than editing.
 
 Official selection references: [Anthropic model comparison](https://platform.claude.com/docs/en/models/overview),
 [Sonnet 5 migration changes](https://platform.claude.com/docs/en/models/sonnet-5/whats-new-sonnet-5),

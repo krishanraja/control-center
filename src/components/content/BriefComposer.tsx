@@ -960,7 +960,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
               {pushed.filter(p => p.doc_url).map(p => (
                 <a key={p.channel} href={p.doc_url!} target="_blank" rel="noreferrer" className="underline mr-2">{p.channel}</a>
               ))}
-              <span className="text-ink-faint">Cleo confirms on Telegram. You are done for the week.</span>
+              <span className="text-ink-faint">You are done for the week.</span>
             </div>
           ) : binning ? (
             // The verdict is asked for where the verdict gets made, replacing

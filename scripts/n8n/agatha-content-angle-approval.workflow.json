@@ -102,7 +102,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Build approval rows for each angle + 1 reject placeholder, store in Supabase, send single Telegram message with inline keyboard\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/approvals';\nconst SUPA_KEY = '{{SUPABASE_SERVICE_ROLE_KEY}}';\nconst BOT_TOKEN = '{{TELEGRAM_BOT_TOKEN}}';\nconst CHAT_ID = '6773796504';\nconst TARGET_WEBHOOK = 'https://krishraja10101.app.n8n.cloud/webhook/content-distribute-linkedin';\n\nconst response = $json.content && $json.content[0] ? $json.content[0].text : '';\nconst weekOf = $('Process Angles').first().json.week_of;\nconst angles = $('Process Angles').first().json.angles || [];\n\n// Build message text\nlet message = '\\u270d\\ufe0f *Content Angles \\u2014 Week of ' + weekOf + '*\\n' +\n  'Agatha picks (' + angles.length + ' angles):\\n\\n' +\n  response;\n\n// Build inline keyboard rows and approval row data\nconst keyboard = [[]];\nconst approvalRows = [];\nfor (let i = 0; i < Math.min(angles.length, 2); i++) {\n  const label = i === 0 ? 'A' : 'B';\n  const draftId = weekOf + '-' + label;\n  const angle = angles[i] || {};\n  keyboard[0].push({ text: 'Approve ' + label, callback_data: 'approve|' + draftId });\n  approvalRows.push({\n    source_workflow: 'Content Angle Approval',\n    source_workflow_id: 'NgVcpJ7PO7sTYvm9',\n    draft_id: draftId,\n    title: 'Content Angle ' + label + ' for Week of ' + weekOf,\n    summary: (angle.title || angle.hook || 'LinkedIn post draft').toString().slice(0, 400),\n    agent_name: 'Cleo',\n    payload: {\n      krish_approved: true,\n      approved_session: draftId,\n      text: ((angle.hook || '') + '\\n\\n' + (angle.angle || '')).trim(),\n      author_urn: 'krish-raja'\n    },\n    target_workflow: 'LinkedIn Distribution',\n    target_webhook_url: TARGET_WEBHOOK,\n    status: 'pending'\n  });\n}\nkeyboard.push([{ text: 'None this week', callback_data: 'reject|' + weekOf + '-NONE' }]);\napprovalRows.push({\n  source_workflow: 'Content Angle Approval',\n  source_workflow_id: 'NgVcpJ7PO7sTYvm9',\n  draft_id: weekOf + '-NONE',\n  title: 'Skip all angles for Week of ' + weekOf,\n  summary: 'Krish chose to skip this week',\n  agent_name: 'Cleo',\n  payload: {},\n  target_workflow: 'LinkedIn Distribution',\n  target_webhook_url: TARGET_WEBHOOK,\n  status: 'pending'\n});\n\n// Insert approval rows\nconst createdRows = [];\nfor (const row of approvalRows) {\n  try {\n    const resp = await this.helpers.httpRequest({\n      method: 'POST',\n      url: SUPA_URL,\n      headers: {\n        apikey: SUPA_KEY,\n        Authorization: 'Bearer ' + SUPA_KEY,\n        'Content-Type': 'application/json',\n        Prefer: 'return=representation'\n      },\n      body: row,\n      json: true\n    });\n    createdRows.push(Array.isArray(resp) ? resp[0] : resp);\n  } catch (e) {\n    createdRows.push({ error: String(e), draft_id: row.draft_id });\n  }\n}\n\n// Send single Telegram message with inline keyboard\nlet messageId = null;\nlet tgError = null;\ntry {\n  const tgResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: {\n      chat_id: CHAT_ID,\n      text: message,\n      parse_mode: 'Markdown',\n      reply_markup: { inline_keyboard: keyboard }\n    },\n    json: true\n  });\n  messageId = tgResp && tgResp.result ? tgResp.result.message_id : null;\n} catch (e) {\n  tgError = String(e);\n}\n\n// Store telegram_message_id back to each row\nif (messageId) {\n  for (const row of createdRows) {\n    if (!row || !row.id) continue;\n    try {\n      await this.helpers.httpRequest({\n        method: 'PATCH',\n        url: SUPA_URL + '?id=eq.' + row.id,\n        headers: {\n          apikey: SUPA_KEY,\n          Authorization: 'Bearer ' + SUPA_KEY,\n          'Content-Type': 'application/json'\n        },\n        body: { telegram_message_id: String(messageId) },\n        json: true\n      });\n    } catch (e) {\n      // swallow, keep going\n    }\n  }\n}\n\nreturn [{\n  json: {\n    success: !tgError,\n    message_id: messageId,\n    approvals_created: createdRows.filter(r => r && r.id).length,\n    week_of: weekOf,\n    tg_error: tgError\n  }\n}];"
+        "jsCode": "// Disabled. Its keys were removed on 2026-10-03 (Telegram retired, the Supabase\n// key moved to stored credentials). Re-enabling it needs its reads moved onto\n// credential-bound nodes first; it no longer holds any secret.\n// Build approval rows for each angle + 1 reject placeholder, store in Supabase, send single Telegram message with inline keyboard\nconst SUPA_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/approvals';\nconst SUPA_KEY = '';\nconst BOT_TOKEN = '';\nconst CHAT_ID = '6773796504';\nconst TARGET_WEBHOOK = 'https://krishraja10101.app.n8n.cloud/webhook/content-distribute-linkedin';\n\nconst response = $json.content && $json.content[0] ? $json.content[0].text : '';\nconst weekOf = $('Process Angles').first().json.week_of;\nconst angles = $('Process Angles').first().json.angles || [];\n\n// Build message text\nlet message = '✍️ *Content Angles — Week of ' + weekOf + '*\\n' +\n  'Agatha picks (' + angles.length + ' angles):\\n\\n' +\n  response;\n\n// Build inline keyboard rows and approval row data\nconst keyboard = [[]];\nconst approvalRows = [];\nfor (let i = 0; i < Math.min(angles.length, 2); i++) {\n  const label = i === 0 ? 'A' : 'B';\n  const draftId = weekOf + '-' + label;\n  const angle = angles[i] || {};\n  keyboard[0].push({ text: 'Approve ' + label, callback_data: 'approve|' + draftId });\n  approvalRows.push({\n    source_workflow: 'Content Angle Approval',\n    source_workflow_id: 'NgVcpJ7PO7sTYvm9',\n    draft_id: draftId,\n    title: 'Content Angle ' + label + ' for Week of ' + weekOf,\n    summary: (angle.title || angle.hook || 'LinkedIn post draft').toString().slice(0, 400),\n    agent_name: 'Cleo',\n    payload: {\n      krish_approved: true,\n      approved_session: draftId,\n      text: ((angle.hook || '') + '\\n\\n' + (angle.angle || '')).trim(),\n      author_urn: 'krish-raja'\n    },\n    target_workflow: 'LinkedIn Distribution',\n    target_webhook_url: TARGET_WEBHOOK,\n    status: 'pending'\n  });\n}\nkeyboard.push([{ text: 'None this week', callback_data: 'reject|' + weekOf + '-NONE' }]);\napprovalRows.push({\n  source_workflow: 'Content Angle Approval',\n  source_workflow_id: 'NgVcpJ7PO7sTYvm9',\n  draft_id: weekOf + '-NONE',\n  title: 'Skip all angles for Week of ' + weekOf,\n  summary: 'Krish chose to skip this week',\n  agent_name: 'Cleo',\n  payload: {},\n  target_workflow: 'LinkedIn Distribution',\n  target_webhook_url: TARGET_WEBHOOK,\n  status: 'pending'\n});\n\n// Insert approval rows\nconst createdRows = [];\nfor (const row of approvalRows) {\n  try {\n    const resp = await this.helpers.httpRequest({\n      method: 'POST',\n      url: SUPA_URL,\n      headers: {\n        apikey: SUPA_KEY,\n        Authorization: 'Bearer ' + SUPA_KEY,\n        'Content-Type': 'application/json',\n        Prefer: 'return=representation'\n      },\n      body: row,\n      json: true\n    });\n    createdRows.push(Array.isArray(resp) ? resp[0] : resp);\n  } catch (e) {\n    createdRows.push({ error: String(e), draft_id: row.draft_id });\n  }\n}\n\n// Send single Telegram message with inline keyboard\nlet messageId = null;\nlet tgError = null;\ntry {\n  const tgResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: {\n      chat_id: CHAT_ID,\n      text: message,\n      parse_mode: 'Markdown',\n      reply_markup: { inline_keyboard: keyboard }\n    },\n    json: true\n  });\n  messageId = tgResp && tgResp.result ? tgResp.result.message_id : null;\n} catch (e) {\n  tgError = String(e);\n}\n\n// Store telegram_message_id back to each row\nif (messageId) {\n  for (const row of createdRows) {\n    if (!row || !row.id) continue;\n    try {\n      await this.helpers.httpRequest({\n        method: 'PATCH',\n        url: SUPA_URL + '?id=eq.' + row.id,\n        headers: {\n          apikey: SUPA_KEY,\n          Authorization: 'Bearer ' + SUPA_KEY,\n          'Content-Type': 'application/json'\n        },\n        body: { telegram_message_id: String(messageId) },\n        json: true\n      });\n    } catch (e) {\n      // swallow, keep going\n    }\n  }\n}\n\nreturn [{\n  json: {\n    success: !tgError,\n    message_id: messageId,\n    approvals_created: createdRows.filter(r => r && r.id).length,\n    week_of: weekOf,\n    tg_error: tgError\n  }\n}];"
       },
       "id": "e7c372d1-f270-41a7-b003-ff545207c921",
       "name": "Prepare, Store and Send",
@@ -131,7 +131,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst sweepData = $('Cleo Newsletter Sweep').first()?.json || {};\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'agatha',\n  duration_ms: duration,\n  api_calls: (sweepData.api_calls || 0) + 2,\n  cost_usd: (sweepData.cost_usd || 0),\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log', enrichment_used: (sweepData.newsletter_themes || []).length > 0 })\n};\n\nawait __httpRequest({\n  method: 'POST',\n  url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs',\n  headers: {\n    'apikey': '{{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Authorization': 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}',\n    'Content-Type': 'application/json',\n    'Prefer': 'return=representation'\n  },\n  body: payload,\n  json: true\n});\n\nreturn [{ json: { logged: true, ...payload } }];\n"
+        "jsCode": "// The run log row. \"Write run log\" writes it over the stored Supabase\n// credential; this node used to POST it itself with the service-role key\n// written into its source (moved 2026-10-03).\nlet startTime = Date.now();\ntry {\n  startTime = $('Webhook').first().json.headers['x-request-start'];\n} catch(e) {}\nconst duration = Date.now() - (parseInt(startTime) || Date.now());\n\nconst sweepData = $('Cleo Newsletter Sweep').first()?.json || {};\nconst payload = {\n  workflow_id: $workflow.id,\n  workflow_name: $workflow.name,\n  agent_id: $input.first()?.json?.agent_id || 'agatha',\n  duration_ms: duration,\n  api_calls: (sweepData.api_calls || 0) + 2,\n  cost_usd: (sweepData.cost_usd || 0),\n  outcome: $input.first()?.json?.outcome || 'completed',\n  outcome_count: $input.first()?.json?.result_count || 0,\n  quality_score: null,\n  status: 'success',\n  metadata: JSON.stringify({ source: 'n8n_auto_log', enrichment_used: (sweepData.newsletter_themes || []).length > 0 })\n};\n\nreturn [{ json: payload }];"
       },
       "id": "7b1790c2-8094-4793-98b4-6357a65d8659",
       "name": "Log to Supabase",
@@ -141,6 +141,41 @@
         1648,
         400
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "afe928c8-0bca-49fc-9d73-16c1ac567380",
+      "name": "Write run log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "parameters": {
@@ -502,6 +537,17 @@
         [
           {
             "node": "Prepare, Store and Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Write run log",
             "type": "main",
             "index": 0
           }

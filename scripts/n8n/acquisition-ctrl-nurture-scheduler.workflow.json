@@ -23,16 +23,434 @@
       "id": "ab6f154d-610f-4c09-a110-85c4117ff4c9"
     },
     {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?select=id,approval_task_id&status=eq.queued&lane=eq.mm_ctrl",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "cd7a7670-a563-4d80-b1c1-e6c5c00cfe48",
+      "name": "Fetch queued sends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Daily L1 nurture pass: (1) sync approvals from decisions tasks, (2) queue due touches 2-4,\n// (3) emit approved sends for delivery. Cadence: touch N due 3 days after touch N-1 sent.\n// Every read and write runs in an HTTP Request node on the stored Supabase\n// credential, one request each. \"Plan Touches\" used to make them itself, row by\n// row, with the service-role key written into its source (moved 2026-10-03).\n//\n// 1. approval sync: queued rows whose task is done -> approved; dropped/superseded -> rejected\nconst fetched = $input.first().json.body;\nconst queued = Array.isArray(fetched) ? fetched : [];\nconst taskIds = [...new Set(queued.filter(r => r.approval_task_id).map(r => r.approval_task_id))];\n// An empty list reads nothing: tasks.id is the primary key, never null.\nconst filter = taskIds.length ? 'in.(' + taskIds.map(id => JSON.stringify(String(id))).join(',') + ')' : 'is.null';\nreturn [{ json: { queued, url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?select=id,status&id=' + encodeURIComponent(filter) } }];"
+      },
+      "id": "4b4a595a-e9a9-469b-a34a-f04633e153cc",
+      "name": "Plan approval reads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "39181b92-a249-4903-bf49-55025be4a20c",
+      "name": "Fetch approval tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Decides each queued row from its approval task, as before. \"Mark approved\"\n// and \"Mark rejected\" write the two lists, one PATCH each.\nconst queued = $('Plan approval reads').first().json.queued;\nconst fetched = $input.first().json.body;\nconst tasks = Array.isArray(fetched) ? fetched : [];\nconst statusById = new Map(tasks.map(t => [t.id, t.status]));\nconst approve = [];\nconst reject = [];\nfor (const row of queued) {\n  if (!row.approval_task_id) continue;\n  const st = statusById.get(row.approval_task_id) || '';\n  if (st === 'done') approve.push(row.id);\n  else if (st === 'superseded' || st === 'dropped') reject.push(row.id);\n}\n// An empty list matches no row: acquisition_sends.id is the primary key.\nconst ids = list => list.length ? 'in.(' + list.join(',') + ')' : 'is.null';\nconst base = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?id=';\nreturn [{ json: { approve_url: base + ids(approve), reject_url: base + ids(reject), approvals_synced: approve.length, rejected: reject.length } }];"
+      },
+      "id": "bc58c85d-c8de-4bfa-b457-5a2a21c28460",
+      "name": "Sync approvals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.approve_url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'approved' }) }}",
+        "options": {}
+      },
+      "id": "2b5e7cc5-503a-488e-9f3f-6e92ddb5dcbb",
+      "name": "Mark approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Sync approvals').first().json.reject_url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'rejected' }) }}",
+        "options": {}
+      },
+      "id": "5df83d30-bf10-4af2-a964-c6c03c954995",
+      "name": "Mark rejected",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?select=lead_id,touch_number,sent_at,status,frame_version&lane=eq.mm_ctrl&order=lead_id,touch_number",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "9971b444-4b6d-4880-bc57-db085567ed6a",
+      "name": "Fetch sent history",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 2. queue due touches: last sent touch per active lead, +3 days\nconst now = Date.now();\nconst fetched = $input.first().json.body;\nconst sentRows = Array.isArray(fetched) ? fetched : [];\nconst byLead = {};\nfor (const r of sentRows) { (byLead[r.lead_id] = byLead[r.lead_id] || []).push(r); }\nconst due = [];\nfor (const [leadId, rows] of Object.entries(byLead)) {\n  const maxTouch = Math.max(...rows.map(r => r.touch_number));\n  if (maxTouch >= 4) continue;\n  if (rows.some(r => ['queued','approved','rejected','suppressed','failed'].includes(r.status) && r.touch_number === maxTouch)) continue;\n  const last = rows.find(r => r.touch_number === maxTouch);\n  if (!last || last.status !== 'sent' || !last.sent_at) continue;\n  if (now - new Date(last.sent_at).getTime() < 3 * 86400000) continue;\n  due.push({ leadId, n: maxTouch + 1 });\n}\n// \"Fetch due leads\" reads every due lead in one request.\nconst filter = due.length ? 'in.(' + due.map(d => d.leadId).join(',') + ')' : 'is.null';\nreturn [{ json: { due, url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?select=id,email,churned_at&id=' + filter } }];"
+      },
+      "id": "b9473f87-68d5-4d3b-a934-4603765a3525",
+      "name": "Plan due touches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "219fade5-0c23-43fd-8bd6-4de98049596f",
+      "name": "Fetch due leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Renders each due touch and its approval task. Both get their ids here, so\n// \"Insert touches\" and \"Insert approval tasks\" can each write every row in one\n// request: the send carries approval_task_id from the start instead of being\n// patched with it afterwards.\nconst FRAME = {\"1\":{\"subject\":\"Your {artifact_name} is inside\",\"body\":\"Here is your {artifact_name}. No signup wall, it is just yours.\\n\\nOne thing worth doing while you have it open: CTRL can build a portable context file of you in about 2 minutes. Paste it into ChatGPT or Claude and the next answer you get is about you, your company, your priorities. Not generic advice.\\n\\nThat part is free and takes less time than reading this email twice.\\n\\nBuild your context file: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"},\"2\":{\"subject\":\"You re-explain yourself to AI every day\",\"body\":\"Count how many times you told an AI tool who you are this week. Your role, your company, what you are working on. Every conversation starts from zero, so every answer stays generic. That is the zero-context tax, and leaders pay it daily.\\n\\nCTRL ends it. Two minutes of talking builds your Memory Web. One click exports it to any AI tool you already use.\\n\\nIf you have not built yours yet, it is free: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"},\"3\":{\"subject\":\"What your context file is not telling you\",\"body\":\"The free Memory Web tells your AI tools who you are. The Full Diagnostic tells you what you are not seeing: the tensions in how you are operating, the risks you are discounting, and the scenarios worth pressure-testing before they arrive.\\n\\nIt runs on the context you already built, so it is specific to your situation, not a template. One-time, $49, yours to keep.\\n\\nRun your Full Diagnostic: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"},\"4\":{\"subject\":\"Last note from us\",\"body\":\"This is the last email in this series, so the short version:\\n\\nYou built your context file. The Full Diagnostic is the deep read on it: tensions, risks, scenarios, the complete thinking tools. $49 once. If the free version was useful, this is the part leaders tell us was worth paying for.\\n\\nEither way, we stop emailing you after this.\\n\\nRun the Diagnostic: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"}};\nconst FOOTER = \"\\n\\n---\\nCTRL by Mindmaker. You received this because you requested an artifact at ctrl.themindmaker.ai.\\nUnsubscribe: https://krishraja10101.app.n8n.cloud/webhook/ctrl-unsub?e={email}\";\nfunction uuidv4() {\n  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') return globalThis.crypto.randomUUID();\n  const h = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16));\n  h[12] = '4';\n  h[16] = ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16);\n  const s = h.join('');\n  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`;\n}\nconst due = $('Plan due touches').first().json.due;\nconst fetched = $input.first().json.body;\nconst leadById = new Map((Array.isArray(fetched) ? fetched : []).map(l => [l.id, l]));\nlet suppressed_skips = 0;\nconst sends = [];\nconst tasks = [];\nfor (const { leadId, n } of due) {\n  const lead = leadById.get(leadId);\n  if (!lead || lead.churned_at) { suppressed_skips++; continue; }\n  const subject = FRAME[n].subject;\n  const bodyTxt = FRAME[n].body + FOOTER.replace('{email}', encodeURIComponent(lead.email));\n  const sendId = uuidv4();\n  const taskId = 'send-' + sendId;\n  sends.push({ id: sendId, lead_id: leadId, lane: 'mm_ctrl', touch_number: n, rendered_subject: subject, rendered_body: bodyTxt, status: 'queued', approval_task_id: taskId });\n  tasks.push({ id: taskId, title: 'L1 approve: CTRL nurture touch ' + n + ' to ' + lead.email, description: 'Approved frame mm_ctrl_nurture_v1, touch ' + n + '. Mark done to send on the next scheduler pass; supersede to reject.\\n\\nSubject: ' + subject + '\\n\\n' + bodyTxt.slice(0, 1200), agent: 'cleo', status: 'waiting', workstream: 'acquisition' });\n}\nreturn [{ json: { sends, tasks, suppressed_skips } }];"
+      },
+      "id": "9ae676e6-cefd-429c-9501-ad697bd5a5ab",
+      "name": "Build touches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?on_conflict=lead_id,frame_version,touch_number",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=ignore-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.sends) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "64b51dff-5b3c-4a89-851a-2b042540b956",
+      "name": "Insert touches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// A touch already queued for that lead is skipped by the insert (the unique key\n// on lead, frame and touch), as the old catch did. Only touches that went in\n// get an approval task.\nconst built = $('Build touches').first().json;\nconst res = $input.first().json;\nconst inserted = res.statusCode >= 200 && res.statusCode < 300 && Array.isArray(res.body) ? res.body : [];\nconst insertedTaskIds = new Set(inserted.map(r => r.approval_task_id));\nreturn [{ json: { tasks: built.tasks.filter(t => insertedTaskIds.has(t.id)) } }];"
+      },
+      "id": "d1ed5fca-15be-4707-90e4-1df1dfb5cb9f",
+      "name": "Plan approval tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.tasks) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "39c738f6-1ac4-40e9-b436-8e7e1cd65eb0",
+      "name": "Insert approval tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2800,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?select=id,lead_id,touch_number,rendered_subject,rendered_body,leads(email,churned_at)&status=eq.approved&lane=eq.mm_ctrl&limit=50",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "c24d5005-b4dd-4526-93d2-aeb31ec4b49d",
+      "name": "Fetch approved sends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 3. emit approved sends. \"Mark suppressed\" writes the suppressed list in one PATCH.\nconst fetched = $input.first().json.body;\nconst approved = Array.isArray(fetched) ? fetched : [];\nconst suppress = [];\nconst sends = [];\nfor (const r of approved) {\n  const em = r.leads && r.leads.email;\n  if (!em || (r.leads && r.leads.churned_at)) { suppress.push(r.id); continue; }\n  sends.push({ send_id: r.id, email: em, subject: r.rendered_subject, bodyTxt: r.rendered_body, touch: r.touch_number });\n}\nconst filter = suppress.length ? 'in.(' + suppress.join(',') + ')' : 'is.null';\nreturn [{ json: { sends, url: 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?id=' + filter } }];"
+      },
+      "id": "681bb19c-96c7-453c-8ba8-fa6717041da6",
+      "name": "Plan sends",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'suppressed' }) }}",
+        "options": {}
+      },
+      "id": "e5537df2-cce0-46d0-9674-370662beb430",
+      "name": "Mark suppressed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3400,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
       "name": "Plan Touches",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
+        3600,
         300
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "\n// Daily L1 nurture pass: (1) sync approvals from decisions tasks, (2) queue due touches 2-4,\n// (3) emit approved sends for delivery. Cadence: touch N due 3 days after touch N-1 sent.\nconst FRAME = {\"1\":{\"subject\":\"Your {artifact_name} is inside\",\"body\":\"Here is your {artifact_name}. No signup wall, it is just yours.\\n\\nOne thing worth doing while you have it open: CTRL can build a portable context file of you in about 2 minutes. Paste it into ChatGPT or Claude and the next answer you get is about you, your company, your priorities. Not generic advice.\\n\\nThat part is free and takes less time than reading this email twice.\\n\\nBuild your context file: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"},\"2\":{\"subject\":\"You re-explain yourself to AI every day\",\"body\":\"Count how many times you told an AI tool who you are this week. Your role, your company, what you are working on. Every conversation starts from zero, so every answer stays generic. That is the zero-context tax, and leaders pay it daily.\\n\\nCTRL ends it. Two minutes of talking builds your Memory Web. One click exports it to any AI tool you already use.\\n\\nIf you have not built yours yet, it is free: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"},\"3\":{\"subject\":\"What your context file is not telling you\",\"body\":\"The free Memory Web tells your AI tools who you are. The Full Diagnostic tells you what you are not seeing: the tensions in how you are operating, the risks you are discounting, and the scenarios worth pressure-testing before they arrive.\\n\\nIt runs on the context you already built, so it is specific to your situation, not a template. One-time, $49, yours to keep.\\n\\nRun your Full Diagnostic: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"},\"4\":{\"subject\":\"Last note from us\",\"body\":\"This is the last email in this series, so the short version:\\n\\nYou built your context file. The Full Diagnostic is the deep read on it: tensions, risks, scenarios, the complete thinking tools. $49 once. If the free version was useful, this is the part leaders tell us was worth paying for.\\n\\nEither way, we stop emailing you after this.\\n\\nRun the Diagnostic: https://ctrl.themindmaker.ai?utm_campaign=mm_ctrl_nurture_v1&utm_source=nurture&utm_medium=email\"}};\nconst FOOTER = \"\\n\\n---\\nCTRL by Mindmaker. You received this because you requested an artifact at ctrl.themindmaker.ai.\\nUnsubscribe: https://krishraja10101.app.n8n.cloud/webhook/ctrl-unsub?e={email}\";\nconst SB = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SBH = { apikey: '{{SUPABASE_SERVICE_ROLE_KEY}}', Authorization: 'Bearer {{SUPABASE_SERVICE_ROLE_KEY}}', 'Content-Type': 'application/json' };\nfunction q(params){ const p=[]; for (const k of Object.keys(params)) p.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k])); return p.join('&'); }\nconst now = Date.now();\nconst digest = { approvals_synced: 0, queued: 0, sending: 0, rejected: 0, suppressed_skips: 0 };\n\n// 1. approval sync: queued rows whose task is done -> approved; dropped/superseded -> rejected\nconst queued = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/acquisition_sends?' + q({ select: 'id,approval_task_id', status: 'eq.queued', lane: 'eq.mm_ctrl' }), headers: SBH, json: true }) || [];\nfor (const row of queued) {\n  if (!row.approval_task_id) continue;\n  const t = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/tasks?' + q({ select: 'id,status', id: 'eq.' + row.approval_task_id }), headers: SBH, json: true });\n  const st = (t && t[0] && t[0].status) || '';\n  if (st === 'done') { await this.helpers.httpRequest({ method: 'PATCH', url: SB + '/rest/v1/acquisition_sends?id=eq.' + row.id, headers: SBH, body: { status: 'approved' }, json: true }); digest.approvals_synced++; }\n  else if (st === 'superseded' || st === 'dropped') { await this.helpers.httpRequest({ method: 'PATCH', url: SB + '/rest/v1/acquisition_sends?id=eq.' + row.id, headers: SBH, body: { status: 'rejected' }, json: true }); digest.rejected++; }\n}\n\n// 2. queue due touches: last sent touch per active lead, +3 days\nconst sentRows = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/acquisition_sends?' + q({ select: 'lead_id,touch_number,sent_at,status,frame_version', lane: 'eq.mm_ctrl', order: 'lead_id,touch_number' }), headers: SBH, json: true }) || [];\nconst byLead = {};\nfor (const r of sentRows) { (byLead[r.lead_id] = byLead[r.lead_id] || []).push(r); }\nfor (const [leadId, rows] of Object.entries(byLead)) {\n  const maxTouch = Math.max(...rows.map(r => r.touch_number));\n  if (maxTouch >= 4) continue;\n  if (rows.some(r => ['queued','approved','rejected','suppressed','failed'].includes(r.status) && r.touch_number === maxTouch)) continue;\n  const last = rows.find(r => r.touch_number === maxTouch);\n  if (!last || last.status !== 'sent' || !last.sent_at) continue;\n  if (now - new Date(last.sent_at).getTime() < 3 * 86400000) continue;\n  const leadArr = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/leads?' + q({ select: 'id,email,churned_at', id: 'eq.' + leadId }), headers: SBH, json: true });\n  const lead = leadArr && leadArr[0];\n  if (!lead || lead.churned_at) { digest.suppressed_skips++; continue; }\n  const n = maxTouch + 1;\n  const subject = FRAME[n].subject;\n  const bodyTxt = FRAME[n].body + FOOTER.replace('{email}', encodeURIComponent(lead.email));\n  try {\n    const ins = await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/acquisition_sends', headers: { ...SBH, Prefer: 'return=representation' }, body: [{ lead_id: leadId, lane: 'mm_ctrl', touch_number: n, rendered_subject: subject, rendered_body: bodyTxt, status: 'queued' }], json: true });\n    const sendId = ins[0].id;\n    const taskId = 'send-' + sendId;\n    await this.helpers.httpRequest({ method: 'POST', url: SB + '/rest/v1/tasks', headers: SBH, body: [{ id: taskId, title: 'L1 approve: CTRL nurture touch ' + n + ' to ' + lead.email, description: 'Approved frame mm_ctrl_nurture_v1, touch ' + n + '. Mark done to send on the next scheduler pass; supersede to reject.\\n\\nSubject: ' + subject + '\\n\\n' + bodyTxt.slice(0, 1200), agent: 'cleo', status: 'waiting', workstream: 'acquisition' }], json: true });\n    await this.helpers.httpRequest({ method: 'PATCH', url: SB + '/rest/v1/acquisition_sends?id=eq.' + sendId, headers: SBH, body: { approval_task_id: taskId }, json: true });\n    digest.queued++;\n  } catch (e) { /* unique violation = already queued */ }\n}\n\n// 3. emit approved sends\nconst approved = await this.helpers.httpRequest({ method: 'GET', url: SB + '/rest/v1/acquisition_sends?' + q({ select: 'id,lead_id,touch_number,rendered_subject,rendered_body,leads(email,churned_at)', status: 'eq.approved', lane: 'eq.mm_ctrl', limit: '50' }), headers: SBH, json: true }) || [];\nconst sends = [];\nfor (const r of approved) {\n  const em = r.leads && r.leads.email;\n  if (!em || (r.leads && r.leads.churned_at)) { await this.helpers.httpRequest({ method: 'PATCH', url: SB + '/rest/v1/acquisition_sends?id=eq.' + r.id, headers: SBH, body: { status: 'suppressed' }, json: true }); continue; }\n  sends.push({ send_id: r.id, email: em, subject: r.rendered_subject, bodyTxt: r.rendered_body, touch: r.touch_number });\n}\ndigest.sending = sends.length;\nreturn [{ json: { digest, sends } }];\n"
+        "jsCode": "// The day's digest and the approved sends: the same output this node always\n// returned. The reads and writes ran in the nodes before it.\nconst sync = $('Sync approvals').first().json;\nconst built = $('Build touches').first().json;\nconst planned = $('Plan approval tasks').first().json.tasks;\nconst taskRes = $('Insert approval tasks').first().json;\nconst queuedOk = taskRes.statusCode >= 200 && taskRes.statusCode < 300 ? planned.length : 0;\nconst sends = $('Plan sends').first().json.sends;\nconst digest = { approvals_synced: sync.approvals_synced, queued: queuedOk, sending: sends.length, rejected: sync.rejected, suppressed_skips: built.suppressed_skips };\nreturn [{ json: { digest, sends } }];"
       },
       "id": "764f2012-a506-4514-8c51-04b63009e1f8"
     },
@@ -41,7 +459,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        680,
+        3800,
         200
       ],
       "parameters": {
@@ -55,7 +473,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        900,
+        4000,
         200
       ],
       "parameters": {
@@ -87,7 +505,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1140,
+        4200,
         200
       ],
       "parameters": {
@@ -96,14 +514,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -117,17 +527,25 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.id ? { status: 'sent', sent_at: new Date().toISOString(), resend_id: $json.id } : { status: 'failed', error: JSON.stringify($json).slice(0, 400) }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "3858bdee-8495-4405-8571-7dcf3da300d4"
+      "id": "3858bdee-8495-4405-8571-7dcf3da300d4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Digest + Heartbeat",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        680,
+        3800,
         420
       ],
       "parameters": {
@@ -136,14 +554,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -157,22 +567,30 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ workflow_id: 'ctrl-nurture-scheduler', workflow_name: 'Acquisition | CTRL | Nurture Scheduler', agent_id: 'cleo', status: 'success', outcome: 'queued:' + $json.digest.queued + ' sending:' + $json.digest.sending + ' approvals:' + $json.digest.approvals_synced, outcome_count: $json.digest.queued + $json.digest.sending, cost_estimate_usd: 0.0002, api_calls_count: 10 }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "504b01ed-1e77-4836-aa50-e70fa9c3f119"
+      "id": "504b01ed-1e77-4836-aa50-e70fa9c3f119",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Telegram Digest",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        900,
+        4000,
         420
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -197,7 +615,7 @@
       "main": [
         [
           {
-            "node": "Plan Touches",
+            "node": "Fetch queued sends",
             "type": "main",
             "index": 0
           }
@@ -247,6 +665,182 @@
         [
           {
             "node": "Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch queued sends": {
+      "main": [
+        [
+          {
+            "node": "Plan approval reads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan approval reads": {
+      "main": [
+        [
+          {
+            "node": "Fetch approval tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch approval tasks": {
+      "main": [
+        [
+          {
+            "node": "Sync approvals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync approvals": {
+      "main": [
+        [
+          {
+            "node": "Mark approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark approved": {
+      "main": [
+        [
+          {
+            "node": "Mark rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark rejected": {
+      "main": [
+        [
+          {
+            "node": "Fetch sent history",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch sent history": {
+      "main": [
+        [
+          {
+            "node": "Plan due touches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan due touches": {
+      "main": [
+        [
+          {
+            "node": "Fetch due leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch due leads": {
+      "main": [
+        [
+          {
+            "node": "Build touches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build touches": {
+      "main": [
+        [
+          {
+            "node": "Insert touches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert touches": {
+      "main": [
+        [
+          {
+            "node": "Plan approval tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan approval tasks": {
+      "main": [
+        [
+          {
+            "node": "Insert approval tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert approval tasks": {
+      "main": [
+        [
+          {
+            "node": "Fetch approved sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch approved sends": {
+      "main": [
+        [
+          {
+            "node": "Plan sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan sends": {
+      "main": [
+        [
+          {
+            "node": "Mark suppressed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark suppressed": {
+      "main": [
+        [
+          {
+            "node": "Plan Touches",
             "type": "main",
             "index": 0
           }

@@ -1,6 +1,6 @@
 {
   "name": "System | Stripe Reconciliation | Nightly",
-  "active": true,
+  "active": false,
   "nodes": [
     {
       "name": "Daily 05:00 UTC",
@@ -38,14 +38,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -55,9 +47,17 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
-      "id": "bc03ecd3-6008-4e01-91c8-7a69c1b4c18b"
+      "id": "bc03ecd3-6008-4e01-91c8-7a69c1b4c18b",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Fetch Stripe Subscriptions",
@@ -98,14 +98,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -115,9 +107,17 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
-      "id": "653b3a0f-a6c0-43a6-bad6-e31d6108a1ae"
+      "id": "653b3a0f-a6c0-43a6-bad6-e31d6108a1ae",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Build Plan",
@@ -181,14 +181,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -201,10 +193,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.upserts) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "efc031a2-d20c-429a-82d3-283811ba3fa5"
+      "id": "efc031a2-d20c-429a-82d3-283811ba3fa5",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Has Churn?",
@@ -254,14 +254,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -274,10 +266,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ kind: 'churned', churned_at: new Date().toISOString() }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "c2b34bbb-8320-4b85-acc2-7670395933cd"
+      "id": "c2b34bbb-8320-4b85-acc2-7670395933cd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Audit Unmapped",
@@ -294,14 +294,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -314,10 +306,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($('Build Plan').item.json.has_unmapped ? [{ actor: 'system', event_type: 'stripe-reconciliation-unmapped', display_message: 'Stripe reconciliation: unmapped price ids need stripe_price_product_map entries: ' + Object.keys($('Build Plan').item.json.unmapped).join(', '), details: JSON.stringify($('Build Plan').item.json.unmapped) }] : []) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "2744f7cd-82b1-460f-925e-75d4a1635bbd"
+      "id": "2744f7cd-82b1-460f-925e-75d4a1635bbd",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Heartbeat",
@@ -334,14 +334,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "{{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{SUPABASE_SERVICE_ROLE_KEY}}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -354,10 +346,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ workflow_id: 'stripe-reconciliation-nightly', workflow_name: 'System | Stripe Reconciliation | Nightly', agent_id: 'system', status: 'success', outcome: 'subs:' + $('Build Plan').item.json.stats.subs_seen + ' upserts:' + $('Build Plan').item.json.stats.upserts + ' churn:' + $('Build Plan').item.json.stats.churn + ' unmapped:' + $('Build Plan').item.json.stats.unmapped + (($('Build Plan').item.json.stats.stripe_has_more_unfetched) ? ' WARN:has_more_page' : ''), outcome_count: $('Build Plan').item.json.stats.upserts, cost_estimate_usd: 0.0001, api_calls_count: 7 }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "onError": "continueRegularOutput",
-      "id": "4e284f56-1e2a-4ce3-964e-fb8ee0c26134"
+      "id": "4e284f56-1e2a-4ce3-964e-fb8ee0c26134",
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     },
     {
       "name": "Fetch Stripe Fulltime",
@@ -517,11 +517,6 @@
             "index": 0
           }
         ],
-        []
-      ]
-    },
-    "Audit Unmapped": {
-      "main": [
         []
       ]
     },

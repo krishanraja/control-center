@@ -413,7 +413,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Insert router: writes qualified_guests -> guests, qualified_press -> visibility_targets,\n// rejected -> nell_rejected. Uses this.helpers.httpRequest (n8n's HTTP helper) — the\n// previous global fetch() is not defined in this runtime, so every run with new\n// candidates errored before inserting (inbound never replenished). Downstream HTTP\n// nodes are left in place but receive insert_body='[]' so they no-op.\n//\n// guests.status must be 'scouted' (was 'new', which violates guests_status_check) and\n// guests.source must be one of manual/sheet_import/nell_outbound/referral/migration\n// (guests_source_check) — so qualified guests use 'nell_outbound'.\n\nconst upstream = $('Parse Scores + Filter').first().json;\nconst guests = upstream.qualified_guests || [];\nconst press  = upstream.qualified_press  || [];\nconst rej    = upstream.rejected         || [];\n\nconst SUPA = \"https://gojpffsrxybbpbdzzrvs.supabase.co\";\nconst KEY  = \"{{SUPABASE_SERVICE_ROLE_KEY}}\";\n\nconst httpRequest = this.helpers.httpRequest.bind(this.helpers);\n\nasync function insertMany(path, rows) {\n  if (!rows || !rows.length) return { ok: true, status: 200, body: '[]' };\n  try {\n    const resp = await httpRequest({\n      method: 'POST',\n      url: `${SUPA}/rest/v1/${path}`,\n      headers: {\n        apikey: KEY,\n        Authorization: `Bearer ${KEY}`,\n        'Content-Type': 'application/json',\n        Prefer: 'return=minimal'\n      },\n      body: rows,\n      json: true,\n      returnFullResponse: true,\n      ignoreHttpStatusErrors: true,\n      timeout: 20000\n    });\n    return { ok: resp.statusCode >= 200 && resp.statusCode < 300, status: resp.statusCode, body: (typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body || '')).slice(0, 400) };\n  } catch (e) {\n    return { ok: false, status: e.statusCode || e.httpCode || 0, body: String(e.message || e).slice(0, 400) };\n  }\n}\n\nconst guestRows = guests.map(c => ({\n  name: c.name,\n  email: c.email || null,\n  linkedin_url: c.linkedin_url || null,\n  twitter_handle: c.twitter_handle || null,\n  personal_url: c.personal_url || null,\n  podcast_target: c.podcast_target,\n  target_type: c.target_type,\n  one_liner: c.signal_description || null,\n  why_fit: c.notes || null,\n  best_channel: c.best_channel,\n  fit_score: c.fit_score,\n  attainability_score: c.attainability_score,\n  quality_score: (c.fit_score >= 8 && c.attainability_score >= 8) ? 'green'\n    : (c.fit_score >= 6 && c.attainability_score >= 6) ? 'amber' : 'red',\n  status: 'scouted',\n  source: 'nell_outbound',\n  raw_data: JSON.stringify({ ...(typeof c.raw_data === 'string' ? JSON.parse(c.raw_data || '{}') : (c.raw_data || {})), upstream_source: c.source })\n}));\n\nconst pressRows = press.map(c => ({\n  title: c.press_publication\n    ? `${c.name} — ${c.press_publication}`\n    : c.name,\n  type: 'press_relationship',\n  source_url: c.source_url || c.linkedin_url || c.personal_url || null,\n  why_relevant: c.notes || c.signal_description || null,\n  status: 'queued',\n  source: 'nell-scout',\n  quality_score: (c.fit_score >= 8) ? 'green' : (c.fit_score >= 6) ? 'amber' : 'red',\n  relevance_score: c.fit_score || null,\n  raw_data: { person: c.name, source: c.source, signals: c.quality_signals || [], notes: c.notes }\n}));\n\nconst rejRows = rej.map(c => ({\n  name: c.name,\n  source_url: c.source_url || null,\n  source: 'nell_outbound',\n  upstream_source: c.source,\n  reason: c.skip_reason || 'unspecified',\n  raw_data: { signals: c.quality_signals || [], notes: c.notes, target_type: c.target_type, fit_score: c.fit_score }\n}));\n\nconst [gRes, pRes, rRes] = await Promise.all([\n  insertMany('guests', guestRows),\n  insertMany('visibility_targets', pressRows),\n  insertMany('nell_rejected', rejRows)\n]);\n\nreturn [{ json: {\n  // legacy key so downstream Build Digest keeps working with an empty no-op insert body:\n  insert_body: '[]',\n  // qualified_rows carries the real guest rows downstream. insert_body is a\n  // deliberate no-op for the legacy HTTP node, so Filter vs Contacted must NOT\n  // reconstruct from it or the pitch last-mile silently receives zero.\n  qualified_rows: guests,\n  qualified_count: guestRows.length,\n  qualified_press_count: pressRows.length,\n  rejected_count: rejRows.length,\n  qualified_summary: guests.map(c => ({\n    name: c.name, target_type: c.target_type, podcast: c.podcast_target,\n    fit: c.fit_score, attain: c.attainability_score, channel: c.best_channel\n  })),\n  press_summary: press.map(c => ({ name: c.name, outlet: c.press_publication, fit: c.fit_score })),\n  rejected_summary: rej.map(c => ({ name: c.name, reason: c.skip_reason })),\n  insert_status: { guests: gRes, press: pRes, rejected: rRes },\n  metadata: upstream.metadata\n}}];"
+        "jsCode": "// Records each insert's outcome and returns what this node always returned.\n// The rows were built by \"Build insert rows\" and sent by \"Insert scouted rows\".\nconst upstream = $('Parse Scores + Filter').first().json;\nconst guests = upstream.qualified_guests || [];\nconst press  = upstream.qualified_press  || [];\nconst rej    = upstream.rejected         || [];\n\nconst planned = $('Build insert rows').all();\nconst status = {};\n$input.all().forEach((res, i) => {\n  const k = res.pairedItem && typeof res.pairedItem.item === 'number' ? res.pairedItem.item : i;\n  const p = planned[k] && planned[k].json;\n  if (!p) return;\n  const r = res.json || {};\n  if (!p.rows || !p.rows.length) { status[p.key] = { ok: true, status: 200, body: '[]' }; return; }\n  const b = r.body === undefined ? '' : r.body;\n  status[p.key] = { ok: r.statusCode >= 200 && r.statusCode < 300, status: r.statusCode, body: (typeof b === 'string' ? b : JSON.stringify(b || '')).slice(0, 400) };\n});\nconst gRes = status.guests, pRes = status.press, rRes = status.rejected;\nconst guestRows = (planned.find(p => p.json.key === 'guests') || { json: { rows: [] } }).json.rows;\nconst pressRows = (planned.find(p => p.json.key === 'press') || { json: { rows: [] } }).json.rows;\nconst rejRows = (planned.find(p => p.json.key === 'rejected') || { json: { rows: [] } }).json.rows;\n\nreturn [{ json: {\n  // legacy key so downstream Build Digest keeps working with an empty no-op insert body:\n  insert_body: '[]',\n  // qualified_rows carries the real guest rows downstream. insert_body is a\n  // deliberate no-op for the legacy HTTP node, so Filter vs Contacted must NOT\n  // reconstruct from it or the pitch last-mile silently receives zero.\n  qualified_rows: guests,\n  qualified_count: guestRows.length,\n  qualified_press_count: pressRows.length,\n  rejected_count: rejRows.length,\n  qualified_summary: guests.map(c => ({\n    name: c.name, target_type: c.target_type, podcast: c.podcast_target,\n    fit: c.fit_score, attain: c.attainability_score, channel: c.best_channel\n  })),\n  press_summary: press.map(c => ({ name: c.name, outlet: c.press_publication, fit: c.fit_score })),\n  rejected_summary: rej.map(c => ({ name: c.name, reason: c.skip_reason })),\n  insert_status: { guests: gRes, press: pRes, rejected: rRes },\n  metadata: upstream.metadata\n}}];"
       },
       "name": "Prep Supabase Insert",
       "type": "n8n-nodes-base.code",
@@ -481,7 +481,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ {\"chat_id\": \"6773796504\", \"parse_mode\": \"\", \"text\": $json.telegram_text} }}",
@@ -514,7 +514,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "url": "https://api.telegram.org/bot-token-removed/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ {\"chat_id\": \"6773796504\", \"parse_mode\": \"Markdown\", \"text\": $json.telegram_text} }}",
@@ -1308,7 +1308,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for extract-people\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>extract-people</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
+        "jsCode": "// LLM Health Check for extract-people\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>extract-people</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -1323,7 +1323,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for score\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>score</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
+        "jsCode": "// LLM Health Check for score\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>score</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -1338,7 +1338,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LLM Health Check for draft-pitches\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>draft-pitches</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
+        "jsCode": "// LLM Health Check for draft-pitches\n// Passes through input, but if BOTH LLM providers returned empty/error, side-fires\n// a Telegram alert. Does not block the workflow — downstream can still process zero items.\n\nconst items = $input.all();\nconst item = (items && items.length > 0) ? items[0] : { json: {} };\nconst j = item.json || {};\n\n// Check if Anthropic content has usable text\nlet hasText = false;\nif (Array.isArray(j.content) && j.content.length > 0 && (j.content[0].text || '').trim()) {\n  hasText = true;\n}\n\nif (!hasText) {\n  // Both LLMs failed — fire alert via HTTP call inline (Telegram bot URL)\n  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';\n  const source = j._error_source || 'both-providers';\n  const msg = j._error_message || 'Empty content from Anthropic + Gemini';\n  const text = '🚨 <b>Nell LLM call failed</b>\\n\\nStep: <code>draft-pitches</code>\\nProvider: <code>' + source + '</code>\\n\\n<b>Error:</b>\\n' + String(msg).slice(0, 400) + '\\n\\n<i>' + now + '</i>\\n<i>Nell will still complete but with degraded output.</i>';\n\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.telegram.org/bot-token-removed/sendMessage',\n      body: { chat_id: '6773796504', parse_mode: 'HTML', text: text },\n      json: true,\n      timeout: 15000,\n    });\n  } catch (e) { /* alert-best-effort */ }\n}\n\n// Always pass through so downstream continues\nreturn items;\n",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -1382,6 +1382,61 @@
         }
       },
       "id": "14fb51b0-3af9-495e-ab0c-39b6b3f40ee0"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Insert router: writes qualified_guests -> guests, qualified_press -> visibility_targets,\n// rejected -> nell_rejected. The rows are built here, one item per table; \"Insert\n// scouted rows\" sends them over the stored Supabase credential and \"Prep Supabase\n// Insert\" records each outcome. This node's predecessor made the inserts itself\n// with the service-role key written into its source (moved 2026-10-03).\n//\n// guests.status must be 'scouted' (was 'new', which violates guests_status_check) and\n// guests.source must be one of manual/sheet_import/nell_outbound/referral/migration\n// (guests_source_check), so qualified guests use 'nell_outbound'.\n\nconst upstream = $('Parse Scores + Filter').first().json;\nconst guests = upstream.qualified_guests || [];\nconst press  = upstream.qualified_press  || [];\nconst rej    = upstream.rejected         || [];\n\nconst guestRows = guests.map(c => ({\n  name: c.name,\n  email: c.email || null,\n  linkedin_url: c.linkedin_url || null,\n  twitter_handle: c.twitter_handle || null,\n  personal_url: c.personal_url || null,\n  podcast_target: c.podcast_target,\n  target_type: c.target_type,\n  one_liner: c.signal_description || null,\n  why_fit: c.notes || null,\n  best_channel: c.best_channel,\n  fit_score: c.fit_score,\n  attainability_score: c.attainability_score,\n  quality_score: (c.fit_score >= 8 && c.attainability_score >= 8) ? 'green'\n    : (c.fit_score >= 6 && c.attainability_score >= 6) ? 'amber' : 'red',\n  status: 'scouted',\n  source: 'nell_outbound',\n  raw_data: JSON.stringify({ ...(typeof c.raw_data === 'string' ? JSON.parse(c.raw_data || '{}') : (c.raw_data || {})), upstream_source: c.source })\n}));\n\nconst pressRows = press.map(c => ({\n  title: c.press_publication\n    ? `${c.name} — ${c.press_publication}`\n    : c.name,\n  type: 'press_relationship',\n  source_url: c.source_url || c.linkedin_url || c.personal_url || null,\n  why_relevant: c.notes || c.signal_description || null,\n  status: 'queued',\n  source: 'nell-scout',\n  quality_score: (c.fit_score >= 8) ? 'green' : (c.fit_score >= 6) ? 'amber' : 'red',\n  relevance_score: c.fit_score || null,\n  raw_data: { person: c.name, source: c.source, signals: c.quality_signals || [], notes: c.notes }\n}));\n\nconst rejRows = rej.map(c => ({\n  name: c.name,\n  source_url: c.source_url || null,\n  source: 'nell_outbound',\n  upstream_source: c.source,\n  reason: c.skip_reason || 'unspecified',\n  raw_data: { signals: c.quality_signals || [], notes: c.notes, target_type: c.target_type, fit_score: c.fit_score }\n}));\n\n// Always three items, so the run carries on when a set is empty. An empty set\n// sends an empty insert, which writes nothing.\nreturn [\n  { json: { key: 'guests', path: 'guests', rows: guestRows } },\n  { json: { key: 'press', path: 'visibility_targets', rows: pressRows } },\n  { json: { key: 'rejected', path: 'nell_rejected', rows: rejRows } },\n];"
+      },
+      "id": "4449a51b-b8db-4439-be90-0a28f6bd9f16",
+      "name": "Build insert rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4168,
+        504
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/' + $json.path }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.rows) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "ce127f52-7217-410f-8acf-754e2427fe7e",
+      "name": "Insert scouted rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4368,
+        504
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
     }
   ],
   "connections": {
@@ -1553,7 +1608,7 @@
       "main": [
         [
           {
-            "node": "Prep Supabase Insert",
+            "node": "Build insert rows",
             "type": "main",
             "index": 0
           }
@@ -2024,6 +2079,28 @@
         [
           {
             "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build insert rows": {
+      "main": [
+        [
+          {
+            "node": "Insert scouted rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert scouted rows": {
+      "main": [
+        [
+          {
+            "node": "Prep Supabase Insert",
             "type": "main",
             "index": 0
           }
