@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
@@ -15,6 +15,9 @@ import { useSpend, spendAlert } from '../../hooks/useSpend'
 import { HomeSkeleton } from '../shared/Skeleton'
 import { useFirstLoad } from '../shared/useDeferredPending'
 import { useContainerWidth } from '../../hooks/useContainerWidth'
+import { useDailyMove } from '../../hooks/useDailyMove'
+import { useFitFolds } from '../../hooks/useFitRows'
+import { HOME_FOLDS, foldsAt, type HomePin } from '../../lib/homeFolds'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -25,8 +28,11 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
  * — plus one quiet vitals line (MRR · ships · waiting) and exactly ONE
  * contextual CTA under the highest stale layer. The ruling queue lives on
  * OS → Queue; venture health lives on Growth; the ambient pulse retired.
- * Everything here is `shrink-0` inside an overflow-hidden frame: the page
- * must fit, so short viewports compress spacing instead of scrolling.
+ * The page must fit, so short viewports compress spacing, and when spacing is
+ * not enough the canon column FOLDS, measured before paint (useFitFolds,
+ * src/lib/homeFolds.ts). It never scrolls and never clips: Krish, 2026-10-03,
+ * "no scroll guaranteed everywhere". A 1280x720 laptop with the reasons open
+ * under today's move ran 86px past the frame before this.
  */
 export function DesktopHome({ onNavigate }: {
   onNavigate?: NavigateFn
@@ -54,6 +60,16 @@ export function DesktopHome({ onNavigate }: {
   // One placeholder in the page's real proportions, so a cold load settles
   // once instead of assembling itself in public.
   const firstPaint = useFirstLoad(loading, Boolean(canon))
+  // Today's move, read once here because Home decides what it folds.
+  const daily = useDailyMove()
+  const [pinned, setPinned] = useState<HomePin>(null)
+  const fit = useFitFolds(HOME_FOLDS.length, pinned)
+  // The wide rail has one fold of its own: the due test.
+  const railFit = useFitFolds(1, pinned)
+  const folds = foldsAt(fit.level, pinned)
+  // "Pick your 3" steps aside only while a move is proposed and the column
+  // has run out: the move is then the ask, and the Add on Today sets the rest.
+  const ctaAside = folds.cta && Boolean(daily.current)
   if (firstPaint) return <HomeSkeleton />
 
   const cta = alt.cta
@@ -61,9 +77,9 @@ export function DesktopHome({ onNavigate }: {
   // The instruments: what the machine did and what is owed. Peripheral to the
   // canon, which is why they sit in the rail on a wide desk and above it
   // otherwise. Rendered once, placed twice, so the two layouts cannot drift.
-  const instruments = (
+  const instruments = (foldTests: boolean) => (
     <>
-      <DueTestsCard variant="desktop" />
+      <DueTestsCard variant="desktop" fold={foldTests} open={pinned === 'tests'} onPin={o => setPinned(o ? 'tests' : null)} />
       <PilotStrip onNavigate={onNavigate} />
     </>
   )
@@ -110,7 +126,6 @@ export function DesktopHome({ onNavigate }: {
           <div className="min-w-0 flex-1"><VitalsLine onNavigate={onNavigate} /></div>
           <CriticalAlertMark />
         </div>
-        {!wide && instruments}
       </div>
 
       {/* The direction is exclusive, and it has to be: `flex-col` in the base
@@ -125,12 +140,32 @@ export function DesktopHome({ onNavigate }: {
           beside it at x=1150, which is exactly the "doorways stranded half a
           screen below the content they belong to" this branch was written to
           fix. */}
-      <div className={`min-h-0 flex [@media(max-height:820px)]:gap-3.5 ${wide ? 'flex-row gap-8 flex-1' : 'flex-col gap-6'}`}>
-        <div className={`shrink-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 pt-1 ${wide ? 'min-w-0 flex-1 max-w-[880px]' : ''}`}>
-          <GoalLadder variant="desktop" />
-          {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
-          <TodayList />
-          {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
+      {/* The row always takes the height left over, so the canon column is a
+          bounded box that can be measured, in both shapes. */}
+      <div className={`min-h-0 flex-1 flex [@media(max-height:820px)]:gap-3.5 ${wide ? 'flex-row gap-8' : 'flex-col gap-6'}`}>
+        <div
+          ref={fit.boxRef}
+          data-testid="home-stage"
+          data-fit={fit.overrun ? 'overrun' : 'fit'}
+          data-fold-level={fit.level}
+          className={`min-h-0 flex-1 ${fit.overrun ? 'overflow-y-auto' : 'overflow-hidden'} ${wide ? 'min-w-0 max-w-[880px]' : ''}`}
+        >
+          <div ref={fit.contentRef} className="flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 pt-1">
+            {/* In the column the instruments sit inside the stage, so a due
+                test folds like everything else instead of taking height the
+                canon can never win back. On a wide desk they are in the rail. */}
+            {/* Direct children, never a wrapper: a strip with nothing to say
+                renders nothing, and an empty wrapper would still take a gap. */}
+            {!wide && instruments(folds.tests)}
+            <GoalLadder variant="desktop" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} />
+            {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
+            <TodayList
+              daily={daily}
+              folds={{ survived: folds.survived, why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}
+              onShowMove={() => setPinned('card')}
+            />
+            {cta && cta.target !== 'weekly' && !ctaAside && <CanonCta cta={cta} />}
+          </div>
         </div>
 
         {/* No `mt-auto` in the rail. In the bottom row it was what kept the
@@ -138,10 +173,19 @@ export function DesktopHome({ onNavigate }: {
             exact problem the rail was meant to fix, parking them 700px below
             the content they sit beside. In a column they read top-down as a
             short list of places to go, which is what they are. */}
+        {/* The rail is measured too: a due test with the doors under it on a
+            short wide window folds rather than clip. */}
         {wide && (
-          <aside className="flex w-[320px] shrink-0 flex-col gap-3 pt-1">
-            {instruments}
-            <div className="flex flex-col gap-2">{doors}</div>
+          <aside
+            ref={railFit.boxRef}
+            data-testid="home-rail"
+            data-fit={railFit.overrun ? 'overrun' : 'fit'}
+            className={`flex w-[320px] shrink-0 min-h-0 ${railFit.overrun ? 'overflow-y-auto' : 'overflow-hidden'}`}
+          >
+            <div ref={railFit.contentRef} className="flex w-full flex-col gap-3 pt-1">
+              {instruments(railFit.level >= 1)}
+              <div className="flex flex-col gap-2">{doors}</div>
+            </div>
           </aside>
         )}
       </div>
@@ -149,7 +193,7 @@ export function DesktopHome({ onNavigate }: {
       {/* The ⌘I capture and tab-chat pills float in the reserved gutter BELOW
           this row (--capture-gutter), not over it, so the panel can span the
           full width. */}
-      {!wide && <div className="shrink-0 mt-auto flex items-center gap-3">{doors}</div>}
+      {!wide && <div className="shrink-0 flex items-center gap-3">{doors}</div>}
     </div>
     </div>
   )

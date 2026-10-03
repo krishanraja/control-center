@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { mockAudit, AUDIT_ROUTES } from './fixtures/audit'
+import { homeScrolls } from './fixtures/dailyMove'
 
 /**
  * Every desk surface is one screen, and everything on it is reachable.
@@ -76,5 +77,14 @@ for (const route of AUDIT_ROUTES) {
 
     const cut = await clipped(page)
     expect(cut, `${route.name} has content cut off below the frame:\n${cut.join('\n')}`).toEqual([])
+
+    // Home is stricter than every other surface: it may not scroll at all,
+    // inside or out, and it may not clip (Krish, 2026-10-03, "no scroll
+    // guaranteed everywhere"). It folds instead (useFitFolds). The other
+    // surfaces may still hold a scroller of their own.
+    if (route.id === 'home') {
+      const scrolls = await homeScrolls(page)
+      expect(scrolls, `Home scrolls or is cut off:\n${scrolls.join('\n')}`).toEqual([])
+    }
   })
 }

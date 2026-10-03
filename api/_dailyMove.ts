@@ -199,10 +199,10 @@ function jsonObject(raw: string): Record<string, unknown> | null {
 
 // ── Effectful: the models ───────────────────────────────────────────────────
 
-/** The decider. Fable thinks whatever it is told (thinkingParam omits the
- *  field), so max_tokens covers the thinking and the read. Returns the model
- *  that actually wrote the answer: a refusal is served by the API's fallback
- *  model, and the read is stamped with that one, not the one asked for. */
+/** The decider, thinking adaptively, so max_tokens covers the thinking and the
+ *  read. Returns the model that actually wrote the answer: on a model that
+ *  takes the refusal fallback, a refusal is served by the API's fallback model,
+ *  and the read is stamped with that one, not the one asked for. */
 async function decide(system: string, user: string, effort: 'high' | 'medium', maxTokens: number, timeoutMs: number): Promise<{ text: string; model: string }> {
   let served: string = DAILY_MOVE_MODEL
   const text = await callClaude({
@@ -220,9 +220,13 @@ async function decide(system: string, user: string, effort: 'high' | 'medium', m
   return { text, model: served }
 }
 
-/** Whether an answer came from the fallback rather than the decider. */
+/** Whether an answer came from another model than the decider. A dated
+ *  snapshot of the decider is the decider; a longer id that merely starts the
+ *  same way (claude-sonnet-5-5 against claude-sonnet-5) is not. */
 export function servedByFallback(model: string): boolean {
-  return !model.startsWith(DAILY_MOVE_MODEL)
+  if (model === DAILY_MOVE_MODEL) return false
+  const rest = model.startsWith(`${DAILY_MOVE_MODEL}-`) ? model.slice(DAILY_MOVE_MODEL.length + 1) : null
+  return !(rest !== null && /^\d{8}$/.test(rest))
 }
 
 /** The challenger, through OpenRouter, to hosts that keep nothing it is sent:

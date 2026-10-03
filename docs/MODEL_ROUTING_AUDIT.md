@@ -14,7 +14,7 @@ mirrors in `scripts/n8n/`.
 | Deep current-web research | Perplexity Sonar Pro | Use only when the query is genuinely multi-step. Use Sonar for quick factual probes and connection checks. |
 | Provider fallback for drafting | GPT-5.4 mini or Gemini Flash | A fallback must preserve the same schema and be tested on the same eval set as primary. |
 | Long-horizon agentic investigation | Claude Opus 5 | Exception-only. No scheduled n8n task currently justifies this tier. |
-| The one daily decision read (today's move) | Claude Fable 5.1, challenged by GPT-6.1 Sol | Exception by Krish's ruling of 2026-10-03 ([ADR-028](./DECISIONS/028-the-daily-move-and-the-cheap-lane.md)): one read a day picks what the day is spent on. Nothing else inherits it. |
+| A decision read that needs a second opinion (today's move) | Claude Sonnet 5, challenged by GPT-6.1 Sol from another lab | The challenge is where the cross-check earns its keep. Fable was weighed for it on 2026-10-03 and ruled not worth the cost ([ADR-028](./DECISIONS/028-the-daily-move-and-the-cheap-lane.md)); a bigger decider only on evidence from his verdicts. |
 
 Claude account-plan usage and Claude API usage are separate billing systems.
 Deployed Vercel functions and n8n Cloud workflows still need provider API keys;
@@ -152,13 +152,14 @@ holds them in `API_ROUTES` and `check-model-routing` (CI) asserts them.
 | Route | Before | Now | Reason |
 |---|---|---|---|
 | Person enrichment judgment (`api/_personEnrich.ts`) | Sonnet 5 on every call, no rescue | Sonnet 5 still serves, and shadow-measures GPT-6 Luna, DeepSeek V4 Flash and Haiku 4.5 through OpenRouter on the same evidence | Bulk, bounded judgment. An offline replay could not tell a good model from a poor one, so the lane moves only on live agreement with Claude, measured against Claude's agreement with itself, and goes back to shadow on drift. |
-| Today's move, decider (`api/_dailyMove.ts`) | none | Claude Fable 5.1, high effort to write, medium to weigh an objection, server-side refusal fallback on | The next best action is the decision the day turns on. |
+| Today's move, decider (`api/_dailyMove.ts`) | none | Claude Sonnet 5 with adaptive thinking, high effort to write, medium to weigh an objection | The next best action is the decision the day turns on. Fable was priced at $8 to $20 a month against $2 to $3 here, with no evidence it picks better; the value is pinned in the policy. |
 | Today's move, challenger | none | GPT-6.1 Sol through OpenRouter, reasoning high, `data_collection: "deny"` | A second lab argues the strongest case against the first move. The decider weighs it only when the challenger prefers another move. |
 | Today's move, route (`api/strategist/daily.ts`) | none | Hourly cron, writes from 05:00 operator time, `maxDuration` 300 | Up to three calls in series, inside one deadline. |
 
-Measured before deploy: dry runs on stand-in models cost about $0.28 a read.
-Not yet measured: Fable's own cost, and any cheap-lane agreement, because
-neither has been called live from this repository.
+Measured before deploy: the dry run's token counts, which price a Sonnet 5 read
+and its challenge at about $0.07 a day. Not yet measured: the live figure, and
+any cheap-lane agreement, because neither has been called live from this
+repository.
 
 ## Remaining measurable work
 

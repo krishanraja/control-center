@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 /**
  * How many rows of a list actually fit the box it is in.
@@ -115,4 +116,76 @@ export function useFitRows(total: number, { min = 1, max = 50, step = 1 }: {
     boxRef: boxRef as React.MutableRefObject<never>,
     listRef: listRef as React.MutableRefObject<never>,
   }
+}
+
+/**
+ * How far a stage has to fold its content to fit the box it is in.
+ *
+ * useFitRows answers "how many rows fit". This answers the same question for a
+ * stage whose content is not rows: Home, which may neither scroll nor clip
+ * (Krish, 2026-10-03: "no scroll guaranteed everywhere"). Its content is free
+ * text of any length, so no fixed layout can promise that. A goal written the
+ * long way, or a move of 240 characters, runs past any budget picked in
+ * advance. So it folds, measured the same way: render, compare the content's
+ * real height to the box's, and step. Level 0 folds nothing, and each level
+ * folds one more thing, in an order the caller owns.
+ *
+ * It climbs in layout effects, so every step lands before the browser paints:
+ * nothing is ever seen overflowing, and nothing is seen folding.
+ *
+ * It starts again from level 0 whenever the box or its content changes size (a
+ * rotated phone, the canon arriving, a section he opened), because the level
+ * yesterday's content needed can be more than today's needs. The restart
+ * converges: the same content in the same box climbs to the same level, which
+ * leaves every size where it was, so the observers fall quiet.
+ *
+ * `overrun` is the last resort, and the no-scroll gates fail if it is ever true
+ * at a supported size. When every fold is spent and the content still does not
+ * fit, the box scrolls rather than hide anything (DESIGN_SYSTEM.md: a stage
+ * that overruns must scroll, not clip).
+ */
+export function useFitFolds(levels: number, reset?: unknown) {
+  // Elements, not ref objects: a stage often mounts after a skeleton, and an
+  // observer set up against an empty ref watches nothing for the life of the
+  // page. Holding the elements in state re-attaches it when they appear.
+  const [box, setBox] = useState<HTMLElement | null>(null)
+  const [content, setContent] = useState<HTMLElement | null>(null)
+  const [level, setLevel] = useState(0)
+  const [overrun, setOverrun] = useState(false)
+  // Bumped by every restart, for the same reason as useFitRows' nonce: a
+  // restart often sets level to the 0 it already holds, React skips a
+  // same-value update, and the render that would have measured never happens.
+  const [, setNonce] = useState(0)
+
+  // After every render, fold one more step while it does not fit.
+  useLayoutEffect(() => {
+    const over = Boolean(box) && box!.clientHeight > 0 && box!.scrollHeight > box!.clientHeight + 1
+    if (!over) { if (overrun) setOverrun(false); return }
+    if (level < levels) setLevel(level + 1)
+    else if (!overrun) setOverrun(true)
+  })
+
+  const restart = useCallback(() => {
+    setLevel(0)
+    setOverrun(false)
+    setNonce(n => n + 1)
+  }, [])
+
+  // A new shape of content is a new search.
+  useLayoutEffect(() => { restart() }, [restart, reset])
+
+  // A resized box, or content that grew or shrank on its own, starts again
+  // before the next paint. flushSync is safe here: an observer callback runs
+  // outside React's render, between layout and paint.
+  useLayoutEffect(() => {
+    if (!box || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => flushSync(restart))
+    ro.observe(box)
+    if (content) ro.observe(content)
+    return () => ro.disconnect()
+  }, [box, content, restart])
+
+  const boxRef = useCallback((el: HTMLElement | null) => setBox(el), [])
+  const contentRef = useCallback((el: HTMLElement | null) => setContent(el), [])
+  return { level, overrun, boxRef, contentRef }
 }

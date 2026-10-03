@@ -5,8 +5,9 @@ import { mockDailyMove, watchSlotOneEmpty, pastEdges, landsOn, MOVES, CHALLENGE 
  * Today's move on the phone (ADR-028), at 390x844 and 360x640 (the phone
  * projects pick this file up by its suffix and set the size and touch).
  *
- * Home on a phone has no height to spare, so the proposal leads with the move
- * and puts what it survived one tap away. Measured, not assumed:
+ * Home on a phone never scrolls (home-fit-phone.spec.ts proves it), so the
+ * card folds its details into its "?" when the screen is short and asks "Not
+ * this" in the house sheet. Measured, not assumed:
  *   - Nothing in the proposal, or in the read it opens, is laid out past the
  *     screen's edge, words included. A line that will not wrap is cut off on a
  *     phone, and no scroll measure sees it.
@@ -32,38 +33,41 @@ test('the proposal fits the phone, every control takes a tap, and what it surviv
   await page.goto('/#/home')
 
   const slot = page.getByTestId('daily-move-slot')
-  await slot.scrollIntoViewIfNeeded()
   await expect(slot).toBeVisible()
   await expect(page.getByTestId('daily-move-text')).toHaveText(MOVES[0].text)
   await expect(page.getByTestId('daily-move-person')).toContainText('Riley Stone')
 
-  // Behind one tap here, so the move comes first.
-  await expect(page.getByTestId('daily-move-survived')).toHaveCount(0)
-  await page.getByTestId('daily-move-show-survived').tap()
-  await expect(page.getByTestId('daily-move-survived')).toContainText(CHALLENGE.objection)
+  // Home never scrolls, so on a phone the move's details fold into its "?"
+  // when the screen is short, and what it survived is always there.
+  if (await page.getByTestId('daily-move-survived').count() === 0) {
+    await page.getByRole('button', { name: 'Why this suggestion is here.' }).tap()
+    await expect(page.getByRole('dialog').last()).toContainText(CHALLENGE.objection)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  } else {
+    await expect(page.getByTestId('daily-move-survived')).toContainText(CHALLENGE.objection)
+  }
 
   expect(await pastEdges(slot, 0, vw), `laid out past the ${vw}px edge`).toEqual([])
   for (const id of ['daily-move-take', 'daily-move-open-ask', 'daily-move-not-this', 'daily-move-later']) {
-    const c = page.getByTestId(id)
-    await c.scrollIntoViewIfNeeded()
-    expect(await landsOn(c), `${id} does not take a tap`).toBe(true)
+    expect(await landsOn(page.getByTestId(id)), `${id} does not take a tap`).toBe(true)
   }
 
-  // The reasons open in place and stay on the screen.
+  // The reasons open in the house sheet, inside the screen, and take a tap.
   await page.getByTestId('daily-move-not-this').tap()
   const why = page.getByRole('group', { name: 'Why not this one?' })
-  await why.scrollIntoViewIfNeeded()
+  await expect(why).toBeVisible()
   expect(await pastEdges(why, 0, vw), 'the reasons run past the edge').toEqual([])
-  const timing = why.getByRole('button', { name: 'Wrong timing' })
-  await timing.scrollIntoViewIfNeeded()
-  expect(await landsOn(timing)).toBe(true)
+  expect(await landsOn(why.getByRole('button', { name: 'Wrong timing' }))).toBe(true)
 })
 
 test('Take it fills slot 1 in place, with no editor and no empty slot in between', async ({ page }) => {
   const writes = await mockDailyMove(page, { focusDelayMs: 400 })
   await page.goto('/#/home')
+  // Watch from the moment the move is there: the empty slot before it loads is
+  // the page loading, not the move vanishing.
+  await expect(page.getByTestId('daily-move-slot')).toBeVisible()
   const take = page.getByTestId('daily-move-take')
-  await take.scrollIntoViewIfNeeded()
 
   const blinks = await watchSlotOneEmpty(page)
   await take.tap()
@@ -83,7 +87,6 @@ test('Open the ask opens today\'s read as a sheet that fits the screen, and the 
   const vw = page.viewportSize()!.width
   await page.goto('/#/home')
   const open = page.getByTestId('daily-move-open-ask')
-  await open.scrollIntoViewIfNeeded()
   await open.tap()
 
   const sheet = page.getByTestId('strategist-sheet')
@@ -98,7 +101,6 @@ test('Open the ask opens today\'s read as a sheet that fits the screen, and the 
   await page.touchscreen.tap(Math.round(vw / 2), 8)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   const later = page.getByTestId('daily-move-later')
-  await later.scrollIntoViewIfNeeded()
   await later.tap()
   await expect.poll(() => writes.verdicts.map(v => v.verdict)).toEqual(['deferred'])
   await expect(page.getByTestId('daily-move-slot')).toHaveCount(0)

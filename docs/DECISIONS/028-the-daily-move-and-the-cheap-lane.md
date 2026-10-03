@@ -15,7 +15,8 @@ On 2026-10-03 Krish asked for two things, paraphrased here:
    DeepSeek, Kimi, OpenAI, Gemini, xAI and Meta, and could run a local model.
 
 He approved the plan in one line: OpenRouter is set up, and the rest is
-approved.
+approved. Later the same day he asked whether the top tier was worth its cost
+on the API for the daily move; section 3 records the answer.
 
 What the repository and the live database showed, read only. It is given as
 counts: scorecard figures and names stay out of this repository (`NOW.md`
@@ -59,9 +60,9 @@ invocations racing each other cannot both pay for a read.
 
 **Who writes it.**
 
-- The decider is Claude Fable 5.1 (`DAILY_MOVE_MODEL`) at high effort. It
-  writes through the same line contract and line-by-line checks as every
-  strategist read. The read is a headline, one to three moves best first, up to
+- The decider is Claude Sonnet 5 (`DAILY_MOVE_MODEL`), thinking adaptively at
+  high effort. It writes through the same line contract and line-by-line
+  checks as every strategist read. The read is a headline, one to three moves best first, up to
   three asks, and what done looks like by tonight.
 - The challenger is GPT-6.1 Sol (`DAILY_MOVE_CHALLENGER_MODEL`), from another
   lab, through OpenRouter with `data_collection: "deny"`. It argues the
@@ -74,13 +75,14 @@ invocations racing each other cannot both pay for a read.
 - The read records what the move survived: the objection, who made it, and why
   the move stayed first or moved up. The card shows it.
 
-**Refusals.** The decider's calls opt in to the API's server-side refusal
+**Refusals.** The decider's calls ask for the API's server-side refusal
 fallback (`anthropic-beta: server-side-fallback-2026-07-01`,
-`fallbacks: "default"`). A request Fable declines is run again on Anthropic's
-chosen fallback model, an Opus model today. That reply is priced as the model
-that produced it, and the read is stamped with that model, never with the one
-asked for. A refusal the whole chain returns is metered, thrown, and counts as
-one of the day's three attempts.
+`fallbacks: "default"`). It is sent only to models that take it (Fable 5.1,
+Opus 5 and 5.5, Sonnet 5.5), so on Sonnet 5 it is inert until the decider moves
+up a tier. When it serves a reply, that reply is priced as the model that
+produced it, and the read is stamped with that model, never with the one asked
+for. A refusal is metered, thrown, and counts as one of the day's three
+attempts.
 
 **What a move may say.**
 
@@ -119,15 +121,31 @@ set by hand. Slot 1 now holds the proposal until he answers it. Slots 2 and 3
 stay his. Hand edits, the shutdown's slots and the ritual are unchanged, and a
 slot he has written is never covered by a proposal.
 
-### 3. "Never Opus" is lifted for this read alone
+### 3. The decider is Sonnet 5, and moves up a tier only on evidence
 
-Ruling (Krish, 2026-10-03): the daily move runs on Claude Fable 5.1 with a
-GPT-6.1 Sol challenger. ADR-026 held every strategist read to Sonnet 5 and
-never Opus. That still holds for goal and note reads. The daily read is one
-read a day that picks what the day is spent on, so it gets the top tier.
-`scripts/modelRoutePolicy.mts` holds both: the strategist route still excludes
-the ladder's model, and the daily route asserts Fable, the refusal fallback and
-the challenger, and excludes the ladder and the synthesis model.
+The first ruling of the day put the decider on Claude Fable 5.1 and lifted
+ADR-026's "never Opus" for this read. Krish then asked whether Fable was worth
+its cost on the API. Priced on the dry run's measured token counts (6,356 in
+and 3,995 out to write the read; 3,496 in and 522 out for the challenge):
+
+| Decider | A day, with the challenge | A month |
+|---|---|---|
+| Fable 5.1 | about $0.28, up to $0.60 on a deeper day | about $8 to $20 |
+| Opus 5 | about half of Fable | about $4 to $10 |
+| Sonnet 5 | about $0.07 | about $2 to $3 |
+
+Nothing had shown that Fable writes a better move than Sonnet 5, and the
+cross-lab challenger already supplies the second opinion. Ruling (Krish,
+2026-10-03): Fable on the API costs too much for the daily move; it runs on
+Sonnet 5 with the GPT-6.1 Sol challenger.
+
+So "never Opus" holds for every strategist read without an exception.
+`TOP_TIER_MODEL` keeps Fable callable (priced, its always-on thinking handled,
+rescued by itself) for the day a read earns it. The rule for that day: if he
+sets aside more than half of the first moves over two weeks, try the top tier
+and compare. `scripts/modelRoutePolicy.mts` pins `DAILY_MOVE_MODEL` to Sonnet 5
+and keeps the daily route off the top tier and the ladder, so moving up is a
+change made on purpose.
 
 ### 4. OpenRouter serves a named cheap lane (ADR-024, extended)
 
@@ -210,26 +228,31 @@ keeps it narrow.
 
 ### Negative
 
-- A daily read costs more than a Sonnet read. The dry runs, on stand-in models,
-  cost about $0.28 a run, with the proposal taking 73 to 108 seconds over about
-  6,300 input tokens. Fable's own cost is unmeasured until the first live run.
-  The meter records it under `daily-move`.
+- A daily read adds about $0.07 a day, $2 to $3 a month, priced from the dry
+  run's token counts. The proposal took 73 to 108 seconds there. The real
+  figure arrives with the first live run, metered as `daily-move`.
 - During shadow, each enrichment costs about twice as much in Claude calls, plus
   three cheap calls, until the lane decides after at least 50 recorded rows.
 - A declined attempt before a served fallback is not metered. The API's
   per-attempt usage entry has no documented shape yet.
-- Fable and the cheap lane have never been called live from this repository.
-  Every check so far is static, unit, browser fixture or dry run.
+- The decider and the cheap lane have never been called live from this
+  repository. Every check so far is static, unit, browser fixture or dry run.
 
 ### Neutral
 
-- Fable 5.1 is a covered model. It needs the standard 30-day retention, and an
-  organisation on zero data retention gets a 400. The grounding it reads names
-  warm contacts, as every strategist read's grounding does.
+- Fable 5.1, if the decider ever moves to it, is a covered model: it needs the
+  standard 30-day retention, and an organisation on zero data retention gets a
+  400.
+- Rescue rows are keyed on a model, never on a job. Keyed on the daily move's
+  model, the Fable understudy row would have sent every Sonnet call in the fleet
+  to Fable the moment the move moved to Sonnet. A unit test pins it.
 - `strategist_reads` gains a `daily` source and a `read_date`, with one daily
   read per date. RLS stays service role only.
 - The Home card is `src/components/home/DailyMoveSlot.tsx`, built from the house
-  primitives (`Eyebrow`, `WhyBadge`, `RejectReasonBar`). Today's slot writes now
+  primitives (`Eyebrow`, `WhyBadge`, `RejectReasonBar`). Home never scrolls
+  (Krish's ruling the same day, `docs/DESIGN_SYSTEM.md`), so on a short screen
+  the card's why and what it survived fold into its "?", its controls fold to
+  one row, and on a phone "Not this" asks in the house sheet. Today's slot writes now
   keep the optimistic text until the refreshed row is back, so a taken move
   never shows an empty slot first.
 - `e2e/fixtures/audit.ts` carries a populated daily move, so the no-scroll gates
@@ -240,16 +263,19 @@ keeps it narrow.
 
 ## Follow-ups
 
-1. Apply `20261003120000_the_move_he_reacts_to.sql`, only with Krish's explicit
-   OK at that moment. Then read back: the source check accepts `daily`, a
-   second daily row for the same date is refused, and an anon select on
-   `strategist_reads` is still refused.
+1. Done on 2026-10-03 with Krish's OK. `20261003120000_the_move_he_reacts_to.sql`
+   is applied and recorded as `the_move_he_reacts_to`. Read back on the live
+   database in a transaction that rolled back: the source check accepts
+   `daily`, a second daily row for the same date is refused, a daily row with a
+   goal or without a date is refused, and the anon key is refused outright.
 2. After deploy, and with his OK, POST `/api/strategist/daily` once, then read
    back the row, the bank rows and the `daily-move` meter rows.
 3. Read the lane's decision sentence in `audit_log` when it comes, and check the
    first promoted week against the drift rows.
-4. The next steps in goal and note reads can still name a person, and "Put on
+4. After two weeks of mornings, read the verdicts on first moves. More than half
+   set aside means try the top tier and compare.
+5. The next steps in goal and note reads can still name a person, and "Put on
    today" writes them to `daily_focus`, which the anon key can read. They need
    the same check as the daily move.
-5. The judge panel and the ladder live in the content engine repository, and are
+6. The judge panel and the ladder live in the content engine repository, and are
    a change of their own.

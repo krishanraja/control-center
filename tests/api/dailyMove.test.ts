@@ -116,7 +116,7 @@ test('the bank row for each move carries its rank and what it is about', () => {
   ].join('\n'), ctx())
   assert.equal(v.complete, true)
   if (!v.complete) return
-  const rows = suggestionRowsFor(v.read, 'read-1', { model: 'claude-fable-5-1' })
+  const rows = suggestionRowsFor(v.read, 'read-1', { model: 'claude-sonnet-5' })
   assert.equal(rows.length, 2)
   assert.deepEqual(
     rows.map(r => [(r.proposed as Record<string, unknown>).rank, (r.proposed as Record<string, unknown>).the_move]),
@@ -186,8 +186,11 @@ test('a person\'s details and a draft link are never stored with the read', () =
   assert.equal('draft_url' in stored.next_steps[0], false)
 })
 
-test('a read the refusal fallback wrote is stamped as the fallback, never as the decider', () => {
-  assert.equal(servedByFallback('claude-fable-5-1'), false)
+test('a read another model wrote is stamped as that model, never as the decider', () => {
+  assert.equal(servedByFallback('claude-sonnet-5'), false)
+  // A dated snapshot of the decider is the decider.
+  assert.equal(servedByFallback('claude-sonnet-5-20261001'), false)
+  // A different model that merely starts the same way is not.
+  assert.equal(servedByFallback('claude-sonnet-5-5'), true)
   assert.equal(servedByFallback('claude-opus-4-8'), true)
-  assert.equal(servedByFallback('claude-opus-5'), true)
 })

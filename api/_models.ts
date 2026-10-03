@@ -39,21 +39,35 @@ export const JUDGE_MODEL = 'claude-haiku-4-5'
 export const LADDER_MODEL = 'claude-opus-4-8'
 
 /**
+ * The most capable Claude model. Nothing runs on it today.
+ *
+ * It wrote the daily move for one morning. On 2026-10-03 Krish asked whether
+ * it was worth its cost on the API, and the measured answer was about $8 to $20
+ * a month for a gain nothing had shown, so the move went back to Sonnet. It is
+ * kept callable for the day a read earns it: it always thinks (an explicit
+ * `{type:'disabled'}` is a 400), takes no sampling parameters, can decline
+ * through its safety classifiers with a 200 and stop_reason "refusal", is
+ * priced, and is rescued by itself. thinkingParam, NO_SAMPLING_MODELS,
+ * callClaude's refusalFallback and understudyFor handle each of those.
+ */
+export const TOP_TIER_MODEL = 'claude-fable-5-1'
+
+/**
  * The daily move's decider: the one read a day that picks the single move he
  * reacts to on Home (ADR-028).
  *
- * The most capable Claude model on purpose, and the only scheduled call in the
- * OS that runs above Sonnet. The cost policy that keeps Opus off scheduled work
- * is a volume rule: this is one read a day, so the best model costs about the
- * same per month as one bulk enrichment hour. Krish's ruling, 2026-10-03: the
- * next best action is the call that matters most, so it gets the best model.
+ * Sonnet 5 with adaptive thinking at high effort, the same tier as every other
+ * strategist read, so "never Opus" holds without an exception. The second
+ * opinion comes from another lab (DAILY_MOVE_CHALLENGER_MODEL), which is where
+ * a cross-check earns its keep. Measured on the 2026-10-03 dry run's token
+ * counts, the read and its challenge cost about $0.07 a day.
  *
- * Fable 5.1 always thinks (an explicit `{type:'disabled'}` is a 400), takes no
- * sampling parameters, and can decline through its safety classifiers with a
- * 200 and stop_reason "refusal". thinkingParam, NO_SAMPLING_MODELS and
- * callClaude's refusalFallback handle each of those; see _content.ts.
+ * It moves up a tier on evidence, not on instinct: if he sets aside more than
+ * half of the first moves over two weeks (the bank holds every verdict), try
+ * TOP_TIER_MODEL here and compare. scripts/modelRoutePolicy.mts pins this
+ * value, so the change is made on purpose or not at all.
  */
-export const DAILY_MOVE_MODEL = 'claude-fable-5-1'
+export const DAILY_MOVE_MODEL = 'claude-sonnet-5'
 
 /**
  * The daily move's challenger: a model from another lab that reads the same
@@ -108,10 +122,12 @@ export const OPENAI_GENERATION_MODEL = 'gpt-5.4-mini'
 export const RESCUE_JUDGE_MODEL = 'anthropic/claude-haiku-4.5'
 export const RESCUE_GENERATION_MODEL = 'anthropic/claude-sonnet-5'
 
-/** The daily move's understudy: the same Fable, like-for-like by the ruling
- *  above. Without its own row the tier mapping would have rescued Fable with
- *  Sonnet, which is exactly the fallback that quietly gets worse. */
-export const RESCUE_DAILY_MOVE_MODEL = 'anthropic/claude-fable-5.1'
+/** The top tier's understudy: the same Fable, like-for-like by the ruling
+ *  above. Without its own row the tier mapping would rescue Fable with Sonnet,
+ *  which is exactly the fallback that quietly gets worse. Keyed on the model,
+ *  never on a job: a job's model changes, and a job-keyed row once mapped every
+ *  Sonnet call in the fleet to Fable the moment the daily move moved to Sonnet. */
+export const RESCUE_TOP_TIER_MODEL = 'anthropic/claude-fable-5.1'
 
 /**
  * The cheap lane (ADR-028): bulk work that leaves Anthropic, with the agents it

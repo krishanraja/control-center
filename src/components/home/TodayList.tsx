@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Check, Target } from '@/lib/icons'
+import { Check, Plus, Target } from '@/lib/icons'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -10,7 +10,7 @@ import { civilYmd } from '../../lib/civilDate'
 import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { jobLabel } from '../../content/jobs'
 import { openStrategist } from '../../lib/strategist'
-import { useDailyMove } from '../../hooks/useDailyMove'
+import type { DailyMoveState } from '../../hooks/useDailyMove'
 import { DailyMoveSlot } from './DailyMoveSlot'
 
 // TODAY, the third layer of the canon. Exactly 3 slots from daily_focus.
@@ -41,10 +41,27 @@ import { DailyMoveSlot } from './DailyMoveSlot'
 
 type SlotN = 1 | 2 | 3
 
-export function TodayList({ compact = false }: { compact?: boolean } = {}) {
+/** Home's folds that reach Today (src/lib/homeFolds.ts). */
+export interface TodayFolds {
+  survived: boolean
+  why: boolean
+  slots: boolean
+  actions: boolean
+  card: boolean
+}
+
+const NO_FOLDS: TodayFolds = { survived: false, why: false, slots: false, actions: false, card: false }
+
+export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove }: {
+  compact?: boolean
+  /** Today's move, read once by Home, which also decides what it folds. */
+  daily: DailyMoveState
+  folds?: TodayFolds
+  /** Open the folded move by hand. */
+  onShowMove?: () => void
+}) {
   const { today, refresh } = useDailyFocus()
   const { canon } = useGoalCanon()
-  const daily = useDailyMove()
   const h = useHaptics()
   const { toast } = useToast()
   const [editingN, setEditingN] = useState<SlotN | null>(null)
@@ -70,6 +87,16 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
     }
   })
   const anySet = slots.some(s => s.text && s.text.trim())
+
+  // The move proposed in slot 1 when it is empty (ADR-028).
+  const proposalFor = (n: SlotN, has: boolean) =>
+    n === 1 && !has && editingN !== 1 && sheetN !== 1 ? daily.current : null
+  // An empty slot folds into the header's Add when Home is short of room,
+  // unless it is being written in or holds the proposal.
+  const folded = (n: SlotN, has: boolean) =>
+    folds.slots && !has && editingN !== n && !proposalFor(n, has)
+  const foldedSlots = slots.filter(t => folded(t.n, Boolean(t.text && t.text.trim()))).map(t => t.n)
+  const firstFolded: SlotN | null = foldedSlots.length ? foldedSlots[0] : null
   const doneCount = slots.filter(s => s.done).length
 
   const settle = (n: SlotN) => setOptimistic(prev => { const next = { ...prev }; delete next[n]; return next })
@@ -145,10 +172,22 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
 
   return (
     <section aria-label="Today" className="min-w-0">
-      <div className="flex items-baseline gap-2 mb-2">
+      <div className={`flex items-baseline gap-2 ${folds.actions ? 'mb-1' : 'mb-2'}`}>
         <Eyebrow>Today</Eyebrow>
         {anySet && (
           <span className="text-micro text-ink-faint tabular-nums font-mono">{doneCount}/3</span>
+        )}
+        {/* Folded empty slots (Home never scrolls): one Add opens the first. */}
+        {firstFolded !== null && (
+          <button
+            type="button"
+            onClick={() => startEdit(firstFolded)}
+            data-testid="today-add"
+            aria-label={`Set target ${firstFolded}`}
+            className="tap-44 ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
+          >
+            <Plus size={10} /> Add
+          </button>
         )}
       </div>
 
@@ -156,7 +195,8 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
         {slots.map(t => {
           const has = Boolean(t.text && t.text.trim())
           const editing = editingN === t.n
-          const proposal = t.n === 1 && !has && !editing && sheetN !== 1 ? daily.current : null
+          if (folded(t.n, has)) return null
+          const proposal = proposalFor(t.n, has)
           if (proposal) {
             const { move, rank } = proposal
             const asks = daily.wire?.read?.asks ?? []
@@ -170,6 +210,8 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
                 challenge={rank === 1 ? daily.wire?.read?.challenge : null}
                 hasAsk={hasAsk}
                 compact={compact}
+                fold={{ survived: folds.survived, why: folds.why, actions: folds.actions, card: folds.card }}
+                onShow={onShowMove}
                 onTake={() => {
                   void saveSlot(1, move.text).then(ok => {
                     if (ok) daily.answer(move, 'accepted', { final: { text: move.text } })

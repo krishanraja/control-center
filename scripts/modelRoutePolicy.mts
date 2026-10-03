@@ -85,15 +85,22 @@ export const API_ROUTES: RouteAssertion[] = [
     excludes: ['LADDER_MODEL', 'claude-opus'],
   },
   {
-    // The one read nobody asks for (ADR-028). Krish lifted "never Opus" for
-    // this read alone on 2026-10-03: it runs once a day, it picks the move the
-    // day is spent on, and a better pick is worth more than the read costs.
-    // The decider is Fable 5.1 with the refusal fallback on; a second lab
-    // argues against the first move. It is still never the ladder's model.
+    // The one read nobody asks for (ADR-028). Sonnet 5 writes it, like every
+    // strategist read, and a model from another lab argues against the first
+    // move. Krish weighed Fable for it on 2026-10-03 and ruled the cost was not
+    // worth an unproven gain, so this read is held off the top tier and the
+    // ladder alike, and moves up only by changing the pinned value below.
     file: 'api/_dailyMove.ts',
-    rationale: 'the daily move is one top-tier read a day plus a cross-lab challenge, never the ladder',
+    rationale: 'the daily move is one Sonnet read a day plus a cross-lab challenge, never the top tier or the ladder',
     includes: ['DAILY_MOVE_MODEL', "agent: 'daily-move'", 'refusalFallback: true', 'DAILY_MOVE_CHALLENGER_MODEL'],
-    excludes: ['LADDER_MODEL', 'SYNTHESIS_MODEL'],
+    excludes: ['LADDER_MODEL', 'TOP_TIER_MODEL', 'claude-fable', 'claude-opus'],
+  },
+  {
+    // The decider's model, pinned. A change here is a decision about money
+    // and has to be made in this file as well, where the reason sits beside it.
+    file: 'api/_models.ts',
+    rationale: 'the daily move stays on Sonnet 5 until his verdicts show the read needs a bigger model',
+    includes: ["export const DAILY_MOVE_MODEL = 'claude-sonnet-5'"],
   },
   {
     file: 'api/strategist/daily.ts',

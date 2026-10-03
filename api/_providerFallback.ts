@@ -1,4 +1,4 @@
-import { RESCUE_JUDGE_MODEL, RESCUE_GENERATION_MODEL, RESCUE_DAILY_MOVE_MODEL, JUDGE_MODEL, DAILY_MOVE_MODEL, type Effort } from './_models.js'
+import { RESCUE_JUDGE_MODEL, RESCUE_GENERATION_MODEL, RESCUE_TOP_TIER_MODEL, JUDGE_MODEL, TOP_TIER_MODEL, type Effort } from './_models.js'
 import * as meter from './_meter.js'
 
 /**
@@ -137,10 +137,11 @@ export function parseResetAt(message: string, now = new Date()): Date | null {
  */
 export function understudyFor(anthropicModel: string): string {
   if (anthropicModel.startsWith(JUDGE_MODEL)) return process.env.RESCUE_JUDGE_MODEL || RESCUE_JUDGE_MODEL
-  // The daily move's Fable is rescued by Fable. Falling through to the
-  // generation tier would hand the one read a day that is allowed the best
-  // model to Sonnet on exactly the day it most needs to be right.
-  if (anthropicModel.startsWith(DAILY_MOVE_MODEL)) return RESCUE_DAILY_MOVE_MODEL
+  // Fable is rescued by Fable. Falling through to the generation tier would
+  // hand a read that was given the top tier to Sonnet on exactly the day it
+  // most needs to be right. Keyed on the model itself: keyed on a job's model,
+  // this line would send every Sonnet call to Fable the day that job used Sonnet.
+  if (anthropicModel.startsWith(TOP_TIER_MODEL)) return RESCUE_TOP_TIER_MODEL
   return process.env.RESCUE_GENERATION_MODEL || RESCUE_GENERATION_MODEL
 }
 

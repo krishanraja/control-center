@@ -8,6 +8,9 @@ import { openStrategist } from '../../lib/strategist'
 import { isWeekend } from '../../lib/civilDate'
 import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 import { Eyebrow } from '../shared/Eyebrow'
+import { FoldToggle } from '../shared/FoldToggle'
+import { BottomSheet } from '../mobile/BottomSheet'
+import type { HomePin } from '../../lib/homeFolds'
 import { FocusedEditor } from '../shared/FocusedEditor'
 import { jobLabel } from '../../content/jobs'
 import { Skeleton } from '../shared/Skeleton'
@@ -35,8 +38,15 @@ export type Horizon = 'os' | 'weekly'
 export type LadderGoal = CanonGoal
 export type GateVerdict = GateVerdictWire
 
-export function GoalLadder({ variant = 'desktop' }: {
+export function GoalLadder({ variant = 'desktop', fold, pinned = null, onPin }: {
   variant?: 'desktop' | 'mobile'
+  /** Home's folds (src/lib/homeFolds.ts): a folded section is its eyebrow
+   *  line, a count and a Show, because Home never scrolls. */
+  fold?: { os?: boolean; week?: boolean }
+  /** The section he opened by hand, which offers Hide instead. */
+  pinned?: HomePin
+  /** Open a folded section (it stays open), or close the one he opened. */
+  onPin?: (section: 'os' | 'week' | null) => void
 }) {
   const h = useHaptics()
   const { canon, loading, error: loadError, refresh } = useGoalCanon()
@@ -55,6 +65,9 @@ export function GoalLadder({ variant = 'desktop' }: {
   const os = canon?.os ?? []
   const weekly = canon?.weekly ?? []
   const compact = variant === 'mobile'
+  // Never folded while he is editing in it: the input would vanish under him.
+  const osFolded = Boolean(fold?.os) && !(editing && os.some(g => g.id === editing)) && adding !== 'os'
+  const weekFolded = Boolean(fold?.week) && !(editing && weekly.some(g => g.id === editing))
   const osTitle = useMemo(() => new Map(os.map(g => [g.id, g.title])), [os])
   const weeklyActive = weekly.filter(g => g.status === 'active').length
   const weeklyDone = weekly.length - weeklyActive
@@ -129,6 +142,8 @@ export function GoalLadder({ variant = 'desktop' }: {
   // used to appear here could not fit a phone: input, Retire, Cancel and Save
   // shared one row and Save rendered off the right edge of the screen.
   const [sheetGoal, setSheetGoal] = useState<CanonGoal | null>(null)
+  // A folded rung opened on a phone: in the house sheet, never in place.
+  const [drawer, setDrawer] = useState<'os' | 'week' | null>(null)
 
   const startEdit = (g: CanonGoal) => {
     h.select()
@@ -283,6 +298,117 @@ export function GoalLadder({ variant = 'desktop' }: {
     </div>
   )
 
+  // The rows of each rung, rendered in place, or on a phone in the drawer a
+  // folded rung opens into (Home never scrolls, and five long objectives wrap
+  // to about 430px on a 360px phone, more than its whole stage). `onEdit` is
+  // how a row is edited from where it is.
+  const osRows = (onEdit: (g: CanonGoal) => void) => (
+    <ul className="flex flex-col gap-2">
+      {os.map(g => (
+        <li key={g.id} className="min-w-0">
+          {editing === g.id ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') void saveEdit(g.id); if (e.key === 'Escape') setEditing(null) }}
+                className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-white/[0.04] border border-white/10 text-ui text-ink outline-none focus:border-violet-400/40"
+              />
+              <button type="button" onClick={() => void retire(g)} disabled={saving} title="Retire this goal (reversible)" className="px-2 py-1 text-micro text-ink-faint hover:text-rose-300 disabled:opacity-40">Retire</button>
+              <button type="button" onClick={() => setEditing(null)} className="px-2 py-1 text-micro text-ink-faint hover:text-ink-muted">Cancel</button>
+              <button type="button" onClick={() => void saveEdit(g.id)} disabled={saving || !editTitle.trim()} className="px-3 py-1.5 rounded-lg btn-contrast text-micro font-semibold disabled:opacity-40">
+                {saving ? <Working size={11} /> : 'Save'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onEdit(g)}
+              className="w-full text-left flex items-baseline gap-2 group min-w-0"
+            >
+              <span className={`font-display ${compact ? 'text-lede' : 'text-title'} text-ink group-hover:text-ink leading-tight break-words min-w-0 line-clamp-1 [@media(max-height:820px)]:text-lede`}>
+                {g.title}
+              </span>
+              {staleChip(g)}
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+
+  const weekRows = (onEdit: (g: CanonGoal) => void) => (
+    <ul className="flex flex-col gap-1.5">
+      {/* The serves-line answers "which OS goal does this week's work
+          serve". When every row serves the same one, saying it under
+          every row is not an answer, it is the same eight-word sentence
+          three times in a hundred pixels, measured on Home with a real
+          canon on 2026-09-23. It is stated once, above the list, when
+          the whole week points at one goal. */}
+      {weekly.map((g, i) => {
+        const done = g.status === 'done'
+        // Repeat the parent only where it CHANGES down the list.
+        const parentTitle = g.parent_id ? osTitle.get(g.parent_id) : undefined
+        const prev = i > 0 ? weekly[i - 1] : null
+        const prevTitle = prev?.parent_id ? osTitle.get(prev.parent_id) : undefined
+        const showParent = Boolean(parentTitle) && parentTitle !== prevTitle
+        return (
+          <li key={g.id} className="flex items-start gap-3 min-w-0 group/row">
+            <button
+              type="button"
+              onClick={() => void toggleDone(g)}
+              aria-label={done ? 'Mark not done' : 'Mark done'}
+              className={`tap-44 mt-[1px] w-[22px] h-[22px] shrink-0 rounded-[7px] border inline-flex items-center justify-center transition-colors ${done ? 'bg-emerald-400/80 border-emerald-300/60 text-emerald-950' : 'border-white/25 hover:border-white/50'}`}
+            >
+              {done && <Check size={12} />}
+            </button>
+            {editing === g.id ? (
+              <div className="flex-1 flex items-center gap-2 min-w-0">
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') void saveEdit(g.id); if (e.key === 'Escape') setEditing(null) }}
+                  className="flex-1 min-w-0 min-h-[34px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-body text-ink outline-none focus:border-violet-400/40"
+                />
+                <button type="button" onClick={() => void retire(g)} disabled={saving} title="Drop this objective (reversible)" className="px-1.5 text-micro text-ink-faint hover:text-rose-300 disabled:opacity-40">Drop</button>
+                <button type="button" onClick={() => void saveEdit(g.id)} disabled={saving || !editTitle.trim()} className="px-2.5 py-1 rounded-lg btn-contrast text-micro font-semibold disabled:opacity-40">
+                  {saving ? <Working size={11} /> : 'Save'}
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => onEdit(g)} className="flex-1 text-left min-w-0 pt-[1px]">
+                <span className="flex items-baseline gap-2 min-w-0">
+                  <span className={`text-body leading-snug truncate ${done ? 'text-ink-faint line-through' : 'text-ink'}`}>
+                    {g.title}
+                  </span>
+                  {g.job && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint">{jobLabel(g.job)}</span>}
+                  {g.venture && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint">{g.venture}</span>}
+                  {staleChip(g)}
+                </span>
+                {/* The serves-chip is a second line on desktop only; on
+                    mobile every row stays single-line so the canon fits. */}
+                {!compact && showParent && (
+                  <span className="mt-0.5 flex items-center gap-1 text-micro text-ink-faint min-w-0">
+                    <Target size={9} className="opacity-60 flex-shrink-0" /><span>{parentTitle}</span>
+                  </span>
+                )}
+              </button>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  // From the drawer an edit closes the drawer first and opens the editor after
+  // it, the house's one-sheet-at-a-time handoff (saveSheet uses the same 320ms).
+  const editFromDrawer = (g: CanonGoal) => {
+    setDrawer(null)
+    window.setTimeout(() => startEdit(g), 320)
+  }
+
   return (
     <div className={`flex flex-col min-w-0 ${compact ? 'gap-3' : 'gap-5'}`}>
       {(error || loadError) && (
@@ -295,12 +421,18 @@ export function GoalLadder({ variant = 'desktop' }: {
       )}
 
       {/* ── OS: what the whole system is for ─────────────────────────────── */}
-      <section aria-label="OS goals" className="min-w-0">
-        <div className="flex items-baseline gap-2 mb-2">
+      <section aria-label="OS goals" className="min-w-0" data-testid="ladder-os" data-folded={osFolded ? 'true' : 'false'}>
+        <div className={`flex items-baseline gap-2 ${osFolded ? '' : 'mb-2'}`}>
           <Eyebrow>OS</Eyebrow>
+          {osFolded && os.length > 0 && (
+            <span className="text-micro text-ink-faint tabular-nums font-mono">{os.length}</span>
+          )}
+          {(osFolded || pinned === 'os') && onPin && (
+            <FoldToggle open={!osFolded} onToggle={() => osFolded && compact ? setDrawer('os') : onPin(osFolded ? 'os' : null)} what="the OS goals" testId="ladder-os-fold" />
+          )}
           {/* Say how it is going and get the read back (ADR-026). Desk only,
               the same recipe as "+ Add"; a phone reaches it from the + sheet. */}
-          {!compact && (
+          {!compact && !osFolded && pinned !== 'os' && (
             <button
               type="button"
               data-testid="ladder-talk"
@@ -324,7 +456,7 @@ export function GoalLadder({ variant = 'desktop' }: {
             </button>
           )}
         </div>
-        {os.length === 0 ? (
+        {osFolded ? null : os.length === 0 ? (
           <div>
             <p className="text-body text-ink-faint leading-relaxed">
               Nothing set yet. Start with an OS goal: what the whole system is for. Everything below hangs off it.
@@ -340,51 +472,22 @@ export function GoalLadder({ variant = 'desktop' }: {
             )}
           </div>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {os.map(g => (
-              <li key={g.id} className="min-w-0">
-                {editing === g.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      autoFocus
-                      value={editTitle}
-                      onChange={e => setEditTitle(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') void saveEdit(g.id); if (e.key === 'Escape') setEditing(null) }}
-                      className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-white/[0.04] border border-white/10 text-ui text-ink outline-none focus:border-violet-400/40"
-                    />
-                    <button type="button" onClick={() => void retire(g)} disabled={saving} title="Retire this goal (reversible)" className="px-2 py-1 text-micro text-ink-faint hover:text-rose-300 disabled:opacity-40">Retire</button>
-                    <button type="button" onClick={() => setEditing(null)} className="px-2 py-1 text-micro text-ink-faint hover:text-ink-muted">Cancel</button>
-                    <button type="button" onClick={() => void saveEdit(g.id)} disabled={saving || !editTitle.trim()} className="px-3 py-1.5 rounded-lg btn-contrast text-micro font-semibold disabled:opacity-40">
-                      {saving ? <Working size={11} /> : 'Save'}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => startEdit(g)}
-                    className="w-full text-left flex items-baseline gap-2 group min-w-0"
-                  >
-                    <span className={`font-display ${compact ? 'text-lede' : 'text-title'} text-ink group-hover:text-ink leading-tight break-words min-w-0 line-clamp-1 [@media(max-height:820px)]:text-lede`}>
-                      {g.title}
-                    </span>
-                    {staleChip(g)}
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
+          osRows(startEdit)
         )}
         {adding === 'os' && composer}
       </section>
 
       {/* ── THIS WEEK: what moves an OS goal this week ────────────────────── */}
-      <section aria-label="This week's objectives" className="min-w-0">
-        <div className="flex items-baseline gap-2 mb-2">
+      <section aria-label="This week's objectives" className="min-w-0" data-testid="ladder-week" data-folded={weekFolded ? 'true' : 'false'}>
+        <div className={`flex items-baseline gap-2 ${weekFolded ? '' : 'mb-2'}`}>
           <Eyebrow>This week</Eyebrow>
           {weekly.length > 0 && (
             <span className="text-micro text-ink-faint tabular-nums font-mono">{weeklyDone}/{weekly.length}</span>
           )}
-          {!compact && os.length > 0 && weeklyActive < 3 && !weekend && (
+          {(weekFolded || pinned === 'week') && onPin && (
+            <FoldToggle open={!weekFolded} onToggle={() => weekFolded && compact ? setDrawer('week') : onPin(weekFolded ? 'week' : null)} what="this week's objectives" testId="ladder-week-fold" />
+          )}
+          {!compact && !weekFolded && pinned !== 'week' && os.length > 0 && weeklyActive < 3 && !weekend && (
             <button
               type="button"
               onClick={() => openAdd('weekly')}
@@ -395,7 +498,7 @@ export function GoalLadder({ variant = 'desktop' }: {
             </button>
           )}
         </div>
-        {weekly.length === 0 ? (
+        {weekFolded ? null : weekly.length === 0 ? (
           <p className="text-body text-ink-faint leading-relaxed">
             {os.length === 0
               ? 'Set an OS goal first.'
@@ -404,69 +507,25 @@ export function GoalLadder({ variant = 'desktop' }: {
                 : 'No objectives set for this week.'}
           </p>
         ) : (
-          <ul className="flex flex-col gap-1.5">
-            {/* The serves-line answers "which OS goal does this week's work
-                serve". When every row serves the same one, saying it under
-                every row is not an answer, it is the same eight-word sentence
-                three times in a hundred pixels — measured on Home with a real
-                canon on 2026-09-23. It is stated once, above the list, when
-                the whole week points at one goal. */}
-            {weekly.map((g, i) => {
-              const done = g.status === 'done'
-              // Repeat the parent only where it CHANGES down the list.
-              const parentTitle = g.parent_id ? osTitle.get(g.parent_id) : undefined
-              const prev = i > 0 ? weekly[i - 1] : null
-              const prevTitle = prev?.parent_id ? osTitle.get(prev.parent_id) : undefined
-              const showParent = Boolean(parentTitle) && parentTitle !== prevTitle
-              return (
-                <li key={g.id} className="flex items-start gap-3 min-w-0 group/row">
-                  <button
-                    type="button"
-                    onClick={() => void toggleDone(g)}
-                    aria-label={done ? 'Mark not done' : 'Mark done'}
-                    className={`tap-44 mt-[1px] w-[22px] h-[22px] shrink-0 rounded-[7px] border inline-flex items-center justify-center transition-colors ${done ? 'bg-emerald-400/80 border-emerald-300/60 text-emerald-950' : 'border-white/25 hover:border-white/50'}`}
-                  >
-                    {done && <Check size={12} />}
-                  </button>
-                  {editing === g.id ? (
-                    <div className="flex-1 flex items-center gap-2 min-w-0">
-                      <input
-                        autoFocus
-                        value={editTitle}
-                        onChange={e => setEditTitle(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') void saveEdit(g.id); if (e.key === 'Escape') setEditing(null) }}
-                        className="flex-1 min-w-0 min-h-[34px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-body text-ink outline-none focus:border-violet-400/40"
-                      />
-                      <button type="button" onClick={() => void retire(g)} disabled={saving} title="Drop this objective (reversible)" className="px-1.5 text-micro text-ink-faint hover:text-rose-300 disabled:opacity-40">Drop</button>
-                      <button type="button" onClick={() => void saveEdit(g.id)} disabled={saving || !editTitle.trim()} className="px-2.5 py-1 rounded-lg btn-contrast text-micro font-semibold disabled:opacity-40">
-                        {saving ? <Working size={11} /> : 'Save'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={() => startEdit(g)} className="flex-1 text-left min-w-0 pt-[1px]">
-                      <span className="flex items-baseline gap-2 min-w-0">
-                        <span className={`text-body leading-snug truncate ${done ? 'text-ink-faint line-through' : 'text-ink'}`}>
-                          {g.title}
-                        </span>
-                        {g.job && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint">{jobLabel(g.job)}</span>}
-                        {g.venture && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-ink-faint">{g.venture}</span>}
-                        {staleChip(g)}
-                      </span>
-                      {/* The serves-chip is a second line on desktop only; on
-                          mobile every row stays single-line so the canon fits. */}
-                      {!compact && showParent && (
-                        <span className="mt-0.5 flex items-center gap-1 text-micro text-ink-faint min-w-0">
-                          <Target size={9} className="opacity-60 flex-shrink-0" /><span>{parentTitle}</span>
-                        </span>
-                      )}
-                    </button>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+          weekRows(startEdit)
         )}
       </section>
+
+      {/* A folded rung, opened on a phone. Done ticks here; an edit hands
+          over to the editor below, one sheet at a time. */}
+      {compact && (
+        <BottomSheet
+          open={drawer !== null}
+          onClose={() => setDrawer(null)}
+          fullHeight={false}
+          ariaLabel={drawer === 'os' ? 'OS goals' : 'This week\u2019s objectives'}
+        >
+          <div className="flex flex-col gap-3 pb-2" data-testid={`ladder-drawer-${drawer ?? 'none'}`}>
+            <Eyebrow>{drawer === 'os' ? 'OS' : 'This week'}</Eyebrow>
+            {drawer === 'os' ? osRows(editFromDrawer) : drawer === 'week' ? weekRows(editFromDrawer) : null}
+          </div>
+        </BottomSheet>
+      )}
 
       {/* The phone's goal editor. Writes stay on the one wire path (patch →
           goalsApi); this sheet is only the hands. */}

@@ -152,7 +152,7 @@ function mondayOf(offsetWeeks = 0): string {
   return d.toISOString().slice(0, 10)
 }
 
-const goal = (id: string, title: string, horizon: 'os' | 'weekly', extra: Record<string, unknown> = {}) => ({
+export const goal = (id: string, title: string, horizon: 'os' | 'weekly', extra: Record<string, unknown> = {}) => ({
   id, title, horizon,
   parent_id: horizon === 'weekly' ? 'os-1' : null,
   venture: 'mindmake',

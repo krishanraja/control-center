@@ -23,7 +23,7 @@ export interface ModelPrice {
 }
 
 export const MODEL_PRICES: Record<string, ModelPrice> = {
-  // The daily move's decider (ADR-028). Fable 5.1 reads its cache back at
+  // The top tier (TOP_TIER_MODEL in _models.ts). Fable 5.1 reads its cache back at
   // $0.25, a fortieth of input rather than the usual tenth, so it carries its
   // own cacheRead. Matched by prefix like every row, so it must stay ahead of
   // any shorter claude-fable key that would also match it.

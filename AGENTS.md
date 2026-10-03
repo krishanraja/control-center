@@ -30,7 +30,7 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | Creating anything on a phone | The one + button: `CreateSheet` + the `src/lib/quickCreate.ts` bus. Never a new inline create button on a narrow viewport | convention |
 | Tab / section switching | `shared/SegmentedNav`, always with `testIdPrefix` | e2e selects on it |
 | A desk surface's title band | `shared/SurfaceHeader` — one recipe, `text-title`, optional icon / eyebrow / actions / meta. Never a hand-rolled `<h1>` | `scripts/check-type-tokens.mts` (CI) |
-| A tab's height | `shared/AppFrame` — fixed header over one bounded body. The window never scrolls, and nothing may be laid out past the frame with no scroller to reach it | `e2e/desk-noscroll-desk.spec.ts` + `e2e/phone-noscroll-phone.spec.ts` (CI) |
+| A tab's height | `shared/AppFrame`: a fixed header over one bounded body. The window never scrolls, and nothing may be laid out past the frame with no scroller to reach it. Home is stricter: it may not scroll at all, inside or out, so it folds (`useFitFolds` in `hooks/useFitRows.ts`, the order in `src/lib/homeFolds.ts`, `shared/FoldToggle`); see "A stage is not a scroller" in `docs/DESIGN_SYSTEM.md` | `e2e/desk-noscroll-desk.spec.ts` + `e2e/phone-noscroll-phone.spec.ts` + `e2e/home-fit-desk.spec.ts` + `e2e/home-fit-phone.spec.ts` (CI) |
 | A status lane on a board | `desktop/StatusLane` + `EmptyLanes`. An empty lane returns null; the board names them together in one line | convention |
 | Rendering a relative time | `relativeTime()` / `relativeTimeOr()` in `src/lib/ageHelpers.ts`. A bare `formatDistanceToNow(new Date(x))` throws on a null and takes the whole tab down | `scripts/check-safe-dates.mts` (CI) |
 | A width-dependent LAYOUT choice | `hooks/useContainerWidth` on a box that is NOT the one being resized. `window.matchMedia` asks about the browser; no surface gets the browser | convention |
@@ -194,6 +194,18 @@ builds, tests or deploys it.
   `e2e/theme-contrast.spec.ts` had never painted the card at all, because its
   own catch-all answered the daily read with nothing; it now routes
   `DAILY_MOVE` and asserts the card is on screen before measuring.
+- **`e2e/home-fit-desk.spec.ts` and `e2e/home-fit-phone.spec.ts` prove Home
+  never scrolls** (added 2026-10-03, Krish: "no scroll guaranteed
+  everywhere"), at seven sizes, through the longest honest morning
+  (`mockWorstMorning`) and with every fold opened by hand. Three things that
+  cost a cycle. `.truncate` and `.line-clamp-*` are overridden in
+  `src/index.css` so text always wraps, which means a row that reads as one
+  line in the source can be three on a phone; measure, never read the
+  classes. A fixture shorter than real life proves nothing, so the worst case
+  carries a 239-character move, five weekly rows, two drafted approaches and a
+  due test. And a probe taken between a change and the frame that refits it
+  measures a layout nobody sees: `homeScrolls()` and `landsOn()` wait for two
+  still frames (`settled()`).
 - **`e2e/composer.spec.ts` covers the content composer** (the brief opening in
   it, the rail, and the full edit palette). There was no content coverage at all
   before it, which is part of how the brief surface came to have four one-click
