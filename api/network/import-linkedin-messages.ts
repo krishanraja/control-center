@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import { googleAccessToken } from '../_google.js'
 import { parseDelimited } from '../_csv.js'
+import { readDriveText } from '../_driveFile.js'
 
 // POST /api/network/import-linkedin-messages?fileId=...&dryRun=1
 //
@@ -20,8 +20,6 @@ import { parseDelimited } from '../_csv.js'
 // where it already is rather than being copied somewhere the app owns.
 
 export const config = { maxDuration: 300 }
-
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly'
 
 /** Krish, as LinkedIn writes him in the FROM column of his own export. */
 const SELF_SLUG = 'krish-raja'
@@ -114,21 +112,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!fileId) return res.status(400).json({ ok: false, error: 'fileId is required' })
   const dryRun = req.query.dryRun === '1'
 
-  let lastErr = ''
-  const token = await googleAccessToken([DRIVE_SCOPE], {
-    subject: process.env.GOOGLE_DRIVE_OWNER || 'krish@mindmake.co',
-    onError: (e: string) => { lastErr = e },
-  })
-  if (!token) return res.status(502).json({ ok: false, error: `drive: ${lastErr || 'no token'}` })
-
-  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  if (!r.ok) {
-    const body = (await r.text()).slice(0, 300)
-    return res.status(502).json({ ok: false, error: `drive ${r.status}: ${body}` })
-  }
-  const text = await r.text()
+  let text: string
+  try { text = await readDriveText(fileId) }
+  catch (e) { return res.status(502).json({ ok: false, error: String((e as Error)?.message || e).slice(0, 300) }) }
 
   const tallies = tallyMessages(parseDelimited(text))
   const rows = [...tallies.values()].map(t => ({

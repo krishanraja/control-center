@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { tallyMessages, slugOf, parseExportDate } from '../../api/network/import-linkedin-messages.ts'
+import { parseConnections } from '../../api/network/import-linkedin-connections.ts'
 import { parseDelimited } from '../../api/_csv.ts'
 
 // The LinkedIn message import reads Krish's own export. The promise, like the
@@ -76,4 +77,22 @@ test('the export date format is read as UTC', () => {
   assert.equal(parseExportDate('2026-02-20 15:49:04 UTC'), '2026-02-20T15:49:04.000Z')
   assert.equal(parseExportDate(''), undefined)
   assert.equal(parseExportDate('rubbish'), undefined)
+})
+
+test('Connections.csv is read past its notice, not from row 0', () => {
+  // LinkedIn puts three lines of prose above the header. Assuming row 0 is the
+  // header reads the notice as a person.
+  const csv = [
+    'Notes:',
+    '"When exporting your connection data, you may notice that some of the email addresses are missing."',
+    '',
+    'First Name,Last Name,URL,Email Address,Company,Position,Connected On',
+    'April,Chang,https://www.linkedin.com/in/aprilschang,,10x10,"CEO, CTO",16 Feb 2026',
+    'Katy,Ahern,https://www.linkedin.com/in/katyahern,katy@acme.com,Accenture,US Marketing lead,11 Feb 2026',
+    'Nobody,,not-a-url,,,,1 Jan 2026',
+  ].join('\n')
+  const rows = parseConnections(parseDelimited(csv))
+  assert.equal(rows.length, 2, 'a row with no profile URL has no identity and is dropped')
+  assert.deepEqual(rows[0], { slug: 'aprilschang', name: 'April Chang', company: '10x10', title: 'CEO, CTO', email: null })
+  assert.equal(rows[1].email, 'katy@acme.com')
 })
