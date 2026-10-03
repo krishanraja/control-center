@@ -1,5 +1,6 @@
 import React from 'react'
 import { AlertTriangle, RefreshCw } from '@/lib/icons'
+import { needsAppReload } from '@/lib/chunkRecovery'
 
 interface Props {
   children: React.ReactNode
@@ -25,6 +26,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error(`[ErrorBoundary: ${this.props.label ?? 'unknown'}]`, error, info)
   }
 
+  private retry = () => {
+    if (needsAppReload(this.state.error)) {
+      window.location.reload()
+      return
+    }
+    this.setState({ hasError: false, error: undefined })
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -41,7 +50,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </p>
           </div>
           <button
-            onClick={() => this.setState({ hasError: false, error: undefined })}
+            onClick={this.retry}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-micro bg-white/[0.04] border border-white/[0.08] text-ink-faint hover:text-ink-muted transition-colors"
           >
             <RefreshCw size={11} /> Retry

@@ -287,8 +287,14 @@ export default defineConfig({
 ### Asset caching
 
 Vercel auto-caches `dist/assets/*` (hashed filenames) with long TTLs.
-API routes should set explicit cache headers — the default is
+API routes should set explicit cache headers. The default is
 no-cache.
+
+An open tab can still run the previous app shell immediately after a deploy.
+If that shell asks for a route chunk whose hashed filename has been replaced,
+the shared `ErrorBoundary` recognises the dynamic-import failure and its Retry
+button reloads the whole app. Retrying only the failed React subtree repeats
+the obsolete request forever and is not a recovery path.
 
 ## Troubleshooting
 
