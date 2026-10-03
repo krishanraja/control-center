@@ -181,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       system: SYSTEM,
       user: JSON.stringify({ need, people }, null, 1),
       maxTokens: 2000,
+      agent: 'network-ask',
     })
     const parsed = robustJson(out) || {}
     const asks: Array<Record<string, unknown>> = Array.isArray(parsed.asks) ? parsed.asks : []
