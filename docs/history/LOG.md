@@ -5,6 +5,14 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-10-03
+
+- moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
+  2026-09-07 **Architecture doc: the one-surface retirement closed out** (#280, #281). The last three references to a VPS or Drive copy removed; the three weekly Documentation Refresh Routines recorded as deleted by Krish; the fleet's last reference to the trashed Drive file removed.
+  2026-09-07 **Build signals** (`2c83ff90`, `e11f2ab5`). Why: every Saturday the scorecard counted Krish's commits against him as unasked hours, and nothing read the same stream for content, although canon asks for a solo Built with AI variant on exactly that material. One new `source_type` flows into the existing content spine; nothing new to run.
+  2026-09-07 **One architecture surface, kept current by the engine** (`ec7f05e7`, `31fc3162`, `1be3dddb`). Why: six copies of the OS architecture doc drifted silently; the sync script had written a misspelled filename into an untracked path for nine days and nothing errored. Krish deleted the VPS and Drive copies for good. A Sunday cron now writes the weekly entry.
+- reconciled at `a72c339d`: 24 non-steward commits since `87e3f65d`. NOW.md gained the ask card and relationship evidence, the warmth measurement rule, and the last six n8n workflows off the inline key with the contact address ruling. No other doc was contradicted by the diff.
+
 ## 2026-10-02
 
 - moved from NOW.md "What changed recently" to keep it under 200 lines (verbatim):
