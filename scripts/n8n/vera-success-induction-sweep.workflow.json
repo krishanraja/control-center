@@ -213,7 +213,7 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
+        "authentication": "predefinedCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "json",
@@ -235,12 +235,17 @@
         },
         "options": {
           "timeout": 120000
-        }
+        },
+        "nodeCredentialType": "anthropicApi"
       },
       "credentials": {
         "httpHeaderAuth": {
           "id": "eoursuitt7vHBbP6",
           "name": "Anthropic Header"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       },
       "retryOnFail": true,
