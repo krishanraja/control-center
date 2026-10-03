@@ -228,7 +228,7 @@
         "url": "https://api.anthropic.com/v1/messages",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model:'claude-sonnet-5', max_tokens:4000, system: $('Plan Due Lanes').item.json.draft_system, messages:[{role:'user', content:'Research to ground the piece (cite named facts, do not invent):\\n' + (((($json.choices||[])[0]||{}).message||{}).content||'') + '\\n\\nWrite the piece now. Return ONLY a single JSON object: {\"title\":string,\"body\":string,\"visual_suggestion\":string|null,\"sources\":[url]}.' }] } }}",
+        "jsonBody": "={{ { model:'claude-sonnet-5', max_tokens:4000, thinking:{type:'disabled'}, system: $('Plan Due Lanes').item.json.draft_system, messages:[{role:'user', content:'Research to ground the piece (cite named facts, do not invent):\\n' + (((($json.choices||[])[0]||{}).message||{}).content||'') + '\\n\\nWrite the piece now. Return ONLY a single JSON object: {\"title\":string,\"body\":string,\"visual_suggestion\":string|null,\"sources\":[url]}.' }] } }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -263,6 +263,21 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000
+    },
+    {
+      "name": "Repair Draft JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1670,
+        260
+      ],
+      "notes": "Escapes raw newlines inside the draft's JSON strings so one draft cannot fail every lane. Cost audit 2026-10-03.",
+      "parameters": {
+        "language": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Claude sometimes writes paragraph breaks as real newlines inside the JSON\n// body string. JSON.parse rejects those (\"Bad control character in string\n// literal\"), Map Idea Row throws, and one bad lane fails the whole run with\n// the good drafts unsaved (execution 44826, 2026-10-03). This escapes control\n// characters INSIDE string literals only; structure is untouched. It also puts\n// the text block first, so Map Idea Row's content[0] read gets the answer.\nconst j = $json;\nconst blocks = Array.isArray(j.content) ? j.content : [];\nconst at = blocks.findIndex(b => b && b.type === 'text');\nif (at < 0) return j;\nfunction repair(s) {\n  let out = '', inStr = false, esc = false;\n  for (const ch of String(s)) {\n    if (!inStr) { if (ch === '\"') inStr = true; out += ch; continue; }\n    if (esc) { out += ch; esc = false; continue; }\n    if (ch === '\\\\') { out += ch; esc = true; continue; }\n    if (ch === '\"') { out += ch; inStr = false; continue; }\n    const c = ch.charCodeAt(0);\n    if (c < 32) { out += c === 10 ? '\\\\n' : c === 13 ? '\\\\r' : c === 9 ? '\\\\t' : '\\\\u' + c.toString(16).padStart(4, '0'); continue; }\n    out += ch;\n  }\n  return out;\n}\nconst rest = blocks.filter((_, k) => k !== at);\nreturn { ...j, content: [{ ...blocks[at], text: repair(blocks[at].text) }, ...rest] };\n"
+      }
     },
     {
       "name": "Map Idea Row",
@@ -503,7 +518,7 @@
       "main": [
         [
           {
-            "node": "Map Idea Row",
+            "node": "Repair Draft JSON",
             "type": "main",
             "index": 0
           }
@@ -548,6 +563,17 @@
         [
           {
             "node": "Get Recent Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repair Draft JSON": {
+      "main": [
+        [
+          {
+            "node": "Map Idea Row",
             "type": "main",
             "index": 0
           }

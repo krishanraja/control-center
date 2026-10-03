@@ -161,6 +161,48 @@ and its challenge at about $0.07 a day. Not yet measured: the live figure, and
 any cheap-lane agreement, because neither has been called live from this
 repository.
 
+## 2026-10-03: cost audit fixes in n8n
+
+Krish asked whether every paid part of Control Center is cost efficient. Read
+from 30 days of `meter_daily` and every call site: recurring spend is about $75
+a month (the Hunter job sweeps on Apify $46, n8n about $21, `event-score` about
+$4.60, which now caches its system prompt), with one-off enrichment backfills on
+top. The n8n changes below were made live as approved hot-fixes and exported
+back to the mirrors in the same pull request, per `scripts/n8n/README.md`.
+
+| Workflow | What was wrong | Change | Proof |
+|---|---|---|---|
+| Content Lane Sourcing | Every run since 2026-09-20 paid for three drafts and saved none. Sonnet 5 thinks when `thinking` is omitted, so `content[0]` was a thinking block; with that fixed, one draft carrying raw newlines failed `JSON.parse` and took the good drafts down with it | `thinking: {type: 'disabled'}` on Sonnet Draft; a Repair Draft JSON step escapes control characters inside strings only | Execution 44827: three drafts in `content_ideas`, heartbeat `planned:3 due:3` |
+| RE Dossier Engine | Re-picked a name-only contact every 6 hours (`heat_score.desc` puts nulls first), Gmail's empty output stopped the chain before Sonnet, and both Sonnet passes ran on a dead key with `neverError`, so an auth failure could be written as a dossier | Contacts with an email, LinkedIn or company only, nulls last; Gmail always outputs; both passes on `Anthropic account`, and a non-2xx stops the run | Execution 44830: five dossiers, both passes parsed. Test run 44828 had written five research-only dossiers on the dead key; they were cleared and the contacts put back in the queue |
+| Visibility Sweeper | The research text was pasted raw into a JSON template, the prompt said today was 2026-06-02, both Extract steps used a dead key, and Filter New and both audit logs read row `[0]` of a one-item-per-row output | Escaped interpolation and a live date; both Extract steps on `Anthropic account`; every row read | Executions 44836 and 44837: 15 new targets, including the Product lane's first 2, each with its audit row |
+| Inspiration Sweep | Twice daily; 1 of 68 seeds progressed in 30 days | The 18:00 UTC trigger disabled; 06:00 stays | Version diff: one node changed |
+| HARO Ingestion | 367 runs; `haro_queries` has never held a row | Unpublished | `active: false` |
+
+Left as found, each for a stated reason:
+
+- **Newsletter Sweep stays on.** It is a sub-workflow that Agatha's Content
+  Angle Approval and Zara's Content Pipeline call with no error handling, and
+  it spends nothing on any API.
+- **Marcus Daily Brief is unchanged.** The n8n Anthropic node has no thinking or
+  effort option, so lowering its thinking means replacing the step, in a
+  workflow that still carries a Supabase service-role key and a Telegram bot
+  token inline (item 4 below).
+- **Task Lever Rater is unchanged.** MCP access is off for it; about $0.06 a month.
+- **The Sweeper's retry lane** (`Explode Unenriched`) has the same row-`[0]`
+  bug, which is why Visibility Deep Enrich never ran from it and 101 targets are
+  unenriched. Fixing it would start paid enrichment of mostly stale targets.
+- **Three of the four n8n Anthropic credentials are dead.** `Anthropic Header`,
+  `Anthropic x-api-key (TOOLS.md) 2026-07-07` and `Anthropic Header 2026-05-21`
+  all return `authentication_error` (the last proved by Visibility Deep Enrich,
+  executions 44838 to 44842). Only `Anthropic account` works, and every n8n node
+  that billed in the 30 days uses it. Eleven workflows still call Claude through
+  a dead credential and cannot: Agatha Lead Deep Enrich, Cleo Content Transform,
+  Cleo Email Draft, Nell Guest Confirmed Cascade, Guest Pitch Draft, Guest Pitch
+  Enrich (Exa), Guest Sheet Bulk Import and Guest Speaker Briefing, Nova
+  Visibility Deep Enrich, Vera Success Induction Sweep, and the inactive
+  Objective Milestone Proposer. Repointing each to `Anthropic account` is the
+  same two-line change made here, and waits on Krish.
+
 ## Remaining measurable work
 
 1. Provide `N8N_API_KEY` through the managed local environment, then run
