@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { OPEN_STATES, maySubmit } from '../../src/lib/hunterPayloadAccess.js'
+import { OPEN_STATES, maySubmit, recordedEvidence } from '../../src/lib/hunterPayloadAccess.js'
 
 // Krish pressed Submit. Only his browser can know that.
 //
@@ -42,11 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const token = String(body.token || '')
   const key = String(body.key || '')
-  // What the form itself said, quoted verbatim into the receipt email. Never a
-  // manufactured claim: the caller sends this only when it matched a real
-  // confirmation in the page, and an empty one stays empty so the receipt says
-  // "no confirmation" rather than inventing one.
-  const evidence = String(body.evidence || '').slice(0, 300).trim()
+  // What the form itself said, quoted verbatim into the receipt email, or, when
+  // Krish pressed "I applied, mark it", the server's own sentence saying it was
+  // his word. Never a manufactured claim: an empty one stays empty so the
+  // receipt says "no confirmation" rather than inventing one.
+  const evidence = recordedEvidence(body)
   if (!token || !key) return res.status(400).json({ error: 'token and key required' })
 
   const { data, error } = await supabase

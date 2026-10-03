@@ -78,3 +78,19 @@ export function maySubmit(
   if (!OPEN_STATES.includes(String(row.state))) return 'gone'
   return 'record'
 }
+
+// What gets recorded as the evidence for a submission.
+//
+// Two kinds of report reach /submitted. The extension saw the form confirm it,
+// and sends the words it matched, which are quoted into the receipt email. Or
+// Krish pressed "I applied, mark it" on the banner because the form never said
+// anything the extension recognised (openrouter, 25 September). That second
+// kind is his word, and the server writes its own sentence for it rather than
+// trusting text from the page: hunter's receipts branch on this exact prefix to
+// say "recorded on your word" instead of "the form acknowledged it".
+export const SAID_SO = 'Krish said he submitted this himself'
+
+export function recordedEvidence(body: { evidence?: unknown; said_so?: unknown }): string {
+  if (body.said_so === true) return `${SAID_SO} (extension button)`
+  return String(body.evidence || '').slice(0, 300).trim()
+}

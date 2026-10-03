@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mayRead, maySubmit, sameSecret, verdict } from '../../src/lib/hunterPayloadAccess.ts'
+import { mayRead, maySubmit, recordedEvidence, SAID_SO, sameSecret, verdict } from '../../src/lib/hunterPayloadAccess.ts'
 
 // The payload carries Krish's CV and every answer he gave on one application.
 // These are the ways in that must stay shut.
@@ -118,4 +118,15 @@ test('a press does not need a payload the way a read does', () => {
   // serve. He can still have submitted it.
   assert.equal(maySubmit({ state: 'awaiting', open_key: KEY, submitted_at: null }, KEY),
     'record')
+})
+
+test('his word is recorded in the server\'s own sentence, never the page\'s text', () => {
+  assert.equal(recordedEvidence({ said_so: true, evidence: 'the form said "thanks"' }),
+    'Krish said he submitted this himself (extension button)')
+  // only a real boolean counts; a string "true" from a page is not his press
+  assert.equal(recordedEvidence({ said_so: 'true', evidence: '' }), '')
+  assert.equal(recordedEvidence({ evidence: 'the form said "thanks for applying"' }),
+    'the form said "thanks for applying"')
+  assert.equal(recordedEvidence({}), '')
+  assert.ok(recordedEvidence({ said_so: true }).startsWith(SAID_SO))
 })
