@@ -31,6 +31,16 @@ test('machine senders are not people, real people at generic-looking addresses a
   assert.ok(isAutomated('notifications@github.com'))
   assert.ok(!isAutomated('hello@founderco.com'))
   assert.ok(!isAutomated('jane.notley@acme.com'))
+  // Bulk senders do write from a subdomain, and a rule on the domain cannot
+  // be told from a real one: these are a newspaper and a university Krish has
+  // live contacts at, and the rule tried on 2026-10-03 silenced them all.
+  assert.ok(!isAutomated('paul.oyama@news.com.au'))
+  assert.ok(!isAutomated('mplatt@mail.med.upenn.edu'))
+  assert.ok(!isAutomated('anna@info.n8n.io'))
+  // A machine mailbox is still caught whatever it sends from.
+  assert.ok(isAutomated('service@paypal.com.au'))
+  assert.ok(isAutomated('shipment-tracking@amazon.com.au'))
+  assert.ok(isAutomated('store-news@amazon.com.au'))
 })
 
 test('all three of Krish\'s accounts and the alias count as him', () => {
