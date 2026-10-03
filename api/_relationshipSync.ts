@@ -75,15 +75,29 @@ async function tokenFor(a: Account, scope: string, onError: (e: string) => void)
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-// Gmail allows 250 quota units per user per second and messages.get costs 5,
-// so 50 reads a second is the ceiling. Starts are spaced to stay near 30.
-const MIN_GAP_MS = 33
+// Gmail's quota is per user per minute and its size differs per project, so
+// the rate is found rather than assumed: every rate limit halves it, and a
+// clean run eases it back. Between 3 and 60 reads a second.
+const MIN_GAP_MS = 17
+const MAX_GAP_MS = 320
+let gapMs = 33
 let nextSlot = 0
+
 async function pace(): Promise<void> {
   const now = Date.now()
   const at = Math.max(now, nextSlot)
-  nextSlot = at + MIN_GAP_MS
+  nextSlot = at + gapMs
   if (at > now) await sleep(at - now)
+}
+
+/** Back off everything in flight, not just the call that was refused. */
+function slowDown(): void {
+  gapMs = Math.min(MAX_GAP_MS, Math.round(gapMs * 2))
+  nextSlot = Math.max(nextSlot, Date.now() + gapMs)
+}
+
+function speedUp(): void {
+  if (gapMs > MIN_GAP_MS) gapMs = Math.max(MIN_GAP_MS, Math.round(gapMs * 0.97))
 }
 
 const RATE_LIMITED = /rateLimitExceeded|userRateLimitExceeded|Quota exceeded|RESOURCE_EXHAUSTED/i
@@ -94,12 +108,15 @@ async function gget(url: string, token: string): Promise<any> {
   for (let attempt = 0; ; attempt++) {
     await pace()
     const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-    if (r.ok) return r.json()
+    if (r.ok) { speedUp(); return r.json() }
     const body = await r.text()
     const limited = r.status === 429 || (r.status === 403 && RATE_LIMITED.test(body))
-    if (!limited || attempt >= 5) throw new GoogleError(r.status, body.slice(0, 200))
+    if (!limited || attempt >= 7) throw new GoogleError(r.status, body.slice(0, 200))
+    slowDown()
+    // A per-minute quota clears on the minute, so the wait grows to a minute
+    // rather than stopping at a few seconds.
     const after = Number(r.headers.get('retry-after'))
-    await sleep(Number.isFinite(after) && after > 0 ? after * 1000 : Math.min(32_000, 1000 * 2 ** attempt))
+    await sleep(Number.isFinite(after) && after > 0 ? after * 1000 : Math.min(60_000, 1000 * 2 ** attempt))
   }
 }
 
@@ -274,7 +291,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     await supabase.from('google_accounts').update({ mail_cursor: cursor }).eq('email', email)
     res.mail = { from: from0, to: cursor, messages, people: tallies.size }
     if (Date.parse(cursor) < Date.now() - 3_600_000) res.caughtUp = false
-  } else res.error = `mail: ${lastErr || 'no token'}`
+  } else { res.error = `mail: ${lastErr || 'no token'}`; res.caughtUp = false }
 
   // Calendar
   const calToken = await tokenFor(a, CALENDAR_SCOPE, onError)
@@ -295,7 +312,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     await supabase.from('google_accounts').update({ calendar_cursor: cursor }).eq('email', email)
     res.calendar = { from: from0, to: cursor, events, people: tallies.size }
     if (Date.parse(cursor) < Date.now() - 3_600_000) res.caughtUp = false
-  } else res.error = [res.error, `calendar: ${lastErr || 'no token'}`].filter(Boolean).join('; ')
+  } else { res.error = [res.error, `calendar: ${lastErr || 'no token'}`].filter(Boolean).join('; '); res.caughtUp = false }
 
   await supabase.from('google_accounts').update({ last_sync_at: new Date().toISOString(), last_error: res.error || null }).eq('email', email)
   return res
