@@ -87,6 +87,7 @@ export const WORK = {
   'pilot.resolveAsk':    { agent: 'marcus', doing: 'working out what you are asking for', expectedMs: 20_000 },
   'network.explain':     { agent: 'marcus', doing: 'working out why each one matches', expectedMs: 25_000 },
   'network.search':      { agent: 'marcus', doing: 'searching your network', expectedMs: 15_000 },
+  'network.ask':         { agent: 'marcus', doing: 'finding who to ask and what to say', expectedMs: 30_000 },
   'signals.promote':     { agent: 'marcus', doing: 'promoting the signal to a bet' },
 
   // ── Quality, Vera (Chief of Staff & Quality) ────────────────────────────
