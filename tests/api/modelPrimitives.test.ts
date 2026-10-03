@@ -4,7 +4,7 @@ import {
   thinkingParam, alwaysThinks, effortParam, takesRefusalFallback,
   TOP_TIER_MODEL, DAILY_MOVE_MODEL, SYNTHESIS_MODEL, JUDGE_MODEL, RESCUE_TOP_TIER_MODEL, RESCUE_GENERATION_MODEL,
 } from '../../api/_models.js'
-import { refusalFallbackParams, refusalOf, supportsSampling } from '../../api/_content.js'
+import { refusalFallbackParams, refusalOf, supportsSampling, systemParam } from '../../api/_content.js'
 import { understudyFor, rescueReasoning } from '../../api/_providerFallback.js'
 import { priceUsdDetailed, isPriced } from '../../api/_prices.js'
 
@@ -46,6 +46,14 @@ test('the refusal fallback is opt-in and only on the models that take it', () =>
   })
   assert.deepEqual(refusalFallbackParams(TOP_TIER_MODEL, false), { headers: {}, body: {} })
   assert.deepEqual(refusalFallbackParams(SYNTHESIS_MODEL, true), { headers: {}, body: {} })
+})
+
+test('a cached system prompt is one block with a breakpoint, and off by default', () => {
+  assert.deepEqual(systemParam('You score events.', true), [
+    { type: 'text', text: 'You score events.', cache_control: { type: 'ephemeral' } },
+  ])
+  assert.equal(systemParam('You score events.', false), 'You score events.')
+  assert.equal(systemParam('You score events.', undefined), 'You score events.')
 })
 
 test('a refusal is named, never read as an empty answer', () => {

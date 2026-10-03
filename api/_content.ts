@@ -391,6 +391,22 @@ export interface ClaudeOpts {
    * string, which is what reading content[0] of a refusal would have done.
    */
   refusalFallback?: boolean
+  /**
+   * Cache the system prompt: one cache_control breakpoint on its only block.
+   *
+   * For a call site that sends the same system prompt many times within five
+   * minutes, such as a cron that scores a list one item at a time. A read costs
+   * a tenth of the input price and the first write a quarter more, so a one-off
+   * call that sets this pays the write and never reads it: leave it off there.
+   * Below the model's minimum prefix (1,024 tokens on Sonnet 5, 4,096 on Haiku
+   * 4.5) it silently does nothing, and the meter's cache_read_tokens says which.
+   */
+  cacheSystem?: boolean
+}
+
+/** The system field: the plain string, or one cached block when asked. */
+export function systemParam(system: string, cache: boolean | undefined): string | Array<Record<string, unknown>> {
+  return cache ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system
 }
 
 /** The header and body field for the server-side refusal fallback, or nothing. */
@@ -564,7 +580,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
         ...effortParam(model, opts.effort),
         ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.5 } : {}),
         ...refusal.body,
-        system: opts.system,
+        system: systemParam(opts.system, opts.cacheSystem),
         messages: [{ role: 'user', content: userContent(opts) }],
       }),
       signal: opts.timeoutMs ? ctrl.signal : undefined,
