@@ -15,8 +15,18 @@ export const SELF = new Set([
  *  mail, which says nothing about a relationship. */
 export const MAIL_HEADERS = ['From', 'To', 'Cc', 'Date', 'List-Unsubscribe', 'Precedence', 'Auto-Submitted']
 
-/** Machine senders. A reply from a notifications address is not a person. */
-export const AUTOMATED = /(^|[._+-])(no-?reply|do-?not-?reply|notifications?|notify|mailer-daemon|postmaster|bounce|alerts?|calendar-notification|invitations?|billing|receipts?|newsletter|digest)([._+-]|@)/i
+/** Machine senders, by mailbox. A reply from a notifications address is not a
+ *  person. Names a person could carry (hello, info, team, support) stay out:
+ *  a one-person business often writes from one of them. */
+export const AUTOMATED = /(^|[._+-])(no-?reply|do-?not-?reply|notifications?|notify|mailer-daemon|postmaster|bounce|alerts?|calendar-notification|invitations?|billing|receipts?|newsletter|digest|service|updates?|news|store-news|shipment-tracking|order-update)([._+-]|@)/i
+
+// A rule on the sending DOMAIN was tried and abandoned on 2026-10-03. Bulk
+// mail does leave from a subdomain (hello@news.hims.com), but telling that
+// apart from a real domain of the same shape needs a public suffix list:
+// @news.com.au is a newspaper Krish has two contacts at, @mail.med.upenn.edu
+// is a person, and a regex matched all of them alike. These senders survive
+// the filter, and they stay cheap: they never reply, so reciprocity keeps
+// their warmth near the floor.
 
 /** "Jane Doe <Jane@Acme.com>, bob@x.io" into [{ email, name }]. */
 export function parseAddresses(header: string | undefined): { email: string; name?: string }[] {
