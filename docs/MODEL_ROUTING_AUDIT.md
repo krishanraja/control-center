@@ -325,6 +325,12 @@ Scheduler, a GitHub token in Product Proposal to GitHub Issue, and an n8n
 admin key in the Proposal Executor's history. The last one should be revoked
 in n8n whatever else happens.
 
+**Webhooks, found on the way.** All 31 webhooks in active workflows report
+no credential on the webhook node, so any check of the caller happens inside
+the workflow, if at all. Anyone who learns a path can start an LLM run, a
+database write or a draft. Not changed here; it needs its own pass,
+workflow by workflow.
+
 **The Proposal Executor was a way in, and it is closed.** The 2026-09-09
 migration left `workflow_proposals` writable by the anonymous key, which
 ships in the browser by design, on every column. Anyone could rewrite a
@@ -345,7 +351,9 @@ nothing sends to it:
 
 - Every Telegram node in the 108 workflow mirrors (106 current, the two
   retired Priya workflows in `scripts/n8n/_retired/`) is disabled, and none
-  is a trigger.
+  is a trigger. Live n8n agrees: the trigger list of all 73 active
+  workflows MCP can read holds no Telegram trigger. The seven it cannot
+  read are the six named in the next section plus Task Lever Rater.
 - The one inbound Telegram callback, System Krish Approval Callback, is
   unpublished. It took approvals from any caller.
 - Bot tokens were blanked wherever this rebuild touched one. 14 active and
