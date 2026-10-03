@@ -6,6 +6,7 @@ import { Skeleton } from '../shared/Skeleton'
 import { Eyebrow } from '../shared/Eyebrow'
 import { useDeferredPending } from '../shared/useDeferredPending'
 import { Tap, VoiceField } from '../pilot/controls'
+import { AskWho } from './AskWho'
 import { copyText } from '../../lib/contactAction'
 import {
   ASK_PLACEHOLDER, PREDICTION_CHIPS, OUTCOME_CHIPS,
@@ -223,6 +224,12 @@ export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresol
           />
           {softener && (
             <p className="text-label text-ink-muted leading-relaxed">{selfRejectionHint(softener)}</p>
+          )}
+          {/* The blank box is the hard half. Not offered over a seeded ask: the
+              strategist has already named the move, and two proposers on one
+              card is two answers to the same question. */}
+          {!seeding && (
+            <AskWho compact={compact} onUse={t => { setText(t); setPredicted(null) }} />
           )}
           {seeding && today && !today.sent_at && (
             <p className="text-label text-ink-faint leading-relaxed break-words">Today&rsquo;s ask now: {today.ask_text}</p>
