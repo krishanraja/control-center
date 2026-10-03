@@ -76,6 +76,10 @@
       "destination": "https://content-engine-flame-nu.vercel.app/api/content-edits"
     },
     {
+      "source": "/api/workbench",
+      "destination": "https://content-engine-flame-nu.vercel.app/api/workbench"
+    },
+    {
       "source": "/api/content-ideas",
       "destination": "https://content-engine-flame-nu.vercel.app/api/content-ideas"
     },
