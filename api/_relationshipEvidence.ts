@@ -85,7 +85,10 @@ function describe(e: Omit<RelationshipEvidence, 'summary'>): string {
   const since = inWords(e.days_since_contact)
   if (since) bits.push(since === 'today' ? 'in touch today' : `quiet for ${since}`)
   if (e.last_word === 'them') bits.push('they wrote last, so a reply is owed')
-  if (e.known_months && e.known_months >= 12) bits.push(`known for ${Math.round(e.known_months / 12)} years`)
+  if (e.known_months && e.known_months >= 12) {
+    const years = Math.round(e.known_months / 12)
+    bits.push(years === 1 ? 'known for about a year' : `known for ${years} years`)
+  }
   return bits.join('; ') + '.'
 }
 
