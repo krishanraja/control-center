@@ -183,10 +183,9 @@ Left as found, each for a stated reason:
 - **Newsletter Sweep stays on.** It is a sub-workflow that Agatha's Content
   Angle Approval and Zara's Content Pipeline call with no error handling, and
   it spends nothing on any API.
-- **Marcus Daily Brief is unchanged.** The n8n Anthropic node has no thinking or
-  effort option, so lowering its thinking means replacing the step, in a
-  workflow that still carries a Supabase service-role key and a Telegram bot
-  token inline (item 4 below).
+- **Marcus Daily Brief's model step is unchanged.** The n8n Anthropic node has
+  no thinking or effort option, so lowering its thinking means replacing the
+  step. Its inline keys are gone (next section).
 - **Task Lever Rater is unchanged.** MCP access is off for it; about $0.06 a month.
 - **The Sweeper's retry lane** (`Explode Unenriched`) has the same row-`[0]`
   bug, which is why Visibility Deep Enrich never ran from it and 101 targets are
@@ -195,13 +194,69 @@ Left as found, each for a stated reason:
   `Anthropic x-api-key (TOOLS.md) 2026-07-07` and `Anthropic Header 2026-05-21`
   all return `authentication_error` (the last proved by Visibility Deep Enrich,
   executions 44838 to 44842). Only `Anthropic account` works, and every n8n node
-  that billed in the 30 days uses it. Eleven workflows still call Claude through
-  a dead credential and cannot: Agatha Lead Deep Enrich, Cleo Content Transform,
-  Cleo Email Draft, Nell Guest Confirmed Cascade, Guest Pitch Draft, Guest Pitch
-  Enrich (Exa), Guest Sheet Bulk Import and Guest Speaker Briefing, Nova
-  Visibility Deep Enrich, Vera Success Induction Sweep, and the inactive
-  Objective Milestone Proposer. Repointing each to `Anthropic account` is the
-  same two-line change made here, and waits on Krish.
+  that billed in the 30 days uses it. Eleven workflows called Claude through a
+  dead credential. Eight are repointed (next section); three are not, because
+  MCP access is off for them.
+
+## 2026-10-03: the dead keys repointed, the brief's keys moved to credentials
+
+Krish approved both the same evening: "sort all of that now, move those keys
+in to N8N credentials themselves". Both were made live and exported back to
+the mirrors in the same pull request.
+
+**Eight Claude steps moved onto the live credential.** Each now authenticates
+with `Anthropic account` (`predefinedCredentialType`, `anthropicApi`), and
+n8n's own version diff for each shows that change and nothing else. Two of
+them had no authentication mode at all, so they sent no key whatever
+credential was attached. The old dead binding stays attached and unused, as
+it is live.
+
+| Workflow | Step | Was |
+|---|---|---|
+| Agatha Lead Deep Enrich | Sonnet Enrich | `httpHeaderAuth` as the credential type |
+| Cleo Content Transform | Sonnet transform | `httpHeaderAuth` as the credential type |
+| Cleo Email Draft | Sonnet Compose | `httpHeaderAuth` as the credential type |
+| Nova Visibility Deep Enrich | Sonnet Enrich | `httpHeaderAuth` as the credential type |
+| Nell Guest Speaker Briefing | Sonnet Synthesise Briefing | generic header auth |
+| Vera Success Induction Sweep | Draft Skills (Sonnet) | generic header auth |
+| Nell Guest Confirmed Cascade | Anthropic: Draft Promos | no authentication |
+| Nell Guest Sheet Bulk Import | Anthropic: Extract Guests | no authentication |
+
+Proof: Visibility Deep Enrich execution 44844 ran Sonnet Enrich to `end_turn`
+with a full dossier (1,503 output tokens) and stamped the target's
+`deep_enriched_at`, where executions 44838 to 44842 had failed with
+`authentication_error`. The other three on a dead credential (Guest Pitch
+Draft, Guest Pitch Enrich (Exa) and the inactive Objective Milestone Proposer)
+have MCP access off, so they are the same change made in the editor, or after
+"Available in MCP" is switched on for them.
+
+**The Daily Brief holds no key.** Its "Pull live data" Code node made fifteen
+REST calls with the service-role key written into its source, because n8n's
+task-runner sandbox cannot read a credential. `public.daily_brief_inputs()`
+(migration `20261003200000_the_brief_reads_through_a_credential.sql`) returns
+all fifteen reads in one call. A new "Fetch brief inputs" HTTP node calls it
+over `Supabase OS (service_role, verified)`, and the Code node keeps only the
+arithmetic, stopping the run if a section is missing rather than handing the
+model an empty list. The disabled "Telegram push" node, which carried the OPS
+bot token in its URL, is removed: the OS has been pull-only since 2026-09-06.
+
+Proof before publishing: the function returned what that morning's inline-key
+run read (execution 44789), the same rows in the same order with
+byte-identical timestamps, and the draft's test run (execution 44847) wrote
+the brief to `home_intelligence` at 19:02:34 UTC with three picks, three
+alternates and the same momentum. Published as version `2c199351`. The mirror
+carries no placeholder now.
+
+One read changed on purpose. The closed-bets query asked for `bets.outcome`,
+`bets.closed_at` and the status `killed`. The table has never had any of them,
+so the query failed on every run and the model was handed an empty "Closed bets
+(30d)". The function reads what that label says, bets won or lost in the last
+30 days. The only closed bet is from May, so the brief reads the same today.
+
+**The exposure is not closed by this.** The same service-role key is inline in
+28 other active workflows (item 4 below), and the brief's earlier versions
+still hold it in n8n's version history. Rotating the key today breaks all 28.
+The OPS bot token now appears in no workflow.
 
 ## Remaining measurable work
 
@@ -216,10 +271,19 @@ Left as found, each for a stated reason:
 3. Run the 27-route Sonnet migration queue in cohorts: classifiers/extractors,
    drafting, synthesis, then high-stakes strategic briefs. Do not combine all
    model changes in one deploy.
-4. Replace inline workflow secrets with n8n credentials. Placeholder injection
-   prevents git leaks but still materialises secrets inside cloud workflow
-   definitions; credential bindings reduce the blast radius and simplify
-   rotation.
+4. Replace inline workflow secrets with n8n credentials, then rotate.
+   Placeholder injection prevents git leaks but still materialises secrets
+   inside cloud workflow definitions. Measured 2026-10-03, after the Daily Brief
+   moved: the Supabase service-role key is inline in 28 active workflows, 26 of
+   them in an enabled node. Two use it only in HTTP Request nodes
+   (`system-stripe-reconciliation-nightly`, `zara-geo-citation-sweep`), a
+   mechanical switch to the stored credential. The other 24 read it in Code
+   nodes and need the brief's pattern: the read moves to a node that can hold a
+   credential, and the Code node keeps the logic. The Telegram bot token is
+   inline in 32 active workflows, all in disabled nodes. Rotate the
+   service-role key only after the last workflow has moved, then update the
+   n8n Supabase credentials and Vercel's `SUPABASE_SERVICE_ROLE_KEY` with the
+   new value.
 
 Official selection references: [Anthropic model comparison](https://platform.claude.com/docs/en/models/overview),
 [Sonnet 5 migration changes](https://platform.claude.com/docs/en/models/sonnet-5/whats-new-sonnet-5),

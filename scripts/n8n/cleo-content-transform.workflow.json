@@ -98,7 +98,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2400, system: $json.system, messages: [{ role: 'user', content: $json.user }] }) }}",
         "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
+        "nodeCredentialType": "anthropicApi",
         "options": {
           "timeout": 180000
         }
@@ -107,6 +107,10 @@
         "httpHeaderAuth": {
           "id": "w8sWwz8EfYc1JA7G",
           "name": "Anthropic Header 2026-05-21"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       },
       "retryOnFail": true,
