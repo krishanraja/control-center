@@ -7,6 +7,9 @@ import { DEFAULT_REASON } from '../lib/triageReasons'
 import {
   ADVANCE_NEXT, STATE_PRIORITY, isActiveIdea, advanceMode, nextState,
 } from '../lib/contentEngine'
+import { byId, seriesOf } from '../lib/contentModel'
+import { pickForSeries, unpick } from '../lib/contentActions'
+import type { PickPrevious } from '../lib/contentPick'
 
 // Mode boundaries. Hysteresis (enter > 30, exit <= 25) keeps the very action that
 // crosses the boundary from remounting the view mid-gesture.
@@ -89,7 +92,7 @@ export function useContentTriage() {
   const [committed, setCommitted] = useState<Set<string>>(() => new Set())
   const [override, setOverride] = useState<TriageMode | null>(null)
   const [autoMode, setAutoMode] = useState<TriageMode>('action')
-  const lastAction = useRef<{ id: string; prevState: IdeaState; kind?: 'state' | 'retain' } | null>(null)
+  const lastAction = useRef<{ id: string; prevState: IdeaState; kind?: 'state' | 'retain' | 'pick'; pick?: { series: string; previous: PickPrevious } } | null>(null)
   const [canUndo, setCanUndo] = useState(false)
   // Left-swipe drop now teaches Vera (−1). The reason is chosen AFTER the swipe
   // via chips, so a dropped card parks here until a reason is picked (or the next
@@ -114,7 +117,10 @@ export function useContentTriage() {
 
   const mode: TriageMode = override ?? autoMode
 
-  // The deck: active minus already-triaged-this-session, worst state first then oldest.
+  // The deck: active minus already-triaged-this-session, worst state first,
+  // then oldest, then by id so two rows touched in the same instant never swap
+  // places between refetches. (The deck holds the card on screen by id as
+  // well; see MobileDecisionDeck.)
   const deck = useMemo(() => {
     return active
       .filter(i => !committed.has(i.id))
@@ -122,7 +128,10 @@ export function useContentTriage() {
         const pa = STATE_PRIORITY[a.state] ?? 9
         const pb = STATE_PRIORITY[b.state] ?? 9
         if (pa !== pb) return pa - pb
-        return (a.updated_at || '') < (b.updated_at || '') ? -1 : 1
+        const ua = a.updated_at || ''
+        const ub = b.updated_at || ''
+        if (ua !== ub) return ua < ub ? -1 : 1
+        return byId(a, b)
       })
   }, [active, committed])
 
@@ -164,6 +173,36 @@ export function useContentTriage() {
     if (!ok) { h.error(); toast('Undo failed — try again.', 'error') }
   }, [h, toast])
 
+  // Undo a pick: put back the state, series and protection the row had.
+  const undoPick = useCallback(async (id: string, series: string, previous: PickPrevious) => {
+    setCommitted(prev => { const n = new Set(prev); n.delete(id); return n })
+    if (lastAction.current?.id === id) { lastAction.current = null; setCanUndo(false) }
+    h.select()
+    const r = await unpick(id, series, previous)
+    if (r.ok === false) { h.error(); toast(r.error, 'error') }
+  }, [h, toast])
+
+  // "Write this" on the phone is a pick for the piece's series, the same act
+  // as on the desk (pickForSeries): drafting, with the series stored.
+  const pick = useCallback(async (idea: ContentIdeaRow, series: string) => {
+    const id = idea.id
+    h.heavy()
+    setCommitted(prev => { const n = new Set(prev); n.add(id); return n })
+    const r = await pickForSeries(id, series)
+    if (r.ok === false) {
+      setCommitted(prev => { const n = new Set(prev); n.delete(id); return n })
+      h.error()
+      toast(r.error, 'error')
+      return
+    }
+    lastAction.current = { id, prevState: idea.state, kind: 'pick', pick: { series, previous: r.data.previous } }
+    setCanUndo(true)
+    void feedbackVote('content_ideas', id, 1, 'cleo', 'content_advanced')
+    toast('Sent to drafts.', 'success', {
+      action: { label: 'Undo', onClick: () => undoPick(id, series, r.data.previous) },
+    })
+  }, [h, toast, undoPick])
+
   // Undo a retain: un-bury and un-commit (no state change was made).
   const undoRetain = useCallback(async (id: string) => {
     setCommitted(prev => { const n = new Set(prev); n.delete(id); return n })
@@ -177,8 +216,9 @@ export function useContentTriage() {
     const a = lastAction.current
     if (!a) return
     if (a.kind === 'retain') undoRetain(a.id)
+    else if (a.kind === 'pick' && a.pick) undoPick(a.id, a.pick.series, a.pick.previous)
     else undoById(a.id, a.prevState)
-  }, [undoById, undoRetain])
+  }, [undoById, undoRetain, undoPick])
 
   // Send the −1 reject for a parked drop (the actual state→dropped + feedback_queue
   // vote). On failure the card is restored to the deck.
@@ -218,14 +258,20 @@ export function useContentTriage() {
   // straight into the drafting pile — triage's only forward move is "I'll write
   // this" (no separate research stage). Cards already drafting or at a gate just
   // open the composer to keep working.
+  //
+  // A piece with a series is picked for it (pickForSeries), which stores the
+  // series as well as moving it. One with no series at all, stored or judged
+  // (8 live rows on 2026-10-04), has nothing to pick it for, so it only moves.
   const sendToDraft = useCallback((idea: ContentIdeaRow) => {
     flushPendingDrop()
     if (idea.state === 'seeded' || idea.state === 'researching') {
-      commit(idea, 'drafting', 'Sent to drafts.')
+      const series = seriesOf(idea)
+      if (series) void pick(idea, series)
+      else commit(idea, 'drafting', 'Sent to drafts.')
     } else {
       open(idea.id)
     }
-  }, [commit, open, flushPendingDrop])
+  }, [commit, open, flushPendingDrop, pick])
 
   // Left swipe: optimistically remove the card and park a drop awaiting its reason.
   const drop = useCallback((idea: ContentIdeaRow) => {

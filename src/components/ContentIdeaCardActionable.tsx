@@ -8,6 +8,7 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 import { useContentPillars, pillarTone } from '../hooks/useContentPillars'
 import { hasRealBody } from '../lib/contentEngine'
+import { displayThesis } from '../lib/contentModel'
 import { WhyBadge } from './shared/WhyBadge'
 
 interface Props {
@@ -101,8 +102,9 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
         <p className="text-body font-semibold text-ink leading-snug">{i.idea}</p>
       </button>
 
-      {i.thesis && (
-        <p className="text-micro text-ink-muted leading-snug mt-1.5"><span className="text-ink-faint">Thesis: </span>{i.thesis}</p>
+      {/* A summary the source cut off ("...") is hidden, never shown broken. */}
+      {displayThesis(i) && (
+        <p className="text-micro text-ink-muted leading-snug mt-1.5"><span className="text-ink-faint">Thesis: </span>{displayThesis(i)}</p>
       )}
 
       {!isSynthesis && contrarian && (

@@ -89,12 +89,17 @@ export function useFitRows(total: number, { min = 1, max = 50, step = 1 }: {
 
   // A resize starts the search again from scratch rather than nudging from
   // wherever the last viewport left it, which is both faster and stable.
+  //
+  // It reads the list's length through a ref, so the callback, and the effects
+  // that depend on it, do not change identity every time the length does.
+  const latest = useRef({ align, total })
+  latest.current = { align, total }
   const restart = useCallback(() => {
     passes.current = 0
     ceiling.current = Infinity
-    setCount(align(Math.min(total, max)))
+    setCount(latest.current.align(Math.min(latest.current.total, max)))
     setNonce(n => n + 1)
-  }, [align, total, max])
+  }, [max])
 
   useLayoutEffect(() => {
     const box = boxRef.current
@@ -105,8 +110,25 @@ export function useFitRows(total: number, { min = 1, max = 50, step = 1 }: {
     return () => ro.disconnect()
   }, [restart])
 
-  // A changed list, or a changed column count, is a new search.
+  // A changed column count is a new search.
   useLayoutEffect(() => { restart() }, [restart, step])
+
+  // A changed list LENGTH is not (2026-10-04). It used to be: every refetch
+  // that added or removed one idea reset the page size and re-measured over up
+  // to 24 layout passes, and with the page number kept, the cards on screen
+  // slid along under him. Now the page size he is looking at stays, and the
+  // measure gets a fresh pass budget, so it can still take a row that newly
+  // fits or give back one that no longer does. The first data to arrive is
+  // still a new search, since there was nothing measured before it.
+  const lastTotal = useRef(total)
+  useLayoutEffect(() => {
+    const was = lastTotal.current
+    lastTotal.current = total
+    if (was === total) return
+    if (was === 0) { restart(); return }
+    passes.current = 0
+    setNonce(n => n + 1)
+  }, [total, restart])
 
   return {
     count: Math.max(min, Math.min(count, total)),
