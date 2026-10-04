@@ -19,10 +19,13 @@ import { CLEARED_OLD_WEEK } from '../../src/lib/growthWire.js'
 //          and neither is any review that already carries a ruling.
 //
 // What "ruled" means downstream, so nothing here promises more: council-run
-// skips a product whose row for THAT week is already ruled (it never rewrites
-// an older week), and Ask Marcus reads the text as context. No agent acts on a
-// ruling. Clearing therefore only stops 35 stale reports asking for a ruling
-// one by one; the text says they were cleared, not judged.
+// skips a product whose row for the week it is writing is already ruled. The
+// cron writes only the week that is ending, so a cleared week is never in its
+// way; a manual re-run of an older week (POST { week_start }) leaves its
+// cleared rows as they are. Ask Marcus and the tab grounding read the newest
+// rows as context, which clearing never touches. No agent acts on a ruling.
+// Clearing therefore only stops 35 stale reports asking for a ruling one by
+// one; the text says they were cleared, not judged.
 //
 // Reviews themselves are written by the council workflow with the service role.
 // This route only carries the human ruling. Writes need the dashboard cookie

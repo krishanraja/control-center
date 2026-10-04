@@ -8,7 +8,7 @@ import { VoiceField } from '../pilot/controls'
 import { failureMessage, requestJson } from '../../lib/apiFetch'
 import {
   BATCH_MAX, BATCH_MIN, BOARD_STAGES, PRODUCTS, PRODUCT_LABEL, STAGE_LABEL,
-  mondayOf, shortDate,
+  addDaysIso, growthWeekOf, shortDate,
   type CreativeCardRow, type ProductSlug, type Stage,
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
@@ -45,7 +45,9 @@ export function CreativeBoard({ g, variant, composeSignal = 0 }: { g: GrowthData
   useEffect(() => { if (composeSignal > 0) setAdding(true) }, [composeSignal])
   const [openId, setOpenId] = useState<string | null>(null)
   const [showDropped, setShowDropped] = useState(false)
-  const thisWeek = useMemo(() => mondayOf(new Date()), [])
+  // The loop week: the same one "Make it a clip" files into and the Growth
+  // header counts. It turns over at Sunday 17:00 UTC, when the review lands.
+  const thisWeek = useMemo(() => growthWeekOf(new Date()), [])
 
   const live = useMemo(() => g.cards.filter(c => c.stage !== 'dropped'), [g.cards])
   const dropped = useMemo(() => g.cards.filter(c => c.stage === 'dropped'), [g.cards])
@@ -495,7 +497,9 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
 
 function AddCard({ g, variant, open, thisWeek, onDone }: { g: GrowthData; variant: 'desktop' | 'mobile'; open: boolean; thisWeek: string; onDone: () => void }) {
   const { toast } = useToast()
-  const nextWeek = useMemo(() => mondayOf(new Date(Date.parse(`${thisWeek}T00:00:00Z`) + 7 * 86_400_000)), [thisWeek])
+  // Date arithmetic in UTC: mondayOf on a UTC midnight read the local day, so
+  // west of Greenwich "next week" came back as this week.
+  const nextWeek = useMemo(() => addDaysIso(thisWeek, 7), [thisWeek])
   const [form, setForm] = useState({
     product_slug: 'full-time' as ProductSlug,
     title: '',

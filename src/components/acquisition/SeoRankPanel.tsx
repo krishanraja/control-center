@@ -71,7 +71,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
               <div key={r.id} className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${pos != null ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                  <span className="text-label text-ink-muted truncate">{r.keyword}</span>
+                  <span className="min-w-0 text-label text-ink-muted break-words">{r.keyword}</span>
                   <span className="ml-auto flex-shrink-0 text-micro tabular-nums">
                     {pos != null ? (
                       <span className="text-emerald-300 inline-flex items-center gap-0.5">

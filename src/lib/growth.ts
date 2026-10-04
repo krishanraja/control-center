@@ -256,6 +256,23 @@ export function citationRate(probes: Array<{ we_cited: boolean }>): number | nul
   return probes.filter(p => p.we_cited).length / probes.length
 }
 
+/** The window every "AI answers mention you" rate on the page uses: the Sunday review's. */
+export const GEO_WINDOW_DAYS = 30
+
+/**
+ * The probes that rate counts: the last 30 days, or every row read when none
+ * fall inside them. The ONE window for the Growth header and GeoProbes. The
+ * header used to rate every row useGrowth read, which agreed with GeoProbes
+ * only while that read was the newest 500 rows; once it became 45 days it read
+ * 2% over the panel's 1% on the same page (2026-10-04: 10 of 634 against 8 of
+ * 620).
+ */
+export function recentProbes<T extends { run_at: string }>(probes: T[], nowMs: number = Date.now()): T[] {
+  const since = nowMs - GEO_WINDOW_DAYS * 86_400_000
+  const inWindow = probes.filter(p => Date.parse(p.run_at) >= since)
+  return inWindow.length ? inWindow : probes
+}
+
 export function pct(rate: number | null): string {
   return rate == null ? 'no data' : `${Math.round(rate * 100)}%`
 }

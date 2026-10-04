@@ -12,8 +12,9 @@
  * are cleared in one go (PATCH /api/growth/council { action: 'clear_old' }).
  *
  * krish_decision is free text with no CHECK, and setting it is the only thing
- * that "rules" a review: council-run skips a product whose row for that week
- * is already ruled, and Ask Marcus reads the text as context. So a cleared
+ * that "rules" a review: council-run skips a product whose row for the week it
+ * is writing is already ruled (so a manual re-run of a cleared week leaves it
+ * cleared), and Ask Marcus reads the text as context. So a cleared
  * week says plainly that it was cleared, not judged, and the UI can tell a
  * cleared week from a real ruling by this exact string.
  */

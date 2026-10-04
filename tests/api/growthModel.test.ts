@@ -5,7 +5,9 @@ import {
   oldUnruled, isClearedReview, siteChoices, nextMoves, productSignals, weekLoop, citedInstead, missedQuestions,
   growthSlugOf, normaliseTaskText,
 } from '../../src/lib/growthModel.ts'
-import { growthWeekOf, reviewWeekFor, clipWeekFor, mondayOfUtc, addDaysIso } from '../../src/lib/growth.ts'
+import { growthWeekOf, reviewWeekFor, clipWeekFor, mondayOfUtc, addDaysIso, citationRate, recentProbes, GEO_WINDOW_DAYS } from '../../src/lib/growth.ts'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { canonicalVentureSlug, ventureLabel } from '../../src/lib/ventureOptions.ts'
 import { normaliseSeoRows, newestCheck, toNumberOrNull, CLEARED_OLD_WEEK, type SeoRankRow } from '../../src/lib/growthWire.ts'
 
@@ -628,4 +630,43 @@ test('no string the model writes carries an em dash', () => {
     ...loop.steps.flatMap(s => [s.label, s.action.label, s.note ?? '']),
   ]
   for (const w of words) assert.ok(!w.includes(EM), w)
+})
+
+// ------------------------------------------------- one week, one window
+
+test('every Growth surface counts clips in the loop week: no component reads mondayOf(now)', () => {
+  // "Make it a clip" files into clipWeekFor (the loop week). The board, its
+  // add form and the header count used mondayOf(new Date()), local time, which
+  // on Sunday evening is the week ending that night: the clip the toast sent
+  // you to see was missing from "this week". One clock for all of them.
+  const dir = new URL('../../src/components/growth/', import.meta.url).pathname
+  const offenders = readdirSync(dir)
+    .filter(f => /\.tsx?$/.test(f))
+    .filter(f => /\bmondayOf\(/.test(readFileSync(join(dir, f), 'utf8').replace(/\/\/.*$/gm, '')))
+  assert.deepEqual(offenders, [], `use growthWeekOf / addDaysIso instead of mondayOf in: ${offenders.join(', ')}`)
+})
+
+test('recentProbes is the one 30-day window: the header rate and GeoProbes agree on 45 days of rows', () => {
+  const now = Date.parse('2026-10-04T12:00:00Z')
+  const at = (daysAgo: number) => new Date(now - daysAgo * 86_400_000).toISOString()
+  // Shaped on 2026-10-04: 620 rows in 30 days with 8 cited, 14 more before it with 2 cited.
+  const rows = [
+    ...Array.from({ length: 620 }, (_, i) => ({ run_at: at(i % 29), we_cited: i < 8 })),
+    ...Array.from({ length: 14 }, (_, i) => ({ run_at: at(31 + (i % 14)), we_cited: i < 2 })),
+  ]
+  const recent = recentProbes(rows, now)
+  assert.equal(GEO_WINDOW_DAYS, 30)
+  assert.equal(recent.length, 620)
+  assert.equal(Math.round((citationRate(recent) ?? 0) * 100), 1)
+  // What the header showed when it rated every row read: 2%, against the panel's 1%.
+  assert.equal(Math.round((citationRate(rows) ?? 0) * 100), 2)
+  // Nothing in the window: the rows read stand in (GeoProbes' rule), never an invented zero.
+  const old = [{ run_at: at(40), we_cited: true }, { run_at: at(41), we_cited: false }]
+  assert.deepEqual(recentProbes(old, now), old)
+  assert.deepEqual(recentProbes([], now), [])
+  // And no Growth component rates the raw read again.
+  const dir = new URL('../../src/components/growth/', import.meta.url).pathname
+  const raw = readdirSync(dir).filter(f => /\.tsx?$/.test(f))
+    .filter(f => /citationRate\(g\.probes\)/.test(readFileSync(join(dir, f), 'utf8')))
+  assert.deepEqual(raw, [], `rate recentProbes(g.probes), not every row read, in: ${raw.join(', ')}`)
 })
