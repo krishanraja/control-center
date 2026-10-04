@@ -1,4 +1,5 @@
 import { priceUsd, priceUsdDetailed, priceUsdUncached, readUsage, isPriced, type TokenUsage } from './_prices.js'
+import { readPaged } from './_paged.js'
 
 /**
  * Supabase, lazily.
@@ -203,11 +204,20 @@ export interface MeterUnit {
   last_day: string
 }
 
+/** Columns a meter read needs, and the primary key order that makes paging stable. */
+const UNIT_COLUMNS = 'provider, unit_kind, unit_key, day, bucket, unit_label, category, usd, runs, failed, units, unit_name'
+/** A ceiling, not a target: 30 days of today's fleet is about 1,400 rows. */
+const MAX_METER_ROWS = 50_000
+
 /**
  * Roll the meter up per unit over a window.
  *
  * `recentDays` is a second, shorter window scored in the same pass so the
  * caller can say "and half of that was this week" without a second query.
+ *
+ * Paged in 1,000-row chunks. It used to ask for 5,000 rows in one request and
+ * PostgREST returned the newest 1,000 of 1,408 with no error, so the panel
+ * labelled "30 days" covered about twenty and every older dollar vanished.
  */
 export async function readUnits(opts: {
   sinceDay: string
@@ -217,20 +227,62 @@ export async function readUnits(opts: {
 }): Promise<{ units: MeterUnit[]; total_usd: number; error: string | null }> {
   const supabase = await db()
   if (!supabase) return { units: [], total_usd: 0, error: 'supabase not configured' }
-  let q = supabase
-    .from('meter_daily')
-    .select('provider, unit_kind, unit_key, day, bucket, unit_label, category, usd, runs, failed, units, unit_name')
-    .gte('day', opts.sinceDay)
-    .order('day', { ascending: false })
-    .limit(opts.limit ?? 5000)
-  if (opts.providers?.length) q = q.in('provider', opts.providers)
+  const { rows, error } = await readPaged<Record<string, unknown>>((from, to) => {
+    let q = supabase.from('meter_daily').select(UNIT_COLUMNS).gte('day', opts.sinceDay)
+    if (opts.providers?.length) q = q.in('provider', opts.providers)
+    return q
+      .order('day', { ascending: false })
+      .order('provider').order('unit_kind').order('unit_key').order('bucket')
+      .range(from, to)
+  }, { max: opts.limit ?? MAX_METER_ROWS })
+  if (error) return { units: [], total_usd: 0, error }
+  return { ...rollUpUnits(rows, opts.recentSinceDay), error: null }
+}
 
-  const { data, error } = await q
-  if (error) return { units: [], total_usd: 0, error: error.message }
+/**
+ * The money on the meter since a day, for "On the meter so far".
+ *
+ * Reads meter_daily, the instrument the rest of the tab ranks by. The line
+ * used to read api_call_log, where Apify and OpenAI calls are logged at $0, so
+ * it said "$0 across 6,100 calls" in a month meter_daily had $55.19 for.
+ * `calls` leaves out n8n rows: those count workflow executions, and the model
+ * calls inside them are already counted under their own provider.
+ */
+export async function meterSince(sinceDay: string): Promise<{ usd: number; calls: number; error: string | null }> {
+  const supabase = await db()
+  if (!supabase) return { usd: 0, calls: 0, error: 'supabase not configured' }
+  const { rows, error } = await readPaged<{ provider: string; usd: number | string | null; runs: number | string | null }>(
+    (from, to) => supabase.from('meter_daily').select('provider, unit_kind, unit_key, day, bucket, usd, runs')
+      .gte('day', sinceDay)
+      .order('day', { ascending: false })
+      .order('provider').order('unit_kind').order('unit_key').order('bucket')
+      .range(from, to),
+    { max: MAX_METER_ROWS },
+  )
+  if (error) return { usd: 0, calls: 0, error }
+  return { ...meterTotals(rows), error: null }
+}
 
+/** Sum meter rows into dollars and billed calls. Pure, so the rule is testable. */
+export function meterTotals(rows: Array<{ provider: string; usd?: number | string | null; runs?: number | string | null }>): { usd: number; calls: number } {
+  let usd = 0
+  let calls = 0
+  for (const r of rows) {
+    usd += Number(r.usd) || 0
+    if (r.provider !== 'n8n') calls += Number(r.runs) || 0
+  }
+  return { usd: Math.round(usd * 100) / 100, calls }
+}
+
+/** Per-unit totals from raw meter rows. Pure, so paging and summing are tested apart. */
+export function rollUpUnits(
+  data: Array<Record<string, unknown>>,
+  recentSinceDay?: string,
+): { units: MeterUnit[]; total_usd: number } {
+  const opts = { recentSinceDay }
   const agg = new Map<string, MeterUnit & { _buckets: Map<string, { usd: number; runs: number }> }>()
   let total = 0
-  for (const r of (data || []) as Array<Record<string, unknown>>) {
+  for (const r of data) {
     const provider = String(r.provider) as MeterProvider
     const unit_kind = String(r.unit_kind) as MeterUnitKind
     const unit_key = String(r.unit_key)
@@ -285,7 +337,7 @@ export async function readUnits(opts: {
     // Dollars first, then volume — an unpriced provider (n8n) still ranks.
     .sort((a, b) => b.usd - a.usd || b.runs - a.runs)
 
-  return { units, total_usd: round6(total), error: null }
+  return { units, total_usd: round6(total) }
 }
 
 const round6 = (n: number): number => Math.round(n * 1e6) / 1e6
@@ -303,7 +355,10 @@ const round6 = (n: number): number => Math.round(n * 1e6) / 1e6
 // Anthropic credential bills Krish's account and never touches this code. The
 // one such path the OS owns — n8n workflows that POST to
 // /api/internal/sonnet-proxy — IS metered, stamped with their X-Internal-Caller.
-// Everything else shows up only on the invoice, which is why the invoice
+// Since 2026-09-20 the nodes that call Anthropic or Gemini directly are metered
+// too, after the fact, by api/meter/n8n-llm-sync.ts reading n8n's own
+// execution records (unit keys n8n/...). Anything outside both paths, such as
+// Krish's own claude.ai plan, shows up only on the invoice, which is why the invoice
 // remains the source of truth for total Anthropic spend and this meter answers
 // the different question: which agent, of the ones we run, is spending.
 

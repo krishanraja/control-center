@@ -73,7 +73,20 @@ const SPEND_FULL = {
   renewals_due: [
     { key: 'relume', name: 'Relume', amount: 348, currency: 'USD', on: new Date(AFTERNOON.getTime() + 12 * 86_400_000).toISOString().slice(0, 10) },
   ],
+  // One receipt the reader could not price, one it counted with a caveat. The
+  // copy promises they are listed, so the sheet must list them by name.
   needs_review: 2,
+  needs_review_unread: 1,
+  review: [
+    {
+      vendor: 'Anthropic', date: '2026-08-18', subject: 'Your receipt from Anthropic, PBC #2335-5631-7768',
+      usd: null, counted: false, reason: 'Not counted. The reader failed on this one, and it tries again on the next run.',
+    },
+    {
+      vendor: 'Hetzner (OpenClaw VPS)', date: '2026-08-01', subject: 'Hetzner Online GmbH - Invoice 088001134956 (K0281443826)',
+      usd: 17.47, counted: true, reason: 'Counted. The email has no payment date, so it uses the day it arrived.',
+    },
+  ],
   meter: { usd_mtd: 41, calls_mtd: 1204 },
   // Inside the prepaid amount: the console must read this as calm, and the
   // costing answer must keep its "against a usual" shape.
@@ -188,9 +201,13 @@ test.describe('the spend and connections questions', () => {
     await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
     // The decide pane is the default open answer; the renewal rides in it.
     await expect(page.getByTestId('bi-pane')).toContainText(/Relume renews in 1[12] days/)
-    // The costing answer opens with the unreadable-receipts line.
+    // The costing answer opens with the unreadable-receipts line, and it says
+    // what the totals did with them: left out, not "not counted as zero".
     await page.getByTestId('bi-q-costing').click()
-    await expect(page.getByTestId('spend-review-line')).toContainText('2 receipts could not be read')
+    const reviewLine = page.getByTestId('spend-review-line')
+    await expect(reviewLine).toContainText('1 receipt could not be read, so the totals leave it out.')
+    await expect(reviewLine).toContainText('1 more receipt is counted but needs a check.')
+    await expect(reviewLine).not.toContainText('not counted as zero')
     await ctx.close()
   })
 
@@ -209,6 +226,14 @@ test.describe('the spend and connections questions', () => {
     await expect(sheet.getByText('Max plan - 20x')).toBeVisible()
     await expect(sheet.getByLabel('Open OpenAI')).toHaveAttribute('href', 'https://platform.openai.com/settings/organization/billing')
     await expect(sheet.getByText('DataForSEO')).toBeVisible()
+    // The receipts the costing answer promises are listed: vendor, day,
+    // subject, and whether the totals include each one.
+    const review = sheet.getByTestId('spend-review-list')
+    await expect(review).toContainText('Your receipt from Anthropic, PBC #2335-5631-7768')
+    await expect(review).toContainText('18 Aug')
+    await expect(review).toContainText('not counted')
+    await expect(review).toContainText('Hetzner (OpenClaw VPS)')
+    await expect(review).toContainText('$17.47')
     await ctx.close()
   })
 

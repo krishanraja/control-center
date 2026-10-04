@@ -1,5 +1,7 @@
 import { supabase } from './_supabase.js'
-import { readUnits, daysAgoKey, type MeterProvider } from './_meter.js'
+import { readUnits, meterSince, daysAgoKey, type MeterProvider } from './_meter.js'
+import { readPaged } from './_paged.js'
+import { prepareLedger, effectiveDay, netUsd, reviewItems, type ReviewItem } from './_spendLedger.js'
 
 // The one computed answer behind GET /api/spend: how much money is going out,
 // and which connections need a hand. Mirrors _revenue.ts — the tables are
@@ -103,7 +105,18 @@ export interface SpendSummary {
     low_names: string[]
   }
   renewals_due: Array<{ key: string; name: string; amount: number | null; currency: string | null; on: string }>
+  /** How many receipts in the window need a look. */
   needs_review: number
+  /** Of those, how many no total includes, because no amount could be read. */
+  needs_review_unread: number
+  /**
+   * Every receipt in the window that needs a look, newest first: the ones the
+   * reader could not price (not in any total) and the ones counted with a
+   * caveat (no payment date, or the reader was unsure). The copy promises they
+   * are listed, so they are.
+   */
+  review: ReviewItem[]
+  /** This month on the usage meter (meter_daily). */
   meter: { usd_mtd: number; calls_mtd: number } | null
   /** Who spent it, from the usage meter. null when the meter has never run. */
   spenders: {
@@ -122,6 +135,7 @@ export interface SpendSummary {
 }
 
 interface InvoiceRow {
+  gmail_message_id: string
   service_key: string | null
   vendor_raw: string
   amount: number | null
@@ -133,6 +147,10 @@ interface InvoiceRow {
   cadence: string
   plan_label: string | null
   needs_review: boolean
+  review_note: string | null
+  raw_subject: string | null
+  raw_from: string | null
+  created_at: string | null
 }
 
 export interface RegistryRow {
@@ -146,6 +164,8 @@ export interface RegistryRow {
   dashboard_url: string | null
   low_threshold: number | null
   limit_note: string | null
+  /** Read only to match receipts at read time; never sent to the browser. */
+  vendor_match: string[] | null
   included_usd: number | null
   overage_trigger_usd: number | null
   cycle_usd: number | null
@@ -158,8 +178,9 @@ export interface RegistryRow {
 }
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7)
-const net = (r: Pick<InvoiceRow, 'amount_usd' | 'kind'>): number =>
-  r.amount_usd == null ? 0 : (r.kind === 'refund' ? -Number(r.amount_usd) : Number(r.amount_usd))
+const net = netUsd
+/** The month a row counts in: payment date, else the day it was read. */
+const monthOf = (r: InvoiceRow): string | null => effectiveDay(r)?.slice(0, 7) ?? null
 
 function nextRenewal(r: Pick<InvoiceRow, 'paid_at' | 'period_end' | 'cadence'>): string | null {
   if (r.period_end) return r.period_end
@@ -171,25 +192,23 @@ function nextRenewal(r: Pick<InvoiceRow, 'paid_at' | 'period_end' | 'cadence'>):
   return d.toISOString().slice(0, 10)
 }
 
-async function meterMtd(monthStartIso: string): Promise<{ usd_mtd: number; calls_mtd: number } | null> {
+/**
+ * This month on the usage meter, from meter_daily: the same instrument "Where
+ * it went" ranks by. It used to read api_call_log, which logs Apify and OpenAI
+ * calls at $0, and so reported "$0 across 6,100 calls" for a month the meter
+ * had $55 for.
+ */
+async function meterMtd(monthStartDay: string): Promise<{ usd_mtd: number; calls_mtd: number } | null> {
   try {
-    const { count } = await supabase.from('api_call_log')
-      .select('id', { count: 'exact', head: true }).gte('ts', monthStartIso)
-    // Sum only the cost-bearing rows, paged: most metering rows carry 0.
-    let usd = 0
-    for (let page = 0; page < 3; page++) {
-      const { data, error } = await supabase.from('api_call_log')
-        .select('est_cost_usd').gte('ts', monthStartIso).gt('est_cost_usd', 0)
-        .range(page * 1000, page * 1000 + 999)
-      if (error) return null
-      for (const r of data || []) usd += Number((r as { est_cost_usd: number }).est_cost_usd) || 0
-      if (!data || data.length < 1000) break
-    }
-    return { usd_mtd: Math.round(usd * 100) / 100, calls_mtd: count || 0 }
+    const { usd, calls, error } = await meterSince(monthStartDay)
+    if (error) return null
+    return { usd_mtd: usd, calls_mtd: calls }
   } catch {
     return null
   }
 }
+
+const INVOICE_COLUMNS = 'gmail_message_id, service_key, vendor_raw, amount, currency, amount_usd, kind, paid_at, period_end, cadence, plan_label, needs_review, review_note, raw_subject, raw_from, created_at'
 
 const METERED: MeterProvider[] = ['apify', 'n8n', 'anthropic']
 
@@ -274,22 +293,31 @@ export async function loadSpend(): Promise<SpendSummary> {
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
   const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1))
 
-  const [{ data: inv }, { data: reg }, { count: reviewCount }, meter, spenders] = await Promise.all([
-    supabase.from('spend_invoices')
-      .select('service_key, vendor_raw, amount, currency, amount_usd, kind, paid_at, period_end, cadence, plan_label, needs_review')
-      .gte('paid_at', windowStart.toISOString().slice(0, 10))
-      .order('paid_at', { ascending: false })
-      .limit(2000),
+  const windowDay = windowStart.toISOString().slice(0, 10)
+  const [{ rows: inv }, { data: reg }, meter, spenders] = await Promise.all([
+    // A row with no payment date used to fall out of this read entirely
+    // (`paid_at >= window` is never true for NULL), which is how $332.55 of
+    // parsed September receipts and every unread receipt vanished. They now
+    // come in on the day they were read.
+    readPaged<InvoiceRow>((from, to) => supabase.from('spend_invoices')
+      .select(INVOICE_COLUMNS)
+      .or(`paid_at.gte.${windowDay},and(paid_at.is.null,created_at.gte.${windowDay})`)
+      .order('created_at', { ascending: false })
+      .order('gmail_message_id')
+      .range(from, to), { max: 20_000 }),
     supabase.from('service_registry')
-      .select('key, display_name, category, criticality, check_kind, env_key_name, top_up_url, dashboard_url, low_threshold, limit_note, included_usd, overage_trigger_usd, cycle_usd, cycle_start, cycle_end, last_status, balance, balance_unit, last_checked_at')
+      .select('key, display_name, category, criticality, check_kind, env_key_name, top_up_url, dashboard_url, low_threshold, limit_note, vendor_match, included_usd, overage_trigger_usd, cycle_usd, cycle_start, cycle_end, last_status, balance, balance_unit, last_checked_at')
       .eq('active', true),
-    supabase.from('spend_invoices').select('id', { count: 'exact', head: true }).eq('needs_review', true),
-    meterMtd(monthStart.toISOString()),
+    meterMtd(monthStart.toISOString().slice(0, 10)),
     loadSpenders(),
   ])
 
-  const invoices = (inv || []) as InvoiceRow[]
   const registry = (reg || []) as RegistryRow[]
+  // Match at read time too (Stripe-sent Brave and ElevenLabs receipts were
+  // written before the matcher knew them), then one row per real receipt.
+  // Newest first by the day each row counts on, which `latest` below relies on.
+  const invoices = prepareLedger(inv, registry)
+    .sort((a, b) => (effectiveDay(b) || '').localeCompare(effectiveDay(a) || ''))
   const nowIso = new Date().toISOString()
   const thisMonth = monthKey(monthStart)
 
@@ -301,8 +329,8 @@ export async function loadSpend(): Promise<SpendSummary> {
   }
   const monthIndex = new Map(months.map((m, i) => [m.month, i]))
   for (const r of invoices) {
-    if (!r.paid_at) continue
-    const i = monthIndex.get(r.paid_at.slice(0, 7))
+    const m = monthOf(r)
+    const i = m ? monthIndex.get(m) : undefined
     if (i != null) months[i].total_usd += net(r)
   }
   for (const m of months) m.total_usd = Math.round(m.total_usd * 100) / 100
@@ -321,16 +349,18 @@ export async function loadSpend(): Promise<SpendSummary> {
       const list = byService.get(r.service_key) || []
       list.push(r)
       byService.set(r.service_key, list)
-    } else if (r.paid_at && r.paid_at.slice(0, 7) === thisMonth) {
+    } else if (monthOf(r) === thisMonth && r.amount_usd != null) {
       unmatchedAgg.set(r.vendor_raw, (unmatchedAgg.get(r.vendor_raw) || 0) + net(r))
     }
   }
 
   const services: SpendServiceRow[] = registry.map(s => {
     const rows = byService.get(s.key) || []
-    const mtd = rows.filter(r => r.paid_at?.slice(0, 7) === thisMonth).reduce((a, r) => a + net(r), 0)
-    const priorRows = rows.filter(r => r.paid_at && r.paid_at.slice(0, 7) !== thisMonth)
-    const priorMonths = new Set(priorRows.map(r => r.paid_at!.slice(0, 7)))
+    const mtd = rows.filter(r => monthOf(r) === thisMonth).reduce((a, r) => a + net(r), 0)
+    // Only rows with a known amount make a month: an unread receipt is listed
+    // for review, not averaged in as a $0 month.
+    const priorRows = rows.filter(r => r.amount_usd != null && monthOf(r) != null && monthOf(r) !== thisMonth)
+    const priorMonths = new Set(priorRows.map(r => monthOf(r)!))
     const priorTotal = priorRows.reduce((a, r) => a + net(r), 0)
     const latest = rows.find(r => r.paid_at) || null
     const balance_low = s.balance != null && s.low_threshold != null && Number(s.balance) < Number(s.low_threshold)
@@ -368,13 +398,19 @@ export async function loadSpend(): Promise<SpendSummary> {
   if (flaggedKeys.length) {
     try {
       const since = new Date(Date.now() - 7 * 86_400_000).toISOString()
-      const { data: calls } = await supabase.from('api_call_log')
-        .select('api_name, source, est_cost_usd')
-        .gte('ts', since)
-        .in('api_name', flaggedKeys)
-        .limit(5000)
+      // Paged: a week of Apify alone is over 3,000 rows (3,185 on 2026-10-04)
+      // and PostgREST stops at 1,000 per request, whatever limit() says.
+      const { rows: calls } = await readPaged<{ api_name: string; source: string | null; est_cost_usd: number | null }>(
+        (from, to) => supabase.from('api_call_log')
+          .select('id, api_name, source, est_cost_usd')
+          .gte('ts', since)
+          .in('api_name', flaggedKeys)
+          .order('id', { ascending: false })
+          .range(from, to),
+        { max: 50_000 },
+      )
       const agg = new Map<string, { calls: number; cost: number; bySource: Map<string, number> }>()
-      for (const c of (calls || []) as Array<{ api_name: string; source: string | null; est_cost_usd: number | null }>) {
+      for (const c of calls) {
         const a = agg.get(c.api_name) || { calls: 0, cost: 0, bySource: new Map<string, number>() }
         a.calls++
         a.cost += Number(c.est_cost_usd) || 0
@@ -430,6 +466,11 @@ export async function loadSpend(): Promise<SpendSummary> {
   }
   renewals_due.sort((a, b) => a.on.localeCompare(b.on))
 
+  // The receipts that need a look, by name. Capped so a parser outage that
+  // flags hundreds cannot bloat the payload; the count stays exact.
+  const nameOf = new Map(registry.map(s => [s.key, s.display_name]))
+  const reviewAll = reviewItems(invoices, k => nameOf.get(k) ?? null)
+
   return {
     month_usd,
     avg_3mo_usd,
@@ -442,7 +483,9 @@ export async function loadSpend(): Promise<SpendSummary> {
       .sort((a, b) => b.month_usd - a.month_usd),
     connections,
     renewals_due,
-    needs_review: reviewCount || 0,
+    needs_review: reviewAll.length,
+    needs_review_unread: reviewAll.filter(r => !r.counted).length,
+    review: reviewAll.slice(0, 200),
     meter,
     spenders,
     cycles: cyclesFrom(registry),
