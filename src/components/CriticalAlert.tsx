@@ -77,7 +77,13 @@ export function useCriticalAlert() {
         if (top.failure_type === 'unasked_hours' && top.detail) {
           return `${top.workflow_name || 'Rule 6 tripwire'}: ${top.detail}`
         }
-        return `${top.workflow_name || top.workflow_id} is down (${humanAge(top.detected_at)})`
+        // The age is when this alert BEGAN, not the newest row. The reconcile
+        // re-flags a broken workflow every day, so the newest row is never
+        // more than a day old and "(5h)" read as "down for five hours" on a
+        // workflow that had been failing all week.
+        const age = humanAge(top.first_detected_at)
+        const since = !age ? '' : age === 'just now' ? ', first flagged just now' : `, first flagged ${age} ago`
+        return `${top.workflow_name || top.workflow_id} is down${since}`
       })()
 
   return { visible, line, dismiss }
