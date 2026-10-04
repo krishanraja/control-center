@@ -67,13 +67,13 @@ async function fetchAll(): Promise<void> {
     const keyOf = (r: { workflow_id: string; workflow_name: string | null; id: string }) =>
       r.workflow_id || r.workflow_name || r.id
     const firstSeen = new Map<string, string>()
-    for (const r of rows) {
-      const k = keyOf(r)
+    const noteFirst = (k: string, at: string) => {
       const prev = firstSeen.get(k)
-      if (!prev || Date.parse(r.detected_at) < Date.parse(prev)) firstSeen.set(k, r.detected_at)
+      if (!prev || Date.parse(at) < Date.parse(prev)) firstSeen.set(k, at)
     }
+    for (const r of rows) noteFirst(keyOf(r), r.detected_at)
     const seen = new Set<string>()
-    cache = rows
+    const shown = rows
       .filter(r => {
         const k = keyOf(r)
         if (seen.has(k)) return false
@@ -81,7 +81,26 @@ async function fetchAll(): Promise<void> {
         return true
       })
       .slice(0, 10)
-      .map(r => ({ ...r, first_detected_at: firstSeen.get(keyOf(r)) ?? r.detected_at }))
+    // The rows above are the NEWEST 200, and a workflow that stays dead adds
+    // one a day, so its oldest open row falls out of them within weeks (250
+    // open tier-3 rows on 2026-10-04) and "first flagged" would quietly
+    // shrink. Ask for the oldest open row of each workflow on show, oldest
+    // first, which is a few short rows. On error, keep the newest-200 answer.
+    const ids = shown.map(r => r.workflow_id).filter(Boolean)
+    if (ids.length) {
+      const { data: firsts } = await supabase
+        .from('silent_failures')
+        .select('workflow_id,detected_at')
+        .in('workflow_id', ids)
+        .gte('tier', 3)
+        .is('resolved_at', null)
+        .order('detected_at', { ascending: true })
+        .limit(1000)
+      for (const r of (firsts as { workflow_id: string; detected_at: string }[] | null) || []) {
+        if (r.workflow_id && r.detected_at) noteFirst(r.workflow_id, r.detected_at)
+      }
+    }
+    cache = shown.map(r => ({ ...r, first_detected_at: firstSeen.get(keyOf(r)) ?? r.detected_at }))
     loaded = true
     notify()
     inflight = null

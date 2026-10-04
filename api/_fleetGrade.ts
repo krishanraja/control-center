@@ -152,6 +152,23 @@ export function newestFirst(a: Run, b: Run): number {
   return (Date.parse(b.at) - Date.parse(a.at)) || (idNum(b.id) - idNum(a.id))
 }
 
+/**
+ * True when every execution on a page is older than the window. n8n lists
+ * executions newest first, so once a whole page has aged out, nothing after it
+ * can count, and the read can stop and call itself complete.
+ *
+ * Without this the walk read past the window until the page cap, so a long
+ * execution history made the read look cut short when every run in the window
+ * had been seen, and a busy month spent its page budget on runs that cannot
+ * count. An undated execution never ends the walk: its age is unknown.
+ */
+export function pageIsPastWindow(page: ExecutionLike[], sinceMs: number): boolean {
+  return page.length > 0 && page.every(e => {
+    const t = executionTime(e)
+    return t !== null && Date.parse(t) < sinceMs
+  })
+}
+
 export function collectRuns(executions: ExecutionLike[], sinceMs: number): CollectedRuns {
   const byWorkflow = new Map<string, Run[]>()
   let testRuns = 0
@@ -359,11 +376,25 @@ const RESOLVED_BY = 'Resolved by fleet-reconcile:'
  * `listComplete` says the workflow list was read to its end. Only then does a
  * workflow missing from it mean n8n no longer has it, rather than that the
  * list was cut short.
+ *
+ * `runsComplete` says every execution in the window was read. When a page cap
+ * cut the read short, the runs that are missing are the OLDEST ones, so the
+ * newest runs are still all there, but two judgements lean on the old ones:
+ *
+ *   - "no production run in 28 days" may only mean its runs were past the cut,
+ *     so an idle grade closes nothing;
+ *   - the clean runs a workflow needs come from its longest clean stretch
+ *     between failures, and unseen failures can only make that number bigger.
+ *     So it closes only on MAX_CLEAN_RUNS clean runs in a row, which is enough
+ *     whatever the unseen runs held.
+ *
+ * Switched off and gone from n8n do not depend on run history and still close.
  */
 export function planResolutions(
   graded: GradedWorkflow[],
   openAlerts: OpenAlert[],
   listComplete: boolean,
+  runsComplete = true,
 ): Resolution[] {
   const byId = new Map(graded.map(g => [g.workflow_id, g]))
   const topTier = new Map<string, number>()
@@ -377,7 +408,11 @@ export function planResolutions(
     }
     if (ALERTABLE.has(g.status)) {
       const tier = alertTier(g.status)
-      if (openTop > tier) {
+      // With the newest run a success, no unseen older run can make it
+      // failing again. With the newest run a failure, unseen runs could tip the
+      // recent ratio, so a short read leaves its tier-3 rows alone.
+      const sure = runsComplete || g.evidence.clean > 0
+      if (openTop > tier && sure) {
         out.push({
           workflowId: id,
           minTier: tier + 1,
@@ -389,8 +424,10 @@ export function planResolutions(
     if (!g.active) {
       out.push({ workflowId: id, note: `${RESOLVED_BY} the workflow is switched off in n8n, so it is not failing.` })
     } else if (g.status === 'idle') {
+      if (!runsComplete) continue
       out.push({ workflowId: id, note: `${RESOLVED_BY} no production run in 28 days, and nothing schedules it.` })
     } else {
+      if (!runsComplete && g.evidence.clean < MAX_CLEAN_RUNS) continue
       out.push({ workflowId: id, note: `${RESOLVED_BY} ${describeEvidence(g.evidence)}` })
     }
   }

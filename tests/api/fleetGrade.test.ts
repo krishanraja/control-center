@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   ALERTABLE, MAX_CLEAN_RUNS, MIN_CLEAN_RUNS, RECENT_RUNS, alertTier,
-  classifyFailure, collectRuns, describeEvidence, executionTime, gradeWorkflow, newestFirst, planResolutions,
+  classifyFailure, collectRuns, describeEvidence, executionTime, gradeWorkflow, newestFirst, pageIsPastWindow, planResolutions,
   requiredCleanRuns, runOutcome, summariseRuns,
   type ExecutionLike, type GradedWorkflow, type OpenAlert, type Run,
 } from '../../api/_fleetGrade.ts'
@@ -429,6 +429,43 @@ test('switched-off, idle and vanished workflows are resolved, each with its own 
 
 test('a workflow missing from a list that was cut short is left open', () => {
   assert.deepEqual(planResolutions([], open(3, 'gone'), false), [])
+})
+
+test('a short execution read closes nothing that its missing runs could change', () => {
+  // A page cap cut the read, so the oldest runs in the window are unseen.
+  const list = [
+    graded('off', 'EEEE', { active: false }),
+    graded('quiet', '', { isScheduled: false }),
+    graded('two-clean', 'SS' + 'EEEE'),
+    graded('ten-clean', 'S'.repeat(MAX_CLEAN_RUNS) + 'E'),
+    graded('recovering', 'S' + 'EEE'),
+    graded('blip', 'E' + 'S'.repeat(5)),
+  ]
+  const alerts = [...open(3, 'off', 'quiet', 'two-clean', 'ten-clean', 'recovering', 'blip'), ...open(2, 'gone')]
+  const short = planResolutions(list, alerts, true, false)
+  // Switched off and gone do not depend on run history. Ten clean runs in a row
+  // is enough whatever the unseen runs held. A success as the newest run means
+  // no unseen run can make it failing, so its tier-3 rows still close.
+  assert.deepEqual(short.map(p => [p.workflowId, p.minTier ?? null]), [
+    ['off', null], ['ten-clean', null], ['recovering', 3], ['gone', null],
+  ])
+  // The same plan with every run read closes the rest too.
+  const full = planResolutions(list, alerts, true, true)
+  assert.deepEqual(full.map(p => p.workflowId), ['off', 'quiet', 'two-clean', 'ten-clean', 'recovering', 'blip', 'gone'])
+})
+
+test('the execution read stops at the first page wholly older than the window', () => {
+  const old = '2026-08-01T00:00:00Z'
+  const fresh = '2026-10-03T00:00:00Z'
+  assert.equal(pageIsPastWindow([ex(2, 'w', 'success', 'trigger', old), ex(1, 'w', 'error', 'trigger', old)], SINCE), true)
+  // One run still inside the window: keep reading.
+  assert.equal(pageIsPastWindow([ex(2, 'w', 'success', 'trigger', fresh), ex(1, 'w', 'error', 'trigger', old)], SINCE), false)
+  // Dated by stoppedAt when startedAt is missing, like every other read.
+  assert.equal(pageIsPastWindow([ex(3, 'w', 'error', 'trigger', null, old)], SINCE), true)
+  // An undated run has an unknown age, so it never ends the walk.
+  assert.equal(pageIsPastWindow([ex(4, 'w', 'error', 'trigger', null, null), ex(1, 'w', 'error', 'trigger', old)], SINCE), false)
+  // An empty page proves nothing.
+  assert.equal(pageIsPastWindow([], SINCE), false)
 })
 
 test('workflows with no open alert need no resolution', () => {

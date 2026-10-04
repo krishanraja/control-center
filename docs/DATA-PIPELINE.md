@@ -433,6 +433,13 @@ Orchestrator pass while broken. `runs_28d` and `errors_28d` count production
 runs only. An execution with no `startedAt` is dated by its `stoppedAt`, or left
 out entirely when it has neither.
 
+The execution read stops at the first page wholly older than the window, so
+`executions_complete` in the audit row means every run in the window was read.
+When the 20-page cap cuts it short, the missing runs are the oldest ones, and
+the route closes nothing that they could change: an idle grade resolves no
+alert, and recovery needs the full ten clean runs in a row. Switched-off and
+vanished workflows still resolve, because neither depends on run history.
+
 If `N8N_API_KEY` is not set the route returns 503 and says fleet health is
 UNKNOWN. It never reports a green fleet it did not look at. (It has been set on
 the Vercel project since 2026-04-07 and is valid; n8n permits several live API

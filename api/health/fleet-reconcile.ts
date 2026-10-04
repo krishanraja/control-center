@@ -3,7 +3,7 @@ import { supabase } from '../_supabase.js'
 import { guardCronRoute } from '../_auth.js'
 import {
   ALERTABLE, WINDOW_DAYS, alertTier, classifyFailure, collectRuns, describeEvidence, gradeWorkflow,
-  planResolutions, summariseRuns, type GradedWorkflow, type RunEvidence,
+  pageIsPastWindow, planResolutions, summariseRuns, type GradedWorkflow, type RunEvidence,
 } from '../_fleetGrade.js'
 
 // External runtime observer for the n8n fleet.
@@ -72,18 +72,23 @@ async function n8n<T>(path: string, key: string): Promise<T> {
 }
 
 /**
- * Walk a cursor-paginated n8n collection to exhaustion (bounded). `complete`
- * is false when the page cap stopped the walk with more still to read.
+ * Walk a cursor-paginated n8n collection to exhaustion (bounded). `done`, when
+ * given, ends the walk early once a page shows nothing further can matter.
+ * `complete` is false when the page cap stopped the walk with more still to
+ * read.
  */
-async function page<T>(path: string, key: string, maxPages: number): Promise<{ items: T[]; complete: boolean }> {
+async function page<T>(
+  path: string, key: string, maxPages: number, done?: (page: T[]) => boolean,
+): Promise<{ items: T[]; complete: boolean }> {
   const items: T[] = []
   let cursor = ''
   for (let i = 0; i < maxPages; i++) {
     const sep = path.includes('?') ? '&' : '?'
     const url = cursor ? `${path}${sep}cursor=${encodeURIComponent(cursor)}` : path
     const body = await n8n<{ data?: T[]; nextCursor?: string | null }>(url, key)
-    items.push(...(body.data || []))
-    if (!body.nextCursor) return { items, complete: true }
+    const got = body.data || []
+    items.push(...got)
+    if (!body.nextCursor || (done && done(got))) return { items, complete: true }
     cursor = body.nextCursor
   }
   return { items, complete: false }
@@ -105,7 +110,10 @@ async function failureDetail(w: Wf, ev: RunEvidence, apiKey: string): Promise<Ex
 async function reconcile(apiKey: string) {
   const since = Date.now() - WINDOW_DAYS * 86_400_000
   const wfList = await page<Wf>('/workflows?limit=100', apiKey, 12)
-  const exList = await page<Ex>('/executions?limit=250&includeData=false', apiKey, 20)
+  // Newest first, so the walk stops at the first page wholly older than the
+  // window. complete then means every run in the window was read.
+  const exList = await page<Ex>('/executions?limit=250&includeData=false', apiKey, 20,
+    p => pageIsPastWindow(p, since))
   const workflows = wfList.items
   const executions = exList.items
   const collected = collectRuns(executions, since)
@@ -202,7 +210,7 @@ async function reconcile(apiKey: string) {
     resolveError = openErr.message
   } else {
     const open = (openRows || []).map(r => ({ workflow_id: String(r.workflow_id), tier: Number(r.tier) }))
-    const plan = planResolutions(graded, open, wfList.complete)
+    const plan = planResolutions(graded, open, wfList.complete, exList.complete)
     const nowIso = new Date().toISOString()
     const nameOf = new Map(workflows.map(w => [w.id, w.name]))
     for (const p of plan) {
@@ -283,8 +291,10 @@ async function reconcile(apiKey: string) {
       // visible rather than silent.
       test_runs_excluded: collected.testRuns,
       undated_executions: collected.undated,
-      // False means a page cap cut the read short: some old runs in the window
-      // were not seen, and a workflow absent from a short list is not resolved.
+      // False means a page cap cut the read short. A workflow absent from a
+      // short workflow list is not resolved, and a short execution read
+      // (the oldest runs in the window unseen) closes no alert on an idle
+      // grade and needs the full ten clean runs to close one on recovery.
       workflows_complete: wfList.complete,
       executions_complete: exList.complete,
       unpublished_drafts: stale.length,
