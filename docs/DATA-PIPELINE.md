@@ -411,6 +411,28 @@ six. Quota is classified before credential deliberately: n8n wraps most non-2xx
 errors in "perhaps check your credentials?" and puts the real cause in
 `error.description`.
 
+**How a workflow is graded (since 2026-10-04, rules in `api/_fleetGrade.ts`).**
+Only production runs count: `manual`, `evaluation` and `retry` executions are
+left out, so a repair session's test failures raise nothing and a manual pass
+clears nothing. Runs are read newest first. Two failures in a row is `failing`.
+Every one of the last ten failing, or none succeeding in 28 days, is `dead`. A
+workflow counts as recovered once its newest K production runs all succeeded,
+where K is at least 2, at most 10, and one more than the longest clean stretch
+it has had between two failures. So an outage that a fix ended clears after two
+clean runs, while PR Engine (fails every Tuesday and Thursday) and the
+Orchestrator (fails on specific events) stay `degraded`. The old 28-day ratio
+kept fixed workflows red for weeks and read Guest Pitch Draft as healthy at
+6/56 while it failed every run.
+
+The route also resolves its own `runtime_failing` rows in `silent_failures`:
+all of a workflow's open rows once it leaves the alertable set (recovered,
+switched off, or gone from n8n), and the tier-3 rows alone once it drops to
+`degraded`, so the Home alarm only names workflows failing now. It never
+resolves on "last success is newer than last error", which PR Engine and the
+Orchestrator pass while broken. `runs_28d` and `errors_28d` count production
+runs only. An execution with no `startedAt` is dated by its `stoppedAt`, or left
+out entirely when it has neither.
+
 If `N8N_API_KEY` is not set the route returns 503 and says fleet health is
 UNKNOWN. It never reports a green fleet it did not look at. (It has been set on
 the Vercel project since 2026-04-07 and is valid; n8n permits several live API

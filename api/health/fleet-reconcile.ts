@@ -1,6 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { guardCronRoute } from '../_auth.js'
+import {
+  ALERTABLE, WINDOW_DAYS, alertTier, classifyFailure, collectRuns, describeEvidence, gradeWorkflow,
+  planResolutions, summariseRuns, type GradedWorkflow, type RunEvidence,
+} from '../_fleetGrade.js'
 
 // External runtime observer for the n8n fleet.
 //
@@ -22,10 +26,17 @@ import { guardCronRoute } from '../_auth.js'
 // workflow: an n8n workflow monitoring n8n shares the blind spot it is meant to
 // close.
 //
+// How it judges, since 2026-10-04 (rules and reasons in api/_fleetGrade.ts):
+// a workflow is graded on its recent PRODUCTION runs, newest first. Manual and
+// test runs are left out. An open runtime_failing alert is resolved by this
+// route as soon as the workflow leaves the alertable set, which takes its
+// newest K production runs all succeeding. Before that date it graded a 28-day
+// error ratio that counted test runs and never resolved an alert, so a fixed
+// workflow stayed red for weeks and a fresh outage could read healthy.
+//
 //   GET (CRON_SECRET) — every 6h   ·   POST — manual
 
 const N8N_BASE = (process.env.N8N_BASE_URL || 'https://krishraja10101.app.n8n.cloud').replace(/\/+$/, '')
-const WINDOW_DAYS = 28
 const SCHEDULE_TRIGGERS = new Set([
   'n8n-nodes-base.scheduleTrigger',
   'n8n-nodes-base.cron',
@@ -40,8 +51,17 @@ interface Wf {
   // version, so a fix can look shipped and silently not be. Optional because
   // older n8n builds omit them; absent means 'cannot tell', never 'fine'.
   versionId?: string | null; activeVersionId?: string | null
+  // An archived workflow cannot run. Absent on builds that do not report it,
+  // which reads as not archived.
+  isArchived?: boolean
 }
-interface Ex { workflowId: string; status: string; startedAt: string | null; stoppedAt?: string | null }
+interface Ex {
+  id?: string | number; workflowId: string; status: string; mode?: string | null
+  startedAt: string | null; stoppedAt?: string | null
+}
+interface ExDetail {
+  data?: { resultData?: { lastNodeExecuted?: string; error?: { name?: string; message?: string; description?: string; httpCode?: string } } }
+}
 
 async function n8n<T>(path: string, key: string): Promise<T> {
   const res = await fetch(`${N8N_BASE}/api/v1${path}`, {
@@ -51,92 +71,65 @@ async function n8n<T>(path: string, key: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-/** Walk a cursor-paginated n8n collection to exhaustion (bounded). */
-async function page<T>(path: string, key: string, maxPages: number): Promise<T[]> {
-  const out: T[] = []
+/**
+ * Walk a cursor-paginated n8n collection to exhaustion (bounded). `complete`
+ * is false when the page cap stopped the walk with more still to read.
+ */
+async function page<T>(path: string, key: string, maxPages: number): Promise<{ items: T[]; complete: boolean }> {
+  const items: T[] = []
   let cursor = ''
   for (let i = 0; i < maxPages; i++) {
     const sep = path.includes('?') ? '&' : '?'
     const url = cursor ? `${path}${sep}cursor=${encodeURIComponent(cursor)}` : path
     const body = await n8n<{ data?: T[]; nextCursor?: string | null }>(url, key)
-    out.push(...(body.data || []))
-    if (!body.nextCursor) break
+    items.push(...(body.data || []))
+    if (!body.nextCursor) return { items, complete: true }
     cursor = body.nextCursor
   }
-  return out
+  return { items, complete: false }
 }
 
-/** Group failures by cause, so a credential outage is one story not six. */
-export function classifyFailure(message: string, type: string): string {
-  const m = `${message} ${type}`.toLowerCase()
-  // Quota is tested FIRST and deliberately. n8n wraps almost every non-2xx in
-  // "Forbidden - perhaps check your credentials?", so Zara's real error
-  // ("Monthly usage hard limit exceeded") reads as a credential fault to a
-  // naive matcher and would send someone hunting for a broken key instead of
-  // topping up a plan.
-  if (/quota|rate limit|too many requests|429|usage hard limit|limit exceeded/.test(m)) return 'quota'
-  if (/credential|unauthor|401|x-api-key|does not exist for type/.test(m)) return 'credential'
-  if (/econnrefused|etimedout|enotfound|socket hang up|network|timeout/.test(m)) return 'network'
-  if (/unexpected|syntaxerror|cannot read|undefined|expressionerror|is not a function|json/.test(m)) return 'logic'
-  return 'unknown'
-}
-
-/** A workflow's health from its own execution record, not its own opinion. */
-export function classifyStatus(opts: {
-  active: boolean; isScheduled: boolean; runs: number; errors: number; lastSuccessAt: string | null
-}): string {
-  const { active, isScheduled, runs, errors, lastSuccessAt } = opts
-  if (!active) return 'idle'
-  // Scheduled, switched on, and never ran in the whole window: it is not quiet,
-  // it is not running. This is the case no self-reported heartbeat can produce.
-  if (isScheduled && runs === 0) return 'dead'
-  if (runs === 0) return 'idle'
-  const rate = errors / runs
-  if (rate >= 0.99) return 'dead'
-  if (rate >= 0.5) return 'failing'
-  if (rate >= 0.15) return 'degraded'
-  // Erroring less than 15% but nothing has actually succeeded: still failing.
-  if (errors > 0 && !lastSuccessAt) return 'failing'
-  return 'healthy'
+/** The newest production failure, with node data. Best-effort. */
+async function failureDetail(w: Wf, ev: RunEvidence, apiKey: string): Promise<ExDetail | undefined> {
+  // By id, so the explanation comes from the same production run the grade
+  // came from. The old query took the newest error of any mode, so a manual
+  // test failure could stand in as the reason a scheduled run broke.
+  if (ev.lastFailureId) {
+    return n8n<ExDetail>(`/executions/${encodeURIComponent(ev.lastFailureId)}?includeData=true`, apiKey)
+  }
+  const det = await n8n<{ data?: ExDetail[] }>(
+    `/executions?limit=1&status=error&workflowId=${encodeURIComponent(w.id)}&includeData=true`, apiKey)
+  return det.data?.[0]
 }
 
 async function reconcile(apiKey: string) {
   const since = Date.now() - WINDOW_DAYS * 86_400_000
-  const workflows = await page<Wf>('/workflows?limit=100', apiKey, 12)
-  const executions = await page<Ex>('/executions?limit=250&includeData=false', apiKey, 20)
+  const wfList = await page<Wf>('/workflows?limit=100', apiKey, 12)
+  const exList = await page<Ex>('/executions?limit=250&includeData=false', apiKey, 20)
+  const workflows = wfList.items
+  const executions = exList.items
+  const collected = collectRuns(executions, since)
 
-  const agg = new Map<string, { runs: number; errors: number; lastRun: string | null; lastOk: string | null; lastErr: string | null }>()
-  for (const e of executions) {
-    if (!e.workflowId) continue
-    const t = e.startedAt || ''
-    if (t && Date.parse(t) < since) continue
-    const a = agg.get(e.workflowId) || { runs: 0, errors: 0, lastRun: null, lastOk: null, lastErr: null }
-    a.runs++
-    if (t > (a.lastRun || '')) a.lastRun = t
-    if (e.status === 'error') { a.errors++; if (t > (a.lastErr || '')) a.lastErr = t }
-    else if (t > (a.lastOk || '')) a.lastOk = t
-    agg.set(e.workflowId, a)
-  }
-
-  // One detail fetch per broken workflow only — the full-data payload is heavy
-  // and healthy workflows have nothing to explain.
+  // One detail fetch per alertable workflow only: the full-data payload is
+  // heavy and healthy workflows have nothing to explain.
   const rows: Record<string, unknown>[] = []
+  const graded: GradedWorkflow[] = []
+  const evidenceById = new Map<string, RunEvidence>()
   for (const w of workflows) {
-    const a = agg.get(w.id) || { runs: 0, errors: 0, lastRun: null, lastOk: null, lastErr: null }
+    const ev = summariseRuns(collected.byWorkflow.get(w.id) || [])
+    evidenceById.set(w.id, ev)
     const isScheduled = (w.nodes || []).some(n => SCHEDULE_TRIGGERS.has(n.type))
+    const active = Boolean(w.active) && !w.isArchived
     // Only meaningful when n8n reports both ids and the workflow is published.
     const unpublishedDraft =
       Boolean(w.versionId && w.activeVersionId && w.versionId !== w.activeVersionId)
-    const status = classifyStatus({
-      active: w.active, isScheduled, runs: a.runs, errors: a.errors, lastSuccessAt: a.lastOk,
-    })
+    const status = gradeWorkflow({ active, isScheduled, evidence: ev })
+    graded.push({ workflow_id: w.id, status, active, evidence: ev })
 
     let node: string | null = null, etype: string | null = null, emsg: string | null = null, klass: string | null = null
-    if (a.errors > 0 && (status === 'failing' || status === 'dead' || status === 'degraded')) {
+    if (ev.failures > 0 && ALERTABLE.has(status)) {
       try {
-        const det = await n8n<{ data?: { data?: { resultData?: { lastNodeExecuted?: string; error?: { name?: string; message?: string; description?: string; httpCode?: string } } } }[] }>(
-          `/executions?limit=1&status=error&workflowId=${encodeURIComponent(w.id)}&includeData=true`, apiKey)
-        const rd = det.data?.[0]?.data?.resultData
+        const rd = (await failureDetail(w, ev, apiKey))?.data?.resultData
         node = rd?.lastNodeExecuted ?? null
         etype = [rd?.error?.name, rd?.error?.httpCode].filter(Boolean).join(' ') || null
         // description carries the ACTIONABLE cause and message is often just
@@ -151,11 +144,13 @@ async function reconcile(apiKey: string) {
       } catch { /* detail is best-effort; the counts already tell the story */ }
     }
 
+    // runs_28d / errors_28d now count production runs only (manual and test
+    // runs are out), and every last_* column comes from the same runs.
     rows.push({
-      workflow_id: w.id, workflow_name: w.name, active: w.active, is_scheduled: isScheduled,
-      runs_28d: a.runs, errors_28d: a.errors,
-      error_rate: a.runs ? Math.round((a.errors / a.runs) * 1000) / 1000 : null,
-      last_run_at: a.lastRun, last_success_at: a.lastOk, last_error_at: a.lastErr,
+      workflow_id: w.id, workflow_name: w.name, active, is_scheduled: isScheduled,
+      runs_28d: ev.runs, errors_28d: ev.failures,
+      error_rate: ev.runs ? Math.round((ev.failures / ev.runs) * 1000) / 1000 : null,
+      last_run_at: ev.lastRunAt, last_success_at: ev.lastSuccessAt, last_error_at: ev.lastFailureAt,
       last_error_node: node, last_error_type: etype, last_error_message: emsg,
       status, failure_class: klass, unpublished_draft: unpublishedDraft,
       checked_at: new Date().toISOString(),
@@ -166,10 +161,10 @@ async function reconcile(apiKey: string) {
   if (upErr) throw new Error(`workflow_health upsert failed: ${upErr.message}`)
 
   const broken = rows.filter(r => r.status === 'failing' || r.status === 'dead')
-  // Degraded alerts too, one tier lower. A workflow erroring on a third of its
-  // runs is not healthy, and "not fully broken" is exactly the band things sit
-  // in while nobody looks at them.
-  const alertable = rows.filter(r => r.status === 'failing' || r.status === 'dead' || r.status === 'degraded')
+  // Degraded alerts too, one tier lower. A workflow that has failed recently
+  // and has not yet proved it recovered is not healthy, and "not fully broken"
+  // is exactly the band things sit in while nobody looks at them.
+  const alertable = rows.filter(r => ALERTABLE.has(String(r.status)))
 
   // credential_health is what the tier-3 Critical Infrastructure Monitor reads.
   // It had been frozen on "all healthy" since May. Drive it from observed
@@ -192,22 +187,59 @@ async function reconcile(apiKey: string) {
     }, { onConflict: 'credential_name,credential_type' })
   }
 
-  // One silent_failures row per broken workflow per day. Re-running the cron
-  // must not multiply alerts, so we look before we write.
+  // Close the alerts of every workflow that has left the alertable set, and
+  // the tier-3 rows of one that has dropped to degraded. Until 2026-10-04
+  // nothing ever did, so 479 rows piled up and the Home alarm kept naming
+  // workflows that had been fixed for weeks. The test for "fixed" lives in
+  // planResolutions / gradeWorkflow: the newest K production runs all
+  // succeeded, never "last success is newer than last error".
+  let resolved = 0
+  const resolvedNames: string[] = []
+  let resolveError: string | null = null
+  const { data: openRows, error: openErr } = await supabase.from('silent_failures')
+    .select('workflow_id, tier').eq('failure_type', 'runtime_failing').is('resolved_at', null).limit(5000)
+  if (openErr) {
+    resolveError = openErr.message
+  } else {
+    const open = (openRows || []).map(r => ({ workflow_id: String(r.workflow_id), tier: Number(r.tier) }))
+    const plan = planResolutions(graded, open, wfList.complete)
+    const nowIso = new Date().toISOString()
+    const nameOf = new Map(workflows.map(w => [w.id, w.name]))
+    for (const p of plan) {
+      let q = supabase.from('silent_failures')
+        .update({ resolved_at: nowIso, resolution_note: p.note })
+        .eq('workflow_id', p.workflowId).eq('failure_type', 'runtime_failing').is('resolved_at', null)
+      if (p.minTier) q = q.gte('tier', p.minTier)
+      const { data: done, error } = await q.select('id')
+      if (error) { resolveError = error.message; continue }
+      resolved += done?.length ?? 0
+      resolvedNames.push(nameOf.get(p.workflowId) ?? p.workflowId)
+    }
+  }
+
+  // One silent_failures row per alertable workflow per day. Re-running the
+  // cron must not multiply alerts, so we look before we write. Only a row at
+  // the same tier or higher counts as the duplicate: a workflow that was
+  // degraded this morning and is failing every run tonight is a new, worse
+  // fact, and holding its tier-3 row back for a day would keep it off Home.
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString()
   let raised = 0
   for (const r of alertable) {
+    const tier = alertTier(String(r.status))
     const { data: dupe } = await supabase.from('silent_failures')
       .select('id').eq('workflow_id', r.workflow_id).eq('failure_type', 'runtime_failing')
-      .gte('detected_at', dayAgo).is('resolved_at', null).limit(1)
+      .gte('detected_at', dayAgo).gte('tier', tier).is('resolved_at', null).limit(1)
     if (dupe && dupe.length) continue
+    const ev = evidenceById.get(String(r.workflow_id))
+    const detail = `n8n runtime says this workflow is ${r.status}. ${ev ? describeEvidence(ev, Boolean(r.is_scheduled)) : ''} `
+      + `${r.errors_28d}/${r.runs_28d} production runs failed in ${WINDOW_DAYS}d. `
+      + `Class: ${r.failure_class ?? 'unknown'}. Node: ${r.last_error_node ?? 'n/a'}. ${r.last_error_message ?? ''}`
     await supabase.from('silent_failures').insert({
       workflow_id: r.workflow_id as string,
       workflow_name: r.workflow_name as string,
-      tier: r.status === 'degraded' ? 2 : 3,
+      tier,
       failure_type: 'runtime_failing',
-      detail: `n8n runtime says this workflow is ${r.status}: ${r.errors_28d}/${r.runs_28d} executions failed in ${WINDOW_DAYS}d. `
-        + `Class: ${r.failure_class ?? 'unknown'}. Node: ${r.last_error_node ?? 'n/a'}. ${r.last_error_message ?? ''}`.slice(0, 900),
+      detail: detail.slice(0, 900),
       run_count: r.errors_28d as number,
     })
     raised++
@@ -244,6 +276,17 @@ async function reconcile(apiKey: string) {
       dead: rows.filter(r => r.status === 'dead').length,
       degraded: rows.filter(r => r.status === 'degraded').length,
       alerts_raised: raised,
+      alerts_resolved: resolved,
+      workflows_resolved: resolvedNames.length,
+      resolve_error: resolveError,
+      // Left out of grading on purpose, counted here so the exclusion is
+      // visible rather than silent.
+      test_runs_excluded: collected.testRuns,
+      undated_executions: collected.undated,
+      // False means a page cap cut the read short: some old runs in the window
+      // were not seen, and a workflow absent from a short list is not resolved.
+      workflows_complete: wfList.complete,
+      executions_complete: exList.complete,
       unpublished_drafts: stale.length,
       // Distinguishes "no drafts pending" from "this n8n build does not report
       // version ids, so drift is undetectable". Zero here means the check is
@@ -257,7 +300,10 @@ async function reconcile(apiKey: string) {
 
   return {
     workflows: rows.length, executions: executions.length,
-    failing: broken.length, alerts_raised: raised,
+    failing: broken.length, alerts_raised: raised, alerts_resolved: resolved,
+    resolved: resolvedNames,
+    ...(resolveError ? { resolve_error: resolveError } : {}),
+    test_runs_excluded: collected.testRuns, undated_executions: collected.undated,
     unpublished_drafts: stale.map(r => r.workflow_name),
     broken: broken.map(r => ({ name: r.workflow_name, status: r.status, class: r.failure_class, node: r.last_error_node })),
   }

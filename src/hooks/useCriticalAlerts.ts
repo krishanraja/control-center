@@ -11,6 +11,14 @@ export interface CriticalAlertRow {
   detail: string | null
   run_count: number
   resolved_at: string | null
+  /**
+   * The oldest open row this workflow has among those fetched: when the
+   * current alert began. Derived here, not a column. Meaningful since
+   * 2026-10-04, when api/health/fleet-reconcile.ts started resolving rows as
+   * workflows recover. Before that every row stayed open forever, so the
+   * oldest one dated from the first failure ever seen, not the current one.
+   */
+  first_detected_at: string
 }
 
 let cache: CriticalAlertRow[] = []
@@ -35,28 +43,45 @@ async function fetchAll(): Promise<void> {
       // shipped: the query was correct, the tier it asked for does not exist.
       // Meanwhile the fleet has carried real tier-3 failures for weeks with
       // nothing on Home to say so.
+      //
+      // Since 2026-10-04 an open tier-3 runtime_failing row means the workflow
+      // is failing or dead NOW, judged on its recent production runs. The
+      // reconcile resolves its rows once it recovers, and resolves the tier-3
+      // ones alone once it drops to degraded, so nothing here has to second
+      // guess a stale row.
       .gte('tier', 3)
       .is('resolved_at', null)
       .order('tier', { ascending: false })
       .order('detected_at', { ascending: false })
-      // Fetch wider than we show: the sweep re-flags the same workflow on
-      // every run, so ten rows can be three workflows repeated.
-      .limit(60)
+      // Fetch wider than we show: the reconcile re-flags a workflow once a day
+      // for as long as it stays broken, so ten rows can be three workflows
+      // repeated, and the oldest of them says when the alert began.
+      .limit(200)
     if (error && error.code !== 'PGRST205') {
       console.warn('[useCriticalAlerts] fetch error', error.message)
     }
     // One row per workflow, keeping the most severe and most recent. Without
     // this the banner counts the same dead credential four times and reports
     // "+ 9 more critical alerts" for three real problems.
+    const rows = (data as Omit<CriticalAlertRow, 'first_detected_at'>[]) || []
+    const keyOf = (r: { workflow_id: string; workflow_name: string | null; id: string }) =>
+      r.workflow_id || r.workflow_name || r.id
+    const firstSeen = new Map<string, string>()
+    for (const r of rows) {
+      const k = keyOf(r)
+      const prev = firstSeen.get(k)
+      if (!prev || Date.parse(r.detected_at) < Date.parse(prev)) firstSeen.set(k, r.detected_at)
+    }
     const seen = new Set<string>()
-    cache = ((data as CriticalAlertRow[]) || [])
+    cache = rows
       .filter(r => {
-        const k = r.workflow_id || r.workflow_name || r.id
+        const k = keyOf(r)
         if (seen.has(k)) return false
         seen.add(k)
         return true
       })
       .slice(0, 10)
+      .map(r => ({ ...r, first_detected_at: firstSeen.get(keyOf(r)) ?? r.detected_at }))
     loaded = true
     notify()
     inflight = null
