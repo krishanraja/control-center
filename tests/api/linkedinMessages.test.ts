@@ -96,3 +96,15 @@ test('Connections.csv is read past its notice, not from row 0', () => {
   assert.deepEqual(rows[0], { slug: 'aprilschang', name: 'April Chang', company: '10x10', title: 'CEO, CTO', email: null })
   assert.equal(rows[1].email, 'katy@acme.com')
 })
+
+test('a group message whose recipients are comma-separated credits each person', () => {
+  // The real export separates recipients with a comma. Splitting on spaces
+  // alone made "li:amyleannabaker,https:" out of two people, 24 times over.
+  const csv = [HEAD,
+    'c1,,Krish Raja,https://www.linkedin.com/in/krish-raja,Amy Baker,"https://www.linkedin.com/in/amyleannabaker,https://www.linkedin.com/in/anttim",2026-02-20 15:49:04 UTC,,hi,INBOX,,No,No',
+  ].join('\n')
+  const t = tallyMessages(parseDelimited(csv))
+  assert.deepEqual([...t.keys()].sort(), ['amyleannabaker', 'anttim'])
+  for (const k of t.keys()) assert.ok(!/[,\s]/.test(k), `a slug may not hold a comma: ${k}`)
+  assert.equal(slugOf('https://www.linkedin.com/in/jasonecho,https:'), 'jasonecho')
+})

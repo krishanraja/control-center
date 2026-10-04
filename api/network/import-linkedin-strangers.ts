@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (error) throw new Error(error.message)
 
     const slugOf = (u: unknown) => {
-      const m = /linkedin\.com\/(?:in|pub)\/([^/?#]+)/i.exec(String(u || ''))
+      const m = /linkedin\.com\/(?:in|pub)\/([^/?#,\s]+)/i.exec(String(u || ''))
       return m ? m[1].trim().toLowerCase() : null
     }
 

@@ -121,7 +121,7 @@ export async function relationshipEvidence(contactIds: string[]): Promise<Map<st
   const warmthBy = new Map((intel || []).map((r: Record<string, unknown>) => [String(r.contact_id), r]))
 
   const slugOf = (url: unknown): string | null => {
-    const m = /linkedin\.com\/(?:in|pub)\/([^/?#]+)/i.exec(String(url || ''))
+    const m = /linkedin\.com\/(?:in|pub)\/([^/?#,\s]+)/i.exec(String(url || ''))
     return m ? m[1].trim().toLowerCase() : null
   }
 

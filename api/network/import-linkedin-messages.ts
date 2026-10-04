@@ -40,7 +40,9 @@ const earlier = (a?: string, b?: string) => (!a ? b : !b ? a : a < b ? a : b)
 
 /** The identifying part of a profile URL, matching public.linkedin_slug(). */
 export function slugOf(url: string | undefined): string | null {
-  const m = /linkedin\.com\/(?:in|pub)\/([^/?#]+)/i.exec(url || '')
+  // Commas and whitespace end a slug: a slug never contains either, and two
+  // URLs glued together must not read as one person.
+  const m = /linkedin\.com\/(?:in|pub)\/([^/?#,\s]+)/i.exec(url || '')
   return m ? m[1].trim().toLowerCase() : null
 }
 
@@ -80,8 +82,11 @@ export function tallyMessages(rows: string[][]): Map<string, Tally> {
 
     const fromSlug = slugOf(row[iFrom])
     const outbound = fromSlug === SELF_SLUG
-    // LinkedIn separates several recipients with a space.
-    const toUrls = (row[iTo] || '').split(/\s+/).filter(Boolean)
+    // LinkedIn separates several recipients with a comma, a space, or both,
+    // depending on the export. Splitting on spaces alone glued 24 group threads
+    // into keys like "li:amyleannabaker,https:": the first person got a broken
+    // identity and everyone else on the thread got no credit at all.
+    const toUrls = (row[iTo] || '').split(/[\s,]+/).filter(u => /linkedin\.com\//i.test(u))
     const counterparts = outbound
       ? toUrls.map(u => ({ slug: slugOf(u), url: u, name: row[iToName] }))
       : [{ slug: fromSlug, url: (row[iFrom] || '').trim(), name: row[iFromName] }]
