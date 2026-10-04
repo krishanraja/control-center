@@ -862,15 +862,21 @@ export function todaysCalls(input: CallsInput): CallsResult {
   if (input.videoReviews == null) {
     unsupported.push({ kind: 'studio_review', why: 'The Studio review list could not be read.' })
   } else {
+    // The list is the Studio's actionable queue (status=actionable): a review
+    // waiting for him, or one he already decided whose local ledger sync
+    // still needs attention. The second is a call too, or a failed sync after
+    // a decision would vanish from the only place he looks.
     for (const r of input.videoReviews) {
-      if (r.status !== 'pending') continue
+      const pending = r.status === 'pending'
       calls.push({
         key: `studio_review:${r.id}`,
         kind: 'studio_review',
         cadence: 'daily',
         title: str(r.safe_title) ?? 'A Studio video',
-        why: 'A Studio video is waiting for your review.',
-        primary: { action: 'open_studio_review', label: 'Open the review' },
+        why: pending
+          ? 'A Studio video is waiting for your review.'
+          : 'Your decision on this video is saved, but its local production-ledger sync needs attention.',
+        primary: { action: 'open_studio_review', label: pending ? 'Open review' : 'Open sync issue' },
         secondary: NOT_NOW,
         reviewId: r.id,
       })

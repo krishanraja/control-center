@@ -55,7 +55,6 @@ for (const [tab, panel] of [['growth', 'growth-panel-next'], ['content?room=unde
     const page = await ctx.newPage()
     await mock(page)
     await page.goto(`/#/${tab}`)
-    if (tab.startsWith('content')) await page.getByTestId('content-room-under_the_hood').click()
     await expect(page.getByTestId(panel)).toBeVisible()
     // A few pixels of rounding across the 1.2x zoom is fine. A hundred is the bug.
     expect(await gapBelow(page, panel)).toBeLessThanOrEqual(4)

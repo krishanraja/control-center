@@ -65,7 +65,9 @@ const stored = storedContentOutputs({
 })
 assert.deepEqual(stored.map(output => output.definition.key), ['linkedin', 'video_60s'])
 
-const contentTab = readFileSync(new URL('../src/components/content-v2/ContentV2Tab.tsx', import.meta.url), 'utf8')
+// The series list Krish browses lives behind "Browse all pieces" since the
+// 2026-10-04 redesign (today's calls); the tab itself no longer has rooms.
+const contentTab = readFileSync(new URL('../src/components/content-v2/BrowsePieces.tsx', import.meta.url), 'utf8')
 const contentModel = readFileSync(new URL('../src/lib/contentModel.ts', import.meta.url), 'utf8')
 
 // Until 2026-09-20 the next lines named the two rooms by slug, so this guard
@@ -83,7 +85,7 @@ const contentModel = readFileSync(new URL('../src/lib/contentModel.ts', import.m
 // series reader the decide card uses as well, and the behaviour is asserted
 // below rather than the spelling.
 assert.match(contentTab, /\.\.\.SUBCHANNELS\.map\(/)
-assert.match(contentTab, /storedSeries\(lane, slot\)/)
+assert.match(contentTab, /seriesOf\(i\) === slug/)
 assert.match(contentModel, /resolveFormat\(slot\)/)
 assert.match(contentModel, /kind === 'subchannel'/)
 assert.equal(storedSeries(null, 'mind_the_gap'), 'mind_the_gap', 'lane_slot is the series even when lane is null')

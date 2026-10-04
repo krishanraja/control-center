@@ -62,12 +62,9 @@ database and no spec spends an embedding or a model call.
 | `e2e/intel-zoom.spec.ts` | OS → Intel does not steal focus or overflow the zoom root, **and the whole phone column fits two screen-lengths** | 390x844 + 1280x800 |
 | `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
 | `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
-| `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
-| `e2e/decide-card.spec.ts` | the decide surface: reason capture in one tap, `panel_run_id` reaching the ledger, and the fixed-height footer that stopped the card moving under a press | default |
-| `e2e/sunday-list.spec.ts` | the buried-by-judge survey, grouped by killing judge rather than by date, opening the same `DecideCard` | default |
-| `e2e/lane-ready.spec.ts` | each lane room's Ready to write section: per-judge ranking, no piece shown twice against the in-progress board | default |
+| `e2e/content-rooms.spec.ts` | today's calls: numbered list with one in focus, how-sure chips on an approve, the pick's three read side by side, verdicts in place, Not now and Undo, the engine line, Browse all pieces, and the sparse, error and loading states | default |
 | `e2e/events-lane.spec.ts` | the Events lane under People → Visibility: city-aware ranking, a failed refresh keeping the last known rooms rather than blanking the lane | default, in CI since 2026-09-24 |
-| `e2e/content-desk.spec.ts` | the Content desk above 1400px, populated: no scroll, no nested scrollers, no hole, no squeezed text, no machine strings | **desk-1440 + desk-1920** |
+| `e2e/content-desk.spec.ts` | the Content desk above 1400px, populated: list beside the reading pane (a rail at 1920), one scroller and nothing scrolling inside it, no hole, no squeezed text, no machine strings | **desk-1440 + desk-1920** |
 | `e2e/advisory-desk.spec.ts` | the Advisory two-pane card and the draft that no longer scrolls in a box | **desk-1440 + desk-1920** |
 | `e2e/network-desk.spec.ts` | one venture control, Where\|Venture over Role\|Tier, and the country overflow as a popover rather than a phone sheet | **desk-1440 + desk-1920** |
 | `e2e/focus-desk.spec.ts` | Focus above 1400px: the day-boundary panel beside the ask rather than under it, the 620px ask measure held at 1920, and the shared squeezed-text/overflow/hole probes | **desk-1440 + desk-1920** |

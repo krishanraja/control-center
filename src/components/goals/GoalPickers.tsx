@@ -88,11 +88,15 @@ export function VentureChips({
  *     option can carry a `hint` saying what choosing it does. A three-way
  *     answer on a 260px phone column reads as three sentences, not three
  *     squeezed pills.
+ *   - `even` (2026-10-04, Content's "how sure are we" scale) lays a short,
+ *     ordered set out as one row of equal-width chips, so a scale reads as a
+ *     scale (50 to 90 left to right) instead of wrapping 3 + 2 on a phone.
+ *     Only for five short options or fewer.
  * Every chip carries `.tap-44`, so even the compact 32px chip is hit-tested at
  * 44px without moving its ink, and a wrapped row keeps a 44px pitch.
  */
 export function OptionChips({
-  label, options, value, onChange, disabled, size = 'default', stack = false,
+  label, options, value, onChange, disabled, size = 'default', stack = false, even = false,
 }: {
   label?: string
   options: Array<{ value: string; label: string; hint?: string }>
@@ -101,13 +105,14 @@ export function OptionChips({
   disabled?: boolean
   size?: 'default' | 'touch'
   stack?: boolean
+  even?: boolean
 }) {
   return (
     <div className="space-y-1.5">
       {label && <p className="text-micro text-ink-faint">{label}</p>}
       {/* A wrapped second row sits 12px below the first: 32px chips plus that
           gap is the 44px pitch, so two rows' hit areas never overlap. */}
-      <div className={stack ? 'flex flex-col gap-2' : 'flex flex-wrap gap-x-1.5 gap-y-3'}>
+      <div className={stack ? 'flex flex-col gap-2' : even ? 'grid grid-flow-col auto-cols-fr gap-1.5' : 'flex flex-wrap gap-x-1.5 gap-y-3'}>
         {options.map(o => (
           <Chip
             key={o.value}
@@ -117,6 +122,7 @@ export function OptionChips({
             disabled={disabled}
             size={size}
             stack={stack}
+            even={even}
             onClick={() => onChange(o.value)}
           />
         ))}
@@ -125,14 +131,14 @@ export function OptionChips({
   )
 }
 
-function Chip({ label, hint, on, onClick, disabled, size = 'default', stack = false }: {
+function Chip({ label, hint, on, onClick, disabled, size = 'default', stack = false, even = false }: {
   label: string; hint?: string; on: boolean; onClick: () => void; disabled?: boolean
-  size?: 'default' | 'touch'; stack?: boolean
+  size?: 'default' | 'touch'; stack?: boolean; even?: boolean
 }) {
   const sizing = size === 'touch'
-    ? 'min-h-[44px] px-4 py-2.5 text-ui font-semibold'
-    : 'min-h-[32px] px-3 py-1 text-label'
-  const shape = stack ? 'w-full rounded-xl text-left' : 'rounded-full'
+    ? `min-h-[44px] ${even ? 'px-1' : 'px-4'} py-2.5 text-ui font-semibold`
+    : `min-h-[32px] ${even ? 'px-1' : 'px-3'} py-1 text-label`
+  const shape = stack ? 'w-full rounded-xl text-left' : even ? 'w-full rounded-full text-center' : 'rounded-full'
   return (
     <button
       type="button"

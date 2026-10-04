@@ -15,6 +15,9 @@ interface Props {
   padded?: boolean
   className?: string
   bodyClassName?: string
+  /** Test id for the bounded body, so a spec can find the tab's one scroller
+   *  (Content's is `content-room-scroll`). */
+  bodyTestId?: string
   children: React.ReactNode
 }
 
@@ -36,6 +39,7 @@ export function AppFrame({
   padded = false,
   className = '',
   bodyClassName = '',
+  bodyTestId,
   children,
 }: Props) {
   const body =
@@ -47,7 +51,7 @@ export function AppFrame({
   return (
     <div className={`flex flex-col h-full max-h-[100dvh] min-h-0 ${className}`}>
       {header && <div className="flex-shrink-0">{header}</div>}
-      <div className={`${body} ${gutter} ${bodyClassName}`}>{children}</div>
+      <div data-testid={bodyTestId} className={`${body} ${gutter} ${bodyClassName}`}>{children}</div>
       {footer && <div className="flex-shrink-0">{footer}</div>}
     </div>
   )

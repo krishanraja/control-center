@@ -253,8 +253,11 @@ A separate `e2e` job runs nine Playwright specs at the default viewport
 `*-phone.spec.ts` at 390 and 360 (those two steps have no file filter, so the
 desk and phone projects cover whatever matches their `testMatch`, which is how
 `strategist-phone.spec.ts` runs). Everything else, including `mindmake-identity.spec.ts`,
-`growth.spec.ts`, `decide-card.spec.ts`, `sunday-list.spec.ts`,
-`lane-ready.spec.ts` and `room.spec.ts`, is caught only by a full local run.
+`growth.spec.ts` and `room.spec.ts`, is caught only by a full local run.
+(`decide-card.spec.ts`, `sunday-list.spec.ts` and `lane-ready.spec.ts` went
+with the surfaces they tested in the 2026-10-04 Content redesign; today's
+calls are covered by `content-rooms.spec.ts`, which keeps its name because CI
+runs it by name.)
 
 **CI was Node 18 until 2026-09-20, and that alone kept main red from 2026-09-19.**
 Node 18 has no `globalThis.crypto`, so `sha256Hex` in `src/lib/editLedger.ts`
