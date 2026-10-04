@@ -21,7 +21,10 @@ const EDITABLE = [
 ] as const
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET' && guard(req, res, ['POST'])) return
+  // PATCH must be in the guard's list too: guard() 405s any method it is not
+  // given, so with ['POST'] alone every stage move, script save and drop was
+  // refused with a 405 before it reached the code below.
+  if (req.method !== 'GET' && guard(req, res, ['POST', 'PATCH'])) return
 
   if (preamble(req, res, 'GET, POST, PATCH, OPTIONS')) return
 
