@@ -1,4 +1,5 @@
 import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin, Search, Radio } from '@/lib/icons'
+import { sharedHistoryLine, BADGED_PLAYS } from '../../lib/sharedHistory'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { geoLabel } from '../../hooks/useNetworkGeo'
@@ -91,6 +92,7 @@ export function NetworkResultRow({ r, onOpen, weak }: {
   // in is half an answer, which is what this row was before the explain pass
   // returned a move at all.
   const opening = r.move || r.hook
+  const history = sharedHistoryLine(r.shared_history)
 
   return (
     <div className="group flex items-start gap-3 border-b border-white/[0.06] px-4 py-3.5 transition-colors last:border-b-0 hover:bg-white/[0.02]">
@@ -135,6 +137,11 @@ export function NetworkResultRow({ r, onOpen, weak }: {
               reason to call them today. Someone SELLING AI is deliberately not
               badged: they are a vendor, not a buyer, and a green chip on them
               would be a lie about what the row is for. */}
+          {/* What this person can do for Krish, in his own categories. Only the
+              plays that narrow the list earn a badge: see BADGED_PLAYS. */}
+          {(r.plays || []).filter(p => BADGED_PLAYS[p]).map(p => (
+            <Badge key={p} variant="outline" data-testid={`network-row-play-${p}`}>{BADGED_PLAYS[p]}</Badge>
+          ))}
           {(r.intent_score ?? 0) > 0 && r.intent_stance && r.intent_stance !== 'selling' && (
             <Badge
               variant={HOT_STANCE.has(r.intent_stance) ? 'success' : 'outline'}
@@ -168,6 +175,11 @@ export function NetworkResultRow({ r, onOpen, weak }: {
               </span>
             )}
           </p>
+        )}
+        {history && (
+          // The warmest opener there is, and it was in the database for months
+          // with nothing able to say it.
+          <p className="mt-1 text-label leading-relaxed text-violet-200/85" data-testid="network-row-history">{history}</p>
         )}
         {reason && <p className="mt-1.5 text-label leading-relaxed text-ink-muted">{reason}</p>}
         {opening && (

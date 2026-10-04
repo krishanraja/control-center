@@ -95,6 +95,12 @@ export interface NetworkResult {
   venture_multiplier: number
   /** Added by the rerank pass. */
   why_match?: string
+  /** Krish's employers this person also worked at. Says both were there,
+   *  never that they overlapped: career rows carry durations, not dates. */
+  shared_history?: Array<{ key: string; label: string; closeness: 'close' | 'wide'; their_title: string | null; current: boolean }>
+  /** What this person can do for Krish: alumni, multiplier, buyer, amplifier,
+   *  subject. Krish's own five categories, 2026-10-03. */
+  plays?: string[]
 }
 
 export interface SearchOptions {
@@ -375,13 +381,31 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     }
   }
 
+  // network_search returns neither, and recreating it to add them needs a role
+  // allowed to set hnsw.ef_search, which nothing here has. One extra read for
+  // the page that will actually be shown, so every row in every list knows
+  // what the person is to Krish, not only the rows of the browse mode.
+  const shown = results.slice(0, limit)
+  if (shown.length) {
+    const { data: extra } = await supabase.from('contact_intelligence')
+      .select('contact_id, shared_history, plays')
+      .in('contact_id', shown.map(r => r.contact_id))
+    const by = new Map((extra || []).map((e: Record<string, unknown>) => [String(e.contact_id), e]))
+    for (const r of shown) {
+      const e = by.get(r.contact_id)
+      if (!e) continue
+      r.shared_history = (e.shared_history as NetworkResult['shared_history']) ?? []
+      r.plays = (e.plays as string[]) ?? []
+    }
+  }
+
   mark('tail', tRpc)
   mark('total', t0)
   return {
     ok: true,
     restated: plan.restated,
     timings,
-    results: results.slice(0, limit),
+    results: shown,
     weak,
     total: results.length,
     plan: { venture: plan.venture, constraints: plan.constraints, keywords: plan.keywords },

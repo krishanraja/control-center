@@ -35,7 +35,9 @@ const INTENTS: Array<[string, string]> = [
   ['investor', 'to raise from'],
 ]
 
-function Chip({ on, onClick, testId, children }: {
+/** The network tab's one chip. Exported so the play picker beside this uses the
+ *  same control rather than a second one that drifts. */
+export function Chip({ on, onClick, testId, children }: {
   on: boolean
   onClick: () => void
   testId?: string
@@ -47,7 +49,7 @@ function Chip({ on, onClick, testId, children }: {
       onClick={onClick}
       aria-pressed={on}
       data-testid={testId}
-      className={`min-h-[30px] rounded-full border px-2.5 text-label transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
+      className={`tap-44 min-h-[30px] rounded-full border px-2.5 text-label transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
         on ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
            : 'border-white/10 text-ink-faint hover:border-white/20 hover:text-ink-muted'}`}
     >

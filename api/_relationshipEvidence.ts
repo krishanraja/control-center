@@ -34,6 +34,13 @@ export interface RelationshipEvidence {
   /** The warmth is measured from evidence, not guessed at import. */
   warmth_measured: boolean
   warmth: number | null
+  /** Krish's employers they also worked at. Never "at the same time". */
+  shared_history: Array<{ key: string; label: string; closeness: 'close' | 'wide'; their_title: string | null; current: boolean }>
+  /** What they can do for Krish: alumni, multiplier, buyer, amplifier, subject. */
+  plays: string[]
+  /** Days since a profile read saw their title change, where one has. A new
+   *  CRO in their first 90 days wants a point of view fast. */
+  days_in_seat: number | null
   /** One sentence a prompt can quote without doing arithmetic. */
   summary: string
 }
@@ -108,13 +115,13 @@ export async function relationshipEvidence(contactIds: string[]): Promise<Map<st
 
   const { data: intel, error: iErr } = await supabase
     .from('contact_intelligence')
-    .select('contact_id, warmth, warmth_source')
+    .select('contact_id, warmth, warmth_source, shared_history, plays, role_changed_at')
     .in('contact_id', ids)
   if (iErr) throw new Error(iErr.message)
   const warmthBy = new Map((intel || []).map((r: Record<string, unknown>) => [String(r.contact_id), r]))
 
   const slugOf = (url: unknown): string | null => {
-    const m = /linkedin\.com\/(?:in|pub)\/([^/?#]+)/i.exec(String(url || ''))
+    const m = /linkedin\.com\/(?:in|pub)\/([^/?#,\s]+)/i.exec(String(url || ''))
     return m ? m[1].trim().toLowerCase() : null
   }
 
@@ -185,6 +192,9 @@ export async function relationshipEvidence(contactIds: string[]): Promise<Map<st
       known_months: firstAt ? Math.round((Date.now() - Date.parse(firstAt)) / (30 * DAY)) : null,
       warmth_measured: w.warmth_source === 'measured',
       warmth: w.warmth === null || w.warmth === undefined ? null : Number(w.warmth),
+      shared_history: Array.isArray(w.shared_history) ? (w.shared_history as RelationshipEvidence['shared_history']) : [],
+      plays: Array.isArray(w.plays) ? (w.plays as string[]) : [],
+      days_in_seat: daysSince(w.role_changed_at as string | null),
     }
     out.set(id, { ...base, summary: describe(base) })
   }

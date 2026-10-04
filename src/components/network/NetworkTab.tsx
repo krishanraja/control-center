@@ -6,6 +6,7 @@ import { useNetworkSearch, type NetworkResult } from '../../hooks/useNetworkSear
 import { NetworkSearchBar } from './NetworkSearchBar'
 import { NetworkFilters, EMPTY_FILTERS, type FilterState } from './NetworkFilters'
 import { VentureRecommender } from './VentureRecommender'
+import { PlayPicker } from './PlayPicker'
 import { NetworkResultRow } from './NetworkResultRow'
 import { NetworkPersonSheet } from './NetworkPersonSheet'
 import { SkeletonList } from '../shared/Skeleton'
@@ -39,6 +40,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
   const [lastQuestion, setLastQuestion] = useState('')
   const [recommendation, setRecommendation] = useState<{ venture: string; intent: string } | null>(null)
+  const [browse, setBrowse] = useState<{ play: string; employer: string | null } | null>(null)
   // The three ways people get into the graph sit together: a screenshot, a
   // document or CSV, a Substack export. They used to be split across two
   // lanes (this one and the retired Pipeline lane).
@@ -47,6 +49,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   const runSearch = useCallback((q: string, f: FilterState) => {
     setLastQuestion(q)
     setRecommendation(null)
+    setBrowse(null)
     s.search(q, {
       venture: f.venture,
       // Filters go up in BOTH modes; `mode` says what they mean. They used to be
@@ -74,6 +77,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
   const onRecommend = (venture: string, intent: string) => {
     setLastQuestion('')
+    setBrowse(null)
     setRecommendation({ venture, intent })
     // A recommendation obeys the geography that is on screen. "Who should I talk
     // to for Mindmaker" and "...in the UK" are the same question with a market
@@ -92,9 +96,20 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   // Filters reset with everything else on purpose. Leaving a tier chip lit over
   // an empty field is the same trap the old surface had: the next query comes
   // back quietly narrowed by something set two questions ago.
+  // Browsing by play is a push mode like the venture recommender, so it clears
+  // the question and the venture the same way, and the list it fills is the
+  // same list, with the same person sheet behind every row.
+  const onBrowse = (play: string, employer: string | null) => {
+    setLastQuestion('')
+    setRecommendation(null)
+    setBrowse({ play, employer })
+    void s.byPlay(play, employer)
+  }
+
   const onClear = useCallback(() => {
     setLastQuestion('')
     setRecommendation(null)
+    setBrowse(null)
     setFilters(EMPTY_FILTERS)
     setPerson(null)
     s.reset()
@@ -183,6 +198,11 @@ export function NetworkTab({ narrow, onOpenPerson }: {
               <SubstackImportDropzone />
             </div>
           </section>
+        )}
+        {/* The doors stay while one is open, so moving from Nine to Captify is
+            one tap, not clear-and-start-again. */}
+        {(!hasRun || browse) && (
+          <PlayPicker onBrowse={onBrowse} loading={s.loading} active={browse} />
         )}
         {!hasRun && (
           <VentureRecommender
