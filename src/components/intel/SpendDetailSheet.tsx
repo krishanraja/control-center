@@ -4,9 +4,43 @@ import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Sparkline } from '../shared/Sparkline'
 import { statusStyle } from '../shared/tokens'
-import { usageLine, cycleLine, type SpendSummary, type SpendServiceRow, type SpendUnit } from '../../hooks/useSpend'
+import { usageLine, cycleLine, reviewSentence, type SpendSummary, type SpendServiceRow, type SpendUnit, type SpendReviewItem } from '../../hooks/useSpend'
 
-const usd = (n: number): string => `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 })}`
+/** A refund in the review list is negative: "-$480", never "$-480". */
+const usd = (n: number): string =>
+  `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: Math.abs(n) >= 100 ? 0 : 2 })}`
+
+/** "12 Sep" from a YYYY-MM-DD day, read as UTC so it never slips a day. */
+function shortDay(day: string | null): string | null {
+  if (!day) return null
+  const t = Date.parse(`${day.slice(0, 10)}T00:00:00Z`)
+  return Number.isNaN(t) ? null : new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+}
+
+/**
+ * One receipt that needs a look: who sent it, the day it counts on, its
+ * subject, and whether the totals include it. Unread ones say "not counted"
+ * where the money would be, so a blank is never mistaken for $0.
+ */
+function ReviewRow({ r }: { r: SpendReviewItem }) {
+  const day = shortDay(r.date)
+  return (
+    <div className="flex flex-wrap items-baseline gap-2.5 rounded-xl px-2 py-2">
+      <span aria-hidden className={`h-1.5 w-1.5 shrink-0 translate-y-[-2px] rounded-full ${r.counted ? 'bg-white/25' : statusStyle('needs_you').dot}`} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-ui text-ink-muted">
+          {r.vendor}
+          {day && <span className="ml-1.5 text-label text-ink-faint">{day}</span>}
+        </span>
+        {r.subject && <span className="block text-label leading-snug text-ink-faint">{r.subject}</span>}
+      </span>
+      <span className="shrink-0 font-mono tabular-nums text-label text-ink-muted">
+        {r.counted && r.usd != null ? usd(r.usd) : 'not counted'}
+      </span>
+      <p className="w-full pl-[16px] text-label leading-snug text-ink-faint">{r.reason}</p>
+    </div>
+  )
+}
 
 /** Map a sweep status onto the house status vocabulary for the row dot. */
 function dotFor(s: SpendServiceRow): string {
@@ -41,6 +75,7 @@ export function SpendDetailSheet({ open, onClose, spend }: {
   const paying = spend.services.filter(s => s.month_usd !== 0 || s.avg_usd !== 0)
   const quiet = spend.services.filter(s => s.month_usd === 0 && s.avg_usd === 0 && s.status != null)
   const unwired = spend.services.length - paying.length - quiet.length
+  const review = spend.review || []
 
   return (
     <SlideOver open={open} onClose={onClose} ariaLabel="Spend detail" label="Spend">
@@ -108,7 +143,7 @@ export function SpendDetailSheet({ open, onClose, spend }: {
               </p>
             )}
             <p className="px-2 pt-1 text-label leading-relaxed text-ink-faint">
-              Apify reports the actor and where the run started, not which workflow called it. Anthropic totals cover calls the OS makes itself; anything an n8n node calls directly with its own key shows only on the invoice.
+              Apify reports the actor and where the run started, not which workflow called it. Anthropic totals cover the calls the OS makes itself and, since 20 September, the Anthropic steps inside n8n workflows too. Gemini steps inside n8n are counted under Google from the same day. Your own Claude plan is not on the meter. It shows only on its receipts.
             </p>
           </div>
         )}
@@ -140,10 +175,22 @@ export function SpendDetailSheet({ open, onClose, spend }: {
           </div>
         )}
 
-        {(unwired > 0 || spend.needs_review > 0) && (
+        {spend.needs_review > 0 && (
+          <div className="flex flex-col gap-1" data-testid="spend-review-list">
+            <div className="px-1 pb-1"><Eyebrow>Receipts to check</Eyebrow></div>
+            <p className="px-2 pb-1 text-label leading-relaxed text-ink-faint">{reviewSentence(spend)}</p>
+            {review.map((r, i) => <ReviewRow key={`${r.date}-${r.subject}-${i}`} r={r} />)}
+            {review.length > 0 && review.length < spend.needs_review && (
+              <p className="px-2 pt-1 text-label leading-relaxed text-ink-faint">
+                Showing the newest {review.length} of {spend.needs_review}.
+              </p>
+            )}
+          </div>
+        )}
+
+        {unwired > 0 && (
           <p className="text-label leading-relaxed text-ink-faint">
-            {unwired > 0 ? `${unwired} more service${unwired === 1 ? '' : 's'} tracked for invoices only (no API check). ` : ''}
-            {spend.needs_review > 0 ? `${spend.needs_review} receipt${spend.needs_review === 1 ? '' : 's'} need a manual look.` : ''}
+            {unwired} more service{unwired === 1 ? '' : 's'} tracked for invoices only (no API check).
           </p>
         )}
       </div>
