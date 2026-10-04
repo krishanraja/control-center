@@ -111,6 +111,97 @@ export function ga4PropertyId(p: WebProperty, env: Record<string, string | undef
   return { id: '', from: 'none' }
 }
 
+// ---------- answering a ruling from the dashboard ----------
+//
+// A site whose canon is 'ruling_owed' carries a rung-4 action ("Decide what
+// fulltime.fm is for"). Its detector, canon_ruled, used to fire only when a PR
+// changed the canon above, so the card asked for a reply in chat and nothing
+// on the dashboard could answer it. The answer can now be stored in
+// system_config (one key per site, so two answers never race on one value),
+// and the daily check applies it before it reads anything: the site is read
+// as if the registry said what the answer says, the rung-4 finding is not
+// raised, the detector fires and the action closes like any other.
+//
+// Code still wins. The stored answer applies only while the registry entry is
+// 'ruling_owed'; once a PR writes the ruling into the entry, the stored value
+// is ignored rather than fighting it.
+
+/** Every job id, in the order src/content/jobs.ts offers them (a test asserts the set). */
+export const WEB_JOBS: readonly WebJob[] = ['fill_pilots', 'keep_honest', 'run_pilots', 'feed_demand', 'keep_edge']
+
+export function isWebJob(v: unknown): v is WebJob {
+  return typeof v === 'string' && (WEB_JOBS as readonly string[]).includes(v)
+}
+
+/** The system_config key that holds one site's answered ruling. */
+export function canonRulingKey(prefix: WebPrefix): string {
+  return `web_canon_ruling_${prefix}`
+}
+
+/** One answered ruling, as stored (JSON in system_config.value). */
+export interface CanonRuling {
+  choice: string
+  /** Only for an answer that makes the site live without naming its job in the answer itself ('live'). */
+  job: WebJob | null
+  /** ISO instant it was answered. */
+  at: string
+}
+
+/** The answers a site's open ruling accepts, in the registry's order; [] when no ruling is owed. */
+export function canonChoices(p: WebProperty): string[] {
+  return p.canon.status === 'ruling_owed' ? [...p.canon.options] : []
+}
+
+/** True for an answer that needs the job it serves named alongside it. */
+export function choiceNeedsJob(choice: string): boolean {
+  return choice === 'live'
+}
+
+/**
+ * What an answer means for the site, or null when the site does not accept it.
+ *
+ *   measure        -> measure_only: keep reading visits, no actions
+ *   park, retire   -> retired: only visits are read (taking a tag off the
+ *                     page is a change to that site's own repo, not this one)
+ *   proof          -> live, feeding demand ("proof (it feeds demand for the
+ *                     pilot)" is how the fulltime.fm action words it)
+ *   live + job     -> live, serving that job. 'live' alone is not an answer:
+ *                     a live site with no job has nothing to grow toward.
+ */
+export function canonFromChoice(p: WebProperty, choice: string, job?: WebJob | null): { canon: WebCanon; jobs: WebJob[] } | null {
+  if (!canonChoices(p).includes(choice)) return null
+  switch (choice) {
+    case 'measure': return { canon: { status: 'measure_only' }, jobs: [] }
+    case 'park':
+    case 'retire': return { canon: { status: 'retired' }, jobs: [] }
+    case 'proof': return { canon: { status: 'live' }, jobs: ['feed_demand'] }
+    case 'live': return isWebJob(job) ? { canon: { status: 'live' }, jobs: [job] } : null
+    default: return null
+  }
+}
+
+/** A stored value (system_config text, or already parsed) as a ruling this site accepts, or null. */
+export function parseCanonRuling(p: WebProperty, raw: unknown): CanonRuling | null {
+  let v: unknown = raw
+  if (typeof raw === 'string') {
+    try { v = JSON.parse(raw) } catch { return null }
+  }
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null
+  const o = v as Record<string, unknown>
+  const choice = typeof o.choice === 'string' ? o.choice.trim() : ''
+  const job = isWebJob(o.job) ? o.job : null
+  const at = typeof o.at === 'string' && Number.isFinite(Date.parse(o.at)) ? o.at : null
+  if (!choice || !at || !canonFromChoice(p, choice, job)) return null
+  return { choice, job, at }
+}
+
+/** The site as the check should read it: with its answered ruling applied, or unchanged. */
+export function withCanonRuling(p: WebProperty, ruling: CanonRuling | null | undefined): WebProperty {
+  if (!ruling) return p
+  const ruled = canonFromChoice(p, ruling.choice, ruling.job)
+  return ruled ? { ...p, canon: ruled.canon, jobs: ruled.jobs } : p
+}
+
 // ---------- wire types (the API writes them, the UI reads them) ----------
 export type HealthVerdict = 'no_access' | 'api_disabled' | 'wrong_stream' | 'tag_missing' | 'never_received' | 'provisional' | 'quiet' | 'ok'
 export type HealthFlag = 'consent_gated' | 'thresholded' | 'admin_unverified' | 'undercounting' | 'host_filter_off' | 'read_failed'
