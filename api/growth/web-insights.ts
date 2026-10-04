@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard, guardCronRoute } from '../_auth.js'
-import { runWebInsights, readWebInsights, refreshAllowedAt } from '../_webInsightsRun.js'
+import { runWebInsights, readWebInsights, refreshAllowedAt, answerCanonRuling } from '../_webInsightsRun.js'
 
 /**
  * /api/growth/web-insights - one honest read per site per day for the four
@@ -14,6 +14,16 @@ import { runWebInsights, readWebInsights, refreshAllowedAt } from '../_webInsigh
  *   POST { action:'refresh' }       - "Check now". Cookie or CRON_SECRET. At
  *                                     most one run per 10 minutes, 429 before.
  *   POST { action:'run', dry_run? } - manual run; Bearer CRON_SECRET only.
+ *   POST { action:'answer', property, choice, job? }
+ *                                   - Krish's answer to a site's open ruling
+ *                                     (proof / measure / park on fulltime.fm,
+ *                                     live + job / measure / retire on
+ *                                     legibility.io). Cookie or CRON_SECRET.
+ *                                     Stores one system_config key the next
+ *                                     check reads, then returns the fresh
+ *                                     read with that action already closed.
+ *                                     400 on an answer the site does not
+ *                                     accept, 409 when no ruling is owed.
  *
  * The rules live in api/_webInsightsCore.ts and the run in
  * api/_webInsightsRun.ts. A browser GET never sends an Authorization header,
@@ -49,7 +59,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!secret || (req.headers.authorization || '') !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
       return res.json({ ok: true, run: await runWebInsights('run', { dryRun: !!body.dry_run }) })
     }
-    return res.status(400).json({ ok: false, error: "action must be 'refresh' or 'run'" })
+    if (body.action === 'answer') {
+      const b = body as { property?: unknown; choice?: unknown; job?: unknown }
+      const answered = await answerCanonRuling(b.property, b.choice, b.job)
+      // `in` narrows here: this tree compiles without strictNullChecks, where `ok: false` does not.
+      if ('error' in answered) return res.status(answered.status).json({ ok: false, error: answered.error })
+      return res.json({ ...(await readWebInsights()), answered: { property: b.property, ...answered.ruling } })
+    }
+    return res.status(400).json({ ok: false, error: "action must be 'refresh', 'run' or 'answer'" })
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) })
   }

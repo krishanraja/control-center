@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useGrowth } from '../../hooks/useGrowth'
-import { BATCH_MAX, citationRate, mondayOf, pct } from '../../lib/growth'
+import { BATCH_MAX, citationRate, growthWeekOf, pct, recentProbes } from '../../lib/growth'
 import { TouchpointMap } from './TouchpointMap'
 import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 import { CreativeBoard } from './CreativeBoard'
@@ -114,7 +114,10 @@ function nextGrowthAction(
     return {
       descriptor: {
         headline: counts.council === 1 ? 'Rule on Sunday\'s review' : `Rule on ${counts.council} reviews`,
-        sub: 'Your ruling turns each move into a clip.',
+        // A ruling only records your call (krish_decision, api/growth/council.ts);
+        // nothing downstream turns it into anything. The clip comes from the
+        // "Make it a clip" button on each move, so say that instead.
+        sub: 'Each move can go on today\'s list or become a clip.',
         actionLabel: 'Read the review',
         icon: <Gavel size={14} />,
         tone: 'amber',
@@ -199,7 +202,10 @@ export function GrowthTab({
   const g = useGrowth()
 
   const counts = useMemo(() => {
-    const week = mondayOf(new Date())
+    // The loop week (growthWeekOf), the one "Make it a clip", the board and
+    // the read model file and count clips under. It turns over when Sunday's
+    // review lands at 17:00 UTC, not at local midnight.
+    const week = growthWeekOf(new Date())
     return {
       map: g.touchpoints.filter(t => t.assumption_flag).length,
       work: g.cards.filter(c => c.stage !== 'dropped' && c.batch_week === week).length,
@@ -235,9 +241,12 @@ export function GrowthTab({
   const heroReady = web.loaded || webWaitOver
 
   const overCap = counts.work > BATCH_MAX
-  const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
+  // The 30-day window GeoProbes rates, so the header and the panel agree.
+  const geoRate = useMemo(() => citationRate(recentProbes(g.probes)), [g.probes])
+  // A yyyy-mm-dd parses as UTC midnight, so it is formatted in UTC: in local
+  // time west of Greenwich it read as the Sunday before.
   const weekLabel = useMemo(
-    () => new Date(mondayOf(new Date())).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }),
+    () => new Date(`${growthWeekOf(new Date())}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'long', timeZone: 'UTC' }),
     [],
   )
   const next = useMemo(

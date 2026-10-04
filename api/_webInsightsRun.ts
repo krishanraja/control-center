@@ -7,7 +7,9 @@
 // day, the evidence.web key on Maya's seo (else geo) touchpoint, one
 // workflow_runs heartbeat and one audit_log row. No tasks rows (each one fires
 // the n8n orchestrator), no system_config, and nothing outside this database:
-// every Google, Plausible and site call is a read.
+// every Google, Plausible and site call is a read. The run READS one
+// system_config key per site (an answered ruling); the only thing that writes
+// one is answerCanonRuling, from Krish's own answer, never the check.
 //
 // The rule it carries from the core: an unknown is never a zero. A fetch that
 // fails gives null, and a null never fires a detector or prints a number.
@@ -21,15 +23,16 @@ import { proposalPlay } from './_humor.js'
 import { ymdIn, shiftYmd } from './_timezone.js'
 import { plausibleFacts } from './_plausible.js'
 import {
-  WEB_PROPERTIES, ga4PropertyId,
-  type WebProperty, type KrishAction, type WebFixed, type WebClosed, type Finding,
-  type WebRunSummary, type WebInsightsResponse,
+  WEB_PROPERTIES, WEB_JOBS, ga4PropertyId, webProperty,
+  canonRulingKey, canonChoices, canonFromChoice, choiceNeedsJob, isWebJob, parseCanonRuling, withCanonRuling,
+  type WebProperty, type WebPrefix, type KrishAction, type WebFixed, type WebClosed, type Finding,
+  type WebRunSummary, type WebInsightsResponse, type CanonRuling,
 } from '../src/lib/webProperties.js'
 import {
   insightBatchA, insightBatchB, classifyGaError, shortGaError, reportMeta, parseTotals, parseSeries, parseRows,
   parsePages28, parseHosts, lifetimeEventCount, parseEvents, aiRows, adminStateFromError, propertiesInSummaries,
   streamsFromList, streamMatches, readProbe, newestLastmod, classifyHealth, buildFindings, insightLine, healthLine,
-  ladder, mergeShared, doneTextsSince, isPlainLandingPath, allowedDetectors, webActionRules, WEB_ACTION_SCHEMA, webActionUser,
+  ladder, mergeShared, doneTextsSince, isPlainLandingPath, allowedDetectors, webActionRules, WEB_ACTION_SCHEMA, webActionUser, canonRuledFor,
   evidenceHash, pickAction, fallbackGrowthAction, toView, nextRunAt, crosscheckOf,
   DEAD_LANDING_MAX_PROBES, PILOT_STATE_RANK, REFRESH_MIN_INTERVAL_MS, FIXED_WINDOW_DAYS, RESTATE_DAYS,
   type AdminFacts, type AdminState, type ProbeFacts, type PropertyRead, type OsFacts, type DetectorFacts,
@@ -529,7 +532,7 @@ function detectorFacts(nowIso: string, outs: PropertyOutcome[], g: Gathered, adm
     f.tagPresent[pre] = pageRead ? r.probe.hasTag : null
     f.lifetimeHits[pre] = r.lifetime == null ? null : r.lifetime > 0
     f.consentDefaultDenied[pre] = pageRead ? r.probe.consentDefaultDenied : null
-    f.canonRuled[pre] = p.canon.status !== 'ruling_owed' || (pre === 'legibility' && g.os.ventureActive.legibility === true)
+    f.canonRuled[pre] = canonRuledFor(p, g.os)
     f.keyEventsConfigured[pre] = Array.isArray(r.admin.keyEvents) ? r.admin.keyEvents.length > 0
       : Array.isArray(r.events) ? r.events.some(e => e.isKey) : null
     f.openFindingIds[pre] = findings.filter(x => x.cls !== 'auto').map(x => x.id)
@@ -607,9 +610,15 @@ async function runBody(trigger: Trigger, dryRun: boolean, started: Date, errors:
   const g = await gatherOs(started, ident, admin.activationUrl)
   errors.push(...g.errors)
 
+  // 3b. Rulings answered from the dashboard, applied before any site is read,
+  // so the site is checked as if the registry already said it (see
+  // withCanonRuling). A failed read applies none: an unknown never closes an action.
+  const rulings = await readCanonRulings(errors)
+  const sites = WEB_PROPERTIES.map(p => withCanonRuling(p, rulings[p.prefix]))
+
   // 4. The four sites in parallel.
   // One site that throws must not take the other three down with it.
-  const outs = await Promise.all(WEB_PROPERTIES.map(p => readOne(p, started, admin, g).catch(e => {
+  const outs = await Promise.all(sites.map(p => readOne(p, started, admin, g).catch(e => {
     errors.push(`${p.prefix}: the check threw: ${String((e as any)?.message || e).slice(0, 160)}`)
     return failedOutcome(p, started, admin, g, e)
   })))
@@ -853,17 +862,68 @@ export async function refreshAllowedAt(now: Date = new Date()): Promise<string |
   return new Date(until).toISOString()
 }
 
+// ---------- rulings answered from the dashboard ----------
+
+/** Every site's stored answer that it still accepts (see parseCanonRuling). A failed read is no answers, with the error noted. */
+export async function readCanonRulings(errors?: string[]): Promise<Partial<Record<WebPrefix, CanonRuling>>> {
+  const out: Partial<Record<WebPrefix, CanonRuling>> = {}
+  try {
+    const { data, error } = await supabase.from('system_config').select('key, value')
+      .in('key', WEB_PROPERTIES.map(p => canonRulingKey(p.prefix)))
+    if (error) { errors?.push(`system_config rulings: ${error.message.slice(0, 160)}`); return out }
+    for (const p of WEB_PROPERTIES) {
+      const row = (data ?? []).find((r: { key: string }) => r.key === canonRulingKey(p.prefix)) as { value: string | null } | undefined
+      const ruling = row ? parseCanonRuling(p, row.value) : null
+      if (ruling) out[p.prefix] = ruling
+    }
+  } catch (e: any) {
+    errors?.push(`system_config rulings: ${String(e?.message || e).slice(0, 160)}`)
+  }
+  return out
+}
+
+export type AnswerResult =
+  | { ok: true; ruling: CanonRuling }
+  | { ok: false; status: 400 | 409 | 500; error: string }
+
+/**
+ * Store Krish's answer to one site's open ruling (POST /api/growth/web-insights
+ * { action: 'answer', property, choice, job? }). One system_config key per
+ * site, overwritten if he changes his mind before a PR writes it into the
+ * registry. It is the only write here; the next check reads it, and the card
+ * closes the action at once through toView.
+ */
+export async function answerCanonRuling(property: unknown, choice: unknown, job: unknown, now = new Date()): Promise<AnswerResult> {
+  const p = typeof property === 'string' ? webProperty(property) : undefined
+  if (!p) return { ok: false, status: 400, error: 'property must be one of ' + WEB_PROPERTIES.map(x => x.prefix).join(', ') }
+  const options = canonChoices(p)
+  if (!options.length) return { ok: false, status: 409, error: `${p.label} has no open ruling to answer` }
+  const c = typeof choice === 'string' ? choice.trim().toLowerCase() : ''
+  if (!options.includes(c)) return { ok: false, status: 400, error: `choice must be one of ${options.join(', ')}` }
+  const j = isWebJob(job) ? job : null
+  if (choiceNeedsJob(c) && !j) return { ok: false, status: 400, error: `${c} needs the job it serves: one of ${WEB_JOBS.join(', ')}` }
+  const ruling: CanonRuling = { choice: c, job: choiceNeedsJob(c) ? j : null, at: now.toISOString() }
+  if (!canonFromChoice(p, ruling.choice, ruling.job)) return { ok: false, status: 400, error: 'that answer is not one this site accepts' }
+  const { error } = await supabase.from('system_config')
+    .upsert({ key: canonRulingKey(p.prefix), value: JSON.stringify(ruling), updated_at: ruling.at }, { onConflict: 'key' })
+  if (error) return { ok: false, status: 500, error: error.message }
+  return { ok: true, ruling }
+}
+
 export async function readWebInsights(): Promise<WebInsightsResponse> {
   const now = new Date()
   const nowIso = now.toISOString()
   const since = new Date(now.getTime() - FIXED_WINDOW_DAYS * DAY_MS - DAY_MS).toISOString()
-  const [rows, lastRun, canRefreshAt] = await Promise.all([
+  const [rows, lastRun, canRefreshAt, rulings] = await Promise.all([
     supabase.from('web_property_insights').select('*').gte('run_at', since).order('run_at', { ascending: false }).limit(80),
     // A heartbeat dated in the future is forged or skewed (workflow_runs takes anon writes) and is never "the last run".
     supabase.from('workflow_runs').select('run_at, status, metadata').eq('workflow_id', WORKFLOW_ID)
       .lte('run_at', new Date(now.getTime() + CLOCK_SKEW_MS).toISOString()).order('run_at', { ascending: false }).limit(1),
     refreshAllowedAt(now),
+    readCanonRulings(),
   ])
+  // Each card is built from the site as the next check will read it.
+  const sites = WEB_PROPERTIES.map(p => withCanonRuling(p, rulings[p.prefix]))
   const lr = (lastRun.error ? null : lastRun.data?.[0]) as { run_at: string; status: string | null; metadata: any } | null | undefined
   const trig = lr?.metadata?.trigger
   const base = {
@@ -875,15 +935,15 @@ export async function readWebInsights(): Promise<WebInsightsResponse> {
   }
   if (rows.error) {
     if (tableMissing(rows.error)) {
-      return { ...base, setup: 'table_missing', shared_action: null, properties: WEB_PROPERTIES.map(p => toView(p, null, [])) }
+      return { ...base, setup: 'table_missing', shared_action: null, properties: sites.map(p => toView(p, null, [])) }
     }
     throw new Error(`web_property_insights: ${rows.error.message}`)
   }
   const all = (rows.data ?? []) as WebInsightRow[]
   const windowStart = now.getTime() - FIXED_WINDOW_DAYS * DAY_MS
-  const properties = WEB_PROPERTIES.map(p => {
+  const properties = sites.map(p => {
     const mine = all.filter(row => row.property === p.prefix)
-    return toView(p, mine[0] ?? null, mine.filter(row => Date.parse(row.run_at) >= windowStart))
+    return toView(p, mine[0] ?? null, mine.filter(row => Date.parse(row.run_at) >= windowStart), rulings[p.prefix]?.at ?? null)
   })
   const newest = WEB_PROPERTIES.map(p => all.find(row => row.property === p.prefix) ?? null)
   const shared_action = newest.map(row => row?.action ?? null).find((a): a is KrishAction => !!a && a.prefix === 'shared') ?? null

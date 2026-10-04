@@ -232,13 +232,20 @@ test('direction studio shows the locked direction and locks a new version', asyn
 
 test('signals merges the GEO citation rate with the SEO rank sweep', async ({ page }) => {
   await mockGrowthApis(page)
-  // Specific override wins over the '**/rest/v1/**' catch-all (last route first).
-  await page.route('**/rest/v1/maya_striking_distance*', r =>
+  // The sweep is read over /api/growth/seo-rank on the service role: the table
+  // has RLS on and no policy, so the anon client this test used to mock reads
+  // zero rows in production. The route serves rows already normalised.
+  await page.route('**/api/growth/seo-rank*', r =>
     r.fulfill({
-      json: [
-        { id: 'r1', product: 'mm_ctrl', query: 'AI news aggregator', current_position: 8, previous_position: 12, search_volume: 170, priority: 60, last_checked_at: new Date().toISOString() },
-        { id: 'r2', product: 'fractionl_pulse', query: 'AI tools for executives', current_position: null, previous_position: null, search_volume: 2400, priority: 40, last_checked_at: new Date().toISOString() },
-      ],
+      json: {
+        ok: true,
+        checked_at: new Date().toISOString(),
+        count: 2,
+        rows: [
+          { id: 'r1', keyword: 'AI news aggregator', product: 'mm_ctrl', position: 8, previous_position: 12, monthly_searches: 170, priority: 60, impressions: null, clicks: null, checked_at: new Date().toISOString() },
+          { id: 'r2', keyword: 'AI tools for executives', product: 'fractionl_pulse', position: null, previous_position: null, monthly_searches: 2400, priority: 40, impressions: null, clicks: null, checked_at: new Date().toISOString() },
+        ],
+      },
     }))
   await openSection(page, 'signals')
   // GEO leads the section and stays honest when no probe has run.

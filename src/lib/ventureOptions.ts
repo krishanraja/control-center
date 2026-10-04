@@ -81,9 +81,28 @@ const SLUG_ALIASES: Record<string, string> = {
   'full-time': 'full_time',
 }
 
+/**
+ * Any spelling of a venture slug, as the registry spells it: `ctrl` and
+ * `mm_ctrl` both come back `mm_ctrl`. For comparing rows across the table
+ * families (a Growth product against a rank row keyed on the lane slug), never
+ * for writing: each table keeps the spelling its own CHECK allows.
+ *
+ * This file has zero imports so the serverless tree can import it too
+ * ('../../src/lib/ventureOptions.js'), which is what lets the API normalise
+ * with the same aliases instead of a second map.
+ */
+export function canonicalVentureSlug(slug: string): string
+export function canonicalVentureSlug(slug?: string | null): string | null
+export function canonicalVentureSlug(slug?: string | null): string | null {
+  if (!slug) return null
+  const s = String(slug).trim()
+  if (!s) return null
+  return SLUG_ALIASES[s] ?? s
+}
+
 /** The one way to turn a venture slug into words. */
 export function ventureLabel(slug?: string | null): string | null {
-  if (!slug) return null
-  const key = SLUG_ALIASES[slug] ?? slug
+  const key = canonicalVentureSlug(slug)
+  if (!key) return null
   return VENTURE_LABELS[key] ?? key.replace(/_/g, ' ')
 }

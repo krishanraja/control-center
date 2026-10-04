@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { ChevronDown } from '@/lib/icons'
 import { Chip, EmptyNote, ProductChip, SectionHead } from './atoms'
 import {
-  ENGINE_LABEL, PRODUCTS, PRODUCT_LABEL, asList, citationRate, dayLabel, pct,
+  ENGINE_LABEL, GEO_WINDOW_DAYS, PRODUCTS, PRODUCT_LABEL, asList, citationRate, dayLabel, pct, recentProbes,
   type GeoProbeRow, type ProductSlug,
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
@@ -28,15 +28,10 @@ import { SkeletonList } from '../shared/Skeleton'
  * says so plainly instead of showing a placeholder rate.
  */
 
-const WINDOW_DAYS = 30
-
 export function GeoProbes({ g, variant }: { g: GrowthData; variant: 'desktop' | 'mobile' }) {
-  // The same 30-day window the Sunday review uses, so the two never disagree.
-  const recent = useMemo(() => {
-    const since = Date.now() - WINDOW_DAYS * 86_400_000
-    const inWindow = g.probes.filter(p => Date.parse(p.run_at) >= since)
-    return inWindow.length ? inWindow : g.probes
-  }, [g.probes])
+  // The same 30-day window the Sunday review uses, so the two never disagree,
+  // and the same rule the Growth header rates (recentProbes).
+  const recent = useMemo(() => recentProbes(g.probes), [g.probes])
   const overall = useMemo(() => citationRate(recent), [recent])
   const groups = useMemo(
     () => PRODUCTS
@@ -116,9 +111,9 @@ function readLine(cited: number, total: number, engines: number, lastRun: string
   const q = `${total} question${total === 1 ? '' : 's'}`
   const e = `${engines} engine${engines === 1 ? '' : 's'}`
   const when = lastRun ? ` Last asked ${lastRun}.` : ''
-  if (cited === 0) return `Asked ${q} across ${e} in the last ${WINDOW_DAYS} days. Not one answer mentioned you.${when}`
-  if (cited === total) return `Asked ${q} across ${e} in the last ${WINDOW_DAYS} days. Every answer mentioned you.${when}`
-  return `Asked ${q} across ${e} in the last ${WINDOW_DAYS} days. ${cited} answer${cited === 1 ? '' : 's'} mentioned you.${when}`
+  if (cited === 0) return `Asked ${q} across ${e} in the last ${GEO_WINDOW_DAYS} days. Not one answer mentioned you.${when}`
+  if (cited === total) return `Asked ${q} across ${e} in the last ${GEO_WINDOW_DAYS} days. Every answer mentioned you.${when}`
+  return `Asked ${q} across ${e} in the last ${GEO_WINDOW_DAYS} days. ${cited} answer${cited === 1 ? '' : 's'} mentioned you.${when}`
 }
 
 /** Who gets cited instead, by host, most often first. */

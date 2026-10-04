@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   WEB_PROPERTIES, WEB_METRIC_SUFFIXES, webProperty, webMetricKeys, ga4PropertyId,
-  HEALTH_LINE, HEALTH_CHIP, FLAG_LINE, DONE_HINT,
+  HEALTH_LINE, HEALTH_CHIP, FLAG_LINE, DONE_HINT, WEB_JOBS as REGISTRY_JOBS, isWebJob,
   type HealthVerdict, type HealthFlag, type DetectorKind, type WebJob,
 } from '../../src/lib/webProperties.ts'
 import { isJob, JOBS } from '../../api/_mission.js'
@@ -81,6 +81,10 @@ test('WebJob ids equal the jobs the UI offers and the API owns', () => {
   const ui = JOB_OPTIONS.map(o => o.value).sort()
   assert.deepEqual([...WEB_JOBS].sort(), ui)
   assert.deepEqual([...WEB_JOBS].sort(), JOBS.map(j => j.id).sort())
+  // The runtime list an answered ruling is validated against is the same set, in the UI's order.
+  assert.deepEqual([...REGISTRY_JOBS], JOB_OPTIONS.map(o => o.value))
+  assert.equal(isWebJob('feed_demand'), true)
+  assert.equal(isWebJob('sell_more'), false)
 })
 
 test('only a live canon carries jobs', () => {
