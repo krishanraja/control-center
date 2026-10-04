@@ -4,7 +4,9 @@ import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { ladderVerdict, judgeAsk, type LadderVerdict } from '../../lib/ladder'
 import { DECISION_REASONS, recordDecision, recordReroute } from '../../lib/editLedger'
 import { useJudgeVerdicts } from '../../hooks/useJudgeVerdicts'
-import { SUBCHANNELS } from '../../lib/formats'
+import { SUBCHANNELS, formatLabel } from '../../lib/formats'
+import { displayThesis, seriesOf } from '../../lib/contentModel'
+import { pickForSeries } from '../../lib/contentActions'
 import { Eyebrow } from '../shared/Eyebrow'
 import { IconTile } from '../shared/IconTile'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -130,6 +132,8 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [receipt, setReceipt] = useState<string | null>(null)
   const [approved, setApproved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
   const [openedAt] = useState(() => Date.now())
 
   const judges = useJudgeVerdicts(v?.panelRunId ?? null, door === 'scores')
@@ -137,15 +141,33 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
   const toggle = (code: string) =>
     setPicked(p => { const n = new Set(p); n.has(code) ? n.delete(code) : n.add(code); return n })
 
-  const ask = (a: Asking) => { setPicked(new Set()); setAsking(a) }
-  const cancel = () => { setAsking(null); setPicked(new Set()) }
+  const ask = (a: Asking) => { setPicked(new Set()); setFailure(null); setAsking(a) }
+  const cancel = () => { setAsking(null); setFailure(null); setPicked(new Set()) }
+
+  // One series answer for the whole card, the same one the rooms use: the
+  // stored lane_slot, else the judges' router (src/lib/contentModel.ts).
+  const lane = seriesOf(idea)
 
   const commit = async () => {
-    if (!asking) return
+    if (!asking || saving) return
     const reasons = [...picked]
     const runId = v?.panelRunId ?? null
-    if (asking.kind === 'rerouted') {
-      await recordReroute({ ideaId: idea.id, from: idea.lane_slot ?? null, to: asking.to, reasons, panelRunId: runId })
+    if (asking.kind === 'approved') {
+      // "Write this" is a pick: the piece goes to drafting with its series,
+      // exactly as the phone's "Write this" does (pickForSeries). It used to
+      // record a ledger row here and move nothing, so the piece sat where it
+      // was and two surfaces meant two different things by one button.
+      setSaving(true)
+      const r = lane
+        ? await pickForSeries(idea.id, lane, { reasons, panelRunId: runId, dwellMs: Date.now() - openedAt })
+        : null
+      setSaving(false)
+      if (!r) { setFailure('This piece has no series yet. Choose where it goes first.'); return }
+      if (r.ok === false) { setFailure(r.error); return }
+    } else if (asking.kind === 'rerouted') {
+      // Against the series the card showed as chosen, which is the one the
+      // router picked when nothing is stored.
+      await recordReroute({ ideaId: idea.id, from: lane, to: asking.to, reasons, panelRunId: runId })
     } else {
       await recordDecision({ ideaId: idea.id, kind: asking.kind, reasons, panelRunId: runId, dwellMs: Date.now() - openedAt })
     }
@@ -153,8 +175,6 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
     setApproved(asking.kind === 'approved')
     setAsking(null)
   }
-
-  const lane = idea.lane_slot || v?.winner || null
 
   // ── the receipt ────────────────────────────────────────────────────────
   if (receipt) {
@@ -168,10 +188,9 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
             : 'This one was never judged, so there is nothing to tell.'}
         </p>
         <div className="flex flex-wrap gap-2">
-          {/* The door from deciding to drafting. The approval is a ledger row
-              and moves nothing on its own, so without this "Write this" ended
-              at a receipt and the piece sat exactly where it was. The composer
-              link is the one six other surfaces already use. */}
+          {/* The door from deciding to drafting. The pick has already moved
+              the piece to drafting; this opens it in the composer, the link
+              six other surfaces already use. */}
           {approved && (
             <button type="button" data-testid="decide-start-writing"
               onClick={() => { window.location.hash = `#/content?idea=${idea.id}` }}
@@ -266,13 +285,14 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
     <div data-testid="decide-why">
       <p className="mb-2.5 text-label text-ink-muted">
         {asking.kind === 'rerouted'
-          ? <>Moving to <b className="font-semibold text-ink">{asking.to}</b>. Why does it belong there?</>
+          ? <>Moving to <b className="font-semibold text-ink">{formatLabel(asking.to)}</b>. Why does it belong there?</>
           : asking.kind === 'approved' ? 'What makes this one worth writing?' : 'What is wrong with it?'}
       </p>
       <ReasonChips kind={asking.kind} picked={picked} toggle={toggle} />
+      {failure && <p role="alert" data-testid="decide-failure" className="mt-2 text-label text-amber-300">{failure}</p>}
       <div className="mt-3 flex gap-2">
-        <button type="button" onClick={commit} data-testid="decide-commit"
-          className="btn-contrast tap-44 min-h-[44px] rounded-xl px-5 text-label font-semibold">Done</button>
+        <button type="button" onClick={commit} data-testid="decide-commit" disabled={saving}
+          className="btn-contrast tap-44 min-h-[44px] rounded-xl px-5 text-label font-semibold disabled:opacity-50">{saving ? 'Saving' : 'Done'}</button>
         <button type="button" onClick={cancel} className="tap-44 min-h-[44px] rounded-xl px-3 text-label text-ink-faint hover:text-ink">Back</button>
       </div>
     </div>
@@ -294,7 +314,9 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
         <h2 className="mt-3 max-w-[34ch] text-title font-semibold leading-snug text-ink" data-testid="decide-claim">
           {v?.expansion.angle || idea.idea}
         </h2>
-        {idea.thesis && <p className="mt-2 max-w-[60ch] text-label leading-relaxed text-ink-muted">{idea.thesis}</p>}
+        {/* Hidden when the stored summary was cut off at the source and ends
+            in "...": a broken sentence reads as the tab cutting it. */}
+        {displayThesis(idea) && <p className="mt-2 max-w-[60ch] text-label leading-relaxed text-ink-muted">{displayThesis(idea)}</p>}
 
         {v && <Facts v={v} />}
 
@@ -319,7 +341,7 @@ export function DecideCard({ idea, onSettled, variant, onBack }: {
                 valuable row the system produces and it went nowhere before. */}
             {v?.routerDisagrees && v.winner && (
               <span data-testid="decide-disagrees" className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-micro font-semibold text-amber-200">
-                The router said {v.winner}
+                The router said {formatLabel(v.winner)}
               </span>
             )}
           </div>

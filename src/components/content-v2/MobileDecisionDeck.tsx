@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from '@/lib/icons'
 import { DrawnCheck } from '../shared/DrawnCheck'
 import type { useContentV2 } from '../../hooks/useContentV2'
@@ -20,6 +20,9 @@ import {
   type VideoStudioReviewListItem,
 } from '../../lib/videoStudio'
 import { VideoBrandLockup } from '../video-studio/VideoBrandLockup'
+import { useHeldItem } from '../../hooks/useHeldItem'
+import { displayThesis, seriesOf } from '../../lib/contentModel'
+import { formatLabel } from '../../lib/formats'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
@@ -74,6 +77,8 @@ type DeckItem =
   | { type: 'video'; id: string; review: VideoStudioReviewListItem }
   | { type: 'idea'; id: string; idea: ContentIdeaRow }
 
+const deckItemId = (item: DeckItem) => item.id
+
 export function MobileDecisionDeck({
   v2,
   videoReviews = [],
@@ -97,10 +102,6 @@ export function MobileDecisionDeck({
   const { toast } = useToast()
   const reducedMotion = useReducedMotion()
 
-  // Where the browse sits in the queue. Navigation moves it; deciding a card
-  // removes the card under it and the position clamps to the survivor.
-  const [pos, setPos] = useState(0)
-
   // Live swipe state: the card follows the finger, then commits or snaps back.
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -110,7 +111,6 @@ export function MobileDecisionDeck({
   const exiting = useRef(false)
   const dragStart = useRef<number | null>(null)
   const dragDistance = useRef(0)
-  const hasBrowsed = useRef(false)
 
   // Brief first (the anchor decision), then shifts, then the rest.
   const queue = useMemo<DeckItem[]>(() => {
@@ -149,29 +149,27 @@ export function MobileDecisionDeck({
     return [...anchors, ...videos, ...remaining, ...pile]
   }, [decisions, videoReviews, upstream, v2.shifts])
 
-  // A secure video fetch can settle independently of Content. Once Krish has
-  // browsed, keep the exact card under his thumb as either source refreshes.
-  // Before that first interaction, keep position zero authoritative so a
-  // weekly brief that arrives after a fast video response still becomes the
-  // required anchor rather than leaving the video artificially in front.
-  const previousQueue = useRef<DeckItem[]>([])
-  useLayoutEffect(() => {
-    const previous = previousQueue.current
-    const previousId = previous.length ? previous[Math.min(pos, previous.length - 1)]?.id : null
-    if (hasBrowsed.current && previousId) {
-      const nextPosition = queue.findIndex(item => item.id === previousId)
-      if (nextPosition >= 0 && nextPosition !== pos) setPos(nextPosition)
-    }
-    previousQueue.current = queue
-  }, [pos, queue])
-
-  // Keep the position on a real card when the queue shrinks or reloads.
-  useEffect(() => {
-    if (queue.length && pos >= queue.length) setPos(queue.length - 1)
-  }, [queue.length, pos])
-
-  const current = queue.length ? queue[Math.min(pos, queue.length - 1)] : null
+  // The card under his thumb is held by id (useHeldItem), so a refetch of any
+  // source never swaps it. It used to be held only after his first swipe:
+  // until then the deck showed "position zero", and the idea pile at the back
+  // is ordered by updated_at, which the engine changes all day.
+  //
+  // The sources still settle at different speeds, and a weekly brief that
+  // arrives after a fast video response must still become the first card
+  // rather than leaving the video in front. So the head stays authoritative
+  // until every source has loaded, and the card is held from then on. A swipe
+  // before that holds at once. Deciding a card removes it and the card now in
+  // its place comes next.
+  const deckReady = !loading && !videoLoading && !(triage?.loading)
+  const held = useHeldItem(queue, deckItemId, { fallback: 'same-index', adopt: deckReady })
+  const pos = Math.max(0, held.index)
+  const current = held.current
   const total = queue.length + done
+  // The deck as it stands now, for a swipe that lands after the throw: a
+  // source can arrive during it, and the next card is the one after the
+  // current card in the deck as it is then, not as it was at the press.
+  const latest = useRef({ queue, pos })
+  latest.current = { queue, pos }
 
   // Krish: "the animation doesnt have me feel like the card is swiping away,
   // even though the next card does appear."
@@ -183,9 +181,12 @@ export function MobileDecisionDeck({
   const go = (dir: 1 | -1) => {
     if (queue.length < 2) { setDragX(0); return }
     if (exiting.current) return
-    hasBrowsed.current = true
+    const step = () => {
+      const { queue: q, pos: at } = latest.current
+      if (q.length) held.hold(q[(at + dir + q.length) % q.length]!.id)
+    }
     if (reducedMotion) {
-      setPos(p => (p + dir + queue.length) % queue.length)
+      step()
       setDragX(0)
       return
     }
@@ -197,7 +198,7 @@ export function MobileDecisionDeck({
       // 2. swap content while the card is out of sight, and park it on the far
       //    side with transitions suppressed so the reposition is never seen
       setSwapping(true)
-      setPos(p => (p + dir + queue.length) % queue.length)
+      step()
       setDragX(dir === 1 ? Math.round(w * 0.5) : -Math.round(w * 0.5))
       // 3. next frame, re-enable transitions and let it settle into place
       requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -412,10 +413,10 @@ export function MobileDecisionDeck({
             <>
               <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
               <h3 className="text-lede font-bold text-ink mt-3 leading-snug">{idea.idea}</h3>
-              {idea.thesis ? <p className="text-label text-ink-faint mt-2 leading-relaxed">{idea.thesis}</p> : null}
+              {displayThesis(idea) ? <p className="text-label text-ink-faint mt-2 leading-relaxed">{displayThesis(idea)}</p> : null}
               {idea.source_snippet ? <p className="text-micro text-ink-faint mt-2 italic leading-relaxed">{idea.source_snippet}</p> : null}
               <p className="text-micro text-ink-faint mt-3">
-                {idea.source_type ? idea.source_type.replace(/_/g, ' ') : 'captured'}{idea.lane_slot ? ` · ${idea.lane_slot.replace(/_/g, ' ')}` : ''}
+                {idea.source_type ? idea.source_type.replace(/_/g, ' ') : 'captured'}{seriesOf(idea) ? ` · ${formatLabel(seriesOf(idea))}` : ''}
               </p>
               {queue.length > 1 && (
                 <p className="text-micro text-ink-faint/50 mt-3">Swipe to look through the cards. The buttons make the call.</p>

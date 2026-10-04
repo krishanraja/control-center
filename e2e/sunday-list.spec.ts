@@ -188,8 +188,12 @@ test.describe('the Sunday list', () => {
     await page.getByTestId('decide-write').click()
     await page.getByTestId('reason-i_have_lived_this').click()
     await page.getByTestId('decide-commit').click()
+    await expect(page.getByTestId('decide-receipt')).toBeVisible()
 
-    expect(posted).toHaveLength(1)
+    // "Write this" is a pick now (pickForSeries): the piece moves to drafting
+    // first and the ledger row follows once the move has landed, so it is
+    // awaited rather than read in the same tick as the press.
+    await expect.poll(() => posted.length).toBe(1)
     // The machine said weak and he said write it. That disagreement is the
     // most valuable calibration row the system can produce, and before this
     // surface existed it went nowhere.

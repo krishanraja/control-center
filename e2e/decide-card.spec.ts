@@ -136,7 +136,9 @@ test.describe('the decide surface', () => {
   test('states where the router disagrees with the filing', async ({ page }) => {
     await mock(page)
     await openDecide(page)
-    await expect(page.getByTestId('decide-disagrees')).toContainText('under_the_hood')
+    // By its name, never its slug: "under_the_hood" on screen was a raw key.
+    await expect(page.getByTestId('decide-disagrees')).toContainText('under.the.hood')
+    await expect(page.getByTestId('decide-disagrees')).not.toContainText('under_the_hood')
   })
 
   test('nothing above the footer moves when a button is pressed', async ({ page }) => {
@@ -204,7 +206,7 @@ test.describe('the decide surface', () => {
     await page.getByTestId('decide-commit').click()
     await expect(page.getByTestId('decide-receipt')).toBeVisible()
 
-    expect(posted).toHaveLength(1)
+    await expect.poll(() => posted.length).toBe(1)
     const e = posted[0]!
     expect(e.action).toBe('binned')
     expect(e.surface).toBe('triage')
@@ -220,8 +222,10 @@ test.describe('the decide surface', () => {
     await page.getByTestId('decide-channel-follow_the_money').click()
     await page.getByTestId('reason-it_is_about_money').click()
     await page.getByTestId('decide-commit').click()
-
-    expect(posted).toHaveLength(1)
+    // Awaited, not read in the same tick: the row is posted after two hashes
+    // are taken, and under a loaded runner the read used to beat it.
+    await expect(page.getByTestId('decide-receipt')).toBeVisible()
+    await expect.poll(() => posted.length).toBe(1)
     const e = posted[0]!
     expect(e.action).toBe('manual_edit')
     expect(e.mode).toBe('lane_slot')
@@ -238,6 +242,37 @@ test.describe('the decide surface', () => {
     await openDecide(page)
     await expect(page.getByTestId('decide-no-expansion')).toBeVisible()
     await expect(page.getByTestId('decide-facts')).toHaveCount(0)
+  })
+
+  test('"Write this" picks the piece for its series, the same act as on the phone', async ({ page }) => {
+    const posted = await mock(page)
+    const picks: Record<string, unknown>[] = []
+    await page.route('**/api/content/pick', (r: Route) => {
+      try { picks.push(JSON.parse(r.request().postData() || '{}')) } catch { /* recorded as absent */ }
+      return r.fulfill({ json: { ok: true, action: 'pick', previous: { state: 'seeded', lane_slot: 'mind_the_gap', protected_at: null } } })
+    })
+    await openDecide(page)
+    await page.getByTestId('decide-write').click()
+    await page.getByTestId('decide-commit').click()
+    await expect(page.getByTestId('decide-receipt')).toBeVisible()
+    // The move: drafting, with the stored series. It used to record a ledger
+    // row and move nothing.
+    expect(picks).toEqual([{ action: 'pick', id: 'i1', series: 'mind_the_gap' }])
+    // And the record of it, still carrying the panel run.
+    await expect.poll(() => posted.length).toBe(1)
+    expect(posted[0]!.action).toBe('approved')
+    expect(posted[0]!.panel_run_id).toBe(RUN_ID)
+  })
+
+  test('a pick the server refuses says so and stays on the question', async ({ page }) => {
+    await mock(page)
+    await page.route('**/api/content/pick', (r: Route) =>
+      r.fulfill({ status: 409, json: { ok: false, reason: 'past_writing', error: 'This piece is already past writing, so there is nothing to pick.' } }))
+    await openDecide(page)
+    await page.getByTestId('decide-write').click()
+    await page.getByTestId('decide-commit').click()
+    await expect(page.getByTestId('decide-failure')).toHaveText('This piece is already past writing, so there is nothing to pick.')
+    await expect(page.getByTestId('decide-receipt')).toHaveCount(0)
   })
 
   test('deciding advances to the next piece rather than handing back the same one', async ({ page }) => {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CheckSquare, ChevronLeft, ChevronRight, GitMerge, Square } from '@/lib/icons'
 import { useFitRows } from '../../hooks/useFitRows'
+import { anchoredPage } from '../../lib/heldItem'
 import type { ContentIdeaRow, IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { SynthesisModal } from '../content/SynthesisModal'
@@ -73,6 +74,11 @@ export function InProgress({ ideas, testIdPrefix, fit = false }: {
     [byState],
   )
   const [page, setPage] = useState(0)
+  // The first card he paged to, held by id. Paging by number alone let a new
+  // idea arriving above the page, or the fit changing the page size, slide
+  // every card along by one while he was reading them.
+  const [anchor, setAnchor] = useState<string | null>(null)
+  const orderedIds = useMemo(() => ordered.map(i => i.id), [ordered])
   // Two columns once the stage is wide enough for two readable cards side by
   // side. Measured off the box, never off the viewport: at 1920 the work
   // column is about 1600px and a single column left a third of the desk bare.
@@ -84,7 +90,12 @@ export function InProgress({ ideas, testIdPrefix, fit = false }: {
   const { count, width, boxRef, listRef } = useFitRows(ordered.length, { min: 1, max: LANE_CAP * 2, step: cols })
   useEffect(() => { setCols(width >= 760 ? 2 : 1) }, [width])
   const pages = Math.max(1, Math.ceil(ordered.length / Math.max(1, count)))
-  const current = Math.min(page, pages - 1)
+  const current = anchoredPage(orderedIds, anchor, count, page)
+  const goTo = (next: number) => {
+    const p = Math.min(Math.max(0, next), pages - 1)
+    setPage(p)
+    setAnchor(orderedIds[p * count] ?? null)
+  }
   const window_ = ordered.slice(current * count, current * count + count)
   const first = current * count + 1
   const last = Math.min(ordered.length, current * count + window_.length)
@@ -117,12 +128,12 @@ export function InProgress({ ideas, testIdPrefix, fit = false }: {
           <span className="ml-auto flex items-center gap-1" data-testid={`${testIdPrefix}-pager`}>
             <button
               type="button" aria-label="Previous page" disabled={current === 0}
-              onClick={() => setPage(p => Math.max(0, p - 1))}
+              onClick={() => goTo(current - 1)}
               className="rounded-md border border-white/10 p-1 text-ink-faint hover:bg-white/[0.05] hover:text-ink-muted disabled:opacity-30"
             ><ChevronLeft size={12} /></button>
             <button
               type="button" aria-label="Next page" disabled={current >= pages - 1}
-              onClick={() => setPage(p => Math.min(pages - 1, p + 1))}
+              onClick={() => goTo(current + 1)}
               className="rounded-md border border-white/10 p-1 text-ink-faint hover:bg-white/[0.05] hover:text-ink-muted disabled:opacity-30"
             ><ChevronRight size={12} /></button>
           </span>

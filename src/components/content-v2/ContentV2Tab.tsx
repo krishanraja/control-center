@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Sparkles } from '@/lib/icons'
 import { useContentV2 } from '../../hooks/useContentV2'
-import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
+import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { LaneRoom } from './LaneRoom'
 import { LibraryRoom } from './LibraryRoom'
 import { SundayList } from './SundayList'
@@ -17,9 +17,11 @@ import { useContentTriage } from '../../hooks/useContentTriage'
 import { BOTTOM_NAV_PAD } from '../mobile/primitives'
 import { NextBestActionHero } from '../content/NextBestActionHero'
 import { isActiveIdea } from '../../lib/contentEngine'
-import { SUBCHANNELS, resolveFormat } from '../../lib/formats'
+import { SUBCHANNELS } from '../../lib/formats'
 import { routeIdea } from '../../lib/contentRouting'
 import { ladderVerdict } from '../../lib/ladder'
+import { compareNewestFirst, seriesOf, storedSeries } from '../../lib/contentModel'
+import { useHeldItem } from '../../hooks/useHeldItem'
 import { useMediaQuery } from '../shared/motion'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
@@ -142,9 +144,17 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
       .filter(i => !seen.has(i.id) && !i.buried_at && !i.library_at)
       .map(i => ({ row: i, v: ladderVerdict(i) }))
       .filter(({ v }) => v?.band === 'repairable')
-      .sort((a, b) => (b.v!.score ?? 0) - (a.v!.score ?? 0))
+      // Score, then newest, then id. All 61 repairable pieces scored exactly
+      // 6 on 2026-10-04 and seven shared a created_at, so without the id the
+      // order changed on every refetch.
+      .sort((a, b) => ((b.v!.score ?? 0) - (a.v!.score ?? 0)) || compareNewestFirst(a.row, b.row))
       .map(({ row }) => row)
   }, [ideas, settled])
+  // The card on screen is held by id, not by position. A refetch that lands a
+  // new piece above it, or re-sorts the pile, no longer swaps the piece he is
+  // reading and drops the reason step he had open. It moves on when he settles
+  // it (it leaves `toDecide`) and the head of the queue comes next.
+  const deciding = useHeldItem<ContentIdeaRow>(toDecide, ideaId, { fallback: 'head' })
 
   // Live means live. The badge used to filter only on `library_at`, while every
   // room filtered on `isActiveIdea`, which also drops buried cards. On
@@ -178,9 +188,15 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   // Only ever runs before Krish has touched the switcher, and only when the
   // room he would land on is genuinely empty, so a deliberate visit to a quiet
   // room is never overridden. Ruling (Krish, 2026-09-20).
+  //
+  // And only on the first load (2026-10-04). It used to run on every change to
+  // the counts, so settling the last card in To decide, or a refetch that took
+  // a room to zero, moved him to another room without a press.
+  const landed = useRef(false)
   useEffect(() => {
+    if (landed.current || ideasLoading) return
+    landed.current = true
     if (roomPicked || mobile) return
-    if (ideasLoading) return
     if (counts[room as string]) return
     const firstWithWork = ROOM_SLUGS.find(slug => counts[slug])
     if (firstWithWork && firstWithWork !== room) setRoom(firstWithWork)
@@ -329,13 +345,16 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
                   scroll even on a stage. Paging a calendar would be silly. */}
               {room === 'decide'
                 ? (
-                  <div className={deskStage ? 'min-h-0 flex-1' : undefined} data-testid="decide-room">
-                    {toDecide.length ? (
+                  // Its own scroller, like the Not lifted and Library rooms
+                  // beside it. Without one the card's buttons sat below the
+                  // stage's clip line at 1440x900 with nothing to reach them.
+                  <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined} data-testid="decide-room">
+                    {deciding.current ? (
                       <DecideCard
-                        key={toDecide[0]!.id}
-                        idea={toDecide[0]!}
+                        key={deciding.current.id}
+                        idea={deciding.current}
                         variant={variant}
-                        onSettled={() => setSettled(s => [...s, toDecide[0]!.id])}
+                        onSettled={() => { const id = deciding.current?.id; if (id) setSettled(s => [...s, id]) }}
                       />
                     ) : (
                       <div className="py-10 text-center">
@@ -390,23 +409,19 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   )
 }
 
+const ideaId = (i: { id: string }) => i.id
+
 // Stored lane -> format. Mirrors laneToVenture in api/_finalPass.ts and
 // laneToCorpusChannel in api/_content.ts: map legacy values, never reject them.
-// Returns null when the lane genuinely does not say.
+// Returns null when the columns genuinely do not say.
+//
+// It used to return null whenever `lane` was null, before even looking at the
+// slot. On 2026-10-04, 151 of 154 live pieces had lane null and lane_slot set,
+// so the mind.the.gap room showed 1 of its 56. The slot is the series whatever
+// the lane says; the rule lives in storedSeries (src/lib/contentModel.ts) so
+// the rooms and the decide card read it the same way.
 export function laneOf(lane?: string | null, slot?: string | null): RoomId | null {
-  if (!lane) return null
-  // The slot is the format when there is one. resolveFormat carries the whole
-  // rename ledger, so `built_with_ai`, `built`, `money_of_ai` and `paid` all
-  // land on their live subchannel without a second alias map living here.
-  if (lane === 'publication') {
-    const f = resolveFormat(slot)
-    return f && f.kind === 'subchannel' ? f.slug : null
-  }
-  // A retired VENTURE name in the lane column, from before lane carried the
-  // venture and slot carried the format. These resolve through the same ledger;
-  // anything landing on the holding lane is not a room.
-  const viaLane = resolveFormat(lane)
-  return viaLane && viaLane.kind === 'subchannel' ? viaLane.slug : null
+  return storedSeries(lane, slot)
 }
 
 /**
@@ -427,7 +442,9 @@ export function routeOf(idea: { lane?: string | null; lane_slot?: string | null;
   derived: boolean
   reason: string | null
 } {
-  const stored = laneOf(idea.lane, idea.lane_slot)
+  // The stored series, or the judges' router when nothing is stored: both are
+  // the engine's routing, and both are what the decide card shows.
+  const stored = seriesOf(idea)
   if (stored) return { route: stored, derived: false, reason: null }
   const verdict = routeIdea(idea)
   return { route: verdict.route, derived: verdict.route != null, reason: verdict.reason }
