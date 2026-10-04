@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import type { SharedEntry } from '../lib/sharedHistory'
 
 // Client for /api/network/*.
 //
@@ -70,9 +71,14 @@ export interface NetworkResult extends ScoreBreakdown {
   query_relevance: number | null
   why_match?: string
   /** Krish's employers this person also worked at (never "at the same time"). */
-  shared_history?: Array<{ key: string; label: string; closeness: 'close' | 'wide'; their_title: string | null; current: boolean }>
+  shared_history?: SharedEntry[]
   /** alumni | multiplier | buyer | amplifier | subject */
   plays?: string[]
+  /** Which of his networks they are in: personal (Facebook or Instagram),
+   *  professional (a LinkedIn connection), both, or none recorded. */
+  tie?: 'personal' | 'professional' | 'both' | null
+  /** Every network they were found in, most personal first (lib/knownFrom). */
+  known_from?: string[]
   /** The opening move: channel plus the first line's angle, from the explain
    *  pass. A reason to contact someone with no way in is half an answer. */
   move?: string

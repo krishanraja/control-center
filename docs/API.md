@@ -660,10 +660,38 @@ Network tab silently broken, which is the worse failure.
 | `/api/network/recommend` | POST | `{ venture, intent?, countries?, filter_mode?, limit? }` | same envelope |
 | `/api/network/voice` | POST | raw audio body (`bodyParser` off); filters ride the query string (`?countries=GB,AU&filter_mode=soft`) | same envelope plus `transcript` |
 | `/api/network/geo` | GET | — | `{ ok, countries[], unknown, known, total }` |
-| `/api/network/person/[id]` | GET | — | `{ ok, contact, intelligence }` |
+| `/api/network/person/[id]` | GET | — | `{ ok, contact, intelligence, known_from[], meta_links[], questions, merged_into }`. An id a merge retired resolves through `contact_merges` to the survivor |
+| `/api/network/by-play` | GET / POST | `{ play: alumni\|multiplier\|buyer\|amplifier\|subject\|personal, employer?, limit? }` (`employer` may be a school key) | GET `{ ok, counts, people, employers[], schools[] }`; POST the search envelope. `personal` reads `network_by_tie()` |
+| `/api/network/review` | GET / POST | GET `?surface=contact_merge\|contact_link&limit=`; POST `{ suggestion_id, verdict: accepted\|rejected\|deferred, choice?, reason_code? }` or `{ action: 'unlink', contact_id, ref }` | GET `{ ok, items[], counts }`; POST `{ ok, applied }`. A yes to "same person" runs `merge_contacts()` (409, question left open, until that migration is applied); a yes to "which profile" fills blanks from that profile only; a "not them" releases only a hold the import placed, back to the status it replaced |
+| `/api/network/import-meta` | POST | `{ rows: MetaRow[], dryRun? (default true), offset?, limit?, finish? }` | `{ ok, people, folded, tally, linked, created, filled, identities, questions, held_back, failures[] }`. The workbook never enters the repo; the caller posts its rows |
 | `/api/network/scan-card` | POST | raw image body (`bodyParser` off), `Content-Type: image/png\|jpeg\|webp\|gif`, ≤3.5MB | `{ ok, person, existing, usable }` |
 | `/api/network/add-person` | POST | `{ full_name, title?, company?, location?, linkedin_url?, email?, headline?, origin_venture, origin_campaign, consent_tier?, note?, merge_into? }` | `{ ok, contact_id, created, merged, searchable, warning, blocked[] }` |
 | `/api/network/enrich-person` | POST | `{ contact_id, use_apify?, skip_web? }` | `{ ok, status, who, why_them, hook, used[], skipped[], degraded[] }` or `402 { error:'api_credits', blocked[], alert }` |
+
+### The Meta export, and the rule for believing a guessed profile (2026-10-04)
+
+`/api/network/import-meta` brings Facebook friends, Instagram and the phone
+contacts Meta holds into the network as additions only. Apify had guessed a
+LinkedIn profile for about a third of them. Measured against Krish's own
+3,982 LinkedIn connections, those guesses were right 70 times in 118 (59%),
+and Apify's own match score did not separate right from wrong. Two signals
+did: a profile listing one of his schools (7 of 7) or one of his close
+employers (28 of 29). So a guessed profile writes anything only when it is
+the profile already on the contact, is one of his own connections under the
+same name, or lists his school or close employer. Everything else becomes a
+"which profile?" question in People to check, with the profile attached, and
+a yes later applies it. A link that rests on a name alone never carries a
+profile across even then, and a re-run never promotes it: each contact keeps
+the basis it was linked on, and once Krish has been asked about a contact's
+profile only his answer writes one.
+
+"Same person?" questions go further than an exact name: a middle name, an
+initial or the letters LinkedIn adds after a name ("- MBA", "(FCCA)") still
+raise one, and a guessed profile that is already on another contact raises one
+rather than nothing. None of them links or merges anything. Questions are
+written as the run goes, and a write run takes 200 people per call by default
+so it finishes inside 300 seconds; pass `offset` to walk the rest. Rules and
+tests: `api/_metaImport.ts`, `tests/api/metaImport.test.ts`.
 
 ### Adding a person from a screenshot
 

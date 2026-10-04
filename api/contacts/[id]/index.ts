@@ -74,6 +74,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'no updatable fields supplied' })
   }
 
+  // A row that is do-not-contact as a matter of fact (Krish himself, or
+  // someone who has died) is not reopened by a status chip. Said in words,
+  // rather than as the check constraint's error.
+  if ('status' in updates && updates.status !== 'do_not_contact') {
+    const { data: cur } = await supabase.from('contacts').select('status_reason').eq('id', id).maybeSingle()
+    const why = (cur as { status_reason?: string | null } | null)?.status_reason
+    if (why === 'self') return res.status(409).json({ error: 'This is one of your own records, so it stays out of the network.' })
+    if (why === 'deceased') return res.status(409).json({ error: 'This person has passed away, so they stay out of every proposal.' })
+  }
+
   // A bare .select() returns every column, which on this table means the
   // 1536-dimension identity_embedding and the dossier jsonb go back to the
   // browser on every PATCH, for a response the client reads three fields of.

@@ -10,6 +10,8 @@ import { ContactEditChips } from '../shared/ContactEditChips'
 import { useHaptics } from '../../hooks/useHaptics'
 import { resolveReach, type ReachOption, type ChannelId } from '../../lib/networkReach'
 import { contactProvenance } from '../../lib/contactProvenance'
+import { knownFromWords } from '../../lib/knownFrom'
+import { sharedHistoryLine } from '../../lib/sharedHistory'
 import { geoLabel } from '../../hooks/useNetworkGeo'
 import type { NetworkResult } from '../../hooks/useNetworkSearch'
 import { Working } from '../shared/Working'
@@ -49,7 +51,16 @@ interface PersonDetail {
     first_met_context?: string | null
     primary_venture?: string | null
     status?: string | null
+    status_reason?: string | null
   } | null
+  /** Every network they were found in (lib/knownFrom). */
+  known_from?: string[]
+  /** Each Meta link and how it was made. 'meta_name' rests on a name alone. */
+  meta_links?: Array<{ ref: string; networks: string[]; basis: string }>
+  /** Open questions about them in People to check. */
+  questions?: number
+  /** The id asked for was merged into this one. */
+  merged_into?: string | null
   // api/network/person/[id].ts returns the whole contact_intelligence row beside
   // the contact, minus the embedding columns. It was read here and never
   // declared, so tsc rejected the file and every pull request against main went
@@ -140,7 +151,30 @@ export function NetworkPersonSheet({ person, onClose }: {
     origin_channel: person.origin_channel,
     origin_campaign: person.origin_campaign,
     first_met_context: detail?.contact?.first_met_context ?? person.first_met_context,
+    known_from: detail?.known_from ?? person.known_from,
   })
+  const history = sharedHistoryLine(person.shared_history)
+  const nameOnly = (detail?.meta_links || []).filter(l => l.basis === 'meta_name')
+  const deceased = detail?.contact?.status_reason === 'deceased'
+
+  // A Meta person matched to this contact on a name alone. "It's them"
+  // confirms the link; "Not them" makes the Meta person their own contact.
+  // Either way nobody is lost.
+  const settleLink = async (ref: string, action: 'unlink' | 'confirm_link') => {
+    try {
+      const r = await fetch('/api/network/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, contact_id: person.contact_id, ref }),
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'failed')
+      toast(action === 'unlink' ? 'Separated. They are their own contact now.' : 'Confirmed.', 'success')
+      setDetail(d => (d ? { ...d, meta_links: (d.meta_links || []).filter(l => l.ref !== ref) } : d))
+    } catch (e) {
+      toast(`That did not save: ${String((e as Error).message).slice(0, 80)}`, 'error')
+    }
+  }
 
   // Enrichment wins over import. current_title and current_company were read off
   // the profile; person.title and person.company come from contacts, which is
@@ -193,6 +227,42 @@ export function NetworkPersonSheet({ person, onClose }: {
                 </span>
               )}
             </p>
+          )}
+          {history && <p className="mt-1 text-label text-ink-muted" data-testid="network-person-history">{history}</p>}
+          {/* A link made on a name alone says so, and can be undone here. */}
+          {nameOnly.map(l => (
+            <p key={l.ref} className="mt-1.5 flex flex-wrap items-center gap-x-2 text-label text-ink-faint" data-testid="network-person-name-only">
+              <span>Matched to your {knownFromWords(l.networks.map(n => (n === 'phone_book' ? 'phone' : n))) || 'Meta contacts'} by name only.</span>
+              <button
+                type="button"
+                onClick={() => void settleLink(l.ref, 'confirm_link')}
+                data-testid="network-person-confirm-link"
+                className="tap-44 text-label text-violet-200 underline underline-offset-2"
+              >
+                It is them
+              </button>
+              <button
+                type="button"
+                onClick={() => void settleLink(l.ref, 'unlink')}
+                data-testid="network-person-unlink"
+                className="tap-44 text-label text-violet-200 underline underline-offset-2"
+              >
+                Not them
+              </button>
+            </p>
+          ))}
+          {deceased && (
+            <p className="mt-2 rounded-card border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-label text-ink-muted" data-testid="network-person-deceased">
+              They have passed away. Kept for the record, and never proposed for anything.
+            </p>
+          )}
+          {!deceased && (detail?.questions || 0) > 0 && (
+            <p className="mt-2 text-label text-amber-200/80" data-testid="network-person-question">
+              There is a question about this person in People to check.
+            </p>
+          )}
+          {detail?.merged_into && (
+            <p className="mt-2 text-label text-ink-faint">This record was merged with another for the same person. You are seeing both, together.</p>
           )}
         </div>
 

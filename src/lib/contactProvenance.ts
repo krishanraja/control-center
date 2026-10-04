@@ -1,3 +1,5 @@
+import { KNOWN_FROM_LABEL, isPersonal, type KnownFromKey } from './knownFrom'
+
 // "Where do I know this person from?"
 //
 // The answer was always in the database and never on the screen. Every one of
@@ -37,6 +39,9 @@ export interface ProvenanceInput {
   origin_channel?: string | null
   origin_campaign?: string | null
   first_met_context?: string | null
+  /** Every network the person was found in (lib/knownFrom). When the channel
+   *  is only the name of the pipeline that loaded them, this is the memory. */
+  known_from?: string[] | null
 }
 
 export interface Provenance {
@@ -76,6 +81,7 @@ const CHANNEL_LABEL: Record<string, string> = {
   prospect: 'Prospect',
   crm: 'CRM',
   'krish-direct': 'Named by you',
+  meta_export: 'Facebook or Instagram',
 }
 
 // Campaign slug → the room's real name. Only for campaigns that ARRIVE as
@@ -126,6 +132,7 @@ const CHANNEL_TONE: Record<string, string> = {
   warm_dm: WARM,
   feedback: WARM,
   'krish-direct': WARM,
+  meta_export: WARM,
   podcast_guest: WARM,
   podcast_pipeline: NETWORK,
   network_intelligence: NETWORK,
@@ -172,6 +179,9 @@ function looksLikeANote(s: string): boolean {
   return true
 }
 
+/** Channels that name a loader, not a place he met anyone. */
+const PIPELINES = new Set(['network_intelligence', 'meta_export'])
+
 export function contactProvenance(c: ProvenanceInput): Provenance {
   const channel = (c.origin_channel || '').trim()
   const campaign = (c.origin_campaign || '').trim()
@@ -189,12 +199,23 @@ export function contactProvenance(c: ProvenanceInput): Provenance {
     return { label: forChip(label), full: label, detail: detail === label ? null : detail, tone, known: true }
   }
 
-  // 2. The channel, in words.
+  // 2. Where he actually knows them from, when the channel is only the name
+  //    of the pipeline that loaded them. 'network_intelligence' printed
+  //    "LinkedIn network" under 4,000 people from his phone, his Instagram and
+  //    his mailbox.
+  const networks = (c.known_from || []).filter(Boolean)
+  if (networks.length && (PIPELINES.has(channel) || !channel)) {
+    const label = networks.map(k => KNOWN_FROM_LABEL[k as KnownFromKey] || k)
+      .map(w => w[0].toUpperCase() + w.slice(1)).join(' · ')
+    return { label: forChip(label), full: label, detail, tone: isPersonal(networks) ? WARM : NETWORK, known: true }
+  }
+
+  // 3. The channel, in words.
   if (channel) {
     const label = CHANNEL_LABEL[channel] || deslug(channel)
     return { label: forChip(label), full: label, detail, tone, known: true }
   }
 
-  // 3. Nothing. Say nothing, loudly.
+  // 4. Nothing. Say nothing, loudly.
   return { label: 'Unknown source', full: 'Unknown source', detail, tone: UNKNOWN, known: false }
 }

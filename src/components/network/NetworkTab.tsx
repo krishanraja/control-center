@@ -7,6 +7,7 @@ import { NetworkSearchBar } from './NetworkSearchBar'
 import { NetworkFilters, EMPTY_FILTERS, type FilterState } from './NetworkFilters'
 import { VentureRecommender } from './VentureRecommender'
 import { PlayPicker } from './PlayPicker'
+import { PeopleReview } from './PeopleReview'
 import { NetworkResultRow } from './NetworkResultRow'
 import { NetworkPersonSheet } from './NetworkPersonSheet'
 import { SkeletonList } from '../shared/Skeleton'
@@ -37,6 +38,9 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   const s = useNetworkSearch()
   const geoFacets = useNetworkGeo()
   const [person, setPerson] = useState<NetworkResult | null>(null)
+  // How many people the network holds, from the doors' own count. It was a
+  // literal (10,670) and went stale the day the Meta export landed.
+  const [size, setSize] = useState<number | null>(null)
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
   const [lastQuestion, setLastQuestion] = useState('')
   const [recommendation, setRecommendation] = useState<{ venture: string; intent: string } | null>(null)
@@ -163,6 +167,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           hasResults={s.results.length > 0 || Boolean(recommendation)}
         />
         <NetworkFilters value={filters} onChange={setFilters} collapsible={narrow} />
+        {narrow && <PeopleReview narrow className="px-4 pb-2" />}
         {/* Adding a person lives next to searching for one because they are the
             same job seen from two sides: you search this tab, fail to find
             somebody, and the next thing you want is to put them in. Desktop
@@ -173,6 +178,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           <div className="relative flex items-center justify-between gap-3 px-4 pb-1">
             <FreshnessLine lane="network" className="mt-0" />
             <div className="flex items-center gap-2">
+              <PeopleReview narrow={false} />
               <NetworkHealthPanel />
               <RepairNamesPanel />
               <button
@@ -202,7 +208,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         {/* The doors stay while one is open, so moving from Nine to Captify is
             one tap, not clear-and-start-again. */}
         {(!hasRun || browse) && (
-          <PlayPicker onBrowse={onBrowse} loading={s.loading} active={browse} />
+          <PlayPicker onBrowse={onBrowse} loading={s.loading} active={browse} onSize={setSize} />
         )}
         {!hasRun && (
           <VentureRecommender
@@ -223,7 +229,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
         {s.loading && (
           <div className="px-4 pt-3">
-            <p className="pb-2 text-label text-ink-faint">Searching 10,670 people.</p>
+            <p className="pb-2 text-label text-ink-faint">Searching {size ? `${size.toLocaleString('en-AU')} people` : 'your network'}.</p>
             <SkeletonList rows={5} />
           </div>
         )}
@@ -338,7 +344,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         {!hasRun && !s.loading && (
           <div className="px-4 py-10 text-center">
             <p className="text-body text-ink-faint">Ask a question, or pick a venture above.</p>
-            <p className="mt-1 text-label text-ink-faint">10,670 people. Type it how you would say it.</p>
+            <p className="mt-1 text-label text-ink-faint">{size ? `${size.toLocaleString('en-AU')} people. ` : ''}Type it how you would say it.</p>
           </div>
         )}
       </div>

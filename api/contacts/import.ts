@@ -108,6 +108,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (row.linkedin_url_norm) existingLinkedins.add(row.linkedin_url_norm)
       }
     }
+    // Addresses a merge kept as aliases belong to someone too.
+    if (emails.size > 0) {
+      const { data } = await supabase
+        .from('contact_identities')
+        .select('value')
+        .eq('kind', 'email')
+        .is('retired_at', null)
+        .in('value', Array.from(emails))
+      for (const row of data || []) existingEmails.add(String((row as { value: string }).value))
+    }
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: `dedupe lookup failed: ${String(e?.message || e)}` })
   }

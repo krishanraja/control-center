@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { contactProvenance } from '../../src/lib/contactProvenance.ts'
 import { resolveReach, linkedinSearchHref } from '../../src/lib/networkReach.ts'
+import { knownFrom, knownFromWords } from '../../src/lib/knownFrom.ts'
+import { sharedHistoryLine } from '../../src/lib/sharedHistory.ts'
 
 // The two promises the Network tab now has to keep for every person in it:
 // "I can tell where I know them from" and "one click to their LinkedIn". Both
@@ -188,4 +190,42 @@ test('but a VERIFIED address still outranks the profile, as it always did', () =
   })
   assert.equal(r.best?.channel, 'email')
   assert.equal(r.linkedin?.channel, 'linkedin_dm')
+})
+
+// ── Where he knows them from, when the channel is only a pipeline ──────────
+
+
+test('a phone or Instagram contact is no longer called "LinkedIn network"', () => {
+  // 1,830 phone contacts and 460 Instagram ones printed "LinkedIn network",
+  // because the chip read the pipeline's name and never the sources.
+  const keys = knownFrom([{ type: 'network_intelligence', source: 'phone_address_book' }])
+  const p = contactProvenance({ origin_channel: 'network_intelligence', known_from: keys })
+  assert.equal(p.label, 'Your phone')
+  const ig = contactProvenance({
+    origin_channel: 'network_intelligence',
+    known_from: knownFrom([{ type: 'network_intelligence', source: 'instagram_export' }, { type: 'network_intelligence', source: 'linkedin_export' }]),
+  })
+  assert.equal(ig.label, 'Instagram · LinkedIn')
+})
+
+test('a named room still beats the networks', () => {
+  const p = contactProvenance({ origin_channel: 'community', origin_campaign: 'ai_circle', known_from: ['facebook'] })
+  assert.equal(p.label, 'AI Circle')
+})
+
+test('the Meta export and its identities read as the networks they came from', () => {
+  const keys = knownFrom([{ type: 'meta_export', ref: 'C9001', networks: ['facebook', 'phone_book'] }], ['instagram'])
+  assert.deepEqual(keys, ['facebook', 'instagram', 'phone'])
+  assert.equal(knownFromWords(keys), 'Facebook, Instagram and your phone')
+})
+
+test('a school says "the same years" only when both sides say so', () => {
+  const school = { key: 'sutton_grammar', label: 'Sutton Grammar School', closeness: 'close' as const, their_title: null, current: false, kind: 'school' as const }
+  assert.equal(sharedHistoryLine([{ ...school, same_years: true }]), 'Went to Sutton Grammar School in the same years as you.')
+  assert.equal(sharedHistoryLine([{ ...school, same_years: false }]), 'Also went to Sutton Grammar School.')
+  // A close employer still leads: it is the stronger professional thread.
+  const nine = { key: 'nine', label: 'Nine', closeness: 'close' as const, their_title: 'Producer', current: false, kind: 'employer' as const }
+  assert.equal(sharedHistoryLine([{ ...school, same_years: true }, nine]), 'Also at Nine, as Producer and 1 more of yours.')
+  // Rows written before schools existed have no kind and still read as employers.
+  assert.equal(sharedHistoryLine([{ key: 'nine', label: 'Nine', closeness: 'close', their_title: null, current: true }]), 'Now at Nine, where you worked.')
 })

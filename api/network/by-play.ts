@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import type { NetworkResult } from '../_networkSearch.js'
+import { attachPersonContext, type NetworkResult } from '../_networkSearch.js'
 
 // POST /api/network/by-play  { play?, employer?, limit? }
 //   -> { ok, results: NetworkResult[], restated, counts, employers }
@@ -22,7 +22,10 @@ import type { NetworkResult } from '../_networkSearch.js'
 export const config = { maxDuration: 30 }
 
 const PLAYS = ['alumni', 'multiplier', 'buyer', 'amplifier', 'subject'] as const
-type Play = typeof PLAYS[number]
+/** The sixth door is not a play but a tie: the people he knows outside work,
+ *  from Facebook and Instagram. His back catalogue, 2026-10-03. */
+const DOORS = [...PLAYS, 'personal'] as const
+type Play = typeof DOORS[number]
 
 /** What each door says when it opens. Plain, and true of the rule behind it. */
 const RESTATE: Record<Play, string> = {
@@ -31,6 +34,7 @@ const RESTATE: Record<Play, string> = {
   buyer: 'People who hold a commercial budget',
   amplifier: 'People who can put you in a room or in print',
   subject: 'Founders building with AI, for makeyourmindup',
+  personal: 'People you know outside work, the ones who can help now first',
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
@@ -59,6 +63,28 @@ function actionability(r: Record<string, unknown>): number {
   return reach + conf + complete + 0.17 * Math.max(followTerm, voice) + 0.15 * (live / 100)
 }
 
+interface Tenure { key: string; label: string; closeness: 'close' | 'wide'; kind: 'employer' | 'school' }
+
+/** The doors' numbers, and how many people the network holds, counted the way
+ *  the doors count: people, never Krish himself. */
+async function doorCounts(): Promise<{ tenures: Tenure[]; counts: Record<string, number>; people: number | null }> {
+  const head = () => supabase.from('contact_intelligence').select('contact_id', { count: 'exact', head: true })
+  const [{ data: tenures }, plays, personal, everyone] = await Promise.all([
+    supabase.from('krish_tenures').select('key, label, closeness, kind').order('closeness').order('label'),
+    Promise.all(PLAYS.map(async p => {
+      const { count } = await head().contains('plays', [p])
+      return [p, count ?? 0] as const
+    })),
+    head().in('tie', ['personal', 'both']).eq('is_person', true),
+    head().eq('is_person', true),
+  ])
+  return {
+    tenures: ((tenures || []) as Tenure[]).map(t => ({ ...t, kind: t.kind || 'employer' })),
+    counts: { ...Object.fromEntries(plays), personal: personal.count ?? 0 },
+    people: everyone.count ?? null,
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['GET', 'POST'])) return
 
@@ -66,22 +92,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // anything is chosen.
   if (req.method === 'GET') {
     try {
-      const [{ data: tenures }, counts] = await Promise.all([
-        supabase.from('krish_tenures').select('key, label, closeness').order('closeness').order('label'),
-        Promise.all(PLAYS.map(async p => {
-          const { count } = await supabase.from('contact_intelligence')
-            .select('contact_id', { count: 'exact', head: true }).contains('plays', [p])
-          return [p, count ?? 0] as const
-        })),
-      ])
-      return res.status(200).json({ ok: true, counts: Object.fromEntries(counts), employers: tenures || [] })
+      const { tenures, counts, people } = await doorCounts()
+      return res.status(200).json({
+        ok: true, counts, people,
+        employers: tenures.filter(t => t.kind !== 'school'),
+        schools: tenures.filter(t => t.kind === 'school'),
+      })
     } catch (err) {
       return res.status(500).json({ ok: false, error: String((err as Error)?.message || err).slice(0, 300) })
     }
   }
 
   const body = (req.body || {}) as Record<string, unknown>
-  const play = PLAYS.includes(body.play as Play) ? (body.play as Play) : 'alumni'
+  const play = DOORS.includes(body.play as Play) ? (body.play as Play) : 'alumni'
   const employer = typeof body.employer === 'string' && /^[a-z_]{2,30}$/.test(body.employer) ? body.employer : null
   const limit = Math.max(1, Math.min(100, Number(body.limit) || 40))
 
@@ -89,22 +112,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // An employer is its own question. Microsoft is marked wide, so nobody is
     // alumni because of it, and asking for "alumni at Microsoft" would return
     // only the few who are alumni of somewhere else as well.
-    const { data: idRows, error } = await supabase.rpc('network_by_play', {
-      p_play: employer ? null : play, p_employer: employer, p_limit: limit,
-    })
+    // A school is a key in shared_history like an employer, so "went to
+    // Sutton Grammar" is the same lookup as "worked at Nine".
+    const { data: idRows, error } = play === 'personal' && !employer
+      ? await supabase.rpc('network_by_tie', { p_tie: 'personal', p_limit: limit })
+      : await supabase.rpc('network_by_play', { p_play: employer ? null : play, p_employer: employer, p_limit: limit })
     if (error) throw new Error(error.message)
     const ids = ((idRows || []) as Array<{ contact_id: string }>).map(r => r.contact_id)
 
-    // Counts for the doors, and the employers for the alumni door. Small and
-    // cheap enough to send every time, so the chips never show a stale number.
-    const [{ data: tenures }, counts] = await Promise.all([
-      supabase.from('krish_tenures').select('key, label, closeness').order('closeness').order('label'),
-      Promise.all(PLAYS.map(async p => {
-        const { count } = await supabase.from('contact_intelligence')
-          .select('contact_id', { count: 'exact', head: true }).contains('plays', [p])
-        return [p, count ?? 0] as const
-      })),
-    ])
+    // Counts for the doors, and the employers and schools under them. Small
+    // and cheap enough to send every time, so the chips never show a stale
+    // number.
+    const { tenures, counts, people } = await doorCounts()
 
     let results: NetworkResult[] = []
     if (ids.length) {
@@ -179,19 +198,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           plays: (r.plays as string[]) ?? [],
         } satisfies NetworkResult
       })
+      await attachPersonContext(results)
     }
 
-    const employerLabel = employer
-      ? ((tenures || []) as Array<{ key: string; label: string }>).find(t => t.key === employer)?.label
-      : null
+    const chosen = employer ? tenures.find(t => t.key === employer) : null
+    const restated = !chosen ? RESTATE[play]
+      : chosen.kind === 'school' ? `People who went to ${chosen.label}, the ones who can help now first`
+      : `People who were at ${chosen.label}, senior ones first`
 
     return res.status(200).json({
       ok: true,
       results,
-      restated: employerLabel ? `People who were at ${employerLabel}, senior ones first` : RESTATE[play],
+      restated,
       weak: false,
-      counts: Object.fromEntries(counts),
-      employers: tenures || [],
+      counts,
+      people,
+      employers: tenures.filter(t => t.kind !== 'school'),
+      schools: tenures.filter(t => t.kind === 'school'),
     })
   } catch (err) {
     return res.status(500).json({ ok: false, error: String((err as Error)?.message || err).slice(0, 300) })

@@ -8,6 +8,7 @@ import { runNetworkSearch } from '../_networkSearch.js'
 import { relationshipEvidence, inWords } from '../_relationshipEvidence.js'
 import { RETIRED_VENTURES } from '../_venturePositioning.js'
 import { sharedHistoryLine } from '../../src/lib/sharedHistory.js'
+import { knownFromWords } from '../../src/lib/knownFrom.js'
 
 // POST /api/network/ask
 //   { need: string, limit?: number }
@@ -76,6 +77,12 @@ Each person also carries PLAYS, what they can do for Krish, and SHARED, the empl
 - amplifier: a room or a page. Offer a talk, a panel or a story, and back it with what is true: more than 30 keynotes, including the Sydney Opera House. Say what the audience would leave with.
 - subject: an interview for makeyourmindup, Krish's series on people building with AI. Name what is interesting about what they are building.
 
+Each person also carries TIE, which of Krish's networks they are in, and KNOWN_FROM, the networks in words.
+- "personal" means Facebook or Instagram and not a LinkedIn connection: someone from his life outside work, often from years ago. Write to them as a friend first: first name, warm and short, and honest about the gap where the RELATIONSHIP shows no recent contact ("it has been years"). Keep the request small and human (their view on something, a twenty minute catch-up, one introduction) and never pitch in the first message. Never claim to remember where you met.
+- "both" means he knows them personally and professionally, the warmest there is. Lead with the personal thread, then the work one.
+- Where PERSONAL_BY_NAME_ONLY is true, the Facebook or Instagram link was matched on a name alone. Do not lean on it: write as if it were not there.
+- SHARED can name a school as well as an employer. Where it says "in the same years as you", they really were there together and that is a natural opener. Where it says only "also went to", say no more than that.
+
 What Krish sells, for when the NEED is commercial: Mindmake Brain, for founders and commercial leaders who are still the top salesperson and hate the copywriting and admin around it; and Mindmake GTM, for revenue and monetisation leaders whose pricing or packaging AI is changing. Never invent a product, a price or a client.`
 
 interface Candidate {
@@ -136,6 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (e.plays.includes('alumni')) s += 2
         // A new CRO in their first months is the buyer at the right moment.
         if (e.days_in_seat !== null && e.days_in_seat < 120) s += 2
+        // Known in his life and in his work is the warmest tie the record has.
+        if (e.tie === 'both' && !e.personal_by_name_only) s += 1
         return s
       }
       return score(eb) - score(ea)
@@ -184,6 +193,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         plays: e?.plays ?? [],
         shared: e ? sharedHistoryLine(e.shared_history) : null,
+        tie: e?.tie ?? null,
+        known_from: e ? knownFromWords(e.known_from) : null,
+        personal_by_name_only: e?.personal_by_name_only ?? false,
         new_in_seat_days: e?.days_in_seat ?? null,
         relationship: e ? {
           summary: e.summary,
@@ -240,6 +252,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         evidence: e ? { summary: e.summary, warmth: e.warmth, measured: e.warmth_measured } : null,
         plays: e?.plays ?? [],
         shared: e ? sharedHistoryLine(e.shared_history) : null,
+        tie: e?.tie ?? null,
+        known_from: e ? knownFromWords(e.known_from) : null,
       }
     }).filter(x => x.ask)
 
