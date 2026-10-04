@@ -105,7 +105,7 @@ export function EngineAttention({ runs, onRan }: {
             type="button"
             disabled={replaying !== null}
             onClick={() => replay(a.job, a.label)}
-            className="shrink-0 rounded-full border border-white/15 px-3 py-1 text-micro font-semibold text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="tap-44 shrink-0 rounded-full border border-white/15 px-3 py-1 text-micro font-semibold text-ink-muted hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {replaying === a.job ? 'Running…' : 'Run again'}
           </button>

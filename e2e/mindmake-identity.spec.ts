@@ -273,55 +273,16 @@ test('375px mobile keeps the real mark and both official series wordmarks legibl
   expect(compact.glyphPixels).toBeGreaterThanOrEqual(24)
 
   // The rooms carried the two official series wordmarks until 2026-09-17, when
-  // both names retired. No wordmark exists for follow.the.money, mind.the.gap or
-  // under.the.hood, and pointing a live room at "Built With AI" artwork would put
-  // a name on the page that the page is not. So the room header degrades on
-  // purpose, declared in NO_WORDMARK_FOR.
-  //
-  // Ruling (Krish, 2026-09-20): that degrade is TYPE ONLY. It used to be a dark
-  // plate carrying the publication mark, which read as a black bar across the
-  // top of every room in both themes, repeating the words already on the room
-  // chip. So this no longer asserts a plate or a mark glyph, only that the
-  // format is named in real text and that no tab ever shows a raw slug.
+  // both names retired, and since 2026-10-04 the series are not rooms at all:
+  // the tab is today's calls, and every piece is browsed behind one quiet
+  // "Browse all pieces" control. What still holds is the naming rule: each
+  // series is named in real text, never as its database slug.
   await page.goto('/#/content')
+  await page.getByTestId('content-browse-open').click()
   for (const f of SUBCHANNELS) {
-    await expect(page.getByRole('tab', { name: new RegExp(escapeForRegExp(f.label)) })).toBeVisible()
+    await expect(page.getByTestId(`content-browse-${f.slug}`)).toHaveText(f.label)
     await expect(page.getByRole('tab', { name: new RegExp(`^${escapeForRegExp(f.slug)}$`) })).toHaveCount(0)
   }
-
-  for (const f of SUBCHANNELS) {
-    await page.getByTestId(`content-room-${f.slug}`).click()
-    const identity = page.getByTestId(`series-identity-${f.slug}`)
-    await expect(identity).toBeVisible()
-    await expect(identity).toHaveAttribute('data-series-wordmark', 'absent')
-    await expect(identity).toHaveAttribute('data-series-label', f.label)
-    await expect(identity).toContainText(f.label)
-    const shown = await identity.evaluate((root: HTMLElement) => {
-      const box = root.getBoundingClientRect()
-      const style = getComputedStyle(root)
-      return {
-        left: box.left,
-        right: box.right,
-        viewportWidth: window.innerWidth,
-        // A plate would paint a background and a border. Type does neither, and
-        // that is the whole point of the 2026-09-20 ruling, so it is asserted
-        // rather than left to the eye.
-        background: style.backgroundColor,
-        borderWidth: parseFloat(style.borderTopWidth) || 0,
-        hasMarkGlyph: !!root.querySelector('[data-mindmake-mark-glyph="true"]'),
-      }
-    })
-    // The name stays on screen, and it is type rather than a plate.
-    expect(shown.left).toBeGreaterThanOrEqual(-0.5)
-    expect(shown.right).toBeLessThanOrEqual(shown.viewportWidth + 0.5)
-    expect(shown.hasMarkGlyph).toBe(false)
-    expect(shown.borderWidth).toBe(0)
-    expect(shown.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/)
-    if (process.env.MINDMAKE_CAPTURE) {
-      await page.screenshot({ path: test.info().outputPath(`mobile-series-${f.slug}.png`) })
-    }
-  }
-
   await context.close()
 })
 
@@ -348,15 +309,6 @@ for (const theme of ['dark', 'light'] as const) {
     // the actually painted wordmark to clear text contrast after compositing.
     expect(ink.highContrastShare).toBeGreaterThanOrEqual(0.55)
 
-    // Same declared degrade as the mobile case above: the room names the format
-    // in type because no live subchannel has artwork, and since 2026-09-20 it is
-    // type with no plate around it. The Mindmake wordmark measured above is the
-    // one that must still be official.
-    const first = SUBCHANNELS[0]
-    const series = page.getByTestId(`series-identity-${first.slug}`)
-    await expect(series).toBeVisible()
-    await expect(series).toHaveAttribute('data-series-wordmark', 'absent')
-    await expect(series).toContainText(first.label)
     if (process.env.MINDMAKE_CAPTURE) {
       await page.screenshot({ path: test.info().outputPath(`desktop-${theme}-content.png`) })
     }

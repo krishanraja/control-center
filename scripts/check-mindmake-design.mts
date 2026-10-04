@@ -85,7 +85,7 @@ const sidebar = read('src/components/DesktopSidebar.tsx')
 const mobileMark = read('src/components/mobile/Logomark.tsx')
 const identity = read('src/components/shared/MindmakeIdentity.tsx')
 const series = read('src/lib/publicSeries.ts')
-const contentRooms = read('src/components/content-v2/ContentV2Tab.tsx')
+const contentRooms = read('src/components/content-v2/BrowsePieces.tsx')
 const processing = read('src/components/shared/ProcessingOverlay.tsx')
 const index = read('index.html')
 const manifest = read('public/manifest.webmanifest')
@@ -149,7 +149,7 @@ includes(series, '54ea43b9771d3b263718a4d40cecc68167b7a718', 'public series prov
 // how the dashboard still opened on the old wordmarks three days later. The
 // rooms now render from SUBCHANNELS, so what is held is that they are derived
 // at all: no room label may be typed into this component again.
-includes(contentRooms, 'SUBCHANNELS.map(f => ({ id: f.slug, label: f.label }))', 'Content v2 room labels derive from venture_formats')
+includes(contentRooms, 'SUBCHANNELS.map(f => ({ id: f.slug, label: f.label }))', 'Content series labels derive from venture_formats')
 
 for (const expected of ['/mindmake-wordmark.svg', '/mindmake-og.png']) {
   includes(middleware, expected, 'middleware public metadata')

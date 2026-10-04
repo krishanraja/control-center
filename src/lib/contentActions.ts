@@ -113,6 +113,10 @@ export async function approvePiece(ideaId: string, opts: { panelRunId?: string |
 // ── The paid fact check ────────────────────────────────────────────────────
 
 export interface FactCheckRead {
+  /** False when the engine answered without a gate at all, so the caller
+   *  falls back to the stored result instead of reading a missing gate as a
+   *  failed one. */
+  known: boolean
   gate: { ok: boolean; reason: string | null }
   /** Whether every publish check passes on these words as well. */
   ready: boolean
@@ -131,6 +135,7 @@ export async function readFactCheck(ideaId: string): Promise<ActionResult<FactCh
   return {
     ok: true,
     data: {
+      known: Boolean(j?.gate && typeof j.gate === 'object'),
       gate: { ok: j?.gate?.ok === true, reason: typeof j?.gate?.reason === 'string' ? j.gate.reason : null },
       ready: j?.ready === true,
       freshSentences: Number.isInteger(fresh) ? fresh : null,

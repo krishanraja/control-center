@@ -1,451 +1,361 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Sparkles } from '@/lib/icons'
-import { useContentV2 } from '../../hooks/useContentV2'
-import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
-import { LaneRoom } from './LaneRoom'
-import { LibraryRoom } from './LibraryRoom'
-import { SundayList } from './SundayList'
-import { DecideCard } from './DecideCard'
-import { ObligationStrip } from './ObligationStrip'
-import { MobileDecisionDeck } from './MobileDecisionDeck'
-import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
+import React, { useCallback, useRef, useState } from 'react'
+import { AlertTriangle, Sparkles } from '@/lib/icons'
+import { AppFrame } from '../shared/AppFrame'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
+import { Claim } from '../shared/Claim'
+import { Eyebrow } from '../shared/Eyebrow'
+import { IconTile } from '../shared/IconTile'
+import { AllClear } from '../shared/AllClear'
+import { Skeleton } from '../shared/Skeleton'
+import { SlideOver } from '../shared/SlideOver'
+import { BottomSheet } from '../mobile/BottomSheet'
+import { BOTTOM_NAV_PAD } from '../mobile/MobileShell'
+import { Button } from '../ui/button'
 import { StartFromResearch } from '../content/StartFromResearch'
-import { useVideoStudioReviews } from '../../hooks/useVideoStudioReviews'
-import { videoEngineEnabled } from '../../lib/videoStudio'
-import { publicSeriesLabel } from '../../lib/publicSeries'
-import { useContentTriage } from '../../hooks/useContentTriage'
-import { BOTTOM_NAV_PAD } from '../mobile/primitives'
-import { NextBestActionHero } from '../content/NextBestActionHero'
-import { isActiveIdea } from '../../lib/contentEngine'
-import { SUBCHANNELS } from '../../lib/formats'
-import { routeIdea } from '../../lib/contentRouting'
-import { ladderVerdict } from '../../lib/ladder'
-import { compareNewestFirst, seriesOf, storedSeries } from '../../lib/contentModel'
-import { useHeldItem } from '../../hooks/useHeldItem'
-import { useMediaQuery } from '../shared/motion'
+import { EngineAttention } from './EngineAttention'
+import { CallCard, Mono, revealTop } from './CallCard'
+import { CallRow, EngineFlow, EngineLine, Progress, SeriesNext, claimLine, engineStages } from './ContentPanels'
+import { BrowsePieces } from './BrowsePieces'
+import { useContentCalls, type ContentCalls } from '../../hooks/useContentCalls'
+import { useContainerWidth } from '../../hooks/useContainerWidth'
+import { ventureLabel } from '../../lib/ventureOptions'
+import { longDay, shortDay, whenWords } from '../../lib/contentCallWords'
+import { cn } from '@/lib/utils'
 
-// The Content tab, organised around what Mindmaker Live actually publishes.
-//
-// It used to be four rooms (This Week / Shifts / Feed / Library). "This Week"
-// is retired: it promised a weekly horizon the data never kept. 274 of 323
-// ideas had no expiry at all, so the room was a fresh-sounding label over
-// everything since May. Now that the purge works, obligations no longer need a
-// room of their own — they are always visible in a strip above the rooms, which
-// is better anyway, since an obligation you have to navigate to is one you can
-// forget.
-//
-// The rooms are the two formats (Krish, 2026-08-06: venture is what I am
-// working on, FORMAT is what shape this is, channel is where it goes). Built is
-// how a thing was actually built; Paid is how it actually makes money. Shifts
-// and the feed live INSIDE a format rather than beside it, so the shift
-// detector has a thesis to measure against.
-//
-// One surface, lane-first. Deliberately NOT two peer modes over one table:
-// that is the pattern that produced two goal editors and four focus subsystems.
-// The retired triage surface that used to sit behind a build flag is gone; its
-// jobs live here now: the phone deck clears the upstream pile, the desk lane
-// shows the pieces in flight, and the Library holds the calendar and backburner.
-//
-// ── Why the desk is one scroller (2026-09-09) ────────────────────────────
-//
-// It used to be two. An obligation strip pinned at `shrink-0 max-h-[38vh]
-// overflow-y-auto`, then the room at `flex-1 min-h-0 overflow-y-auto`, both
-// inside a fixed `h-full` column. That allocates space by decree rather than by
-// content, so the two halves fight and both lose: five proposals overflowed the
-// 38vh cap and the strip guillotined the third one mid-sentence, while the room
-// below took the remainder and had nothing to put in it. Neither box could ever
-// borrow from the other, so no amount of content made either one right.
-//
-// The earlier note below this admits the trade honestly: capping the strip was
-// a fix for the strip pushing the room off screen. It swapped "room crushed to
-// zero" for "strip guillotined AND room starved".
-//
-// So: one scroller, content-sized, no caps. And the order inverts. The tab used
-// to open with the machine asking five questions and Krish's own work nowhere
-// on the page. Now the first thing rendered is the one action to take, the room
-// is next, and the machine's questions sit at the bottom under "Also waiting",
-// because a proposal is something to consult, not an obligation that outranks
-// the six pieces sitting in review.
-
-/** A live venture_formats slug, or the Library.
+/**
+ * The Content tab: today's calls.
  *
- *  Until 2026-09-20 this was `'built' | 'paid' | 'library'`, hardcoded, and the
- *  rooms were labelled from the retired wordmarks. The publication was ruled to
- *  three subchannels on 2026-09-17 and the dashboard still opened on "Built
- *  With AI" and "The Money of AI" three days later, because the four lists that
- *  moved to src/lib/formats.ts were the ones the machine WRITES with and this
- *  is the one Krish READS. The taxonomy guard went green over it, because it
- *  reads four files and this was not one of them. Both are fixed. */
-export type RoomId = string
-/** Mobile adds a Queue view (the decision deck) as a peer of the rooms. */
-type ViewId = 'queue' | RoomId
-
-const ROOMS: Array<{ id: RoomId; label: string }> = [
-  // Decide leads, because it is the work. The subchannel rooms are browsing:
-  // the router assigns a subchannel now, which makes it an attribute rather
-  // than a destination, and organising the tab by destination meant visiting
-  // three places to answer one question.
-  { id: 'decide', label: 'To decide' },
-  ...SUBCHANNELS.map(f => ({ id: f.slug, label: f.label })),
-  // Before the Library, because this is work and the Library is reference.
-  // Named for what it holds rather than when it is read: "Sunday" is when
-  // Krish looks at it, which is not something a nav label should assert on
-  // his behalf.
-  { id: 'weak', label: 'Not lifted' },
-  { id: 'library', label: 'Library' },
-]
-const ROOM_SLUGS = SUBCHANNELS.map(f => f.slug)
+ * The engine finds, judges, writes and checks pieces on its own. What it
+ * cannot do without Krish is a short list of decisions: approve a finished
+ * piece, allow a paid fact check, set how sure we are, pick the next piece
+ * for a series, review a Studio video, and a few weekly rulings. This tab is
+ * that list, numbered, one in focus, each with one primary action and
+ * "Not now". The engine gets one strip saying where it is up to and one line
+ * saying whether it is healthy, never a pile.
+ *
+ * It replaced seven room pills (To decide, three series, Not lifted, Library)
+ * on 2026-10-04. The rooms organised the tab by where a piece lives, which
+ * meant visiting four places to answer "what needs me?". Browsing every piece
+ * is still one press away ("Browse all pieces"), with the Library inside it.
+ *
+ * One bounded body, one scroller (`content-room-scroll`), inside AppFrame.
+ * The shape is picked from the width the tab is actually handed, measured on
+ * the tab root, which no layout choice here resizes:
+ *   stack   under 1000px: phone, tablet, a narrow desk window. Cards in a column.
+ *   split   1000 to 1479: the desk at 1440. The list beside a reading pane.
+ *   triple  1480 and up:  the desk at 1920. List, reading pane, and a rail.
+ */
+type Shape = 'stack' | 'split' | 'triple'
 
 export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const mobile = variant === 'mobile'
-  // Same 1400px threshold Home and Focus use. Picked in JS, not with a
-  // `min-[1400px]:hidden` pair, so the obligation strips exist once in the DOM
-  // rather than twice under the same test ids.
-  const wideDesk = useMediaQuery('(min-width: 1400px)') && !mobile
-  // A stage needs height as well as width. 760px is the shortest viewport that
-  // fits the chrome (hero, tabs, series header, the folds) plus two idea cards
-  // with the sidebar's own rail beside it; under that, paging to one card at a
-  // time is worse than letting the page scroll, so it scrolls.
-  const tallEnough = useMediaQuery('(min-height: 760px)')
-  const deskStage = wideDesk && tallEnough
-  const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'decide')
-  // Whether Krish has picked a room himself. Until he has, the landing room is
-  // the machine's guess and may be corrected once the counts arrive; after he
-  // has, it is a decision and nothing moves it.
-  const [roomPicked, setRoomPicked] = useState(false)
+  const s = useContentCalls()
+  const [boxRef, width] = useContainerWidth()
+  const shape: Shape = mobile || width < 1000 ? 'stack' : width < 1480 ? 'split' : 'triple'
+  const [sheet, setSheet] = useState<null | 'engine' | 'browse'>(null)
   const [starting, setStarting] = useState(false)
-  const v2 = useContentV2()
-  // Both viewports read the video queue: the phone decides from the deck, the
-  // desk from the obligation strip. Desktop used to have no way in at all.
-  const videoQueue = useVideoStudioReviews(videoEngineEnabled())
-  const { ideas, loading: ideasLoading } = useRealtimeContentIdeas()
-  const triage = useContentTriage()
-  // The phone deck clears the upstream pile: raw seeds and research, one card
-  // at a time. Drafts and gates stay on the desk where they get real attention.
-  const upstream = useMemo(
-    () => triage.deck.filter(i => i.state === 'seeded' || i.state === 'researching'),
-    [triage.deck],
+
+  const cardRefs = useRef(new Map<string, HTMLElement>())
+  const numberOf = useCallback((key: string) => {
+    const k = s.calls.findIndex(c => c.key === key)
+    return k < 0 ? null : k + 1
+  }, [s.calls])
+  const keyForSlot = useCallback((series: string, date: string): string | null => {
+    const slot = s.slots.find(x => x.series === series && x.date === date)
+    if (slot?.picked) return s.calls.find(c => c.ideaId === slot.picked!.id)?.key ?? null
+    return s.calls.find(c => c.kind === 'pick_for_series' && c.series === series && c.date === date)?.key ?? null
+  }, [s.slots, s.calls])
+  const readerRef = useRef<HTMLDivElement>(null)
+  /** Desk: hold this call in the reading pane, and bring the pane's top into
+   *  view if he chose it from further down the list. */
+  const focusCall = useCallback((key: string) => {
+    s.hold(key)
+    requestAnimationFrame(() => revealTop(readerRef.current))
+  }, [s])
+  const goTo = useCallback((key: string) => {
+    if (shape === 'stack') cardRefs.current.get(key)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    else focusCall(key)
+  }, [shape, focusCall])
+  const nextAfter = useCallback((key: string) => {
+    const k = s.calls.findIndex(c => c.key === key)
+    const next = [...s.calls.slice(k + 1), ...s.calls.slice(0, k)].find(c => !s.receipts[c.key])
+    return next?.key ?? null
+  }, [s.calls, s.receipts])
+
+  const today = s.today
+  const browse = (
+    <Button variant="outline" size="sm" className="tap-44" onClick={() => setSheet('browse')} data-testid="content-browse-open">
+      Browse all pieces
+    </Button>
   )
-
-  // ── The decide queue ───────────────────────────────────────────────────
-  //
-  // What the ladder escalated: judged, not weak, not already ready. Those are
-  // the pieces it tried to lift and could not finish without him, which is the
-  // only pile that genuinely needs a human.
-  //
-  // `settled` is a local list of ids he has just decided, held because the
-  // decision is recorded in content_edit_events and the idea row itself does
-  // not change in the same tick. Without it the card he just settled would be
-  // handed straight back to him, which reads as the press having failed.
-  const [settled, setSettled] = useState<string[]>([])
-  const toDecide = useMemo(() => {
-    const seen = new Set(settled)
-    return ideas
-      .filter(i => !seen.has(i.id) && !i.buried_at && !i.library_at)
-      .map(i => ({ row: i, v: ladderVerdict(i) }))
-      .filter(({ v }) => v?.band === 'repairable')
-      // Score, then newest, then id. All 61 repairable pieces scored exactly
-      // 6 on 2026-10-04 and seven shared a created_at, so without the id the
-      // order changed on every refetch.
-      .sort((a, b) => ((b.v!.score ?? 0) - (a.v!.score ?? 0)) || compareNewestFirst(a.row, b.row))
-      .map(({ row }) => row)
-  }, [ideas, settled])
-  // The card on screen is held by id, not by position. A refetch that lands a
-  // new piece above it, or re-sorts the pile, no longer swaps the piece he is
-  // reading and drops the reason step he had open. It moves on when he settles
-  // it (it leaves `toDecide`) and the head of the queue comes next.
-  const deciding = useHeldItem<ContentIdeaRow>(toDecide, ideaId, { fallback: 'head' })
-
-  // Live means live. The badge used to filter only on `library_at`, while every
-  // room filtered on `isActiveIdea`, which also drops buried cards. On
-  // 2026-09-09 that gap read "Built With AI 4" and "The Money of AI 5" over two
-  // empty rooms: all nine were buried drafts. A count you cannot click through
-  // to is worse than no count, so both sides use the same predicate now.
-  const liveIdeas = useMemo(() => ideas.filter(i => !i.library_at && isActiveIdea(i)), [ideas])
-
-  const counts = useMemo(() => {
-    const forLane = (lane: RoomId) => liveIdeas.filter(i => routeOf(i).route === lane).length
-    const perRoom: Record<string, number> = {}
-    for (const slug of ROOM_SLUGS) perRoom[slug] = forLane(slug)
-    perRoom.library = v2.shifts.filter(s => s.status === 'library').length
-      + ideas.filter(i => i.library_at).length
-    perRoom.decide = toDecide.length
-    // Counted from the same predicate the room renders, for the reason the
-    // 2026-09-09 note below records: a badge reading 4 over an empty room is
-    // worse than no badge.
-    perRoom.weak = ideas.filter(i => !i.buried_at && ladderVerdict(i)?.band === 'weak').length
-    return perRoom
-  }, [v2.shifts, ideas, liveIdeas, toDecide])
-
-  // Land on a room that has work in it.
-  //
-  // ROOM_SLUGS is in venture_formats sort order, so the tab opens on the hero
-  // format. mind.the.gap is the hero and deliberately has no routing rules,
-  // because it is a shape rather than a vocabulary and the router would only be
-  // guessing. The result on 2026-09-20 was a tab that opened on 2 cards with
-  // dozens sitting in the two rooms beside it.
-  //
-  // Only ever runs before Krish has touched the switcher, and only when the
-  // room he would land on is genuinely empty, so a deliberate visit to a quiet
-  // room is never overridden. Ruling (Krish, 2026-09-20).
-  //
-  // And only on the first load (2026-10-04). It used to run on every change to
-  // the counts, so settling the last card in To decide, or a refetch that took
-  // a room to zero, moved him to another room without a press.
-  const landed = useRef(false)
-  useEffect(() => {
-    if (landed.current || ideasLoading) return
-    landed.current = true
-    if (roomPicked || mobile) return
-    if (counts[room as string]) return
-    const firstWithWork = ROOM_SLUGS.find(slug => counts[slug])
-    if (firstWithWork && firstWithWork !== room) setRoom(firstWithWork)
-  }, [counts, room, roomPicked, mobile, ideasLoading])
-
-  // Mobile leads with the Queue (the finite decision deck), then the three
-  // rooms as peers. The deck used to render ABOVE the rooms while claiming
-  // h-full, which crushed the rooms' flex-1 panel to exactly 0px: the
-  // Built / Paid / Library chips re-rendered a panel nobody could see, so the
-  // chips read as dead. Peers, not stacked: one view owns the stage at a time.
-  const segments: Array<Segment<ViewId>> = [
-    ...(mobile
-      ? [{
-          id: 'queue' as ViewId,
-          label: 'Queue',
-            badge: v2.decisions.length + videoQueue.reviews.length + upstream.length ? (
-              <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{v2.decisions.length + videoQueue.reviews.length + upstream.length}</span>
-          ) : undefined,
-        }]
-      : []),
-    ...ROOMS.map((r): Segment<ViewId> => {
-      const count = counts[r.id]
-      return {
-        id: r.id,
-        label: r.label,
-        badge: count ? (
-          <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{count}</span>
-        ) : undefined,
-      }
-    }),
-  ]
-
-  const nav = (
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <SegmentedNav<ViewId>
-            segments={segments}
-            value={room}
-            onChange={next => { setRoomPicked(true); setRoom(next) }}
-            label="Content views"
-            variant="pill"
-            testIdPrefix="content-room"
-            // Seven rooms wrapped to five rows on a 360px phone once the
-            // subchannels took their final names on 2026-09-25: the tabs took
-            // 251px of a 640px screen and pushed the queue's last button 34px
-            // under the bottom nav. Narrower chips in label type wrap to four
-            // rows (199px) with every name in full; the names are final and
-            // are never shortened. The phone shell renders at 1.2x, so 37px
-            // lands at 44px, the touch-target floor.
-            className={mobile ? '[&>button]:py-1 [&>button]:min-h-[37px] [&>button]:px-2.5 [&>button]:text-label' : undefined}
-          />
-        </div>
-        {/* The only way into the engine that starts from something YOU have.
-            On a phone this lives in the + create sheet instead of a second
-            inline button; the desk keeps the pill. */}
-        {!mobile && (
-          <button
-            type="button"
+  const header = mobile ? undefined : (
+    <SurfaceHeader
+      eyebrow={ventureLabel('publication') ?? 'Media'}
+      title="Content"
+      meta={<Mono className="text-label text-ink-muted">{longDay(today)}</Mono>}
+      actions={(
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+          {s.ready && <div className="max-w-[24rem]"><EngineLine failing={s.failing} onOpen={() => setSheet('engine')} /></div>}
+          {browse}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="tap-44"
             onClick={() => setStarting(true)}
+            iconLeft={<Sparkles size={12} />}
             data-testid="content-start-research"
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-label font-semibold text-violet-200 hover:bg-violet-500/20"
           >
-            <Sparkles size={12} /> Start from research
-          </button>
-        )}
-      </div>
-  )
-
-  return (
-    <div className="flex flex-col gap-4 min-h-0 h-full">
-      {mobile && room === 'queue' ? (
-        // The deck is a fixed stage, not a scroller, so the nav clearance is
-        // padding on the stage itself: the thumb-zone buttons sit above the
-        // fixed BottomNav instead of under it.
-        <>
-          {nav}
-          <div className={`flex-1 min-h-0 flex flex-col ${BOTTOM_NAV_PAD}`}>
-            <MobileDecisionDeck
-              v2={v2}
-              videoReviews={videoQueue.reviews}
-              videoLoading={videoQueue.loading}
-              videoQueueError={Boolean(videoQueue.error)}
-              triage={triage}
-              upstream={upstream}
-            />
-          </div>
-        </>
-      ) : (
-        // A desk is a stage, not a scroller (Krish, 2026-09-17: "i want a no
-        // scroll experience"). Above the desk breakpoint nothing here scrolls:
-        // the chrome is fixed, the room in the middle takes what is left, and
-        // the work inside it is paged to the height it was actually given.
-        //
-        // Below that breakpoint — a narrow desktop window, or a phone — it is
-        // still one scroller, because a 900px-tall stage with a 320px column
-        // in it is a worse answer than scrolling. `deskStage` is the switch.
-        <div
-          data-testid="content-room-scroll"
-          className={deskStage
-            ? 'flex-1 min-h-0 overflow-hidden'
-            : `flex-1 min-h-0 overflow-y-auto ${mobile ? BOTTOM_NAV_PAD : ''}`}
-        >
-          {/* Above 1400px the two obligation strips move into a rail beside the
-              work instead of sitting above and below it. Measured 2026-09-17:
-              the desk column is capped at 768px, which left 912px unused at
-              1920 while the proposals strip sat below the whole pile, off the
-              bottom of the screen on any real queue.
-
-              The ordering rule it shipped with still holds — a proposal is
-              something to consult and never outranks a piece in review — and
-              the rail states it more clearly than the stack did. Subordinate is
-              a narrow column at the side, read after the work; it was never the
-              same thing as "further down". */}
-          <div className={wideDesk ? `flex gap-8 ${deskStage ? 'h-full min-h-0 items-stretch' : 'items-start'}` : ''}>
-            {/* No max width on a stage. The 768px cap is a reading measure,
-                right for a scrolling column of prose and wrong here: at 1920
-                it left 535px of empty desk beside a 320px rail, which is the
-                hole the layout probe now fails on. The cards inside pick a
-                column count from the width they are handed. */}
-            <div className={`flex flex-col gap-5 ${wideDesk ? 'min-w-0 flex-1' : 'max-w-3xl'} ${deskStage ? 'min-h-0' : 'max-w-3xl'}`}>
-              {/* 1. The action. The hero reads the WHOLE active pile, which is
-                  what its own docstring always said it did, so it belongs here
-                  and not inside a lane. Inside a lane it was invisible: every
-                  live idea on 2026-09-09 was unrouted, so both lanes were empty
-                  and the one component that hands Krish a button never rendered. */}
-              {/* Held back until the pile has actually loaded. The hero concludes
-                  "You're clear" from an empty array, so during the first fetch it
-                  rendered that verdict directly above the obligation strip's
-                  "Checking what needs you" spinner: two contradictory answers to
-                  the same question, and a false one on top. */}
-              {!mobile && !ideasLoading && (
-                <div className={deskStage ? 'shrink-0' : undefined}><NextBestActionHero ideas={liveIdeas} /></div>
-              )}
-
-              {/* 2. Anything genuinely broken or already assembled. One line each,
-                  and nothing at all when there is nothing. Stacked only; on a
-                  wide desk it is in the rail, rendered once. */}
-              {!mobile && !wideDesk && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" />}
-
-              {/* 3. Navigation, in a stable place under two bounded blocks. */}
-              {deskStage ? <div className="shrink-0">{nav}</div> : nav}
-
-              {/* 4. The work. */}
-              {/* The Library is a reference surface — a calendar and a
-                  backburner — and it is read by browsing, so it keeps its own
-                  scroll even on a stage. Paging a calendar would be silly. */}
-              {room === 'decide'
-                ? (
-                  // Its own scroller, like the Not lifted and Library rooms
-                  // beside it. Without one the card's buttons sat below the
-                  // stage's clip line at 1440x900 with nothing to reach them.
-                  <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined} data-testid="decide-room">
-                    {deciding.current ? (
-                      <DecideCard
-                        key={deciding.current.id}
-                        idea={deciding.current}
-                        variant={variant}
-                        onSettled={() => { const id = deciding.current?.id; if (id) setSettled(s => [...s, id]) }}
-                      />
-                    ) : (
-                      <div className="py-10 text-center">
-                        <p className="text-body text-ink-muted">Nothing waiting on you.</p>
-                        <p className="mt-1 text-label text-ink-faint">Everything judged is either ready to write or on the Not lifted list.</p>
-                      </div>
-                    )}
-                  </div>
-                )
-                : room === 'weak'
-                ? (
-                  <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
-                    <SundayList ideas={ideas} variant={variant} />
-                  </div>
-                )
-                : room === 'library'
-                ? (
-                  <div className={deskStage ? 'min-h-0 flex-1 overflow-y-auto' : undefined}>
-                    <LibraryRoom v2={v2} ideas={ideas} variant={variant} />
-                  </div>
-                )
-                : (
-                  <div className={deskStage ? 'flex min-h-0 flex-1 flex-col' : undefined}>
-                    {/* 'queue' is a mobile view, not a room, and the mobile
-                        branch above already owns it, so this fallback is only
-                        reached if that ever stops being true. It used to read
-                        'built', a slug retired on 2026-09-17 that survives
-                        only as a read-side alias, so the fallback resolved to
-                        under.the.hood: the 0.5-a-week standing format rather
-                        than the hero. ROOM_SLUGS is in venture_formats sort
-                        order, so [0] is whatever the hero is today. */}
-                    <LaneRoom lane={room === 'queue' ? (ROOM_SLUGS[0] ?? 'general') : room} v2={v2} ideas={ideas} variant={variant} loading={ideasLoading} fit={deskStage} />
-                  </div>
-                )}
-
-              {/* 5. The machine's open questions, last. In the rail on a wide desk. */}
-              {!mobile && !wideDesk && <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" />}
-            </div>
-
-            {!mobile && wideDesk && (
-              <aside data-testid="content-rail" className={`w-[320px] shrink-0 flex flex-col gap-4 ${deskStage ? 'min-h-0 overflow-hidden' : ''}`}>
-                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="urgent" dense />
-                <ObligationStrip v2={v2} videoReviews={videoQueue.reviews} section="proposals" dense />
-              </aside>
-            )}
-          </div>
+            Start from research
+          </Button>
         </div>
       )}
+    />
+  )
 
+  const frame = (children: React.ReactNode, busy = false) => (
+    <div ref={boxRef} className="flex h-full min-h-0 flex-col" data-testid="content-tab" data-layout={shape} aria-busy={busy || undefined}>
+      <AppFrame header={header} bodyTestId="content-room-scroll" bodyClassName={cn(header && 'pt-5', mobile && BOTTOM_NAV_PAD)}>
+        {mobile && <h1 className="sr-only">Content</h1>}
+        {children}
+      </AppFrame>
+      <Sheets s={s} mobile={mobile} sheet={sheet} close={() => setSheet(null)} />
       {!mobile && <StartFromResearch open={starting} onClose={() => setStarting(false)} />}
     </div>
   )
+
+  if (s.error) {
+    return frame(
+      <div className={cn('flex flex-col gap-6', shape === 'stack' && 'mx-auto w-full max-w-[680px]')}>
+        <div className={cn('surface flex flex-col gap-4 rounded-2xl', mobile ? 'p-5' : 'max-w-[720px] p-7')} role="alert" data-testid="content-error">
+          <IconTile icon={AlertTriangle} size="md" tone="neutral" />
+          <h2 className="text-title font-display font-semibold text-ink">Today's calls did not load.</h2>
+          <p className="text-ui text-ink-muted">The content engine's pieces did not arrive, so this tab cannot say what needs you yet. Nothing was changed, and nothing was sent.</p>
+          <Button variant="secondary" size="touch" onClick={s.retry} className={mobile ? 'w-full' : 'w-fit px-6'}>Try again</Button>
+        </div>
+      </div>,
+    )
+  }
+
+  if (!s.ready || !s.pipe) return frame(<Loading shape={shape} />, true)
+
+  const total = s.calls.length
+  const zero = total === 0
+  const firstOpen = s.calls.find(c => !s.receipts[c.key])
+  const firstDay = firstOpen ? (firstOpen.date ?? s.slotDayOf(firstOpen.ideaId)) : null
+  const claim = claimLine(s.open, s.decided, firstOpen && ['approve', 'go_out'].includes(firstOpen.kind) ? firstDay : null, today, whenWords)
+  const scheduled = s.ideas.filter(i => i.state === 'approved' && i.scheduled_for && !i.published_at).length
+  const stages = engineStages(s.pipe, s.foundThisWeek, scheduled)
+  const engineLine = <EngineLine failing={s.failing} onOpen={() => setSheet('engine')} />
+  const gaps = <Gaps s={s} />
+  const week = (columns: boolean) => (
+    <SeriesNext
+      slots={s.slots}
+      columns={columns}
+      callNumber={(series, date) => { const k = keyForSlot(series, date); return k ? numberOf(k) : null }}
+      onCall={(series, date) => { const k = keyForSlot(series, date); if (k) goTo(k) }}
+    />
+  )
+
+  // ── Stack: the phone, the tablet, a narrow window ──
+  if (shape === 'stack') {
+    return frame(
+      <div className={cn('mx-auto flex w-full max-w-[680px] flex-col pb-4', mobile ? 'gap-6' : 'gap-7')}>
+        {zero ? (
+          <div className="flex flex-col items-center gap-3" data-testid="content-all-clear">
+            <AllClear title="All clear." sub="Nothing needs you today. The engine judges new ideas every morning at 05:00 UTC and brings back anything that needs a decision." />
+            <div className="w-full max-w-[26rem]">{engineLine}</div>
+            {mobile && browse}
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3">
+              <Claim size="title">{claim}</Claim>
+              <Progress total={total} settled={s.settled} lead={mobile ? <Mono className="text-label text-ink-muted">{shortDay(today)}</Mono> : undefined} />
+              {mobile && engineLine}
+              {mobile && <div>{browse}</div>}
+            </div>
+            <ol data-testid="content-calls" className="flex flex-col gap-4" aria-label="Today's calls">
+              {s.calls.map((c, k) => (
+                <li key={c.key} className="scroll-mt-4">
+                  <CallCard call={c} n={k + 1} s={s} layout="card" cardRef={el => { if (el) cardRefs.current.set(c.key, el) }} />
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+        {gaps}
+        {week(!mobile && width >= 640)}
+        <section aria-labelledby="flow-h" className="flex flex-col gap-3">
+          <h2 id="flow-h" className="leading-none"><Eyebrow>Where the engine is up to</Eyebrow></h2>
+          <div className="surface rounded-2xl p-4"><EngineFlow stages={stages} variant="list" /></div>
+        </section>
+      </div>,
+    )
+  }
+
+  // ── Split and triple: the desk ──
+  const triple = shape === 'triple'
+  const focus = s.focus
+  return frame(
+    <div className="flex flex-col gap-5 pb-2">
+      <EngineFlow stages={stages} variant="strip" />
+      {zero ? (
+        <div className={cn('grid items-start gap-8', triple ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_340px]' : 'grid-cols-2')}>
+          <div className="surface flex flex-col items-center gap-2 rounded-2xl pb-8" data-testid="content-all-clear">
+            <AllClear title="All clear." />
+            <p className="max-w-[26rem] px-6 text-center text-ui text-ink-muted">
+              Nothing needs you today. The engine judges new ideas every morning at 05:00 UTC and brings back anything that needs a decision.
+            </p>
+            <div className="px-6">{gaps}</div>
+          </div>
+          <div className={triple ? 'col-span-2' : undefined}>{week(triple)}</div>
+        </div>
+      ) : (
+        <div className={cn('grid items-start gap-8', triple ? 'grid-cols-[360px_minmax(0,1fr)_320px]' : 'grid-cols-[340px_minmax(0,1fr)]')}>
+          <aside data-testid="content-calls-list" className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3 px-1">
+              <Claim size="title">{claim}</Claim>
+              <Progress total={total} settled={s.settled} />
+            </div>
+            <ol
+              data-testid="content-calls"
+              className="flex flex-col gap-1"
+              aria-label="Today's calls. Up and down arrows move between them."
+              onKeyDown={e => {
+                if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+                const k = s.calls.findIndex(c => c.key === focus?.key)
+                const next = s.calls[Math.min(s.calls.length - 1, Math.max(0, k + (e.key === 'ArrowDown' ? 1 : -1)))]
+                if (!next) return
+                e.preventDefault()
+                s.hold(next.key)
+                const list = e.currentTarget
+                requestAnimationFrame(() => (list.querySelectorAll('button')[s.calls.indexOf(next)] as HTMLButtonElement | undefined)?.focus())
+              }}
+            >
+              {s.calls.map((c, k) => (
+                <CallRow key={c.key} call={c} n={k + 1} receipt={s.receipts[c.key]} selected={c.key === focus?.key} onSelect={() => focusCall(c.key)} s={s} />
+              ))}
+            </ol>
+            {gaps}
+          </aside>
+
+          <div ref={readerRef} data-testid="content-reader" className="flex min-w-0 flex-col gap-8">
+            {focus && (
+              <CallCard
+                key={focus.key}
+                call={focus}
+                n={numberOf(focus.key) ?? 1}
+                s={s}
+                layout="reader"
+                onNext={nextAfter(focus.key) ? () => { const k = nextAfter(focus.key); if (k) focusCall(k) } : undefined}
+              />
+            )}
+            {!triple && week(true)}
+          </div>
+
+          {triple && <aside data-testid="content-rail" className="flex flex-col gap-8">{week(false)}</aside>}
+        </div>
+      )}
+    </div>,
+  )
 }
 
-const ideaId = (i: { id: string }) => i.id
-
-// Stored lane -> format. Mirrors laneToVenture in api/_finalPass.ts and
-// laneToCorpusChannel in api/_content.ts: map legacy values, never reject them.
-// Returns null when the columns genuinely do not say.
-//
-// It used to return null whenever `lane` was null, before even looking at the
-// slot. On 2026-10-04, 151 of 154 live pieces had lane null and lane_slot set,
-// so the mind.the.gap room showed 1 of its 56. The slot is the series whatever
-// the lane says; the rule lives in storedSeries (src/lib/contentModel.ts) so
-// the rooms and the decide card read it the same way.
-export function laneOf(lane?: string | null, slot?: string | null): RoomId | null {
-  return storedSeries(lane, slot)
+/** What the list cannot see today, named so a gap reads as a gap. */
+function Gaps({ s }: { s: ContentCalls }) {
+  if (!s.unsupported.length) return null
+  return (
+    <section aria-labelledby="gaps-h" data-testid="content-gaps" className="flex flex-col gap-2 px-1">
+      <h2 id="gaps-h" className="leading-none"><Eyebrow>Not in this list</Eyebrow></h2>
+      <ul className="flex flex-col gap-1.5">
+        {s.unsupported.map(u => (
+          <li key={u.kind} className="text-label text-ink-faint">
+            {u.kind === 'studio_review'
+              ? <><span className="font-semibold text-ink-muted">Video reviews could not be checked</span>. Your other calls are still right. Refresh before assuming no video is waiting.</>
+              : u.why}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
 
-/**
- * Where an idea belongs, stored route first and the router only as a fallback.
- *
- * The stored `lane_slot` is a decision somebody made and it always wins. The
- * router fills the silence: on 2026-09-09 every one of 119 live ideas had no
- * slot, so `laneOf` returned null for all of them, both rooms rendered empty,
- * and the entire pile was reachable only from a drawer behind a button.
- *
- * `derived` is returned rather than hidden because a guess that looks like a
- * decision is how a corpus quietly becomes wrong. The surface marks derived
- * cards, and nothing here writes to the row: routing by use is reversible,
- * routing by backfill is not.
- */
-export function routeOf(idea: { lane?: string | null; lane_slot?: string | null; idea?: string | null; body?: string | null; meta?: Record<string, unknown> | null }): {
-  route: RoomId | null
-  derived: boolean
-  reason: string | null
-} {
-  // The stored series, or the judges' router when nothing is stored: both are
-  // the engine's routing, and both are what the decide card shows.
-  const stored = seriesOf(idea)
-  if (stored) return { route: stored, derived: false, reason: null }
-  const verdict = routeIdea(idea)
-  return { route: verdict.route, derived: verdict.route != null, reason: verdict.reason }
+function Sheets({ s, mobile, sheet, close }: { s: ContentCalls; mobile: boolean; sheet: null | 'engine' | 'browse'; close: () => void }) {
+  const engineBody = s.pipe ? (
+    <div className="flex flex-col gap-5">
+      <p className="text-ui text-ink-muted">
+        The engine finds, judges, writes and checks pieces on its own. It judges every morning at 05:00 UTC and keeps improving the {s.pipe.byStage.needs_work} pieces that need work without asking you.
+      </p>
+      {s.failing.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <Eyebrow>What is failing</Eyebrow>
+          <EngineAttention runs={s.runs} onRan={s.refreshRuns} />
+        </div>
+      )}
+      <div className="flex flex-col gap-3">
+        <Eyebrow>Where it is up to</Eyebrow>
+        <EngineFlow stages={engineStages(s.pipe, s.foundThisWeek, s.ideas.filter(i => i.state === 'approved' && i.scheduled_for && !i.published_at).length)} variant="list" />
+      </div>
+    </div>
+  ) : null
+
+  return (
+    <>
+      <BrowsePieces open={sheet === 'browse'} onClose={close} mobile={mobile} s={s} />
+      {mobile ? (
+        <BottomSheet open={sheet === 'engine'} onClose={close} ariaLabel="The engine" fullHeight={false}>
+          <div className="max-h-[80dvh] overflow-y-auto px-5 pb-8">
+            <div className="mb-4"><Eyebrow>The engine</Eyebrow></div>
+            {engineBody}
+          </div>
+        </BottomSheet>
+      ) : (
+        <SlideOver open={sheet === 'engine'} onClose={close} ariaLabel="The engine" label="The engine">
+          {engineBody}
+        </SlideOver>
+      )}
+    </>
+  )
+}
+
+// ── Loading: the shape of what is arriving ───────────────────────────────
+
+function Loading({ shape }: { shape: Shape }) {
+  if (shape === 'stack') {
+    return (
+      <div className="mx-auto flex w-full max-w-[680px] flex-col gap-6" data-testid="content-loading">
+        <div className="flex flex-col gap-3">
+          <Skeleton h={24} w="92%" />
+          <Skeleton h={24} w="58%" />
+          <Skeleton h={14} />
+        </div>
+        {[300, 220].map((h, k) => (
+          <div key={k} className="surface flex flex-col gap-4 rounded-2xl p-4">
+            <div className="flex items-center gap-3"><Skeleton h={28} w={28} r={14} /><Skeleton h={11} w={110} /></div>
+            <Skeleton h={22} w="85%" />
+            <Skeleton h={h - 150} />
+            <Skeleton h={48} r={12} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-5" data-testid="content-loading">
+      <Skeleton h={94} r={16} />
+      <div className={cn('grid items-start gap-8', shape === 'triple' ? 'grid-cols-[360px_minmax(0,1fr)_320px]' : 'grid-cols-[340px_minmax(0,1fr)]')}>
+        <div className="flex flex-col gap-3">
+          <Skeleton h={26} w="88%" />
+          <Skeleton h={4} />
+          {Array.from({ length: 5 }, (_, k) => <Skeleton key={k} h={72} r={12} />)}
+        </div>
+        <div className="surface flex flex-col gap-5 rounded-2xl p-7">
+          <Skeleton h={12} w={160} />
+          <Skeleton h={30} w="70%" />
+          <Skeleton h={120} />
+          <Skeleton h={48} w={220} r={12} />
+        </div>
+        {shape === 'triple' && <div className="flex flex-col gap-3">{[0, 1, 2].map(k => <Skeleton key={k} h={120} r={16} />)}</div>}
+      </div>
+    </div>
+  )
 }

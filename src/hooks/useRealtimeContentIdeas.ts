@@ -235,6 +235,9 @@ interface Options {
 
 let cache: ContentIdeaRow[] = []
 let loadingCache = true
+/** The last read's failure, in words, or null. A failed read used to leave an
+ *  empty list that looked exactly like an empty engine. */
+let errorCache: string | null = null
 let channel: RealtimeChannel | null = null
 let refCount = 0
 let inflight: Promise<void> | null = null
@@ -260,7 +263,14 @@ async function fetchAll(): Promise<void> {
       .order('id', { ascending: true })
     if (error && error.code !== 'PGRST205') {
       console.warn('[useRealtimeContentIdeas] fetch error', error.message)
+      errorCache = error.message || 'The content ideas could not be read.'
+      // Keep what was already on screen: a failed refetch is not an empty pile.
+      loadingCache = false
+      notify()
+      inflight = null
+      return
     }
+    errorCache = null
     cache = sortNewestFirst((data as ContentIdeaRow[]) || [])
     loadingCache = false
     notify()
@@ -323,5 +333,5 @@ export function useRealtimeContentIdeas(opts: Options = {}) {
     return out
   }, [sourceKey, stateKey, filterFn, cache])
 
-  return { ideas, loading: loadingCache, refresh }
+  return { ideas, loading: loadingCache, error: errorCache, refresh }
 }

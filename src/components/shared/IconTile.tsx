@@ -27,13 +27,21 @@ const TONE = {
   accent: 'border-violet-300/30 bg-violet-500/15 text-violet-200',
 } as const
 
+/**
+ * `glyph` (2026-10-04, Content's numbered calls) puts a short figure in the
+ * tile instead of an icon: a list position, set in mono, so a numbered list
+ * and its done state (the same tile carrying a Check) share one frame rather
+ * than a second hand-rolled ring. Give it an icon or a glyph, not both.
+ */
 export function IconTile({
   icon: Icon,
+  glyph,
   size = 'md',
   tone = 'neutral',
   className = '',
 }: {
-  icon: LucideIcon
+  icon?: LucideIcon
+  glyph?: React.ReactNode
   size?: keyof typeof SIZE
   tone?: keyof typeof TONE
   className?: string
@@ -44,7 +52,7 @@ export function IconTile({
       aria-hidden
       className={`inline-flex flex-shrink-0 items-center justify-center rounded-full border ${s.box} ${TONE[tone]} ${className}`}
     >
-      <Icon size={s.icon} />
+      {Icon ? <Icon size={s.icon} /> : <span className="font-mono text-label font-semibold tabular-nums">{glyph}</span>}
     </span>
   )
 }

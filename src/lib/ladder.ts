@@ -267,19 +267,3 @@ export function compareReady(
   if (byFloor) return byFloor
   return (b.verdict.judgedAt ?? '').localeCompare(a.verdict.judgedAt ?? '')
 }
-
-/**
- * What a weak piece needs from Krish, which is not the same for every one.
- *
- * Measured on the ten he graded: every repair that refused did so for want of
- * a named client, a real deal or a moment he had lived, and no amount of web
- * research can supply those. That is a different ask from a piece nobody
- * researched at all, and the list is useless if it renders them the same.
- */
-export function whatItNeeds(v: LadderVerdict): 'your standing' | 'a lookup that never ran' | 'a decision' {
-  const last = v.attempts[v.attempts.length - 1]
-  if (!last) return 'a decision'
-  if (last.outcome === 'declined' && last.researched) return 'your standing'
-  if (last.outcome === 'declined' && !last.researched) return 'a lookup that never ran'
-  return 'a decision'
-}

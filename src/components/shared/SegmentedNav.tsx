@@ -119,6 +119,9 @@ export function SegmentedNav<T extends string>({
             data-testid={testIdPrefix ? `${testIdPrefix}-${s.id}` : undefined}
             onClick={() => onChange(s.id)}
             className={cn(
+              // The tap floor: pills and segments are 40px tall, so the hit
+              // area grows to 44 underneath them without moving the ink.
+              'tap-44',
               t.base,
               active ? t.on : t.off,
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50',

@@ -465,8 +465,16 @@ Three rules came out of the same correction, and they are the ones to carry:
 Locked 2026-09-17 (Krish, on Content: "i want a no scroll experience").
 
 A **scroller** sizes itself to its content and lets the page grow. A **stage**
-is handed a height and lives inside it. Home, Pilots and now Content are
-stages; the People shell is a scroller and stays one.
+is handed a height and lives inside it. Home and Pilots are stages; the People
+shell is a scroller and stays one.
+
+Content was a stage from 2026-09-17 to 2026-10-04. The redesign chosen from the
+mocks that day ("today's calls", concept content-a) reads one call at a time in
+full, with its argument, prediction and the three candidates of a pick side by
+side, and a stage could only fit that by paging or clipping it. So Content is
+now one bounded scroller: the window never scrolls, AppFrame's body
+(`content-room-scroll`) is the only thing that does, and nothing scrolls inside
+it (`e2e/content-desk.spec.ts` probes inside the scroller for exactly that).
 
 The contract for a stage:
 
@@ -801,6 +809,20 @@ a stage that never scrolls). `components/mobile/`:
 
 **Do not** hand-roll a card, button, pill, or hero — extend the primitive so
 both device classes and both themes stay coherent.
+
+### Extensions for Content's today's calls (2026-10-04)
+
+All optional and off by default, so every existing call site renders as before:
+
+- `OptionChips` takes `size="touch"` (44px chips at the ui size, for a choice
+  that is the primary action of a surface), `stack` (full-width rows that can
+  carry a `hint`) and `even` (one row of equal-width chips for a short ordered
+  scale, the "how sure are we" 50 to 90). Every chip carries `.tap-44`.
+- `IconTile` takes a `glyph` instead of an `icon`: a short figure in mono, so a
+  numbered list and its done state (the same tile carrying a Check) share one
+  frame. An icon or a glyph, never both.
+- `SegmentedNav` segments carry `.tap-44`.
+- `AppFrame` takes `bodyTestId`, so a spec can find a tab's one scroller.
 
 ### DoThisNextHero on a phone (2026-09-27)
 

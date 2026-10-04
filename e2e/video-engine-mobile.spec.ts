@@ -897,7 +897,7 @@ test.describe('Video Engine mobile reviewer', () => {
     await expect(page.getByRole('button', { name: 'Direct another change' })).not.toBeVisible()
   })
 
-  test('keeps the weekly anchor first, then ready video reviews, then other Content work', async ({ page }) => {
+  test('a ready video review is one of today\'s calls, after the daily ones and before the weekly ones', async ({ page }) => {
     const review = cloneReview()
     const decisions = [
       {
@@ -912,14 +912,17 @@ test.describe('Video Engine mobile reviewer', () => {
     await installVideoStudioMock(page, review, undefined, decisions)
     await page.goto('/#/content')
 
-    await expect(page.getByRole('heading', { name: 'Weekly anchor' })).toBeVisible()
-    await page.getByRole('button', { name: 'Next card' }).click()
-    await expect(page.getByRole('heading', { name: 'Proof lands sooner' })).toBeVisible()
-    await page.getByRole('button', { name: 'Next card' }).click()
-    await expect(page.getByRole('heading', { name: 'Investigation ready: Later investigation' })).toBeVisible()
+    const video = page.getByRole('heading', { name: 'Proof lands sooner' })
+    const weekly = page.getByRole('heading', { name: 'Investigation ready: Later investigation' })
+    await expect(video).toBeVisible()
+    await expect(weekly).toBeVisible()
+    const [v, w] = await Promise.all([video.boundingBox(), weekly.boundingBox()])
+    expect(v!.y).toBeLessThan(w!.y)
+    // The weekly brief is not one of the calls; it opens from its own page.
+    await expect(page.getByRole('heading', { name: 'Weekly anchor' })).toHaveCount(0)
   })
 
-  test('reduced motion disables preview autoplay, preview fades and queue throws', async ({ page }) => {
+  test('reduced motion disables preview autoplay and preview fades', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.addInitScript(() => {
       ;(window as any).__videoPlayCalls = 0
@@ -937,10 +940,7 @@ test.describe('Video Engine mobile reviewer', () => {
     await installVideoStudioMock(page, review, undefined, decisions)
     await page.goto('/#/content')
 
-    const card = page.getByTestId('mobile-decision-card')
-    await expect(card).toHaveAttribute('style', /transform: none/)
-    await expect(card).toHaveAttribute('style', /transition: none/)
-    await page.getByRole('button', { name: 'Next card' }).click()
+    // Today's calls are a still list: nothing on it throws or slides.
     await expect(page.getByRole('heading', { name: review.safe_title })).toBeVisible()
     await page.getByRole('button', { name: 'Open review' }).click()
 
