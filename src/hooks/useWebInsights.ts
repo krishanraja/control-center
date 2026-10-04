@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { requestJson, failureMessage } from '../lib/apiFetch'
-import type { WebInsightsResponse, WebPrefix } from '../lib/webProperties'
+import type { WebInsightsResponse, WebJob, WebPrefix } from '../lib/webProperties'
 
 /**
  * Single reader of GET /api/growth/web-insights: one honest read per site per
@@ -117,6 +117,39 @@ async function refreshInsights(): Promise<WebRefreshResult> {
   }
 }
 
+export type WebAnswerResult = { result: 'ok' | 'failed'; message?: string }
+
+/**
+ * Answer a site's open ruling in one tap: POST { action: 'answer', property,
+ * choice, job? }. The route stores the answer where the next check reads it
+ * and returns the fresh read with that action already closed, so the card
+ * changes where it was pressed. A refused answer (400/409) says why in the
+ * route's own words.
+ */
+async function answerInsight(property: WebPrefix, choice: string, job?: WebJob | null): Promise<WebAnswerResult> {
+  try {
+    const { ok, json } = await requestJson<Record<string, unknown>>('/api/growth/web-insights', {
+      method: 'POST',
+      body: { action: 'answer', property, choice, ...(job ? { job } : {}) },
+      timeoutMs: 20_000,
+    })
+    if (!ok || !json || json.ok === false || !isResponse(json)) {
+      const detail = typeof json?.error === 'string' ? json.error.trim() : ''
+      return { result: 'failed', message: detail ? (/[.!?]$/.test(detail) ? detail : `${detail}.`) : 'Could not save the answer.' }
+    }
+    cache = json
+    empty = false
+    errorCache = null
+    fetchedAt = Date.now()
+    loaded = true
+    return { result: 'ok' }
+  } catch (e) {
+    return { result: 'failed', message: failureMessage(e, 'Could not save the answer.') }
+  } finally {
+    notify()
+  }
+}
+
 export function useWebInsights(): {
   data: WebInsightsResponse | null
   loaded: boolean
@@ -124,6 +157,7 @@ export function useWebInsights(): {
   empty: boolean
   refreshing: boolean
   refresh: () => Promise<WebRefreshResult>
+  answer: (property: WebPrefix, choice: string, job?: WebJob | null) => Promise<WebAnswerResult>
 } {
   const [, setVersion] = useState(0)
 
@@ -135,24 +169,5 @@ export function useWebInsights(): {
     return () => { listeners.delete(listener) }
   }, [])
 
-  return { data: cache, loaded, error: errorCache, empty, refreshing, refresh: refreshInsights }
-}
-
-/**
- * The Growth hero's web branch. Only setup rungs (1 and 2) reach it: while a
- * site is not being counted, every other number on the tab is blind to it and
- * the fix is one sitting. Rulings (rung 4) and growth actions stay on the cards.
- */
-export function webHero(data: WebInsightsResponse | null): { headline: string; sub: string; prefix: WebPrefix | 'shared' } | null {
-  if (!data) return null
-  const shared = data.shared_action
-  if (shared && shared.rung <= 2) {
-    return { headline: shared.hero_line ?? shared.title, sub: 'Until then a quiet site and a broken one look the same.', prefix: 'shared' }
-  }
-  for (const p of data.properties) {
-    if (p.action && p.action.rung <= 2) {
-      return { headline: p.action.hero_line ?? p.action.title, sub: `${p.label} is not being counted yet.`, prefix: p.prefix }
-    }
-  }
-  return null
+  return { data: cache, loaded, error: errorCache, empty, refreshing, refresh: refreshInsights, answer: answerInsight }
 }

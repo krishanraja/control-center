@@ -37,7 +37,9 @@ const LAST_WEEK = isoWeek(new Date(NOW.getTime() - 7 * 86_400_000))
 const CURRENT_CARD = {
   id: 'd-current',
   week: THIS_WEEK,
-  kind: 'brief_review',
+  // A weekly ruling the tab turns into one of today's calls ("Keep it for
+  // good"). The weekly brief itself is not a call since 2026-10-04.
+  kind: 'graduation',
   ref: 'b-current',
   payload: { title: 'The infrastructure layer just repriced', headlines: 8 },
   status: 'pending',
@@ -127,8 +129,8 @@ test('the queue asks for a bounded week window, newest first', async ({ page }) 
 
 test('an old card is not what greets you', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  // Both cards go in. Unbounded, the deck sorts brief_review first and leads
-  // with the older one - which is exactly what Krish saw for six weeks.
+  // Both cards go in. Unbounded, the older one leads - which is exactly what
+  // Krish saw for six weeks.
   await mockQueue(page, [ANCIENT_CARD, CURRENT_CARD])
   await page.goto('/#/content')
 
@@ -142,8 +144,9 @@ test('the count reflects the window, not an all-time pile', async ({ page }) => 
   await page.goto('/#/content')
 
   // "1 of 30" was the tell: 30 was the query limit saturating, not a count.
-  await expect(page.getByText('1 of 1 to decide', { exact: false })).toBeVisible()
-  await expect(page.getByText('1 of 30', { exact: false })).toHaveCount(0)
+  await expect(page.getByText('One call today.')).toBeVisible()
+  await expect(page.getByTestId('content-progress')).toContainText('0 of 1 settled')
+  await expect(page.getByText('of 30', { exact: false })).toHaveCount(0)
 })
 
 test('the ancient card is excluded by the window the app sends', async ({ page }) => {

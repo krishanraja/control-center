@@ -144,7 +144,10 @@ export function SeriesIdentity({ series, className, testId }: SeriesIdentityProp
         data-series-label={identity.label}
         data-series-wordmark="absent"
       >
-        <span className="truncate font-mono text-label tracking-[0.06em] text-ink">
+        {/* A series name is a brand name, so it is set as one: Archivo, no
+            mono and no tracking (mono is for numbers, dates and sources,
+            DESIGN_SYSTEM.md), and never cut short. */}
+        <span className="font-display text-label text-ink">
           {identity.label}
         </span>
       </span>

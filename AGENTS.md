@@ -165,12 +165,16 @@ builds, tests or deploys it.
   different build than the pinned `@playwright/test` wants ("Executable doesn't exist
   at .../chromium_headless_shell-<n>"). Point at what is actually there rather than
   downloading: `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-<n>/chrome-linux/chrome`.
-- **`e2e/growth.spec.ts` is green (9/9).** It used to be 2 of 9: the specs
-  selected the Growth sections by their visible labels, and those labels were
-  renamed. Selection now goes through `data-testid` and content stays as
-  content:
-  - `growth-section-<id>` — the five section controls
-  - `growth-panel-<id>` — which panel actually mounted
+- **`e2e/growth.spec.ts` is green (14/14)** against the one-move-at-a-time
+  tab (2026-10-04) and the populated fixture in `e2e/fixtures/growth.ts`. It
+  was once 2 of 9: the specs selected the Growth sections by their visible
+  labels, and those labels were renamed. Selection goes through `data-testid`
+  and content stays as content:
+  - `growth-section-<id>` — the four view controls (next, week, numbers, places;
+    the old council/work/signals/map/governance ids still deep-link onto them)
+  - `growth-panel-<id>` — which view actually mounted
+  - `growth-move-card`, `growth-move-primary`, `growth-move-secondary`,
+    `growth-move-verdict`, `growth-move-next` — the one move and what pressing it did
   - `people-lane-<id>`, `os-sub-<id>`, `content-room-<id>` — the other switchers
   Keep it that way. If you add a switcher, give it a `testIdPrefix` (see
   `src/components/shared/SegmentedNav.tsx`) rather than letting a spec click a
@@ -249,8 +253,11 @@ A separate `e2e` job runs nine Playwright specs at the default viewport
 `*-phone.spec.ts` at 390 and 360 (those two steps have no file filter, so the
 desk and phone projects cover whatever matches their `testMatch`, which is how
 `strategist-phone.spec.ts` runs). Everything else, including `mindmake-identity.spec.ts`,
-`growth.spec.ts`, `decide-card.spec.ts`, `sunday-list.spec.ts`,
-`lane-ready.spec.ts` and `room.spec.ts`, is caught only by a full local run.
+`growth.spec.ts` and `room.spec.ts`, is caught only by a full local run.
+(`decide-card.spec.ts`, `sunday-list.spec.ts` and `lane-ready.spec.ts` went
+with the surfaces they tested in the 2026-10-04 Content redesign; today's
+calls are covered by `content-rooms.spec.ts`, which keeps its name because CI
+runs it by name.)
 
 **CI was Node 18 until 2026-09-20, and that alone kept main red from 2026-09-19.**
 Node 18 has no `globalThis.crypto`, so `sha256Hex` in `src/lib/editLedger.ts`

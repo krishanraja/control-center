@@ -9,12 +9,12 @@ import {
   classifyHealth, planRestate, detectorFired, normaliseSlotText,
   buildFindings, actionForFinding, insightLine, healthLine, ladder, mergeShared,
   allowedDetectors, webActionRules, WEB_ACTION_SCHEMA, webActionUser, evidenceHash, pickAction, fallbackGrowthAction,
-  toView, nextRunAt, crosscheckOf, doneTextsSince, isPlainLandingPath, cutAtSentence,
+  toView, nextRunAt, crosscheckOf, doneTextsSince, isPlainLandingPath, cutAtSentence, canonRuledFor,
   PROVISIONAL_HOURS, QUIET_MAX_SESSIONS_7D, LLM_RETRY_HOURS, GROWTH_ACTION_TTL_DAYS,
   type PropertyRead, type OsFacts, type DetectorFacts, type Health, type WebInsightRow, type AdminFacts, type ProbeFacts,
 } from '../../api/_webInsightsCore.js'
 import {
-  webProperty, DONE_HINT,
+  webProperty, DONE_HINT, canonChoices, canonRulingKey, parseCanonRuling, withCanonRuling,
   type WebProperty, type WebPrefix, type WebWindow, type KrishAction, type Finding, type HealthVerdict, type HealthFlag, type DetectorKind,
 } from '../../src/lib/webProperties.ts'
 
@@ -913,7 +913,7 @@ test('fulltime provisional: rung 4, decide what it is for', () => {
   assert.equal(classifyHealth(fulltimeToday()).health, 'provisional')
   assert.equal(l.action?.id, 'fulltime:canon_ruling')
   assert.equal(l.action?.title, 'Decide what fulltime.fm is for')
-  assert.equal(l.action?.why, 'The registry calls it a career lane, the rebrand note calls it an experiment, and its own repo calls it a proof piece that is not sold. Until you pick, no growth action can name a job.')
+  assert.equal(l.action?.why, 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale. Until you pick, no growth action can name a job.')
   assert.equal(l.action?.kind, 'ruling')
   assert.equal(l.action?.hero_line, null)
   assert.equal(l.action?.minutes, 2)
@@ -922,7 +922,7 @@ test('fulltime provisional: rung 4, decide what it is for', () => {
 test('legibility: rung 4, decide whether it is live; an active venture clears it', () => {
   const l = runLadder(legibilityToday(), osToday())
   assert.equal(l.action?.title, 'Decide whether legibility.io is live')
-  assert.equal(l.action?.why, 'It has been retired in the registry since 11 August, yet this month it got 17 commits, paid plans and a Google tag. The dashboard calls it retired until you say otherwise.')
+  assert.equal(l.action?.why, 'It was marked as retired on 11 August. This month it still got 17 updates, paid plans and a visit counter. The dashboard calls it retired until you say otherwise.')
   const later = runLadder(read(LEGIBILITY, tot(4, 0)), os({ ventureActive: { legibility: true } }))
   assert.equal(later.action, null)
   assert.equal(later.needsLlm, false)
@@ -1602,4 +1602,116 @@ test('cutAtSentence never cuts a word in half', () => {
   const cut = cutAtSentence('alpha beta gamma delta epsilon', 14)
   assert.equal(cut, 'alpha beta.')
   assert.ok(cut.length <= 14)
+})
+
+// ------------------------------------------------------------------ answering a ruling from the dashboard
+//
+// The rung-4 ruling used to close only when a PR changed the registry, so the
+// card asked for a reply in chat that nothing could answer. An answer stored in
+// system_config is applied by withCanonRuling before the check reads the site;
+// these show the detector reading it, both firing and not firing.
+
+const ANSWERED_AT = '2026-10-04T12:00:00Z'
+const canonAction = (prefix: 'fulltime' | 'legibility') => action({
+  id: `${prefix}:canon_ruling`, prefix, rung: 4, kind: 'ruling',
+  title: prefix === 'fulltime' ? 'Decide what fulltime.fm is for' : 'Decide whether legibility.io is live',
+  detector: { kind: 'canon_ruled' }, minutes: 2, issued_at: '2026-09-28T13:20:00Z',
+})
+const prevWith = (a: KrishAction) => ({ health: 'quiet' as HealthVerdict, property_tz: 'UTC', as_of: '2026-10-09', run_at: '2026-10-09T13:20:00Z', action: a, llm: null })
+
+test('parseCanonRuling: only an answer the site accepts, stored whole', () => {
+  assert.deepEqual(parseCanonRuling(FULLTIME, JSON.stringify({ choice: 'park', at: ANSWERED_AT })), { choice: 'park', job: null, at: ANSWERED_AT })
+  assert.deepEqual(parseCanonRuling(FULLTIME, { choice: 'proof', at: ANSWERED_AT, job: 'keep_edge' }), { choice: 'proof', job: 'keep_edge', at: ANSWERED_AT })
+  assert.equal(parseCanonRuling(FULLTIME, JSON.stringify({ choice: 'retire', at: ANSWERED_AT })), null, 'retire is a legibility answer')
+  assert.equal(parseCanonRuling(FULLTIME, JSON.stringify({ choice: 'park' })), null, 'no time, no ruling')
+  assert.equal(parseCanonRuling(FULLTIME, '{not json'), null)
+  assert.equal(parseCanonRuling(FULLTIME, null), null)
+  assert.equal(parseCanonRuling(LEGIBILITY, JSON.stringify({ choice: 'live', at: ANSWERED_AT })), null, 'live needs the job it serves')
+  assert.deepEqual(parseCanonRuling(LEGIBILITY, JSON.stringify({ choice: 'live', job: 'fill_pilots', at: ANSWERED_AT })), { choice: 'live', job: 'fill_pilots', at: ANSWERED_AT })
+  assert.equal(parseCanonRuling(LEGIBILITY, JSON.stringify({ choice: 'live', job: 'sell_more', at: ANSWERED_AT })), null, 'an unknown job is no job')
+  assert.equal(parseCanonRuling(MYMU, JSON.stringify({ choice: 'measure', at: ANSWERED_AT })), null, 'a live site owes no ruling')
+  assert.equal(canonRulingKey('fulltime'), 'web_canon_ruling_fulltime')
+})
+
+test('withCanonRuling: what each answer makes of the site, and code still wins', () => {
+  const at = ANSWERED_AT
+  assert.deepEqual(withCanonRuling(FULLTIME, { choice: 'measure', job: null, at }).canon, { status: 'measure_only' })
+  assert.deepEqual(withCanonRuling(FULLTIME, { choice: 'park', job: null, at }).canon, { status: 'retired' })
+  const proof = withCanonRuling(FULLTIME, { choice: 'proof', job: null, at })
+  assert.deepEqual([proof.canon, proof.jobs], [{ status: 'live' }, ['feed_demand']])
+  const live = withCanonRuling(LEGIBILITY, { choice: 'live', job: 'fill_pilots', at })
+  assert.deepEqual([live.canon, live.jobs], [{ status: 'live' }, ['fill_pilots']])
+  assert.deepEqual(withCanonRuling(LEGIBILITY, { choice: 'retire', job: null, at }).canon, { status: 'retired' })
+  assert.equal(withCanonRuling(FULLTIME, null), FULLTIME)
+  // A PR that has already written the canon into the registry is not overridden.
+  const merged: WebProperty = { ...FULLTIME, canon: { status: 'live' }, jobs: ['feed_demand'] }
+  assert.equal(withCanonRuling(merged, { choice: 'park', job: null, at }), merged)
+  assert.deepEqual(canonChoices(FULLTIME), ['proof', 'measure', 'park'])
+  assert.deepEqual(canonChoices(MYMU), [])
+})
+
+test('canonRuledFor is the one rule: false while owed, true once answered or ruled', () => {
+  const o = os()
+  assert.equal(canonRuledFor(FULLTIME, o), false)
+  assert.equal(canonRuledFor(withCanonRuling(FULLTIME, { choice: 'measure', job: null, at: ANSWERED_AT }), o), true)
+  assert.equal(canonRuledFor(LEGIBILITY, o), false)
+  assert.equal(canonRuledFor(LEGIBILITY, os({ ventureActive: { legibility: true } })), true, 'an active venture still rules legibility')
+  assert.equal(canonRuledFor(MYMU, o), true)
+  // And the finding agrees with the fact, both ways.
+  assert.ok(find(findingsFor(read(FULLTIME)), 'canon_ruling'))
+  assert.equal(find(findingsFor(read(withCanonRuling(FULLTIME, { choice: 'park', job: null, at: ANSWERED_AT }))), 'canon_ruling'), undefined)
+})
+
+test('the canon_ruled detector reads a stored answer, and does not fire without one', () => {
+  const a = canonAction('fulltime')
+  const unanswered = facts({ canonRuled: { fulltime: canonRuledFor(FULLTIME, os()) } })
+  assert.equal(detectorFired(a, unanswered), false)
+  const ruled = withCanonRuling(FULLTIME, parseCanonRuling(FULLTIME, JSON.stringify({ choice: 'measure', at: ANSWERED_AT })))
+  const answered = facts({ canonRuled: { fulltime: canonRuledFor(ruled, os()) } })
+  assert.equal(detectorFired(a, answered), true)
+})
+
+test('an answered ruling closes the action on the next run and the site moves on', () => {
+  const measure = withCanonRuling(FULLTIME, { choice: 'measure', job: null, at: ANSWERED_AT })
+  const m = runLadder(read(measure, { ...tot(3, 0), previous: prevWith(canonAction('fulltime')) }), os(),
+    facts({ canonRuled: { fulltime: canonRuledFor(measure, os()) } }))
+  assert.deepEqual(m.closed, [{ title: 'Decide what fulltime.fm is for', detector: 'canon_ruled', how: 'done', closed_at: LATER }])
+  assert.equal(m.action, null)
+  assert.equal(m.waitLine, 'Measure only, by your ruling.')
+
+  const park = withCanonRuling(FULLTIME, { choice: 'park', job: null, at: ANSWERED_AT })
+  assert.equal(runLadder(read(park, { ...tot(3, 0), previous: prevWith(canonAction('fulltime')) }), os(),
+    facts({ canonRuled: { fulltime: true } })).waitLine, 'Retired by your ruling. Only visits are read.')
+
+  // Proof makes it live with a job, so the next thing is a growth action (rung 5).
+  const proof = withCanonRuling(FULLTIME, { choice: 'proof', job: null, at: ANSWERED_AT })
+  const p = runLadder(read(proof, { ...tot(3, 0), previous: prevWith(canonAction('fulltime')) }), os(), facts({ canonRuled: { fulltime: true } }))
+  assert.equal(p.closed.length, 1)
+  assert.equal(p.action, null)
+  assert.equal(p.needsLlm, true)
+  assert.equal(fallbackGrowthAction(proof, read(proof), os(), LATER)?.job, 'feed_demand')
+
+  // Without the answer the same run keeps asking, with the same action.
+  const still = runLadder(read(FULLTIME, { ...tot(3, 0), previous: prevWith(canonAction('fulltime')) }), os(), facts({ canonRuled: { fulltime: false } }))
+  assert.deepEqual(still.closed, [])
+  assert.equal(still.action?.id, 'fulltime:canon_ruling')
+  assert.equal(still.action?.issued_at, '2026-09-28T13:20:00Z')
+})
+
+test('toView closes an answered ruling at once, before the next run', () => {
+  const stored = canonAction('fulltime')
+  const newest = row0({ property: 'fulltime', health: 'quiet', action: stored, meta: { wait_line: null } })
+  const measure = withCanonRuling(FULLTIME, { choice: 'measure', job: null, at: ANSWERED_AT })
+  const v = toView(measure, newest, [], ANSWERED_AT)
+  assert.equal(v.action, null)
+  assert.equal(v.canon, 'measure_only')
+  assert.equal(v.wait_line, 'Measure only, by your ruling.')
+  assert.deepEqual(v.closed[0], { title: 'Decide what fulltime.fm is for', detector: 'canon_ruled', how: 'done', closed_at: ANSWERED_AT })
+  const proof = toView(withCanonRuling(FULLTIME, { choice: 'proof', job: null, at: ANSWERED_AT }), newest, [], ANSWERED_AT)
+  assert.equal(proof.action, null)
+  assert.equal(proof.wait_line, 'Answered. The next check picks what to do next on fulltime.fm.')
+  // Unanswered, the stored action stays on the card.
+  const open = toView(FULLTIME, newest, [])
+  assert.equal(open.action, stored)
+  assert.equal(open.closed.length, 0)
 })

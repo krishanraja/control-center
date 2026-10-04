@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { sortNewestFirst } from '../lib/contentModel'
 
 export type IdeaSourceType =
   | 'signal_inbox'
@@ -234,6 +235,9 @@ interface Options {
 
 let cache: ContentIdeaRow[] = []
 let loadingCache = true
+/** The last read's failure, in words, or null. A failed read used to leave an
+ *  empty list that looked exactly like an empty engine. */
+let errorCache: string | null = null
 let channel: RealtimeChannel | null = null
 let refCount = 0
 let inflight: Promise<void> | null = null
@@ -246,14 +250,28 @@ function notify() {
 async function fetchAll(): Promise<void> {
   if (inflight) return inflight
   inflight = (async () => {
+    // Newest first, then by id. created_at alone is not an order: seven live
+    // ideas shared one created_at to the microsecond on 2026-10-03, and
+    // Postgres returns rows with equal keys in no fixed order, so every
+    // refetch (any write to the table triggers one) could shuffle them. The
+    // id settles it on the server, and the client sort holds it even if a
+    // proxy or a mock returns the rows in some other order.
     const { data, error } = await supabase
       .from('content_ideas')
       .select('*')
       .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
     if (error && error.code !== 'PGRST205') {
       console.warn('[useRealtimeContentIdeas] fetch error', error.message)
+      errorCache = error.message || 'The content ideas could not be read.'
+      // Keep what was already on screen: a failed refetch is not an empty pile.
+      loadingCache = false
+      notify()
+      inflight = null
+      return
     }
-    cache = (data as ContentIdeaRow[]) || []
+    errorCache = null
+    cache = sortNewestFirst((data as ContentIdeaRow[]) || [])
     loadingCache = false
     notify()
     inflight = null
@@ -315,5 +333,5 @@ export function useRealtimeContentIdeas(opts: Options = {}) {
     return out
   }, [sourceKey, stateKey, filterFn, cache])
 
-  return { ideas, loading: loadingCache, refresh }
+  return { ideas, loading: loadingCache, error: errorCache, refresh }
 }

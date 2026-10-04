@@ -780,6 +780,17 @@ function canonRulingOwed(p: WebProperty, os: OsFacts): boolean {
 }
 
 /**
+ * The canon_ruled detector fact for one site: true once no ruling is owed.
+ * The ONE rule behind both the rung-4 finding and the fact that closes it, so
+ * they cannot disagree. `p` is the site as the run reads it, i.e. after
+ * withCanonRuling: an answer stored from the dashboard makes the canon stop
+ * being 'ruling_owed', which raises no finding and fires the detector.
+ */
+export function canonRuledFor(p: WebProperty, os: Pick<OsFacts, 'ventureActive'>): boolean {
+  return !canonRulingOwed(p, os as OsFacts)
+}
+
+/**
  * Everything the check found on one property, in catalog order (spec 4):
  * krish findings with a rung first (the ladder takes the lowest), then krish
  * findings for later (no rung, never on the ladder), then Maya's, then what the
@@ -1582,7 +1593,7 @@ function viewCrosscheck(c: Record<string, unknown> | null | undefined): WebPrope
  * full healthLine() (otherwise HEALTH_LINE alone), and meta.wait_line
  * (otherwise derived from the canon and the verdict).
  */
-export function toView(p: WebProperty, newest: WebInsightRow | null, window: WebInsightRow[]): WebPropertyView {
+export function toView(p: WebProperty, newest: WebInsightRow | null, window: WebInsightRow[], answeredAt: string | null = null): WebPropertyView {
   const emptyTop = { sources: [], pages: [], ai: [], channels: [] }
   if (!newest) {
     return {
@@ -1611,18 +1622,28 @@ export function toView(p: WebProperty, newest: WebInsightRow | null, window: Web
     }
     for (const c of Array.isArray(row.closed) ? row.closed : []) closedByKey.set(`${c.title}|${c.closed_at}`, c)
   }
+  const stored = newest.action ?? null
+  // A ruling answered since this row was written (p already carries it, via
+  // withCanonRuling) closes its rung-4 action on the card now, not at the next
+  // 13:20 check. The next run closes it in the row the same way, through the
+  // canon_ruled detector, so the two never disagree for longer than a day.
+  const answered = !!stored && stored.prefix !== 'shared' && stored.detector?.kind === 'canon_ruled' && p.canon.status !== 'ruling_owed'
+  if (answered && answeredAt) {
+    closedByKey.set(`${stored!.title}|${answeredAt}`, { title: stored!.title, detector: 'canon_ruled', how: 'done', closed_at: answeredAt })
+  }
   const fixed = [...fixedById.values()].sort((a, b) => t(b.at) - t(a.at)).slice(0, 5)
   const closed = [...closedByKey.values()].sort((a, b) => t(b.closed_at) - t(a.closed_at))
 
-  const stored = newest.action ?? null
-  const action = stored && stored.prefix !== 'shared' ? stored : null
+  const action = stored && stored.prefix !== 'shared' && !answered ? stored : null
   let wait_line: string | null = null
   if (stored && stored.prefix === 'shared') wait_line = WAITING_ON_SHARED
   else if (!action) {
-    const metaWait = isObj(newest.meta) ? newest.meta.wait_line : null
+    // The stored wait line was written for the canon before the answer.
+    const metaWait = !answered && isObj(newest.meta) ? newest.meta.wait_line : null
     if (typeof metaWait === 'string' && metaWait) wait_line = metaWait
     else if (p.canon.status === 'measure_only') wait_line = 'Measure only, by your ruling.'
     else if (p.canon.status === 'retired') wait_line = 'Retired by your ruling. Only visits are read.'
+    else if (answered) wait_line = `Answered. The next check picks what to do next on ${p.label}.`
     else if (flags.includes('read_failed')) wait_line = 'Nothing to do until the next check reads it.'
     else if (health === 'provisional') wait_line = `Nothing to do yet. The first full day of data lands on ${day(addDays(p.tagLiveAt, PROVISIONAL_HOURS / 24))}.`
     else if (health === 'ok' || health === 'quiet') wait_line = `Nothing only you can do on ${p.label} this week.`

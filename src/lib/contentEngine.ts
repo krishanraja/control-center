@@ -164,9 +164,11 @@ function oldestBy<T extends { updated_at?: string | null }>(rows: T[]): T {
   return [...rows].sort((a, b) => (a.updated_at || '') < (b.updated_at || '') ? -1 : 1)[0]
 }
 
-function clip(s: string | null | undefined, n = 56): string {
-  const t = (s || '').trim()
-  return t.length > n ? `${t.slice(0, n)}…` : t
+/** The title, whole. It used to be cut at 56 characters with an ellipsis,
+ *  which the copy rule forbids: user-facing text wraps in full and is never
+ *  ellipsised (AGENTS.md, Copy). The hero wraps it instead. */
+function clip(s: string | null | undefined): string {
+  return (s || '').trim()
 }
 
 export function nextBestAction<T extends NextIdeaLike>(ideas: T[]): NextBest<T> {

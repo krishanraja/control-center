@@ -17,6 +17,15 @@ test('the phone shows the active runner and the standby with heartbeat and Drive
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+  // The morning check-in gates the phone shell inside its morning window, so
+  // unanswered it covers Systems and the spec passes or fails by the clock.
+  await page.route('**/api/pilot/timezone', (r: Route) => r.fulfill({ json: { ok: true, timezone: 'Europe/London' } }))
+  await page.route('**/api/pilot/checkin*', (r: Route) => r.fulfill({ json: {
+    ok: true,
+    morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
+    last_evening: null, evening_done_today: true, yesterday: null, timezone: 'Europe/London',
+    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date()),
+  } }))
   await page.route('**/api/content-engine/health', (r: Route) => r.fulfill({ json: {
     ok: true, schema_version: 1, commit: 'test', ready: true, jobs: [],
     runner: { state: 'present', heartbeat_age_hours: 0, status: 'idle' },

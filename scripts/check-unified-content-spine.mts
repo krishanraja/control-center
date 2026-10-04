@@ -10,6 +10,7 @@ import {
 import type { ContentIdeaRow } from '../src/hooks/useRealtimeContentIdeas'
 import { CONTENT_OUTPUTS, storedContentOutputs } from '../src/lib/contentOutputs'
 import { SUBCHANNELS, formatSpelling, resolveFormat } from '../src/lib/formats'
+import { storedSeries } from '../src/lib/contentModel'
 
 const candidate = (series: 'money_of_ai' | 'built_with_ai', status: 'eligible' | 'near_miss' = 'eligible') => ({
   schema_version: 2,
@@ -64,18 +65,35 @@ const stored = storedContentOutputs({
 })
 assert.deepEqual(stored.map(output => output.definition.key), ['linkedin', 'video_60s'])
 
-const contentTab = readFileSync(new URL('../src/components/content-v2/ContentV2Tab.tsx', import.meta.url), 'utf8')
-assert.match(contentTab, /lane === 'publication'/)
+// The series list Krish browses lives behind "Browse all pieces" since the
+// 2026-10-04 redesign (today's calls); the tab itself no longer has rooms.
+const contentTab = readFileSync(new URL('../src/components/content-v2/BrowsePieces.tsx', import.meta.url), 'utf8')
+const contentModel = readFileSync(new URL('../src/lib/contentModel.ts', import.meta.url), 'utf8')
 
-// Until 2026-09-20 the next three lines named the two rooms by slug, so this
-// guard went green on the retired vocabulary and would have failed on the
-// correct one. What is held now is the derivation, not the words: the rooms
-// come from SUBCHANNELS and the slot resolves through the rename ledger, so a
-// fourth subchannel in venture_formats needs no edit to this file and a
-// hand-typed room needs one it cannot get.
+// Until 2026-09-20 the next lines named the two rooms by slug, so this guard
+// went green on the retired vocabulary and would have failed on the correct
+// one. What is held now is the derivation, not the words: the rooms come from
+// SUBCHANNELS and the slot resolves through the rename ledger, so a fourth
+// subchannel in venture_formats needs no edit to this file and a hand-typed
+// room needs one it cannot get.
+//
+// Until 2026-10-04 this guard also held `lane === 'publication'` in the room
+// derivation, and that was the bug: laneOf returned null whenever lane was
+// null, before it looked at the slot, and 151 of 154 live pieces had lane null
+// with lane_slot set, so the mind.the.gap room showed 1 of its 56. The rooms
+// now read the slot through storedSeries in src/lib/contentModel.ts, the one
+// series reader the decide card uses as well, and the behaviour is asserted
+// below rather than the spelling.
 assert.match(contentTab, /\.\.\.SUBCHANNELS\.map\(/)
-assert.match(contentTab, /resolveFormat\(slot\)/)
-assert.match(contentTab, /f\.kind === 'subchannel'/)
+assert.match(contentTab, /seriesOf\(i\) === slug/)
+assert.match(contentModel, /resolveFormat\(slot\)/)
+assert.match(contentModel, /kind === 'subchannel'/)
+assert.equal(storedSeries(null, 'mind_the_gap'), 'mind_the_gap', 'lane_slot is the series even when lane is null')
+assert.equal(storedSeries('publication', 'follow_the_money'), 'follow_the_money')
+assert.equal(storedSeries(null, 'built_with_ai'), 'under_the_hood', 'a retired slot spelling still reaches its live room')
+assert.equal(storedSeries('built', null), 'under_the_hood', 'a retired venture in the lane column still reaches its room')
+assert.equal(storedSeries(null, 'general'), null, 'the holding lane is not a room')
+assert.equal(storedSeries(null, null), null)
 
 // The behaviour those literals used to stand in for, asserted against the one
 // reader rather than against a source string.

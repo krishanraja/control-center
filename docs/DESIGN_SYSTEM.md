@@ -465,8 +465,16 @@ Three rules came out of the same correction, and they are the ones to carry:
 Locked 2026-09-17 (Krish, on Content: "i want a no scroll experience").
 
 A **scroller** sizes itself to its content and lets the page grow. A **stage**
-is handed a height and lives inside it. Home, Pilots and now Content are
-stages; the People shell is a scroller and stays one.
+is handed a height and lives inside it. Home and Pilots are stages; the People
+shell is a scroller and stays one.
+
+Content was a stage from 2026-09-17 to 2026-10-04. The redesign chosen from the
+mocks that day ("today's calls", concept content-a) reads one call at a time in
+full, with its argument, prediction and the three candidates of a pick side by
+side, and a stage could only fit that by paging or clipping it. So Content is
+now one bounded scroller: the window never scrolls, AppFrame's body
+(`content-room-scroll`) is the only thing that does, and nothing scrolls inside
+it (`e2e/content-desk.spec.ts` probes inside the scroller for exactly that).
 
 The contract for a stage:
 
@@ -802,6 +810,20 @@ a stage that never scrolls). `components/mobile/`:
 **Do not** hand-roll a card, button, pill, or hero — extend the primitive so
 both device classes and both themes stay coherent.
 
+### Extensions for Content's today's calls (2026-10-04)
+
+All optional and off by default, so every existing call site renders as before:
+
+- `OptionChips` takes `size="touch"` (44px chips at the ui size, for a choice
+  that is the primary action of a surface), `stack` (full-width rows that can
+  carry a `hint`) and `even` (one row of equal-width chips for a short ordered
+  scale, the "how sure are we" 50 to 90). Every chip carries `.tap-44`.
+- `IconTile` takes a `glyph` instead of an `icon`: a short figure in mono, so a
+  numbered list and its done state (the same tile carrying a Check) share one
+  frame. An icon or a glyph, never both.
+- `SegmentedNav` segments carry `.tap-44`.
+- `AppFrame` takes `bodyTestId`, so a spec can find a tab's one scroller.
+
 ### DoThisNextHero on a phone (2026-09-27)
 
 With `narrow`, a headline longer than `NARROW_GLYPH_MAX_CHARS` (32) renders
@@ -811,6 +833,31 @@ wrapped to five lines and pushed the section pills under the bottom nav. The
 words and the button stay. This used to be a special case at one call site
 (Growth's site step); it is the primitive's rule now, so every tab's phone hero
 gets it and no call site strips `icon` itself.
+
+### Growth, one move at a time (2026-10-04): three primitives extended
+
+Growth's tab is one card that IS the next move, so three primitives grew a
+prop rather than Growth growing siblings. Every existing call site renders
+exactly as before, because each extension is off by default.
+
+- `DoThisNextHero` `layout="card"`: the same hero as a tall card. The headline
+  steps up a size, `eyebrow` / `meta` / `progress` take the kind, the position
+  ("1 of 29") and the week's progress, and `children` is the action zone (an
+  answer set, a primary and a secondary, or the verdict that replaces them).
+  The card does not breathe: there the hero is the screen, and nothing on the
+  screen moves on its own.
+- `OptionChips` `size="touch"` (44px chips at the ui size, for a choice that is
+  the primary action) and `stack` (full-width rows that can carry a `hint`
+  saying what choosing it means). Every chip now carries `.tap-44`, and a
+  wrapped row keeps a 44px pitch.
+- `SegmentedNav`: every segment carries `.tap-44`, so the 40px pills are
+  hit-tested at 44.
+
+Growth's small instruments (a ring, columns, a dot grid, share bars, score
+ticks, the week as segments) live in `src/components/growth/viz.tsx`, drawn in
+the accent channels so both themes hold. Growth is their only reader; a second
+reader moves the family to `shared/` together. The ring sets its own line width
+like `Sparkline`, and is on `check-icons`' `STROKE_OK` list for the same reason.
 
 ---
 
