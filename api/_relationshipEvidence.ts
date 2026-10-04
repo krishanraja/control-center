@@ -1,4 +1,5 @@
 import { supabase } from './_supabase.js'
+import { knownFrom, type KnownFromKey } from '../src/lib/knownFrom.js'
 
 // What the record can prove about a relationship, for a set of contacts.
 //
@@ -41,6 +42,14 @@ export interface RelationshipEvidence {
   /** Days since a profile read saw their title change, where one has. A new
    *  CRO in their first 90 days wants a point of view fast. */
   days_in_seat: number | null
+  /** Which of his networks they are in: personal (Facebook or Instagram),
+   *  professional (a LinkedIn connection), both, or none recorded. */
+  tie: 'personal' | 'professional' | 'both' | null
+  /** Every network they were found in, most personal first. */
+  known_from: KnownFromKey[]
+  /** The personal link rests on a name alone (an imported Facebook or
+   *  Instagram name matched to this contact). Never lean on it. */
+  personal_by_name_only: boolean
   /** One sentence a prompt can quote without doing arithmetic. */
   summary: string
 }
@@ -106,19 +115,34 @@ export async function relationshipEvidence(contactIds: string[]): Promise<Map<st
   if (!ids.length) return out
 
   // correspondent_stats is keyed by person, not by contact, so the join back to
-  // a contact goes through email or LinkedIn slug exactly as the rollup does.
+  // a contact goes through every email and LinkedIn slug the person has had,
+  // exactly as the rollup does since 20261004040000. A merged contact keeps
+  // the history of each address it absorbed.
   const { data: contacts, error: cErr } = await supabase
     .from('contacts')
-    .select('id, email_normalized, linkedin_url')
+    .select('id, email_normalized, linkedin_url, sources')
     .in('id', ids)
   if (cErr) throw new Error(cErr.message)
 
   const { data: intel, error: iErr } = await supabase
     .from('contact_intelligence')
-    .select('contact_id, warmth, warmth_source, shared_history, plays, role_changed_at')
+    .select('contact_id, warmth, warmth_source, shared_history, plays, role_changed_at, tie')
     .in('contact_id', ids)
   if (iErr) throw new Error(iErr.message)
   const warmthBy = new Map((intel || []).map((r: Record<string, unknown>) => [String(r.contact_id), r]))
+
+  // Best effort: before the identities table exists, the row's own two
+  // handles are still read below.
+  const { data: idents } = await supabase
+    .from('contact_identities')
+    .select('contact_id, kind, value, basis, retired_at')
+    .in('contact_id', ids)
+  const identsBy = new Map<string, Array<Record<string, unknown>>>()
+  for (const i of (idents || []) as Array<Record<string, unknown>>) {
+    const k = String(i.contact_id)
+    identsBy.set(k, [...(identsBy.get(k) || []), i])
+  }
+  const sourcesBy = new Map(((contacts || []) as Array<Record<string, unknown>>).map(c => [String(c.id), c.sources]))
 
   const slugOf = (url: unknown): string | null => {
     const m = /linkedin\.com\/(?:in|pub)\/([^/?#,\s]+)/i.exec(String(url || ''))
@@ -129,10 +153,16 @@ export async function relationshipEvidence(contactIds: string[]): Promise<Map<st
   const keyToContacts = new Map<string, string[]>()
   for (const c of (contacts || []) as Array<Record<string, unknown>>) {
     const id = String(c.id)
-    const ks: string[] = []
-    if (c.email_normalized) ks.push(String(c.email_normalized).toLowerCase())
+    const ks = new Set<string>()
+    if (c.email_normalized) ks.add(String(c.email_normalized).toLowerCase())
     const s = slugOf(c.linkedin_url)
-    if (s) ks.push(`li:${s}`)
+    if (s) ks.add(`li:${s}`)
+    for (const i of identsBy.get(id) || []) {
+      // A replaced address is kept for the record but is not theirs now.
+      if (i.retired_at) continue
+      if (i.kind === 'email') ks.add(String(i.value))
+      if (i.kind === 'li_slug') ks.add(`li:${String(i.value)}`)
+    }
     for (const k of ks) {
       keys.push(k)
       keyToContacts.set(k, [...(keyToContacts.get(k) || []), id])
@@ -195,6 +225,12 @@ export async function relationshipEvidence(contactIds: string[]): Promise<Map<st
       shared_history: Array.isArray(w.shared_history) ? (w.shared_history as RelationshipEvidence['shared_history']) : [],
       plays: Array.isArray(w.plays) ? (w.plays as string[]) : [],
       days_in_seat: daysSince(w.role_changed_at as string | null),
+      tie: (w.tie as RelationshipEvidence['tie']) ?? null,
+      known_from: knownFrom(sourcesBy.get(id), (identsBy.get(id) || []).map(i => String(i.kind))),
+      personal_by_name_only: (() => {
+        const social = (identsBy.get(id) || []).filter(i => i.kind === 'facebook' || i.kind === 'instagram')
+        return social.length > 0 && social.every(i => i.basis === 'meta_name')
+      })(),
     }
     out.set(id, { ...base, summary: describe(base) })
   }

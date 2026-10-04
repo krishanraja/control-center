@@ -38,6 +38,9 @@ export interface AskCandidate {
   plays?: string[]
   /** "Also at Nine, as Commercial Director." Never "worked together". */
   shared?: string | null
+  /** Which of his networks they are in, and the networks in words. */
+  tie?: 'personal' | 'professional' | 'both' | null
+  known_from?: string | null
 }
 
 interface Props {
@@ -137,6 +140,13 @@ export function AskWho({ onUse, compact }: Props) {
             )}
           </div>
 
+          {(c.tie === 'personal' || c.tie === 'both') && (
+            <p className="text-label text-rose-200/85 leading-relaxed" data-testid="ask-who-known-from">
+              {c.tie === 'both'
+                ? 'You know them in and outside work.'
+                : `You know them outside work${c.known_from ? `, from ${c.known_from}` : ''}.`}
+            </p>
+          )}
           {c.shared && (
             <p className="text-label text-violet-200/85 leading-relaxed" data-testid="ask-who-shared">{c.shared}</p>
           )}

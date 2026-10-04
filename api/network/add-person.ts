@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import { contactForHandle } from '../_contactHandle.js'
 import { emailNorm, linkedinNorm } from '../_text.js'
 import { buildIntelDoc, embedIntelDoc, type PersonFacts } from '../_personEnrich.js'
 import { vectorLiteral } from '../_embeddings.js'
@@ -92,6 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { data } = await supabase.from('contacts').select('id').eq(probe.col, probe.val).limit(1)
         if (data?.length) { contactId = (data[0] as { id: string }).id; break }
       }
+      // An address or profile a merge kept as an alias is someone too.
+      if (!contactId) contactId = await contactForHandle(email, b.linkedin_url)
     }
 
     if (contactId) {

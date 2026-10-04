@@ -675,6 +675,29 @@ export const STRATEGIST_SURFACE: SurfaceContract = {
   },
 }
 
+// The two questions about people only Krish can answer (migration
+// 20261004040000): "are these two records the same person?" (contact_merge)
+// and "is this LinkedIn profile them?" (contact_link). A "no" is a rejected
+// verdict through /api/network/review, so like the strategist's surface it sits
+// beside SURFACES, outside the feedback mirror. Its why is the question's own
+// reason, which the merge pass or the import wrote when it could not decide.
+export const PEOPLE_REVIEW_SURFACE: SurfaceContract = {
+  label: 'question',
+  defaultReason: 'different_people',
+  reasons: [
+    { code: 'different_people', label: 'Different people' },
+    { code: 'not_their_profile', label: 'Not their profile' },
+    { code: 'other',            label: 'Other' },
+  ],
+  why: r => why(firstText(r.reason), {
+    agent: 'meta-import',
+    factors: factors(
+      plain('Rule', typeof r.rule === 'string' ? r.rule.replace(/_/g, ' ') : null),
+      plain('Confirmed by', typeof r.confirmed_by === 'string' ? r.confirmed_by : null),
+    ),
+  }),
+}
+
 // ── lookups ────────────────────────────────────────────────────────────────
 
 export const SERVED_TABLES = Object.keys(SURFACES) as ServedTable[]

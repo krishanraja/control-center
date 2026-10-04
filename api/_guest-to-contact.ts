@@ -1,4 +1,5 @@
 import { supabase } from './_supabase.js'
+import { contactForHandle } from './_contactHandle.js'
 import { emailNorm, linkedinNorm } from './_text.js'
 import { ensureIntelligenceRows } from './_intelStub.js'
 
@@ -48,6 +49,8 @@ export async function promoteGuestToContact(guestId: string): Promise<PromoteRes
     const { data } = await supabase.from('contacts').select('id').eq('linkedin_url_norm', ln).maybeSingle()
     if (data?.id) existingId = data.id
   }
+  // An address or profile a merge kept as an alias is someone too.
+  if (!existingId) existingId = await contactForHandle(en, ln)
 
   if (existingId) {
     const { error: upErr } = await supabase.from('contacts').update({ source_guest_id: guestId }).eq('id', existingId)

@@ -15,13 +15,13 @@ import { assertNothingOverflows, assertNoRawErrors, assertNoSqueezedText, assert
 const CARD = '[data-testid="focus-ask"]'
 
 const CANDIDATE = {
-  contact_id: '8ca9b7c3-d1e5-4e97-acb0-4e6ed370f1eb',
-  name: 'Jessica Raicebé',
+  contact_id: 'aaaaaaaa-0000-4000-8000-000000000001',
+  name: 'Delphine Okafor-Lévesque',
   title: 'Senior Director, AI Product Growth',
-  company: 'Salesforce',
-  why_them: 'She is Senior Director of AI Product Growth at Salesforce, which puts her close to how a large enterprise actually budgets for AI capability.',
+  company: 'Northwind Cloud',
+  why_them: 'She is Senior Director of AI Product Growth at Northwind Cloud, which puts her close to how a large enterprise actually budgets for AI capability.',
   why_now: 'She wrote to you last and it has been 7 years without a reply from you, so you owe her the first word before you ask for anything.',
-  ask: 'Jessica, it has been far too long and I owe you a reply from years back, sorry about that. I am building Mindmake, helping large companies run AI capability programmes that actually stick rather than fade after the pilot. Do you know anyone who owns AI training budget for a big organisation?',
+  ask: 'Delphine, it has been far too long and I owe you a reply from years back, sorry about that. I am building Mindmake, helping large companies run AI capability programmes that actually stick rather than fade after the pilot. Do you know anyone who owns AI training budget for a big organisation?',
   channel: 'LinkedIn',
   give_back: 'happy to share what we are seeing across other enterprise AI rollouts',
   confidence: 'medium',
@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(FOCUS_AFTERNOON)
   await mockFocus(page)
   await page.route('**/api/network/ask', (r: Route) =>
-    r.fulfill({ json: { ok: true, need: 'an intro', candidates: [CANDIDATE, { ...CANDIDATE, contact_id: 'b2', name: 'Sara Simeone' }] } }))
+    r.fulfill({ json: { ok: true, need: 'an intro', candidates: [CANDIDATE, { ...CANDIDATE, contact_id: 'b2', name: 'Sabine Morrow' }] } }))
   await page.goto('/#/focus')
   await assertRendered(page, 'main')
   await expect(page.locator(CARD)).toBeVisible()

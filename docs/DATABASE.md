@@ -1019,6 +1019,45 @@ scale in it. The same trigger pins `1_reciprocated` whenever
 and `best_channel` (`channel_canon()`) onto the planner's vocabulary. Probe P10
 in `scripts/network/probes.sql` counts every departure and must read zero.
 
+## `contact_identities`, `contact_merges` — one person, many handles (2026-10-04)
+
+`contacts` holds one email (a unique index) and one LinkedIn URL, and the
+relationship rollup used to find a person's mail and LinkedIn messages through
+exactly those two values. Merging two rows for one person would have dropped
+the second address's history out of warmth. So:
+
+| Table | What it holds |
+|---|---|
+| `contact_identities` | Every handle a contact is known by: `kind` in `email`, `li_slug` (both unique across people), `facebook`, `instagram`, `phone_book` (names, not unique). `basis` says how it came to be on this contact (`record`, `merge`, `meta_slug`, `meta_email`, `meta_source`, `meta_name`, `meta_new`), `verified` is false where it rests on a name alone. A trigger keeps it in step with `contacts.email` and `linkedin_url`; `refresh_relationship_rollup()` and `api/_relationshipEvidence.ts` read through it. Service role only |
+| `contact_merges` | One row per merged-away contact: `survivor_id`, `loser_id`, `class`, `evidence`, `decided_by` (`auto:<rule>` or `krish`), `filled[]` (the survivor's blanks filled from the loser) and `snapshot` (the loser whole, its intelligence, the survivor before, and every id repointed). No foreign keys, so it outlives both rows. Service role only |
+
+`merge_contacts(survivor, loser, class, evidence, decided_by)` is the only way
+two contacts become one. It never overwrites a value the survivor has, never
+blends two profiles, keeps measured warmth over inferred, keeps a thumbs-down
+and a do-not-contact, and refuses Krish's own rows and a pair that both hold a
+pilot deal. `merge_survivor(a, b)` picks which row keeps its id: Krish's own
+connection, then measured warmth, then a profile from his own records over one
+the Meta import guessed. Run `refresh_relationship_rollup()`,
+`refresh_shared_history_and_plays()` and `refresh_ties()` after a batch.
+
+It lives in its own migration, `20261004060000_merge_contacts.sql`, because it
+deletes the merged-away row and the live database will not run a statement
+that deletes without the owner's confirmation. Until it is applied,
+`api/network/review.ts` answers a "same person" with a 409 and leaves the
+question open. The trigger on `contacts` never drops a clash silently either:
+a write that puts an email or profile on a row when another contact already
+holds it raises a `contact_merge` question (`ask_same_person()`).
+
+`contacts.status_reason` (`self` or `deceased`) explains a `do_not_contact`
+that is a fact rather than a choice, and a check constraint ties it to that
+status. Krish's own rows carry `self`.
+
+`contact_intelligence.tie` (`personal`, `professional`, `both`) says which of
+his networks a person is in: Facebook or Instagram, a LinkedIn connection, or
+both. Rebuilt by `refresh_ties()`; `network_by_tie()` is the browse door.
+`krish_tenures.kind` now includes his schools, and `shared_history` entries
+carry `kind`, with `their_years`, `krish_years` and `same_years` for a school.
+
 ## `contact_intelligence` — the network judgment layer
 
 1:1 with `contacts` (`contact_id` is both PK and FK, `ON DELETE CASCADE`).

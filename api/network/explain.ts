@@ -3,6 +3,7 @@ import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson, hasAnthropicKey } from '../_content.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
+import { sharedHistoryLine, type SharedEntry } from '../../src/lib/sharedHistory.js'
 import { RETIRED_VENTURES } from '../_venturePositioning.js'
 
 // POST /api/network/explain
@@ -37,6 +38,8 @@ Rules:
 - Where "posted" is present the person has said something publicly in the last quarter and "posting_about" says what kind of thing it was. That is the strongest opening available: respond to what they actually said, quoting or paraphrasing it. Where there is no "posted", fall back to the stored hook, then to a reciprocated email, then to what to find out first.
 - Never invent a fact that is not in front of you. A "move" that assumes a relationship the record does not show is an invented fact.
 - If someone is a poor match for the question, say so plainly in "why" and return "" for "move". A candidate list is not a promise that everyone on it fits.
+- "tie" says which of Krish's networks they are in. "personal" or "both" means he knows them outside work, from Facebook or Instagram: that is a warm path, and the move can open as a friend rather than as a cold note. Where "personal_by_name_only" is true, that link rests on a name alone, so do not use it.
+- "shared" names an employer or a school they and Krish both share. Cite it as that. Never say they worked or studied together at the same time unless it says "in the same years".
 - No em dashes.`
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -83,13 +86,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                best_channel, reachable_via, reciprocated_email,
                intent_stance, intent_score, intent_evidence, last_post_at,
                current_title, current_company, headline, summary, industry, seniority, country,
+               tie, shared_history,
                contacts(full_name, title, company, location, email, linkedin_url, twitter_handle,
                         career:dossier->_direct->facts->career,
-                        skills:dossier->_direct->facts->skills)`)
+                        skills:dossier->_direct->facts->skills,
+                        education:dossier->_direct->facts->education)`)
       .in('contact_id', ids)
     if (error) throw new Error(error.message)
 
     const rows = (data || []) as Array<Record<string, unknown>>
+    // A personal link that rests on a name alone is not a warm path.
+    const { data: idents } = await supabase.from('contact_identities')
+      .select('contact_id, kind, basis').in('contact_id', ids).in('kind', ['facebook', 'instagram'])
+    const social = new Map<string, string[]>()
+    for (const i of (idents || []) as Array<Record<string, unknown>>) {
+      social.set(String(i.contact_id), [...(social.get(String(i.contact_id)) || []), String(i.basis)])
+    }
+    const nameOnly = new Set([...social].filter(([, b]) => b.every(x => x === 'meta_name')).map(([k]) => k))
     // Preserve the caller's order so index i means the same thing on both sides.
     const byId = new Map(rows.map(r => [String(r.contact_id), r]))
     const ordered = ids.map(id => byId.get(id)).filter(Boolean) as Array<Record<string, unknown>>
@@ -123,6 +136,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .map(e => [e.title, e.company].filter(Boolean).join(' at '))
           .filter(Boolean),
         skills: skills.slice(0, 12).map(String),
+        education: (Array.isArray(c.education) ? (c.education as Array<Record<string, unknown>>) : [])
+          .slice(0, 3).map(e => [e.school, e.period].filter(Boolean).join(', ')).filter(Boolean),
+        // Where he knows them from, and what they share. See the prompt.
+        tie: r.tie ?? null,
+        personal_by_name_only: nameOnly.has(String(r.contact_id)),
+        shared: sharedHistoryLine(r.shared_history as SharedEntry[] | null),
         // JUDGMENT, stored earlier. See the prompt: facts first.
         tier: r.network_tier, roles: r.roles,
         who: r.who, why_them: r.why_them, hook: r.hook, risk: r.risk,

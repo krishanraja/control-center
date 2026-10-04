@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { hasAccess, applyGatedHeaders } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import { contactForHandle } from '../_contactHandle.js'
 import { callClaude } from '../_content.js'
 import { emailNorm, linkedinNorm } from '../_text.js'
 import { outcomeFrom, errored, blockedMessage, isBlocking, type ProviderOutcome } from '../_quota.js'
@@ -172,6 +173,16 @@ async function findExisting(p: ScannedPerson): Promise<{ id: string; full_name: 
       .eq(probe.col, probe.val)
       .limit(1)
     if (data?.length) return { ...(data[0] as any), matched_on: probe.label }
+  }
+  // An address or profile a merge kept as an alias is someone too.
+  const aliasOf = await contactForHandle(en, p.linkedin_url)
+  if (aliasOf) {
+    const { data } = await supabase
+      .from('contacts')
+      .select('id, full_name, company, title, consent_tier, enrichment_status')
+      .eq('id', aliasOf)
+      .limit(1)
+    if (data?.length) return { ...(data[0] as any), matched_on: 'alias' }
   }
 
   // No hard identifier in the image, which is the common case for a LinkedIn
