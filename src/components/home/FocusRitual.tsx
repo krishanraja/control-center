@@ -7,8 +7,9 @@ import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { usePilotState } from '../../hooks/usePilot'
-import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
-import { splitDecisions } from '../../lib/decisionKinds'
+import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
+import { waitingLine } from '../../lib/freshDecisions'
+import { WaitingSheet } from './WaitingSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -621,9 +622,10 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
 // The close: green confirmation across the canon + what's still waiting on you.
 function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose: () => void }) {
   const { altitudes } = useAltitudes()
-  const { decisions } = useRealtimeDecisionsWaiting()
+  const { waiting: fresh } = useWaitingDecisions()
   const h = useHaptics()
-  const waiting = splitDecisions(decisions).decisions.length
+  const waiting = fresh.length
+  const [waitingOpen, setWaitingOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
 
   return (
@@ -642,10 +644,11 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
           </li>
         ))}
       </ul>
+      {waiting === 0 && <p className="text-label text-ink-faint">{waitingLine(0)}</p>}
       {waiting > 0 && (
         <button
           type="button"
-          onClick={() => { h.tap(); onClose(); onNavigate?.('os', { sub: 'queue' }) }}
+          onClick={() => { h.tap(); setWaitingOpen(true) }}
           className="w-full inline-flex items-center justify-between gap-2 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-4 py-3 text-left active:bg-amber-500/[0.10]"
         >
           <span className="inline-flex items-center gap-2">
@@ -663,6 +666,12 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
         <History size={12} /> How the last weeks went
       </button>
       <GoalHistory open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      <WaitingSheet
+        open={waitingOpen}
+        onClose={() => setWaitingOpen(false)}
+        waiting={fresh}
+        onNavigate={(tab, params) => { onClose(); onNavigate?.(tab, params) }}
+      />
     </div>
   )
 }

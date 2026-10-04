@@ -35,6 +35,11 @@ rewired into this… basically no scrolling at all on any device")
    the Postgres view's `route_target` column still emits old targets
    (client mirror wins — accepted drift, revisit if an external consumer
    starts reading it).
+   **Superseded 2026-10-04 (ruling, Krish): the OS Queue is removed.** An
+   audit found 74% of its 27 rulings stale or superseded and 78% already
+   shown in their owning tab; every Queue-only item was stale. Each ruling
+   now routes to its owning tab (`routeDecision`), queue links open OS →
+   Org, and Home's count reads `src/lib/freshDecisions.ts`.
 5. **One wire path for goal writes:** `src/lib/goalsApi.ts`. The
    check-goal-ladder guard now enforces the module, not a single component
    (the ritual's weekly step also creates weekly goals). One read:

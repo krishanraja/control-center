@@ -188,6 +188,24 @@ export function SpendDetailSheet({ open, onClose, spend }: {
           </div>
         )}
 
+        {/* Personal, not business (ruling, Krish 2026-10-04): in no figure
+            above, named here on one line so the money is never invisible. */}
+        {spend.personal && spend.personal.charges > 0 && (
+          <details className="group rounded-xl px-2 py-1" data-testid="spend-personal">
+            <summary className="cursor-pointer list-none text-label leading-relaxed text-ink-faint hover:text-ink-muted">
+              Personal, not counted: {spend.personal.charges} charge{spend.personal.charges === 1 ? '' : 's'}, {usd(spend.personal.usd)}
+            </summary>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {spend.personal.items.map((p, i) => (
+                <li key={`${p.vendor}-${p.date}-${i}`} className="flex items-baseline gap-2.5 text-label text-ink-faint">
+                  <span className="min-w-0 flex-1">{p.vendor}{p.date ? `, ${p.date}` : ''}</span>
+                  <span className="shrink-0 font-mono tabular-nums">{p.usd == null ? 'no amount' : usd(p.usd)}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         {unwired > 0 && (
           <p className="text-label leading-relaxed text-ink-faint">
             {unwired} more service{unwired === 1 ? '' : 's'} tracked for invoices only (no API check).

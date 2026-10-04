@@ -36,7 +36,7 @@ type Kind = DecisionRow['kind']
 
 /**
  * The one place that maps a `decisions_waiting` row to its kind-correct,
- * one-tap actions. Both the Home DecisionsInbox and the per-tab cards consume
+ * one-tap actions. The per-tab cards and detail sheets consume
  * this so "act in one tap" behaves identically everywhere. Every action reuses
  * an existing `/api/*` route (see api/leads, api/guests, api/content-ideas,
  * api/visibility-targets, api/triage, api/concepts) and confirms with a toast +
@@ -468,7 +468,7 @@ export function buildDecisionActions(
       // the gap on the next sweep once the task moves.
       if (navigate && row.task_id) {
         acts.push({
-          label: 'Open the owning task',
+          label: "Open the agent's work",
           variant: 'primary',
           onClick: () => { navigateDecision(navigate, 'task', String(row.task_id)); onDone?.() },
         })

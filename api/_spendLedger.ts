@@ -120,6 +120,60 @@ export interface LedgerRow {
   raw_subject?: string | null
   raw_from?: string | null
   created_at?: string | null
+  plan_label?: string | null
+}
+
+/**
+ * Personal spend (ruling, Krish 2026-10-04): these are his, not the
+ * business's. They leave every OS total, the usual month and the review
+ * list, and the spend sheet names them on one collapsed line instead. The
+ * list is closed: nothing else is reclassified without his say.
+ *
+ * YouTube TV and YouTube Premium arrive as Google Play receipts, so the
+ * product name is read from the plan label as well as the vendor and
+ * subject. A bare "YouTube" is not enough: that could be business spend.
+ */
+export const PERSONAL_SPEND: ReadonlyArray<{ name: string; pattern: RegExp }> = [
+  { name: 'YouTube TV', pattern: /\byoutube\s*tv\b/i },
+  { name: 'YouTube Premium', pattern: /\byoutube\s*premium\b/i },
+  { name: 'Tello', pattern: /\btello(\.com)?\b/i },
+  { name: 'Citi Bike', pattern: /\bciti\s*bike(nyc)?\b/i },
+]
+
+/** Which personal vendor a row is, or null when it is business spend. */
+export function personalVendor(r: Pick<LedgerRow, 'vendor_raw' | 'plan_label' | 'raw_subject' | 'raw_from'>): string | null {
+  const hay = [r.vendor_raw, r.plan_label, r.raw_subject, r.raw_from].filter(Boolean).join(' ')
+  for (const p of PERSONAL_SPEND) if (p.pattern.test(hay)) return p.name
+  return null
+}
+
+/** Business rows for every total, personal rows for the one line that names them. */
+export function splitPersonal<T extends LedgerRow>(rows: T[]): { business: T[]; personal: T[] } {
+  const business: T[] = []
+  const personal: T[] = []
+  for (const r of rows) (personalVendor(r) ? personal : business).push(r)
+  return { business, personal }
+}
+
+export interface PersonalSummary {
+  charges: number
+  usd: number
+  items: Array<{ vendor: string; date: string | null; usd: number | null }>
+}
+
+/** "Personal, not counted: N charges, $X", from the personal rows of one window. */
+export function personalSummary(rows: LedgerRow[]): PersonalSummary {
+  const items = rows.map(r => ({
+    vendor: personalVendor(r) || r.vendor_raw,
+    date: effectiveDay(r),
+    usd: r.amount_usd == null ? null : Math.round(netUsd(r) * 100) / 100,
+  })).sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  const usd = Math.round(items.reduce((a, i) => a + (i.usd ?? 0), 0) * 100) / 100
+  return { charges: rows.filter(r => r.kind !== 'refund').length, usd, items }
+}
+
+export function personalLine(p: Pick<PersonalSummary, 'charges' | 'usd'>): string {
+  return `Personal, not counted: ${p.charges} charge${p.charges === 1 ? '' : 's'}, $${p.usd.toFixed(2)}`
 }
 
 /** Signed USD: a refund takes money back. An unpriced row is worth nothing YET, which the review list says. */

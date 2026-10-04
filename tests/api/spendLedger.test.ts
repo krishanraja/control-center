@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   matchService, receiptNumber, dedupeReceipts, prepareLedger, effectiveDay, netUsd,
   judgeParse, isRetryable, reviewItems, NO_PAID_DATE_NOTE, type LedgerRow, type RegistryMatch,
+  personalVendor, splitPersonal, personalSummary, personalLine, PERSONAL_SPEND,
 } from '../../api/_spendLedger.js'
 
 // The registry rows these tests match against are the live ones as of
@@ -238,4 +239,52 @@ test('a date in the subject is not a receipt number, so two same-day invoices bo
     row({ service_key: 'supabase', vendor_raw: 'Supabase', amount_usd: 10, paid_at: '2026-09-01', raw_subject: 'Invoice 2026-09-01 for project B' }),
   ])
   assert.equal(kept.length, 2)
+})
+
+// ── Personal spend (ruling, Krish 2026-10-04) ──────────────────────────────
+// YouTube TV, YouTube Premium, Tello and Citi Bike are his, not the
+// business's. The rows below are the live receipts of 2026-10-04, trimmed.
+
+const gp = (plan_label: string | null, amount_usd: number, paid_at: string, subject = 'Your Google Play Order Receipt'): LedgerRow => ({
+  service_key: 'google-play', vendor_raw: 'Google', plan_label, amount_usd, kind: 'charge', paid_at,
+  raw_subject: subject, raw_from: 'Google Play <googleplay-noreply@google.com>',
+})
+
+test('the four named vendors are personal, and nothing else is', () => {
+  assert.deepEqual(PERSONAL_SPEND.map(p => p.name), ['YouTube TV', 'YouTube Premium', 'Tello', 'Citi Bike'])
+  assert.equal(personalVendor(gp('YouTube TV', 82.99, '2026-09-23')), 'YouTube TV')
+  assert.equal(personalVendor(gp('YouTube Premium', 15.99, '2026-10-03')), 'YouTube Premium')
+  assert.equal(personalVendor({ vendor_raw: 'Google Play (YouTube TV)', plan_label: null, raw_subject: 'Fwd: receipt', raw_from: 'krish' }), 'YouTube TV')
+  assert.equal(personalVendor({ vendor_raw: 'Tello.com', raw_from: '"Tello.com" <customerservice@tello.com>', raw_subject: 'Renewal complete!' }), 'Tello')
+  assert.equal(personalVendor({ vendor_raw: 'Citi Bike', raw_from: 'Citi Bike Customer Service <no-reply@updates.citibikenyc.com>', raw_subject: 'Your membership renewal receipt' }), 'Citi Bike')
+  // Same sender, different product: Google AI Plus stays business spend.
+  assert.equal(personalVendor(gp('Google AI Plus (400 GB)', 5.43, '2026-10-01')), null)
+  // A bare "YouTube" is not enough to call something personal.
+  assert.equal(personalVendor(gp(null, 15.99, '2026-09-03', 'Backup payment method used for YouTube')), null)
+  assert.equal(personalVendor({ vendor_raw: 'Anthropic, PBC', raw_from: 'invoice@mail.anthropic.com', raw_subject: 'Your receipt' }), null)
+})
+
+test('personal rows leave every total, the usual month and the review list', () => {
+  const rows: LedgerRow[] = [
+    gp('YouTube TV', 82.99, '2026-09-23'),
+    gp('YouTube Premium', 15.99, '2026-10-03'),
+    gp('Google AI Plus (400 GB)', 5.43, '2026-10-01'),
+    { service_key: null, vendor_raw: 'Citi Bike', amount_usd: 260.21, kind: 'charge', paid_at: null, created_at: '2026-09-20T00:00:00Z', raw_from: 'no-reply@updates.citibikenyc.com' },
+  ]
+  const { business, personal } = splitPersonal(rows)
+  assert.equal(business.length, 1)
+  assert.equal(business.reduce((a, r) => a + netUsd(r), 0), 5.43)
+  // The Citi Bike row has no payment date, so it would have been a review item.
+  assert.equal(reviewItems(business).length, 0)
+  assert.equal(reviewItems(rows).length, 1)
+  assert.equal(personal.length, 3)
+})
+
+test('the one line says how many and how much', () => {
+  const p = personalSummary([gp('YouTube Premium', 15.99, '2026-10-03'), gp('YouTube TV', 82.99, '2026-10-01')])
+  assert.equal(p.charges, 2)
+  assert.equal(p.usd, 98.98)
+  assert.equal(p.items[0].vendor, 'YouTube Premium')
+  assert.equal(personalLine(p), 'Personal, not counted: 2 charges, $98.98')
+  assert.equal(personalLine({ charges: 1, usd: 27.14 }), 'Personal, not counted: 1 charge, $27.14')
 })

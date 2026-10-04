@@ -19,8 +19,9 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
   const safeId = id ?? ''
   switch (kind) {
     case 'task':
-      // Task rulings live on OS → Queue (the deck seeds to the row).
-      return { tab: 'os', params: safeId ? { sub: 'queue', task: safeId } : { sub: 'queue' } }
+      // A task belongs to the agent that carries it, on OS → Org. (The OS
+      // Queue that used to seed a deck here was removed on 2026-10-04.)
+      return { tab: 'os', params: { sub: 'org' } }
     case 'idea':
       return { tab: 'content', params: safeId ? { idea: safeId } : {} }
     case 'guest':
@@ -37,19 +38,19 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       // The typed weekly queue lives in the Content tab's This Week room.
       return { tab: 'content', params: {} }
     case 'inbox_returned':
-      // The returned capture surfaces as a ruling on OS → Queue.
-      return { tab: 'os', params: safeId ? { sub: 'queue', decision: `inbox_returned:${safeId}` } : { sub: 'queue' } }
     case 'vera_gap':
-      return { tab: 'os', params: safeId ? { sub: 'queue', decision: `vera_gap:${safeId}` } : { sub: 'queue' } }
+      // A returned capture and a persistent gap both belong to the agent that
+      // owns the work, on OS → Org.
+      return { tab: 'os', params: { sub: 'org' } }
     case 'sequence_approval':
       return { tab: 'acquisition', params: safeId ? { seq: safeId } : {} }
     case 'send_sample':
       return { tab: 'acquisition', params: safeId ? { send: safeId } : {} }
     case 'growth_stall':
-      // The stall ruling (3 drafted moves) lives in the OS → Queue deck.
-      return { tab: 'os', params: safeId ? { sub: 'queue', decision: `growth_stall:${safeId}` } : { sub: 'queue' } }
+      // A stalled number is read where the live number is: Growth → Numbers.
+      return { tab: 'growth', params: { section: 'numbers' } }
     default:
-      return { tab: 'os', params: { sub: 'queue' } }
+      return { tab: 'home', params: {} }
   }
 }
 

@@ -1,6 +1,7 @@
 import { supabase } from './_supabase.js'
 import { getOperatorTz, ymdIn } from './_timezone.js'
 import { webProperty } from '../src/lib/webProperties.js'
+import { personalVendor } from './_spendLedger.js'
 
 /**
  * What each tab knows about itself.
@@ -316,7 +317,7 @@ async function groundCustomers(): Promise<string> {
     supabase.from('revenue_events').select('kind, occurred_at, usd_cents, product')
       .gte('occurred_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(200),
     supabase.from('revenue_subscriptions').select('product, status, mrr_usd_cents, current_period_end, canceled_at').limit(200),
-    supabase.from('spend_invoices').select('service_key, amount_usd, paid_at')
+    supabase.from('spend_invoices').select('service_key, amount_usd, paid_at, vendor_raw, plan_label, raw_subject, raw_from')
       .gte('paid_at', monthStart.toISOString()).limit(200),
     supabase.from('product_metrics').select('product, metric_date, active_users, pageviews')
       .order('metric_date', { ascending: false }).limit(40),
@@ -331,7 +332,8 @@ async function groundCustomers(): Promise<string> {
     if (!a[k]) a[k] = { c: 0, m: 0 }
     a[k].c += 1; a[k].m += n(r.mrr_usd); return a
   }, {})
-  const spendTotal = (spend.data || []).reduce((s, r) => s + n(r.amount_usd), 0)
+  // Personal charges are not OS spend (ruling, Krish 2026-10-04).
+  const spendTotal = (spend.data || []).filter(r => !personalVendor(r as { vendor_raw: string; plan_label: string | null; raw_subject: string | null; raw_from: string | null })).reduce((s, r) => s + n(r.amount_usd), 0)
 
   const latestProduct = new Map<string, any>()
   for (const r of product.data || []) if (!latestProduct.has(r.product as string)) latestProduct.set(r.product as string, r)
