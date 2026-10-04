@@ -7,6 +7,7 @@ import { planQuery } from '../_networkQuery.js'
 import { runNetworkSearch } from '../_networkSearch.js'
 import { relationshipEvidence, inWords } from '../_relationshipEvidence.js'
 import { RETIRED_VENTURES } from '../_venturePositioning.js'
+import { sharedHistoryLine } from '../../src/lib/sharedHistory.js'
 
 // POST /api/network/ask
 //   { need: string, limit?: number }
@@ -66,7 +67,16 @@ The rules that matter:
 - "give_back" is one short clause naming something Krish can genuinely offer this person: an introduction of his own, a look at something they are building, a slot on the podcast, what he is learning in the open. It must fit THIS person. Where nothing honest fits, return "".
 - "confidence" is low where the relationship is thin or the match is loose, and you say so in "why_them" rather than dressing it up. Three honest mediums beat one invented high.
 - Never invent a meeting, a reply, a shared project or a warmth the RELATIONSHIP does not show. The record is the only thing you know about these people.
-- Never mention a business Krish no longer runs (${[...RETIRED_VENTURES].join(', ')}).`
+- Never mention a business Krish no longer runs (${[...RETIRED_VENTURES].join(', ')}).
+
+Each person also carries PLAYS, what they can do for Krish, and SHARED, the employers they and Krish have both worked at. The play decides the SHAPE of the ask. Pick the play that fits the NEED; where several fit, the first that fits in this order wins:
+- alumni: a reconnection first and a request second. Open on the shared employer by name, as a thing you both know. SHARED says both were there, never that it was at the same time: never write "when we worked together" unless the RELATIONSHIP shows they have actually been in touch.
+- multiplier: a partnership, not a sale. They can put Mindmake in front of ten to thirty leaders at once (a portfolio, a peer group, a client roster). Ask for a conversation about what their people are stuck on with AI, and name the one thing Krish would bring to that room.
+- buyer: a point of view, sized to one reply. Where NEW_IN_SEAT is under 120 days, they are in their first months and want a model fast: offer a short read on the first decision they face, not a pitch.
+- amplifier: a room or a page. Offer a talk, a panel or a story, and back it with what is true: more than 30 keynotes, including the Sydney Opera House. Say what the audience would leave with.
+- subject: an interview for makeyourmindup, Krish's series on people building with AI. Name what is interesting about what they are building.
+
+What Krish sells, for when the NEED is commercial: Mindmake Brain, for founders and commercial leaders who are still the top salesperson and hate the copywriting and admin around it; and Mindmake GTM, for revenue and monetisation leaders whose pricing or packaging AI is changing. Never invent a product, a price or a client.`
 
 interface Candidate {
   contact_id: string
@@ -121,6 +131,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // A relationship that has gone quiet is a better ask than one in
         // mid-conversation: the quiet one is the reason to write at all.
         if (e.days_since_contact !== null && e.days_since_contact > 60) s += 1
+        // Someone who sat at the same company is a warmer first message than a
+        // stranger with the same title, even with no mail between them.
+        if (e.plays.includes('alumni')) s += 2
+        // A new CRO in their first months is the buyer at the right moment.
+        if (e.days_in_seat !== null && e.days_in_seat < 120) s += 2
         return s
       }
       return score(eb) - score(ea)
@@ -167,6 +182,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           posted: intentLive ? r.intent_evidence : null,
           stored_hook: r.hook,
         },
+        plays: e?.plays ?? [],
+        shared: e ? sharedHistoryLine(e.shared_history) : null,
+        new_in_seat_days: e?.days_in_seat ?? null,
         relationship: e ? {
           summary: e.summary,
           home_channel: e.home_channel,
@@ -220,6 +238,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Returned so the card can show the proof rather than asking him to
         // trust the sentence.
         evidence: e ? { summary: e.summary, warmth: e.warmth, measured: e.warmth_measured } : null,
+        plays: e?.plays ?? [],
+        shared: e ? sharedHistoryLine(e.shared_history) : null,
       }
     }).filter(x => x.ask)
 

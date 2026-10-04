@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Tap, VoiceField } from '../pilot/controls'
 import { useWork } from '../../lib/loadingVoice'
+import { BADGED_PLAYS } from '../../lib/sharedHistory'
 
 // "I need something. Who do I ask, and what do I say?"
 //
@@ -33,6 +34,10 @@ export interface AskCandidate {
   give_back: string
   confidence: 'high' | 'medium' | 'low'
   evidence: { summary: string; warmth: number | null; measured: boolean } | null
+  /** What they can do for Krish; the play also chose the shape of the ask. */
+  plays?: string[]
+  /** "Also at Nine, as Commercial Director." Never "worked together". */
+  shared?: string | null
 }
 
 interface Props {
@@ -132,6 +137,14 @@ export function AskWho({ onUse, compact }: Props) {
             )}
           </div>
 
+          {c.shared && (
+            <p className="text-label text-violet-200/85 leading-relaxed" data-testid="ask-who-shared">{c.shared}</p>
+          )}
+          {(c.plays || []).some(p => BADGED_PLAYS[p]) && (
+            <p className="text-micro text-ink-faint">
+              {(c.plays || []).filter(p => BADGED_PLAYS[p]).map(p => BADGED_PLAYS[p]).join(', ')}
+            </p>
+          )}
           {c.why_them && <p className="text-label text-ink-muted leading-relaxed">{c.why_them}</p>}
           {c.why_now && <p className="text-label text-ink-muted leading-relaxed">{c.why_now}</p>}
 

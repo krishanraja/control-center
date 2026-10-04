@@ -69,6 +69,10 @@ export interface NetworkResult extends ScoreBreakdown {
   match_score: number
   query_relevance: number | null
   why_match?: string
+  /** Krish's employers this person also worked at (never "at the same time"). */
+  shared_history?: Array<{ key: string; label: string; closeness: 'close' | 'wide'; their_title: string | null; current: boolean }>
+  /** alumni | multiplier | buyer | amplifier | subject */
+  plays?: string[]
   /** The opening move: channel plus the first line's angle, from the explain
    *  pass. A reason to contact someone with no way in is half an answer. */
   move?: string
@@ -256,7 +260,10 @@ export function useNetworkSearch() {
       // Render the ranked list NOW. The per-person reasons are a second request
       // that fills in behind it; they used to be inline and cost ~25s, which on
       // a phone read as a hang rather than as thinking.
-      const wantsExplain = !isBlob && results.length > 0 && !j.weak && path !== '/api/network/recommend'
+      // No question, nothing to explain against: the push modes rank on who
+      // someone is to Krish, and their stored why_them already says so.
+      const wantsExplain = !isBlob && results.length > 0 && !j.weak
+        && path !== '/api/network/recommend' && path !== '/api/network/by-play'
       setState({
         results,
         restated: question,
@@ -311,6 +318,11 @@ export function useNetworkSearch() {
       limit: 25,
     }), [run])
 
+  /** Browse by what people can do for Krish: one of his five plays, or the
+   *  people who were at one of his employers. */
+  const byPlay = useCallback((play: string, employer?: string | null) =>
+    run('/api/network/by-play', { play, employer: employer ?? null, limit: 40 }), [run])
+
   // The body is the audio blob, so the filters ride the query string.
   const searchByVoice = useCallback((audio: Blob, f: Filters = {}) => {
     const qs = new URLSearchParams()
@@ -330,5 +342,5 @@ export function useNetworkSearch() {
     void explain(last.question, last.results, seq.current)
   }, [explain])
 
-  return { ...state, search, recommend, searchByVoice, reset, retryExplain }
+  return { ...state, search, recommend, byPlay, searchByVoice, reset, retryExplain }
 }

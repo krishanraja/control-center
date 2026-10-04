@@ -32,11 +32,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { data: rolled, error: rerr } = await supabase.rpc('refresh_relationship_rollup')
+  // Plays and shared history read titles and career rows that enrichment keeps
+  // changing, so they are recomputed on the same daily beat. A failure here
+  // does not fail the sync: warmth is the job, plays ride along.
+  const { error: perr } = await supabase.rpc('refresh_shared_history_and_plays')
   return res.status(200).json({
     ok: true,
     results,
     contacts_updated: rerr ? null : rolled,
     rollup_error: rerr?.message || null,
+    plays_error: perr?.message || null,
     caughtUp: results.every(r => r.caughtUp),
   })
 }
