@@ -77,7 +77,7 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
     rssUrl: 'https://fulltime.fm/api/public/feed.rss', substackArchiveUrl: null, jobs: [],
     goal: 'Undecided. The registry, the rebrand note and the full-time repo give three different goals.',
     canon: { status: 'ruling_owed', question: 'What is fulltime.fm for?',
-      conflict: 'The registry calls it a career lane, the rebrand note calls it an experiment, and its own repo calls it a proof piece that is not sold.',
+      conflict: 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale.',
       options: ['proof', 'measure', 'park'] },
     tagLiveAt: '2026-09-27T09:56:53Z', consentByDesign: false, neverPublishName: true },
   { prefix: 'legibility', label: 'legibility.io', about: 'legibility.io', host: 'legibility.io', hostAliases: ['www.legibility.io'],
@@ -87,7 +87,7 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
     rssUrl: null, substackArchiveUrl: null, jobs: [],
     goal: 'Undecided. Retired in the registry on 11 August, then built, priced and tagged in September.',
     canon: { status: 'ruling_owed', question: 'Is legibility.io live?',
-      conflict: 'It has been retired in the registry since 11 August, yet this month it got 17 commits, paid plans and a Google tag.',
+      conflict: 'It was marked as retired on 11 August. This month it still got 17 updates, paid plans and a visit counter.',
       options: ['live', 'measure', 'retire'] },
     tagLiveAt: '2026-09-27T09:57:16Z', consentByDesign: false, neverPublishName: false },
 ]

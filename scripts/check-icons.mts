@@ -26,6 +26,9 @@ const STROKE_OK = new Set([
   // and the shifts sparkline do the same with string attributes, which this
   // check already ignores).
   'src/components/shared/Sparkline.tsx',
+  // Growth's instruments (a ring, columns, dot grids): the ring's line is the
+  // measure itself, the same exception as the sparkline above.
+  'src/components/growth/viz.tsx',
   'src/components/BottomNav.tsx',
   'src/components/DesktopSidebar.tsx',
   'src/components/CreateSheet.tsx',

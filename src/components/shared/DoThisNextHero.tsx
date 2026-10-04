@@ -68,13 +68,65 @@ interface Props {
   /** Custom action node (e.g. an inline date picker) — replaces the button. */
   actionSlot?: React.ReactNode
   narrow?: boolean
+  /**
+   * `bar` (default) is the one-line hero every tab renders. `card` is the same
+   * hero as a tall card, for a surface whose whole job IS the next move
+   * (Growth, one move at a time, 2026-10-04): the headline steps up a size and
+   * the action zone is `children` rather than one button, so a move can carry
+   * an answer set, a primary and a secondary, or the verdict that replaces
+   * them. The card holds still. It does not breathe: there the hero is the
+   * screen rather than a cue on it, and nothing on that screen moves on its own.
+   */
+  layout?: 'bar' | 'card'
+  /** Card layout: replaces the "Do this next" line, e.g. the kind and the product. */
+  eyebrow?: React.ReactNode
+  /** Card layout: a quiet figure at the eyebrow's right, e.g. "1 of 12". */
+  meta?: React.ReactNode
+  /** Card layout: a strip above everything, e.g. the week's progress. */
+  progress?: React.ReactNode
+  /** Card layout: the action zone. */
+  children?: React.ReactNode
+  testId?: string
 }
 
-export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: Props) {
+export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, layout = 'bar', eyebrow, meta, progress, children, testId }: Props) {
   const { headline, sub, actionLabel, clear } = descriptor
-  const icon = narrow && headline.length > NARROW_GLYPH_MAX_CHARS ? undefined : descriptor.icon
+  const icon = narrow && headline.length > NARROW_GLYPH_MAX_CHARS && layout === 'bar' ? undefined : descriptor.icon
   const tone: HeroTone = descriptor.tone || (clear ? 'neutral' : 'violet')
   const reduced = useReducedMotion()
+
+  if (layout === 'card') {
+    return (
+      <section
+        aria-label="Do this next"
+        data-testid={testId}
+        className={`relative flex flex-col rounded-3xl border shadow-glass ${TONE_BG[tone]} ${narrow ? 'gap-4 p-4' : 'gap-5 p-6'}`}
+      >
+        {progress}
+        <div className="flex items-center gap-2.5">
+          {icon && (
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05] text-accent">
+              {icon}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            {eyebrow ?? (
+              <p className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-accent">Do this next</p>
+            )}
+          </div>
+          {meta}
+        </div>
+        {/* Keyed on the headline: the next move rises in when he asks for it. */}
+        <div key={headline} className={`flex flex-col gap-2 ${reduced ? '' : 'animate-rise'}`}>
+          <h2 className={`${narrow ? 'text-title' : 'text-heading'} font-display font-semibold leading-tight tracking-tight text-ink break-words`}>
+            {headline}
+          </h2>
+          {sub && <p className={`${narrow ? 'text-body' : 'text-ui'} leading-snug text-ink-muted break-words`}>{sub}</p>}
+        </div>
+        {children}
+      </section>
+    )
+  }
 
   // The active "next" surface breathes; the cleared one exhales once and rests.
   const sectionMotion = clear

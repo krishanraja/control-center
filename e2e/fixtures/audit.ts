@@ -1,6 +1,7 @@
 import type { Page, Route } from '@playwright/test'
 import { contentTables } from './populated'
 import { WEB_INSIGHTS } from './webInsights'
+import { growthTables, mockGrowthRoutes } from './growth'
 
 /**
  * One populated data set for the whole-app layout audit.
@@ -437,6 +438,9 @@ export const EVENTS = EVENT_ROOMS.map(([title, city, host_kind, peers, buyers, o
 export function auditTables(): Record<string, unknown[]> {
   return {
     ...contentTables(),
+    // Growth: this week's five reviews, 620 probes, 33 places, 11 accounts,
+    // so the gates measure the move card and its queue, not an empty week.
+    ...growthTables('populated'),
     guests: GUESTS,
     visibility_targets: VISIBILITY_TARGETS,
     events: EVENTS,
@@ -571,9 +575,10 @@ export async function mockAudit(page: Page, tables = auditTables()) {
   await page.route('**/realtime/**', (r: Route) => r.abort())
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: tables[tableOf(r.request().url())] ?? [] }))
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
-  // Growth > What's moving: four populated site cards and the shared step, so
-  // the no-scroll gates measure the Site visits panel rather than its empty note.
-  await page.route('**/api/growth/web-insights*', (r: Route) => r.fulfill({ json: WEB_INSIGHTS }))
+  // Growth: the rank check, the spend row and four populated sites (one per
+  // verdict family, with the shared step), so the no-scroll gates measure the
+  // Numbers view rather than its empty notes.
+  await mockGrowthRoutes(page, { web: WEB_INSIGHTS })
   await page.route('**/api/network/geo', (r: Route) =>
     r.fulfill({ json: { countries: [
       { code: 'GB', name: 'United Kingdom', n: 1840, featured: true },
@@ -609,7 +614,9 @@ export const AUDIT_ROUTES: Array<{ id: string; hash: string; name: string }> = [
   { id: 'people-advisory', hash: '#/people?lane=pilots', name: 'People · Advisory' },
   { id: 'customers', hash: '#/customers', name: 'Customers' },
   { id: 'growth', hash: '#/growth', name: 'Growth' },
-  { id: 'growth-signals', hash: '#/growth?section=signals', name: "Growth · What's moving" },
+  { id: 'growth-week', hash: '#/growth?section=week', name: 'Growth · This week' },
+  { id: 'growth-numbers', hash: '#/growth?section=numbers', name: 'Growth · Numbers' },
+  { id: 'growth-places', hash: '#/growth?section=places', name: 'Growth · Places' },
   { id: 'content', hash: '#/content', name: 'Content' },
   { id: 'os-queue', hash: '#/os?sub=queue', name: 'OS · Queue' },
   { id: 'os-org', hash: '#/os?sub=org', name: 'OS · Org' },

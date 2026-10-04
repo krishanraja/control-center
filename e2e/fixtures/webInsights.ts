@@ -203,7 +203,7 @@ const FULLTIME: WebPropertyView = {
     rung: 4,
     kind: 'ruling',
     title: 'Decide what fulltime.fm is for',
-    why: 'The registry calls it a career lane, the rebrand note calls it an experiment, and its own repo calls it a proof piece that is not sold. Until you pick, no growth action can name a job.',
+    why: 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale. Until you pick, no growth action can name a job.',
     first_step: 'Reply in chat with one word: proof (it feeds demand for the pilot), measure (keep reading visits, no actions) or park (take the tag off). Merging the PR that follows closes this.',
     job: 'keep_honest',
     minutes: 2,

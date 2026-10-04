@@ -47,13 +47,10 @@ const VideoEngineReviewer = lazy(() => import('./components/video-studio/VideoEn
 // a decision deck on the phone. There is no second surface behind a flag.
 const loadContentV2Tab = () => import('./components/content-v2/ContentV2Tab')
 const ContentV2Tab = lazy(() => loadContentV2Tab().then(m => ({ default: m.ContentV2Tab })))
-// Growth: ONE tab, five sections in the order of the weekly loop. Map (the ICP
-// touchpoint map, growth_touchpoints), Work (the Higgsfield creative board,
-// growth_creative_queue), Signals (GEO probes over growth_geo_probes plus the
-// SEO rank sweep over maya_striking_distance), Council (growth_council_reviews)
-// and Governance (the per-lane control plane: profit governor, autonomy ladder,
-// direction lock, tool registry). Merged from the old 'acquisition' + 'growth'
-// pair on 2026-08-04; the retired cold-email machinery is no longer rendered.
+// Growth: ONE tab, one move at a time (2026-10-04). Four views: the next move
+// (the default), the week, the numbers (AI answers, site visits, Google, clips
+// and the one spend line) and the places buyers already go. Merged from the
+// old 'acquisition' + 'growth' pair on 2026-08-04.
 const loadGrowthTab = () => import('./components/growth/GrowthTab')
 const GrowthTab = lazy(() => loadGrowthTab().then(m => ({ default: m.GrowthTab })))
 // Simplified-IA wrapper tabs (VITE_IA_V3_ENABLED): People = Pipeline + Network +
@@ -230,12 +227,14 @@ export default function App() {
   const fullScreenOverlayOpen = tab === 'content'
     && Boolean(videoReviewOpen || route.params.idea || route.params.brief)
 
-  // Which Growth section a deep link opens on. Undefined means "leave it where
-  // the user left it", so clicking a lane chip (which writes ?lane=) never
-  // yanks the section out from under them.
-  const GROWTH_SECTIONS = ['map', 'work', 'signals', 'council', 'governance'] as const
+  // Which Growth view a deep link opens on. Undefined means "leave it where
+  // the user left it". The four views, plus the five ids the tab had before
+  // 2026-10-04, which GrowthTab maps onto the views (kept inline here so the
+  // shell does not pull the lazy Growth chunk in). The old #/acquisition and
+  // ?lane= links land on Numbers, where the spend line now lives.
+  const GROWTH_SECTIONS = ['next', 'week', 'numbers', 'places', 'council', 'work', 'signals', 'map', 'governance'] as const
   const askedSection = GROWTH_SECTIONS.find(s => s === route.params.section)
-  const growthEntrySection = askedSection || (cameFromAcquisition || route.params.lane ? 'governance' : undefined)
+  const growthEntrySection = askedSection || (cameFromAcquisition || route.params.lane ? 'numbers' : undefined)
 
   return (
     <ToastProvider>
@@ -300,7 +299,7 @@ export default function App() {
                 <Suspense fallback={<MobileRouteFallback />}>
                   {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
-                  {tab === 'growth'    && <ErrorBoundary label="Growth"><div className="px-5 pt-7 h-full flex flex-col overflow-hidden"><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
+                  {tab === 'growth'    && <ErrorBoundary label="Growth"><div className="px-5 pt-7 h-full flex flex-col overflow-hidden"><GrowthTab variant="mobile" initialSection={growthEntrySection} /></div></ErrorBoundary>}
                   {/* BottomNav clearance belongs on the SCROLLER inside each tab
                       (MobileShell does the same), never on this overflow-hidden
                       wrapper: padding here shortens the scroll viewport, so the
@@ -336,20 +335,15 @@ export default function App() {
                 </ErrorBoundary>
               </Suspense>
             ) : tab === 'growth' ? (
-              // Growth owns its own height like Content: the creative board
-              // scrolls sideways and each section scrolls inside itself, so the
-              // shell must not wrap it in a second scroll container.
+              // Growth owns its own height like Content: a fixed header over
+              // one scroller inside the tab, so the shell must not wrap it in a
+              // second scroll container.
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div></DeferredFallback>}>
                 <ErrorBoundary label="Growth">
-                  {/* Same gutter as Home: the board's last row and its Retire
-                      controls sit bottom-right, under the pills otherwise. */}
+                  {/* Same gutter as Home: the last row of a view sits
+                      bottom-right, under the pills otherwise. */}
                   <div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col">
-                    <GrowthTab
-                      variant="desktop"
-                      initialSection={growthEntrySection}
-                      lane={route.params.lane || null}
-                      onNavigate={navigate}
-                    />
+                    <GrowthTab variant="desktop" initialSection={growthEntrySection} />
                   </div>
                 </ErrorBoundary>
               </Suspense>

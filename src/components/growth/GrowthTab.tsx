@@ -1,366 +1,169 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useGrowth } from '../../hooks/useGrowth'
-import { BATCH_MAX, citationRate, growthWeekOf, pct, recentProbes } from '../../lib/growth'
-import { TouchpointMap } from './TouchpointMap'
-import { BOTTOM_NAV_PAD } from '../mobile/primitives'
-import { CreativeBoard } from './CreativeBoard'
-import { CouncilFeed } from './CouncilFeed'
-import { SignalsPanel } from './SignalsPanel'
-import { GovernancePanel } from './GovernancePanel'
-import { GrowthScoreboard } from './GrowthScoreboard'
-import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
-import { DailyBriefBanner } from '../DailyBriefBanner'
+/**
+ * The Growth tab: ONE MOVE AT A TIME.
+ *
+ * The tab answers one question, "is anyone finding my products, and what is
+ * the one thing to do now?", and then lets him act in a tap. Four views:
+ *
+ *   next     the numbers at a glance and the one move in focus (the default)
+ *   week     every move in order, Sunday's reviews, this week's clips, past weeks
+ *   numbers  AI answers, site visits, Google, clips, and the one spend line
+ *   places   where buyers already go, what is waiting on an answer, the accounts
+ *
+ * The old ?section= ids still land somewhere sensible: council and work open
+ * the week, signals and governance open the numbers, map opens the places.
+ * `#/acquisition` resolves here too (App.tsx) and lands on the numbers, where
+ * the spend line now lives. Switcher test ids are growth-section-<id> and the
+ * one scroller is growth-panel-<id>.
+ *
+ * Height: a fixed header over ONE bounded scroller (the AppFrame contract).
+ * The data and every write come through useGrowthTab, over the read model in
+ * src/lib/growthModel.ts.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SurfaceHeader } from '../shared/SurfaceHeader'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
-import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
-import { Film, Gavel, Globe, HelpCircle } from '@/lib/icons'
+import { SkeletonList } from '../shared/Skeleton'
+import { BOTTOM_NAV_PAD } from '../mobile/primitives'
+import { useContainerWidth } from '../../hooks/useContainerWidth'
 import { useQuickCreateListener } from '../../lib/quickCreate'
-import { useWebInsights, webHero } from '../../hooks/useWebInsights'
+import { useGrowthTab } from './useGrowthTab'
+import { NextView, type Layout } from './NextView'
+import { WeekView } from './WeekView'
+import { NumbersView } from './NumbersView'
+import { PlacesView } from './PlacesView'
+import { SiteCheck } from './SiteCheck'
+import { aiSummary, summaryLine, visitsSummary } from './numbers'
+import type { NumberAnchor } from './NumbersStrip'
 
-/**
- * The Growth tab. ONE surface, five sections, in the order of the weekly loop.
- *
- *   Map        where the ICP already is (growth_touchpoints, the spine)
- *   Work       what gets made for them (growth_creative_queue, batch-capped)
- *   Signals    whether anyone found us (growth_geo_probes, web_property_insights,
- *              maya_striking_distance)
- *   Council    the weekly kill and double-down call (growth_council_reviews)
- *   Governance what it costs and how much rope the agents have (lane control plane)
- *
- * This replaces two tabs that both read as "growth": the old `acquisition` deck
- * and the old `growth` map. They overlapped on measurement and half the deck
- * served cold email outbound, a motion Krish has retired. `#/acquisition` still
- * resolves here (see App.tsx), landing on Governance where its lane controls now
- * live.
- *
- * Same shape as the Content tab: a pill nav over one scrolling body, sections
- * are code-split with the tab. The growth tables read from Supabase on the anon
- * key and write through /api/growth/*; the lane control plane in Governance
- * reads and writes through /api/acquisition/* on the service role, because
- * money and PII never touch the anon client.
- */
+export type GrowthSectionId = 'next' | 'week' | 'numbers' | 'places'
 
-export type GrowthSectionId = 'map' | 'work' | 'signals' | 'council' | 'governance'
-
-/**
- * What the whole tab is for, in one sentence, and what each section is for,
- * in one more. Krish (2026-09-08): "I don't know what this tab is for. In
- * plain English what is it for and why doesn't it just say that?" So it says
- * it, at the top, and the line changes with the section under the pills.
- */
-export const GROWTH_PURPOSE = 'Find buyers where they already are, make them something each week, and see whether it worked.'
-
-/**
- * The five sections, in the order one CAUSES the next.
- *
- * They used to run Map, Work, Signals, Council, described as "the order of the
- * weekly loop". It is not that order. The council runs on Sunday and its "Make
- * it a clip" action writes the creative board, so the review is what PRODUCES
- * the week's work; it sat fourth, two pills to the right of the thing it feeds.
- * Krish, reading it on a phone: "not very guided and not very sequential, just
- * loads of random things to do everywhere".
- *
- * So: the three steps of the week first, in sequence, then the two references
- * that are not steps at all. The ids are unchanged, so deep links and the e2e
- * test ids keep working.
- */
-/** How long the hero waits for the site read before rendering without it. */
-const WEB_HERO_WAIT_MS = 4000
-
-const SECTIONS: Array<{ id: GrowthSectionId; label: string; what: string }> = [
-  // The week, in order.
-  { id: 'council', label: 'Review', what: 'Every Sunday, one verdict per product: what to stop, what to do next, and your ruling on it. This is where the week\'s clips come from.' },
-  { id: 'work', label: 'To do', what: 'The 3 to 5 clips to make this week, from brief to posted. You film. The card holds the script.' },
-  { id: 'signals', label: "What's moving", what: 'Whether anyone is finding you: do AI answers mention you, who visits your four sites, and where you rank on Google.' },
-  // Reference, not steps.
-  { id: 'map', label: 'Where they are', what: 'The places your buyers already go, per product. Add one, answer the open questions, mark what is covered.' },
-  { id: 'governance', label: 'Spend limits', what: 'The money and freedom each product\'s agents get: the budget, how much they may do alone, what they may say.' },
-]
-
-/**
- * The one thing to do next on this tab.
- *
- * Growth is the only tab that never went through the all-tabs rebuild
- * (docs/plans/all-tabs-rebuild/STATE.md ledgers Pipeline, Network, Visibility,
- * Subscriptions, Today, Intel, Org, Home and Content as done; Growth is not in
- * it). Seven surfaces render through the shared DoThisNextHero and this one
- * rendered five equal pills and left Krish to work out which mattered. The
- * charter's own consistency mandate says a finished tab's hero, counts, actions
- * and empty states must be indistinguishable in grammar from Content's.
- *
- * Order follows the week: a ruling that is owed blocks the clips it produces,
- * so it comes first. An unfilled batch is next, because that is the actual
- * output. Then the map's open questions, which sharpen everything downstream.
- * When none of that is true it says so plainly rather than inventing a chore.
- *
- * A site that is not being counted comes first: every other number on this tab
- * is blind to it, and the fix is one sitting. Only the setup rungs (1 and 2)
- * reach here, so it clears the moment access is fixed; rulings and growth
- * actions stay on the Site visits cards.
- */
-function nextGrowthAction(
-  counts: Record<GrowthSectionId, number>,
-  overCap: boolean,
-  weekLabel: string,
-  web: ReturnType<typeof webHero>,
-): { descriptor: HeroDescriptor; go: GrowthSectionId; compose?: 'clip'; focusWeb?: string } {
-  if (web) {
-    return {
-      descriptor: { headline: web.headline, sub: web.sub, actionLabel: 'Show me', icon: <Globe size={14} />, tone: 'amber' },
-      go: 'signals',
-      focusWeb: web.prefix,
-    }
-  }
-  if (counts.council > 0) {
-    return {
-      descriptor: {
-        headline: counts.council === 1 ? 'Rule on Sunday\'s review' : `Rule on ${counts.council} reviews`,
-        // A ruling only records your call (krish_decision, api/growth/council.ts);
-        // nothing downstream turns it into anything. The clip comes from the
-        // "Make it a clip" button on each move, so say that instead.
-        sub: 'Each move can go on today\'s list or become a clip.',
-        actionLabel: 'Read the review',
-        icon: <Gavel size={14} />,
-        tone: 'amber',
-      },
-      go: 'council',
-    }
-  }
-  if (overCap) {
-    return {
-      descriptor: {
-        headline: 'Drop one before you start filming',
-        sub: `Over the agreed run of ${BATCH_MAX}. Cut one back.`,
-        actionLabel: 'Open the board',
-        icon: <Film size={14} />,
-        tone: 'amber',
-      },
-      go: 'work',
-    }
-  }
-  if (counts.work === 0) {
-    return {
-      descriptor: {
-        headline: 'Pick this week\'s clips',
-        sub: `Nothing queued for the week of ${weekLabel}.`,
-        actionLabel: 'Start one',
-        icon: <Film size={14} />,
-        tone: 'violet',
-      },
-      go: 'work',
-      compose: 'clip',
-    }
-  }
-  if (counts.map > 0) {
-    return {
-      descriptor: {
-        headline: counts.map === 1 ? 'Answer one open question' : `Answer ${counts.map} open questions`,
-        sub: 'The map is still guessing on these.',
-        actionLabel: 'Open the map',
-        icon: <HelpCircle size={14} />,
-        tone: 'sky',
-      },
-      go: 'map',
-    }
-  }
-  return {
-    descriptor: {
-      headline: 'Nothing is waiting on you',
-      sub: 'Clips queued, map answered, review ruled on.',
-      clear: true,
-      tone: 'neutral',
-    },
-    go: 'work',
-  }
+const ALIASES: Record<string, GrowthSectionId> = {
+  council: 'week', work: 'week', signals: 'numbers', governance: 'numbers', map: 'places',
 }
 
-export function GrowthTab({
-  variant,
-  initialSection,
-  lane,
-  onNavigate,
-}: {
+export function resolveGrowthSection(raw: string | null | undefined): GrowthSectionId {
+  if (raw === 'next' || raw === 'week' || raw === 'numbers' || raw === 'places') return raw
+  return (raw && ALIASES[raw]) || 'next'
+}
+
+export function GrowthTab({ variant, initialSection }: {
   variant: 'desktop' | 'mobile'
-  /** Section a deep link opens on. Undefined leaves the current one alone. */
-  initialSection?: GrowthSectionId
-  /** Lane slug from `?lane=`, used by the Governance section. */
-  lane?: string | null
-  onNavigate?: (tab: string, params?: Record<string, string>) => void
+  /** The ?section= a deep link carries, in either spelling. Undefined leaves the view alone. */
+  initialSection?: string
 }) {
-  // The landing section is the week's work, not the reference map: opening
-  // Growth is almost always about what to make this week.
-  const [section, setSection] = useState<GrowthSectionId>(initialSection || 'work')
-  // Adjust on prop change during render rather than in an Effect: a deep link
-  // that arrives while the tab is already mounted still moves the section, but
-  // clicking a pill afterwards never gets overwritten (the prop has not changed,
-  // so this branch does not run again).
+  const m = useGrowthTab()
+  const [section, setSection] = useState<GrowthSectionId>(resolveGrowthSection(initialSection))
+  // A deep link that arrives while the tab is mounted still moves the view,
+  // and a tap afterwards is never overwritten (the prop has not changed).
   const [lastEntry, setLastEntry] = useState(initialSection)
   if (initialSection !== lastEntry) {
     setLastEntry(initialSection)
-    if (initialSection) setSection(initialSection)
+    if (initialSection) setSection(resolveGrowthSection(initialSection))
+  }
+  const [anchor, setAnchor] = useState<NumberAnchor | null>(null)
+  const [placeCompose, setPlaceCompose] = useState(false)
+  const [boxRef, width] = useContainerWidth()
+  const scroller = useRef<HTMLDivElement>(null)
+  const mobile = variant === 'mobile'
+
+  // The box this tab is handed, not the window.
+  const layout: Layout = width === 0
+    ? (mobile ? 'phone' : 'wide')
+    : width < 560 ? 'phone' : width < 1000 ? 'tablet' : width < 1400 ? 'wide' : 'xwide'
+  const desk = layout === 'wide' || layout === 'xwide'
+
+  const go = useCallback((s: GrowthSectionId) => {
+    setSection(s)
+    scroller.current?.scrollTo({ top: 0 })
+  }, [])
+
+  useEffect(() => { if (section !== 'numbers') setAnchor(null) }, [section])
+
+  /** An in-app Growth link (`#/growth?section=work`) switches the view instead of navigating. */
+  const onLink = useCallback((href: string): boolean => {
+    if (!href.startsWith('#/growth')) return false
+    const q = href.split('?')[1] ?? ''
+    go(resolveGrowthSection(new URLSearchParams(q).get('section')))
+    return true
+  }, [go])
+
+  // The + sheet (CreateSheet, tab 'growth') is the only create control on a phone.
+  useQuickCreateListener('touchpoint', () => { go('places'); setPlaceCompose(true) })
+  useQuickCreateListener('clip', () => {
+    const i = m.queue.findIndex(mv => mv.source === 'clip')
+    go('next')
+    if (i >= 0) m.setCursor(i)
+  })
+
+  const openNumber = (a: NumberAnchor) => {
+    setSection('numbers')
+    setAnchor(a)
   }
 
-  const g = useGrowth()
+  const summary = useMemo(() => {
+    if (m.loading) return null
+    const { products, totals } = m.signals
+    return summaryLine(aiSummary(products, totals), visitsSummary(m.web.data, totals))
+  }, [m.loading, m.signals, m.web.data])
 
-  const counts = useMemo(() => {
-    // The loop week (growthWeekOf), the one "Make it a clip", the board and
-    // the read model file and count clips under. It turns over when Sunday's
-    // review lands at 17:00 UTC, not at local midnight.
-    const week = growthWeekOf(new Date())
-    return {
-      map: g.touchpoints.filter(t => t.assumption_flag).length,
-      work: g.cards.filter(c => c.stage !== 'dropped' && c.batch_week === week).length,
-      signals: g.probes.length,
-      council: g.reviews.filter(r => !r.krish_decision).length,
-      governance: 0,
-    }
-  }, [g.touchpoints, g.cards, g.reviews, g.probes])
+  const segments: Array<Segment<GrowthSectionId>> = [
+    { id: 'next', label: mobile ? 'Next' : 'Next move' },
+    {
+      id: 'week',
+      label: mobile ? 'Week' : 'This week',
+      badge: !mobile && !m.loading && m.openCount > 0
+        ? <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle font-mono text-micro tabular-nums">{m.openCount}</span>
+        : undefined,
+    },
+    { id: 'numbers', label: 'Numbers' },
+    { id: 'places', label: 'Places' },
+  ]
 
-  // The + create sheet's "Add a place": land on the map with its
-  // composer open, wherever in Growth you were.
-  const [mapCompose, setMapCompose] = useState(0)
-  useQuickCreateListener('touchpoint', () => { setSection('map'); setMapCompose(n => n + 1) })
-  const [clipCompose, setClipCompose] = useState(0)
-  useQuickCreateListener('clip', () => { setSection('work'); setClipCompose(n => n + 1) })
-  // Same signal pattern as the two composers above: the hero points at the
-  // first review that owes a ruling, and CouncilFeed brings it into view.
-  const [councilFocus, setCouncilFocus] = useState(0)
-  // And the site action the hero names, on What's moving.
-  const web = useWebInsights()
-  const webNext = useMemo(() => webHero(web.data), [web.data])
-  const [webFocus, setWebFocus] = useState({ prefix: '', n: 0 })
-  // The site step outranks every other branch, and its read is slower than
-  // useGrowth's. Rendering before it lands showed the council or clip step and
-  // then swapped it (a tap in between went to the wrong place). So the hero
-  // waits for the web read, for at most WEB_HERO_WAIT_MS: a read that never
-  // answers must not hide the hero for good.
-  const [webWaitOver, setWebWaitOver] = useState(false)
-  useEffect(() => {
-    const id = window.setTimeout(() => setWebWaitOver(true), WEB_HERO_WAIT_MS)
-    return () => window.clearTimeout(id)
-  }, [])
-  const heroReady = web.loaded || webWaitOver
-
-  const overCap = counts.work > BATCH_MAX
-  // The 30-day window GeoProbes rates, so the header and the panel agree.
-  const geoRate = useMemo(() => citationRate(recentProbes(g.probes)), [g.probes])
-  // A yyyy-mm-dd parses as UTC midnight, so it is formatted in UTC: in local
-  // time west of Greenwich it read as the Sunday before.
-  const weekLabel = useMemo(
-    () => new Date(`${growthWeekOf(new Date())}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'long', timeZone: 'UTC' }),
-    [],
-  )
-  const next = useMemo(
-    () => nextGrowthAction(counts, overCap, weekLabel, webNext),
-    [counts, overCap, weekLabel, webNext],
+  const nav = (
+    <SegmentedNav<GrowthSectionId>
+      segments={segments}
+      value={section}
+      onChange={go}
+      label="Growth sections"
+      variant={mobile ? 'segmented' : 'pill'}
+      testIdPrefix="growth-section"
+    />
   )
 
   return (
-    <div className="flex flex-col gap-3 min-h-0 h-full">
-      <div className="flex-shrink-0">
-        <h1 className="text-title font-display font-semibold text-ink tracking-tight leading-tight">Growth</h1>
-        {/* The purpose, on the desk only. On a phone the title, the purpose,
-            the counts, the hero, the pills and the section line took the top
-            half of the screen before any content: "more than half the screen
-            is fixed, which is ridiculous" (Krish, 2026-09-11). The hero says
-            what to do, which is what this sentence was standing in for. */}
-        {variant === 'desktop' && (
-          <p className="text-xs md:text-body text-ink-faint mt-0.5 leading-snug">{GROWTH_PURPOSE}</p>
+    <div ref={boxRef} className="flex h-full min-h-0 flex-col" data-testid="growth-tab" data-layout={layout}>
+      <div className={`flex-shrink-0 ${mobile ? 'pb-4' : 'pb-5'}`}>
+        {mobile ? (
+          <>
+            {/* The bottom nav already says Growth; on a phone the title band's
+                room goes to the move. The heading stays for screen readers. */}
+            <h1 className="sr-only">Growth</h1>
+            {nav}
+          </>
+        ) : (
+          <SurfaceHeader
+            title="Growth"
+            description={summary ? <span data-testid="growth-summary">{summary}</span> : 'Is anyone finding your products, and what is the one thing to do now?'}
+            meta={<SiteCheck m={m} header />}
+            actions={nav}
+          />
         )}
-        {/* The house count line, on the phone too. It was desktop-only, so the
-            device that actually gets used opened on a purpose sentence and five
-            pills with no sense of scale. It wraps rather than truncating. */}
-        {!g.loading && (
-          <p className="text-label text-ink-faint mt-0.5 tabular-nums leading-snug">
-            {g.touchpoints.length} places mapped · {counts.work} of {BATCH_MAX} clips this week
-            {counts.council > 0 ? ` · ${counts.council} to rule on` : ''}
-            {variant === 'desktop' ? ` · ${pct(geoRate)} of AI answers mention you` : ''}
-          </p>
-        )}
-        {g.error && <p className="text-label text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
 
-      {/* The one next thing, in the same component every other tab uses. */}
-      {!g.loading && !g.error && heroReady && (
-        <div className="flex-shrink-0" data-testid="growth-hero">
-          <DoThisNextHero
-            // A long headline on a phone drops its glyph inside the primitive
-            // (NARROW_GLYPH_MAX_CHARS), so the site step needs no special case here.
-            descriptor={next.descriptor}
-            narrow={variant === 'mobile'}
-            // Setting the section was all this used to do, so on the common
-            // case (the hero naming the section already under the pills) the
-            // button was a no-op. It now points at the actual waiting thing.
-            onAct={next.descriptor.clear ? undefined : () => {
-              setSection(next.go)
-              if (next.compose === 'clip') setClipCompose(n => n + 1)
-              if (next.go === 'council') setCouncilFocus(n => n + 1)
-              if (next.focusWeb) setWebFocus(f => ({ prefix: next.focusWeb!, n: f.n + 1 }))
-            }}
-          />
-        </div>
-      )}
-
-      <SegmentedNav<GrowthSectionId>
-        segments={SECTIONS.map((sec): Segment<GrowthSectionId> => ({
-          id: sec.id,
-          label: sec.label,
-          badge: counts[sec.id] > 0 ? (
-            <span className={`ml-1.5 rounded-full px-1.5 py-0.5 align-middle text-micro tabular-nums ${
-              sec.id === 'work' && overCap ? 'bg-rose-500/25 text-rose-200' : 'bg-white/10'
-            }`}>
-              {counts[sec.id]}
-            </span>
-          ) : undefined,
-        }))}
-        value={section}
-        onChange={setSection}
-        label="Growth sections"
-        variant="pill"
-        testIdPrefix="growth-section"
-      />
-
-      {/* What the open section is for. One sentence, changes with the pill.
-          Desk only: on a phone it restates the pill directly above it, and the
-          room it costs comes straight out of the content below. */}
-      {variant === 'desktop' && (
-        <p className="text-label text-ink-faint leading-snug flex-shrink-0" data-testid="growth-section-what">
-          {SECTIONS.find(s => s.id === section)?.what}
-        </p>
-      )}
-
-      {/* The scroll container announces which section is mounted. Asserting on a
-          heading meant the specs broke when "Touchpoint map" was renamed along
-          with the section labels; a panel id says WHICH section is showing
-          without depending on any word inside it. */}
-      <div data-testid={`growth-panel-${section}`} className={`flex-1 min-h-0 overflow-y-auto ${variant === 'mobile' ? BOTTOM_NAV_PAD : ''}`}>
-        {section === 'map' ? (
-          <TouchpointMap g={g} variant={variant} composeSignal={mapCompose} />
-        ) : section === 'work' ? (
-          <CreativeBoard g={g} variant={variant} composeSignal={clipCompose} />
-        ) : section === 'signals' ? (
-          <div className="space-y-4">
-            {/* Venture health at a glance, relocated from Home in the 2026-08-20
-                recompose; Growth owns venture-level signal. */}
-            {isGrowthScoreboardEnabled() && (
-              <GrowthScoreboard variant={variant === 'mobile' ? 'mobile' : 'desktop'} />
-            )}
-            <SignalsPanel g={g} variant={variant} webFocus={webFocus} onNavigate={onNavigate} />
-          </div>
-        ) : section === 'council' ? (
-          <div className="space-y-4">
-            {/* The Friday retro, relocated from Home's ambient fold; the weekly
-                review is where a retro belongs. */}
-            <DailyBriefBanner blocking={false} variant={variant === 'mobile' ? 'mobile' : 'desktop'} retroOnly />
-            <CouncilFeed g={g} variant={variant} onNavigate={onNavigate} focusSignal={councilFocus} />
-          </div>
-        ) : (
-          <GovernancePanel
-            variant={variant}
-            lane={lane}
-            onSelectLane={slug => onNavigate?.('growth', { lane: slug })}
-            onNavigate={onNavigate}
-          />
+      <div
+        ref={scroller}
+        data-testid={`growth-panel-${section}`}
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${mobile ? `${BOTTOM_NAV_PAD} -mx-5 px-5` : '-mx-2 px-2 pb-6'}`}
+      >
+        {section === 'next' && (
+          <NextView m={m} layout={layout} mobile={mobile} summary={mobile ? summary : null} onSection={go} onLink={onLink} onNumber={openNumber} />
         )}
+        {section !== 'next' && m.loading && <div data-testid="growth-loading" aria-busy="true"><SkeletonList rows={4} /></div>}
+        {section === 'week' && !m.loading && (
+          <WeekView m={m} mobile={mobile} wide={desk} onDo={i => { m.setCursor(i); go('next') }} />
+        )}
+        {section === 'numbers' && !m.loading && <NumbersView m={m} mobile={mobile} layout={layout} anchor={anchor} />}
+        {section === 'places' && !m.loading && <PlacesView m={m} mobile={mobile} wide={desk} compose={placeCompose} onComposed={() => setPlaceCompose(false)} />}
       </div>
     </div>
   )

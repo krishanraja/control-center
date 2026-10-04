@@ -812,6 +812,31 @@ words and the button stay. This used to be a special case at one call site
 (Growth's site step); it is the primitive's rule now, so every tab's phone hero
 gets it and no call site strips `icon` itself.
 
+### Growth, one move at a time (2026-10-04): three primitives extended
+
+Growth's tab is one card that IS the next move, so three primitives grew a
+prop rather than Growth growing siblings. Every existing call site renders
+exactly as before, because each extension is off by default.
+
+- `DoThisNextHero` `layout="card"`: the same hero as a tall card. The headline
+  steps up a size, `eyebrow` / `meta` / `progress` take the kind, the position
+  ("1 of 29") and the week's progress, and `children` is the action zone (an
+  answer set, a primary and a secondary, or the verdict that replaces them).
+  The card does not breathe: there the hero is the screen, and nothing on the
+  screen moves on its own.
+- `OptionChips` `size="touch"` (44px chips at the ui size, for a choice that is
+  the primary action) and `stack` (full-width rows that can carry a `hint`
+  saying what choosing it means). Every chip now carries `.tap-44`, and a
+  wrapped row keeps a 44px pitch.
+- `SegmentedNav`: every segment carries `.tap-44`, so the 40px pills are
+  hit-tested at 44.
+
+Growth's small instruments (a ring, columns, a dot grid, share bars, score
+ticks, the week as segments) live in `src/components/growth/viz.tsx`, drawn in
+the accent channels so both themes hold. Growth is their only reader; a second
+reader moves the family to `shared/` together. The ring sets its own line width
+like `Sparkline`, and is on `check-icons`' `STROKE_OK` list for the same reason.
+
 ---
 
 ## Where the system lives

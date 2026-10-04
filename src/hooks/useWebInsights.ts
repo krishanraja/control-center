@@ -171,22 +171,3 @@ export function useWebInsights(): {
 
   return { data: cache, loaded, error: errorCache, empty, refreshing, refresh: refreshInsights, answer: answerInsight }
 }
-
-/**
- * The Growth hero's web branch. Only setup rungs (1 and 2) reach it: while a
- * site is not being counted, every other number on the tab is blind to it and
- * the fix is one sitting. Rulings (rung 4) and growth actions stay on the cards.
- */
-export function webHero(data: WebInsightsResponse | null): { headline: string; sub: string; prefix: WebPrefix | 'shared' } | null {
-  if (!data) return null
-  const shared = data.shared_action
-  if (shared && shared.rung <= 2) {
-    return { headline: shared.hero_line ?? shared.title, sub: 'Until then a quiet site and a broken one look the same.', prefix: 'shared' }
-  }
-  for (const p of data.properties) {
-    if (p.action && p.action.rung <= 2) {
-      return { headline: p.action.hero_line ?? p.action.title, sub: `${p.label} is not being counted yet.`, prefix: p.prefix }
-    }
-  }
-  return null
-}

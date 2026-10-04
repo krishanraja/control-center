@@ -2,20 +2,15 @@ import { test, expect, type Page, type Route } from '@playwright/test'
 import { WEB_INSIGHTS, WEB_INSIGHTS_EMPTY, WEB_TOO_SOON } from './fixtures/webInsights'
 
 /**
- * Growth > What's moving > Site visits, on the desk (1440 and 1920).
+ * Growth's site visits on the desk (1440 and 1920): the four sites in Numbers,
+ * Check now in the title band, and each site's one action as a move in the
+ * queue.
  *
- * The panel's contract is honesty before numbers: a property that cannot be
- * read shows its verdict and no visit count, one shared step shows once at the
- * top instead of on every card it blocks, and the hero points at it while any
- * site is not being counted. Each of those is asserted here against a fixture
- * with one card per verdict family (e2e/fixtures/webInsights.ts).
- *
- * Mutation-checked once, locally (2026-09-27), rather than trusted for passing:
- *   - rendering the numbers row for every health (dropping the `totals` gate,
- *     an unread site then reads "0 visits in 7 days") fails exactly the "no
- *     visit count on an unread site" test;
- *   - dropping the web branch from nextGrowthAction fails exactly the hero
- *     test (the hero falls through to "Pick this week's clips").
+ * The contract is honesty before numbers: a site that cannot be read shows its
+ * verdict and no visit count, the shared setup step is one move (not one per
+ * site it blocks), and a ruling is a one-tap quick choice at the front of the
+ * queue. Each of those is asserted against a fixture with one site per verdict
+ * family (e2e/fixtures/webInsights.ts).
  */
 
 async function mock(page: Page, opts: { insights?: unknown; onSlot?: (body: any) => void } = {}) {
@@ -41,89 +36,82 @@ async function mock(page: Page, opts: { insights?: unknown; onSlot?: (body: any)
   })
 }
 
-async function open(page: Page) {
-  await page.goto('/#/growth?section=signals')
-  await expect(page.getByTestId('growth-web')).toBeVisible()
-  await expect(page.getByTestId('growth-web-card-site')).toBeVisible()
+async function openNumbers(page: Page) {
+  await page.goto('/#/growth?section=numbers')
+  await expect(page.getByTestId('growth-numbers-visits')).toBeVisible()
+  await expect(page.getByTestId('growth-site-site')).toBeVisible()
 }
 
-test('four cards, in registry order', async ({ page }) => {
+test('four sites, in registry order', async ({ page }) => {
   await mock(page)
-  await open(page)
-  const ids = await page.locator('[data-testid^="growth-web-card-"]').evaluateAll(els =>
+  await openNumbers(page)
+  const ids = await page.locator('[data-testid^="growth-site-"][data-health]').evaluateAll(els =>
     els.map(e => e.getAttribute('data-testid')))
-  expect(ids).toEqual(['growth-web-card-site', 'growth-web-card-mymu', 'growth-web-card-fulltime', 'growth-web-card-legibility'])
+  expect(ids).toEqual(['growth-site-site', 'growth-site-mymu', 'growth-site-fulltime', 'growth-site-legibility'])
 })
 
 test('a site that cannot be read shows its verdict and no visit count', async ({ page }) => {
   await mock(page)
-  await open(page)
-  await expect(page.getByTestId('growth-web-health-legibility')).toHaveAttribute('data-health', 'api_disabled')
-  const text = await page.getByTestId('growth-web-card-legibility').innerText()
-  expect(text).not.toMatch(/\d+ visits?/)
+  await openNumbers(page)
+  const legibility = page.getByTestId('growth-site-legibility')
+  await expect(legibility).toHaveAttribute('data-health', 'api_disabled')
+  await expect(legibility.getByRole('img', { name: /this week, .* the week before/ })).toHaveCount(0)
+  await expect(legibility).toContainText('Cannot be checked until one Google setting is on.')
   // Proves the probe can find a count where one is honest.
-  expect(await page.getByTestId('growth-web-card-mymu').innerText()).toMatch(/\d+ visits?/)
+  await expect(page.getByTestId('growth-site-mymu').getByRole('img', { name: /this week, .* the week before/ })).toHaveCount(1)
 })
 
-test('the shared step shows once, and the site it blocks says it is waiting', async ({ page }) => {
+test('the ruling is the first move, a quick choice, and the shared step is one move', async ({ page }) => {
   await mock(page)
-  await open(page)
-  await expect(page.getByTestId('growth-web-shared-action')).toHaveCount(1)
-  await expect(page.getByTestId('growth-web-shared-action')).toContainText('Admin API')
-  await expect(page.getByTestId('growth-web-waiting-legibility')).toHaveText('Waiting on the step at the top.')
-})
-
-test('a ruling stays on its card', async ({ page }) => {
-  await mock(page)
-  await open(page)
-  await expect(page.getByTestId('growth-web-action-fulltime')).toContainText('Decide what fulltime.fm is for')
-})
-
-test('the hero names the setup step and Show me brings it into view', async ({ page }) => {
-  await mock(page)
-  await open(page)
-  const hero = page.getByTestId('growth-hero')
-  await expect(hero).toContainText('Turn on one Google setting so the sites can be checked')
-  await hero.getByRole('button', { name: 'Show me' }).click()
-  await expect(page.getByTestId('growth-web-shared-action')).toBeInViewport()
+  await page.goto('/#/growth')
+  await expect(page.getByTestId('growth-move-card')).toContainText('What is fulltime.fm for?')
+  await page.getByTestId('growth-section-week').click()
+  const moves = page.getByTestId('growth-week-move')
+  await expect(moves.filter({ hasText: 'Admin API' })).toHaveCount(1)
+  await expect(moves.nth(0)).toContainText('What is fulltime.fm for?')
 })
 
 test('Put on today writes the action title and its job', async ({ page }) => {
   let body: any = null
   await mock(page, { onSlot: b => { body = b } })
-  await open(page)
-  await page.getByTestId('growth-web-today-site').click()
+  await page.goto('/#/growth?section=week')
+  await page.getByTestId('growth-week-move').filter({ hasText: 'Admin API' }).click()
+  await page.getByTestId('growth-move-primary').click()
   await expect.poll(() => body).not.toBeNull()
-  expect(body.text).toBe(WEB_INSIGHTS.properties[0].action?.title)
+  expect(body.text).toBe(WEB_INSIGHTS.shared_action?.title)
   expect(body.job).toBe('keep_honest')
   expect(body.slot).toBe(1)
 })
 
-test('Check now inside ten minutes says when to try again', async ({ page }) => {
+test('Check now in the title band, inside ten minutes, says when to try again', async ({ page }) => {
   await mock(page)
-  await open(page)
-  await page.getByTestId('growth-web-check').click()
-  await expect(page.getByText(/Checked less than 10 minutes ago/)).toBeVisible()
+  await page.goto('/#/growth')
+  const check = page.getByTestId('growth-site-check').first()
+  await check.getByTestId('growth-site-check-button').click()
+  await expect(check).toContainText('You can check again in 7 minutes.')
   // Never a dead button.
-  await expect(page.getByTestId('growth-web-check')).toBeEnabled()
+  await expect(check.getByTestId('growth-site-check-button')).toBeEnabled()
 })
 
-test('the evidence starts open on the desk', async ({ page }) => {
+test('on the desk, why opens in place under the card, not over it', async ({ page }) => {
   await mock(page)
-  await open(page)
-  await expect(page.getByTestId('growth-web-evidence-mymu')).toHaveAttribute('aria-expanded', 'true')
+  await page.goto('/#/growth')
+  await page.getByTestId('growth-move-why').click()
+  const why = page.getByTestId('growth-why-inline')
+  await expect(why).toBeVisible()
+  await expect(why).toContainText('What each answer means')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
-test('no em dash anywhere in the panel', async ({ page }) => {
+test('no em dash anywhere in the numbers', async ({ page }) => {
   await mock(page)
-  await open(page)
-  const text = await page.getByTestId('growth-web').innerText()
-  expect(text).not.toContain('\u2014')
+  await openNumbers(page)
+  expect(await page.getByTestId('growth-panel-numbers').innerText()).not.toContain('—')
 })
 
 test('nothing read yet is an empty note, not an error', async ({ page }) => {
   await mock(page, { insights: WEB_INSIGHTS_EMPTY })
-  await page.goto('/#/growth?section=signals')
+  await page.goto('/#/growth?section=numbers')
   await expect(page.getByTestId('growth-web-empty')).toBeVisible()
-  await expect(page.getByText('Could not read the site visits.')).toHaveCount(0)
+  await expect(page.getByText('could not be read')).toHaveCount(0)
 })

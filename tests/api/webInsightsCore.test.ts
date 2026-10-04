@@ -913,7 +913,7 @@ test('fulltime provisional: rung 4, decide what it is for', () => {
   assert.equal(classifyHealth(fulltimeToday()).health, 'provisional')
   assert.equal(l.action?.id, 'fulltime:canon_ruling')
   assert.equal(l.action?.title, 'Decide what fulltime.fm is for')
-  assert.equal(l.action?.why, 'The registry calls it a career lane, the rebrand note calls it an experiment, and its own repo calls it a proof piece that is not sold. Until you pick, no growth action can name a job.')
+  assert.equal(l.action?.why, 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale. Until you pick, no growth action can name a job.')
   assert.equal(l.action?.kind, 'ruling')
   assert.equal(l.action?.hero_line, null)
   assert.equal(l.action?.minutes, 2)
@@ -922,7 +922,7 @@ test('fulltime provisional: rung 4, decide what it is for', () => {
 test('legibility: rung 4, decide whether it is live; an active venture clears it', () => {
   const l = runLadder(legibilityToday(), osToday())
   assert.equal(l.action?.title, 'Decide whether legibility.io is live')
-  assert.equal(l.action?.why, 'It has been retired in the registry since 11 August, yet this month it got 17 commits, paid plans and a Google tag. The dashboard calls it retired until you say otherwise.')
+  assert.equal(l.action?.why, 'It was marked as retired on 11 August. This month it still got 17 updates, paid plans and a visit counter. The dashboard calls it retired until you say otherwise.')
   const later = runLadder(read(LEGIBILITY, tot(4, 0)), os({ ventureActive: { legibility: true } }))
   assert.equal(later.action, null)
   assert.equal(later.needsLlm, false)
