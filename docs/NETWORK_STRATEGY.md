@@ -49,6 +49,23 @@ These were each learned by nearly shipping the opposite. Keep them.
   default; that once hid five sixths of an exclusion list and would have
   created a hundred duplicates.
 
+## The back catalogue (2026-10-04)
+
+The Meta export brought in Krish's Facebook friends, his Instagram and the
+phone contacts Meta holds: 1,325 people, mostly from before LinkedIn. Each is
+now on the record as a personal tie (`contact_intelligence.tie`), browsable
+through the "Know you outside work" door, with his schools as a second row
+the way employers sit under alumni. A school shared in the same years is the
+one place the record can say "at the same time", because education rows carry
+years and career rows do not.
+
+Apify had guessed LinkedIn profiles for a third of them and was right 59% of
+the time against his own connections, so a guess is believed only where his
+record, his connections, his schools or a close employer agree. The rest are
+questions in People to check, value first. The people worth his time there
+are the ones a confirmed profile would turn into a buyer or a multiplier he
+already knows personally.
+
 ## How it comes together: the next five builds, in order
 
 ### 1. The weekly three (the blank page dies)
@@ -117,8 +134,12 @@ amplifiers: people who already carry his ideas to their own audience.
 - **Plays v2.** Rules over-match "chair" (board chairs are not peer-group
   chairs). A model pass on ambiguous titles, and a one-tap "not a multiplier"
   correction that writes an override. A correction is training data.
-- **Merge duplicates.** Lauren Thermos is two contacts. A merge tool, never an
-  automatic one: two people with the same name is a coin toss.
+- **Merge duplicates.** Built 2026-10-04; the merge step itself goes live
+  when Krish confirms it (it deletes the merged-away row). `merge_contacts()` keeps everything
+  and records it in `contact_merges`. It runs on its own only where two rows
+  share an identity key (the same LinkedIn profile, or the same name at the
+  same work address). Everything that rests on a name is a question in People
+  to check, because two people with the same name is still a coin toss.
 - **Fresh LinkedIn export each quarter.** Free, five minutes of his time. The
   current one is from February, so every LinkedIn conversation since is
   invisible.

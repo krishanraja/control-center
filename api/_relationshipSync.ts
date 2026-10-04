@@ -22,6 +22,23 @@ import { SELF, MAIL_HEADERS, parseAddresses, isAutomated } from './_mailHeaders.
 
 export { SELF }
 
+/** SELF, plus every address on the rows marked as Krish himself
+ *  (contacts.status_reason = 'self'): his addresses at former employers and
+ *  the Mindmaker role inboxes. Until 2026-10-04 those were scored as
+ *  correspondents, and one of his own rows ranked top of his own network.
+ *  Read from the database rather than listed here, because this repository is
+ *  public. SELF alone still decides which Google accounts may connect. */
+export async function selfAddresses(): Promise<Set<string>> {
+  const me = new Set(SELF)
+  const { data: rows } = await supabase.from('contacts').select('id').eq('status_reason', 'self')
+  const ids = (rows || []).map(r => String((r as { id: string }).id))
+  if (!ids.length) return me
+  const { data } = await supabase.from('contact_identities').select('value')
+    .eq('kind', 'email').is('retired_at', null).in('contact_id', ids)
+  for (const r of (data || []) as Array<{ value: string }>) me.add(String(r.value).toLowerCase())
+  return me
+}
+
 export const MAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly'
 export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
 
@@ -137,7 +154,7 @@ async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): 
 }
 
 /** Count one window of mail [from, to). Returns tallies keyed by address. */
-async function tallyMailWindow(token: string, fromIso: string, toIso: string, tallies: Map<string, Tally>, deadline = Infinity): Promise<number> {
+async function tallyMailWindow(token: string, fromIso: string, toIso: string, tallies: Map<string, Tally>, deadline = Infinity, me: Set<string> = SELF): Promise<number> {
   const after = Math.floor(Date.parse(fromIso) / 1000)
   const before = Math.floor(Date.parse(toIso) / 1000)
   const ids: string[] = []
@@ -168,12 +185,12 @@ async function tallyMailWindow(token: string, fromIso: string, toIso: string, ta
     const at = new Date(Number(m.internalDate)).toISOString()
     const from = parseAddresses(h['from'])[0]
     if (!from) return
-    const outbound = SELF.has(from.email)
+    const outbound = me.has(from.email)
     const counterparts = outbound
       ? [...parseAddresses(h['to']), ...parseAddresses(h['cc'])]
       : [from]
     for (const c of counterparts) {
-      if (SELF.has(c.email) || isAutomated(c.email)) continue
+      if (me.has(c.email) || isAutomated(c.email)) continue
       const t = tallies.get(c.email) || { inbound_count: 0, outbound_count: 0, meeting_count: 0 }
       if (!outbound && c.name) t.display_name = c.name
       if (outbound) { t.outbound_count++; t.last_outbound_at = later(t.last_outbound_at, at) }
@@ -188,7 +205,7 @@ async function tallyMailWindow(token: string, fromIso: string, toIso: string, ta
 
 /** Count meetings in [from, to): events Krish did not decline, with other
  *  human attendees, that have already started. */
-async function tallyCalendarWindow(token: string, fromIso: string, toIso: string, tallies: Map<string, Tally>): Promise<number> {
+async function tallyCalendarWindow(token: string, fromIso: string, toIso: string, tallies: Map<string, Tally>, me: Set<string> = SELF): Promise<number> {
   let page: string | undefined
   let n = 0
   const now = new Date().toISOString()
@@ -200,15 +217,15 @@ async function tallyCalendarWindow(token: string, fromIso: string, toIso: string
     for (const ev of j.items || []) {
       const people = (ev.attendees || []) as any[]
       if (people.length < 2 || people.length > 25) continue // solo blocks and all-hands say nothing
-      const me = people.find(p => p.self || SELF.has(String(p.email || '').toLowerCase()))
-      if (me && me.responseStatus === 'declined') continue
+      const krish = people.find(p => p.self || me.has(String(p.email || '').toLowerCase()))
+      if (krish && krish.responseStatus === 'declined') continue
       const at = ev.start?.dateTime || ev.start?.date
       if (!at) continue
       n++
       const iso = new Date(at).toISOString()
       for (const p of people) {
         const email = String(p.email || '').toLowerCase()
-        if (!email || p.self || p.resource || SELF.has(email) || isAutomated(email)) continue
+        if (!email || p.self || p.resource || me.has(email) || isAutomated(email)) continue
         const t = tallies.get(email) || { inbound_count: 0, outbound_count: 0, meeting_count: 0 }
         if (p.displayName) t.display_name = p.displayName
         t.meeting_count++
@@ -268,6 +285,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
   const onError = (e: string) => { lastErr = e }
   const start = opts.startIso || new Date(Date.now() - 3 * 365 * 86_400_000).toISOString()
   const res: SyncResult = { account: email, caughtUp: true }
+  const me = await selfAddresses()
 
   // Mail
   const mailToken = await tokenFor(a, MAIL_SCOPE, onError)
@@ -279,7 +297,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     while (Date.now() - t0 < budget * 0.7 && cursor < new Date().toISOString()) {
       const to = new Date(Math.min(Date.parse(cursor) + windowMs, Date.now())).toISOString()
       const win = new Map<string, Tally>()
-      try { messages += await tallyMailWindow(mailToken, cursor, to, win, t0 + budget) }
+      try { messages += await tallyMailWindow(mailToken, cursor, to, win, t0 + budget, me) }
       catch (e) {
         if (e instanceof OutOfTime) { res.caughtUp = false; break }
         res.error = `mail: ${errText(e)}`; res.caughtUp = false; break
@@ -303,7 +321,7 @@ export async function syncAccount(email: string, opts: { budgetMs?: number; wind
     while (Date.now() - t0 < budget && cursor < new Date().toISOString()) {
       const to = new Date(Math.min(Date.parse(cursor) + windowMs * 8, Date.now())).toISOString()
       const win = new Map<string, Tally>()
-      try { events += await tallyCalendarWindow(calToken, cursor, to, win) }
+      try { events += await tallyCalendarWindow(calToken, cursor, to, win, me) }
       catch (e) { res.error = [res.error, `calendar: ${errText(e)}`].filter(Boolean).join('; '); res.caughtUp = false; break }
       fold(tallies, win)
       cursor = to

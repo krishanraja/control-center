@@ -66,6 +66,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data: page, error: kErr } = await supabase
         .from('contacts').select('linkedin_url')
         .not('linkedin_url', 'is', null)
+        // Without an order, pages can overlap and skip: a stable order is
+        // what makes "every page" mean every row.
+        .order('id', { ascending: true })
         .range(from, from + PAGE - 1)
       if (kErr) throw new Error(kErr.message)
       for (const c of (page || []) as Array<Record<string, unknown>>) {
@@ -117,7 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Plenty of these people are already contacts with no LinkedIn URL on
       // them, reached by email or imported from a roster. Matching on URL alone
-      // would have made a second Maggie Hulce rather than finding the first.
+      // would have made a second copy of someone already here rather than finding them.
       // An exact name match attaches the URL to the person who is already here,
       // which is both the duplicate guard and the better outcome: it joins a
       // LinkedIn identity to a mail one.

@@ -3,6 +3,8 @@ import { embed, vectorLiteral } from './_embeddings.js'
 import { callClaude, robustJson, hasAnthropicKey } from './_content.js'
 import { planQuery, type QueryPlan, type Constraint } from './_networkQuery.js'
 import { SYNTHESIS_MODEL } from './_models.js'
+import { knownFrom, type KnownFromKey } from '../src/lib/knownFrom.js'
+import type { SharedEntry } from '../src/lib/sharedHistory.js'
 
 // The shared execution path behind /api/network/search, /recommend and /voice.
 //
@@ -97,10 +99,48 @@ export interface NetworkResult {
   why_match?: string
   /** Krish's employers this person also worked at. Says both were there,
    *  never that they overlapped: career rows carry durations, not dates. */
-  shared_history?: Array<{ key: string; label: string; closeness: 'close' | 'wide'; their_title: string | null; current: boolean }>
+  shared_history?: SharedEntry[]
   /** What this person can do for Krish: alumni, multiplier, buyer, amplifier,
    *  subject. Krish's own five categories, 2026-10-03. */
   plays?: string[]
+  /** Which of his networks they are in: personal (Facebook or Instagram),
+   *  professional (a LinkedIn connection), both, or null. */
+  tie?: 'personal' | 'professional' | 'both' | null
+  /** Every network they were found in (src/lib/knownFrom), most personal
+   *  first. The provenance chip reads this before the pipeline name. */
+  known_from?: KnownFromKey[]
+}
+
+/**
+ * What a row needs that network_search does not return: shared history, plays,
+ * the tie and the networks the person was found in. One read per table for the
+ * page that is actually shown, so every list (search, browse, ask) describes
+ * the same person the same way.
+ */
+export async function attachPersonContext(rows: NetworkResult[]): Promise<void> {
+  if (!rows.length) return
+  const ids = rows.map(r => r.contact_id)
+  const [{ data: ci }, { data: cs }, { data: idents }] = await Promise.all([
+    supabase.from('contact_intelligence').select('contact_id, shared_history, plays, tie').in('contact_id', ids),
+    supabase.from('contacts').select('id, sources').in('id', ids),
+    supabase.from('contact_identities').select('contact_id, kind').in('contact_id', ids).in('kind', ['facebook', 'instagram', 'phone_book']),
+  ])
+  const byCi = new Map(((ci || []) as Array<Record<string, unknown>>).map(e => [String(e.contact_id), e]))
+  const bySrc = new Map(((cs || []) as Array<Record<string, unknown>>).map(e => [String(e.id), e.sources]))
+  const kinds = new Map<string, string[]>()
+  for (const i of (idents || []) as Array<Record<string, unknown>>) {
+    const k = String(i.contact_id)
+    kinds.set(k, [...(kinds.get(k) || []), String(i.kind)])
+  }
+  for (const r of rows) {
+    const e = byCi.get(r.contact_id)
+    if (e) {
+      r.shared_history = (e.shared_history as SharedEntry[]) ?? []
+      r.plays = (e.plays as string[]) ?? []
+      r.tie = (e.tie as NetworkResult['tie']) ?? null
+    }
+    r.known_from = knownFrom(bySrc.get(r.contact_id), kinds.get(r.contact_id) || [])
+  }
 }
 
 export interface SearchOptions {
@@ -386,18 +426,7 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   // the page that will actually be shown, so every row in every list knows
   // what the person is to Krish, not only the rows of the browse mode.
   const shown = results.slice(0, limit)
-  if (shown.length) {
-    const { data: extra } = await supabase.from('contact_intelligence')
-      .select('contact_id, shared_history, plays')
-      .in('contact_id', shown.map(r => r.contact_id))
-    const by = new Map((extra || []).map((e: Record<string, unknown>) => [String(e.contact_id), e]))
-    for (const r of shown) {
-      const e = by.get(r.contact_id)
-      if (!e) continue
-      r.shared_history = (e.shared_history as NetworkResult['shared_history']) ?? []
-      r.plays = (e.plays as string[]) ?? []
-    }
-  }
+  await attachPersonContext(shown)
 
   mark('tail', tRpc)
   mark('total', t0)

@@ -36,12 +36,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // changing, so they are recomputed on the same daily beat. A failure here
   // does not fail the sync: warmth is the job, plays ride along.
   const { error: perr } = await supabase.rpc('refresh_shared_history_and_plays')
+  // A new LinkedIn connection or a merge changes which networks someone is in.
+  const { error: terr } = await supabase.rpc('refresh_ties')
   return res.status(200).json({
     ok: true,
     results,
     contacts_updated: rerr ? null : rolled,
     rollup_error: rerr?.message || null,
     plays_error: perr?.message || null,
+    ties_error: terr?.message || null,
     caughtUp: results.every(r => r.caughtUp),
   })
 }

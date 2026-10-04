@@ -41,19 +41,19 @@ const ROW_BASE = {
 
 const ROWS = [
   {
-    ...ROW_BASE, contact_id: '11111111-1111-4111-8111-111111111111', full_name: 'Michael Stephenson',
+    ...ROW_BASE, contact_id: '11111111-1111-4111-8111-111111111111', full_name: 'Corin Halloway',
     title: 'Chief Executive Officer', company: 'Example Media Group',
     plays: ['alumni', 'buyer'],
-    shared_history: [{ key: 'nine', label: 'Nine', closeness: 'close', their_title: 'Commercial Director - Digital', current: false }],
+    shared_history: [{ key: 'nine', label: 'Nine', closeness: 'close', their_title: 'Sales Manager', current: false }],
   },
   {
-    ...ROW_BASE, contact_id: '22222222-2222-4222-8222-222222222222', full_name: 'Rishi Chande',
-    title: 'Managing Director', company: 'Captify',
+    ...ROW_BASE, contact_id: '22222222-2222-4222-8222-222222222222', full_name: 'Tobias Renwick',
+    title: 'Head of Sales', company: 'Captify',
     plays: ['alumni', 'buyer', 'multiplier'],
-    shared_history: [{ key: 'captify', label: 'Captify', closeness: 'close', their_title: 'Managing Director', current: true }],
+    shared_history: [{ key: 'captify', label: 'Captify', closeness: 'close', their_title: 'Head of Sales', current: true }],
   },
   {
-    ...ROW_BASE, contact_id: '33333333-3333-4333-8333-333333333333', full_name: 'Priya Nandakumar',
+    ...ROW_BASE, contact_id: '33333333-3333-4333-8333-333333333333', full_name: 'Imogen Achterberg',
     title: 'Head of Partnerships', company: 'Contoso',
     plays: ['buyer'],
     shared_history: [{ key: 'microsoft', label: 'Microsoft', closeness: 'wide', their_title: 'Account Executive', current: false }],
@@ -90,7 +90,7 @@ test('the doors and the alumni rows fit a phone', async ({ page }) => {
   await openNetwork(page, [])
   await page.getByTestId('network-play-alumni').click()
   await expect(page.getByTestId('network-play-employers')).toBeVisible()
-  await expect(page.getByText('Also at Nine, as Commercial Director - Digital.')).toBeVisible()
+  await expect(page.getByText('Also at Nine, as Sales Manager.')).toBeVisible()
   await expect(page.getByText(/worked together/i)).toHaveCount(0)
 
   await assertNothingOverflows(page, '[data-testid="network-plays"]')
