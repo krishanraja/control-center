@@ -214,7 +214,10 @@
           "name": "Google Gemini(PaLM) Api account"
         }
       },
-      "id": "19b29816-646d-4a76-bf7b-5c14ab0dedaf"
+      "id": "19b29816-646d-4a76-bf7b-5c14ab0dedaf",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1294,7 +1297,8 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": true,
     "binaryMode": "separate",
-    "timeSavedMode": "fixed"
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "SVr96xVfOCupWpK7"
   },
   "staticData": {
     "node:Schedule Trigger": {

@@ -95,7 +95,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Agent Dispatch - routes to correct workflow per agent\nconst item = $input.first().json;\nconst agent = item.agent;\n\n// Canonical agent-to-workflow mapping (updated 2026-04-17)\nconst agentWorkflowMap = {\n  'zara': 'xAfMItfI8UfAqb3M',\n  'leo': 'pyr9wurcs1M9utW3',\n  'nell': '8DlMfyTYsbnQGYR2',\n  'cleo': 'AnhkJrJBvmohfqjJ',\n  'vera': 'l0nujD2PBYGeEtXx',\n  'marcus': 'TI1ozQbPtI69qlgO',\n  'nova': 'hCbvRXoGWaqG1Znx',\n  'maya': 'JtyxjXRQLPKB37DD',\n  'hunter': 'z2XxEJbKcz8YuEFq',\n  'agatha': 'NgVcpJ7PO7sTYvm9'\n};\n\nconst targetWorkflow = agentWorkflowMap[agent] || null;\n\nreturn [{\n  json: {\n    dispatched: true,\n    agent: agent,\n    isKnownAgent: item.isKnownAgent,\n    targetWorkflow: targetWorkflow,\n    hasWorkflow: !!targetWorkflow,\n    shouldDispatch: item.shouldDispatch === false ? false : true,\n    taskId: item.taskId,\n    title: item.title,\n    status: item.status,\n    eventType: item.eventType,\n    message: targetWorkflow \n      ? `Dispatching to workflow ${targetWorkflow} for agent ${agent}`\n      : `Event logged for agent ${agent} (no dedicated workflow mapped yet)`,\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "\n// Agent Dispatch - routes to correct workflow per agent\nconst item = $input.first().json;\nconst agent = item.agent;\n\n// Canonical agent-to-workflow mapping (updated 2026-04-17).\n// zara (xAfMItfI8UfAqb3M) and hunter (z2XxEJbKcz8YuEFq) removed 2026-10-04:\n// both target workflows are inactive, so dispatching failed the run.\n// Hunter runs from GitHub Actions; their events now log only.\nconst agentWorkflowMap = {\n  'leo': 'pyr9wurcs1M9utW3',\n  'nell': '8DlMfyTYsbnQGYR2',\n  'cleo': 'AnhkJrJBvmohfqjJ',\n  'vera': 'l0nujD2PBYGeEtXx',\n  'marcus': 'TI1ozQbPtI69qlgO',\n  'nova': 'hCbvRXoGWaqG1Znx',\n  'maya': 'JtyxjXRQLPKB37DD',\n  'agatha': 'NgVcpJ7PO7sTYvm9'\n};\n\nconst targetWorkflow = agentWorkflowMap[agent] || null;\n\nreturn [{\n  json: {\n    dispatched: true,\n    agent: agent,\n    isKnownAgent: item.isKnownAgent,\n    targetWorkflow: targetWorkflow,\n    hasWorkflow: !!targetWorkflow,\n    shouldDispatch: item.shouldDispatch === false ? false : true,\n    taskId: item.taskId,\n    title: item.title,\n    status: item.status,\n    eventType: item.eventType,\n    message: targetWorkflow \n      ? `Dispatching to workflow ${targetWorkflow} for agent ${agent}`\n      : `Event logged for agent ${agent} (no dedicated workflow mapped yet)`,\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "name": "Agent Dispatch",
       "type": "n8n-nodes-base.code",
@@ -581,7 +581,8 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": true,
     "binaryMode": "separate",
-    "timeSavedMode": "fixed"
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "SVr96xVfOCupWpK7"
   },
   "staticData": null
 }
