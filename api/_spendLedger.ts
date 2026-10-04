@@ -78,6 +78,13 @@ export function matchService(registry: RegistryMatch[], vendor: string, from: st
 }
 
 /**
+ * A date is not a receipt number. "Invoice 2026-09-01" from a vendor billing
+ * two subscriptions on one day names two receipts with one date, and keying
+ * on it would count one of them.
+ */
+const DATE_SHAPED = /^\d{4}-\d{2}(?:-\d{2})?$/
+
+/**
  * The vendor's own receipt or invoice number, from the subject line.
  *
  *   Your receipt from Relume #2444-4882                      -> 2444-4882
@@ -90,9 +97,9 @@ export function matchService(registry: RegistryMatch[], vendor: string, from: st
 export function receiptNumber(subject: string | null | undefined): string | null {
   const s = subject || ''
   const hash = s.match(/#\s*([A-Z0-9][A-Z0-9-]{3,})/i)
-  if (hash && /\d/.test(hash[1])) return hash[1].toUpperCase()
+  if (hash && /\d/.test(hash[1]) && !DATE_SHAPED.test(hash[1])) return hash[1].toUpperCase()
   const inv = s.match(/\binvoice\s+(?:no\.?\s*|number\s*)?([A-Z]{1,6}-[\d-]{4,}\d|\d[\d-]{5,}\d)/i)
-  if (inv) return inv[1].toUpperCase()
+  if (inv && !DATE_SHAPED.test(inv[1])) return inv[1].toUpperCase()
   return null
 }
 
@@ -276,14 +283,21 @@ export function needsLook(r: LedgerRow): boolean {
 
 export function reviewReason(r: LedgerRow): string {
   const note = (r.review_note || '').toLowerCase()
-  if ((!r.paid_at && r.amount_usd != null) || note.startsWith(NO_PAID_DATE_NOTE)) {
-    return 'Counted. The email has no payment date, so it uses the day it arrived.'
+  // "Counted" only ever when the totals include it, which is amount_usd. A
+  // dateless receipt in a currency with no exchange rate carries the
+  // no-payment-date note AND no USD amount: it used to say "Counted" beside
+  // "not counted".
+  if (r.amount_usd != null) {
+    const noDate = !r.paid_at || note.startsWith(NO_PAID_DATE_NOTE)
+    const unsure = note.includes('low confidence')
+    if (noDate && unsure) return 'Counted, but the reader was unsure of it. The email has no payment date, so it uses the day it arrived.'
+    if (noDate) return 'Counted. The email has no payment date, so it uses the day it arrived.'
+    return 'Counted, but the reader was unsure of it.'
   }
   if (isTransientFailure(note)) return 'Not counted. The reader failed on this one, and it tries again on the next run.'
   if (note.includes('no fx rate')) return 'Not counted. There was no exchange rate for its currency.'
   if (note.includes('no readable body')) return 'Not counted. The email has no text to read.'
   if (note.includes('pdf')) return 'Not counted. The amount is only in the attached PDF.'
-  if (r.amount_usd != null) return 'Counted, but the reader was unsure of it.'
   return 'Not counted. The amount was not clear in the email.'
 }
 

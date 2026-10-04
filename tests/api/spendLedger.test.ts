@@ -202,3 +202,40 @@ test('an unread receipt from a processor is named by its sender, not the process
   assert.equal(item.counted, false)
   assert.equal(item.usd, null)
 })
+
+// ── Review copy never contradicts the money column ───────────────────────
+
+test('a dateless receipt with no exchange rate says not counted, never counted', () => {
+  // judgeParse flags it with the no-payment-date note, then the FX pass finds
+  // no GBP rate and leaves amount_usd null. The totals leave it out, so the
+  // reason must too.
+  const [item] = reviewItems([row({
+    vendor_raw: 'Banana Print', amount_usd: null, paid_at: '2026-08-26', needs_review: true,
+    review_note: `${NO_PAID_DATE_NOTE}; no FX rate for GBP`, created_at: '2026-08-26T07:15:00Z',
+  })])
+  assert.equal(item.counted, false)
+  assert.doesNotMatch(item.reason, /^Counted/)
+  assert.match(item.reason, /exchange rate/)
+})
+
+test('a dateless receipt the reader was unsure of says both', () => {
+  const [item] = reviewItems([row({
+    vendor_raw: 'Tello', amount_usd: 27.14, paid_at: '2026-09-13', needs_review: true,
+    review_note: `${NO_PAID_DATE_NOTE}; low confidence`,
+  })])
+  assert.equal(item.counted, true)
+  assert.match(item.reason, /unsure/)
+  assert.match(item.reason, /no payment date/)
+})
+
+test('a date in the subject is not a receipt number, so two same-day invoices both count', () => {
+  assert.equal(receiptNumber('Your invoice 2026-09-01 is ready'), null)
+  assert.equal(receiptNumber('Invoice #2026-09 for your workspace'), null)
+  // Stripe's own numbers are four-and-four, which a date never is.
+  assert.equal(receiptNumber('Your receipt from Relume #2444-4882'), '2444-4882')
+  const { kept } = dedupeReceipts([
+    row({ service_key: 'supabase', vendor_raw: 'Supabase', amount_usd: 25, paid_at: '2026-09-01', raw_subject: 'Invoice 2026-09-01 for project A' }),
+    row({ service_key: 'supabase', vendor_raw: 'Supabase', amount_usd: 10, paid_at: '2026-09-01', raw_subject: 'Invoice 2026-09-01 for project B' }),
+  ])
+  assert.equal(kept.length, 2)
+})

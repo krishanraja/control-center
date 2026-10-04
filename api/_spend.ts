@@ -294,7 +294,7 @@ export async function loadSpend(): Promise<SpendSummary> {
   const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1))
 
   const windowDay = windowStart.toISOString().slice(0, 10)
-  const [{ rows: inv }, { data: reg }, meter, spenders] = await Promise.all([
+  const [{ rows: inv, error: invError }, { data: reg }, meter, spenders] = await Promise.all([
     // A row with no payment date used to fall out of this read entirely
     // (`paid_at >= window` is never true for NULL), which is how $332.55 of
     // parsed September receipts and every unread receipt vanished. They now
@@ -312,6 +312,10 @@ export async function loadSpend(): Promise<SpendSummary> {
     loadSpenders(),
   ])
 
+  // A failed ledger read is not a $0 ledger. Throw, so GET /api/spend answers
+  // 500 and the tab keeps its last good summary (useSpend) instead of showing
+  // every month at nothing.
+  if (invError) throw new Error(`spend_invoices read failed: ${invError}`)
   const registry = (reg || []) as RegistryRow[]
   // Match at read time too (Stripe-sent Brave and ElevenLabs receipts were
   // written before the matcher knew them), then one row per real receipt.

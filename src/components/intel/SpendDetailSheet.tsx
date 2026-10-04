@@ -6,7 +6,9 @@ import { Sparkline } from '../shared/Sparkline'
 import { statusStyle } from '../shared/tokens'
 import { usageLine, cycleLine, reviewSentence, type SpendSummary, type SpendServiceRow, type SpendUnit, type SpendReviewItem } from '../../hooks/useSpend'
 
-const usd = (n: number): string => `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 })}`
+/** A refund in the review list is negative: "-$480", never "$-480". */
+const usd = (n: number): string =>
+  `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: Math.abs(n) >= 100 ? 0 : 2 })}`
 
 /** "12 Sep" from a YYYY-MM-DD day, read as UTC so it never slips a day. */
 function shortDay(day: string | null): string | null {
@@ -141,7 +143,7 @@ export function SpendDetailSheet({ open, onClose, spend }: {
               </p>
             )}
             <p className="px-2 pt-1 text-label leading-relaxed text-ink-faint">
-              Apify reports the actor and where the run started, not which workflow called it. Anthropic totals cover the calls the OS makes itself and, since 20 September, the Anthropic and Gemini steps inside n8n workflows too. Your own Claude plan is not on the meter. It shows only on its receipts.
+              Apify reports the actor and where the run started, not which workflow called it. Anthropic totals cover the calls the OS makes itself and, since 20 September, the Anthropic steps inside n8n workflows too. Gemini steps inside n8n are counted under Google from the same day. Your own Claude plan is not on the meter. It shows only on its receipts.
             </p>
           </div>
         )}

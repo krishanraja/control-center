@@ -9,6 +9,7 @@ import {
   matchService, judgeParse, isRetryable, prepareLedger, effectiveDay, netUsd,
   type RegistryMatch, type LedgerRow,
 } from '../_spendLedger.js'
+import { readPaged } from '../_paged.js'
 
 // Receipts -> spend_invoices. The money-out twin of /api/revenue/sync.
 //
@@ -43,6 +44,16 @@ const PARSE_MODEL = JUDGE_MODEL
 const MAX_PARSES_PER_RUN = 200
 /** Old unread receipts read again per run. Leaves most of the run for new mail. */
 const MAX_RETRIES_PER_RUN = 60
+/**
+ * No new parse starts after this long. The route has 300s (vercel.json) and
+ * writes nothing until the parse loop ends, so a run that overruns loses every
+ * row it read and leaves the cursor where it was. Up to 60 old receipts read
+ * again on top of the day's new mail, at up to 20s a parse while the parser's
+ * API is slow, would overrun every day for as long as the API stayed slow and
+ * take the day's new receipts down with it. Stopping early keeps what was read;
+ * the rest is read on the next run.
+ */
+const PARSE_BUDGET_MS = 200_000
 
 interface GmailHeader { name: string; value: string }
 interface GmailPart { mimeType?: string; body?: { data?: string }; parts?: GmailPart[] }
@@ -247,18 +258,25 @@ async function balloonCheck(registry: RegistryMatch[]): Promise<boolean> {
   const threeBack = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 3, 1))
   const threeBackDay = threeBack.toISOString().slice(0, 10)
   // The same rows, dates and dedupe the Intel tab counts (api/_spend.ts), so
-  // the alert and the tab cannot disagree about the month.
-  const { data } = await supabase.from('spend_invoices')
+  // the alert and the tab cannot disagree about the month. Unpriced rows are
+  // read too, not filtered out first: the dedupe decides which copy of a
+  // receipt stands, and it has to see the same group the tab sees to decide
+  // the same way. They add nothing to the sums.
+  const { rows: data, error } = await readPaged<LedgerRow>((from, to) => supabase.from('spend_invoices')
     .select('gmail_message_id, service_key, vendor_raw, amount_usd, kind, paid_at, created_at, raw_subject, raw_from')
     .or(`paid_at.gte.${threeBackDay},and(paid_at.is.null,created_at.gte.${threeBackDay})`)
-    .not('amount_usd', 'is', null)
-    .limit(1000)
+    .order('created_at', { ascending: false })
+    .order('gmail_message_id')
+    .range(from, to), { max: 20_000 })
+  // A failed read is no evidence of a balloon either way.
+  if (error) return false
   let mtd = 0
   const prior: Record<string, number> = {}
   const monthStartDay = monthStart.toISOString().slice(0, 10)
-  for (const r of prepareLedger((data || []) as LedgerRow[], registry)) {
+  for (const r of prepareLedger(data, registry)) {
     const day = effectiveDay(r)
-    if (!day) continue
+    // An unread receipt is not a $0 month: it must not make a month exist.
+    if (!day || r.amount_usd == null) continue
     const v = netUsd(r)
     if (day >= monthStartDay) mtd += v
     else prior[day.slice(0, 7)] = (prior[day.slice(0, 7)] || 0) + v
@@ -285,6 +303,7 @@ async function balloonCheck(registry: RegistryMatch[]): Promise<boolean> {
 }
 
 async function ingest(token: string, backfillMonths: number | null) {
+  const startedMs = Date.now()
   const { data: cfg } = await supabase.from('system_config').select('value').eq('key', CURSOR_KEY).maybeSingle()
   let cursorMs = 0
   try {
@@ -325,18 +344,22 @@ async function ingest(token: string, backfillMonths: number | null) {
   // already in `fresh`, so it is not fetched twice.
   const retries = (await retryableIds(backfill)).filter(id => !fresh.includes(id))
 
-  // Oldest first, so a capped run advances the cursor without skipping.
-  const detailed: GmailMessage[] = []
+  // New mail first, oldest first, so a capped or stopped run advances the
+  // cursor without skipping. Old receipts read again go last: they never move
+  // the cursor, and they must not use up the run before the day's new mail.
+  const byDate = (a: GmailMessage, b: GmailMessage) => Number(a.internalDate || 0) - Number(b.internalDate || 0)
+  const freshDetailed: GmailMessage[] = []
   for (const id of fresh) {
-    detailed.push(await gmail<GmailMessage>(token, `/messages/${id}?format=full`))
+    freshDetailed.push(await gmail<GmailMessage>(token, `/messages/${id}?format=full`))
   }
+  const retryDetailed: GmailMessage[] = []
   let retryFetchFailed = 0
   for (const id of retries) {
     // An old message can be gone (deleted, relabelled). That must cost one
     // retry, not the whole run.
-    try { detailed.push(await gmail<GmailMessage>(token, `/messages/${id}?format=full`)) } catch { retryFetchFailed++ }
+    try { retryDetailed.push(await gmail<GmailMessage>(token, `/messages/${id}?format=full`)) } catch { retryFetchFailed++ }
   }
-  detailed.sort((a, b) => Number(a.internalDate || 0) - Number(b.internalDate || 0))
+  const detailed = [...freshDetailed.sort(byDate), ...retryDetailed.sort(byDate)]
   const toParse = detailed.slice(0, MAX_PARSES_PER_RUN)
   // Every message being read AGAIN. A non-receipt verdict on one of these has
   // to update its row, because skipping it would leave it flagged forever.
@@ -350,7 +373,11 @@ async function ingest(token: string, backfillMonths: number | null) {
   const currenciesSeen = new Set<string>()
   const rows: Record<string, unknown>[] = []
 
-  for (const msg of toParse) {
+  // Messages left unread because the time budget ran out; the next run reads them.
+  let stoppedEarly = 0
+  for (let i = 0; i < toParse.length; i++) {
+    if (Date.now() - startedMs > PARSE_BUDGET_MS) { stoppedEarly = toParse.length - i; break }
+    const msg = toParse[i]
     const from = header(msg, 'From')
     const subject = header(msg, 'Subject')
     const body = extractBody(msg).slice(0, 6000)
@@ -495,7 +522,7 @@ async function ingest(token: string, backfillMonths: number | null) {
     details: JSON.stringify({
       listed: ids.length, fresh: fresh.length, parsed: rows.length, parsed_ok: parsedOk,
       needs_review: review, matched, non_receipts_skipped: nonReceipts,
-      retried, recovered, retry_fetch_failed: retryFetchFailed,
+      retried, recovered, retry_fetch_failed: retryFetchFailed, stopped_early: stoppedEarly,
       est_llm_cost_usd: Math.round(llmCost * 10000) / 10000,
       capped: detailed.length > toParse.length, renewal_nudges: nudges, ballooned,
       backfill_months: backfillMonths,
@@ -503,7 +530,7 @@ async function ingest(token: string, backfillMonths: number | null) {
   }).then(() => undefined, () => undefined)
 
   if (llmCost > 0) {
-    await logApiCall({ api: 'anthropic', endpoint: 'spend-parse', units: toParse.length, estCostUsd: llmCost, source: 'spend-ingest' })
+    await logApiCall({ api: 'anthropic', endpoint: 'spend-parse', units: toParse.length - stoppedEarly, estCostUsd: llmCost, source: 'spend-ingest' })
   }
 
   return {
@@ -517,6 +544,7 @@ async function ingest(token: string, backfillMonths: number | null) {
     retried,
     recovered,
     retry_fetch_failed: retryFetchFailed,
+    stopped_early: stoppedEarly,
     est_llm_cost_usd: Math.round(llmCost * 10000) / 10000,
     capped: detailed.length > toParse.length,
     renewal_nudges: nudges,
