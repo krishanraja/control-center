@@ -114,7 +114,10 @@ function nextGrowthAction(
     return {
       descriptor: {
         headline: counts.council === 1 ? 'Rule on Sunday\'s review' : `Rule on ${counts.council} reviews`,
-        sub: 'Your ruling turns each move into a clip.',
+        // A ruling only records your call (krish_decision, api/growth/council.ts);
+        // nothing downstream turns it into anything. The clip comes from the
+        // "Make it a clip" button on each move, so say that instead.
+        sub: 'Each move can go on today\'s list or become a clip.',
         actionLabel: 'Read the review',
         icon: <Gavel size={14} />,
         tone: 'amber',

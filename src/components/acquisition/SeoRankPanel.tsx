@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { Search, ArrowUp, ArrowDown } from '@/lib/icons'
-import { supabase } from '../../lib/supabase'
 import { SkeletonList } from '../shared/Skeleton'
 import { useDeferredPending } from '../shared/useDeferredPending'
+import { useSeoRank } from '../../hooks/useSeoRank'
+import { ventureLabel } from '../../lib/ventureOptions'
 
 /**
  * SEO rank: where the product ranks on Google for its ICP keywords, and the
@@ -10,39 +10,16 @@ import { useDeferredPending } from '../shared/useDeferredPending'
  * (maya_striking_distance: Serper positions + DataForSEO volume). Priority
  * surfaces the biggest gaps (high volume, not ranking) at the top. Owned-domain
  * ranking only, no personal brand involved.
+ *
+ * Read through GET /api/growth/seo-rank (useSeoRank), never the anon client:
+ * the table has RLS on and no policy, so the anon read returned zero rows and
+ * this panel said "no results" over 74 real ones. The route coerces the
+ * numbers (PostgREST sends numeric as text, and "10" < "9" turned the movement
+ * arrow the wrong way), keeps the newest check per keyword, and sorts priority
+ * first (unscored last), then volume. Names come from ventureLabel, which
+ * already resolves the lane slugs this table is keyed on, so there is no
+ * private label map here any more.
  */
-
-interface RankRow {
-  id: string
-  product: string
-  query: string
-  current_position: number | null
-  previous_position: number | null
-  search_volume: number | null
-  priority: number | null
-  last_checked_at: string | null
-}
-
-/**
- * PostgREST serialises Postgres `numeric` as a JSON string, so position, volume
- * and priority all arrive as text. Left as-is, "10" < "9" is true and the
- * movement arrow points the wrong way. Coerce once, on the way in.
- */
-function num(v: unknown): number | null {
-  if (v == null || v === '') return null
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
-}
-
-function normalise(raw: RankRow[]): RankRow[] {
-  return raw.map(r => ({
-    ...r,
-    current_position: num(r.current_position),
-    previous_position: num(r.previous_position),
-    search_volume: num(r.search_volume),
-    priority: num(r.priority),
-  }))
-}
 
 function fmtVolume(v: number | null): string {
   if (v == null) return 'no data'
@@ -50,57 +27,14 @@ function fmtVolume(v: number | null): string {
   return `${v}/mo`
 }
 
-/**
- * maya_striking_distance.product carries the ACQUISITION lane slug, not the
- * growth product_slug, so this panel keeps its own label map rather than
- * borrowing PRODUCT_LABEL from lib/growth (different key space, different set).
- * On the Signals section the panel runs unfiltered across lanes, so each row has
- * to say which product it belongs to.
- */
-const LANE_LABEL: Record<string, string> = {
-  mm_ctrl: 'CTRL',
-  fractionl_circle: 'Circle',
-  fractionl_pulse: 'Pulse',
-  full_time: 'Full Time',
-  legibility: 'Legibility',
-}
-
-function laneLabel(slug: string): string {
-  return LANE_LABEL[slug] || slug.replace(/_/g, ' ')
-}
-
 const VISIBLE_ROWS = 8
 
 export function SeoRankPanel({ lane }: { lane?: string | null }) {
-  const [rows, setRows] = useState<RankRow[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const { rows, loaded, error } = useSeoRank(lane)
   // Reserve the rows immediately, shimmer only once the wait has earned it.
   const waiting = useDeferredPending(!loaded)
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      // nullsFirst:false matters. Postgres sorts DESC as NULLS FIRST, and only
-      // 10 of the 41 rows carry a priority, so without it the panel led with
-      // unscored brand-name keywords and buried the actual striking-distance
-      // targets. Volume breaks ties so the biggest gaps rise inside a band.
-      let q = supabase
-        .from('maya_striking_distance')
-        .select('id, product, query, current_position, previous_position, search_volume, priority, last_checked_at')
-        .order('priority', { ascending: false, nullsFirst: false })
-        .order('search_volume', { ascending: false, nullsFirst: false })
-        .limit(40)
-      if (lane) q = q.eq('product', lane)
-      const { data, error } = await q
-      if (cancelled) return
-      if (!error) setRows(normalise((data as RankRow[]) || []))
-      setLoaded(true)
-    }
-    load()
-    return () => { cancelled = true }
-  }, [lane])
-
-  const ranking = rows.filter(r => r.current_position != null).length
+  const ranking = rows.filter(r => r.position != null).length
 
   return (
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
@@ -121,13 +55,14 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
         <SkeletonList rows={4} card={false} quiet={!waiting} />
       ) : rows.length === 0 ? (
         <div className="px-4 py-5 text-center text-label text-ink-faint">
-          No rank sweep results yet — Maya's weekly SEO rank sweep lands owned
-          Google positions and keyword volume here.
+          {error
+            ? 'Could not read the Google rank check. Try again in a minute.'
+            : "No rank sweep results yet. Maya's weekly SEO rank sweep lands owned Google positions and keyword volume here."}
         </div>
       ) : (
         <div className="divide-y divide-white/[0.04]">
           {rows.slice(0, VISIBLE_ROWS).map(r => {
-            const pos = r.current_position
+            const pos = r.position
             const prev = r.previous_position
             const moved = pos != null && prev != null && pos !== prev
             // Lower position number is better, so a drop in number is an improvement.
@@ -136,7 +71,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
               <div key={r.id} className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${pos != null ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                  <span className="text-label text-ink-muted truncate">{r.query}</span>
+                  <span className="text-label text-ink-muted truncate">{r.keyword}</span>
                   <span className="ml-auto flex-shrink-0 text-micro tabular-nums">
                     {pos != null ? (
                       <span className="text-emerald-300 inline-flex items-center gap-0.5">
@@ -151,8 +86,8 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-micro text-ink-faint">
-                  <span className="text-ink-faint">{laneLabel(r.product)}</span>
-                  <span>{fmtVolume(r.search_volume)}</span>
+                  <span className="text-ink-faint">{ventureLabel(r.product)}</span>
+                  <span>{fmtVolume(r.monthly_searches)}</span>
                   <span className="ml-auto text-ink-faint/50">priority {r.priority ?? 0}</span>
                 </div>
               </div>

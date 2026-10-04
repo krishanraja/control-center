@@ -3,7 +3,7 @@ import { ChevronDown, Gavel } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, INPUT_CLS, ProductChip, SectionHead } from './atoms'
-import { asList, asPairs, dayLabel, mondayOf, shortDate, type CouncilReviewRow } from '../../lib/growth'
+import { asList, asPairs, clipWeekFor, dayLabel, shortDate, type CouncilReviewRow } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
 import { SkeletonList } from '../shared/Skeleton'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
@@ -173,8 +173,10 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
     }
   }
 
-  // Or it becomes a clip on the board, in this week's batch, with the
-  // review named in the brief so the card remembers where it came from.
+  // Or it becomes a clip on the board, with the review named in the brief so
+  // the card remembers where it came from. It files into the week AFTER the
+  // one the review covers (clipWeekFor): the review lands Sunday 17:00 UTC,
+  // and mondayOf(now) on that Sunday was the week ending that night.
   const makeCard = async (move: string) => {
     setActing(move)
     try {
@@ -182,7 +184,7 @@ function ReviewCard({ review, g, variant, onNavigate, firstWaiting = false, focu
         product_slug: review.product_slug,
         title: move.length > 120 ? `${move.slice(0, 118)}...` : move,
         brief: `From the weekly review, week of ${shortDate(review.week_start)}: ${move}`,
-        batch_week: mondayOf(new Date()),
+        batch_week: clipWeekFor(review.week_start, new Date()),
         touchpoint_id: null,
       })
       toast('On the board as a clip to make.', 'success', { action: { label: 'Open To do', onClick: () => onNavigate?.('growth', { section: 'work' }) } })

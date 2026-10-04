@@ -4,6 +4,23 @@ import { apiErrorMessage } from '../lib/apiFetch'
 import type {
   CouncilReviewRow, CreativeCardRow, GeoProbeRow, SocialAccountRow, TouchpointRow,
 } from '../lib/growth'
+import { CLEARED_OLD_WEEK } from '../lib/growthWire'
+import { latestWeek } from '../lib/growthModel'
+
+/**
+ * How far back the probe read reaches. The "do AI answers mention you" rate
+ * is a 30-day window (GeoProbes, the Sunday review, productSignals), and the
+ * read used to be the newest 500 rows instead: 500 of the 620 the window held
+ * on 2026-10-04, so the page counted a different set than the review it says
+ * it agrees with. A dated window with headroom reads the whole 30 days plus a
+ * little before it (GeoProbes falls back to it when the 30 days are empty).
+ * Measured 2026-10-04: 620 rows in 30 days, 634 in 45. PostgREST caps one
+ * response at 1000 rows, newest kept, so the 30-day rate stays whole until
+ * the probes run at about 230 a week every week (the week of 20 September
+ * alone was 270). Past that, page the read or count on the server.
+ */
+const PROBE_WINDOW_DAYS = 45
+const PROBE_READ_CAP = 1000
 
 /**
  * Data layer for the Growth tab.
@@ -32,6 +49,9 @@ export function useGrowth() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const alive = useRef(true)
+  // The rows the optimistic clear can roll back to, without re-creating the callback on every change.
+  const reviewsRef = useRef<CouncilReviewRow[]>([])
+  reviewsRef.current = reviews
 
   const refresh = useCallback(async () => {
     const [tpQ, cardQ, revQ, probeQ, acctQ] = await Promise.all([
@@ -44,7 +64,9 @@ export function useGrowth() {
       supabase.from('growth_council_reviews').select('*')
         .order('week_start', { ascending: false })
         .order('product_slug', { ascending: true }),
-      supabase.from('growth_geo_probes').select('*').order('run_at', { ascending: false }).limit(500),
+      supabase.from('growth_geo_probes').select('*')
+        .gte('run_at', new Date(Date.now() - PROBE_WINDOW_DAYS * 86_400_000).toISOString())
+        .order('run_at', { ascending: false }).limit(PROBE_READ_CAP),
       supabase.from('growth_social_accounts').select('*').order('product_slug', { ascending: true }),
     ])
     if (!alive.current) return
@@ -131,11 +153,38 @@ export function useGrowth() {
     setReviews(prev => prev.map(v => (v.id === id ? r.review : v)))
   }, [])
 
+  /**
+   * Clear every unruled review older than the newest week in one call
+   * (PATCH { action: 'clear_old' }). Optimistic on the same rule the route
+   * applies, then the server's rows replace it. Returns how many it cleared.
+   */
+  const clearOldReviews = useCallback(async (): Promise<number> => {
+    const before = reviewsRef.current
+    const latest = latestWeek(before)
+    if (latest) {
+      const now = new Date().toISOString()
+      setReviews(prev => prev.map(v => (!v.krish_decision && v.week_start < latest
+        ? { ...v, krish_decision: CLEARED_OLD_WEEK, decided_at: now } : v)))
+    }
+    try {
+      const r = await growthApi<{ cleared: number }>('/api/growth/council', {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'clear_old' }),
+      })
+      return Number(r.cleared) || 0
+    } catch (e) {
+      setReviews(before)
+      throw e
+    } finally {
+      void refresh()
+    }
+  }, [refresh])
+
   return {
     touchpoints, cards, reviews, probes, accounts, loading, error, refresh,
     patchTouchpoint, addTouchpoint, answerAssumption,
     patchCard, addCard,
-    recordDecision,
+    recordDecision, clearOldReviews,
   }
 }
 

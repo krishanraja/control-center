@@ -180,6 +180,60 @@ export function mondayOf(d: Date): string {
   return m.toISOString().slice(0, 10)
 }
 
+/**
+ * When the weekly review is written: Sunday 17:00 UTC (vercel.json runs
+ * /api/growth/council-run at `0 17 * * 0`). The council keys the review it
+ * writes then on the Monday six days earlier, the week that is ending.
+ */
+export const COUNCIL_RUN_UTC_HOUR = 17
+
+const DAY_MS = 86_400_000
+
+/** yyyy-mm-dd plus n days, in UTC. */
+export function addDaysIso(iso: string, n: number): string {
+  return new Date(Date.parse(`${iso.slice(0, 10)}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10)
+}
+
+/** The UTC Monday that owns an instant. The council's own clock (api/_growth.ts mondayOf). */
+export function mondayOfUtc(d: Date): string {
+  const day = d.getUTCDay()
+  const back = day === 0 ? 6 : day - 1
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10)
+}
+
+/**
+ * The week the growth loop is working on at `now`, as its Monday.
+ *
+ * Monday to Sunday afternoon it is the Monday that owns today. From Sunday
+ * 17:00 UTC it is the NEXT Monday: that is when the review for the ending week
+ * lands, and everything picked from it (clips above all) is work for the week
+ * about to start. `mondayOf` alone went back six days on a Sunday, so a clip
+ * made from Sunday night's review was filed into the week that ended hours
+ * later and never counted toward any week's 3 to 5.
+ */
+export function growthWeekOf(now: Date): string {
+  const monday = mondayOfUtc(now)
+  return now.getUTCDay() === 0 && now.getUTCHours() >= COUNCIL_RUN_UTC_HOUR ? addDaysIso(monday, 7) : monday
+}
+
+/** The week_start of the newest review that should exist at `now` (the one for the week before the loop's week). */
+export function reviewWeekFor(now: Date): string {
+  return addDaysIso(growthWeekOf(now), -7)
+}
+
+/**
+ * The batch week a clip made from a review files into: the week after the
+ * week that review covers, and never a week the loop has already left. Used
+ * by "Make it a clip" (CouncilFeed), so a move picked on Sunday night counts
+ * toward the coming week and a move picked from an old review counts now.
+ */
+export function clipWeekFor(reviewWeekStart: string | null | undefined, now: Date): string {
+  const current = growthWeekOf(now)
+  if (!reviewWeekStart || !/^\d{4}-\d{2}-\d{2}/.test(reviewWeekStart)) return current
+  const after = addDaysIso(reviewWeekStart, 7)
+  return after > current ? after : current
+}
+
 /** "Mon 4 Aug" from an ISO date, for the batch header. */
 export function shortDate(iso?: string | null): string {
   if (!iso) return 'no week set'
