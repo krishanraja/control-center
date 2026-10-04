@@ -124,6 +124,14 @@ const SPEND_FULL = {
     ],
     silent: [],
   },
+  // Personal spend (ruling, Krish 2026-10-04): out of every figure, on one line.
+  personal: {
+    charges: 2, usd: 98.98,
+    items: [
+      { vendor: 'YouTube Premium', date: '2026-10-03', usd: 15.99 },
+      { vendor: 'YouTube TV', date: '2026-10-01', usd: 82.99 },
+    ],
+  },
   empty: false,
   as_of: new Date().toISOString(),
 }
@@ -234,6 +242,12 @@ test.describe('the spend and connections questions', () => {
     await expect(review).toContainText('not counted')
     await expect(review).toContainText('Hetzner (OpenClaw VPS)')
     await expect(review).toContainText('$17.47')
+    // Personal charges: one collapsed line, the vendors only behind it.
+    const personal = sheet.getByTestId('spend-personal')
+    await expect(personal).toContainText('Personal, not counted: 2 charges, $98.98')
+    await expect(personal.getByText('YouTube TV, 2026-10-01')).toBeHidden()
+    await personal.locator('summary').click()
+    await expect(personal.getByText('YouTube TV, 2026-10-01')).toBeVisible()
     await ctx.close()
   })
 

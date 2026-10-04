@@ -57,7 +57,7 @@ database and no spec spends an embedding or a model call.
 | `e2e/composer.spec.ts` | the brief editor: canvas, citations toggle, the mobile edits sheet, the edit palette | default + one at 390x844 |
 | `e2e/focus-purpose.spec.ts` | the Focus tab: tools, the daily ask flow | default |
 | `e2e/loading.spec.ts` | the loading ladder's restraint rules | default |
-| `e2e/queue-relocation.spec.ts` | the ruling queue at OS → Queue and the `#today` aliases | default |
+| `e2e/queue-removed.spec.ts` | no OS Queue, queue and `#today` links open Org, Home's fresh Waiting count and its zero | default |
 | `e2e/market-signals.spec.ts` | the head-space split: the Market signals door appears only for a fresh hot digest, Home's face carries no signal text, the drawer acts without navigating, the Intel door lands on the console | default + 360x800 |
 | `e2e/intel-zoom.spec.ts` | OS → Intel does not steal focus or overflow the zoom root, **and the whole phone column fits two screen-lengths** | 390x844 + 1280x800 |
 | `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |

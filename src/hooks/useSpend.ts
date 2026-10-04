@@ -128,6 +128,8 @@ export interface SpendSummary {
   needs_review_unread?: number
   /** The receipts themselves, newest first. Absent on older payloads. */
   review?: SpendReviewItem[]
+  /** This month's personal charges, kept out of every figure (ruling, Krish 2026-10-04). Absent on older payloads. */
+  personal?: { charges: number; usd: number; items: Array<{ vendor: string; date: string | null; usd: number | null }> }
   /** This month on the usage meter (meter_daily). */
   meter: { usd_mtd: number; calls_mtd: number } | null
   spenders: {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { splitDecisions } from '../lib/decisionKinds'
+import { freshDecisions } from '../lib/freshDecisions'
 
 export interface DecisionRow {
   kind: 'task' | 'guest' | 'idea' | 'lead' | 'visibility' | 'correction' | 'skill_proposal' | 'content_decision' | 'inbox_returned' | 'vera_gap' | 'sequence_approval' | 'send_sample' | 'growth_stall'
@@ -19,6 +21,9 @@ export interface DecisionRow {
 }
 
 let cache: DecisionRow[] = []
+// Task ids behind open vera gaps that Krish has already reviewed. A gap whose
+// task he has ruled on is not waiting on him (freshDecisions drops it).
+let reviewedTaskIds: Set<string> = new Set()
 let loaded = false
 let inflight: Promise<void> | null = null
 const listeners = new Set<() => void>()
@@ -53,6 +58,20 @@ async function fetchAll(): Promise<void> {
       const tb = b.sort_at ? new Date(b.sort_at).getTime() : Number.MAX_SAFE_INTEGER
       return ta - tb
     })
+    const gapTaskIds = rows
+      .filter(r => r.kind === 'vera_gap')
+      .map(r => (r.meta as Record<string, unknown> | null)?.task_id)
+      .filter((v): v is string => typeof v === 'string' && v.length > 0)
+    if (gapTaskIds.length) {
+      const { data: reviewed } = await supabase
+        .from('tasks')
+        .select('id')
+        .in('id', gapTaskIds)
+        .eq('krish_reviewed', true)
+      reviewedTaskIds = new Set(((reviewed as Array<{ id: string }>) || []).map(t => t.id))
+    } else {
+      reviewedTaskIds = new Set()
+    }
     cache = rows
     loaded = true
     notify()
@@ -92,4 +111,16 @@ export function useRealtimeDecisionsWaiting() {
   }, [])
 
   return { decisions: cache, loading: !loaded }
+}
+
+/**
+ * The rulings Krish can still act on in the tab that owns each one: typed
+ * rulings only, with the stale, superseded and notice-only rows removed
+ * (src/lib/freshDecisions.ts). Every waiting count reads this, never the raw
+ * view, so Home and the morning close always agree.
+ */
+export function useWaitingDecisions() {
+  const { decisions, loading } = useRealtimeDecisionsWaiting()
+  const waiting = freshDecisions(splitDecisions(decisions).decisions, { reviewedTaskIds })
+  return { waiting, loading }
 }

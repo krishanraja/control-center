@@ -59,7 +59,8 @@ objective and daily pick carries a job tag (which of the five jobs of the
 OS it serves). The vitals line is the twelve week scorecard.
 
 Home is the canon, not a dashboard. The bigger picture, not the tiny tasks:
-the ruling queue lives on **OS → Queue**, venture health on **Growth →
+each ruling lives in the tab that owns it (the OS Queue was removed
+2026-10-04), venture health on **Growth →
 Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 
 ### The whole screen (there is no fold)
@@ -69,7 +70,9 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
    strip: Sent n/25 · Calls n/5 · Paid n/1 · Published n/12 · Unasked nh
    (totals to date over the day-90 targets; compact on a phone: Sent, Paid,
    Unasked) · the one-tap **Log** (ship-ledger facts live in the modal) ·
-   decisions **Waiting** count linking to OS → Queue. Any scorecard cell
+   the **Waiting** count: only fresh rulings he can act on
+   (`src/lib/freshDecisions.ts`), opening a short list that sends each to
+   its owning tab, and saying "Nothing is waiting on you." at zero. Any scorecard cell
    opens the twelve week `ScorecardPanel` in a SlideOver: weeks, targets,
    totals, the stop rule (5 Oct) and day 90 (5 Dec). Neutral rendering,
    always (pilot rule: no conditional colour/copy on any number). MRR left
@@ -189,10 +192,10 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 
 ## Tab: Today
 
-> **Retired (2026-08-20).** The Today tab's ruling queue lives at **OS →
-> Queue** (`#/os?sub=queue`); a bare `#/today` aliases to Home and ruling
-> deep links (`?task=` / `?decision=`) alias to the queue. The section
-> below is historical.
+> **Retired (2026-08-20).** The Today tab's ruling queue moved to OS →
+> Queue, which was itself removed on 2026-10-04. A bare `#/today` aliases to
+> Home and ruling deep links (`?task=` / `?decision=`) open OS → Org. The
+> section below is historical.
 
 ### Purpose
 > *What needs my attention before EOD?*
@@ -779,9 +782,10 @@ ever truncated.
 
 ## Tab: Org
 
-> **Now an OS subtab (2026-08-20):** OS → Org, beside Queue / Intel / Flows /
-> Systems (`os/OsTab`, test ids `os-sub-<id>`). The ruling queue that Home
-> used to host lives at OS → Queue. The four subtab specs below still hold.
+> **Now an OS subtab (2026-08-20):** OS → Org, beside Intel / Flows / Systems
+> (`os/OsTab`, test ids `os-sub-<id>`). The OS Queue was removed on
+> 2026-10-04 (ruling, Krish) and Org is the default subtab. The four subtab
+> specs below still hold.
 
 ### Purpose
 > *Show me every agent, who they report into, what they're working on,

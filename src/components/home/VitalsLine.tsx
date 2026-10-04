@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { ArrowRight } from '@/lib/icons'
 import { useScorecard, type ScorecardCol } from '../../hooks/useScorecard'
 import { useShipSummary } from '../../hooks/usePilot'
-import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
-import { splitDecisions } from '../../lib/decisionKinds'
+import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
+import { waitingLine } from '../../lib/freshDecisions'
+import { WaitingSheet } from './WaitingSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Modal } from '../shared/Modal'
 import { SlideOver } from '../shared/SlideOver'
@@ -40,8 +41,9 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
 export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: NavigateFn; compact?: boolean }) {
   const { current, targets, totals, loading: cardLoading, refresh: refreshCard } = useScorecard()
   const { summary, refresh } = useShipSummary()
-  const { decisions } = useRealtimeDecisionsWaiting()
-  const waiting = splitDecisions(decisions).decisions.length
+  const { waiting: fresh } = useWaitingDecisions()
+  const waiting = fresh.length
+  const [waitingOpen, setWaitingOpen] = useState(false)
   const h = useHaptics()
   const [logging, setLogging] = useState(false)
   const [panel, setPanel] = useState(false)
@@ -102,11 +104,14 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
 
       {!compact && <span className="w-px h-3.5 bg-white/[0.08] shrink-0" aria-hidden />}
 
-      {/* The queue count. The list itself lives on OS, Queue. */}
+      {/* The honest count: only fresh rulings he can act on in the tab that
+          owns each one (src/lib/freshDecisions.ts). It opens a short list
+          that sends each item to its tab; nothing is decided on Home. */}
       <button
         type="button"
         data-testid="vitals-waiting"
-        onClick={() => { h.select(); onNavigate?.('os', { sub: 'queue' }) }}
+        aria-label={waitingLine(waiting)}
+        onClick={() => { h.select(); setWaitingOpen(true) }}
         className={`inline-flex items-baseline min-w-0 shrink-0 whitespace-nowrap group ${compact ? 'gap-1' : 'gap-2'}`}
       >
         <Eyebrow>Waiting</Eyebrow>
@@ -115,6 +120,8 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
           <ArrowRight size={12} className="text-ink-faint group-hover:text-ink-muted transition-colors" />
         </span>
       </button>
+
+      <WaitingSheet open={waitingOpen} onClose={() => setWaitingOpen(false)} waiting={fresh} onNavigate={onNavigate} />
 
       {/* The twelve week table, one tap from any cell. */}
       <SlideOver open={panel} onClose={() => setPanel(false)} ariaLabel="Scorecard" label="Scorecard">

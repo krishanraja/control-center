@@ -1,7 +1,7 @@
 import { supabase } from './_supabase.js'
 import { readUnits, meterSince, daysAgoKey, type MeterProvider } from './_meter.js'
 import { readPaged } from './_paged.js'
-import { prepareLedger, effectiveDay, netUsd, reviewItems, type ReviewItem } from './_spendLedger.js'
+import { prepareLedger, effectiveDay, netUsd, reviewItems, splitPersonal, personalSummary, type ReviewItem, type PersonalSummary } from './_spendLedger.js'
 
 // The one computed answer behind GET /api/spend: how much money is going out,
 // and which connections need a hand. Mirrors _revenue.ts — the tables are
@@ -116,6 +116,8 @@ export interface SpendSummary {
    * are listed, so they are.
    */
   review: ReviewItem[]
+  /** This month's personal charges (PERSONAL_SPEND), kept out of every figure above and named here. */
+  personal: PersonalSummary
   /** This month on the usage meter (meter_daily). */
   meter: { usd_mtd: number; calls_mtd: number } | null
   /** Who spent it, from the usage meter. null when the meter has never run. */
@@ -320,7 +322,10 @@ export async function loadSpend(): Promise<SpendSummary> {
   // Match at read time too (Stripe-sent Brave and ElevenLabs receipts were
   // written before the matcher knew them), then one row per real receipt.
   // Newest first by the day each row counts on, which `latest` below relies on.
-  const invoices = prepareLedger(inv, registry)
+  // Personal charges (ruling, Krish 2026-10-04) leave the ledger here, before
+  // any total, average, service row or review item is built from it.
+  const { business, personal } = splitPersonal(prepareLedger(inv, registry))
+  const invoices = business
     .sort((a, b) => (effectiveDay(b) || '').localeCompare(effectiveDay(a) || ''))
   const nowIso = new Date().toISOString()
   const thisMonth = monthKey(monthStart)
@@ -490,6 +495,7 @@ export async function loadSpend(): Promise<SpendSummary> {
     needs_review: reviewAll.length,
     needs_review_unread: reviewAll.filter(r => !r.counted).length,
     review: reviewAll.slice(0, 200),
+    personal: personalSummary(personal.filter(r => monthOf(r) === thisMonth)),
     meter,
     spenders,
     cycles: cyclesFrom(registry),

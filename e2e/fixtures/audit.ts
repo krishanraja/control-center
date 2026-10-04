@@ -618,7 +618,6 @@ export const AUDIT_ROUTES: Array<{ id: string; hash: string; name: string }> = [
   { id: 'growth-numbers', hash: '#/growth?section=numbers', name: 'Growth · Numbers' },
   { id: 'growth-places', hash: '#/growth?section=places', name: 'Growth · Places' },
   { id: 'content', hash: '#/content', name: 'Content' },
-  { id: 'os-queue', hash: '#/os?sub=queue', name: 'OS · Queue' },
   { id: 'os-org', hash: '#/os?sub=org', name: 'OS · Org' },
   { id: 'os-intel', hash: '#/os?sub=intel', name: 'OS · Intel' },
   { id: 'os-flows', hash: '#/os?sub=flows', name: 'OS · Flows' },
