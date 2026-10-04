@@ -12,7 +12,7 @@
 >
 > **Kept current by the engine.** `api/architecture/weekly.ts` (Vercel cron, Sunday 13:00 UTC) writes one dated entry at the top of section 20 from the week's build signals and stamps the line below. The Monday note reads the stamp back and says so when it is older than ten days, so a dark cron reads as stale, never as silence. People write rulings (section 0a); the engine writes the record (section 20).
 >
-> **Last engine refresh:** 2026-09-13
+> **Last engine refresh:** 2026-10-04
 >
 > **Update procedure.** Edit this file on GitHub `main`, by PR or by direct push, and that is the whole procedure. The VPS clone at `/root/Projects/control-center` follows with `git pull --ff-only`; it is a checkout, not a surface.
 >
@@ -2374,6 +2374,12 @@ docs/audits/                                                 # Closure architect
 ---
 
 ## 20. Recent architectural changes - rolling changelog
+
+### 2026-10-04: the week's builds, written by the engine <!-- engine-week:2026-10-02 -->
+
+Week ending Friday 2026-10-02. Written by `api/architecture/weekly.ts` from the `build_signal` rows the Saturday ingest wrote (`docs/CONTENT-ENGINE-BUILD-SIGNALS.md`). Named products are named; every other repo folds into one line because this document is public. This entry is the engine's record, not a ruling: a ruling goes in section 0a, by a person.
+
+- No build signals were recorded for this week. Either nothing was built, or the Saturday ingest did not run; the Monday note says which.
 
 ### 2026-09-13: the week's builds, written by the engine <!-- engine-week:2026-09-11 -->
 
