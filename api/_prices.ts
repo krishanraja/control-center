@@ -6,8 +6,17 @@
 // meter keeps reporting a number, just the wrong one. So there is one table,
 // and both call sites import it.
 //
-// USD per 1M tokens, matched by prefix so a dated model id
-// (claude-haiku-4-5-20251001) prices off its family.
+// USD per 1M tokens. A model prices off the row whose key is its exact id, or
+// whose key it extends by a dated snapshot suffix only, so
+// claude-haiku-4-5-20251001 prices as claude-haiku-4-5. Any other longer id is
+// a different model: claude-opus-5-5 is NOT claude-opus-5, and used to price as
+// it by plain prefix ($5/$25 and $0.50 cache reads instead of $4/$20 and
+// $0.20), which isPriced() could never catch because the prefix made it true.
+//
+// Every rate here is the published first-party rate as stated by the
+// claude-api reference (model table cached 2026-09-25). claude-fable-5 is left
+// out on purpose: the reference states its input and output rates but not its
+// cache read rate, and no code calls it.
 //
 // An unknown model prices at ZERO and says so through `isPriced`. That is
 // deliberate: a guessed rate produces a plausible wrong number that nobody
@@ -25,9 +34,11 @@ export interface ModelPrice {
 export const MODEL_PRICES: Record<string, ModelPrice> = {
   // The top tier (TOP_TIER_MODEL in _models.ts). Fable 5.1 reads its cache back at
   // $0.25, a fortieth of input rather than the usual tenth, so it carries its
-  // own cacheRead. Matched by prefix like every row, so it must stay ahead of
-  // any shorter claude-fable key that would also match it.
+  // own cacheRead.
   'claude-fable-5-1': { in: 10, out: 50, cacheRead: 0.25 },
+  // Opus 5.5 reads its cache back at $0.20, a twentieth of input, so it carries
+  // its own cacheRead too.
+  'claude-opus-5-5': { in: 4, out: 20, cacheRead: 0.2 },
   'claude-opus-5': { in: 5, out: 25 },
   'claude-opus-4-8': { in: 5, out: 25 },
   'claude-opus-4-7': { in: 5, out: 25 },
@@ -36,14 +47,32 @@ export const MODEL_PRICES: Record<string, ModelPrice> = {
   // nearly every call the OS makes and the meter reports real token counts with
   // no dollars beside them. That is this file's deliberate unknown-model
   // behaviour, and it would have fired on the whole fleet.
+  // Sonnet 5.5 is priced like Sonnet 5, and its $0.20 cache read is the
+  // standard tenth of input, so it needs no cacheRead of its own.
+  'claude-sonnet-5-5': { in: 2, out: 10 },
   'claude-sonnet-5': { in: 2, out: 10 },
   'claude-sonnet-4-6': { in: 3, out: 15 },
   'claude-haiku-4-5': { in: 1, out: 5 },
 }
 
-/** The price-table family a model id belongs to, or null when we have no rate. */
+/** A dated snapshot suffix: -20251001. */
+const SNAPSHOT_SUFFIX = /^-\d{8}$/
+
+/**
+ * The price-table family a model id belongs to, or null when we have no rate.
+ *
+ * The exact id wins; otherwise the longest key the id extends by a dated
+ * snapshot suffix. Nothing else matches, so a newer model with a longer id
+ * stays visibly unpriced until its own published row is added, instead of
+ * silently borrowing an older model's rate.
+ */
 export function priceFamily(model: string): string | null {
-  return Object.keys(MODEL_PRICES).find(k => model.startsWith(k)) ?? null
+  if (Object.prototype.hasOwnProperty.call(MODEL_PRICES, model)) return model
+  let best: string | null = null
+  for (const k of Object.keys(MODEL_PRICES)) {
+    if (model.startsWith(k) && SNAPSHOT_SUFFIX.test(model.slice(k.length)) && (!best || k.length > best.length)) best = k
+  }
+  return best
 }
 
 /** Whether this model's tokens can be turned into dollars at all. */

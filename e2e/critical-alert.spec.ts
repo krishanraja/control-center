@@ -88,3 +88,44 @@ test('a short phone keeps all three of Today while an alarm is live', async ({ p
   })
   expect(painted).toEqual(['1', '2', '3'])
 })
+
+// "first flagged" is when the alert BEGAN. The banner reads the newest 200 open
+// rows, and a workflow that stays dead adds one a day, so its oldest open row
+// falls out of them within weeks (250 open tier-3 rows on 2026-10-04). The
+// hook asks for each shown workflow's oldest open row separately, and falls
+// back to the newest rows when that read fails.
+async function mockAlert(page: Page, oldest: (r: Route) => Promise<void>) {
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
+  await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
+  await page.route('**/realtime/**', (r: Route) => r.abort())
+  await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+  // A fleet that reported a minute ago, so the workflow alarm is the one shown.
+  await page.route('**/rest/v1/workflow_runs*', (r: Route) => r.fulfill({ json: { run_at: hoursAgo(0.02) } }))
+  await page.route('**/rest/v1/silent_failures*', (r: Route) => {
+    if (r.request().url().includes('detected_at.asc')) return oldest(r)
+    return r.fulfill({ json: [
+      { id: 'a', workflow_id: 'wf1', workflow_name: 'Guest Pitch Draft', tier: 3, failure_type: 'runtime_failing',
+        detail: 'x', run_count: 6, detected_at: hoursAgo(2), resolved_at: null },
+      { id: 'b', workflow_id: 'wf1', workflow_name: 'Guest Pitch Draft', tier: 3, failure_type: 'runtime_failing',
+        detail: 'x', run_count: 6, detected_at: hoursAgo(50), resolved_at: null },
+    ] })
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/#/home')
+  const mark = page.getByTestId('critical-alert-mark')
+  await expect(mark).toBeVisible({ timeout: 15_000 })
+  await mark.click()
+  return page.getByTestId('critical-alert-drawer')
+}
+
+test('the drawer dates the alert from its oldest open row, not the newest 200', async ({ page }) => {
+  const drawer = await mockAlert(page, r => r.fulfill({ json: [
+    { workflow_id: 'wf1', detected_at: new Date(Date.now() - (5 * 24 + 3) * 3_600_000).toISOString() },
+  ] }))
+  await expect(drawer).toContainText('Guest Pitch Draft is down, first flagged 5d ago')
+})
+
+test('the drawer falls back to the newest rows when the oldest-row read fails', async ({ page }) => {
+  const drawer = await mockAlert(page, r => r.fulfill({ status: 500, json: { message: 'boom' } }))
+  await expect(drawer).toContainText('Guest Pitch Draft is down, first flagged 2d ago')
+})

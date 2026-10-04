@@ -46,6 +46,46 @@ export interface SpendUnit {
   buckets: Array<{ bucket: string; usd: number; runs: number }>
 }
 
+/** A receipt that needs a look: unread (not in any total) or counted with a caveat. */
+export interface SpendReviewItem {
+  vendor: string
+  /** The day it counts on: the payment date, else the day it arrived. */
+  date: string | null
+  subject: string | null
+  usd: number | null
+  counted: boolean
+  reason: string
+}
+
+/**
+ * The review counts in one place, for the costing answer and the detail
+ * sheet: how many receipts no total includes, and how many are counted but
+ * flagged. An older payload has only the total, which then reads as unread.
+ */
+export function reviewCounts(s: SpendSummary): { unread: number; flagged: number } {
+  const total = s.needs_review || 0
+  const unread = s.needs_review_unread ?? (s.review ? s.review.filter(r => !r.counted).length : total)
+  return { unread, flagged: Math.max(0, total - unread) }
+}
+
+/**
+ * What the totals do with those receipts, in one true sentence. It used to
+ * say they were "flagged in the list, not counted as zero" while the list
+ * showed only a count and every one of them added nothing to the month.
+ */
+export function reviewSentence(s: SpendSummary): string | null {
+  const { unread, flagged } = reviewCounts(s)
+  if (!unread && !flagged) return null
+  const parts: string[] = []
+  if (unread) {
+    parts.push(`${unread} receipt${unread === 1 ? '' : 's'} could not be read, so the totals leave ${unread === 1 ? 'it' : 'them'} out.`)
+  }
+  if (flagged) {
+    parts.push(`${flagged} ${unread ? 'more ' : ''}receipt${flagged === 1 ? ' is' : 's are'} counted but need${flagged === 1 ? 's' : ''} a check.`)
+  }
+  return parts.join(' ')
+}
+
 export type CycleState = 'within' | 'over_prepaid' | 'near_trigger' | 'charging_early' | 'unknown'
 
 /** A plan's prepaid allowance and where this billing cycle sits inside it. */
@@ -82,7 +122,13 @@ export interface SpendSummary {
     low_names: string[]
   }
   renewals_due: Array<{ key: string; name: string; amount: number; currency: string; on: string }>
+  /** Receipts in the window that need a look. */
   needs_review: number
+  /** Of those, how many no total includes (no amount could be read). Absent on older payloads. */
+  needs_review_unread?: number
+  /** The receipts themselves, newest first. Absent on older payloads. */
+  review?: SpendReviewItem[]
+  /** This month on the usage meter (meter_daily). */
   meter: { usd_mtd: number; calls_mtd: number } | null
   spenders: {
     since: string

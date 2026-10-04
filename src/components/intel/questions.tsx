@@ -3,7 +3,7 @@ import { ChevronRight } from '@/lib/icons'
 import { Sparkline } from '../shared/Sparkline'
 import { LastUpdated } from '../shared/LastUpdated'
 import { useHaptics } from '../../hooks/useHaptics'
-import { useSpend, usageLine, worstCycle, cycleLine, type SpendServiceRow, type SpendUnit } from '../../hooks/useSpend'
+import { useSpend, usageLine, worstCycle, cycleLine, reviewSentence, type SpendServiceRow, type SpendUnit } from '../../hooks/useSpend'
 import { useRevenue, formatCommittedMrr } from '../../hooks/useRevenue'
 import { useFleetFunnel, appHealth, appDisplayLabel, HEALTH_DOT, HEALTH_LABEL } from '../../hooks/useFleetFunnel'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
@@ -242,7 +242,7 @@ export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => v
 
       {spend.needs_review > 0 && (
         <p className="text-label text-ink-faint" data-testid="spend-review-line">
-          {spend.needs_review} receipt{spend.needs_review === 1 ? '' : 's'} could not be read. They are flagged in the list, not counted as zero.
+          {reviewSentence(spend)} Each one is listed in the full view below.
         </p>
       )}
       <DoorRow onClick={onOpenServices} testId="spend-panel-open">
