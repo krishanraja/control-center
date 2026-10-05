@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import type { ProductIcp } from '../../src/lib/icp.js'
 import { notifyOps } from '../_alert.js'
 import { callClaude, robustJson, VOICE_GUARDRAILS } from '../_content.js'
 import { mondayOf } from '../_growth.js'
@@ -45,6 +46,17 @@ import { GROWTH_ORDER, PORTFOLIO, UNRANKED_GROWTH } from '../../src/lib/portfoli
 const PRODUCTS = GROWTH_ORDER as readonly ProductSlug[]
 type ProductSlug = 'heartside' | 'full-time' | 'legibility' | 'ctrl' | 'pulse' | 'mindmake' | 'circle'
 
+/**
+ * The Growth product slug to venture_registry.slug, which is how `product_icp`
+ * is keyed. src/lib/portfolio.ts already records both spellings on one row, so
+ * this reads that rather than being a fourth slug map.
+ */
+function ventureOf(growthSlug: string): string {
+  return PORTFOLIO.find(p => p.growthSlug === growthSlug)?.venture
+    ?? UNRANKED_GROWTH.find(p => p.growthSlug === growthSlug)?.venture
+    ?? growthSlug
+}
+
 // customers.product is an enum with its own historical naming.
 const CUSTOMER_PRODUCTS: Record<string, string[]> = Object.fromEntries([
   ...PORTFOLIO.map(p => [p.growthSlug, p.customerProduct ? [p.customerProduct] : []] as const),
@@ -73,6 +85,21 @@ interface Evidence {
   product_slug: ProductSlug
   week_start: string
   unknowns: string[]
+  /**
+   * Who this product is for, from `product_icp` (Growth > Buyers). Until this
+   * existed the review judged every channel without ever being told who it was
+   * trying to reach, so its suggestions were about channels rather than about
+   * buyers. `defined: false` is said out loud in the prompt and listed as an
+   * unknown, never filled in from another product.
+   */
+  buyer: {
+    defined: boolean
+    who: string | null
+    titles: string[]
+    company_shape: string | null
+    buying_trigger: string | null
+    who_not: string | null
+  }
   touchpoints: {
     total: number
     by_status: Record<string, number>
@@ -204,6 +231,8 @@ function weekEvents(rows: WeeklyRow[], app: string, week: string): Record<string
 async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
   weekly: WeeklyRow[]; health: HealthRow[]; funnel: FunnelRow[]; revenue: RevenueRow[]
   touchpoints: Array<Record<string, any>>; probes: Array<Record<string, any>>; customers: Array<Record<string, any>>
+  /** The one ICP per venture, keyed on venture_registry.slug. */
+  icps: Map<string, ProductIcp>
   digests: Array<Record<string, any>>
   web: Array<Record<string, any>> | null
 }): Promise<Evidence> {
@@ -357,10 +386,23 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
 
   const rRows = app ? ctx.revenue.filter(r => r.app === app) : []
 
+  const icp = ctx.icps.get(ventureOf(slug)) ?? null
+  if (!icp?.defined) {
+    unknowns.push(`The buyer for ${slug} is UNKNOWN: no ICP is defined for it on Growth > Buyers, so judge the channels on their numbers alone and do not assume who they reach. Another product's buyer is not a substitute.`)
+  }
+
   return {
     product_slug: slug,
     week_start: weekStart,
     unknowns,
+    buyer: {
+      defined: !!icp?.defined,
+      who: icp?.who ?? null,
+      titles: icp?.buyer_titles ?? [],
+      company_shape: icp?.company_shape ?? null,
+      buying_trigger: icp?.buying_trigger ?? null,
+      who_not: icp?.who_not ?? null,
+    },
     touchpoints: {
       total: tps.length,
       by_status: byStatus,
@@ -450,6 +492,12 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'ABSOLUTE RULE: the evidence carries an `unknowns` array. Each entry there MUST be reflected in your findings, stated as unknown. Never convert an unknown into a zero. "No emitter wired" is not "no traffic".',
     'Tone: blunt, specific, structural. Name the constraint, not the mood. No hedging, no encouragement, no summary of the summary.',
     'touchpoints.known_structure carries what the map already knows about each channel: the diagnosed blocker, the flagged assumption, what shipped and when. Use it. If a structural blocker is recorded there, name it, because a metric that cannot move until that blocker clears is not a performance problem.',
+    // Said both ways on purpose. With a buyer the review can judge a channel on
+    // whether that buyer is in it. Without one it must say so, because the
+    // alternative is a confident judgement about reaching people nobody named.
+    e.buyer.defined
+      ? `buyer carries who this product is for: ${e.buyer.who}. Titles: ${e.buyer.titles.join(', ')}.${e.buyer.buying_trigger ? ` They buy when: ${e.buyer.buying_trigger}` : ''}${e.buyer.who_not ? ` Not for: ${e.buyer.who_not}` : ''} Judge every channel on whether that person is actually in it, and say so when they are not.`
+      : 'buyer.defined is false: NO ICP is defined for this product. Do not guess who the buyer is and do not borrow the buyer of another product. Judge the channels on their numbers alone, and name the missing ICP as the first thing to fix.',
     'evidence.web is Google Analytics for the product\'s own site. When attribution has no emitter, use its visits as traffic and say how it was measured; when web.status is missing or its health is not ok or quiet, traffic stays unknown.',
     'evidence.aeo carries this week\'s answer-engine research: the strongest signal, the call themes, the biggest competitor gap and the top article recommendations with their target queries. When status is present, at least one finding or double_down must address it (name the target query to write for, or the domain to displace). When status is missing, say the research is unknown this week; never read a missing digest as no demand.',
     VOICE_GUARDRAILS,
@@ -522,7 +570,7 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
   const geoSince = new Date(Date.now() - GEO_WINDOW_DAYS * 86_400_000).toISOString()
   const weeklySince = new Date(Date.parse(weekStart) - WEEKS_OF_HISTORY * 7 * 86_400_000).toISOString().slice(0, 10)
 
-  const [weekly, health, funnel, revenue, touchpoints, probes, customers, existing] = await Promise.all([
+  const [weekly, health, funnel, revenue, touchpoints, probes, customers, existing, icps] = await Promise.all([
     supabase.from('growth_attribution_weekly').select('*').gte('week_start', weeklySince),
     supabase.from('attribution_app_health').select('*'),
     supabase.from('fleet_funnel_by_campaign').select('*'),
@@ -531,8 +579,9 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     supabase.from('growth_geo_probes').select('*').eq('subject_kind', 'venture').gte('run_at', geoSince).limit(500),
     supabase.from('customers').select('product, kind, mrr_usd, churned_at, became_paid_at, attribution_channel').limit(5000),
     supabase.from('growth_council_reviews').select('id, product_slug, krish_decision').eq('week_start', weekStart),
+    supabase.from('product_icp').select('*'),
   ])
-  for (const r of [weekly, health, funnel, revenue, touchpoints, probes, customers, existing]) {
+  for (const r of [weekly, health, funnel, revenue, touchpoints, probes, customers, existing, icps]) {
     if (r.error) throw new Error(r.error.message)
   }
   // The week's AEO digests, keyed back to the product slug through the
@@ -568,6 +617,7 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     funnel: (funnel.data || []) as FunnelRow[],
     revenue: (revenue.data || []) as RevenueRow[],
     touchpoints: (touchpoints.data || []) as Array<Record<string, any>>,
+    icps: new Map(((icps.data || []) as ProductIcp[]).map(r => [r.venture, r])),
     probes: (probes.data || []) as Array<Record<string, any>>,
     customers: (customers.data || []) as Array<Record<string, any>>,
     digests,

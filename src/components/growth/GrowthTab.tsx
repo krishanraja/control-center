@@ -8,9 +8,11 @@
  *   week     every move in order, Sunday's reviews, this week's clips, past weeks
  *   numbers  AI answers, site visits, Google, clips, and the one spend line
  *   places   where buyers already go, what is waiting on an answer, the accounts
+ *   buyers   who each product is for, which the agents read (?section=icp too)
  *
  * The old ?section= ids still land somewhere sensible: council and work open
- * the week, signals and governance open the numbers, map opens the places.
+ * the week, signals and governance open the numbers, map opens the places,
+ * and icp opens the buyers.
  * `#/acquisition` resolves here too (App.tsx) and lands on the numbers, where
  * the spend line now lives. Switcher test ids are growth-section-<id> and the
  * one scroller is growth-panel-<id>.
@@ -21,6 +23,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SurfaceHeader } from '../shared/SurfaceHeader'
+import { resolveGrowthSection, type GrowthSectionId } from '../../lib/growthSections'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
 import { SkeletonList } from '../shared/Skeleton'
 import { BOTTOM_NAV_PAD } from '../mobile/primitives'
@@ -31,20 +34,13 @@ import { NextView, type Layout } from './NextView'
 import { WeekView } from './WeekView'
 import { NumbersView } from './NumbersView'
 import { PlacesView } from './PlacesView'
+import { BuyersView } from './BuyersView'
 import { SiteCheck } from './SiteCheck'
 import { aiSummary, summaryLine, visitsSummary } from './numbers'
 import type { NumberAnchor } from './NumbersStrip'
 
-export type GrowthSectionId = 'next' | 'week' | 'numbers' | 'places'
-
-const ALIASES: Record<string, GrowthSectionId> = {
-  council: 'week', work: 'week', signals: 'numbers', governance: 'numbers', map: 'places',
-}
-
-export function resolveGrowthSection(raw: string | null | undefined): GrowthSectionId {
-  if (raw === 'next' || raw === 'week' || raw === 'numbers' || raw === 'places') return raw
-  return (raw && ALIASES[raw]) || 'next'
-}
+export type { GrowthSectionId } from '../../lib/growthSections'
+export { resolveGrowthSection, GROWTH_SECTION_IDS } from '../../lib/growthSections'
 
 export function GrowthTab({ variant, initialSection }: {
   variant: 'desktop' | 'mobile'
@@ -117,6 +113,7 @@ export function GrowthTab({ variant, initialSection }: {
     },
     { id: 'numbers', label: 'Numbers' },
     { id: 'places', label: 'Places' },
+    { id: 'buyers', label: 'Buyers' },
   ]
 
   const nav = (
@@ -153,16 +150,21 @@ export function GrowthTab({ variant, initialSection }: {
       <div
         ref={scroller}
         data-testid={`growth-panel-${section}`}
-        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${mobile ? `${BOTTOM_NAV_PAD} -mx-5 px-5` : '-mx-2 px-2 pb-6'}`}
+        // The desk reserves the capture pill gutter inside the scroller, the
+        // way src/index.css says a scrolling surface should, so the scrollport
+        // keeps the full height of the frame. --capture-gutter is 0px under
+        // 900px, so the phone pays nothing for it.
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${mobile ? `${BOTTOM_NAV_PAD} -mx-5 px-5` : '-mx-2 px-2 pb-[calc(1.5rem+var(--capture-gutter))]'}`}
       >
         {section === 'next' && (
           <NextView m={m} layout={layout} mobile={mobile} summary={mobile ? summary : null} onSection={go} onLink={onLink} onNumber={openNumber} />
         )}
-        {section !== 'next' && m.loading && <div data-testid="growth-loading" aria-busy="true"><SkeletonList rows={4} /></div>}
+        {section !== 'next' && section !== 'buyers' && m.loading && <div data-testid="growth-loading" aria-busy="true"><SkeletonList rows={4} /></div>}
         {section === 'week' && !m.loading && (
           <WeekView m={m} mobile={mobile} wide={desk} onDo={i => { m.setCursor(i); go('next') }} />
         )}
         {section === 'numbers' && !m.loading && <NumbersView m={m} mobile={mobile} layout={layout} anchor={anchor} />}
+        {section === 'buyers' && <BuyersView mobile={mobile} wide={desk} />}
         {section === 'places' && !m.loading && <PlacesView m={m} mobile={mobile} wide={desk} compose={placeCompose} onComposed={() => setPlaceCompose(false)} />}
       </div>
     </div>

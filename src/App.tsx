@@ -16,6 +16,7 @@ import { FocusRitual } from './components/home/FocusRitual'
 import { StrategistSheet } from './components/strategist/StrategistSheet'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
+import { GROWTH_SECTION_IDS } from './lib/growthSections'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { videoEngineEnabled } from './lib/videoStudio'
@@ -51,6 +52,8 @@ const ContentV2Tab = lazy(() => loadContentV2Tab().then(m => ({ default: m.Conte
 // (the default), the week, the numbers (AI answers, site visits, Google, clips
 // and the one spend line) and the places buyers already go. Merged from the
 // old 'acquisition' + 'growth' pair on 2026-08-04.
+// The one list of Growth views, in its own module so the shell can read it
+// without pulling in the lazy Growth chunk.
 const loadGrowthTab = () => import('./components/growth/GrowthTab')
 const GrowthTab = lazy(() => loadGrowthTab().then(m => ({ default: m.GrowthTab })))
 // Simplified-IA wrapper tabs (VITE_IA_V3_ENABLED): People = Pipeline + Network +
@@ -232,8 +235,9 @@ export default function App() {
   // 2026-10-04, which GrowthTab maps onto the views (kept inline here so the
   // shell does not pull the lazy Growth chunk in). The old #/acquisition and
   // ?lane= links land on Numbers, where the spend line now lives.
-  const GROWTH_SECTIONS = ['next', 'week', 'numbers', 'places', 'council', 'work', 'signals', 'map', 'governance'] as const
-  const askedSection = GROWTH_SECTIONS.find(s => s === route.params.section)
+  // One list, in GrowthTab. The copy that used to sit here did not grow when
+  // the Buyers view arrived, so its deep link landed on Next move instead.
+  const askedSection = GROWTH_SECTION_IDS.find(s => s === route.params.section)
   const growthEntrySection = askedSection || (cameFromAcquisition || route.params.lane ? 'numbers' : undefined)
 
   return (
@@ -346,9 +350,12 @@ export default function App() {
               // second scroll container.
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div></DeferredFallback>}>
                 <ErrorBoundary label="Growth">
-                  {/* Same gutter as Home: the last row of a view sits
-                      bottom-right, under the pills otherwise. */}
-                  <div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col">
+                  {/* The pill gutter is reserved INSIDE Growth's own
+                      scroller, not here. Taking it off the frame ended that
+                      scroller 96px above the bottom of the screen, which is
+                      the same cut-off Krish reported on Content and which
+                      `the view obeys the frame` now measures on both. */}
+                  <div className="h-full overflow-hidden px-6 pt-6 pb-6 flex flex-col">
                     <GrowthTab variant="desktop" initialSection={growthEntrySection} />
                   </div>
                 </ErrorBoundary>

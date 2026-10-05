@@ -1,5 +1,18 @@
 # mind/make OS — Ideal Customer Profile (shareable)
 
+> **Buyer titles moved to Supabase on 2026-10-05.** `product_icp` (migration
+> `20261005140000`) is the one place an ICP is defined, one row per
+> `venture_registry.slug`, edited on Control Center > Growth > Buyers. Krish:
+> "Can you add in Control Center somewhere I can define ICP for each and it gets
+> saved and acted on by the system durably?"
+>
+> This file and `docs/icp.json` stay as the LANE rubric for scoring an inbound
+> lead (`api/_icpScore.ts`, `scripts/apollo/burn.ts`). They are not what the
+> prospecting run reads any more. Maya's B2B lane, the Sunday growth review, the
+> acquisition direction spine and tab grounding all read `product_icp`, and a
+> product with no row there is skipped with the reason stated rather than
+> prospected against somebody else's buyer.
+
 > **6 September 2026, ADR-016.** The first lane is now `pilot_face`: the face from
 > the Master Ikigai v4. A senior leader (CEO, founder, MD, CCO, CRO, GM) at a PE or
 > VC backed media, adtech, publishing or data business Krish already knows, quietly
