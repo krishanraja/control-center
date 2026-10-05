@@ -66,8 +66,12 @@ test('buildBoard: an unwired cell never prints a zero, a wired empty one says so
     signals,
     reviews: [{ product_slug: 'ctrl', week_start: '2026-09-28', double_down: ['a', 'b'] }],
     customers: [
-      { product: 'mm_ctrl', kind: 'paid', mrr_usd: 6.75, churned_at: null },
-      { product: 'mm_ctrl', kind: 'churned', mrr_usd: 8, churned_at: '2026-07-01' },
+      // These were `mm_ctrl` until 2026-10-05. They are the Substack's founding
+      // members (metadata.substack=yes on every one of their prices), so they
+      // belong to the publication. See the migration
+      // 20261005140000_substack_revenue_is_not_ctrl.sql.
+      { product: 'publication', kind: 'paid', mrr_usd: 6.75, churned_at: null },
+      { product: 'publication', kind: 'churned', mrr_usd: 8, churned_at: '2026-07-01' },
       { product: 'fractionl_pulse', kind: 'waitlist' },
     ],
     audience: { ctrl: 103 },
@@ -81,14 +85,16 @@ test('buildBoard: an unwired cell never prints a zero, a wired empty one says so
   }
   assert.equal(by.heartside.cells.revenue.state, 'unwired')
   assert.equal(by.heartside.mrrUsd, null, 'no revenue figure, not $0')
-  assert.equal(by.full_time.cells.revenue.state, 'unwired')
+  // Full Time joined the daily pull on 2026-10-05, when one organisation key
+  // replaced the two per-account keys. Its zero is now a MEASURED zero, which
+  // is a different claim from "not wired" and has to read differently.
+  assert.equal(by.full_time.cells.revenue.state, 'zero')
   assert.equal(by.full_time.cells.aeo.value, '0 of 1')
   assert.equal(by.full_time.cells.aeo.state, 'zero')
 
   assert.deepEqual([by.mm_ctrl.cells.aeo.state, by.mm_ctrl.cells.aeo.value], ['live', '1 of 1'])
   assert.equal(by.mm_ctrl.cells.signups.value, '103')
-  assert.equal(by.mm_ctrl.cells.revenue.value, '$6.75/mo')
-  assert.equal(by.mm_ctrl.paid, 1, 'a churned row is not paying')
+  assert.equal(by.mm_ctrl.paid, 0, 'CTRL has never had a paying customer')
   assert.equal(by.mm_ctrl.cells.suggestions.value, '2 moves')
   assert.equal(by.mm_ctrl.cells.analytics.value, '1 user')
   assert.equal(by.fractionl_pulse.cells.signups.value, '1')
