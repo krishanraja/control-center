@@ -78,6 +78,7 @@
 import { callClaude, robustJson } from './_content.js'
 import { missionBlock } from './_mission.js'
 import { SYNTHESIS_MODEL } from './_models.js'
+import { PORTFOLIO } from '../src/lib/portfolio.js'
 
 /** Bumped when any weight or floor below changes, and written to
  *  visibility_targets.score_version so a corpus judged under two regimes is
@@ -380,6 +381,25 @@ export const PUBLIC_SAFE_NOTE = [
   'thirty day shape, and nothing further about commercials.',
 ].join('\n')
 
+/**
+ * The priority ladder, read from the ONE list rather than restated here.
+ *
+ * src/lib/portfolio.ts is the single ranking that Growth, Subscriptions and the
+ * weekly growth review all read (PR #387). A second copy of "Heartside and Full
+ * Time first" in this prompt would be a fourth place to forget to update, which
+ * is exactly the defect that list was created to end. The serverless tree
+ * already imports it this way, like ventureOptions.ts and webProperties.ts.
+ */
+function ladderLines(): string[] {
+  const byTier = new Map<number, string[]>()
+  for (const p of PORTFOLIO) {
+    const t = byTier.get(p.tier) || []
+    t.push(p.label)
+    byTier.set(p.tier, t)
+  }
+  return [...byTier.keys()].sort().map(t => `${t}. ${(byTier.get(t) || []).join(' and ')}.`)
+}
+
 const SYSTEM = [
   missionBlock(),
   '',
@@ -399,14 +419,14 @@ const SYSTEM = [
   'Poor fit, explicitly: someone who cannot move the decision; an audience that wants training',
   'or certification; an audience that wants a list of task automations; production IT work.',
   '',
-  'WHAT HE IS WORKING ON NOW, in priority order (2026-10-05)',
-  '1. Heartside and Full Time. Heartside is a Shopify store selling gifts written by your dog,',
-  '   opening 2026-10-20. It is RETAIL, not an AI product. Never pitch it as AI strategy; a',
-  '   stage that only fits Heartside is a commerce or consumer-brand stage, judged as one.',
-  '2. Legibility. 3. CTRL and Pulse. Mindmake the practice and its publication run alongside.',
-  'Circle is dormant. Retired, never mention as live: AdFixus, Meliora, Techonomic, Amperity,',
-  'Builder Economy, Mindmaker Live, OnAlert, gutted, merciless, Plinth as a name, the old',
-  'offer ladder.',
+  'WHAT HE IS WORKING ON NOW, in priority order',
+  ...ladderLines(),
+  'Heartside is a Shopify store selling gifts written by your dog. It is RETAIL, not an AI',
+  'product, and a stage that only fits Heartside is a commerce or consumer-brand stage judged',
+  'as one. Never pitch it as AI strategy.',
+  'Mindmake the practice and its publication run alongside the ladder. Circle is dormant.',
+  'Retired, never mention as live: AdFixus, Meliora, Techonomic, Amperity, Builder Economy,',
+  'Mindmaker Live, OnAlert, gutted, merciless, Plinth as a name, the old offer ladder.',
   '',
   'YOUR JOB',
   'You are judging whether a stage is worth Krish standing on it. You are NOT judging how',
