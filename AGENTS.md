@@ -185,7 +185,8 @@ builds, tests or deploys it.
   columns and its 620px spine had been shipped and reshaped twice without one
   test ever rendering them. Two notes if you touch it. It probes
   `[data-testid="focus-tab"]`, not `main`: Focus is a **scroller**, not a stage
-  (its wrapper in `App.tsx` is `overflow-y-auto` on purpose), so pointing the
+  (its wrapper in `App.tsx` is an `AppFrame` whose body, `focus-scroll`, is the
+  scroller and carries the pill gutter since 2026-10-05), so pointing the
   overflow probe at `main` flags the page's legitimate scroller. And each
   assertion was mutation-tested rather than trusted for passing on the first
   run — dropping `items-start` fails exactly the neighbour-inflation test, and
@@ -213,6 +214,15 @@ builds, tests or deploys it.
   due test. And a probe taken between a change and the frame that refits it
   measures a layout nobody sees: `homeScrolls()` and `landsOn()` wait for two
   still frames (`settled()`).
+- **`e2e/frame-reach-desk.spec.ts` and `e2e/surface-moves-desk.spec.ts`**
+  (added 2026-10-05). The first walks every scroller on Customers, People and
+  OS, plus Focus, with `assertBodyReachesFrame`: the pill gutter lives inside
+  each scroller, never off the frame's height. The second proves each of those
+  surfaces leads with its one move (`src/lib/surfaceMoves.ts`, test ids
+  `<surface>-move`), above its board, with the evidence one press away.
+  `e2e/fixtures/audit.ts` `WORKFLOW_RUNS` now carries the columns Flows and
+  Org actually read (`workflow_id`, `workflow_name`, `run_at`, `agent_id`);
+  without them Flows measured one nameless row that had never run.
 - **`e2e/composer.spec.ts` covers the content composer** (the brief opening in
   it, the rail, and the full edit palette). There was no content coverage at all
   before it, which is part of how the brief surface came to have four one-click

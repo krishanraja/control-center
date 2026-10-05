@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader,
-  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+  HeaderSubtitleSkeleton, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
 import { FleetHealthStrip } from '../flows/FleetHealthStrip'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
+import { humanize } from '../shared/tokens'
+import { flowsMove } from '../../lib/surfaceMoves'
 
 interface Run {
   id: string
@@ -87,7 +90,13 @@ export function MobileFlows() {
   }).length
 
   const heroProposal = proposals[0] || null
-  const heroError = errors[0] || null
+  const failingNow = grouped.filter(g => g.status === 'error').sort((a, b) => b.errorCount - a.errorCount)
+  const heroError = failingNow[0] || null
+  const move = flowsMove({
+    proposals: proposals.map(p => ({ id: p.id, title: p.title, agent: p.agent_id ?? null })),
+    failing: failingNow.map(g => ({ id: g.workflow_id, name: humanize(g.workflow_name) || g.workflow_name || 'A workflow', errors: g.errorCount, runs: g.runCount })),
+    workflows: grouped.length,
+  })
 
   const open = openProposalId ? proposals.find(p => p.id === openProposalId) ?? null : null
   const openFlow = openFlowId ? grouped.find(g => g.workflow_id === openFlowId) ?? null : null
@@ -127,41 +136,27 @@ export function MobileFlows() {
     >
       {/* n8n's own view of the fleet, above the self-reported runs. */}
       <FleetHealthStrip />
-      {heroProposal ? (
-        <HeroCard
-          eyebrow="Proposal · waiting for you"
-          accent="amber"
-          title={heroProposal.title}
-          detail={heroProposal.description}
-          meta={heroProposal.proposal_type || 'workflow change'}
-          cta="Decide"
-          onClick={() => { h.select(); setOpenProposalId(heroProposal.id) }}
+      {/* The same one move as the desk (src/lib/surfaceMoves.ts `flowsMove`),
+          including the honest line when nothing waits, which the two hero
+          cards it replaced simply left out. */}
+      {!loading && (
+        <DoThisNextHero
+          testId="flows-move"
+          stackAction
+          narrow
+          descriptor={{ headline: move.headline, sub: move.sub, actionLabel: move.clear ? undefined : 'Open', tone: move.tone, clear: move.clear }}
+          onAct={heroProposal ? () => { h.select(); setOpenProposalId(heroProposal.id) }
+            : heroError ? () => { h.select(); setOpenFlowId(heroError.workflow_id) } : undefined}
+          why={move.why}
         />
-      ) : heroError ? (
-        <HeroCard
-          eyebrow="Top error"
-          accent="red"
-          title={heroError.workflow_name}
-          detail={`${heroError.errorCount} of last ${heroError.runCount} runs failed.`}
-          meta={heroError.agent_id ? `Agent: ${heroError.agent_id}` : undefined}
-          cta="Open"
-          onClick={() => { h.select(); setOpenFlowId(heroError.workflow_id) }}
-        />
-      ) : null}
+      )}
 
-      <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Workflows" value={grouped.length} color="text-ink" />
-        <StatPill
-          label="Errors 24h"
-          value={errorRun24h}
-          color={errorRun24h > 0 ? 'text-red-300' : 'text-emerald-300'}
-        />
-        <StatPill
-          label="Proposals"
-          value={proposals.length}
-          color={proposals.length > 0 ? 'text-amber-300' : 'text-ink-faint'}
-        />
-      </div>
+      {/* The counts live in the header line and the move. Three pills
+          repeated them at a size that broke "Workflows" over two lines on a
+          390 phone and printed a large 0 for no proposals. */}
+      {errorRun24h > 0 && (
+        <p className="flex-shrink-0 px-1 text-label text-ink-muted">{errorRun24h} failed {errorRun24h === 1 ? 'run' : 'runs'} in the last 24 hours.</p>
+      )}
 
       {grouped.length === 0 && !loading && <EmptyState label="No workflow activity yet." />}
 
@@ -185,8 +180,8 @@ export function MobileFlows() {
             <FeedRow
               key={g.workflow_id}
               dotColor="bg-red-400"
-              title={g.workflow_name}
-              detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
+              title={humanize(g.workflow_name) || g.workflow_name}
+              detail={g.agent_id ? `Owner: ${humanize(g.agent_id)}` : undefined}
               trailing={
                 <span className="text-title font-bold tabular-nums text-red-300">
                   {g.errorCount}/{g.runCount}
@@ -204,8 +199,8 @@ export function MobileFlows() {
             <FeedRow
               key={g.workflow_id}
               dotColor="bg-emerald-400"
-              title={g.workflow_name}
-              detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
+              title={humanize(g.workflow_name) || g.workflow_name}
+              detail={g.agent_id ? `Owner: ${humanize(g.agent_id)}` : undefined}
               trailing={
                 <span className="text-ui text-ink-faint tabular-nums">{humanAgo(g.lastRun)}</span>
               }

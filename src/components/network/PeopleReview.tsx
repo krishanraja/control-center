@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { GitMerge, Linkedin, ExternalLink } from '@/lib/icons'
+import { GitMerge, Linkedin, ExternalLink, Users } from '@/lib/icons'
 import { SegmentedNav } from '../shared/SegmentedNav'
 import { SlideOver } from '../shared/SlideOver'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { Eyebrow } from '../shared/Eyebrow'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
 import { Working } from '../shared/Working'
 import { Tap } from '../pilot/controls'
 import { useToast } from '../shared/Toast'
@@ -63,7 +64,14 @@ type Item =
 
 interface Counts { contact_merge: number; contact_link: number }
 
-export function PeopleReview({ narrow, className }: { narrow: boolean; className?: string }) {
+/**
+ * `hero`: the entry point is the Network lane's one move (DoThisNextHero), the
+ * way Growth leads with its move. These are the only questions on the lane
+ * that nobody but Krish can answer, so when any wait they come first; when
+ * none do, nothing renders and the search is the lane. The plain `button` is
+ * the old utility-row entry, kept for any other host.
+ */
+export function PeopleReview({ narrow, className, variant = 'button' }: { narrow: boolean; className?: string; variant?: 'button' | 'hero' }) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [surface, setSurface] = useState<Surface>('contact_merge')
@@ -147,16 +155,46 @@ export function PeopleReview({ narrow, className }: { narrow: boolean; className
     </div>
   )
 
+  const label = `${total.toLocaleString()} ${total === 1 ? 'person' : 'people'} to check`
+  const parts = [
+    counts.contact_merge ? `${counts.contact_merge.toLocaleString()} may be one person recorded twice` : null,
+    counts.contact_link ? `${counts.contact_link.toLocaleString()} need the right LinkedIn profile` : null,
+  ].filter(Boolean)
   return (
     <div className={className}>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        data-testid="people-review-open"
-        className="tap-44 min-h-[36px] rounded-lg border border-amber-400/30 bg-amber-500/[0.06] px-3 text-label font-medium text-amber-100 transition-colors hover:bg-amber-500/[0.12]"
-      >
-        {total.toLocaleString()} {total === 1 ? 'person' : 'people'} to check
-      </button>
+      {variant === 'hero' ? (
+        <DoThisNextHero
+          testId="network-move"
+          stackAction={narrow}
+          narrow={narrow}
+          descriptor={{
+            headline: 'Tell the network who is who',
+            sub: `${parts.join(', and ')}.`,
+            icon: <Users size={16} className="text-amber-300" />,
+            tone: 'amber',
+          }}
+          why="The merge pass joined only records that share a LinkedIn profile or a work address, and the import wrote no profile it could not confirm. What it could not prove waits here, most valuable person first. Nothing merges or links until you say so, and a no is remembered so the same question never comes back."
+          actionSlot={
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              data-testid="people-review-open"
+              className="tap-44 flex-shrink-0 min-h-[44px] rounded-xl border border-amber-400/40 bg-amber-500/20 px-4 text-body font-semibold text-amber-100 transition-colors hover:bg-amber-500/30"
+            >
+              {label}
+            </button>
+          }
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          data-testid="people-review-open"
+          className="tap-44 min-h-[36px] rounded-lg border border-amber-400/30 bg-amber-500/[0.06] px-3 text-label font-medium text-amber-100 transition-colors hover:bg-amber-500/[0.12]"
+        >
+          {label}
+        </button>
+      )}
       {narrow ? (
         <BottomSheet open={open} onClose={() => setOpen(false)} ariaLabel="People to check">
           <div className="px-4 pb-6 pt-2">{body}</div>

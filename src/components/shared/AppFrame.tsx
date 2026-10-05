@@ -1,5 +1,14 @@
 import React from 'react'
 
+/**
+ * The pill clearance as a class, for a surface whose scroll does not live in
+ * AppFrame's one body: a split pane (OS > Org scrolls its roster and its detail
+ * side by side) or a bounded scroller that sits under other chrome (OS > Intel).
+ * Put it on EACH scroller that reaches the bottom of the frame, never on the
+ * frame. It is the same value `capturePills` applies, so there is one number.
+ */
+export const CAPTURE_PILLS_PAD = 'pb-[var(--capture-gutter)]'
+
 interface Props {
   /** Fixed, non-scrolling region pinned to the top of the frame. */
   header?: React.ReactNode
@@ -69,7 +78,7 @@ export function AppFrame({
   // The pill clearance rides with the content, so the scrollport keeps the full
   // height of the frame. `--capture-gutter` is 0px under 900px, so a phone pays
   // nothing for this.
-  const pills = capturePills && scroll !== 'none' ? 'pb-[var(--capture-gutter)]' : ''
+  const pills = capturePills && scroll !== 'none' ? CAPTURE_PILLS_PAD : ''
   return (
     <div className={`flex flex-col h-full max-h-[100dvh] min-h-0 ${className}`}>
       {header && <div className="flex-shrink-0">{header}</div>}

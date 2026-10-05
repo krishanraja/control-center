@@ -527,6 +527,17 @@ Four rules came out of measuring all fifteen of them.
   them together in one line. The same rule applies to prose: Advisory rendered
   three different sentences about one nothing inside 90 vertical pixels.
 
+**A scroller reaches the bottom of the frame (2026-10-05).** The ⌘I / ⌘/
+pill gutter is reserved INSIDE each scroller (`AppFrame` `capturePills`, or
+`CAPTURE_PILLS_PAD` on each column of a split pane), never by shortening the
+frame. Shortened, every scroller on Customers, People and OS ended at 804 of a
+900px window and sliced its last row; Focus had no scroller and clipped. The
+shared desk wrapper in `App.tsx` now keeps only its own 24px, and
+`e2e/frame-reach-desk.spec.ts` walks every one of those scrollers with
+`assertBodyReachesFrame` (proved able to fail: with the old wrapper all nine
+fail at 96px). People > Visibility still takes the old clearance from
+`PeopleTab` until its own AppFrame takes `capturePills`.
+
 Both gates run in CI: `e2e/desk-noscroll-desk.spec.ts` at 1440 and 1920,
 `e2e/phone-noscroll-phone.spec.ts` at 390x844 and 360x640. 360x640 is the size
 that finds things; a list that stops at 390 has never seen a short Android with
@@ -852,6 +863,54 @@ exactly as before, because each extension is off by default.
   wrapped row keeps a 44px pitch.
 - `SegmentedNav`: every segment carries `.tap-44`, so the 40px pills are
   hit-tested at 44.
+
+### Growth's standard carried to Subscriptions, People and OS (2026-10-05)
+
+Krish: "use the current Growth tab as the gold standard for UI and how
+data>insight>actions are made crystal clear and actionable to me, and make sure
+the rest of the tabs are at that standard if not higher". Each surface now
+leads with ONE move, decided by rules in `src/lib/surfaceMoves.ts` (tested
+without a browser in `tests/api/surfaceMoves.test.ts`) and rendered through
+`DoThisNextHero`: Subscriptions, Network, Hunt, Advisory, Org, Flows and
+Systems, desk and phone alike. The order each one follows is the product
+decision, so it is written down there, not spread across components.
+
+Four primitives grew a prop; every existing call site renders as before.
+
+- `DoThisNextHero` `why` (+ `whyLabel`), bar layout: Growth's `Why`, for a bar.
+  A quiet "Why this?" under the supporting line opens the evidence in place,
+  under the instruction it explains, and closes again. Open on what the
+  evidence MEANS, never the raw rows. A new headline starts closed.
+- `DoThisNextHero` `stackAction`, bar layout: the action drops under the
+  instruction, full width. Pass it with `narrow`: on a 390 phone a button or an
+  Approve / Reject pair beside the text left the headline one or two words wide.
+- `DoThisNextHero` `testId` now lands on the bar layout too (it was card only),
+  and the `why` toggle and body take `<testId>-why` / `<testId>-why-body`.
+- `AppFrame` exports `CAPTURE_PILLS_PAD`, the same clearance `capturePills`
+  applies, for a scroll that does not live in AppFrame's one body. `SplitPane`
+  takes `capturePills` and `testIdPrefix` and puts it on each column.
+- `WireNext` takes `title`, so a surface whose move already IS the first gap
+  can say "After that, in priority order" over the rest.
+
+The rules the moves follow:
+
+- **One move, above the board it was decided from.** Never a second hero:
+  phone Org used to stack "Most errors recently" under "Roster is tight", and
+  phone Systems called a board of unchecked services "All systems healthy".
+- **The number rides in the supporting line**, never the evidence. Pills that
+  repeated a header's count went (phone Flows broke "Workflows" over two lines
+  and printed a large 0 for no proposals).
+- **Nothing is said twice.** When the move says there is nothing to do, the
+  sections under it say nothing about the same nothing: Hunt drops its empty
+  headings, Advisory drops its empty box, Flows' proposals box becomes one
+  quiet line.
+- **No move is invented while the first read is in flight.** "Nothing needs
+  you" before the data arrives is a guess.
+- **A number read elsewhere on purpose is a link, not a gap.** A portfolio
+  product may carry `externalDashboard` (`src/lib/portfolio.ts`); its listed
+  metrics render as a link out in a new tab (state `external` in
+  `src/lib/portfolioBoard.ts`) and drop out of "Wire next". Heartside is read
+  in Shopify (ruling, Krish 2026-10-05): one-off orders, never MRR.
 
 Growth's small instruments (a ring, columns, a dot grid, share bars, score
 ticks, the week as segments) live in `src/components/growth/viz.tsx`, drawn in

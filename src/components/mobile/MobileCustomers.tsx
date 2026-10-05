@@ -9,6 +9,9 @@
  * Rebuilt 2026-10-05 with the desk (Krish: "10X better visually, and
  * guaranteed no scroll"). The roster, the council, the radar and the sources
  * sit behind "Subscribers" in one sheet instead of a scrolling column.
+ *
+ * Leads with the same one move as the desk (customers/SubscriptionsMoveHero).
+ * A check-in opens the customer's sheet, where Draft email already lives.
  */
 import React, { useMemo, useState } from 'react'
 import { Mic, Users } from '@/lib/icons'
@@ -32,6 +35,7 @@ import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { PortfolioList, PortfolioDetail } from '../portfolio/PortfolioBoard'
 import { useSubscriptionsModel, type SubscriptionsModel } from '../customers/useSubscriptionsModel'
 import { SubstackTile } from '../customers/MoneyTiles'
+import { SubscriptionsMoveHero } from '../customers/SubscriptionsMoveHero'
 
 function Band({ s }: { s: SubscriptionsModel }) {
   const r = s.revenue
@@ -41,11 +45,13 @@ function Band({ s }: { s: SubscriptionsModel }) {
       <span className="font-mono text-title font-semibold tabular-nums text-ink">{value}</span>
     </div>
   )
+  // Unread is said in words, never as a dash that reads like a figure.
+  const none = s.loading ? '…' : <span className="font-sans text-ui font-medium text-ink-faint">Not read</span>
   return (
     <div className="surface grid grid-cols-3 gap-2 rounded-2xl px-3 py-2.5" data-testid="subscriptions-band">
-      {cell('30 days', r ? <span className="money-text">{formatMrr(r.collected_30d_net_cents / 100)}</span> : '-', 'subscriptions-collected')}
-      {cell('MRR', r ? formatCommittedMrr(r) : '-', 'subscriptions-mrr')}
-      {cell('Paying', r ? r.active_subscriptions : '-', 'subscriptions-paying')}
+      {cell('30 days', r ? <span className="money-text">{formatMrr(r.collected_30d_net_cents / 100)}</span> : none, 'subscriptions-collected')}
+      {cell('MRR', r ? formatCommittedMrr(r) : none, 'subscriptions-mrr')}
+      {cell('Paying', r ? r.active_subscriptions : none, 'subscriptions-paying')}
     </div>
   )
 }
@@ -116,6 +122,7 @@ export function MobileCustomers() {
           clipping: the frame contract's backstop, not the layout. The tail
           clears the + button (about 148 screen px, 123 at the 1.2 zoom). */}
       <div className="-mx-5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom,0px)+128px)] scrollbar-hide" data-testid="subscriptions-stage">
+        <SubscriptionsMoveHero s={s} narrow onOpenProduct={v => { h.select(); setProduct(v) }} onOpenCustomer={id => { h.select(); setOpenId(id) }} />
         <Band s={s} />
         <SubstackTile s={s} compact onImport={() => { h.select(); setImporting(true) }} />
         <PortfolioList rows={s.rows} headline="revenue" onOpen={v => { h.select(); setProduct(v) }} />

@@ -27,7 +27,11 @@ const cents = (c: number) => formatMrr(c / 100)
 
 export function MoneyTiles({ s }: { s: SubscriptionsModel }) {
   const r = s.revenue
-  const wait = <Skeleton h={28} w={96} r={6} />
+  // A skeleton is for a read in flight. Once the read is over with nothing in
+  // it, three bars that never resolve look like a page still loading, and a
+  // zero would look like a figure. Say it once, plainly; the move above says
+  // what to do about it.
+  const wait = s.loading ? <Skeleton h={28} w={96} r={6} /> : <span className="font-sans text-ui font-medium text-ink-faint">Not read</span>
   return (
     <>
       <Tile label="Collected · 30 days" testId="subscriptions-collected"
@@ -64,8 +68,15 @@ export function SubstackTile({ s, onImport, compact = false }: { s: Subscription
         </Button>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className={`font-mono font-semibold tabular-nums text-ink ${compact ? 'text-ui' : 'text-heading'}`}>{paid ? paid.active_subscriptions : '-'}</span>
-        <span className="text-label text-ink-muted">paid{paid && (paid.committed_mrr_usd_cents || paid.committed_mrr_other.length) ? `, ${formatCommittedMrr(paid)} a month` : ''}{compact ? ', from Stripe' : ''}</span>
+        {paid ? (
+          <>
+            <span className={`font-mono font-semibold tabular-nums text-ink ${compact ? 'text-ui' : 'text-heading'}`}>{paid.active_subscriptions}</span>
+            <span className="text-label text-ink-muted">paid{paid.committed_mrr_usd_cents || paid.committed_mrr_other.length ? `, ${formatCommittedMrr(paid)} a month` : ''}{compact ? ', from Stripe' : ''}</span>
+          </>
+        ) : (
+          // Said in words: a dash beside "paid" read like a figure.
+          <span className="text-ui font-medium text-ink-faint">{s.loading ? 'Reading Stripe' : 'Paid: not read from Stripe yet'}</span>
+        )}
       </div>
       <div className="text-label text-ink-faint">{freeLine}</div>
     </div>

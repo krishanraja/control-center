@@ -9,7 +9,14 @@
  * column. The roster, the customer council, the expansion radar and the
  * revenue sources now open from the header in one side panel, so nothing was
  * lost, only moved off the stage. Still a read-only watch (charter
- * 2026-06-17): the only writes are Sync now and the Substack import.
+ * 2026-06-17): the only writes are Sync now, the Substack import and a Gmail
+ * draft of a check-in (never a send).
+ *
+ * Leads with one move since 2026-10-05 (Growth's standard): a paying customer
+ * waiting on a check-in, else a stale Stripe read, else the first number to
+ * wire. It replaced a "Reach out" box and the wiring list sitting side by side
+ * at the foot of the screen with equal weight, so the one thing to do was the
+ * last thing read.
  */
 import { useMemo, useState } from 'react'
 import { RefreshCw, Users, Upload } from '@/lib/icons'
@@ -30,10 +37,13 @@ import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { syncAgeLabel } from '../MrrTicker'
 import { PortfolioTable, PortfolioDetail, WireNext } from '../portfolio/PortfolioBoard'
 import { useSubscriptionsModel } from '../customers/useSubscriptionsModel'
+import { SubscriptionsMoveHero, useSubscriptionsMove } from '../customers/SubscriptionsMoveHero'
+import { AppFrame } from '../shared/AppFrame'
 import { MoneyTiles, SubstackTile } from '../customers/MoneyTiles'
 
 export function DesktopCustomers() {
   const s = useSubscriptionsModel()
+  const { move } = useSubscriptionsMove(s)
   const { toast } = useToast()
   const [open, setOpen] = useState<string | null>(null)
   const [roster, setRoster] = useState(false)
@@ -56,27 +66,39 @@ export function DesktopCustomers() {
     </span>
   ) : null
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4" data-testid="subscriptions-tab">
-      <SurfaceHeader
-        title="Subscriptions"
-        description={s.loading ? <Skeleton h={12} w={320} r={4} className="mt-1" /> : <span data-testid="subscriptions-summary">{s.summary}</span>}
-        meta={meta}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setRoster(true)} data-testid="subscriptions-roster-open">
-              <Users size={14} aria-hidden /> Subscribers
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => { void runSync() }} disabled={s.syncing} title="Pull Stripe now">
-              {s.syncing ? <Working size={12} /> : <RefreshCw size={14} aria-hidden />} {s.syncing ? 'Syncing' : 'Sync now'}
-            </Button>
-          </div>
-        }
-      />
+  // One frame: the title and the one move are chrome, the money, the board
+  // and the rest of the wiring scroll under them. The ⌘I / ⌘/ pills are
+  // reserved INSIDE the scroller (`capturePills`), so the board reaches the
+  // bottom of the screen instead of stopping 96px short of it.
+  const leadIsWire = move?.kind === 'wire'
+  const rest = leadIsWire ? s.gaps.slice(1) : s.gaps
 
-      {/* Designed to fit 1280x800 with room to spare. The scroller is the
-          frame contract's backstop for a short window, not the layout. */}
-      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" data-testid="subscriptions-stage">
+  return (
+    <div className="h-full min-h-0" data-testid="subscriptions-tab">
+    <AppFrame
+      capturePills
+      bodyTestId="subscriptions-stage"
+      header={
+        <div className="flex flex-col gap-4 pb-4">
+          <SurfaceHeader
+            title="Subscriptions"
+            description={s.loading ? <Skeleton h={12} w={320} r={4} className="mt-1" /> : <span data-testid="subscriptions-summary">{s.summary}</span>}
+            meta={meta}
+            actions={
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setRoster(true)} data-testid="subscriptions-roster-open">
+                  <Users size={14} aria-hidden /> Subscribers
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { void runSync() }} disabled={s.syncing} title="Pull Stripe now">
+                  {s.syncing ? <Working size={12} /> : <RefreshCw size={14} aria-hidden />} {s.syncing ? 'Syncing' : 'Sync now'}
+                </Button>
+              </div>
+            }
+          />
+          <SubscriptionsMoveHero s={s} onOpenProduct={setOpen} />
+        </div>
+      }
+    >
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-5 gap-3">
             <MoneyTiles s={s} />
@@ -87,30 +109,15 @@ export function DesktopCustomers() {
             ? <Skeleton h={360} r={16} />
             : <PortfolioTable rows={s.rows} onOpen={setOpen} emphasis={['signups', 'revenue']} />}
 
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+          {/* The first gap is the move above when nothing outranks it, so this
+              list starts at the second and says so. */}
+          {rest.length > 0 && (
             <div className="surface rounded-2xl px-4 py-3">
-              <WireNext gaps={s.gaps} onOpen={setOpen} />
+              <WireNext gaps={rest} onOpen={setOpen} title={leadIsWire ? 'After that, in priority order' : undefined} />
             </div>
-            <div className="surface flex flex-col gap-2 rounded-2xl px-4 py-3" data-testid="subscriptions-expansion">
-              <Eyebrow>Reach out</Eyebrow>
-              {s.expansion[0] ? (
-                <>
-                  <p className="text-body text-ink">
-                    <span className="font-semibold">{s.expansion[0].full_name || s.expansion[0].email || 'A paying customer'}</span>
-                    {s.expansion[0].mrr_usd ? <span className="font-mono text-ink-muted"> · ${Math.round(s.expansion[0].mrr_usd)}/mo</span> : null}
-                  </p>
-                  <p className="text-label text-ink-muted">
-                    Maya flagged {s.expansion.length === 1 ? 'this account' : `${s.expansion.length} accounts`} for a check-in.
-                  </p>
-                  <Button variant="ghost" size="sm" className="-ml-3 self-start" onClick={() => setRoster(true)}>Open the subscribers</Button>
-                </>
-              ) : (
-                <p className="text-body text-ink-muted">No paying customer is flagged for a check-in.</p>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+    </AppFrame>
 
       <SlideOver open={row != null} onClose={() => setOpen(null)} ariaLabel={row ? `${row.product.label} detail` : 'Product detail'} label="Product">
         {row && (

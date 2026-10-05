@@ -4,6 +4,7 @@ import { isUiV2 } from '../../lib/uiV2'
 import { isBridgesLane } from '../../lib/bridgesLane'
 import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
+import { CAPTURE_PILLS_PAD } from '../shared/AppFrame'
 import { ADVISORY_LABEL } from '../../hooks/usePilots'
 
 // People: the one tab for every human pipeline. Network (the graph), Hunt
@@ -160,10 +161,18 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
   // chrome, and the lane under it gets exactly the height that remains. A lane
   // that renders a list scrolls that list, not the page — so the switcher, the
   // surface title and the next action never leave the screen.
+  //
+  // The ⌘I / ⌘/ pill gutter lives inside each lane's own scroller now (AppFrame
+  // `capturePills`), not on the shell, so the lanes reach the bottom of the
+  // screen. Visibility is the exception for now: its surface is being reworked
+  // in parallel and is not touched here (nor the retired Pipeline lane, which
+  // only old links reach), so each keeps exactly the clearance the
+  // shell used to give it, taken off this box instead. When its AppFrame takes
+  // `capturePills`, drop this line.
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex-shrink-0">{switcher}</div>
-      <div className="flex-1 min-h-0">{body}</div>
+      <div className={`flex-1 min-h-0 ${lane === 'visibility' || lane === 'pipeline' ? CAPTURE_PILLS_PAD : ''}`}>{body}</div>
     </div>
   )
 }

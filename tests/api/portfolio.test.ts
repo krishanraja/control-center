@@ -83,8 +83,20 @@ test('buildBoard: an unwired cell never prints a zero, a wired empty one says so
     const c = by.heartside.cells[m.key]
     if (c.state === 'unwired') assert.equal(c.value, 'Not wired')
   }
-  assert.equal(by.heartside.cells.revenue.state, 'unwired')
+  // Ruling (Krish, 2026-10-05): Heartside is read in Shopify. Its visits,
+  // sign-ups and orders link out there; they are not gaps, not zeros, not MRR.
+  for (const k of ['analytics', 'signups', 'revenue'] as const) {
+    const c = by.heartside.cells[k]
+    assert.equal(c.state, 'external', k)
+    assert.equal(c.value, 'In Shopify')
+    assert.equal(c.href, 'https://admin.shopify.com/store/bnf1em-ge/analytics')
+    assert.doesNotMatch(`${c.value} ${c.note} ${c.source}`, /MRR|\/mo|subscriber|\$0/)
+  }
+  assert.equal(by.heartside.cells.aeo.state, 'unwired', 'AI answers are still the OS\'s to wire')
   assert.equal(by.heartside.mrrUsd, null, 'no revenue figure, not $0')
+  assert.equal(by.heartside.paid, null, 'never framed as paying subscribers')
+  assert.deepEqual(gaps.filter(g => g.product.venture === 'heartside').map(g => g.metric).sort(), ['aeo', 'hacks'],
+    'Heartside\'s Shopify numbers are not on the wiring list')
   // Full Time joined the daily pull on 2026-10-05, when one organisation key
   // replaced the two per-account keys. Its zero is now a MEASURED zero, which
   // is a different claim from "not wired" and has to read differently.

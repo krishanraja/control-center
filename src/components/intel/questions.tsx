@@ -606,7 +606,10 @@ export function useDecideQuestion({ onOpenBets }: { onOpenBets: () => void }): Q
         onClick={onOpenBets}
         className="self-start text-label text-ink-faint transition-colors hover:text-ink-muted"
       >
-        <span className="font-mono tabular-nums">{live.length}</span> live bet{live.length === 1 ? '' : 's'}
+        {/* No bets is said in words: a 0 in mono reads like a measured figure. */}
+        {live.length === 0
+          ? <>No live bets. Open the bets</>
+          : <><span className="font-mono tabular-nums">{live.length}</span> live bet{live.length === 1 ? '' : 's'}</>}
         {overall && overall.total > 0 && <> · <span className="font-mono tabular-nums">{overall.pct.toFixed(0)}%</span> hit rate over 90 days</>}
         {' '}→
       </button>

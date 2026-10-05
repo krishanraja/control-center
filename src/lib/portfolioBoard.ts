@@ -10,13 +10,15 @@
  *            "no places mapped"), which is a real result
  *   unwired  nothing reads this number yet, so the cell says what is missing
  *            instead of printing a zero that would look real
+ *   external read somewhere else on purpose (`externalDashboard` in
+ *            portfolio.ts): the cell links out to it and is not a gap
  */
 import { asList } from './growth'
 import type { CouncilReviewRow } from './growth'
 import type { ProductSignal } from './growthModel'
 import { PORTFOLIO, METRICS, type MetricKey, type PortfolioProduct } from './portfolio'
 
-export type CellState = 'live' | 'zero' | 'unwired'
+export type CellState = 'live' | 'zero' | 'unwired' | 'external'
 
 export interface BoardCell {
   key: MetricKey
@@ -28,6 +30,8 @@ export interface BoardCell {
   /** Where it comes from, or for an unwired cell what is missing. */
   source: string
   fix: string | null
+  /** An external cell's link out. */
+  href?: string
 }
 
 export interface BoardRow {
@@ -83,7 +87,14 @@ function unwired(key: MetricKey, p: PortfolioProduct): BoardCell {
   return { key, state: 'unwired', value: 'Not wired', note: null, source: s.gap ?? 'Nothing reads this yet.', fix: s.fix ?? null }
 }
 
-function cell(key: MetricKey, p: PortfolioProduct, state: Exclude<CellState, 'unwired'>, value: string, note: string | null): BoardCell {
+/** Read in another tool by Krish's choice: a link out, never a zero and never a gap. */
+function external(key: MetricKey, p: PortfolioProduct): BoardCell | null {
+  const x = p.externalDashboard
+  if (!x || !x.metrics.includes(key) || p.sources[key].source) return null
+  return { key, state: 'external', value: `In ${x.label}`, note: `opens ${x.label}`, source: x.why, fix: null, href: x.href }
+}
+
+function cell(key: MetricKey, p: PortfolioProduct, state: Exclude<CellState, 'unwired' | 'external'>, value: string, note: string | null): BoardCell {
   return { key, state, value, note, source: p.sources[key].source ?? '', fix: null }
 }
 
@@ -102,7 +113,7 @@ export function buildBoard(input: BoardInput, now: Date): { rows: BoardRow[]; ga
 
     // Analytics: the GA4 site read first, then PostHog weekly users.
     let analytics: BoardCell
-    if (!p.sources.analytics.source) analytics = unwired('analytics', p)
+    if (!p.sources.analytics.source) analytics = external('analytics', p) ?? unwired('analytics', p)
     else if (p.webPrefix && sig?.visits) {
       analytics = cell('analytics', p, sig.visits.cur > 0 ? 'live' : 'zero', plural(sig.visits.cur, 'visit'), `this week, ${sig.visits.prev} the week before`)
     } else if (p.metricsProduct) {
@@ -120,7 +131,7 @@ export function buildBoard(input: BoardInput, now: Date): { rows: BoardRow[]; ga
     // Sign-ups: free and waitlist, never anyone paying.
     let signups: BoardCell
     let signupCount: number | null = null
-    if (!p.sources.signups.source) signups = unwired('signups', p)
+    if (!p.sources.signups.source) signups = external('signups', p) ?? unwired('signups', p)
     else {
       const fromAudience = p.audienceSource ? input.audience[p.audienceSource] : undefined
       const free = mine.filter(c => c.kind === 'free_signup' || c.kind === 'trial').length
@@ -148,7 +159,7 @@ export function buildBoard(input: BoardInput, now: Date): { rows: BoardRow[]; ga
 
     // Revenue
     const revenue = !p.sources.revenue.source
-      ? unwired('revenue', p)
+      ? external('revenue', p) ?? unwired('revenue', p)
       : mrr > 0
         ? cell('revenue', p, 'live', `${fmtUsd(mrr)}/mo`, plural(live.length, 'paying customer'))
         : cell('revenue', p, 'zero', 'None yet', 'no one paying')
@@ -196,7 +207,11 @@ export function subscriptionsSummary(
   if (p1.length) {
     const total = p1.length * METRICS.length
     const wired = p1.reduce((s, r) => s + METRICS.filter(m => r.cells[m.key].state !== 'unwired').length, 0)
-    parts.push(wired === total ? `Priority 1 shows all ${total} of its numbers.` : `Priority 1 shows ${wired} of its ${total} numbers; the rest are not wired yet.`)
+    // A number read in Shopify on purpose is accounted for, not missing.
+    const outside = p1.reduce((s, r) => s + METRICS.filter(m => r.cells[m.key].state === 'external').length, 0)
+    const tools = Array.from(new Set(p1.map(r => r.product.externalDashboard?.label).filter(Boolean))).join(' and ')
+    const where = outside ? `, ${outside} of them in ${tools}` : ''
+    parts.push(wired === total ? `Priority 1 shows all ${total} of its numbers${where}.` : `Priority 1 shows ${wired} of its ${total} numbers${where}; the rest are not wired yet.`)
   }
   return parts.join(' ')
 }

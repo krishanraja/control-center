@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Users } from '@/lib/icons'
+import { CheckCircle2, Search, Send, Users } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { Working } from '../shared/Working'
 import { AppFrame } from '../shared/AppFrame'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
+import { advisoryMove, type AdvisoryMoveKind } from '../../lib/surfaceMoves'
 import { useToast } from '../shared/Toast'
 import { PilotCard } from '../pilotDeals/PilotCard'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -69,6 +71,8 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
   const [accepting, setAccepting] = useState<string | null>(null)
 
   const counts = useMemo(() => countsLine(stateCounts), [stateCounts])
+  const asked = ASKED_STATES.reduce((n, s) => n + (stateCounts[s] || 0), 0)
+  const onList = PILOT_STATES.reduce((n, s) => n + (s === 'not_now' ? 0 : (stateCounts[s] || 0)), 0)
 
   // The default view plus any state that has someone in it. Chips, not a
   // select: the set is small and it changes with the counts.
@@ -410,10 +414,50 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
     </button>
   )
 
-  // Desk: the title and the offer line are chrome, the deals scroll under
-  // them. Narrow keeps its own shell.
+  // The one move (src/lib/surfaceMoves.ts): a reply waiting on him, then a
+  // drafted note to send, then the people just found, then finding more. On an
+  // empty list it IS the empty state, so the lane says its one nothing once.
+  const move = advisoryMove({
+    deals: targets.map(t => ({ id: t.id, name: t.contact?.full_name || 'Someone on the list', state: t.state })),
+    asked, replies: stateCounts.replied || 0, onList,
+    proposals: proposals?.length ?? 0, seeding, findNote, error: !!error,
+  })
+  const showDeal = (state: string) => {
+    const t = targets.find(x => x.state === state)
+    const el = t ? document.querySelector<HTMLElement>(`[data-pilot-id="${t.id}"]`) : null
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    el?.querySelector<HTMLElement>('button, a[href]')?.focus({ preventScroll: true })
+  }
+  const act: Record<AdvisoryMoveKind, (() => void) | undefined> = {
+    reply: () => { if (targets.some(t => t.state === 'replied')) showDeal('replied'); else setView('replied') },
+    send: () => showDeal('drafted'),
+    triage: undefined,
+    finding: undefined,
+    find: () => { void findMore() },
+    wait: () => { void findMore() },
+  }
+  const hero = move && (
+    <DoThisNextHero
+      testId="pilots-move"
+      busy={seeding}
+      descriptor={{
+        headline: move.headline, sub: move.sub, actionLabel: move.actionLabel, tone: move.tone, clear: move.clear,
+        icon: move.kind === 'find' || move.kind === 'wait' || move.kind === 'finding'
+          ? <Search size={16} className="text-violet-300" />
+          : move.kind === 'reply' ? <CheckCircle2 size={16} className="text-emerald-300" />
+          : <Send size={16} className="text-violet-300" />,
+      }}
+      onAct={act[move.kind]}
+      why={move.why}
+    />
+  )
+  // Finding is the move's own action when the list has nothing to send.
+  const findLeads = move?.kind === 'find' || move?.kind === 'wait' || move?.kind === 'finding'
+
+  // Desk: the title, the purpose and the move are chrome, the deals scroll
+  // under them. Narrow keeps its own shell.
   return (
-    <AppFrame header={<div className="pb-4">{header}</div>}>
+    <AppFrame header={<div className="flex flex-col gap-4 pb-4">{header}{hero}</div>} capturePills bodyTestId="pilots-scroll">
       <div className="space-y-5 pb-2">
 
       {/* One line, not three. The first pass put the purpose, the offer and the
@@ -448,7 +492,7 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
       {counts && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p data-testid="pilot-counts" className="text-label text-ink-muted">{counts}</p>
-          {findMoreButton}
+          {!findLeads && findMoreButton}
         </div>
       )}
 
@@ -500,13 +544,10 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
             : `The list could not be read (${error}). It retries every minute.`}
         </p>
       ) : targets.length === 0 ? (
-        <div data-testid="pilot-empty" className="rounded-xl border border-white/[0.07] bg-white/[0.015] px-5 py-6 max-w-xl">
-          <p className="text-body text-ink-muted leading-snug">{emptyLine}</p>
-          {findNote && (
-            <p data-testid="pilot-find-note" className="text-label text-amber-200 mt-2 leading-snug">{findNote}</p>
-          )}
-          <div className="mt-4">{findMoreButton}</div>
-        </div>
+        // The move above says the empty line, carries the search note and
+        // holds the one button. A box here repeating them was the third
+        // sentence about the same nothing.
+        null
       ) : (
         // One column. `xl:grid-cols-2` was a viewport query over a variable
         // number of deals: with one drafted deal it rendered an empty second
@@ -515,7 +556,9 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
         // itself out as two panes, who | draft.
         <div className="flex flex-col gap-4" data-testid="pilot-deal-list">
           {targets.map(t => (
-            <PilotCard key={t.id} target={t} onChanged={refetch} wide={!narrow} />
+            <div key={t.id} data-pilot-id={t.id} className="scroll-mt-2">
+              <PilotCard target={t} onChanged={refetch} wide={!narrow} />
+            </div>
           ))}
         </div>
       )}

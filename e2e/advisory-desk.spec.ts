@@ -25,7 +25,8 @@ for (const state of ['one', 'full'] as const) {
       await mockPilots(page, state)
       await page.goto('/#/people?lane=pilots')
       await assertRendered(page, 'main')
-      await expect(page.getByText('Sam Patel')).toBeVisible({ timeout: 15_000 })
+      // Scoped to the list: the lane's move names the first drafted person too.
+      await expect(page.getByTestId('pilot-deal-list').getByText('Sam Patel')).toBeVisible({ timeout: 15_000 })
     })
 
     test(`${ADVISORY_LABEL} leaves no half-empty screen`, async ({ page }) => {

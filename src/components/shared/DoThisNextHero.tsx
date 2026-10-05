@@ -87,13 +87,34 @@ interface Props {
   /** Card layout: the action zone. */
   children?: React.ReactNode
   testId?: string
+  /**
+   * Bar layout: the evidence, only when asked (Growth's `Why`, for a bar). A
+   * quiet "Why this?" sits under the supporting line; pressing it opens this
+   * content in place, under the instruction it explains, and pressing it
+   * again closes it. Read first, rows second: open on what the evidence MEANS.
+   * Omit it and the bar renders exactly as before.
+   */
+  why?: React.ReactNode
+  /** The disclosure's label. Defaults to "Why this?". */
+  whyLabel?: string
+  /**
+   * Bar layout: the action drops UNDER the instruction, full width, instead of
+   * beside it. Meant for `narrow`: on a phone a button (or an `actionSlot`
+   * pair such as Approve / Reject) beside the text left the headline a column
+   * one or two words wide. Stacked, the words get the whole card and the
+   * thumb gets a full-width target. Off by default.
+   */
+  stackAction?: boolean
 }
 
-export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, layout = 'bar', eyebrow, meta, progress, children, testId }: Props) {
+export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, layout = 'bar', eyebrow, meta, progress, children, testId, why, whyLabel = 'Why this?', stackAction = false }: Props) {
   const { headline, sub, actionLabel, clear } = descriptor
   const icon = narrow && headline.length > NARROW_GLYPH_MAX_CHARS && layout === 'bar' ? undefined : descriptor.icon
   const tone: HeroTone = descriptor.tone || (clear ? 'neutral' : 'violet')
   const reduced = useReducedMotion()
+  const [whyOpen, setWhyOpen] = React.useState(false)
+  // A new instruction starts closed: the evidence belongs to the move it explained.
+  React.useEffect(() => { setWhyOpen(false) }, [headline])
 
   if (layout === 'card') {
     return (
@@ -136,7 +157,8 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, la
   return (
     <section
       aria-label="Do this next"
-      className={`relative rounded-2xl border ${TONE_BG[tone]} ${narrow ? 'p-3.5' : 'px-5 py-4'} flex items-center gap-3 ${sectionMotion}`}
+      data-testid={testId}
+      className={`relative rounded-2xl border ${TONE_BG[tone]} ${narrow ? 'p-3.5' : 'px-5 py-4'} flex ${stackAction ? 'flex-wrap' : ''} items-center gap-3 ${sectionMotion}`}
     >
       {icon && (
         <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
@@ -164,14 +186,32 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, la
             or the figure, and an ellipsis there hides exactly the number the
             hero exists to state. */}
         <p className="text-label text-ink-faint leading-snug break-words mt-0.5">{sub}</p>
+        {why && (
+          <>
+            <button
+              type="button"
+              aria-expanded={whyOpen}
+              data-testid={testId ? `${testId}-why` : undefined}
+              onClick={() => setWhyOpen(o => !o)}
+              className="tap-44 mt-1 text-label font-medium text-ink-muted underline decoration-white/20 underline-offset-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded"
+            >
+              {whyOpen ? 'Hide why' : whyLabel}
+            </button>
+            {whyOpen && (
+              <div className="mt-2 border-t border-white/[0.08] pt-2 text-body leading-snug text-ink-muted break-words" data-testid={testId ? `${testId}-why-body` : undefined}>
+                {why}
+              </div>
+            )}
+          </>
+        )}
       </div>
-      {!clear && actionSlot}
+      {!clear && actionSlot && (stackAction ? <div className="basis-full">{actionSlot}</div> : actionSlot)}
       {!clear && !actionSlot && actionLabel && (
         <button
           type="button"
           onClick={onAct}
           disabled={busy}
-          className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-body border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
+          className={`${stackAction ? 'basis-full justify-center' : 'flex-shrink-0'} inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-body border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
         >
           {busy ? <Working size={14} /> : icon}
           {actionLabel}

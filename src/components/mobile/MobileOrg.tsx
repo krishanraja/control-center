@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader,
-  HeaderSubtitleSkeleton, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+  HeaderSubtitleSkeleton, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
-import { NextOrgHero } from '../org/NextOrgHero'
+import { NextOrgHero, orgRulings } from '../org/NextOrgHero'
+import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useElapsed } from '../../hooks/useAsyncAction'
@@ -95,6 +96,17 @@ export function MobileOrg() {
   , [agents, agentRunHealth])
 
   const heroErr = erroredAgents[0] || null
+  // One move, the same order as the desk: a ruling, a correction, then the
+  // agent whose runs fail most. That last one used to be a SECOND hero card
+  // under the first, so the phone led with two things at once.
+  const { waiting } = useWaitingDecisions()
+  const rulings = useMemo(() => orgRulings(waiting), [waiting])
+  const failing = heroErr ? { agent: heroErr.name, errors: agentRunHealth.get(heroErr.id)?.errorCount ?? 0, of: agentRunHealth.get(heroErr.id)?.recent.length ?? 0 } : null
+  const openAgent = (who: string) => {
+    const k = who.trim().toLowerCase()
+    const hit = agents.find(a => a.id.toLowerCase() === k || a.name.toLowerCase() === k)
+    if (hit) { h.select(); setOpenId(hit.id) }
+  }
 
   const open = openId ? agents.find(a => a.id === openId) ?? null : null
 
@@ -155,22 +167,15 @@ export function MobileOrg() {
       <NextOrgHero
         corrections={pendingCorrections.data}
         agentCount={agents.length}
+        rulings={rulings}
+        failing={failing}
         onReview={openCorrection}
+        onOpenAgent={openAgent}
+        narrow
       />
 
       <SkillProposalsPanel />
 
-      {heroErr && (
-        <HeroCard
-          eyebrow="Most errors recently"
-          accent="red"
-          title={heroErr.name}
-          detail={heroErr.role || heroErr.brief_content?.slice(0, 140) || 'Recent runs erroring — investigate.'}
-          meta={`${agentRunHealth.get(heroErr.id)?.errorCount ?? 0} of last 5 runs failed`}
-          cta="Open"
-          onClick={() => { h.select(); setOpenId(heroErr.id) }}
-        />
-      )}
 
       {agents.length === 0 && !loading && <EmptyState label="No active agents." />}
 

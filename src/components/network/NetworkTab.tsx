@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SearchX, AlertTriangle, MapPin } from '@/lib/icons'
 import { Card } from '@/components/ui/card'
+import { AppFrame } from '../shared/AppFrame'
 import { BOTTOM_NAV_PAD } from '../mobile/MobileShell'
 import { useNetworkSearch, type NetworkResult } from '../../hooks/useNetworkSearch'
 import { NetworkSearchBar } from './NetworkSearchBar'
@@ -152,8 +153,21 @@ export function NetworkTab({ narrow, onOpenPerson }: {
     // should be no artificial cut off above the bottom nav bar."
     // The clearance belongs on the scrolling child, below, where it becomes
     // scrollable room instead of a hidden strip.
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0">
+    //
+    // The desk reserves the ⌘I / ⌘/ pills the same way, INSIDE the scroller
+    // (AppFrame `capturePills`), so the list reaches the bottom of the screen
+    // instead of stopping 96px short of it.
+    <AppFrame
+      className="overflow-hidden"
+      bodyTestId="network-scroll"
+      capturePills={!narrow}
+      bodyClassName={narrow ? BOTTOM_NAV_PAD : ''}
+      header={<>
+        {/* The lane's one move: the questions only Krish can answer, when any
+            wait. With none, nothing renders and the search leads. Once he has
+            asked something the results need the height, so the move steps
+            back to its small button beside the other tools. */}
+        {!hasRun && <PeopleReview narrow={!!narrow} variant="hero" className={narrow ? 'px-4 pb-2' : 'px-4 pb-3'} />}
         <NetworkSearchBar
           onSearch={q => runSearch(q, filters)}
           onVoice={audio => s.searchByVoice(audio, {
@@ -167,7 +181,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           hasResults={s.results.length > 0 || Boolean(recommendation)}
         />
         <NetworkFilters value={filters} onChange={setFilters} collapsible={narrow} />
-        {narrow && <PeopleReview narrow className="px-4 pb-2" />}
+        {narrow && hasRun && <PeopleReview narrow className="px-4 pb-2" />}
         {/* Adding a person lives next to searching for one because they are the
             same job seen from two sides: you search this tab, fail to find
             somebody, and the next thing you want is to put them in. Desktop
@@ -178,7 +192,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           <div className="relative flex items-center justify-between gap-3 px-4 pb-1">
             <FreshnessLine lane="network" className="mt-0" />
             <div className="flex items-center gap-2">
-              <PeopleReview narrow={false} />
+              {hasRun && <PeopleReview narrow={false} />}
               <NetworkHealthPanel />
               <RepairNamesPanel />
               <button
@@ -218,9 +232,8 @@ export function NetworkTab({ narrow, onOpenPerson }: {
             active={recommendation}
           />
         )}
-      </div>
-
-      <div className={`min-h-0 flex-1 overflow-y-auto ${narrow ? BOTTOM_NAV_PAD : ''}`}>
+      </>}
+    >
         {s.error && (
           <Card variant="outline" className="mx-4 mt-3 border-rose-400/25 bg-rose-500/[0.06] p-3">
             <p className="text-body text-rose-200">{s.error}</p>
@@ -347,8 +360,9 @@ export function NetworkTab({ narrow, onOpenPerson }: {
             <p className="mt-1 text-label text-ink-faint">{size ? `${size.toLocaleString('en-AU')} people. ` : ''}Type it how you would say it.</p>
           </div>
         )}
-      </div>
 
+      {/* Both of these escape the scroller: the sheet portals, and the pill's
+          containing block is the positioned ancestor above this frame. */}
       {!onOpenPerson && <NetworkPersonSheet person={person} onClose={() => setPerson(null)} />}
 
       {s.loading && narrow && (
@@ -358,6 +372,6 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           </span>
         </div>
       )}
-    </div>
+    </AppFrame>
   )
 }

@@ -9,6 +9,10 @@ import { AgentAvatar } from '../shared/AgentAvatar'
 import { SkillForge } from '../flows/SkillForge'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { FleetHealthStrip } from '../flows/FleetHealthStrip'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
+import { useToast } from '../shared/Toast'
+import { flowsMove } from '../../lib/surfaceMoves'
+import { CheckCircle2, RotateCcw } from '@/lib/icons'
 
 interface Run {
   id: string
@@ -110,10 +114,62 @@ export function DesktopFlows() {
     }, {} as any))
   ) as GroupedRun[], [runs])
 
+  // The one move (src/lib/surfaceMoves.ts `flowsMove`): a proposal waiting on
+  // him, else the workflow failing worst, else nothing. Before it, the tab
+  // opened on a table and the proposals sat below it, so the one thing only
+  // Krish can do was the last thing on the page.
+  const { toast } = useToast()
+  const [rerunning, setRerunning] = useState(false)
+  const failing = useMemo(() => grouped
+    .filter(w => w.status === 'error')
+    .sort((a, b) => b.errorCount - a.errorCount)
+    .map(w => ({ id: w.workflow_id, name: humanize(w.workflow_name) || w.workflow_name || 'A workflow', errors: w.errorCount, runs: w.runCount })), [grouped])
+  const move = flowsMove({
+    proposals: proposals.map(p => ({ id: p.id, title: p.title, agent: p.agent_id ?? null })),
+    failing,
+    workflows: grouped.length,
+  })
+  const rerun = async (id: string) => {
+    setRerunning(true)
+    try {
+      const r = await fetch(`/api/automations/${id}/rerun`, { method: 'POST' })
+      const body = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+      toast('Rerun started. Its result lands in this list.', 'success')
+    } catch (e) {
+      toast(`Rerun failed: ${e instanceof Error ? e.message : 'try again'}`, 'error')
+    } finally {
+      setRerunning(false)
+    }
+  }
+  const onAct = move.kind === 'proposal'
+    ? () => {
+        const el = document.querySelector<HTMLElement>(`[data-proposal-id="${proposals[0]?.id}"]`)
+        el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        el?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
+      }
+    : move.kind === 'failing' ? () => { if (failing[0]) void rerun(failing[0].id) }
+    : undefined
+  const hero = view === 'workflows' && !loading && (
+    <DoThisNextHero
+      testId="flows-move"
+      busy={rerunning}
+      descriptor={{
+        headline: move.headline, sub: move.sub, actionLabel: move.actionLabel, tone: move.tone, clear: move.clear,
+        icon: move.kind === 'proposal' ? <AlertCircle size={16} className="text-violet-300" />
+          : move.kind === 'failing' ? <RotateCcw size={16} className="text-amber-300" />
+          : <CheckCircle2 size={16} className="text-emerald-400/80" />,
+      }}
+      onAct={onAct}
+      why={move.why}
+    />
+  )
+
   // Title and view switch are chrome; the run list scrolls under them.
   return (
-    <AppFrame header={
-      <div className="flex items-end justify-between gap-3 flex-wrap pb-4">
+    <AppFrame capturePills bodyTestId="flows-scroll" header={
+      <div className="flex flex-col gap-4 pb-4">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <SurfaceHeader
           title="Flows"
           description={view === 'workflows' ? 'N8N workflows and proposals.' : 'Forge custom Agent Skills for clients.'}
@@ -136,6 +192,8 @@ export function DesktopFlows() {
             <Wand2 size={11} /> Skill Forge
           </button>
         </div>
+      </div>
+      {hero}
       </div>
     }>
       <div className="space-y-6 pb-2">
@@ -224,14 +282,12 @@ export function DesktopFlows() {
         </div>
 
         {proposals.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-            <p className="text-sm md:text-body text-ink-faint font-medium">Nothing waiting on you.</p>
-            <p className="text-xs md:text-label text-ink-faint mt-1">Agents will surface improvement suggestions here.</p>
-          </div>
+          // One quiet line. "Nothing waiting on you" is the move's to say.
+          <p className="text-label text-ink-faint">No proposals. Agents put suggested workflow changes here.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {proposals.map(p => (
-              <article key={p.id} className="rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] via-violet-500/[0.02] to-transparent p-4 md:p-5 space-y-3">
+              <article key={p.id} data-proposal-id={p.id} className="rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] via-violet-500/[0.02] to-transparent p-4 md:p-5 space-y-3">
                 <header>
                   <p className="text-sm md:text-ui font-semibold text-ink leading-snug">{p.title}</p>
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
