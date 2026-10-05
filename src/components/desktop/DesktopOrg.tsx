@@ -620,7 +620,7 @@ function PlanReadonly({ plan }: { plan: AgentPlan | null }) {
       <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70">Plan</p>
       {plan.objective && (
         <div>
-          <p className="text-micro text-ink-faint uppercase tracking-wider">May KPI / Objective</p>
+          <p className="text-micro text-ink-faint uppercase tracking-wider">Objective</p>
           <p className="text-body text-ink-muted mt-0.5 leading-relaxed">{plan.objective}</p>
         </div>
       )}
@@ -677,7 +677,7 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
         <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70">Plan</p>
 
         <div>
-          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">May KPI / Objective</label>
+          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">Objective</label>
           <input
             value={form.objective}
             onChange={(e) => set('objective', e.target.value)}
