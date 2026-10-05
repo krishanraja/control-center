@@ -241,6 +241,10 @@
       "schedule": "0 9 * * 2"
     },
     {
+      "path": "/api/visibility-targets/score",
+      "schedule": "30 7 * * 1"
+    },
+    {
       "path": "/api/scorecard/monday",
       "schedule": "30 10 * * 1"
     },
@@ -304,6 +308,9 @@
       "maxDuration": 300
     },
     "api/discover-visibility-targets.ts": {
+      "maxDuration": 300
+    },
+    "api/visibility-targets/score.ts": {
       "maxDuration": 300
     },
     "api/scorecard/github-sync.ts": {

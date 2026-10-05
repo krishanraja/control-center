@@ -4,6 +4,7 @@ import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
 import { SkeletonList } from '../shared/Skeleton'
 import { NextVisibilityHero } from '../guests/NextVisibilityHero'
+import { WorthTaking, RefusedByStandard } from '../visibility/WorthTaking'
 import { BottomSheet } from './BottomSheet'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestStatus, type GuestRow } from '../../hooks/useRealtimeGuests'
@@ -334,7 +335,17 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
             ordering, which already puts the room he can walk into tonight at the
             top, so a second "do this next" above it would be two answers to one
             question. */}
-        {lane !== 'events' && <NextVisibilityHero guests={guests} targets={targets} narrow />}
+        {/* Speaking and press has a STANDARD, so it gets its own focal
+            surface. The generic hero ranked by nearest deadline then by
+            relevance_score, which is two scales in one column, so "highest"
+            meant "written by Nova" and pointed at rows he has never acted on.
+            WorthTaking shows only a `take`, and is allowed to be empty. */}
+        {lane === 'outbound' && <WorthTaking targets={targets} onOpen={openTarget} narrow />}
+        {lane === 'inbound' && <NextVisibilityHero guests={guests} targets={targets} narrow />}
+
+        {/* What the standard turned down, with a reason on each. Collapsed, so
+            it costs one row of a 640px screen until he opens it. */}
+        {lane === 'outbound' && <RefusedByStandard targets={allTargets} onOpen={openTarget} />}
 
         {lane === 'events' ? (
           <EventsLane />

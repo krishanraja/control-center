@@ -12,6 +12,7 @@ import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
 import { StatusLane, EmptyLanes } from './StatusLane'
 import { DecisionDetail } from '../DecisionDetail'
 import { NextVisibilityHero } from '../guests/NextVisibilityHero'
+import { WorthTaking, RefusedByStandard } from '../visibility/WorthTaking'
 import { SlideOver } from '../shared/SlideOver'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { navigateDecision } from '../../lib/routeDecision'
@@ -333,12 +334,16 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
           {/* Events orders itself: the room he can walk into is already at the
               top of its board, so a second "do this next" above it would be two
               answers to one question. */}
-          {lane !== 'events' && (
-            <NextVisibilityHero
-              guests={guests}
-              targets={targets}
-              lane={lane === 'inbound' ? 'inbound' : 'outbound'}
-            />
+          {/* Speaking and press has a STANDARD, so its focal surface is
+              WorthTaking and it renders in the BOARD below rather than up
+              here. Measured at 1280x800: the card is 597px, the header is
+              flex-shrink-0, and it left the board 200px of an 800px frame
+              with every row scrolling underneath a header that ate the
+              pointer. The refusals panel was drawn, reachable by scroll, and
+              un-clickable. The hero is the first thing on arrival, not
+              permanent chrome, so it belongs in the scroller. */}
+          {lane === 'inbound' && (
+            <NextVisibilityHero guests={guests} targets={targets} lane="inbound" />
           )}
         </div>
       }
@@ -369,6 +374,12 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
               Focus Mode does not apply for the same reason: it regroups by
               relevance_index, and the attend lane's own ordering already answers a
               sharper question. */}
+          {/* The one stage worth standing on, then what the standard turned
+              down with a reason on each. Both shown: the rule this replaces
+              was "do not write the row", which left no trace at all. */}
+          {lane === 'outbound' && <WorthTaking targets={targets} onOpen={openTarget} />}
+          {lane === 'outbound' && <RefusedByStandard targets={allTargets} onOpen={openTarget} />}
+
           {lane === 'events' ? (
             <EventsLane />
           ) : showFocus ? (
@@ -458,7 +469,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             <section className="rounded-xl border border-accent/25 bg-accent/[0.05] p-4">
               <Eyebrow>Enrichment</Eyebrow>
               <p className="mt-2 text-label text-ink-muted leading-snug">
-                Nova fires deep enrichment on each sourced target twice daily. Each row gets strategic value, angle, proposed talk, audience snapshot, CFP requirements, and a prep checklist. Click any card to view the deep detail.
+                Monday, Nova judges each open target against the standard: does the audience contain someone who can move a decision, does the platform carry enough standing to cite later, and is the angle one only you could give. All three have to be true, and the headline number is the lowest of the three. Tuesday, the refresh drops anything whose date has passed and re-researches the oldest rows. Click any card for the detail.
               </p>
             </section>
           )}

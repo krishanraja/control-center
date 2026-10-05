@@ -72,6 +72,30 @@ export interface VisibilityTargetRow {
   } | null
   strategic_value: string | null
   angle: string | null
+  // Nova's standard (migration 20261005140000, api/_visibilityScore.ts). Three
+  // things have to be true at once, so there are three axes and the headline
+  // number is their MINIMUM, not their mean: a famous platform cannot carry a
+  // wrong room. `verdict` is null until the standard has judged the row, and
+  // 'unjudged' when it looked and the material did not support a judgement.
+  // Those are different facts and the card says which.
+  //
+  // `relevance_score` above is LEGACY and is two scales at once (7-9 from the
+  // nell-* sources, 72-95 from the nova_* ones). Read it only through
+  // src/lib/visibilityScale.ts, never raw.
+  room_score?: number | null
+  standing_score?: number | null
+  only_him_score?: number | null
+  visibility_score?: number | null
+  score_version?: number | null
+  scored_at?: string | null
+  verdict?: 'take' | 'stretch' | 'rejected' | 'unjudged' | null
+  reject_reason?: string | null
+  who_is_in_the_room?: string | null
+  why_him?: string | null
+  why_now?: string | null
+  score_reason?: string | null
+  feeds_channel?: string | null
+  named_people?: string[] | null
   effort_estimate: {
     prep_hours?: number
     travel_days?: number
