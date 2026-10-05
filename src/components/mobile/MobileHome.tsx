@@ -63,6 +63,11 @@ export function MobileHome({ onNavigate }: {
   }
 
   const cta = alt.cta
+  // The week's ask steps aside too, onto the This week line, so a morning
+  // with no week set and a long move keeps the move whole. Measured
+  // 2026-10-05 at 360x640: the full-width ask cost 61px and folded the move
+  // on its own, which only something he opens may do.
+  const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
 
   return (
     <div className={frame}>
@@ -103,8 +108,8 @@ export function MobileHome({ onNavigate }: {
         <div ref={fit.contentRef} className="flex flex-col gap-2">
           <DueTestsCard variant="mobile" fold={folds.tests} open={pinned === 'tests'} onPin={o => setPinned(o ? 'tests' : null)} />
           <PilotStrip onNavigate={onNavigate} />
-          <GoalLadder variant="mobile" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} />
-          {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
+          <GoalLadder variant="mobile" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} weekAsk={weekAsk} />
+          {cta && cta.target === 'weekly' && !weekAsk && <CanonCta cta={cta} />}
           <TodayList
             compact
             daily={daily}

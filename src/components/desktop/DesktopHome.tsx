@@ -73,6 +73,11 @@ export function DesktopHome({ onNavigate }: {
   if (firstPaint) return <HomeSkeleton />
 
   const cta = alt.cta
+  // The week's ask steps aside too, onto the This week line, so a morning
+  // with no week set and a long move keeps the move whole. Measured
+  // 2026-10-05 at 360x640: the full-width ask cost 61px and folded the move
+  // on its own, which only something he opens may do.
+  const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
 
   // The instruments: what the machine did and what is owed. Peripheral to the
   // canon, which is why they sit in the rail on a wide desk and above it
@@ -157,8 +162,8 @@ export function DesktopHome({ onNavigate }: {
             {/* Direct children, never a wrapper: a strip with nothing to say
                 renders nothing, and an empty wrapper would still take a gap. */}
             {!wide && instruments(folds.tests)}
-            <GoalLadder variant="desktop" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} />
-            {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
+            <GoalLadder variant="desktop" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} weekAsk={weekAsk} />
+            {cta && cta.target === 'weekly' && !weekAsk && <CanonCta cta={cta} />}
             <TodayList
               daily={daily}
               folds={{ survived: folds.survived, why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}

@@ -15,7 +15,9 @@
 //            its reasons still outrank the canon he knows
 //   tests    a due test folds to one line that says a test is due
 //   slots    empty Today slots fold into the Today header's Add
-//   cta      "Pick your 3" steps aside while a move is being proposed
+//   cta      the one ask steps aside while a move is being proposed: "Pick
+//            your 3" into the Today header's Add, "Set this week's 3" onto
+//            the This week line (GoalLadder's weekAsk)
 //   actions  the move's controls fit one row; the person line opens the ask
 //   card     the move itself folds to one line, which happens only when he
 //            has opened something else by hand

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Check, MessageSquare, Plus, Target, X } from '@/lib/icons'
+import { ArrowRight, Check, MessageSquare, Plus, Target, X } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useQuickCreateListener } from '../../lib/quickCreate'
@@ -38,7 +38,7 @@ export type Horizon = 'os' | 'weekly'
 export type LadderGoal = CanonGoal
 export type GateVerdict = GateVerdictWire
 
-export function GoalLadder({ variant = 'desktop', fold, pinned = null, onPin }: {
+export function GoalLadder({ variant = 'desktop', fold, pinned = null, onPin, weekAsk = null }: {
   variant?: 'desktop' | 'mobile'
   /** Home's folds (src/lib/homeFolds.ts): a folded section is its eyebrow
    *  line, a count and a Show, because Home never scrolls. */
@@ -47,6 +47,11 @@ export function GoalLadder({ variant = 'desktop', fold, pinned = null, onPin }: 
   pinned?: HomePin
   /** Open a folded section (it stays open), or close the one he opened. */
   onPin?: (section: 'os' | 'week' | null) => void
+  /** Home's week ask ("Set this week's 3"), carried on the This week line
+   *  instead of as its own full-width button. Home passes it only when the
+   *  screen has run out and a move is proposed (the `cta` fold): one primary
+   *  ask per screen, and the ask stays one tap away on the rung it fills. */
+  weekAsk?: string | null
 }) {
   const h = useHaptics()
   const { canon, loading, error: loadError, refresh } = useGoalCanon()
@@ -484,10 +489,26 @@ export function GoalLadder({ variant = 'desktop', fold, pinned = null, onPin }: 
           {weekly.length > 0 && (
             <span className="text-micro text-ink-faint tabular-nums font-mono">{weeklyDone}/{weekly.length}</span>
           )}
-          {(weekFolded || pinned === 'week') && onPin && (
+          {weekAsk ? (
+            // The week's ask, on its own line. If rows somehow exist beside it
+            // (a client clock a week off the server's), they stay reachable.
+            <span className="ml-auto flex items-baseline gap-2">
+              {weekly.length > 0 && onPin && (
+                <FoldToggle open={!weekFolded} onToggle={() => weekFolded && compact ? setDrawer('week') : onPin(weekFolded ? 'week' : null)} what="this week's objectives" testId="ladder-week-fold" />
+              )}
+              <button
+                type="button"
+                onClick={() => openAdd('weekly')}
+                data-testid="ladder-week-ask"
+                className="tap-44 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-micro font-semibold text-violet-200 transition-colors hover:text-violet-100"
+              >
+                {weekAsk} <ArrowRight size={10} />
+              </button>
+            </span>
+          ) : (weekFolded || pinned === 'week') && onPin && (
             <FoldToggle open={!weekFolded} onToggle={() => weekFolded && compact ? setDrawer('week') : onPin(weekFolded ? 'week' : null)} what="this week's objectives" testId="ladder-week-fold" />
           )}
-          {!compact && !weekFolded && pinned !== 'week' && os.length > 0 && weeklyActive < 3 && !weekend && (
+          {!compact && !weekAsk && !weekFolded && pinned !== 'week' && os.length > 0 && weeklyActive < 3 && !weekend && (
             <button
               type="button"
               onClick={() => openAdd('weekly')}
