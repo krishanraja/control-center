@@ -38,7 +38,7 @@ export interface WebProperty {
   defaultId?: string             // numeric property id shipped in code (not a secret)
   venture: string                // venture_registry slug; the UI chip is ventureLabel(venture)
   touchpointSlug: 'mindmake' | 'full-time' | 'publication' | null  // growth_touchpoints CHECK set
-  councilSlug: 'mindmake' | 'full-time' | null                     // council-run PRODUCTS
+  councilSlug: 'mindmake' | 'full-time' | 'legibility' | null      // council-run PRODUCTS
   posthogProduct: 'full_time' | 'legibility' | null                // product_metrics.product
   plausibleSiteId: string | null
   plausible?: 'declined'         // set only by a Krish-ruling PR; clears rung 3
@@ -82,7 +82,7 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
     tagLiveAt: '2026-09-27T09:56:53Z', consentByDesign: false, neverPublishName: true },
   { prefix: 'legibility', label: 'legibility.io', about: 'legibility.io', host: 'legibility.io', hostAliases: ['www.legibility.io'],
     probeUrl: 'https://legibility.io/', measurementId: 'G-J5173WPD98', env: 'GA4_PROPERTY_LEGIBILITY', defaultId: '556114272',
-    venture: 'legibility', touchpointSlug: null, councilSlug: null, posthogProduct: 'legibility',
+    venture: 'legibility', touchpointSlug: null, councilSlug: 'legibility', posthogProduct: 'legibility',
     plausibleSiteId: null, repo: 'krishanraja/legibility', sitemapUrl: 'https://legibility.io/sitemap.xml',
     rssUrl: null, substackArchiveUrl: null, jobs: [],
     goal: 'Undecided. Retired in the registry on 11 August, then built, priced and tagged in September.',

@@ -28,6 +28,10 @@ export const VENTURE_OPTIONS: Array<{ slug: string; label: string }> = [
   { slug: 'fractionl_circle', label: 'Circle' },
   { slug: 'fractionl_pulse', label: 'Pulse' },
   { slug: 'full_time', label: 'Full Time' },
+  // Added 2026-10-05 with the portfolio ranking (src/lib/portfolio.ts):
+  // Heartside is new, Legibility is re-armed.
+  { slug: 'heartside', label: 'Heartside' },
+  { slug: 'legibility', label: 'Legibility' },
   { slug: 'investor', label: 'Investor' },
 ]
 
@@ -53,7 +57,6 @@ export const VENTURE_LABELS: Record<string, string> = {
   mymu: 'MYMU (retired)',
   builder_economy: 'Builder Economy (retired)',
   signal_noise: 'Signal & Noise (retired as a venture)',
-  legibility: 'Legibility (retired)',
   adfixus: 'AdFixus (retired)',
   meliora: 'Meliora (retired)',
   // The database holds a bare `fractionl` on 19 primary_venture rows and 414

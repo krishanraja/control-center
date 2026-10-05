@@ -15,6 +15,14 @@ export interface RevenueSummary {
   as_of: string
   /** When the Stripe pull last wrote the revenue tables. Null before the first sync. */
   synced_at?: string | null
+  /** The part of the figures above that came through the Substack. Already inside them, never added. Absent on an older deploy. */
+  substack?: {
+    active_subscriptions: number
+    committed_mrr_usd_cents: number
+    committed_mrr_other: Array<{ currency: string; cents: number }>
+    collected_30d_net_cents: number
+    collected_all_time_net_cents: number
+  }
 }
 
 /** Fired after a manual Stripe sync so ledger readers reload without waiting a poll. */
@@ -100,7 +108,7 @@ export function useRevenue(pollMs = 300_000) {
 }
 
 /** "$14.75/mo + A$9.58/mo" — non-USD plans stay in their own currency. */
-export function formatCommittedMrr(r: RevenueSummary | null): string {
+export function formatCommittedMrr(r: Pick<RevenueSummary, 'committed_mrr_usd_cents' | 'committed_mrr_other'> | null | undefined): string {
   if (!r) return '—'
   const parts: string[] = [`$${(r.committed_mrr_usd_cents / 100).toFixed(2)}`]
   for (const o of r.committed_mrr_other) {

@@ -1,4 +1,5 @@
 import { ventureLabel } from './ventureOptions'
+import { GROWTH_ORDER } from './portfolio'
 /**
  * Growth tab: shared types, labels and small pure helpers.
  *
@@ -9,7 +10,7 @@ import { ventureLabel } from './ventureOptions'
  * will reject.
  */
 
-export type ProductSlug = 'ctrl' | 'circle' | 'pulse' | 'full-time' | 'mindmake'
+export type ProductSlug = 'heartside' | 'full-time' | 'legibility' | 'ctrl' | 'pulse' | 'mindmake' | 'circle'
 export type Channel =
   | 'seo' | 'geo' | 'social_organic' | 'social_paid' | 'substack'
   | 'partner' | 'community' | 'product' | 'podcast' | 'maven'
@@ -93,7 +94,11 @@ export interface SocialAccountRow {
   notes: string | null
 }
 
-export const PRODUCTS: ProductSlug[] = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmake']
+// Priority order, from the one portfolio list (src/lib/portfolio.ts): the
+// ranked products first, then the two Growth still tracks without a rank.
+// Subscriptions and the Sunday review read the same list, so the three never
+// disagree about which products exist or which comes first.
+export const PRODUCTS: ProductSlug[] = GROWTH_ORDER as ProductSlug[]
 
 // The words come from the venture registry mirror, not from here. This map
 // used to hold its own spellings and they had drifted: "mm-ctrl" where every
@@ -107,6 +112,8 @@ export const PRODUCT_LABEL: Record<ProductSlug, string> = Object.fromEntries(
 // Hue family matches the Subscriptions tab so one product wears one colour
 // across the OS. Literal class strings so the Tailwind scanner sees them.
 export const PRODUCT_TONE: Record<ProductSlug, string> = {
+  heartside: 'text-rose-300 bg-rose-500/10 border-rose-500/20',
+  legibility: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
   ctrl: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
   circle: 'text-violet-300 bg-violet-500/10 border-violet-500/20',
   pulse: 'text-sky-300 bg-sky-500/10 border-sky-500/20',

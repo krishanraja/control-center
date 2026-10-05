@@ -91,7 +91,8 @@ test('latestWeek and splitReviews: one per product for the newest week, the rest
   assert.equal(latestWeek([]), null)
   const s = splitReviews([...LIVE_REVIEWS].reverse())
   assert.equal(s.latest, '2026-09-21')
-  assert.deepEqual(s.thisWeek.map(r => r.product_slug), PRODUCTS5, 'house product order')
+  // Priority order (src/lib/portfolio.ts, Krish 2026-10-05): ranked first, then the unranked two.
+  assert.deepEqual(s.thisWeek.map(r => r.product_slug), ['full-time', 'ctrl', 'pulse', 'mindmake', 'circle'], 'house product order')
   assert.equal(s.older.length, 20)
   assert.equal(s.older[0].week_start, '2026-09-14', 'newest older week first')
   assert.equal(s.older[s.older.length - 1].week_start, '2026-08-24')
@@ -455,8 +456,9 @@ const SIG_CARDS: any[] = [
 test('productSignals: rate, trend, visits, rank, clips and places per product, with honest nulls', () => {
   const { products, totals } = productSignals({ probes: PROBES, web: WEB, seo: SEO, cards: SIG_CARDS, touchpoints: TOUCHPOINTS }, SUN_NOON)
   assert.deepEqual(products.map(p => [p.slug, p.label, p.core]), [
-    ['ctrl', 'CTRL', true], ['circle', 'Circle', true], ['pulse', 'Pulse', true], ['full-time', 'Full Time', true], ['mindmake', 'Advisory', true],
-    ['legibility', 'Legibility (retired)', false], ['publication', 'Media', false],
+    ['heartside', 'Heartside', true], ['full-time', 'Full Time', true], ['legibility', 'Legibility', true],
+    ['ctrl', 'CTRL', true], ['pulse', 'Pulse', true], ['mindmake', 'Advisory', true], ['circle', 'Circle', true],
+    ['publication', 'Media', false],
   ])
   const by = Object.fromEntries(products.map(p => [p.slug, p]))
   assert.deepEqual([by.mindmake.aiAnswers.mentioned, by.mindmake.aiAnswers.asked, by.mindmake.aiAnswers.rate], [4, 20, 0.2])
@@ -495,7 +497,7 @@ test('productSignals: rate, trend, visits, rank, clips and places per product, w
 
 test('productSignals with nothing measured: every number null or zero-of-zero, never invented', () => {
   const { products, totals } = productSignals({}, SUN_NOON)
-  assert.equal(products.length, 5)
+  assert.equal(products.length, 7)
   for (const p of products) {
     assert.equal(p.aiAnswers.rate, null)
     assert.equal(p.visits, null)

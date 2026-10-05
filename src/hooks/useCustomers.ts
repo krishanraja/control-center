@@ -16,6 +16,7 @@ export type CustomerProduct =
   | 'mindmake'
   | 'publication'
   | 'tech0nomic'
+  | 'heartside'
 
 export interface CustomerRow {
   id: string
@@ -71,6 +72,9 @@ const ALL_PRODUCTS: CustomerProduct[] = [
   'fractionl_circle', 'fractionl_pulse', 'mm_ctrl',
   'legibility', 'full_time',
   'mindmake', 'publication', 'tech0nomic',
+  // Added 2026-10-05 (migration 20261005120000). Shopify orders do not reach
+  // the ledger yet, so the bucket stays empty until they do.
+  'heartside',
 ]
 
 /**
@@ -181,6 +185,7 @@ export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   // Retired as a brand 2026-08-06 and folded into Mindmake LIVE. The enum value
   // stays (Postgres enums cannot drop values) and existing rows keep rendering.
   tech0nomic: 'Techonomic (retired)',
+  heartside: 'Heartside',
 }
 
 export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
@@ -195,6 +200,7 @@ export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
   mindmake: 'bg-teal-400',
   publication: 'bg-cyan-400',
   tech0nomic: 'bg-indigo-400',
+  heartside: 'bg-rose-300',
 }
 
 // Bordered-chip tone triple (text / bg / border) — same hue family as
@@ -214,6 +220,7 @@ export const PRODUCT_CHIP_TONE: Record<CustomerProduct, string> = {
   mindmake: 'text-teal-300 bg-teal-500/10 border-teal-500/20',
   publication: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
   tech0nomic: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20',
+  heartside: 'text-rose-300 bg-rose-500/10 border-rose-500/20',
 }
 
 export const KIND_ACCENT: Record<CustomerKind, string> = {

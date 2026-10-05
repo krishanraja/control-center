@@ -24,8 +24,11 @@ const COVERAGE_WORDS: Record<Coverage, string> = {
   unaddressed: 'Not started', in_progress: 'Working on it', covered: 'Covered', retired: 'Retired',
 }
 
-/** Advisory first: it is the only product AI answers already name. */
-const ORDER: ProductSlug[] = ['mindmake', ...PRODUCTS.filter(p => p !== 'mindmake')]
+/**
+ * Priority order (src/lib/portfolio.ts), the same order Subscriptions and the
+ * Sunday review use. Was Advisory first until the 2026-10-05 ranking.
+ */
+const ORDER: ProductSlug[] = PRODUCTS
 
 export function PlacesView({ m, mobile, wide, compose, onComposed }: {
   m: GrowthTabModel; mobile: boolean; wide: boolean

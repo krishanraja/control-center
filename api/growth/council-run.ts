@@ -6,6 +6,7 @@ import { callClaude, robustJson, VOICE_GUARDRAILS } from '../_content.js'
 import { mondayOf } from '../_growth.js'
 import { cleanCopy as CLEAN } from '../_webInsightsCore.js'
 import { WEB_PROPERTIES, type HealthVerdict, type HealthFlag } from '../../src/lib/webProperties.js'
+import { GROWTH_ORDER, PORTFOLIO, UNRANKED_GROWTH } from '../../src/lib/portfolio.js'
 
 /**
  * /api/growth/council-run - the weekly growth council.
@@ -37,29 +38,27 @@ import { WEB_PROPERTIES, type HealthVerdict, type HealthFlag } from '../../src/l
  * skip, it never fails the run.
  */
 
-const PRODUCTS = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmake'] as const
-type ProductSlug = (typeof PRODUCTS)[number]
+// The products the review covers, in priority order, from the one portfolio
+// list (src/lib/portfolio.ts) that Growth and Subscriptions also read. A
+// product with no live places is skipped with 'no_active_touchpoints', so a
+// new product costs nothing until its places map exists.
+const PRODUCTS = GROWTH_ORDER as readonly ProductSlug[]
+type ProductSlug = 'heartside' | 'full-time' | 'legibility' | 'ctrl' | 'pulse' | 'mindmake' | 'circle'
 
 // customers.product is an enum with its own historical naming.
-const CUSTOMER_PRODUCTS: Record<ProductSlug, string[]> = {
-  ctrl: ['mm_ctrl'],
-  circle: ['fractionl_circle'],
-  pulse: ['fractionl_pulse'],
-  'full-time': ['full_time'],
-  mindmake: ['mindmake', 'makeyourmindup', 'publication'],
-}
+const CUSTOMER_PRODUCTS: Record<string, string[]> = Object.fromEntries([
+  ...PORTFOLIO.map(p => [p.growthSlug, p.customerProduct ? [p.customerProduct] : []] as const),
+  ...UNRANKED_GROWTH.map(p => [p.growthSlug, p.customerProducts] as const),
+])
 
 // Products that emit into the attribution warehouse do so under an `app` name.
 // Resolved against live data at runtime (candidates below) so a newly wired
 // emitter is picked up without a code change, and an unwired one reads honestly
 // as unknown rather than as zero.
-const APP_CANDIDATES: Record<ProductSlug, string[]> = {
-  ctrl: ['ctrl'],
-  circle: ['circle'],
-  pulse: ['pulse'],
-  'full-time': ['full-time', 'fulltime', 'full_time'],
-  mindmake: ['mindmake'],
-}
+const APP_CANDIDATES: Record<string, string[]> = Object.fromEntries([
+  ...PORTFOLIO.map(p => [p.growthSlug, p.attributionApps] as const),
+  ...UNRANKED_GROWTH.map(p => [p.growthSlug, p.attributionApps] as const),
+])
 
 const GEO_WINDOW_DAYS = 30
 const WEEKS_OF_HISTORY = 4
@@ -293,7 +292,7 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
   if (!productProbes.length) unknowns.push(`GEO citation rate is UNKNOWN for ${slug}: no probe has run in the last ${GEO_WINDOW_DAYS} days.`)
 
   // --- attribution (top of funnel) ----------------------------------------
-  const app = APP_CANDIDATES[slug].find(c => ctx.health.some(h => h.app === c)) ?? null
+  const app = (APP_CANDIDATES[slug] ?? []).find(c => ctx.health.some(h => h.app === c)) ?? null
   let status: Evidence['attribution']['status'] = 'no_emitter_wired'
   let lastEventAt: string | null = null
   let daysSince: number | null = null
@@ -346,7 +345,7 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
   }
 
   // --- revenue truth (customers table) ------------------------------------
-  const custProducts = CUSTOMER_PRODUCTS[slug]
+  const custProducts = CUSTOMER_PRODUCTS[slug] ?? []
   const cust = ctx.customers.filter(c => custProducts.includes(String(c.product)))
   const paidLive = cust.filter(c => c.kind === 'paid' && !c.churned_at)
   const churned = cust.filter(c => !!c.churned_at)
