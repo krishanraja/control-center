@@ -47,7 +47,7 @@ const read = (p: string) => readFileSync(p, 'utf8')
 
 const SCORE_LIB = 'api/_visibilityScore.ts'
 const SCORE_ROUTE = 'api/visibility-targets/score.ts'
-const MIGRATION = 'supabase/migrations/20261005140000_novas_standard.sql'
+const MIGRATION = 'supabase/migrations/20261005160000_novas_standard.sql'
 const HOOK = 'src/hooks/useVisibilityTargets.ts'
 const CLIENT_GATE = 'src/lib/visibilityStandard.ts'
 const SCALE = 'src/lib/visibilityScale.ts'
