@@ -424,6 +424,13 @@ export const WORKFLOW_RUNS = Array.from({ length: 48 }, (_, i) => ({
   started_at: daysAgo(i % 3),
   finished_at: daysAgo(i % 3),
   error: null,
+  // The columns the surfaces actually read (OS > Flows groups by
+  // workflow_id and names by workflow_name; Org matches agent_id). Without
+  // them Flows measured one nameless row that had "never run".
+  workflow_id: `flow_${i % 8}`,
+  workflow_name: ['cleo_daily_brief', 'maya_expansion_scan', 'nova_visibility_sweep', 'arlo_health_check', 'vera_feedback_audit', 'marcus_read', 'agatha_review', 'hunter_process'][i % 8],
+  agent_id: ['cleo', 'maya', 'nova', 'arlo', 'vera', 'marcus', 'agatha', null][i % 8],
+  run_at: daysAgo(i % 3),
 }))
 
 export const CONTACTS = Array.from({ length: 60 }, (_, i) => ({

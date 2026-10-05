@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AppFrame } from './components/shared/AppFrame'
 import { ToastProvider } from './components/shared/Toast'
 import { OfflineLine } from './components/shared/OfflineLine'
 import { AmbientField } from './components/shared/AmbientField'
@@ -374,15 +375,36 @@ export default function App() {
               // lane switcher and the next action stay put while the list
               // moves under them — instead of the whole page sliding and the
               // instruction leaving the screen.
-              <div className="h-full overflow-hidden flex flex-col px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))]">
+              //
+              // The ⌘I / ⌘/ pill gutter is reserved INSIDE each tab's own
+              // scroller (AppFrame `capturePills`, or CAPTURE_PILLS_PAD on a
+              // split pane), never by shortening this frame. Shortened, every
+              // scroller here ended 96px above the bottom of the window and
+              // sliced its last row through: measured at 1440x900 on
+              // 2026-10-05, Customers, People (Network, Hunt, Advisory) and OS
+              // (Org, Intel, Flows, Systems) all stopped at 804 of 900, the
+              // same cut-off #389 fixed on Content. Focus had no scroller at
+              // all, so anything past 804 was simply clipped; its wrapper is
+              // the scroller now. Board is not ours to move and keeps the old
+              // clearance until its own scroller takes the pills.
+              tab === 'focus' ? (
+                <Suspense fallback={<DesktopRouteFallback />}>
+                  <ErrorBoundary label="Focus">
+                    <AppFrame capturePills bodyTestId="focus-scroll" bodyClassName="px-6 pt-6">
+                      <FocusPurposeTab variant="desktop" steadyEntry={params.steady === '1'} />
+                    </AppFrame>
+                  </ErrorBoundary>
+                </Suspense>
+              ) : (
+              <div className={`h-full overflow-hidden flex flex-col px-6 pt-6 ${tab === 'board' ? 'pb-[calc(1.5rem+var(--capture-gutter))]' : 'pb-6'}`}>
                 <Suspense fallback={<DesktopRouteFallback />}>
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow={false} params={params} onNavigate={navigate} />}
-                  {tab === 'focus'     && <ErrorBoundary label="Focus"><FocusPurposeTab variant="desktop" steadyEntry={params.steady === '1'} /></ErrorBoundary>}
                   {tab === 'board'     && <ErrorBoundary label="Board"><div className="px-8 pt-6 h-full overflow-y-auto pb-16"><WorkBoard /></div></ErrorBoundary>}
                 </Suspense>
               </div>
+              )
             )}
           </main>
           {/* Hide the tab bar while a full-screen content overlay owns the screen.

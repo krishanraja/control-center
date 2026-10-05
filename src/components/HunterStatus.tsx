@@ -8,7 +8,7 @@ import { useToast } from './shared/Toast'
 // Pipeline sheet (canon 9.13 makes it the approval surface), so the waiting
 // count links there rather than pretending the decision happens here.
 
-const SHEET_URL =
+export const SHEET_URL =
   'https://docs.google.com/spreadsheets/d/1AQ8OyprIyJmJ9K7ezjIxkW0uzjGT0TqzRjKtG-NXNOk/edit#gid=708873267'
 
 interface HunterStatusPayload {
@@ -58,7 +58,12 @@ function until(iso: string): string {
   return `in ${Math.round(hrs / 24)}d`
 }
 
-export function HunterStatus() {
+/**
+ * Hunter's state and its three commands, as a hook, so the Hunt lane can lead
+ * with one move built from the same read (src/lib/surfaceMoves.ts `huntMove`)
+ * while this strip stays the evidence under it.
+ */
+export function useHunterStatus() {
   const [s, setS] = useState<HunterStatusPayload | null>(null)
   const [commands, setCommands] = useState<Command[]>([])
   const [busy, setBusy] = useState<string | null>(null)
@@ -103,11 +108,21 @@ export function HunterStatus() {
     }
   }
 
-  const inFlight = commands.find(c => c.state === 'queued' || c.state === 'running')
-  const lastDone = commands.find(c => c.state === 'done' || c.state === 'failed')
+  const inFlight = commands.find(c => c.state === 'queued' || c.state === 'running') ?? null
+  const lastDone = commands.find(c => c.state === 'done' || c.state === 'failed') ?? null
+  const failing = !!s && (!!s.alert || s.lastRun?.status === 'error')
+  const failLine = s?.lastRun && failing
+    ? `Last run failed ${ago(s.lastRun.run_at)}. ${s.alert?.detail || s.lastRun.error_message || ''}`.trim()
+    : null
+  return { s, busy, queue, inFlight, lastDone, failing, failLine }
+}
 
+export type HunterStatusModel = ReturnType<typeof useHunterStatus>
+
+/** The evidence under the Hunt lane's move: is hunter alive, and the counts. */
+export function HunterStatus({ hunter }: { hunter: HunterStatusModel }) {
+  const { s, busy, queue, inFlight, lastDone, failing } = hunter
   if (!s) return null
-  const failing = !!s.alert || s.lastRun?.status === 'error'
 
   return (
     <section
@@ -176,7 +191,7 @@ export function HunterStatus() {
           onClick={() => queue('process')}
           disabled={busy === 'process'}
           data-testid="hunter-process"
-          className="col-span-2 sm:col-auto flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg bg-violet-500/20 border border-violet-400/30 text-violet-100 hover:bg-violet-500/30 disabled:opacity-50 text-label font-semibold transition-colors"
+          className="col-span-2 sm:col-auto flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-ink-muted hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
         >
           {busy === 'process' ? <Working size={12} /> : <Play size={12} />}
           Process my verdicts

@@ -3,6 +3,7 @@ import { ChevronRight } from '@/lib/icons'
 import { MobileShell, TabHeader, MobileLoadingScreen } from '../mobile/primitives'
 import { AskMarcus } from '../AskMarcus'
 import { Eyebrow } from '../shared/Eyebrow'
+import { CAPTURE_PILLS_PAD } from '../shared/AppFrame'
 import { SpendDetailSheet } from './SpendDetailSheet'
 import { BetsSheet } from './BetsSheet'
 import { MarcusReadSheet } from './MarcusReadSheet'
@@ -37,7 +38,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
   const { intel, loading } = useHomeIntelligence()
   const { spend } = useSpend()
 
-  const [open, setOpen] = useState<string | null>(narrow ? null : 'decide')
+  const [open, setOpen] = useState<string | null>(null)
   const [servicesOpen, setServicesOpen] = useState(false)
   const [betsOpen, setBetsOpen] = useState(false)
   const [briefOpen, setBriefOpen] = useState(false)
@@ -151,7 +152,13 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
   }
 
   // ── Desktop: the rail and the pane ───────────────────────────────────────
-  const active = questions.find(q => q.id === open) || questions[4]
+  // The pane opens on the question that needs him, not always on the last
+  // one: something broken or charging before "what should I decide", which
+  // used to be open even while a connection was down three rows above it.
+  // Growth's rule, applied to an interrogation: lead with the one thing to do.
+  // The order of the rail never changes; only which answer is open.
+  const urgent = questions.find(q => q.token.tone === 'bad') || questions.find(q => q.token.tone === 'warn')
+  const active = questions.find(q => q.id === open) || urgent || questions[4]
 
   return (
     <div className="mx-auto max-w-[1080px] h-full min-h-0 flex flex-col">
@@ -165,7 +172,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
           short answer — so the surface read as a narrow column with a hole
           where the rest of the screen should be. Measured 2026-09-23: the
           largest unpainted rectangle was 34% of the painted area. */}
-      <div className="mt-5 flex gap-8 flex-1 min-h-0 overflow-y-auto pb-2">
+      <div data-testid="intel-scroll" className={`mt-5 flex gap-8 flex-1 min-h-0 overflow-y-auto ${CAPTURE_PILLS_PAD}`}>
         <div className="flex w-[400px] shrink-0 flex-col" data-testid="bi-questions">
           {questions.map(q => {
             const isOpen = active.id === q.id

@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader,
-  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+  HeaderSubtitleSkeleton, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
 import { Working } from '../shared/Working'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
+import { systemsMove } from '../../lib/surfaceMoves'
 import { useEngineHealth } from '../../hooks/useEngineHealth'
 import { StudioRunners } from '../content-v2/StudioRunners'
 
@@ -106,7 +108,7 @@ export function MobileSystems() {
 
   const open = openId ? services.find(s => s.id === openId) ?? null : null
   const heroIssue = down[0] || warn[0] || null
-  const overallOk = down.length === 0 && warn.length === 0
+  const move = systemsMove({ down, warning: warn, healthy: ok.length, unchecked: unk.length })
 
   if (loading && services.length === 0) {
     return <MobileLoadingScreen title="Systems" subtitle="Checking services…" />
@@ -130,32 +132,26 @@ export function MobileSystems() {
         />
       }
     >
-      {heroIssue ? (
-        <HeroCard
-          eyebrow={`${heroIssue.status === 'red' ? 'Down' : 'Warning'} · ${heroIssue.category}`}
-          dotColor={STATUS_DOT[heroIssue.status]}
-          accent={heroIssue.status === 'red' ? 'red' : 'amber'}
-          title={heroIssue.name}
-          detail={heroIssue.note || undefined}
-          meta={heroIssue.last_checked ? `Last check ${humanAgo(heroIssue.last_checked)}` : undefined}
-          cta="Open"
-          onClick={() => { h.select(); setOpenId(heroIssue.id) }}
+      {/* The same one move as the desk (src/lib/surfaceMoves.ts). It replaced
+          a hero card that called a board of unchecked services "All systems
+          healthy, 0 reporting green", over three pills printing zeros. */}
+      {services.length > 0 && (
+        <DoThisNextHero
+          testId="systems-move"
+          stackAction
+          narrow
+          busy={refreshing}
+          descriptor={{
+            headline: move.headline,
+            sub: move.sub,
+            actionLabel: move.kind === 'down' || move.kind === 'warning' ? 'Open' : move.actionLabel,
+            tone: move.tone,
+            clear: move.clear,
+          }}
+          onAct={heroIssue ? () => { h.select(); setOpenId(heroIssue.id) } : move.clear ? undefined : () => { void liveRefresh() }}
+          why={move.why}
         />
-      ) : overallOk && services.length > 0 ? (
-        <HeroCard
-          eyebrow="All clear"
-          accent="emerald"
-          dotColor="bg-emerald-400"
-          title="All systems healthy"
-          detail={`${ok.length} services reporting green${unk.length > 0 ? `, ${unk.length} unchecked` : ''}.`}
-        />
-      ) : null}
-
-      <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Down"    value={down.length}  color={down.length > 0 ? 'text-red-300' : 'text-ink-faint'} />
-        <StatPill label="Warn"    value={warn.length}  color={warn.length > 0 ? 'text-amber-300' : 'text-ink-faint'} />
-        <StatPill label="Healthy" value={ok.length}    color={ok.length > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
-      </div>
+      )}
 
       {studioRunners ? <StudioRunners runners={studioRunners} onSwitched={engineHealth.refresh} /> : null}
 

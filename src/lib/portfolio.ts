@@ -69,6 +69,13 @@ export interface PortfolioProduct {
   /** The attribution warehouse `app` name candidates, for the weekly review. */
   attributionApps: string[]
   sources: Record<MetricKey, MetricSource>
+  /**
+   * Where Krish reads numbers the OS does not, by his choice. The listed
+   * metrics render as a link out to `href` instead of "Not wired", and they
+   * drop out of "Wire next": they are not a gap the OS failed to fill, they
+   * are measured somewhere else on purpose. Never a zero, never an MRR.
+   */
+  externalDashboard?: { href: string; label: string; metrics: MetricKey[]; why: string }
 }
 
 const REVIEW: MetricSource = { source: 'The Sunday growth review (growth_council_reviews)' }
@@ -89,6 +96,16 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       suggestions: REVIEW,
       hacks: PLACES,
       revenue: { source: null, gap: 'Shopify orders are not read by the OS.', fix: 'Give the OS a read-only Shopify Admin API token.' },
+    },
+    // Ruling (Krish, 2026-10-05): Heartside takes payment through Shopify
+    // Payments, not Stripe, and he reads its visits, sign-ups and orders in
+    // Shopify itself for now: "just link it out". One-off orders, so never an
+    // MRR or "paying subscribers"; reported in USD.
+    externalDashboard: {
+      href: 'https://admin.shopify.com/store/bnf1em-ge/analytics',
+      label: 'Shopify',
+      metrics: ['analytics', 'signups', 'revenue'],
+      why: 'Heartside sells one-off orders through Shopify Payments, so its visits, sign-ups and orders are read in Shopify, in USD.',
     },
   },
   {

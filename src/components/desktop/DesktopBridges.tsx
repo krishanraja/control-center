@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
-import { CheckCircle2, ExternalLink, FileText, Mail, Target } from '@/lib/icons'
+import { AlertTriangle, CheckCircle2, ExternalLink, FileText, Mail, Play, Send, Target } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { Eyebrow } from '../shared/Eyebrow'
 import { BridgeCard } from '../BridgeCard'
-import { HunterStatus } from '../HunterStatus'
+import { HunterStatus, SHEET_URL, useHunterStatus } from '../HunterStatus'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
+import { huntMove, type HuntMoveKind } from '../../lib/surfaceMoves'
 import { FreshnessLine } from '../shared/FreshnessLine'
 import { AppFrame } from '../shared/AppFrame'
 import { SurfaceHeader } from '../shared/SurfaceHeader'
@@ -11,6 +13,8 @@ import { useBridges } from '../../hooks/useBridges'
 import { useHuntRoles, type HuntRole } from '../../hooks/useHuntRoles'
 import { contactAction, copyText } from '../../lib/contactAction'
 import { useToast } from '../shared/Toast'
+
+type Toast = ReturnType<typeof useToast>['toast']
 
 // The Hunt lane: the roles Krish said Yes to on the Pipeline sheet, each with
 // its package and the person who can get him in. Verdicts are given on the
@@ -41,6 +45,21 @@ function packageLine(r: HuntRole): string {
   return 'Package builds on the next Process run'
 }
 
+function roleAction(r: HuntRole) {
+  return r.person ? contactAction(r.person, r.bridge?.ask || '', { role: r.title, company: r.company }) : null
+}
+
+/** One click to contact, from the row or from the lane's move: the same act either way. */
+async function contactRole(r: HuntRole, toast: Toast) {
+  const action = roleAction(r)
+  if (!action) return
+  let copied = true
+  if (action.copies) copied = await copyText(r.bridge?.ask || '')
+  if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
+  toast(copied ? action.note
+    : 'Could not reach the clipboard. Open the Hunt card to copy the draft by hand.')
+}
+
 function RoleRow({ r }: { r: HuntRole }) {
   const { toast } = useToast()
   const built = !!(r.cv_url && r.letter_url)
@@ -48,18 +67,8 @@ function RoleRow({ r }: { r: HuntRole }) {
   // Krish 2026-09-15: every network suggestion is one click to contact. The name
   // used to be a link to a profile and nothing more, so the drafted opener stayed
   // on the card he was not looking at.
-  const action = r.person
-    ? contactAction(r.person, r.bridge?.ask || '', { role: r.title, company: r.company })
-    : null
-
-  const contactNow = async () => {
-    if (!action) return
-    let copied = true
-    if (action.copies) copied = await copyText(r.bridge?.ask || '')
-    if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
-    toast(copied ? action.note
-      : 'Could not reach the clipboard. Open the Hunt card to copy the draft by hand.')
-  }
+  const action = roleAction(r)
+  const contactNow = () => contactRole(r, toast)
   return (
     <li className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3" data-testid="hunt-role">
       <div className="flex items-start justify-between gap-3">
@@ -135,7 +144,69 @@ function RoleRow({ r }: { r: HuntRole }) {
 export function BridgesBody({ narrow }: { narrow: boolean }) {
   const { bridges, stateCounts, loading, refetch } = useBridges()
   const hunt = useHuntRoles()
+  const hunter = useHunterStatus()
+  const { toast } = useToast()
   const top = useMemo(() => bridges.slice(0, MAX_CARDS), [bridges])
+
+  // The one move (src/lib/surfaceMoves.ts): a broken hunter, then a person to
+  // write to, then the sheet, then the packages. The lists below are the rest.
+  const move = useMemo(() => huntMove({
+    status: hunter.s ? {
+      failing: hunter.failing,
+      failLine: hunter.failLine,
+      waitingOnKrish: hunter.s.waitingOnKrish,
+      approvedAwaitingBuild: hunter.s.approvedAwaitingBuild,
+    } : null,
+    roles: hunt.roles.map(r => ({
+      id: r.job_id, title: r.title, company: r.company,
+      person: r.person?.name ?? null, applied: !!r.application_state, contactable: !!roleAction(r),
+    })),
+    paths: top.filter(b => b.contact).map(b => ({
+      id: b.bridge_id, person: b.contact!.full_name, title: b.role?.title ?? null, company: b.role?.company ?? null,
+    })),
+    running: hunter.inFlight?.command ?? null,
+  }), [hunter.s, hunter.failing, hunter.failLine, hunter.inFlight, hunt.roles, top])
+
+  const act: Record<HuntMoveKind, (() => void) | undefined> = {
+    fix: () => { void hunter.queue('process') },
+    contact: () => {
+      const r = hunt.roles.find(x => x.person && roleAction(x))
+      if (r) void contactRole(r, toast)
+    },
+    path: () => {
+      const first = top.find(b => b.contact)
+      const el = first ? document.querySelector<HTMLElement>(`[data-bridge-id="${first.bridge_id}"]`) : null
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      el?.querySelector<HTMLElement>('button, a[href]')?.focus({ preventScroll: true })
+    },
+    verdicts: () => { window.open(SHEET_URL, '_blank', 'noopener') },
+    build: () => { void hunter.queue('packages') },
+    running: undefined,
+    clear: undefined,
+  }
+  const icon = move.kind === 'fix' ? <AlertTriangle size={16} className="text-amber-300" />
+    : move.kind === 'contact' || move.kind === 'path' ? <Send size={16} className="text-violet-300" />
+    : move.kind === 'verdicts' ? <ExternalLink size={16} className="text-violet-300" />
+    : move.kind === 'build' ? <FileText size={16} className="text-violet-300" />
+    : move.kind === 'running' ? <Play size={16} className="text-ink-muted" />
+    : <CheckCircle2 size={16} className="text-emerald-400/80" />
+  // Before the roles and the paths are read, "nothing needs you" would be a
+  // guess, so there is no move until they are.
+  const ready = !loading && !hunt.loading
+  const hero = ready && (
+    <DoThisNextHero
+      testId="hunt-move"
+      stackAction={narrow}
+      narrow={narrow}
+      busy={hunter.busy != null}
+      descriptor={{ headline: move.headline, sub: move.sub, actionLabel: move.actionLabel, icon, tone: move.tone, clear: move.clear }}
+      onAct={act[move.kind]}
+      why={move.why}
+    />
+  )
+  // Nothing in the hunt is said once, by the move. The two lists then say
+  // nothing about the same nothing.
+  const quiet = move.kind === 'clear' || move.kind === 'running'
 
   const historyLine = useMemo(() => {
     const parts: string[] = []
@@ -146,13 +217,15 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
   }, [stateCounts])
 
   const header = !narrow && (
-    <SurfaceHeader
-      title="Hunt"
-      description={HUNT_LINE}
-      icon={<Target size={18} className="text-accent" />}
-      meta={<FreshnessLine lane="hunt" />}
-      className="pb-4"
-    />
+    <div className="flex flex-col gap-4 pb-4">
+      <SurfaceHeader
+        title="Hunt"
+        description={HUNT_LINE}
+        icon={<Target size={18} className="text-accent" />}
+        meta={<FreshnessLine lane="hunt" />}
+      />
+      {hero}
+    </div>
   )
 
   if (loading && hunt.loading && bridges.length === 0 && hunt.roles.length === 0) {
@@ -161,7 +234,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
         <BoardSkeleton lanes={1} cardsPerLane={3} hero={false} />
       </div>
     ) : (
-      <AppFrame header={header}>
+      <AppFrame header={header} capturePills bodyTestId="hunt-scroll">
         <BoardSkeleton lanes={1} cardsPerLane={3} hero={false} />
       </AppFrame>
     )
@@ -171,13 +244,17 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
   // lane. On a desk the title is chrome and the roster scrolls under it.
   const body = (
     <>
-      <HunterStatus />
+      {narrow && hero}
+      <HunterStatus hunter={hunter} />
 
+      {/* An empty list on a quiet lane is not a section: the move already
+          said why there is nothing, and a heading over nothing says it again. */}
+      {!(quiet && hunt.roles.length === 0) && (
       <section data-testid="hunt-roles">
         <Eyebrow>Roles you said Yes to</Eyebrow>
         {hunt.roles.length === 0 ? (
           <p className="text-body text-ink-faint mt-2">
-            Nothing marked Yes on the sheet right now. Mark a row Yes and press Process.
+            Nothing marked Yes on the sheet right now.
           </p>
         ) : (
           <ul className={narrow ? 'space-y-3 mt-2' : 'grid grid-cols-1 xl:grid-cols-2 gap-3 mt-2'}>
@@ -185,7 +262,9 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
           </ul>
         )}
       </section>
+      )}
 
+      {!(quiet && top.length === 0 && !historyLine) && (
       <section>
         <Eyebrow>Warmest paths, with a draft</Eyebrow>
         {top.length === 0 ? (
@@ -195,7 +274,9 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
         ) : (
           <div className={narrow ? 'space-y-3 mt-2' : 'grid grid-cols-1 xl:grid-cols-2 gap-4 mt-2'}>
             {top.map(b => (
-              <BridgeCard key={b.bridge_id} bridge={b} onChanged={refetch} />
+              <div key={b.bridge_id} data-bridge-id={b.bridge_id}>
+                <BridgeCard bridge={b} onChanged={refetch} />
+              </div>
             ))}
           </div>
         )}
@@ -203,12 +284,13 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
           <p className="text-label text-ink-faint mt-2">Handled so far: {historyLine}.</p>
         )}
       </section>
+      )}
     </>
   )
 
   return narrow
     ? <div className="space-y-4 px-5">{body}</div>
-    : <AppFrame header={header}><div className="space-y-5 pb-2">{body}</div></AppFrame>
+    : <AppFrame header={header} capturePills bodyTestId="hunt-scroll"><div className="space-y-5 pb-2">{body}</div></AppFrame>
 }
 
 export function DesktopBridges() {

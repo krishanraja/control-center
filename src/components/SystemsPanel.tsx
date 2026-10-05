@@ -7,6 +7,8 @@ import { AppFrame } from './shared/AppFrame'
 import { Eyebrow } from './shared/Eyebrow'
 import { useEngineHealth } from '../hooks/useEngineHealth'
 import { StudioRunners } from './content-v2/StudioRunners'
+import { DoThisNextHero } from './shared/DoThisNextHero'
+import { systemsMove } from '../lib/surfaceMoves'
 
 interface Service {
   id: string
@@ -170,11 +172,25 @@ export function SystemsPanel() {
   const greenCount     = allServices.filter(s => s.status === 'green').length
   const unknownCount   = allServices.filter(s => s.status === 'unknown').length
 
-  const overallOk = downServices.length === 0 && warnServices.length === 0
+  // The one move (src/lib/surfaceMoves.ts `systemsMove`): the first service
+  // down, else the first warning, else nothing. It replaced a hand-rolled
+  // summary bar that named every warning in one comma list and asked for
+  // nothing, beside a meta line reading "from supabase · Next check realtime".
+  const move = systemsMove({ down: downServices, warning: warnServices, healthy: greenCount, unchecked: unknownCount })
+  const lead = downServices[0] || warnServices[0]
+  const onAct = move.kind === 'down' && lead?.url
+    ? () => window.open(lead.url, '_blank', 'noopener')
+    : move.kind === 'clear' ? undefined : () => { void liveRefresh() }
+  // Worst first: a category with a service down, then a warning, then the
+  // unchecked, then the healthy. The board reads in the order it needs you.
+  const rank = (c: Category) => c.services.some(x => x.status === 'red') ? 0
+    : c.services.some(x => x.status === 'amber') ? 1
+    : c.services.every(x => x.status === 'unknown') ? 2 : 3
+  const ordered = data ? [...data.categories].sort((a, b) => rank(a) - rank(b)) : []
 
   if (loading && !data) {
     return (
-      <AppFrame header={<div className="pb-4"><SurfaceHeader title="Systems" description="Checking every connected service…" /></div>}>
+      <AppFrame capturePills bodyTestId="systems-scroll" header={<div className="pb-4"><SurfaceHeader title="Systems" description="Checking every connected service…" /></div>}>
         <BoardSkeleton lanes={2} cardsPerLane={4} hero={false} />
       </AppFrame>
     )
@@ -189,6 +205,8 @@ export function SystemsPanel() {
   // screenshot either.
   return (
     <AppFrame
+      capturePills
+      bodyTestId="systems-scroll"
       header={<div className="space-y-4 pb-4">
       <SurfaceHeader
         title="Systems"
@@ -204,49 +222,23 @@ export function SystemsPanel() {
         </button>}
       />
 
-      {/* Summary bar */}
-      <div className={`rounded-xl border px-4 py-3 ${overallOk ? 'border-emerald-500/20 bg-emerald-500/[0.04]' : downServices.length > 0 ? 'border-red-500/20 bg-red-500/[0.04]' : 'border-amber-500/20 bg-amber-500/[0.04]'}`}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${overallOk ? 'bg-emerald-400 shadow-emerald-400/60' : downServices.length > 0 ? 'bg-red-400 shadow-red-400/60 animate-pulse' : 'bg-amber-400 shadow-amber-400/60'} shadow-sm`} />
-              <span className={`text-label font-bold ${overallOk ? 'text-emerald-400' : downServices.length > 0 ? 'text-red-400' : 'text-amber-400'}`}>
-                {overallOk ? 'All systems nominal' : downServices.length > 0 ? `${downServices.length} service${downServices.length > 1 ? 's' : ''} down` : `${warnServices.length} warning${warnServices.length > 1 ? 's' : ''}`}
-              </span>
-            </div>
-            {overallOk && (
-              <p className="text-micro text-ink-muted pl-4">Nothing here needs you. Real failures land on Home.</p>
-            )}
-            {downServices.length > 0 && (
-              <p className="text-micro text-red-300 pl-4">
-                Down: {downServices.map(s => s.name).join(', ')}
-              </p>
-            )}
-            {warnServices.length > 0 && (
-              <p className="text-micro text-amber-300 pl-4">
-                Warning: {warnServices.map(s => s.name).join(', ')}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3 text-micro flex-shrink-0 pt-0.5">
-            {greenCount > 0    && <span className="text-emerald-400">{greenCount} healthy</span>}
-            {warnServices.length > 0 && <span className="text-amber-400">{warnServices.length} warning</span>}
-            {downServices.length > 0 && <span className="text-red-400">{downServices.length} down</span>}
-            {unknownCount > 0  && <span className="text-ink-muted">{unknownCount} unchecked</span>}
-          </div>
-        </div>
-      </div>
-
-      {/* Meta */}
-      {data && (
-        <div className="flex items-center gap-2 text-micro text-ink-faint">
-          <span>Read {timeAgo(data.updated_at)} from {data.updated_by}</span>
-          {/* The one sanctioned character mark is the middle dot. A pipe is a
-              text glyph used as chrome, which the icon rules do not allow. */}
-          <span aria-hidden>·</span>
-          <span>Next check {data.next_check}</span>
-        </div>
-      )}
+      <DoThisNextHero
+        testId="systems-move"
+        busy={refreshing}
+        descriptor={{
+          headline: move.headline,
+          sub: move.sub,
+          actionLabel: move.actionLabel,
+          tone: move.tone,
+          clear: move.clear,
+          icon: move.kind === 'down' ? <XCircle size={16} className="text-red-400" />
+            : move.kind === 'warning' ? <AlertTriangle size={16} className="text-amber-400" />
+            : move.kind === 'unchecked' ? <HelpCircle size={16} className="text-ink-faint" />
+            : <CheckCircle2 size={16} className="text-emerald-400/80" />,
+        }}
+        onAct={onAct}
+        why={move.why}
+      />
       </div>}
     >
       <div className="space-y-5 pb-2">
@@ -257,15 +249,14 @@ export function SystemsPanel() {
       {/* Grid */}
       {data && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {data.categories.map(cat => <CategoryBlock key={cat.id} category={cat} />)}
+          {ordered.map(cat => <CategoryBlock key={cat.id} category={cat} />)}
         </div>
       )}
 
       {/* Arlo note */}
       <div className="rounded-xl border border-accent/15 bg-accent/[0.04] px-4 py-3">
         <p className="text-micro text-violet-300/50 leading-relaxed">
-          <strong className="text-violet-300/70">Arlo</strong> checks these every 15 minutes and writes them to the <code className="text-micro bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
-          Nothing is pushed to you. A real failure shows on Home.
+          <strong className="text-violet-300/70">Arlo</strong> checks these every 15 minutes. Nothing is pushed to you, and a real failure also shows on Home.
         </p>
       </div>
       </div>

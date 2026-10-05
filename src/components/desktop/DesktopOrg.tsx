@@ -7,7 +7,9 @@ import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { FlagAgentModal } from '../FlagAgentModal'
-import { NextOrgHero } from '../org/NextOrgHero'
+import { NextOrgHero, orgRulings } from '../org/NextOrgHero'
+import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
+import { agentKey, rosterWork, taskStatusWord, type RosterWork } from '../../lib/rosterWork'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
@@ -134,6 +136,21 @@ export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loaded, setLoaded] = useState(false)
   const pendingCorrections = usePendingCorrections(5)
+  // What each agent is doing and what it waits on Krish for, across the whole
+  // roster (rules in src/lib/rosterWork.ts). Without it the cards said only who an
+  // agent is, and the rulings Home counts and routes here were nowhere on the page.
+  const { waiting } = useWaitingDecisions()
+  const rulings = useMemo(() => orgRulings(waiting), [waiting])
+  const [rosterTasks, setRosterTasks] = useState<any[]>([])
+  const [rosterRuns, setRosterRuns] = useState<any[]>([])
+  useEffect(() => {
+    supabase.from('tasks').select('id,title,status,owner,agent,updated_at').not('status', 'in', '(done,superseded)')
+      .order('updated_at', { ascending: false }).limit(400)
+      .then(({ data }) => setRosterTasks((data as any[]) || []))
+    supabase.from('workflow_runs').select('agent_id,agent,status,run_at').order('run_at', { ascending: false }).limit(200)
+      .then(({ data }) => setRosterRuns((data as any[]) || []))
+  }, [])
+  const work: RosterWork = useMemo(() => rosterWork(rosterTasks, rosterRuns, rulings), [rosterTasks, rosterRuns, rulings])
 
   // CLO-005 (audit 2026-05-26): react to ?correction=:id in hash. If a
   // matching pending correction exists, scroll its row into view and
@@ -305,6 +322,12 @@ export function DesktopOrg() {
     return [...knownKeys, ...extraKeys].map(k => ({ pod: podOf(k), members: map.get(k)! }))
   }, [agents])
 
+  const openAgent = (who: string) => {
+    const k = agentKey(who)
+    const hit = agents.find(a => agentKey(a.id) === k || agentKey(a.name) === k)
+    if (hit) setSelectedId(hit.id)
+  }
+
   const focusCorrection = (correction: PendingCorrection) => {
     const el = document.querySelector(`[data-correction-id="${correction.id}"]`) as HTMLElement | null
     if (el) {
@@ -351,6 +374,7 @@ export function DesktopOrg() {
             onFlag={(id, name) => setFlagTarget({ id, name })}
             onTrigger={triggerAgent}
             triggering={triggering}
+            work={work}
           />
         ))}
       </div>
@@ -445,13 +469,13 @@ export function DesktopOrg() {
               <p className="text-micro text-ink-faint">No active tasks.</p>
             ) : (
               <div className="space-y-1.5">
-                {detail.tasks.slice(0, 8).map((t: any) => (
+                {[...detail.tasks].sort((a: any, b: any) => (a.status === 'waiting' ? 0 : 1) - (b.status === 'waiting' ? 0 : 1)).slice(0, 8).map((t: any) => (
                   <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                       t.status === 'waiting' ? 'bg-amber-400 animate-pulse' : t.status === 'active' ? 'bg-emerald-400' : t.status === 'in_progress' ? 'bg-blue-400' : 'bg-white/20'
                     }`} />
                     <p className="text-label text-ink-muted truncate flex-1">{t.title}</p>
-                    <span className="text-micro text-ink-faint">{t.status}</span>
+                    <span className={`text-micro ${t.status === 'waiting' ? 'text-amber-300 font-medium' : 'text-ink-faint'}`}>{taskStatusWord(t.status)}</span>
                   </div>
                 ))}
               </div>
@@ -510,10 +534,14 @@ export function DesktopOrg() {
       <NextOrgHero
         corrections={pendingCorrections.data}
         agentCount={agents.length}
+        rulings={rulings}
+        working={agents.filter(a => work.byAgent.get(agentKey(a.id))?.now || work.byAgent.get(agentKey(a.name))?.now).length}
+        failing={work.worstFailing}
         onReview={focusCorrection}
+        onOpenAgent={openAgent}
       />
       <div className="flex-1 min-h-0">
-        <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
+        <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" capturePills testIdPrefix="org" />
       </div>
       {flagTarget && (
         <FlagAgentModal agentId={flagTarget.id} agentDisplayName={flagTarget.name} onClose={() => setFlagTarget(null)} />
@@ -522,7 +550,7 @@ export function DesktopOrg() {
   )
 }
 
-function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, triggering }: { pod: PodDef; members: Agent[]; selectedId?: string; onSelect: (id: string) => void; onFlag: (id: string, name: string) => void; onTrigger: (name: string) => void; triggering: Record<string, 'idle' | 'loading' | 'ok' | 'err'> }) {
+function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, triggering, work }: { pod: PodDef; members: Agent[]; selectedId?: string; onSelect: (id: string) => void; onFlag: (id: string, name: string) => void; onTrigger: (name: string) => void; triggering: Record<string, 'idle' | 'loading' | 'ok' | 'err'>; work: RosterWork }) {
   return (
     <section className={`rounded-xl border ${pod.ring} bg-gradient-to-br ${pod.tint} p-3 md:p-4`}>
       <header className="flex items-center gap-2 mb-3 px-0.5">
@@ -554,12 +582,9 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
                 <AgentAvatar agent={a.id} size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="text-label md:text-body text-ink font-semibold truncate">{a.name}</p>
-                  {a.role && <p className="text-micro md:text-micro text-ink-faint truncate">{a.role}</p>}
-                  {a.last_run && (
-                    <p className="text-micro text-ink-faint/50 mt-1 truncate">
-                      Last run {relativeTimeOr(a.last_run, 'not yet')}
-                    </p>
-                  )}
+                  {/* What it is doing beats who it is: the role is the same
+                      sentence on most cards, the work never is. */}
+                  <AgentNow w={work.byAgent.get(agentKey(a.id)) ?? work.byAgent.get(agentKey(a.name))} role={a.role} lastRun={a.last_run} />
                 </div>
                 <div className="flex items-center gap-0.5 self-start">
                   {a.expected_runs_per_day != null && (
@@ -993,5 +1018,24 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
         )}
       </div>
     </div>
+  )
+}
+
+/** One line under an agent's name: what needs Krish, else what it is working on, else when it last ran. */
+function AgentNow({ w, role, lastRun }: { w: RosterWork['byAgent'] extends Map<string, infer V> ? V | undefined : never; role?: string; lastRun?: string }) {
+  if (w?.waiting) {
+    return <p className="mt-1 text-micro font-medium text-amber-300">Waiting on you: {w.waiting === 1 ? w.waitingTitle : `${w.waiting} rulings`}</p>
+  }
+  if (w?.failing) {
+    return <p className="mt-1 text-micro text-sky-300">{w.failing} of its last {w.recent} runs failed</p>
+  }
+  if (w?.now) {
+    return <p className="mt-1 text-micro text-ink-muted">Working on: {w.now}</p>
+  }
+  return (
+    <>
+      {role && <p className="text-micro md:text-micro text-ink-faint truncate">{role}</p>}
+      <p className="mt-1 text-micro text-ink-faint">{lastRun ? `No open work. Last ran ${relativeTimeOr(lastRun, 'not yet')}` : 'No open work and no run on record'}</p>
+    </>
   )
 }

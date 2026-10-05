@@ -1,71 +1,80 @@
 import { useMemo } from 'react'
-import { AlertTriangle, CheckCircle2 } from '@/lib/icons'
-import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
+import { Activity, AlertTriangle, CheckCircle2, Clock } from '@/lib/icons'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
+import { InlineActions } from '../InlineActions'
+import { orgMove } from '../../lib/surfaceMoves'
 import type { PendingCorrection } from '../../hooks/usePendingCorrections'
+import type { DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 
-// Org's "Do this next" — Vera detects feedback patterns and proposes brief
-// edits; the hero leads with the oldest unresolved correction so the agent
-// roster keeps tightening without Krish hunting for the panel. Action behaviour
-// is owned by the caller (desktop scrolls + outlines the row, mobile navigates
-// to the desktop route) so the same hero serves both shells.
+// Org's one move (rules in src/lib/surfaceMoves.ts `orgMove`).
+//
+// Since the OS Queue was removed (2026-10-04), every ruling an agent is waiting
+// on routes here (src/lib/routeDecision.ts sends task, returned-capture and
+// persistent-gap rulings to OS > Org), but the tab never showed them: Home's
+// waiting count pointed at a page that led with Vera's brief corrections and
+// "Roster is tight". The hero now leads with the ruling, answers a task ruling
+// in place (Approve / Reject, the verdict lands where the press was), then a
+// correction, then the agent whose runs fail most.
 
-type OrgKind = 'review' | 'clear'
+/** The ruling kinds that live on OS > Org (routeDecision). */
+export const ORG_RULING_KINDS = new Set(['task', 'inbox_returned', 'vera_gap'])
 
-interface NextOrg {
-  kind: OrgKind
-  correction?: PendingCorrection
-  descriptor: HeroDescriptor
-}
-
-function clip(s: string | null | undefined, n = 36): string {
-  if (!s) return ''
-  return s.length > n ? `${s.slice(0, n)}…` : s
-}
-
-export function computeNextOrg(corrections: PendingCorrection[], agentCount: number): NextOrg {
-  const top = corrections[0]
-  if (top) {
-    const agentName = clip(top.agent_id, 24)
-    const reason = top.pattern_reason_code ? clip(top.pattern_reason_code, 28) : null
-    const downvotes = Array.isArray(top.consumed_feedback_ids) ? top.consumed_feedback_ids.length : 0
-    return {
-      kind: 'review', correction: top,
-      descriptor: {
-        headline: `Review Vera's edit for ${agentName}`,
-        sub: corrections.length > 1
-          ? `${corrections.length} pending corrections${reason ? ` · top: ${reason}` : ''}${downvotes ? ` · ${downvotes} downvotes` : ''}`
-          : `${reason ? `${reason} · ` : ''}${downvotes ? `${downvotes} downvotes · ` : ''}approve to ship`,
-        actionLabel: 'Review correction',
-        icon: <AlertTriangle size={16} className="text-amber-300" />,
-        tone: 'amber',
-      },
-    }
-  }
-  return {
-    kind: 'clear',
-    descriptor: {
-      headline: 'Roster is tight',
-      sub: `${agentCount} active agent${agentCount === 1 ? '' : 's'} · no correction patterns waiting`,
-      icon: <CheckCircle2 size={16} className="text-emerald-400/80" />,
-      tone: 'neutral', clear: true,
-    },
-  }
+export function orgRulings(waiting: DecisionRow[]): DecisionRow[] {
+  return waiting.filter(d => ORG_RULING_KINDS.has(d.kind))
 }
 
 interface Props {
   corrections: PendingCorrection[]
   agentCount: number
+  /** Fresh rulings owned by an agent (`orgRulings(useWaitingDecisions().waiting)`). */
+  rulings?: DecisionRow[]
+  /** Agents with open work right now. */
+  working?: number
+  failing?: { agent: string; errors: number; of: number } | null
   onReview?: (correction: PendingCorrection) => void
+  /** Select an agent by id or name (its page holds the work). */
+  onOpenAgent?: (agent: string) => void
   narrow?: boolean
 }
 
-export function NextOrgHero({ corrections, agentCount, onReview, narrow }: Props) {
-  const next = useMemo(() => computeNextOrg(corrections, agentCount), [corrections, agentCount])
+export function NextOrgHero({ corrections, agentCount, rulings = [], working = 0, failing = null, onReview, onOpenAgent, narrow }: Props) {
+  const move = useMemo(() => orgMove({
+    corrections: corrections.map(c => ({
+      id: c.id, agent: c.agent_id, reason: c.pattern_reason_code,
+      downvotes: Array.isArray(c.consumed_feedback_ids) ? c.consumed_feedback_ids.length : 0,
+    })),
+    rulings: rulings.map(r => ({ id: r.id, kind: r.kind, title: r.title, agent: r.agent, detail: r.description })),
+    agentCount, working, failing,
+  }), [corrections, rulings, agentCount, working, failing])
+
+  const ruling = move.kind === 'ruling' ? rulings[0] : null
+  const onAct = move.kind === 'correction' ? () => corrections[0] && onReview?.(corrections[0])
+    : move.kind === 'ruling' ? () => ruling && onOpenAgent?.(ruling.agent)
+    : move.kind === 'failing' ? () => failing && onOpenAgent?.(failing.agent)
+    : undefined
+
   return (
     <DoThisNextHero
-      descriptor={next.descriptor}
-      onAct={() => next.correction && onReview?.(next.correction)}
+      testId="org-move"
+      stackAction={narrow}
       narrow={narrow}
+      descriptor={{
+        headline: move.headline,
+        sub: move.sub,
+        actionLabel: move.actionLabel,
+        icon: move.kind === 'ruling' ? <Clock size={16} className="text-amber-300" />
+          : move.kind === 'correction' ? <AlertTriangle size={16} className="text-amber-300" />
+          : move.kind === 'failing' ? <Activity size={16} className="text-sky-300" />
+          : <CheckCircle2 size={16} className="text-emerald-400/80" />,
+        tone: move.tone,
+        clear: move.clear,
+      }}
+      onAct={onAct}
+      why={move.why}
+      // A task ruling is answered right here; anything else opens its agent.
+      actionSlot={ruling && ruling.kind === 'task'
+        ? <div className="flex-shrink-0"><InlineActions taskId={ruling.id} agent={ruling.agent} /></div>
+        : undefined}
     />
   )
 }

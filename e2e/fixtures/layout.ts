@@ -306,6 +306,10 @@ export async function assertFrameDoesNotScroll(page: Page, frameSelector: string
  *
  * `slack` is what the frame is allowed to keep for itself below the body: its
  * own bottom padding, nothing more.
+ *
+ * Callers: `content-desk.spec.ts` (Content), `buyers-desk.spec.ts` (Growth),
+ * and `frame-reach-desk.spec.ts`, which covers every scroller on Customers,
+ * People, OS and Focus, the four tabs that shared the shortened wrapper.
  */
 export async function assertBodyReachesFrame(
   page: Page,

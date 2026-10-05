@@ -199,7 +199,7 @@ test.describe('the spend and connections questions', () => {
     await ctx.close()
   })
 
-  test('desktop opens on the decide question with the renewal on the board', async ({ browser }) => {
+  test('desktop opens on the question that needs him, and the renewal rides in decide', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
     const page = await ctx.newPage()
     await mock(page)
@@ -207,7 +207,13 @@ test.describe('the spend and connections questions', () => {
 
     await expect(page.getByRole('heading', { name: 'Business Intelligence' })).toBeVisible()
     await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
-    // The decide pane is the default open answer; the renewal rides in it.
+    // Something is broken (OpenAI is out of credits), so the pane opens on
+    // "What is broken?" rather than always on "What should I decide?"
+    // (Growth's standard, 2026-10-05: lead with the one thing to do).
+    await expect(page.getByTestId('bi-pane')).toContainText('What is broken?')
+    await expect(page.getByTestId('bi-pane')).toContainText('OpenAI')
+    // The renewal still rides in the decide pane, one press away.
+    await page.getByTestId('bi-q-decide').click()
     await expect(page.getByTestId('bi-pane')).toContainText(/Relume renews in 1[12] days/)
     // The costing answer opens with the unreadable-receipts line, and it says
     // what the totals did with them: left out, not "not counted as zero".
