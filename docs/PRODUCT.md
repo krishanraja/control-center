@@ -8,7 +8,82 @@
 > flow, Vercel quirks, error-boundary plumbing, shared-channel performance)
 > live in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Schema details live in
 > [`DATABASE.md`](./DATABASE.md). Both are authoritative; this document
-> references them rather than restating them.
+> references them rather than restating them. The rules every surface obeys
+> (pull-only, drafts only, Control Center never sends, agents report here)
+> are the canon in [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md)
+> section 0a; what is retired is its section 0c.
+>
+> **Last reconciled:** 2026-10-05. Sections that describe a surface as it
+> was are marked RETIRED or historical with a date; the rest describe the
+> live app. Where this file and the code disagree, the code wins.
+
+---
+
+## The surfaces today
+
+The live registry is `src/lib/tabs.ts`. Old hashes (`#today`, `#leads`,
+`#guests`, `#bets`, `#acquisition` and others) resolve through the alias
+layer in `App.tsx`, so bookmarks keep working.
+
+| Tab | Where | What it answers | Spec below |
+|---|---|---|---|
+| Home | Primary | Today on one screen that never scrolls: the goal ladder, today's 3, today's proposed move, the waiting count | Tab: Home |
+| Content | Primary | Today's calls on the publication's three subchannels | Tab: Content |
+| People | Primary | Who to talk to and why. Lanes: Network (default), Hunt, Visibility, Advisory; Pipeline only by `?lane=pipeline` | Tab: People and its lanes |
+| Growth | Primary | Is anyone finding the products, and the one thing to do now. Views: next, week, numbers, places, buyers | Tab: Growth |
+| OS | Primary on desk, drawer on phone | Org, Intel, Flows, Systems | Tab: Org, Intel, Flows, Systems |
+| Focus | Drawer | Krish's own operating theory on tap | Tab: Focus & Purpose |
+| Board | Drawer | Work Claude and Codex sessions wrote for Krish: waiting, in progress, done | Tab: Board |
+| Subscriptions | Drawer | Money, and the ranked portfolio | Tab: Subscriptions |
+
+Retired as tabs: Today (2026-08-20), Bets (2026-08-20), Plans, Leads (now
+the Pipeline lane), the OS Queue (2026-10-04).
+
+## The Growth standard (every tab, since 2026-10-05)
+
+Krish named the Growth tab the gold standard for how data becomes an
+insight and then an action, and every other tab was brought to it (PRs
+#392 and #393). Five rules, extracted from Growth's own code:
+
+1. **Data compressed.** A strip of three or four numbers; each row gets one
+   line carrying a number, never the evidence itself.
+2. **Insight only when asked.** "Why" opens on what the evidence means; the
+   raw receipt is one tap further.
+3. **One action at a time.** One move, one primary and one secondary,
+   through `shared/DoThisNextHero`. The verdict lands where he pressed,
+   nothing auto-advances, Next is a press.
+4. **Honest emptiness.** One line saying why there is nothing, said once.
+   Never filler, never a zero that looks like data.
+5. **Recomposed per layout** (phone, tablet, wide, extra wide, by
+   `useContainerWidth`), not shrunk.
+
+Each surface's move order is written as rules in `src/lib/surfaceMoves.ts`
+and tested without a browser (`tests/api/surfaceMoves.test.ts`).
+
+## What changed on 2026-10-05
+
+- **OS > Org** (#386, #393): the agent's plan, open tasks and last runs come
+  through `/api/agents/[name]` on the service role (RLS had hidden the plan
+  from the browser); superseded tasks are hidden; the rulings Home's waiting
+  count routes to Org lead the page and are answered in place.
+- **Guest briefing** (#386): read in a panel on the guest card
+  (`guests.briefing_md`), not in a Google Doc.
+- **The portfolio board** (#387): Growth and Subscriptions rank the same
+  products in the same order (`src/lib/portfolio.ts`) with the same six
+  numbers; Heartside joined. Subscriptions was rebuilt to fit one screen.
+- **Money** (#388): all five Stripe accounts are read; Substack's paid
+  subscribers are filed under the publication, not CTRL.
+- **Growth > Buyers** (#389): who each product is for, saved in
+  `product_icp` and read by the agents. A product with no row is blocked.
+- **Visibility** (#390): Nova's three-condition standard; every refusal is
+  shown with its reason.
+- **Keys watched** (#391): the connections sweep checks the Stripe
+  organisation key and Heartside's Shopify credential, strictly.
+- **The Growth standard everywhere** (#392, #393): Home, Content, Focus,
+  Board, Subscriptions, People and OS; every desk scroller reaches the bottom
+  of the screen.
+- **Heartside** (#393): its visits, sign-ups and orders link out to the
+  Shopify admin; never an MRR.
 
 ---
 
@@ -34,7 +109,10 @@ when in conflict.
 
 | Rule | Description |
 |---|---|
-| **Viewport fit** | At ≥ 1280×800 every primary tab must fit the viewport without page scroll. Sub-panels scroll internally. |
+| **Viewport fit** | The window never scrolls, at any size. Every tab is a `shared/AppFrame`: a fixed header over one bounded scroller that reaches the bottom of the frame (`e2e/frame-reach-desk.spec.ts`). Home may not scroll at all; it folds. |
+| **The Growth standard** | The five rules above, on every surface. |
+| **An unwired number is never a zero** | A metric nothing reads says what is missing and what would wire it. A product that cannot charge is not "$0 revenue". |
+| **Never sends** | No surface sends an email, message or post. Email actions create Gmail drafts; Krish sends. Guarded by `check-bridges-never-send`. |
 | **Realtime first** | Any value derived from a realtime-subscribed table must update without a page reload. New rows appear within one realtime tick. |
 | **Slug-as-key** | Joins between agents and any other table use the lowercase slug (`agents.id`, e.g. `cleo`). Mixed-case writes are a bug. See [`AGENTS.md#slug-as-key`](./AGENTS.md#slug-as-key). |
 | **Empty ≠ broken** | Every empty state must distinguish "nothing happened yet" from "failed to load." Empty states use a calm phrase, not a loading spinner. |
@@ -60,8 +138,17 @@ OS it serves). The vitals line is the twelve week scorecard.
 
 Home is the canon, not a dashboard. The bigger picture, not the tiny tasks:
 each ruling lives in the tab that owns it (the OS Queue was removed
-2026-10-04), venture health on **Growth →
-Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
+2026-10-04), venture health on **Growth → Numbers**, the Sunday review on
+**Growth → Week**, bets on **OS → Intel**.
+
+> **2026-10-05.** The scorecard numbers, the stop rule (5 Oct) and day 90
+> (5 Dec) below come from the ikigai's ninety day plan, which Krish PAUSED
+> on 2026-10-05 pending a reset (core section 0.3). The code still shows
+> them; read them as a paused plan, not a live target. While today's move is
+> proposed (`home/DailyMoveSlot`, ADR-028) it is the one ask on screen: "Pick
+> your 3" and "Set this week's 3" step aside, and the week ask moves onto the
+> This week line (#392). On a phone the vitals band shows Sent, Paid and
+> Waiting; Log a ship lives in the + sheet.
 
 ### The whole screen (there is no fold)
 1. **CriticalAlertBanner** - `silent_failures` tier 3. Hidden when nothing
@@ -190,7 +277,7 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 
 ---
 
-## Tab: Today
+## Tab: Today (RETIRED 2026-08-20)
 
 > **Retired (2026-08-20).** The Today tab's ruling queue moved to OS →
 > Queue, which was itself removed on 2026-10-04. A bare `#/today` aliases to
@@ -234,9 +321,17 @@ Inline action surface (`InlineActions`):
 ## Tab: People
 
 ### Purpose
-> *Every human pipeline behind one nav entry: Pipeline (deal leads), Network
-> (the 10k-contact pool), Visibility (podcast guests + PR targets), Pilots (the
-> 25 leaders who fit the face).*
+> *Every human pipeline behind one nav entry: Network (the 10k-contact pool,
+> the default lane), Hunt (the job search), Visibility (podcast guests, press
+> and speaking) and Advisory (the leaders who fit the face; lane id `pilots`,
+> labelled by `ADVISORY_LABEL` in `src/hooks/usePilots.ts`). Pipeline (deal
+> leads) is reachable only by `?lane=pipeline`.*
+>
+> Since 2026-10-05 (#393) each lane leads with its one move from
+> `src/lib/surfaceMoves.ts`: Network leads with the people questions only
+> Krish can answer until he searches; Hunt with a broken hunter, then a
+> person to write to, then a warm path; Advisory with a reply, then a drafted
+> note to send, then the people just found.
 
 The lanes are rendered by `people/PeopleTab` behind one `SegmentedNav` (test
 ids `people-lane-<id>`); the per-lane specs below still hold. **Network is
@@ -346,7 +441,15 @@ dropped with the reason, and the oldest queued targets with no research in
 
 ---
 
-## Lane: People → Pilots (2026-09-06, job 1 of the one swing; renamed from Room 2026-09-16, ADR-023)
+## Lane: People → Advisory (lane id `pilots`; 2026-09-06, job 1 of the one swing; renamed from Room 2026-09-16, ADR-023; labelled Advisory since)
+
+> **2026-10-05.** The lane is labelled **Advisory** in the nav
+> (`ADVISORY_LABEL`); the id, the deep links (`?lane=pilots`, `?lane=room`)
+> and the tables (`pilot_deals`) keep the old names. The "25 then 100" list and
+> the charter's arithmetic come from the one-swing plan, whose ninety day
+> plan is paused (core section 0.3). Mindmake's offer is two doors into one
+> privately scoped paid proof (canon in `krishanraja/mindmake`); any older
+> offer wording below is superseded.
 
 ### Purpose
 > *The 25 (then 100) named leaders who fit the face. The OS drafts the
@@ -405,7 +508,7 @@ dropped with the reason, and the oldest queued targets with no research in
   and a toast that still claimed "It is in your Gmail drafts too."
 - **Collaborators sort to the bottom of the deck (2026-09-11), not the top.**
   Krish's ruling on 2026-09-11, after seeing all three options: known
-  collaborators (`Rio Longacre`, `Brett House`) still appear, but after
+  collaborators (his podcast co-hosts, named in the code) still appear, but after
   everyone who could actually sign a fee, via a stable sort in
   `api/pilot-deals/seed.ts` (`collaboratorsLast`) that preserves the scorer's order
   inside each group.
@@ -439,7 +542,9 @@ person, `network_search` for proposals, `webResearch` for the trigger,
   the same five candidates returned on every reload.
 - `POST /api/pilot-deals/:id/draft` finds the trigger and drafts. Never sends.
 - Monday 06:00 operator time, `/api/pilot-deals/monday` drafts the five listed
-  targets with the freshest trigger and tells Telegram.
+  targets with the freshest trigger and records the count through
+  `notifyOps()`, which writes `audit_log` and sends nothing (pull-only since
+  2026-09-06).
 - `/api/pilot-deals/seed` classifies `ask_kind`/`ask_line` in one metered call,
   grounded only in fields the network search already returns (roles,
   `reachable_via`, `best_channel`, seniority, stored judgment). It degrades
@@ -465,6 +570,12 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 ---
 
 ## Lane: People → Pipeline (formerly the Leads tab; PR #53 multi-tag venture-aware)
+
+> **Out of the nav since 2026-09-07.** Reachable only by `?lane=pipeline`
+> and `?lead=` deep links; its import doors moved to Network. The per-venture
+> lanes named below (mindmake / signal_noise / builder_economy) are dated:
+> `builder_economy` is retired and Signal & Noise is a channel, not a venture
+> (core section 0c). Cold outbound is not done.
 
 ### Purpose
 > *Which leads are enriched and ready for me to promote, reassign, schedule
@@ -515,14 +626,41 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 ## Tab: Subscriptions (formerly Customers; PR #43 / #45)
 
 > **Relocated (2026-08-20).** Lives in the drawer under the simplified IA as
-> a watch-only surface; the Home scoreboard carries its headline. Same
-> surface, `#customers` still routes to it.
+> a watch-only surface. `#customers` still routes to it.
 
 ### Purpose
-> *Where is revenue coming from this month, which paid customers are at
-> risk, and which warrant an expansion conversation?*
+> *Where is the money, which products are earning, and what is the one
+> thing to do about it?*
 
-### Sections
+### The surface today (rebuilt 2026-10-05, #387 and #393)
+Fits one screen at 1440x900, 1280x800 and 390x844, no scroll. One data layer
+for desk and phone (`customers/useSubscriptionsModel.ts`), built from the
+same inputs as Growth's board.
+
+1. **The one move** (`customers/SubscriptionsMoveHero`, rules in
+   `subscriptionsMove()` in `src/lib/surfaceMoves.ts`): a paying customer
+   waiting on a check-in (drafts it in Gmail, never sends), else a stale
+   Stripe read, else the first number to wire.
+2. **Money tiles** (`customers/MoneyTiles`): four figures and the Substack
+   line, every figure Stripe's own through `/api/revenue`. A figure not yet
+   read says "Not read", never a skeleton that never resolves.
+3. **The ranked portfolio board** (`portfolio/PortfolioBoard`, built by
+   `src/lib/portfolioBoard.ts` from `src/lib/portfolio.ts`): the products in
+   ladder order with the same six numbers Growth shows (AEO/GEO, analytics,
+   sign-ups, suggestions, growth hacks, revenue). An unwired number says
+   what is missing and what would wire it, never 0.
+4. **What to wire next**: the gaps, in order.
+5. **Subscribers** (one side panel): the roster, council, radar and sources
+   that used to fill the tab, moved behind one press, nothing deleted.
+
+**Money rules (core section 0a.6).** Five Stripe accounts are read. Paid
+Substack subscribers are the publication's, reported as a slice, never as
+CTRL's and never added twice. Free Substack readers arrive only from the CSV
+dropped here. **Heartside** sells one-off orders through Shopify Payments:
+its visits, sign-ups and orders link out to the Shopify admin, in USD, never
+as MRR or paying subscribers. QA accounts are not sign-ups.
+
+### Sections before 2026-10-05 (historical; the panels still exist behind Subscribers)
 1. **MrrTicker** - live MRR + delta vs path-to-$100k.
 2. **CustomerSourcesPanel** - revenue by `attribution_channel`
    (cold-email / podcast / content / referral / direct).
@@ -530,9 +668,9 @@ person, `network_search` for proposals, `webResearch` for the trigger,
    customers due for a check-in.
 4. **ExpansionRadar** - long-tenured starter-plan customers ready to
    upsell.
-5. **Per-product feeds** - per `customer_product` (mm-ctrl, Fractionl
-   Circle, Fractionl Pulse, OnAlert, Gutted, Merciless): recent signups,
-   churns, MRR delta.
+5. **Per-product feeds** - per `customer_product`: recent signups,
+   churns, MRR delta. (OnAlert, Gutted and Merciless are retired products
+   whose historical rows still render with their names.)
 
 ### Inputs
 - `customers` via `useCustomers`.
@@ -558,6 +696,22 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 ### Purpose
 > *Which podcast guests have pitch drafts ready for me to approve, and
 > which visibility / PR opportunities are waiting?*
+
+### Nova's standard (2026-10-05, #390)
+A visibility target is shown as worth his time only when three conditions
+are true at once: **room** (someone who can move a decision is in the
+audience), **standing** (naming the platform later helps him), **only-him**
+(the angle rests on his own operating record). `api/_visibilityScore.ts`
+takes the minimum of the three, not the mean, with hard gates for a passed
+date, a bought slot and a generic angle. A refusal is a written verdict
+with one reason code, shown on the surface with a sentence; a target with
+no evidence is "unjudged", never a zero. A marked stretch lane is capped at
+two.
+
+### Guest briefings (2026-10-05, #386)
+The briefing Nell's workflow writes lands in `guests.briefing_md` and opens
+in a panel on `GuestCard` (`guests/BriefingSheet.tsx`). Guests briefed
+before that day keep their old Doc link, labelled as the old Doc.
 
 ### Layout
 - **GuestImportDropzone** - flexible-format paste/drop (mirrors
@@ -597,11 +751,30 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 
 ## Tab: Content
 
-> **Live shape: one Content surface** (2026-09-07, no build flag): rooms
-> Built / Paid / Library plus the mobile-first Queue decision deck. Spec:
-> [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
-> `MINDMAKE_OS_ARCHITECTURE.md` §5.8. The v1 description below is history;
-> each feature's new home is in `CONTENT-ENGINE-PARITY-LEDGER.md`.
+> **Live shape: today's calls** (since 2026-10-04,
+> `content-v2/ContentV2Tab.tsx`). The engine finds, judges, writes and checks
+> pieces on its own; this tab is the short list of decisions it cannot make
+> without Krish (approve a finished piece, allow a paid fact check, set how
+> sure we are, pick the next piece for a series, review a Studio video, a few
+> weekly rulings), numbered, one in focus, each with one primary action and
+> "Not now". The engine gets one strip saying where it is up to and one line
+> saying whether it is healthy. It replaced the room pills (To decide, the
+> series rooms, Not lifted, Library); browsing every piece, with the Library
+> inside it, is one press away ("Browse all pieces"). On a phone the call in
+> focus is the one card and the other calls are numbered rows (#392).
+>
+> The publication has three subchannels, mind.the.gap (Fridays),
+> follow.the.money (Mondays) and under.the.hood (Wednesdays); what each is
+> for is `venture_formats.mandate`, read live (core section 0a.1). The
+> routes behind the tab run from `krishanraja/content-engine` (ADR-019). How
+> to drive it: [`CONTENT-ENGINE-OPERATING-GUIDE.md`](./CONTENT-ENGINE-OPERATING-GUIDE.md).
+> "Send to Google Docs" stays: Krish presses it, so it is not an agent
+> writing into Drive. Publishing anywhere, LinkedIn included, is manual.
+>
+> **Everything below is the v1 description (history).** The Built / Paid /
+> Library rooms, the two formats and the channel whitelist it names are
+> retired (core section 0c); each feature's new home is in
+> `CONTENT-ENGINE-PARITY-LEDGER.md`.
 
 ### Purpose
 > *What content ideas have been captured, which are ready to send to a
@@ -635,8 +808,33 @@ person, `network_search` for proposals, `webResearch` for the trigger,
 
 ## Tab: Growth
 
-One tab, five sections, both device classes via `growth/GrowthTab`. Full spec
-and runbook: [`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+### The live shape (one move at a time since 2026-10-04; the gold standard since 2026-10-05)
+
+The tab answers one question, "is anyone finding my products, and what is
+the one thing to do now?", and lets him act in a tap (`growth/GrowthTab`,
+data and writes through `useGrowthTab` over `src/lib/growthModel.ts`). Five
+views (`src/lib/growthSections.ts`, test ids `growth-section-<id>`):
+
+| View | What it holds |
+|---|---|
+| **next** (default) | The numbers at a glance and the one move in focus (`growth/NextView`); strip of 3 on a phone, 4 wider |
+| **week** | Every move in order, Sunday's reviews, this week's clips, past weeks as history (one tap clears older weeks still owed a ruling) |
+| **numbers** | The ranked products with the same six numbers Subscriptions shows, then AI answers (`growth_geo_probes`), site visits, Google rank, clips, and the one spend line that replaced Spend limits |
+| **places** | Where buyers already go per product (`growth_touchpoints`), what is waiting on an answer first, and the accounts that must exist (`growth_social_accounts`) |
+| **buyers** | Who each product is for, saved in `product_icp` through `api/icp.ts` and read by the agents. A product with no definition names what is not running because of it, starting with Maya's prospecting lane |
+
+Old `?section=` ids still land: council and work open week, signals and
+governance open numbers, map opens places, icp opens buyers;
+`#/acquisition` opens numbers. Products appear in ladder order from
+`src/lib/portfolio.ts` (Heartside and Full Time, Legibility, CTRL and Pulse;
+Circle dormant). Five of the six products had no buyer definition on
+2026-10-05 (core section 0b).
+
+### History: the five-section shape (2026-08-04 to 2026-10-04)
+
+The text below describes the earlier Review / To do / What's moving / Where
+they are / Spend limits sections. Their content now lives in the views
+above; the routes and write paths it names are still the ones used.
 
 **Sections run in the order one causes the next (2026-09-10), not the map-first
 order they used to.** The council's Sunday verdict produces the week's clips,
@@ -741,13 +939,36 @@ data lands and the council reads it.
 
 The operator's own hub: the daily ask, the steadying moves, the
 conversation scripts, the decision rules. Non-negotiables and full spec:
-[`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md) — no archive, no scores, no
+[`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md), no archive, no scores, no
 streaks, theory only at the point of action, and nothing on the surface is
 ever truncated.
 
 ---
 
-## Tab: Bets (PR #44)
+## Tab: Board (drawer; added 2026-10-03, rebuilt to the Growth standard 2026-10-05)
+
+### Purpose
+> *What is waiting on me from the coding sessions, what is in progress,
+> what is done.*
+
+Claude Code and Codex sessions write items through the content engine
+(`/api/workbench`, served by `krishanraja/content-engine` through a
+rewrite); Krish reads them here and replies (`board/WorkBoard.tsx`,
+`src/lib/workBoard.ts`). A reply is his words: only this page, with his
+cookie, can write one. The page refreshes every 30 seconds and when it
+comes back into view.
+
+### Layout (#392)
+- `SurfaceHeader` and three counts at a glance.
+- ONE waiting item as the `DoThisNextHero` card: one reply box, the link as
+  the secondary, the verdict in place, Next a press. The rest are rows.
+- In progress and done fold behind their lane headers (`StatusLane`,
+  `EmptyLanes` names empty lanes together in one line).
+- A phone stacks; a wide box puts the card beside the queue.
+
+---
+
+## Tab: Bets (PR #44) (RETIRED as a tab 2026-08-20)
 
 > **Relocated (2026-08-20, reshaped 2026-08-26).** Bets answer "What
 > should I decide?" on **OS → Intel**: overdue ones are ranked act rows
@@ -785,7 +1006,22 @@ ever truncated.
 > **Now an OS subtab (2026-08-20):** OS → Org, beside Intel / Flows / Systems
 > (`os/OsTab`, test ids `os-sub-<id>`). The OS Queue was removed on
 > 2026-10-04 (ruling, Krish) and Org is the default subtab. The four subtab
-> specs below still hold.
+> specs below still hold, with the 2026-10-05 changes in the next note.
+>
+> **2026-10-05 (#386, #393).** Org leads with its one move
+> (`src/lib/surfaceMoves.ts`): the rulings Home's waiting count routes to
+> Org, answered in place (Approve or Reject), then Vera's corrections, then
+> the agent failing most. Each agent card says what it is doing or what it
+> waits on. The agent detail (plan, open tasks, last runs) comes through
+> `/api/agents/[name]` on the service role, because `agent_plans` has RLS
+> with no anon policy and the browser read always returned nothing. The plan
+> label says Objective. Superseded tasks are hidden, which is how stale
+> agent work is retired without deleting it. The agent's brief comes from
+> `agents.brief_content`; there are no agent Drive docs (core section 0a.5).
+> Intel opens on the question that needs him (broken or warning); Flows
+> leads with a proposal or the worst failing workflow; Systems with the
+> first service down, and an unchecked board never reads "All systems
+> healthy".
 
 ### Purpose
 > *Show me every agent, who they report into, what they're working on,
@@ -868,7 +1104,7 @@ no-scroll zoom shell, so the tab always opened "zoomed in".
 
 ### Who is spending it (the usage meter)
 Receipts answer *how much a provider cost*. Until 2026-08-27 nothing
-answered *which unit of the OS spent it* — and the two columns that looked
+answered *which unit of the OS spent it*, and the two columns that looked
 like they did were fiction (`workflow_runs.cost_usd` was $0.00 across 1,419
 runs; `api_call_log` held eighteen rows, all written by the sweep itself).
 
@@ -893,19 +1129,19 @@ its own Anthropic credential is not, and the sheet says so.
 ### The prepaid line
 Apify's plan includes $29 of usage and charges early once the extra passes
 $50. The tracker used to report headroom to the vendor's HARD cap, which
-sits far above the prepaid — so it read "Apify: $130.53, ok" in the same
+sits far above the prepaid, so it read "Apify: $130.53, ok" in the same
 week Apify emailed to say the prepaid was spent and the overage was
 accruing. `service_registry.included_usd` / `overage_trigger_usd` make
 "past the prepaid" and "being charged early" real states: they outrank the
 month-vs-usual line in the costing answer, drive the token
 (`OVER PREPAID` / `CHARGING`), and light the Intel door dot.
 
-When a line is crossed, `/api/meter/apify-sync` **emails** Krish — his call,
+When a line is crossed, `/api/meter/apify-sync` **emails** Krish (`api/_moneyAlerts.ts`; note this is a second email to Krish beside the weekly slate link, and core section 0a.4 does not yet list it as an exception), his call,
 explicitly, over the Telegram framing: money alerts belong in the inbox the
 invoices land in. Claimed in `spend_alerts_sent` before the send, so an
 hourly cron turns one crossing into one email. A single unit whose week
 costs 3× its own normal (and clears $5) gets the same treatment, once per
-week — the "who used it, and could it have been avoided" question, answered
+week, the "who used it, and could it have been avoided" question, answered
 while it is still this week's problem.
 
 ### Marcus, the marked voice
@@ -913,14 +1149,14 @@ His headline and dateline crown the page in serif ("MARCUS · WRITTEN WED
 26 AUG · NEXT READ FRI"); the dateline opens his full brief as a sheet
 (`intel/MarcusReadSheet.tsx`): the deduped read, org focus, content
 recommendation, focus this week, and **his own scoreboard**. His authored
-numbers live only there — they are never mixed with the deterministic
+numbers live only there, they are never mixed with the deterministic
 answers on the tab. `dedupeMarcusRead` kills the old double-render, where
 `assessment` (the insights pipe-joined) printed above the same insights.
 
 ### Shells
 - **Phone**: an accordion. Five closed rows plus the ask fit about one
   screen; one opened answer stays inside two. `e2e/intel-zoom.spec.ts`
-  pins that cap against a full fixture — depth lives behind taps, never
+  pins that cap against a full fixture, depth lives behind taps, never
   behind truncation.
 - **Desktop**: a rail of the five questions beside a pane for the open
   one, defaulting to "What should I decide?".
@@ -929,7 +1165,7 @@ answers on the tab. `dedupeMarcusRead` kills the old double-render, where
 - `home_intelligence` (singleton, `id='current'`) via `useHomeIntelligence`.
 - `marcus_synthesis` latest row via `useMarcusSynthesis`.
 - `GET /api/spend`, `GET /api/revenue`, `GET /api/fleet-funnel`.
-- `meter_daily` via `/api/spend` (`spenders`, `cycles`) — never read directly.
+- `meter_daily` via `/api/spend` (`spenders`, `cycles`), never read directly.
 - `bets` via `useBets`.
 
 ### Writes
@@ -991,7 +1227,10 @@ answers on the tab. `dedupeMarcusRead` kills the old double-render, where
 - Live `/api/health` snapshot for derived overall status.
 
 ### Writes
-None. Remediation is owned by Arlo / Kai out-of-band.
+None. Remediation is out of band: Arlo for VPS liveness, and the Vercel
+health crons (`/api/health/fleet-reconcile`, `/api/health/connections-sweep`)
+that replaced Kai, retired 2026-09-07. Nothing is pushed to Krish; red
+warnings are read here.
 
 ### Behaviour rules
 - Status ladder: `healthy` → `degraded` → `failed`. Overall status is the
@@ -1074,7 +1313,9 @@ None. Remediation is owned by Arlo / Kai out-of-band.
 
 A change to any tab is *complete* only when:
 
-1. The viewport-fit rule still holds at 1280×800.
+1. The viewport-fit rule still holds (no window scroll at any size; every
+   scroller reaches the bottom of the frame), and the surface still meets
+   the Growth standard.
 2. Every empty/loading/error state has been verified, not assumed.
 3. Realtime updates flow within one tick of an INSERT to the source table.
 4. The change includes a screenshot of the golden path and at least one

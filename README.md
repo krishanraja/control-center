@@ -1,214 +1,167 @@
 # Control Center
 
-The single pane of glass for **mind/make OS**, the fleet of AI agents that
-runs Krish Raja's business portfolio (Mindmake, Fractionl, mm-ctrl, plus
-the content venture Mindmake's publication, whose two formats are Paid and Built).
-AdFixus and OnAlert are archived; Meliora, Gutted and Merciless were
-retired in July 2026.
+The dashboard and the crons of **mind/make OS**, the fleet of AI agents Krish
+Raja runs his businesses on. Krish opens one place, sees what is waiting on
+him, decides, and the agents do the rest. Nothing in it contacts him or sends
+anything on his behalf.
 
-**URL:** [`controlcenter.krishraja.com`](https://controlcenter.krishraja.com)
-&nbsp;·&nbsp; **Deploy:** Vercel (push to `main` auto-deploys)
-&nbsp;·&nbsp; **Data:** Supabase project `gojpffsrxybbpbdzzrvs`
+**Live:** [`controlcenter.krishraja.com`](https://controlcenter.krishraja.com) (behind an access code)
+&nbsp;·&nbsp; **Deploy:** Vercel, auto-deployed from `main`
+&nbsp;·&nbsp; **Data:** Supabase, the OS's single source of truth
 
-## What this repo is
+## Read this first
 
-A React + TypeScript + Vite dashboard with thin Vercel serverless API
-routes under `api/`. It reads Supabase directly through PostgREST + Postgres
-Realtime, and writes back either with the anon key (for low-stakes
-mutations) or through an `/api/*` function (when service-role context is
-required, e.g. promoting a lead to a task or triggering an N8N orchestrator
-webhook).
+| You want | Read |
+|---|---|
+| What Krish is building, the rules every agent follows, and what is true right now | [`docs/MINDMAKE_OS_ARCHITECTURE.md`](./docs/MINDMAKE_OS_ARCHITECTURE.md), section 0. It is the one OS architecture document and it wins over every other doc here |
+| Where this repo is right now and what changed this month | [`NOW.md`](./NOW.md) |
+| Krish himself, and his products | [`docs/KRISH.md`](./docs/KRISH.md), [`docs/PORTFOLIO.md`](./docs/PORTFOLIO.md) |
+| Each tab | [`docs/PRODUCT.md`](./docs/PRODUCT.md) |
+| The engineering contract | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) |
+| How to work in this repo (house systems, tests, CI guards) | [`AGENTS.md`](./AGENTS.md) |
 
-Since 2026-09-08 the repo does *not* contain the Content Engine machinery
-either: the editorial routes, the Composer's routes, the fourteen content crons
-and the whole Video and Carousel control plane run from
-`krishanraja/content-engine` (`apps/control-plane`, its own Vercel project) and
-are reached through rewrites in `vercel.json`, so every URL is unchanged. This
-repo keeps the Content tab and the surfaces that drive them. See
-[ADR-019](./docs/DECISIONS/019-content-engine-owns-the-control-plane.md) and
-[`docs/CONTENT-ENGINE-PARITY-LEDGER.md`](./docs/CONTENT-ENGINE-PARITY-LEDGER.md).
+## What it serves
 
-The repo does *not* contain the agents themselves. Agents are 14 Supabase
-rows (`agents.brief_content`) plus ~76 N8N workflows; they live in the
-broader mind/make OS, hosted on a VPS and N8N Cloud. The Control Center is
-the dashboard slice. See [§Place in the broader OS](#place-in-the-broader-os).
+Krish's work splits in two (ruling, 2026-10-05). **Mindmake**
+(mindmake.co), with its publication, is the mission. A separate **product
+portfolio** is what the OS grows, in this order, set in
+[`src/lib/portfolio.ts`](./src/lib/portfolio.ts):
 
-## What this repo should be
+1. Heartside (a Shopify gift store, opening 2026-10-20) and Full Time (football recaps)
+2. Legibility (typed product data for AI agents)
+3. CTRL (the AI brain app) and Pulse (market intelligence for fractional executives)
 
-The promise the dashboard exists to keep:
+Circle is dormant: preserved, not worked. Retired brands and products are
+listed once, in section 0c of the architecture doc. The only live revenue
+across the whole portfolio, measured 2026-10-05, is two founding members of
+the publication on Substack; the figures and their live sources are in
+section 0.2 of the architecture doc.
 
-> **Krish opens one tab and sees every decision the OS is waiting on him
-> for. He decides in one click. The rest runs in the background.**
+## What this repo is, and is not
 
-In practice that means:
+It **is** a React and TypeScript dashboard (Vite, Tailwind) with thin Vercel
+serverless routes under `api/` and the Vercel crons in `vercel.json`. It reads
+Supabase directly (PostgREST and Realtime) and writes back with the anon key
+where row level security allows, or through an `/api/*` route when it needs
+the service role.
 
-- **Home is anchored by `decisions_waiting`** — a single Postgres view
-  unioning tasks, leads, guests, visibility targets, and content ideas, so
-  the dashboard never has to bolt on a sibling panel when a new "waiting on
-  Krish" surface gets added; new surfaces add a `UNION ALL` branch to the
-  view.
-- **Every actionable row is one click from done.** Approve, reject,
-  promote, schedule, deep-enrich, kill — never a modal-then-form-then-save.
-  The mutation writes Supabase, the realtime subscription bounces back in a
-  tick, and the badge count drops.
-- **Self-healing is built in, not bolted on.** The four-tier silent-failure
-  system (completeness contracts → Silent Success Detector → Critical
-  Infrastructure Monitor → Failure Pattern Sweep) surfaces *value*
-  failures, not just exceptions; the `CriticalAlertBanner` on Home fires
-  when something is meaningfully broken, and stays quiet otherwise.
-- **Krish corrects, the OS adapts.** Rejections flow through
-  `feedback_queue` → `corrections` → agent brief edits. Same mistake should
-  not survive four occurrences.
-- **The engine under one swing.** Since 6 September 2026 (ADR-016) the OS
-  has one mission and five jobs, in priority order: fill the room, keep
-  him honest, run the room, feed the demand engine, keep the edge. The
-  first two are built; the rest are gated on a paid room. The scorecard on
-  Home (approaches sent, calls, paid rooms, cash, pieces, hours building
-  unasked) is what the dashboard is optimised against, and a green run with
-  nothing sent is a failure. See `docs/plans/one-swing/CHARTER.md`.
+It is **not** the agents. Agents are rows in the Supabase `agents` table
+(their briefs in `agents.brief_content`), n8n Cloud workflows, Claude Code
+agents in OpenClaw on a VPS, and a few GitHub Actions. It is not the content
+control plane either: since 2026-09-08 the editorial routes, the Composer's
+routes, the content crons and the video plane run from
+`krishanraja/content-engine`, reached through rewrites in `vercel.json`
+([ADR-019](./docs/DECISIONS/019-content-engine-owns-the-control-plane.md)).
+This repo keeps the Content tab. The `compound/` app moved to its own repo on
+2026-09-21.
 
-If a change to this repo cannot name which of the five jobs it serves, it
-does not belong.
+## The promise it keeps
+
+> Krish opens one place and sees every decision the OS is waiting on him for.
+> He decides in one press. The rest runs in the background.
+
+- **One move at a time.** Every tab meets the Growth standard (2026-10-05):
+  numbers at a glance, insight only when asked, one action with its verdict
+  landing where he pressed, honest emptiness said once, and a layout
+  recomposed for each width. Each surface's move is chosen by
+  [`src/lib/surfaceMoves.ts`](./src/lib/surfaceMoves.ts).
+- **One place for what waits.** Everything waiting on Krish goes through the
+  `decisions_waiting` view; a new kind adds a branch, never a sibling panel.
+  Each ruling is decided in the tab that owns it.
+- **Pull-only and draft-only.** The OS never contacts him, and Control Center
+  never sends an email, a message or a post (CI guard
+  `check-bridges-never-send`). Agents report here, never into his Drive.
+- **Self-healing and honest.** Silent successes, a run that reads green and
+  moved nothing, are the failure this OS fights most. An unwired number is
+  never shown as zero.
+
+## Tabs
+
+Live registry: [`src/lib/tabs.ts`](./src/lib/tabs.ts). Old hashes (`#today`,
+`#leads`, `#bets`, `#acquisition`, ...) alias into these, so old links keep
+working.
+
+| Tab | What it answers |
+|---|---|
+| Home | Today on one screen that never scrolls: the goal ladder, today's three, today's proposed move, what waits |
+| Content | Today's calls on the publication's three subchannels, and the Composer |
+| People | Network, Hunt, Visibility and Advisory |
+| Growth | Is anyone finding the products, and the one thing to do now (next, week, numbers, places, buyers) |
+| OS | Org, Intel, Flows and Systems: the agents, the spend, the machine's health |
+| Focus, Board, Subscriptions | In the drawer: Krish's operating theory; work sessions left for him; money and the ranked portfolio board |
 
 ## Tech stack
 
 | Layer | Tool |
 |---|---|
-| Frontend | React 18 + TypeScript + Vite 4 |
-| Styling | Tailwind CSS 3, "Obsidian Aurora" design system with adaptive light/dark theming (see [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md)) |
-| UI primitives | Owned, vendored from Relume and re-skinned; Radix under the overlays and menus. `src/components/ui/` (see [ADR-010](./docs/DECISIONS/010-vendored-primitive-layer.md)) |
-| Network search | Postgres hybrid scorer over 10,649 enriched people: pgvector semantic + tsvector lexical + weighted soft constraints, filterable by country (UK / AU / USA), with voice (see [`docs/API.md`](./docs/API.md)) |
-| Fonts | Bricolage Grotesque (display) · Fraunces (serif voice) · Geist + Geist Mono (body/numbers), self-hosted via Fontsource |
-| Icons | Lucide React |
-| Realtime | `@supabase/supabase-js` (`postgres_changes` subscriptions) |
-| API routes | Vercel serverless (`@vercel/node`) under `api/` |
-| Data | Supabase (Postgres + PostgREST + Realtime) |
-| Orchestration | N8N Cloud (~76 workflows, fired via the Orchestrator webhook on row changes) |
-| AI (Skill Forge only) | OpenAI (`api/skills/*`, `api/_skill-prompt.ts`) |
-| Hosting | Vercel (Vite framework, SPA rewrites, `/api/*` routes per `vercel.json`) |
+| Frontend | React 18, TypeScript, Vite 4 |
+| Styling | Tailwind CSS 3 and the Mindmake Instrument Room design system ([`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md)) |
+| UI primitives | Owned and vendored, Radix under the overlays ([ADR-010](./docs/DECISIONS/010-vendored-primitive-layer.md)); the house systems in [`AGENTS.md`](./AGENTS.md) |
+| Realtime | `@supabase/supabase-js` `postgres_changes`, one channel per table ([ADR-002](./docs/DECISIONS/002-shared-realtime-channel.md)) |
+| API routes and crons | Vercel serverless (`@vercel/node`) under `api/`, schedules in `vercel.json` |
+| Data | Supabase (Postgres, PostgREST, Realtime) |
+| Orchestration | n8n Cloud workflows, OpenClaw on the VPS, GitHub Actions |
+| Models | Anthropic first, OpenRouter as the rescue provider only ([ADR-024](./docs/DECISIONS/024-openrouter-as-the-rescue-provider-only.md)) |
 
 ## Local development
 
 ```bash
-# 1. Install (npm is the committed lockfile)
 npm install
+cp .env.example .env       # fill in the Supabase URL and anon key at minimum
+npm run dev                # Vite front end only
 
-# 2. Configure env
-cp .env.example .env
-# Fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and the server-only
-# secrets listed in .env.example.
-
-# 3. Run
-npm run dev
-
-# Other scripts
-npm run build      # Production bundle
-npm run preview    # Serve the built bundle
-npm run lint       # ESLint, --max-warnings 0
-npx tsc --noEmit   # Type check (no emit)
+npm run build              # production bundle
+npm run lint               # ESLint, --max-warnings 0
+npx tsc --noEmit           # type check
+npm run typecheck:api      # the api/ tree
+npm run typecheck:scripts  # the scripts/ tree
+npx tsx --test tests/api/*.test.ts
 ```
 
-The `api/` routes are Vercel serverless functions. Use `vercel dev` if you
-need to exercise the endpoints locally; `npm run dev` alone only runs the
-Vite front end.
-
-**Environment variables.** Client-side variables are prefixed `VITE_` and
-end up in the bundle. Everything else is server-only (used by `api/*`).
-See `.env.example` for the canonical list; the bare minimum for a dev
-server is `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
+`npm run dev` does not serve `/api/*`; use `vercel dev` for that. Every
+variable the code reads is named in `.env.example`, and
+`scripts/check-env-example.mts` fails the build if one is missing. The
+Playwright suite, the CI guards and their known traps are in
+[`AGENTS.md`](./AGENTS.md).
 
 ## Project layout
 
 ```
-api/                        Vercel serverless functions (one file per endpoint)
-  _supabase.ts                Server-side Supabase client (service role)
-  _skill-prompt.ts            OpenAI prompt for Skill Forge
-  agents/, leads/, guests/, bets/, approvals/,
-  customer-contacts/, corrections/, nell-candidates/
-                              Resource-scoped subfolders
-  ask-marcus.ts               /api/ask-marcus — Anthropic-backed Q&A grounded in
-                              customers/leads/bets/home_intelligence
-  health.ts, status.ts, refresh-health.ts
-                              Health/observability endpoints
-  sync.ts, sync-brief.ts      Inbound writes from the OS sync pipeline
-  feedback.ts                 Routes rejections into feedback_queue
-  content-ideas.ts            Cleo's idea backlog endpoint
-  metrics.ts, goals.ts, today.ts, task.ts, data.ts, reject.ts,
-  trigger-agent.ts, automations.ts
-                              Misc dashboard endpoints
-
+api/                    Vercel serverless routes and crons (one file per endpoint)
+  _architectureDoc.ts     the parser the weekly architecture engine uses (section 20 and the refresh stamp)
+  architecture/weekly.ts  the Sunday engine run that writes section 20 of the architecture doc
+  revenue/                the money read across the five Stripe accounts
+  health/                 fleet reconcile and the connections sweep
 src/
-  App.tsx                     Tab router (11 tabs, hash-based)
-  components/
-    desktop/                  Desktop tab roots (DesktopHome, DesktopLeads, ...)
-    mobile/                   Mobile-equivalent roots
-    flows/                    Lead/guest/visibility flow widgets
-    shared/                   Shared primitives (Toast, ErrorBoundary, ...)
-  contexts/                   React contexts (AgentsContext)
-  hooks/                      Realtime + data hooks (useRealtimeTasks,
-                              useRealtimeLeads, useRealtimeGuests,
-                              useRealtimeDecisionsWaiting, useCriticalAlerts,
-                              useCustomers, useVisibilityTargets, ...)
-  services/                   Data services (agentBriefs, agentData)
-  lib/supabase.ts             Browser Supabase client (anon key)
-  types/                      Shared TS types
-  utils/                      Helpers
-
-docs/                       This documentation tree (see docs/README.md)
-n8n/workflows/              N8N workflow JSON, committed for source-of-truth diffing
-supabase/migrations/        Supabase migration SQL
-scripts/
-  cron/                       Cron definitions
-  migrations/                 Database migrations
-  backfill/                   One-shot backfill scripts
-  n8n/                        N8N workflow source dumps
-public/                     Static assets served at root
-
-.github/workflows/          CI (lint + tsc --noEmit on every PR)
-vercel.json                 Vite framework, SPA rewrites, /api/* routing
+  App.tsx                 hash router over the tabs in src/lib/tabs.ts
+  components/             one folder per surface, plus shared/ (the house primitives)
+  hooks/                  realtime and data hooks
+  lib/                    portfolio.ts, surfaceMoves.ts, tabs.ts, formats.ts and the other single sources
+docs/                   documentation (index: docs/README.md)
+  MINDMAKE_OS_ARCHITECTURE.md   the one OS architecture document
+  architecture/           deep reference detail behind it
+  history/                superseded text, verbatim, with banners; LOG.md is the index
+scripts/                CI guards (check-*.mts), n8n mirrors and audit, steward, one-off tools
+supabase/migrations/    the schema history
+tests/api/              node:test suites for the api tree
+e2e/                    Playwright specs
+warehouse/              the attribution warehouse schema and ingest function
 ```
 
-## Place in the broader OS
+## Place in the wider OS
 
-The repo is one of three things you read together to understand Mindmake
-OS:
+1. [`docs/MINDMAKE_OS_ARCHITECTURE.md`](./docs/MINDMAKE_OS_ARCHITECTURE.md),
+   on `main` here and nowhere else (ruling 2026-09-07). The engine writes its
+   section 20 each Sunday; people write the rulings in section 0a.
+2. This repo, the dashboard slice.
+3. Agent briefs in Supabase `agents.brief_content`, rendered to each agent's
+   SKILL.md on the VPS. Edit the database, never the rendered file.
+4. Sibling repos: `krishanraja/content-engine`, `krishanraja/ai-harness`
+   (the skills and canon every AI tool loads), `krishanraja/mindmake`
+   (business canon, which wins on the business), and one repo per product.
 
-1. **[`docs/MINDMAKE_OS_ARCHITECTURE.md`](./docs/MINDMAKE_OS_ARCHITECTURE.md)**,
-   in this repo on `main` and nowhere else (ruling 2026-09-07: the VPS and
-   Drive copies are gone; every other document points here and copies
-   nothing). The canonical end-to-end architecture: agent fleet, Supabase
-   schema, data flows, self-healing tiers, cron topology, portfolio context.
-   The engine writes its section 20 every Sunday; people write the rulings.
-2. **This repo (`control-center`)** — the dashboard implementation. Read
-   `docs/ARCHITECTURE.md` and `docs/PRODUCT.md` for the slice of the OS the
-   dashboard owns.
-3. **Agent briefs** (Supabase `agents.brief_content`, rendered to
-   `~/.openclaw/skills/agent-{id}/SKILL.md` on the VPS) — what each agent
-   is and what it does. Edit these in the DB, not the rendered files.
-
-If anything in this repo's docs contradicts `MINDMAKE_OS_ARCHITECTURE.md`,
-**the OS architecture doc wins** and this repo's doc is stale. File an
-issue.
-
-## Further reading
-
-- [`docs/README.md`](./docs/README.md) — documentation index
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Control Center
-  architecture and engineering contract
-- [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) — "Obsidian Aurora"
-  design system: themes, tokens, typography, material, motion, haptics
-- [`docs/PRODUCT.md`](./docs/PRODUCT.md) — per-tab product spec
-- [`docs/CONTENT-ENGINE-OPERATING-GUIDE.md`](./docs/CONTENT-ENGINE-OPERATING-GUIDE.md)
-  — how to actually drive the Content Engine: every surface, every way to start
-  a piece, what the crons and Cleo start on their own, and what the edit palette
-  modes really do
-- [`docs/AGENTS.md`](./docs/AGENTS.md) — agent roster and slug-as-key rule
-- [`docs/DATABASE.md`](./docs/DATABASE.md) — Supabase tables, relationships, RLS
-- [`docs/DB_HEALTH.md`](./docs/DB_HEALTH.md) — DB health, security remediation,
-  migration-ledger notes
-- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — Vercel deployment
-- [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) — workflow and standards
-- [`docs/DECISIONS/`](./docs/DECISIONS/) — architecture decision records
+If anything in this repo's docs contradicts the architecture doc, the
+architecture doc wins and the other doc is stale.
 
 ## License
 

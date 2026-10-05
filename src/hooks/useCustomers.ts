@@ -163,7 +163,7 @@ export function useCustomers() {
 }
 
 // Gutted/On Alert/Merciless were retired from the OS control plane 2026-07-06
-// (see MINDMAKE_OS_ARCHITECTURE.md §21) but historical `customers` rows for
+// (see MINDMAKE_OS_ARCHITECTURE.md §0c, the retired list) but historical `customers` rows for
 // them are preserved, not deleted — labels/accents/tones stay defined so those
 // rows keep rendering their real product name instead of crashing or falling
 // back to the raw enum string.
