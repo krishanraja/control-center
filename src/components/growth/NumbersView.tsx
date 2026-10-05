@@ -1,6 +1,7 @@
 /**
- * Growth: Numbers. The ways people find you, each opening on what it means,
- * with the rows behind it one tap further:
+ * Growth: Numbers. First the ranked products with the same six numbers
+ * Subscriptions shows (PortfolioSection), then the ways people find you, each
+ * opening on what it means, with the rows behind it one tap further:
  *   AI answers   growth_geo_probes (rate per product, trend, sites named
  *                instead, and on demand the questions a product was missed on)
  *   Site visits  the four sites, with Check now
@@ -22,6 +23,7 @@ import { Columns, DotGrid, Ring, ShareBar, WeekPair } from './viz'
 import { ENGINE_WORDS, Overlay, ProductTag } from './bits'
 import { SiteCheck } from './SiteCheck'
 import { ClipStages } from './Why'
+import { PortfolioSection } from './PortfolioSection'
 import { ClipSlots, type NumberAnchor } from './NumbersStrip'
 import { aiSummary, fmtSearches, googleSummary, spendLine, visitsSummary } from './numbers'
 import type { Layout } from './NextView'
@@ -214,6 +216,7 @@ export function NumbersView({ m, mobile, layout, anchor }: { m: GrowthTabModel; 
 
   return (
     <div className="flex flex-col gap-4">
+      <PortfolioSection m={m} mobile={mobile} layout={layout} />
       <div className={cols}>
         {aiBlock}
         {layout === 'xwide'

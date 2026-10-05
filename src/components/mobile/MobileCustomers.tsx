@@ -1,104 +1,75 @@
+/**
+ * Subscriptions, phone. One screen, no scroll at 390x844: the money in one
+ * band, the Substack line, then every ranked product in priority order with
+ * the six Growth numbers as marks (filled: a number, ring: wired but nothing
+ * yet, dashed: not wired). Tap a product for its numbers, their sources and
+ * its customers; tap a customer for the same sheet as before (draft email,
+ * log a call, mark for outreach).
+ *
+ * Rebuilt 2026-10-05 with the desk (Krish: "10X better visually, and
+ * guaranteed no scroll"). The roster, the council, the radar and the sources
+ * sit behind "Subscribers" in one sheet instead of a scrolling column.
+ */
 import React, { useMemo, useState } from 'react'
-import { Mic } from '@/lib/icons'
-import { MobileShell as MobileShellPrim, TabHeader,
-  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { Mic, Users } from '@/lib/icons'
+import { MobileShell as MobileShellPrim, TabHeader, HeaderSubtitleSkeleton, FeedRow } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { BottomSheet } from './BottomSheet'
 import { Pressable } from '../shared/Pressable'
+import { Eyebrow } from '../shared/Eyebrow'
+import { Button } from '../ui/button'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useDictation } from '../../hooks/useDictation'
 import { useToast } from '../shared/Toast'
-import { supabase } from '../../lib/supabase'
-import {
-  useCustomers, PRODUCT_LABEL, PRODUCT_ACCENT, KIND_LABEL, KIND_ACCENT,
-  type CustomerRow, type CustomerProduct,
-} from '../../hooks/useCustomers'
-import { MrrTicker } from '../MrrTicker'
-import { useRevenue, formatCommittedMrr } from '../../hooks/useRevenue'
+import { PRODUCT_LABEL, KIND_LABEL, KIND_ACCENT, type CustomerRow } from '../../hooks/useCustomers'
+import { formatCommittedMrr } from '../../hooks/useRevenue'
+import { formatMrr } from '../../lib/mrrDisplay'
+import { SubscribersList } from '../customers/SubscribersList'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
-import { SubscriptionsWatchHero } from '../customers/SubscriptionsWatchHero'
-import { SubscribersList } from '../customers/SubscribersList'
-import { useDailyFocus } from '../../hooks/useDailyFocus'
-import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
-import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { SubstackImportDropzone } from '../SubstackImportDropzone'
+import { PortfolioList, PortfolioDetail } from '../portfolio/PortfolioBoard'
+import { useSubscriptionsModel, type SubscriptionsModel } from '../customers/useSubscriptionsModel'
+import { SubstackTile } from '../customers/MoneyTiles'
+
+function Band({ s }: { s: SubscriptionsModel }) {
+  const r = s.revenue
+  const cell = (label: string, value: React.ReactNode, testId: string) => (
+    <div className="flex min-w-0 flex-col gap-0.5" data-testid={testId}>
+      <Eyebrow>{label}</Eyebrow>
+      <span className="font-mono text-title font-semibold tabular-nums text-ink">{value}</span>
+    </div>
+  )
+  return (
+    <div className="surface grid grid-cols-3 gap-2 rounded-2xl px-3 py-2.5" data-testid="subscriptions-band">
+      {cell('30 days', r ? <span className="money-text">{formatMrr(r.collected_30d_net_cents / 100)}</span> : '-', 'subscriptions-collected')}
+      {cell('MRR', r ? formatCommittedMrr(r) : '-', 'subscriptions-mrr')}
+      {cell('Paying', r ? r.active_subscriptions : '-', 'subscriptions-paying')}
+    </div>
+  )
+}
 
 export function MobileCustomers() {
   const h = useHaptics()
   const { toast } = useToast()
-  const { customers, buckets, totals, loading, error } = useCustomers()
-  const { revenue } = useRevenue()
-  // Committed MRR as Stripe states it, shared by the header, hero and pill.
-  const mrrLabel = formatCommittedMrr(revenue)
+  const s = useSubscriptionsModel()
+  const customers = s.customers
   const [openId, setOpenId] = useState<string | null>(null)
+  const [product, setProduct] = useState<string | null>(null)
+  const [roster, setRoster] = useState(false)
+  const [importing, setImporting] = useState(false)
   // Log-a-call sheet: dictation-first quick capture (the sanctioned mobile
   // composition exception). Hook lives at top level; actions only flip state.
   const [logOpen, setLogOpen] = useState(false)
   const [callNote, setCallNote] = useState('')
   const dict = useDictation(t => setCallNote(prev => (prev.trim() ? `${prev.trim()} ${t}` : t)))
-  const { mode, setMode } = useFocusMode()
-  const { today: focusToday } = useDailyFocus()
-  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
-
-  // Hero priority: newest paid customer in the last 7 days (celebration)
-  // → newest churn in last 7 days (alert) → null.
-  const hero = useMemo(() => {
-    const now = Date.now()
-    const within7d = (iso?: string | null) => iso && now - new Date(iso).getTime() < 7 * 86_400_000
-    const recentPaid = customers
-      .filter(c => c.kind === 'paid' && within7d(c.became_paid_at || c.created_at))
-      .sort((a, b) => new Date(b.became_paid_at || b.created_at).getTime() - new Date(a.became_paid_at || a.created_at).getTime())[0]
-    if (recentPaid) return { row: recentPaid, mode: 'paid' as const }
-    const recentChurn = customers
-      .filter(c => c.kind === 'churned' && within7d(c.churned_at))
-      .sort((a, b) => new Date(b.churned_at!).getTime() - new Date(a.churned_at!).getTime())[0]
-    if (recentChurn) return { row: recentChurn, mode: 'churned' as const }
-    return null
-  }, [customers])
 
   const open = openId ? customers.find(c => c.id === openId) ?? null : null
-
-  // Mirrors DesktopCustomers expansion-plays selection.
-  const expansionPlays = useMemo(() => {
-    const now = Date.now()
-    return customers
-      .filter(c => c.kind === 'paid' && c.needs_outreach_at && new Date(c.needs_outreach_at).getTime() <= now)
-      .filter(c => {
-        if (!c.last_emailed_at) return true
-        const ageDays = (now - new Date(c.last_emailed_at).getTime()) / (24 * 60 * 60 * 1000)
-        return ageDays >= 7
-      })
-      .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
-  }, [customers])
-
-  // Full Focus Mode (Phase 3): when enabled and the day is calibrated, the
-  // product-grouped roster regroups into the 3 daily-target lanes via
-  // relevance_index (table 'customers'). visibleCustomers is the same flat set
-  // of rows the grouped FeedCards render (each bucket's `recent`), and one
-  // uniform row renderer feeds both the lanes and the muted set.
-  const visibleCustomers = useMemo<CustomerRow[]>(() => {
-    return buckets
-      .filter(b => b.total > 0)
-      .sort((a, b) => b.paid - a.paid || b.total - a.total)
-      .flatMap(b => b.recent)
-  }, [buckets])
-
-  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
-  const renderCustomerRow = (c: CustomerRow) => (
-    <FeedRow
-      dotColor={KIND_ACCENT[c.kind]}
-      title={c.full_name || c.email || 'Customer'}
-      detail={[KIND_LABEL[c.kind], c.plan].filter(Boolean).join(' · ')}
-      trailing={
-        typeof c.mrr_usd === 'number' && c.mrr_usd > 0 ? (
-          <span className="text-ui tabular-nums text-emerald-300">
-            ${Math.round(c.mrr_usd)}
-          </span>
-        ) : null
-      }
-      onClick={() => { h.select(); setOpenId(c.id) }}
-    />
+  const row = product ? s.rows.find(r => r.product.venture === product) ?? null : null
+  const rowCustomers = useMemo<CustomerRow[]>(
+    () => (row?.product.customerProduct ? customers.filter(c => c.product === row.product.customerProduct).slice(0, 12) : []),
+    [row, customers],
   )
 
   const closeLogSheet = () => {
@@ -125,138 +96,70 @@ export function MobileCustomers() {
     closeLogSheet()
   }
 
-  if (loading && customers.length === 0) {
-    return <MobileLoadingScreen title="Subscriptions" subtitle="Gathering subscriptions…" />
-  }
-
   return (
     <MobileShellPrim
+      scroll="none"
       header={
         <TabHeader
+          compact
           title="Subscriptions"
-          subtitle={
-            loading
-              ? <HeaderSubtitleSkeleton w={200} />
-              : totals.paid > 0
-                ? `${totals.paid} paid · ${mrrLabel}/mo`
-                : 'No paid customers yet. Stripe syncs every morning.'
+          subtitle={s.loading ? <HeaderSubtitleSkeleton w={200} /> : undefined}
+          trailing={
+            <Button variant="ghost" size="sm" className="tap-44 -mr-2 px-2" onClick={() => { h.select(); setRoster(true) }} aria-label="Subscribers" data-testid="subscriptions-roster-open">
+              <Users size={16} aria-hidden />
+            </Button>
           }
         />
       }
     >
-      <SubscriptionsWatchHero
-        expansionPlays={expansionPlays}
-        totals={{ mrrLabel, paid: totals.paid }}
-        onOpen={(c) => { h.select(); setOpenId(c.id) }}
-      />
-
-      <MrrTicker variant="mobile" />
-      <SubscribersList />
-      <CustomerCouncilCard />
-      <ExpansionRadar />
-      <CustomerSourcesPanel />
-      {hero && (
-        <HeroCard
-          eyebrow={hero.mode === 'paid' ? 'New paid customer' : 'Recent churn'}
-          accent={hero.mode === 'paid' ? 'emerald' : 'red'}
-          dotColor={hero.mode === 'paid' ? 'bg-emerald-400' : 'bg-red-400'}
-          title={hero.row.full_name || hero.row.email || 'Customer'}
-          detail={[PRODUCT_LABEL[hero.row.product], hero.row.plan].filter(Boolean).join(' · ')}
-          meta={
-            hero.mode === 'paid' && typeof hero.row.mrr_usd === 'number' && hero.row.mrr_usd > 0
-              ? `$${Math.round(hero.row.mrr_usd)}/mo added`
-              : hero.mode === 'churned'
-                ? 'Investigate: Marcus can pull last-7-day context'
-                : undefined
-          }
-          cta="Open"
-          onClick={() => { h.select(); setOpenId(hero.row.id) }}
-        />
-      )}
-
-      <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Paid"  value={totals.paid}                                       color={totals.paid > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
-        <StatPill label="MRR"   value={revenue ? mrrLabel : '—'}  color={revenue && revenue.committed_mrr_usd_cents > 0 ? 'text-emerald-300' : 'text-ink-faint'} />
-        <StatPill label="Free"  value={totals.freeSignups}                                color={totals.freeSignups > 0 ? 'text-violet-300' : 'text-ink-faint'} />
-        <StatPill label="Wait"  value={totals.waitlist}                                   color={totals.waitlist > 0 ? 'text-amber-300' : 'text-ink-faint'} />
+      {/* Fits 390x844 whole. On a shorter phone the column scrolls rather than
+          clipping: the frame contract's backstop, not the layout. The tail
+          clears the + button (about 148 screen px, 123 at the 1.2 zoom). */}
+      <div className="-mx-5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom,0px)+128px)] scrollbar-hide" data-testid="subscriptions-stage">
+        <Band s={s} />
+        <SubstackTile s={s} compact onImport={() => { h.select(); setImporting(true) }} />
+        <PortfolioList rows={s.rows} headline="revenue" onOpen={v => { h.select(); setProduct(v) }} />
       </div>
 
-      {error && (
-        <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-5 text-lede text-red-200">
-          {error}
+      <BottomSheet open={row != null && open == null} onClose={() => setProduct(null)} fullHeight={false} ariaLabel={row ? `${row.product.label} detail` : 'Product detail'}>
+        <div className="max-h-[calc(80dvh/var(--z,1))] overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+          {row && (
+            <PortfolioDetail row={row}>
+              {rowCustomers.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <Eyebrow>Customers on the ledger</Eyebrow>
+                  {rowCustomers.map(c => (
+                    <FeedRow
+                      key={c.id}
+                      dotColor={KIND_ACCENT[c.kind]}
+                      title={c.full_name || c.email || 'Customer'}
+                      detail={[KIND_LABEL[c.kind], c.plan].filter(Boolean).join(' · ')}
+                      onClick={() => { h.select(); setOpenId(c.id) }}
+                    />
+                  ))}
+                </div>
+              )}
+            </PortfolioDetail>
+          )}
         </div>
-      )}
+      </BottomSheet>
 
-      {customers.length === 0 && !loading && !error && (
-        <EmptyState label="No customers yet. Apply the customers migration and activate the Maya sweeper." />
-      )}
-
-      {isFocusModeEnabled() && calibrated && (
-        <div className="flex items-center justify-end -mt-1">
-          <FocusModeToggle mode={mode} onChange={setMode} />
+      <BottomSheet open={roster} onClose={() => setRoster(false)} ariaLabel="Subscribers">
+        <div className="flex h-full flex-col gap-4 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom,0px)+24px)]">
+          <SubscribersList />
+          <CustomerCouncilCard />
+          <ExpansionRadar />
+          <CustomerSourcesPanel />
         </div>
-      )}
+      </BottomSheet>
 
-      {showFocus ? (
-        <FeedCard title="Subscriptions, by focus">
-          <FocusLanes
-            rows={visibleCustomers}
-            table="customers"
-            keyOf={c => String(c.id)}
-            renderItem={renderCustomerRow}
-            fallback={null}
-            mutedLabel="Off focus"
-          />
-        </FeedCard>
-      ) : (
-        buckets
-        .filter(b => b.total > 0)
-        .sort((a, b) => b.paid - a.paid || b.total - a.total)
-        .map(b => (
-          <FeedCard
-            key={b.product}
-            title={`${PRODUCT_LABEL[b.product]} · ${b.total}`}
-          >
-            <div className="px-7 pt-3 pb-2 flex items-center gap-4 text-ui">
-              {b.paid > 0 && (
-                <span className="text-emerald-300 tabular-nums">
-                  {b.paid} paid
-                </span>
-              )}
-              {b.mrrUsd > 0 && (
-                <span className="text-emerald-300 tabular-nums">
-                  ${Math.round(b.mrrUsd).toLocaleString()}/mo
-                </span>
-              )}
-              {b.freeSignups > 0 && (
-                <span className="text-violet-300 tabular-nums">{b.freeSignups} free</span>
-              )}
-              {b.waitlist > 0 && (
-                <span className="text-amber-300 tabular-nums">{b.waitlist} waitlist</span>
-              )}
-              {b.churned > 0 && (
-                <span className="text-red-300 tabular-nums">{b.churned} churn</span>
-              )}
-            </div>
-            {b.recent.map(c => (
-              <FeedRow
-                key={c.id}
-                dotColor={KIND_ACCENT[c.kind]}
-                title={c.full_name || c.email || 'Customer'}
-                detail={[KIND_LABEL[c.kind], c.plan].filter(Boolean).join(' · ')}
-                trailing={
-                  typeof c.mrr_usd === 'number' && c.mrr_usd > 0 ? (
-                    <span className="text-ui tabular-nums text-emerald-300">
-                      ${Math.round(c.mrr_usd)}
-                    </span>
-                  ) : null
-                }
-                onClick={() => { h.select(); setOpenId(c.id) }}
-              />
-            ))}
-          </FeedCard>
-        ))
-      )}
+      <BottomSheet open={importing} onClose={() => setImporting(false)} fullHeight={false} ariaLabel="Import the Substack export">
+        <div className="flex flex-col gap-3 px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+          <h2 className="font-display text-title font-semibold text-ink">Import the Substack export</h2>
+          <p className="text-body text-ink-muted">Substack has no API, so free readers arrive from its CSV export. Paid subscribers already arrive from Stripe every day.</p>
+          <SubstackImportDropzone onImported={() => { s.reloadAudience(); setImporting(false) }} />
+        </div>
+      </BottomSheet>
 
       <DetailSheet
         open={open != null && !logOpen}

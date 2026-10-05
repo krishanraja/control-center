@@ -30,6 +30,16 @@ const STRIPE = 'https://api.stripe.com/v1'
 const ACCOUNTS: Record<string, string> = {
   mindmaker_llc: 'STRIPE_API_KEY',
   fractionl_ai: 'STRIPE_API_KEY_FRACTIONL',
+  // Full Time sells one thing (Pro) from its own account, so its subscribers
+  // need no price map entry: anything unmapped on it is Full Time. Unset, the
+  // account is skipped like the others. Added 2026-10-05 when Full Time became
+  // a priority 1 product and its revenue still read nowhere.
+  full_time: 'STRIPE_API_KEY_FULLTIME',
+}
+
+/** An account that sells exactly one product files its unmapped prices there. */
+export const ACCOUNT_DEFAULT_PRODUCT: Record<string, string> = {
+  full_time: 'full_time',
 }
 
 type Json = Record<string, any>
@@ -161,7 +171,7 @@ export function resolveSubscription(
 
 const KNOWN_PRODUCTS = new Set([
   'gutted', 'onalert', 'merciless', 'fractionl_circle', 'fractionl_pulse',
-  'mm_ctrl', 'legibility', 'full_time', 'mindmake', 'publication',
+  'mm_ctrl', 'legibility', 'full_time', 'mindmake', 'publication', 'heartside',
 ])
 
 /** The price map keeps a few spellings the enum never had. */
@@ -226,13 +236,13 @@ export function pickLedgerSubscription(subs: SubRow[]): SubRow {
   })[0]
 }
 
-async function reconcileCustomers(subRows: SubRow[], priceMap: Record<string, string>): Promise<{ upserted: number; unmapped: string[] }> {
+async function reconcileCustomers(subRows: SubRow[], priceMap: Record<string, string>, accountDefault: string | null = null): Promise<{ upserted: number; unmapped: string[] }> {
   const unmapped = new Set<string>()
   const groups = new Map<string, SubRow[]>()
   for (const s of subRows) {
     if (!s.customer_id) continue
     const price = s.raw?.items?.data?.[0]?.price || s.raw?.plan || {}
-    const product = normaliseProduct(priceMap[String(price.id)]) ?? normaliseProduct(priceMap[String(price.product)])
+    const product = normaliseProduct(priceMap[String(price.id)]) ?? normaliseProduct(priceMap[String(price.product)]) ?? normaliseProduct(accountDefault)
     if (!product) {
       unmapped.add(`${String(price.id || price.product || s.id)} ${String(price.nickname || '')}`.trim())
       continue
@@ -309,7 +319,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const priceMap = await loadPriceMap()
 
   try {
+    // One account failing (an expired key, say) must not stop the others:
+    // the Full Time key expiring is exactly what froze the old n8n
+    // reconciliation for every product at once.
+    const failures: string[] = []
     for (const [account, envVar] of configured) {
+      try {
       const key = process.env[envVar] as string
       const syncedAt = new Date().toISOString()
 
@@ -442,7 +457,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (error) throw new Error(`revenue_events upsert: ${error.message}`)
       }
 
-      const ledger = await reconcileCustomers(subRows, priceMap)
+      const ledger = await reconcileCustomers(subRows, priceMap, ACCOUNT_DEFAULT_PRODUCT[account] ?? null)
 
       report.push({
         account,
@@ -452,9 +467,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         customers_reconciled: ledger.upserted,
         unmapped_prices: ledger.unmapped,
       })
+      } catch (e) {
+        const error = e instanceof Error ? e.message : 'sync failed'
+        failures.push(`${account}: ${error}`)
+        report.push({ account, error })
+      }
     }
 
-    return res.json({ ok: true, accounts: report, synced_at: new Date().toISOString() })
+    if (failures.length === configured.length) {
+      return res.status(502).json({ ok: false, error: failures.join('; '), accounts: report })
+    }
+    return res.json({
+      ok: failures.length === 0,
+      ...(failures.length ? { error: `partly synced. ${failures.join('; ')}` } : {}),
+      accounts: report,
+      synced_at: new Date().toISOString(),
+    })
   } catch (e) {
     return res.status(502).json({ ok: false, error: e instanceof Error ? e.message : 'sync failed' })
   }

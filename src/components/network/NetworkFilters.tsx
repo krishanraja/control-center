@@ -79,7 +79,7 @@ function nf(n: number): string {
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap content-start items-center gap-1.5">
       <Eyebrow className="mr-1">{label}</Eyebrow>
       {children}
     </div>

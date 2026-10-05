@@ -36,6 +36,20 @@ export interface RevenueSummary {
   as_of: string
   /** When the Stripe pull last wrote these tables. Null until the first sync. */
   synced_at: string | null
+  /**
+   * The share of the figures above that came through the Substack. A SLICE,
+   * never an addition: every cent here is already inside the totals above.
+   * See substackSlice() for how a Substack plan is recognised.
+   */
+  substack: SubstackSlice
+}
+
+export interface SubstackSlice {
+  active_subscriptions: number
+  committed_mrr_usd_cents: number
+  committed_mrr_other: MoneyByCurrency[]
+  collected_30d_net_cents: number
+  collected_all_time_net_cents: number
 }
 
 const DAY = 86_400_000
@@ -45,10 +59,10 @@ export async function loadRevenue(): Promise<RevenueSummary> {
 
   const [evRes, subRes] = await Promise.all([
     supabase.from('revenue_events')
-      .select('kind, occurred_at, gross_cents, net_cents, usd_cents')
+      .select('kind, occurred_at, gross_cents, net_cents, usd_cents, subscription_id')
       .limit(10_000),
     supabase.from('revenue_subscriptions')
-      .select('status, currency, mrr_cents, mrr_usd_cents, synced_at')
+      .select('id, status, currency, mrr_cents, mrr_usd_cents, synced_at, substack:raw->plan->metadata->>substack')
       .limit(5_000),
   ])
 
@@ -100,5 +114,48 @@ export async function loadRevenue(): Promise<RevenueSummary> {
     empty: events.length === 0 && subs.length === 0,
     as_of: new Date().toISOString(),
     synced_at: syncedAt,
+    substack: substackSlice(events, subs, now),
+  }
+}
+
+/**
+ * Substack charges its paid subscribers through the Mindmaker LLC Stripe
+ * account (Stripe Connect, with Substack's 10% as an application fee), and
+ * every plan it creates carries `metadata.substack = "yes"`. That flag, read off
+ * the plan, is the test. A charge belongs to the slice
+ * when its subscription does. Nothing here is added to the totals: the same
+ * cents are already counted there, once.
+ */
+export function substackSlice(
+  events: ReadonlyArray<Record<string, unknown>>,
+  subs: ReadonlyArray<Record<string, unknown>>,
+  now = Date.now(),
+): SubstackSlice {
+  const isSubstack = (s: Record<string, unknown>) =>
+    String(s.substack ?? '').toLowerCase() === 'yes'
+  const ids = new Set(subs.filter(isSubstack).map(s => String(s.id)))
+  const LIVE = new Set(['active', 'past_due'])
+  let active = 0, mrrUsd = 0
+  const other = new Map<string, number>()
+  for (const s of subs) {
+    if (!ids.has(String(s.id)) || !LIVE.has(String(s.status))) continue
+    active += 1
+    if (s.mrr_usd_cents != null) { mrrUsd += Number(s.mrr_usd_cents) || 0; continue }
+    const cur = String(s.currency || '').toLowerCase()
+    other.set(cur, (other.get(cur) || 0) + (Number(s.mrr_cents) || 0))
+  }
+  let net30 = 0, netAll = 0
+  for (const e of events) {
+    if (!e.subscription_id || !ids.has(String(e.subscription_id))) continue
+    const net = Number(e.net_cents) || 0
+    netAll += net
+    if (now - new Date(String(e.occurred_at)).getTime() <= 30 * DAY) net30 += net
+  }
+  return {
+    active_subscriptions: active,
+    committed_mrr_usd_cents: mrrUsd,
+    committed_mrr_other: [...other.entries()].map(([currency, cents]) => ({ currency, cents })),
+    collected_30d_net_cents: net30,
+    collected_all_time_net_cents: netAll,
   }
 }
