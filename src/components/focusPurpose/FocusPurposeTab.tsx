@@ -141,7 +141,7 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
           desk to its right. */}
       <div className={wideDesk ? 'flex items-stretch gap-5' : ''}>
         <div ref={askRef} data-testid="focus-ask" className={`scroll-mt-4 ${wideDesk ? 'w-full max-w-[620px]' : ''}`}>
-          <AskCard variant={variant} composeSignal={composeSignal} />
+          <AskCard variant={variant} composeSignal={composeSignal} hero />
         </div>
         {wideDesk && (
           <DayBoundary onCompile={() => { h.tap(); setWorryOpen(true) }} onShutdown={() => { h.tap(); setShutdownOpen(true) }} />

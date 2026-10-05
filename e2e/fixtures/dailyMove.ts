@@ -1,5 +1,5 @@
 import type { Locator, Page, Route } from '@playwright/test'
-import { mockAudit, DAILY_MOVE, goal, isDailyMoveRead } from './audit'
+import { mockAudit, DAILY_MOVE, GOAL_LADDER, goal, isDailyMoveRead } from './audit'
 
 /**
  * Today's move (ADR-028) on Home, over the populated audit fixture, with the
@@ -192,6 +192,13 @@ export async function mockWorstMorning(page: Page): Promise<DailyMoveWrites> {
       ],
     },
     ventures: ['mindmake', 'ctrl'], stale_count: 0, orphan_count: 0,
+    // The real endpoint always says which week is current, and the rows above
+    // carry that same week. Without it the app falls back to the PINNED
+    // browser clock (a fixed Wednesday) while the rows carry the runner's real
+    // Monday, so from the first Monday after that Wednesday the five rows stop
+    // counting as this week's and an extra "Set this week's 3" ask appears
+    // that no real morning shows (2026-10-05: four red phone tests).
+    week_of: GOAL_LADDER.week_of, current_week: GOAL_LADDER.current_week,
   } }))
   return writes
 }

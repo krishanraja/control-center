@@ -1,5 +1,6 @@
 import { test, expect, type Route } from '@playwright/test'
 import { mockAudit } from './fixtures/audit'
+import { BOARD } from './fixtures/board'
 
 /**
  * The work board, on the phone.
@@ -10,26 +11,6 @@ import { mockAudit } from './fixtures/audit'
  * reads it here and replies. These pin the phone experience: what waits on him
  * comes first, a reply sends his exact words, and nothing leaves the screen.
  */
-
-const BOARD = {
-  ok: true,
-  state: {
-    headline: 'Two things need you: yes to article 1\'s video, and article 3.',
-    signals: [{ label: 'Home computer', state: 'ok', text: 'On, up to date, ready' }, { label: 'AI spend, last 14 days', state: '', text: '$85.60' }],
-    updated_by: 'codex',
-    updated_at: '2026-10-03T19:30:00.000Z',
-  },
-  items: [
-    { id: 'you-p1-brief', lane: 'on_you', rank: 1, area: 'Article 1 · video', title: 'Say yes to turning article 1 into a video and slides', detail: 'Before that starts, you confirm five things.', link: 'https://controlcenter.krishraja.com/#/content?idea=6cb0d213-1aa6-44d3-8dc2-0b91d8dde4df', link_label: 'Open article 1', prompt: "'yes, make the video' or what to change", updated_by: 'claude_code', updated_at: '2026-10-03T19:30:00.000Z' },
-    { id: 'you-p3-approve', lane: 'on_you', rank: 2, area: 'Article 3', title: 'Read article 3 and say yes or what to change', detail: 'Every fact in it has been checked.', link: null, link_label: null, prompt: 'Yes, or what to change', updated_by: 'claude_code', updated_at: '2026-10-03T19:00:00.000Z' },
-    { id: 'doing-next-picks', lane: 'in_progress', rank: 2, area: 'Articles', title: 'Your next two articles', detail: 'They start once article 3 is approved.', link: null, link_label: null, prompt: null, updated_by: 'codex', updated_at: '2026-10-03T18:00:00.000Z' },
-    { id: 'doing-composer-phone', lane: 'done', rank: 0, area: 'Control Center', title: 'Buttons no longer fall off the phone screen', detail: 'Now they all fit.', link: null, link_label: null, prompt: null, updated_by: 'claude_code', updated_at: '2026-10-02T12:45:00.000Z' },
-  ],
-  replies: [
-    { id: '11111111-1111-4111-8111-111111111111', item_id: 'you-p3-approve', text: 'Reading it tonight', by: 'Krish', at: '2026-10-03T19:10:00.000Z', seen_at: '2026-10-03T19:20:00.000Z', seen_by: 'codex' },
-  ],
-  unseen_replies: 0,
-}
 
 test('the board shows what waits on Krish first, and a reply sends his exact words', async ({ page }) => {
   let posted: Record<string, unknown> | null = null
@@ -81,4 +62,66 @@ test('nothing on the board leaves the phone screen', async ({ page }) => {
     return bad
   })
   expect(off).toEqual([])
+})
+
+test('one item at a time: the card answers, the verdict lands in place, and Next is a press', async ({ page }) => {
+  // Growth's standard (Krish, 2026-10-05). The board used to open a reply box
+  // under every item waiting on him at once: two primary buttons on one
+  // screen, and the second item's box below the fold.
+  await mockAudit(page)
+  await page.route('**/api/workbench', async (route: Route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      return route.fulfill({ json: { ok: true, reply: { id: '33333333-3333-4333-8333-333333333333', item_id: body.item_id, text: body.text, by: 'Krish', at: '2026-10-03T19:40:00.000Z', seen_at: null, seen_by: null } } })
+    }
+    return route.fulfill({ json: BOARD })
+  })
+  await page.goto('/#/board')
+
+  // The numbers, at a glance.
+  const numbers = page.getByTestId('board-numbers')
+  await expect(numbers).toContainText(/Waiting on you\s*2/, { timeout: 20_000 })
+  await expect(numbers).toContainText(/In progress\s*1/)
+
+  // One card, one reply box, one Send.
+  const next = page.getByTestId('board-next')
+  await expect(next).toContainText('Say yes to turning article 1 into a video and slides')
+  await expect(next).toContainText('1 of 2')
+  await expect(page.getByRole('button', { name: 'Send reply' })).toHaveCount(1)
+  await expect(page.getByRole('textbox')).toHaveCount(1)
+
+  // The second item is a row: his last word on it, and a press to answer it.
+  const row = page.getByTestId('board-item-you-p3-approve')
+  await expect(row).toContainText('Reading it tonight')
+  await expect(row.getByRole('button', { name: /Answer this one/ })).toBeVisible()
+
+  // The verdict lands where he pressed, and nothing advances on its own.
+  await next.getByRole('textbox').fill('yes, make the video')
+  await next.getByRole('button', { name: 'Send reply' }).tap()
+  await expect(page.getByTestId('board-verdict')).toContainText('Sent.')
+  await page.waitForTimeout(400)
+  await expect(next).toContainText('Say yes to turning article 1 into a video and slides')
+
+  // Next is a press, and it brings up the other item.
+  await page.getByTestId('board-next-item').tap()
+  await expect(page.getByTestId('board-next')).toContainText('Read article 3 and say yes or what to change')
+  await expect(page.getByTestId('board-next')).toContainText('2 of 2')
+
+  // What is done is one tap away, not on the screen.
+  await expect(page.getByText('Buttons no longer fall off the phone screen')).toHaveCount(0)
+  await page.getByTestId('board-done').getByRole('button', { name: /Done recently/ }).tap()
+  await expect(page.getByText('Buttons no longer fall off the phone screen')).toBeVisible()
+})
+
+test('with nothing waiting, the board says so once, with the number that matters next', async ({ page }) => {
+  await mockAudit(page)
+  const quiet = { ...BOARD, items: BOARD.items.filter(i => i.lane !== 'on_you' && i.lane !== 'done'), replies: [] }
+  await page.route('**/api/workbench', (route: Route) => route.fulfill({ json: quiet }))
+  await page.goto('/#/board')
+  await expect(page.getByText('Nothing is waiting on you.')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('1 thing is in progress.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send reply' })).toHaveCount(0)
+  // The empty lane is named once, not drawn as a card.
+  await expect(page.getByText('Nothing in the done list.')).toBeVisible()
+  await expect(page.getByTestId('board-done').locator('section')).toHaveCount(0)
 })

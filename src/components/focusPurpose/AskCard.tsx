@@ -3,6 +3,7 @@ import type { PilotAsk, PilotAskOutcome } from '../../types/pilot'
 import { useAskState, saveAsk, resolveAsk } from '../../hooks/useAsks'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Skeleton } from '../shared/Skeleton'
+import { DoThisNextHero } from '../shared/DoThisNextHero'
 import { Eyebrow } from '../shared/Eyebrow'
 import { useDeferredPending } from '../shared/useDeferredPending'
 import { Tap, VoiceField } from '../pilot/controls'
@@ -42,9 +43,18 @@ interface Props {
   onCommitted?: (finalText: string, predictedNoPct: number | null) => void
   /** Leave out the past day's unresolved ask (a read is not the place for it). */
   hideUnresolved?: boolean
+  /**
+   * Render through the house hero (DoThisNextHero, layout="card"), one step at
+   * a time: Focus's spine (Krish, 2026-10-05: Growth is the standard). A past
+   * day's unresolved ask is then the step before today's, never a second
+   * action stacked above it; "Answer it later" steps past it, and after an
+   * answer the lesson lands where he pressed and "Next" is a press. The
+   * strategist's seeded ask keeps the plain card.
+   */
+  hero?: boolean
 }
 
-export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresolved }: Props) {
+export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresolved, hero = false }: Props) {
   const h = useHaptics()
   const { state, loading, refresh } = useAskState()
   const [text, setText] = useState('')
@@ -57,6 +67,8 @@ export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresol
   // persisted: the lesson is read once, not collected.
   const [learning, setLearning] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
+  // Hero mode: he stepped past the unresolved ask for now.
+  const [deferred, setDeferred] = useState(false)
   const waiting = useDeferredPending(loading)
   // The seed stays in charge of the card until it is saved (or refused as
   // already sent); after that the card is plain today's ask again.
@@ -146,6 +158,151 @@ export function AskCard({ variant, composeSignal, seed, onCommitted, hideUnresol
   const compact = variant === 'mobile'
   const softener = findSelfRejection(text)
   const composing = !today || editing
+
+  if (hero && !seeding) {
+    const outcomeChips = (onPick: (o: PilotAskOutcome) => void) => (
+      <div className="flex flex-wrap gap-1.5">
+        {OUTCOME_CHIPS.map(({ outcome, label }) => (
+          <button
+            key={outcome}
+            type="button"
+            onPointerDown={() => h.select()}
+            onClick={() => onPick(outcome)}
+            className="min-h-[44px] px-3.5 rounded-xl text-body bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    )
+    const quiet = '!min-h-[48px] text-body flex items-center'
+    const eyebrow = (word: string) => <Eyebrow tone="accent">{word}</Eyebrow>
+
+    // 1. A past day's ask, still waiting on reality, is the step before today's.
+    if (state?.unresolved && !learning && !hideUnresolved && !deferred) {
+      const past = state.unresolved
+      return (
+        <DoThisNextHero
+          layout="card" narrow={compact} testId="ask-unresolved"
+          eyebrow={eyebrow('Waiting on a reply')}
+          descriptor={{ headline: past.ask_text, sub: 'What came back? Your guess only teaches you something once it meets the answer.' }}
+        >
+          {outcomeChips(o => resolve(past, o))}
+          <Tap variant="quiet" className={`${quiet} self-start`} onTap={() => { h.tap(); setDeferred(true) }}>Answer it later</Tap>
+        </DoThisNextHero>
+      )
+    }
+
+    // 2. The answer met the guess: one sentence, where he pressed. Next is a press.
+    if (learning) {
+      return (
+        <DoThisNextHero
+          layout="card" narrow={compact} testId="ask-learning"
+          eyebrow={eyebrow('What it taught')}
+          descriptor={{ headline: learning, sub: '' }}
+        >
+          <Tap onTap={() => { h.tap(); setLearning(null) }} feel="impactMedium" className="self-start flex items-center justify-center">
+            Next: today&rsquo;s ask
+          </Tap>
+        </DoThisNextHero>
+      )
+    }
+
+    // 3. Compose today's ask.
+    if (composing) {
+      return (
+        <DoThisNextHero
+          layout="card" narrow={compact} testId="ask-compose"
+          descriptor={{ headline: 'Today’s ask', sub: 'Ask one person for one thing. Give them an easy way to say no.' }}
+        >
+          <VoiceField value={text} onChange={setText} rows={2} placeholder={ASK_PLACEHOLDER} />
+          {softener && <p className="text-label text-ink-muted leading-relaxed">{selfRejectionHint(softener)}</p>}
+          <AskWho compact={compact} onUse={t => { setText(t); setPredicted(null) }} />
+          {text.trim() !== '' && (
+            <div className="flex flex-col gap-2">
+              <span className="text-label text-ink-muted">Your guess: how likely is a yes?</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {PREDICTION_CHIPS.map(({ pct, label }) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    data-testid={`ask-guess-${pct}`}
+                    aria-pressed={predicted === pct}
+                    onPointerDown={() => h.select()}
+                    onClick={() => setPredicted(predicted === pct ? null : pct)}
+                    className={`min-h-[44px] px-1 rounded-xl text-label leading-tight text-center border transition-all active:scale-95 touch-manipulation ${
+                      predicted === pct
+                        ? 'bg-white/[0.12] border-white/30 text-ink'
+                        : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.07]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {error && <p className="text-label text-ink-muted">{error}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <Tap onTap={() => commit(false)} disabled={saving || !text.trim()} feel="impactMedium" className="flex items-center justify-center">
+              {saving ? 'Saving' : 'Save the ask'}
+            </Tap>
+            {editing && today && (
+              <Tap variant="quiet" className={quiet} onTap={() => { h.tap(); setEditing(false); setText(today.ask_text); setPredicted(today.predicted_no_pct) }}>
+                Cancel
+              </Tap>
+            )}
+          </div>
+        </DoThisNextHero>
+      )
+    }
+
+    // 4. Saved, not sent: send it, then say so.
+    if (today && !today.sent_at) {
+      return (
+        <DoThisNextHero
+          layout="card" narrow={compact} testId="ask-committed"
+          eyebrow={eyebrow('Today’s ask')}
+          descriptor={{
+            headline: today.ask_text,
+            sub: today.predicted_no_pct !== null
+              ? `Your guess: ${100 - today.predicted_no_pct}% chance of a yes.`
+              : 'Send it, then come back and say so.',
+          }}
+        >
+          {error && <p className="text-label text-ink-muted">{error}</p>}
+          <div className="flex items-center gap-2">
+            <Tap onTap={() => commit(true)} disabled={saving} feel="success" className="flex items-center justify-center">I sent it</Tap>
+            <Tap variant="quiet" className={quiet} onTap={() => { h.tap(); setEditing(true) }}>Edit</Tap>
+          </div>
+        </DoThisNextHero>
+      )
+    }
+
+    // 5. Sent, waiting on the answer: nothing else is asked of him today.
+    if (today && !today.resolved_at) {
+      return (
+        <DoThisNextHero
+          layout="card" narrow={compact} testId="ask-sent"
+          eyebrow={eyebrow('Sent')}
+          descriptor={{ headline: today.ask_text, sub: 'Saved to your log. Nothing else to do here until they answer.', tone: 'neutral' }}
+        >
+          {error && <p className="text-label text-ink-muted">{error}</p>}
+          {recording
+            ? outcomeChips(o => { setRecording(false); resolve(today, o) })
+            : <Tap variant="quiet" className={`${quiet} self-start`} onTap={() => { h.tap(); setRecording(true) }}>Record what came back</Tap>}
+        </DoThisNextHero>
+      )
+    }
+
+    // 6. Honest emptiness, said once.
+    return (
+      <DoThisNextHero
+        narrow={compact}
+        descriptor={{ clear: true, headline: 'Today’s ask is made and answered.', sub: 'Done for today.' }}
+      />
+    )
+  }
 
   return (
     // The house card material (`.surface`), not a 3% wash of the page. The wash

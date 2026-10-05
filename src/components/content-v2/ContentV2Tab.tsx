@@ -41,7 +41,8 @@ import { cn } from '@/lib/utils'
  * One bounded body, one scroller (`content-room-scroll`), inside AppFrame.
  * The shape is picked from the width the tab is actually handed, measured on
  * the tab root, which no layout choice here resizes:
- *   stack   under 1000px: phone, tablet, a narrow desk window. Cards in a column.
+ *   stack   under 1000px: phone, tablet, a narrow desk window. The call in
+ *           focus as the one card, the rest as numbered rows beneath it.
  *   split   1000 to 1479: the desk at 1440. The list beside a reading pane.
  *   triple  1480 and up:  the desk at 1920. List, reading pane, and a rail.
  */
@@ -73,9 +74,12 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     requestAnimationFrame(() => revealTop(readerRef.current))
   }, [s])
   const goTo = useCallback((key: string) => {
-    if (shape === 'stack') cardRefs.current.get(key)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-    else focusCall(key)
-  }, [shape, focusCall])
+    if (shape === 'stack') {
+      // The phone holds one card: bring this call into it, then its top into view.
+      s.hold(key)
+      requestAnimationFrame(() => cardRefs.current.get('__focus')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+    } else focusCall(key)
+  }, [shape, focusCall, s])
   const nextAfter = useCallback((key: string) => {
     const k = s.calls.findIndex(c => c.key === key)
     const next = [...s.calls.slice(k + 1), ...s.calls.slice(0, k)].find(c => !s.receipts[c.key])
@@ -174,13 +178,37 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
               {mobile && engineLine}
               {mobile && <div>{browse}</div>}
             </div>
-            <ol data-testid="content-calls" className="flex flex-col gap-4" aria-label="Today's calls">
-              {s.calls.map((c, k) => (
-                <li key={c.key} className="scroll-mt-4">
-                  <CallCard call={c} n={k + 1} s={s} layout="card" cardRef={el => { if (el) cardRefs.current.set(c.key, el) }} />
-                </li>
-              ))}
-            </ol>
+            {/* One call at a time, as on Growth (Krish, 2026-10-05). The call
+                in focus is the one card, with its one primary action and Not
+                now; every other call is a numbered row that brings its card
+                up. It used to stack all ten as full cards, which on a phone
+                was 7,080px of scroll with ten primary buttons in it and the
+                engine's numbers at the very bottom. Next, in the verdict, is a
+                press: nothing moves on its own. */}
+            <div data-testid="content-calls" className="flex flex-col gap-5" aria-label="Today's calls">
+              {s.focus && (
+                <div className="scroll-mt-4" ref={el => { if (el) cardRefs.current.set('__focus', el) }}>
+                  <CallCard
+                    key={s.focus.key}
+                    call={s.focus}
+                    n={numberOf(s.focus.key) ?? 1}
+                    s={s}
+                    layout="card"
+                    onNext={nextAfter(s.focus.key) ? () => { const k = nextAfter(s.focus!.key); if (k) goTo(k) } : undefined}
+                  />
+                </div>
+              )}
+              {total > 1 && (
+                <section aria-labelledby="other-calls-h" className="flex flex-col gap-2">
+                  <h2 id="other-calls-h" className="px-1 leading-none"><Eyebrow>Your other calls</Eyebrow></h2>
+                  <ol className="flex flex-col gap-1">
+                    {s.calls.map((c, k) => c.key === s.focus?.key ? null : (
+                      <CallRow key={c.key} call={c} n={k + 1} receipt={s.receipts[c.key]} selected={false} onSelect={() => goTo(c.key)} s={s} />
+                    ))}
+                  </ol>
+                </section>
+              )}
+            </div>
           </>
         )}
         {gaps}

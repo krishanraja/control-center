@@ -67,12 +67,17 @@ export function DesktopHome({ onNavigate }: {
   // The wide rail has one fold of its own: the due test.
   const railFit = useFitFolds(1, pinned)
   const folds = foldsAt(fit.level, pinned)
-  // "Pick your 3" steps aside only while a move is proposed and the column
-  // has run out: the move is then the ask, and the Add on Today sets the rest.
-  const ctaAside = folds.cta && Boolean(daily.current)
+  // While a move is proposed the move IS the ask: one primary action on the
+  // screen, as on Growth. "Pick your 3" steps aside (the Add on Today sets the
+  // rest) and the week's ask moves onto the This week line.
+  const ctaAside = Boolean(daily.current)
   if (firstPaint) return <HomeSkeleton />
 
   const cta = alt.cta
+  // Measured 2026-10-05 at 360x640: the full-width week ask beside a long
+  // move cost 61px and folded the move on its own, which only something he
+  // opens may do.
+  const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
 
   // The instruments: what the machine did and what is owed. Peripheral to the
   // canon, which is why they sit in the rail on a wide desk and above it
@@ -157,11 +162,11 @@ export function DesktopHome({ onNavigate }: {
             {/* Direct children, never a wrapper: a strip with nothing to say
                 renders nothing, and an empty wrapper would still take a gap. */}
             {!wide && instruments(folds.tests)}
-            <GoalLadder variant="desktop" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} />
-            {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
+            <GoalLadder variant="desktop" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} weekAsk={weekAsk} />
+            {cta && cta.target === 'weekly' && !weekAsk && <CanonCta cta={cta} />}
             <TodayList
               daily={daily}
-              folds={{ survived: folds.survived, why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}
+              folds={{ why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}
               onShowMove={() => setPinned('card')}
             />
             {cta && cta.target !== 'weekly' && !ctaAside && <CanonCta cta={cta} />}

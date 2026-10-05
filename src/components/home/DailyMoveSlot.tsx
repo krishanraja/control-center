@@ -21,15 +21,15 @@ import type { DailyChallenge, NextStepSection } from '../../types/strategist'
 //
 // Home never scrolls (src/lib/homeFolds.ts), so the card folds when the screen
 // is short, and folds in steps that keep everything one tap away:
-//   survived what the move survived lives in its "?" only
-//   why      and so does its why
+//   why      its why goes into the "?"
 //   actions  one row of controls, tighter spacing, and the person line is the
 //            name alone, which opens the ask or the draft; who they are moves
 //            into the "?"
 //   card     one line, until he opens it, which happens only when he has
 //            opened something else on Home by hand
-// What it survived is always in the "?", so folding the inline copy loses
-// nothing. On a phone "Not this" asks why in the house sheet, never inline:
+// What it survived lives in the "?" only, at every size, never inline: it is
+// evidence, and evidence is shown when asked (Growth's rule, 2026-10-05). The
+// why line is the one plain reason to act and stays on the card. On a phone "Not this" asks why in the house sheet, never inline:
 // the reasons are taller than a short screen can lend the card.
 
 const BTN = 'tap-44 inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border px-3 text-label transition-colors'
@@ -38,13 +38,12 @@ const BTN_QUIET = `${BTN} border-white/10 text-ink-muted hover:bg-white/[0.05] h
 const BTN_TEXT = 'tap-44 inline-flex min-h-[32px] items-center px-2 text-label text-ink-faint hover:text-ink-muted'
 
 export interface MoveFolds {
-  survived: boolean
   why: boolean
   actions: boolean
   card: boolean
 }
 
-const NO_FOLDS: MoveFolds = { survived: false, why: false, actions: false, card: false }
+const NO_FOLDS: MoveFolds = { why: false, actions: false, card: false }
 
 /** What the move survived, in one plain paragraph, or null when nothing challenged it. */
 export function survivedLine(challenge: DailyChallenge | null | undefined): string | null {
@@ -209,9 +208,6 @@ export function DailyMoveSlot({
         <p className="text-body leading-snug text-ink break-words" data-testid="daily-move-text">{move.text}</p>
         {personLine}
         {!fold.why && move.why && <p className="text-label leading-relaxed text-ink-muted break-words" data-testid="daily-move-why">{move.why}</p>}
-        {!fold.survived && survived && (
-          <p className="text-micro leading-relaxed text-ink-faint break-words" data-testid="daily-move-survived">{survived}</p>
-        )}
 
         {fold.actions ? (
           <div className="flex flex-wrap items-center gap-1.5 pt-1">

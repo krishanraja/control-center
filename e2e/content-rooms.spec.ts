@@ -174,22 +174,40 @@ test.describe('today\'s calls on the desk', () => {
 test.describe('today\'s calls on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
 
-  test('every call is a card with one primary action and Not now', async ({ page }) => {
+  test('one call at a time: the call in focus is the one card, every other call a row that brings it up', async ({ page }) => {
+    // Growth's standard (Krish, 2026-10-05): one move, one primary action,
+    // and the next one is a press. The phone used to stack every call as a
+    // full card, ten primary buttons in 7,080px of scroll.
     await mockContentMorning(page)
     await page.goto('/#/content')
 
-    const calls = page.locator('[data-testid^="content-call-"][data-state]')
-    await expect(calls.first()).toBeVisible()
-    const n = await calls.count()
-    expect(n).toBeGreaterThan(5)
-    for (let k = 0; k < n; k += 1) {
-      await expect(calls.nth(k).getByTestId('call-primary')).toHaveCount(1)
-      await expect(calls.nth(k).getByTestId('call-later')).toHaveCount(1)
+    const cards = page.locator('[data-testid^="content-call-"][data-state]')
+    await expect(cards.first()).toBeVisible()
+    await expect(cards).toHaveCount(1)
+    let pickSeen = false
+    const holdsOne = async (card: ReturnType<typeof page.getByTestId>) => {
+      await expect(card).toBeVisible()
+      await expect(cards).toHaveCount(1)
+      await expect(card.getByTestId('call-primary')).toHaveCount(1)
+      await expect(card.getByTestId('call-later')).toHaveCount(1)
+      // A pick on a phone stacks its three, one under the other.
+      const picks = card.locator('[data-testid^="pick-candidate-"]')
+      if (await picks.count() >= 2) {
+        const [a, b] = await Promise.all([picks.nth(0).boundingBox(), picks.nth(1).boundingBox()])
+        expect(b!.y).toBeGreaterThan(a!.y + a!.height - 1)
+        pickSeen = true
+      }
     }
-    // A pick on a phone stacks its three, one under the other.
-    const cards = page.locator('[data-testid^="pick-candidate-"]')
-    const [a, b] = await Promise.all([cards.nth(0).boundingBox(), cards.nth(1).boundingBox()])
-    expect(b!.y).toBeGreaterThan(a!.y + a!.height - 1)
+    await holdsOne(cards.first())
+
+    const rows = page.locator('[data-testid^="content-call-row-"]')
+    const nums = (await rows.evaluateAll(els => els.map(e => e.getAttribute('data-testid')!.replace('content-call-row-', ''))))
+    expect(nums.length + 1).toBeGreaterThan(5)
+    for (const num of nums) {
+      await page.getByTestId(`content-call-row-${num}`).tap()
+      await holdsOne(page.getByTestId(`content-call-${num}`))
+    }
+    expect(pickSeen, 'the fixture has a pick, and its card was seen').toBe(true)
   })
 
   test('nothing to decide reads as all clear, not as an empty page', async ({ page }) => {

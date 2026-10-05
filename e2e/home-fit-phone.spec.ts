@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { mockDailyMove, mockWorstMorning, homeScrolls, foldLevel, landsOn, MOVES } from './fixtures/dailyMove'
+import { GOAL_LADDER, goal } from './fixtures/audit'
 
 /**
  * Home on a phone never scrolls (Krish, 2026-10-03: "no scroll guaranteed
@@ -128,6 +129,50 @@ test('answering the move gives the room back', async ({ page }) => {
   await page.waitForTimeout(300)
   await whole(page, 'after Later')
   expect(await foldLevel(page), 'the stage did not unfold once the move was answered').toBeLessThanOrEqual(before)
+})
+
+test('a midweek morning with no week set keeps the move whole, and the week ask one tap away', async ({ page }) => {
+  // The honest state behind the 2026-10-05 red: Wednesday, nothing set for the
+  // week, and the longest move. The full-width "Set this week's 3" used to
+  // stay put and fold the move on its own at 360x640. Seen failing before the
+  // fix: data-folded was "true" at fold level 9.
+  await page.clock.setFixedTime(WEDNESDAY)
+  await mockWorstMorning(page)
+  await page.route('**/api/goals/ladder*', r => r.fulfill({ json: {
+    ok: true,
+    by_horizon: { os: [goal('os-1', 'Twenty-five paid advisory rooms by the end of the quarter, each with a named buyer', 'os')], weekly: [] },
+    ventures: ['mindmake'], stale_count: 0, orphan_count: 0,
+    week_of: GOAL_LADDER.week_of, current_week: GOAL_LADDER.current_week,
+  } }))
+  await page.goto('/#/home')
+  await expect(page.getByTestId('daily-move-slot')).toBeVisible()
+  await page.waitForTimeout(600)
+  await whole(page, 'no week set')
+  await expect(page.getByTestId('daily-move-slot')).toHaveAttribute('data-folded', 'false')
+  expect(await landsOn(page.getByTestId('daily-move-take'))).toBe(true)
+  // Exactly one place asks for the week, and it opens the ritual at the week.
+  const ask = page.getByRole('button', { name: /Set this week/ })
+  await expect(ask).toHaveCount(1)
+  expect(await landsOn(ask)).toBe(true)
+})
+
+test('every number on the vitals band is on screen at a glance, none under the alarm', async ({ page }) => {
+  // The band used to scroll sideways with its scrollbar hidden: at 360 and
+  // 390 the Waiting count sat out of sight and Log slid under the alarm mark
+  // (2026-10-05). Seen failing before the fix: Waiting did not take its own
+  // tap and the band was wider inside than out.
+  await openHome(page, true)
+  const waiting = page.getByTestId('vitals-waiting')
+  expect(await landsOn(waiting), 'Waiting is hidden or covered').toBe(true)
+  const sideways = await waiting.evaluate(el => {
+    const band = el.parentElement as HTMLElement
+    return band.scrollWidth - band.clientWidth
+  })
+  expect(sideways, 'the vitals band scrolls sideways').toBeLessThanOrEqual(1)
+  for (const name of [/^Sent /, /^Paid /]) {
+    expect(await landsOn(page.getByRole('button', { name })), `${name} is hidden or covered`).toBe(true)
+  }
+  await whole(page, 'the vitals band')
 })
 
 test('a morning with no move is one screen too', async ({ page }) => {
