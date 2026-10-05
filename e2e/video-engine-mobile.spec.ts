@@ -912,12 +912,16 @@ test.describe('Video Engine mobile reviewer', () => {
     await installVideoStudioMock(page, review, undefined, decisions)
     await page.goto('/#/content')
 
-    const video = page.getByRole('heading', { name: 'Proof lands sooner' })
-    const weekly = page.getByRole('heading', { name: 'Investigation ready: Later investigation' })
-    await expect(video).toBeVisible()
-    await expect(weekly).toBeVisible()
-    const [v, w] = await Promise.all([video.boundingBox(), weekly.boundingBox()])
-    expect(v!.y).toBeLessThan(w!.y)
+    // The phone holds one call as a card and the rest as numbered rows
+    // (2026-10-05), so the order is the call number, card or row alike.
+    const numberOf = async (title: string) => {
+      const el = page.locator('[data-testid^="content-call-"]').filter({ hasText: title }).first()
+      await expect(el).toBeVisible()
+      return Number((await el.getAttribute('data-testid'))!.replace(/\D+/g, ''))
+    }
+    const v = await numberOf('Proof lands sooner')
+    const w = await numberOf('Investigation ready: Later investigation')
+    expect(v).toBeLessThan(w)
     // The weekly brief is not one of the calls; it opens from its own page.
     await expect(page.getByRole('heading', { name: 'Weekly anchor' })).toHaveCount(0)
   })
