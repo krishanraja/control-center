@@ -36,7 +36,7 @@ export const DEFAULT_HOME_CITY: HomeCity = 'new_york'
 /**
  * Sydney is temporary and fires on a button press only.
  *
- * docs/MINDMAKE_OS_ARCHITECTURE.md section 3. It is a real choice in the picker
+ * docs/MINDMAKE_OS_ARCHITECTURE.md section 0a.3. It is a real choice in the picker
  * and a real filter in the lane, but it is never what a cron or a cold start
  * falls back to, because falling back to it would quietly relocate him.
  */

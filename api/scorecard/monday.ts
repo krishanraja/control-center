@@ -134,7 +134,7 @@ async function builtLastWeek(weekEnding: string): Promise<string[]> {
 
 /** The architecture doc's engine stamp, read from the one surface. A dark
  *  Sunday cron must read as stale here, never as silence (ruling 2026-09-07,
- *  docs/MINDMAKE_OS_ARCHITECTURE.md section 0c). */
+ *  docs/MINDMAKE_OS_ARCHITECTURE.md section 0a.9). */
 async function architectureDocLine(today: string): Promise<string> {
   try {
     const r = await fetch('https://raw.githubusercontent.com/krishanraja/control-center/main/docs/MINDMAKE_OS_ARCHITECTURE.md', {

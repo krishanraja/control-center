@@ -1,17 +1,24 @@
-# mind/make OS — Ideal Customer Profile (shareable)
+# mind/make OS, Ideal Customer Profile (shareable)
 
-> **Buyer titles moved to Supabase on 2026-10-05.** `product_icp` (migration
-> `20261005140000`) is the one place an ICP is defined, one row per
-> `venture_registry.slug`, edited on Control Center > Growth > Buyers. Krish:
-> "Can you add in Control Center somewhere I can define ICP for each and it gets
-> saved and acted on by the system durably?"
+> **Who a product is for is defined in Supabase, not in this file (2026-10-05).**
+> `product_icp` (migration `20261005150000_the_icp_is_defined_once`) is the one
+> place a product's buyer is defined: one row per `venture_registry.slug`,
+> edited on Control Center > Growth > Buyers, read through `src/lib/icp.ts` and
+> `api/icp.ts`. Krish: "Can you add in Control Center somewhere I can define ICP
+> for each and it gets saved and acted on by the system durably?" Maya's B2B
+> prospecting, the Sunday growth review, the acquisition direction spine and
+> tab grounding all read `product_icp`. A product with no row is blocked, with
+> the reason stated, never prospected against somebody else's buyer.
 >
-> This file and `docs/icp.json` stay as the LANE rubric for scoring an inbound
-> lead (`api/_icpScore.ts`, `scripts/apollo/burn.ts`). They are not what the
-> prospecting run reads any more. Maya's B2B lane, the Sunday growth review, the
-> acquisition direction spine and tab grounding all read `product_icp`, and a
-> product with no row there is skipped with the reason stated rather than
-> prospected against somebody else's buyer.
+> **Live state, read 2026-10-05:** only `mindmake` has a defined row.
+> `heartside`, `full_time`, `legibility`, `mm_ctrl` and `fractionl_pulse` are
+> undefined, so prospecting for those five products is blocked until Krish
+> fills Growth > Buyers. Read the table for the current state; this line ages.
+>
+> **What this file still is.** This file and `docs/icp.json` are the LANE
+> rubric for scoring an inbound person (`api/_icpScore.ts`,
+> `scripts/apollo/burn.ts`). They are not where any product's buyer is defined,
+> and nothing that prospects for a product reads them.
 
 > **6 September 2026, ADR-016.** The first lane is now `pilot_face`: the face from
 > the Master Ikigai v4. A senior leader (CEO, founder, MD, CCO, CRO, GM) at a PE or
@@ -30,7 +37,7 @@
 > Portable ICP spec for the whole fleet. Any agent that sources, scores, routes,
 > or drafts to a person (Felix outbound, Nell guest scout, Nova visibility, Cleo,
 > the Apollo burn-down, n8n lead ingest) should target and qualify against this.
-> Self-contained — you don't need any other doc to use it. Machine-readable
+> Self-contained, you don't need any other doc to use it. Machine-readable
 > companion: `docs/icp.json`. Live executable copy: `api/_icpScore.ts` +
 > `scripts/apollo/burn.ts`. Full rubric + math: `docs/APOLLO_ICP_RUBRIC.md`.
 
@@ -56,7 +63,7 @@ lane correctly, it no longer decides which lane comes first.
 ## The one rule
 
 Score a prospect 0–100 on each lane below from real evidence; **a person is
-worth acting on only if their best lane ≥ 70.** Below that, drop — don't dilute
+worth acting on only if their best lane ≥ 70.** Below that, drop, don't dilute
 the deck. Absent a signal, that dimension scores low; never invent intent.
 
 Multi-tag is allowed (a person can fit several lanes). The single
@@ -73,11 +80,11 @@ Multi-tag is allowed (a person can fit several lanes). The single
 
 ### 1. `mindmake_buyer` → primary_venture `mindmake`  (serves O-2, consulting revenue)
 **Who:** Senior operators or dedicated AI/transformation leaders **inside non-tech
-operating companies** who need help adopting AI — Chief Digital/Transformation
+operating companies** who need help adopting AI, Chief Digital/Transformation
 Officers, Heads of AI/Innovation/Digital Transformation, CIOs with a transformation
 mandate, and CEOs/COOs of mid-market firms actively adopting AI.
 **Who it is NOT:** anyone whose employer *sells* AI or software. An AI-vendor
-employer is the supply side — disqualifying. (Live proof: v1 targeting on the
+employer is the supply side, disqualifying. (Live proof: v1 targeting on the
 word "AI" returned almost all sellers; only an in-house Head of AI Transformation
 at a non-tech company was a real buyer.)
 **Best evidence:** a dedicated transformation/AI role + a 50–5000-person operating
@@ -85,29 +92,29 @@ company in a traditional industry.
 
 ### 2. `fractional_network` → primary_venture `mindmake`  (referral + co-delivery + buyers)
 **Who:** Fractional execs and independent advisors who actually **deliver AI work**
-— Fractional CTO/CMO/CAIO, AI advisors, boutique AI/transformation consultancies.
+- Fractional CTO/CMO/CAIO, AI advisors, boutique AI/transformation consultancies.
 They refer buyers, co-deliver, and sometimes buy.
 **Who it is NOT:** generic fractional CMOs/COOs with no AI signal (they're 95% of
 the raw pool and score low).
 
 ### 3. `signal_noise_guest` → primary_venture `signal_noise`  (podcast: AI in media)
-**Who:** Credible AI-in-media voices — editors-in-chief, journalists, podcast
+**Who:** Credible AI-in-media voices, editors-in-chief, journalists, podcast
 hosts, heads of content at media/publishing orgs covering AI.
 **Best evidence:** a real outlet + a track record writing/speaking on AI.
 
 ### 4. `built_guest` → primary_venture `publication`  (podcast: AI builders)
-**Who:** People doing something that was **impossible before AI** — a tiny team
-shipping what used to take many, a net-new AI-native product, novel craft — with
+**Who:** People doing something that was **impossible before AI**, a tiny team
+shipping what used to take many, a net-new AI-native product, novel craft, with
 real audience/traction. Founders at AI-era (founded 2022+) companies.
 **Who it is NOT:** a junior AI engineer at a dev shop.
-**Note:** structured B2B data (Apollo) cannot judge this lane — audience and
+**Note:** structured B2B data (Apollo) cannot judge this lane, audience and
 novelty live on the open web. Always run a web pass (Perplexity/Exa/Brave) before
 scoring it.
 
 ### 5. `mm_ctrl_buyer` → primary_venture `mindmake`  (CTRL decision-clarity product)
 **Who:** Leaders at **non-AI operating companies** in decision-heavy traditional
 industries (manufacturing, construction, healthcare, logistics, distribution,
-multi-site retail) — Presidents, COOs, GMs, Heads of Operations — drowning in
+multi-site retail), Presidents, COOs, GMs, Heads of Operations, drowning in
 decisions. 50–5000 people.
 **Who it is NOT:** leaders at AI/software companies. They build their own tooling;
 they are the worst fit for an external decision-clarity product. (Live proof: v1
@@ -116,7 +123,7 @@ logistics ops leaders landed.)
 
 ### 6. `ecosystem_partner` → primary_venture `mindmake` / `publication`  (channel/referrals)
 **Who:** Startup accelerators, VC platform leads, and operator communities who can
-channel **many** buyers or guests — one good partner is leverage.
+channel **many** buyers or guests, one good partner is leverage.
 **Who it is NOT:** government procurement programs and nonprofit/civic "accelerators"
 (they dominate a naive keyword search and convert to nothing).
 
@@ -164,10 +171,10 @@ employer → cap `mindmake_buyer` and `mm_ctrl_buyer` ≤ 25.
   vendors and target intent roles inside operating companies.
 - Corrected `mindmake_buyer` converted **11/15** (vs 1/7 before); corrected
   `mm_ctrl_buyer` **8/12** (vs 0 right before).
-- `built_guest` needs a web pass — Apollo data alone can't separate a landmark
+- `built_guest` needs a web pass, Apollo data alone can't separate a landmark
   guest from a generic AI founder.
 - Universities and government/nonprofit "accelerators" look on-target but convert
-  to nothing — exclude or down-rank.
+  to nothing, exclude or down-rank.
 
 ---
 

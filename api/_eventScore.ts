@@ -7,7 +7,7 @@
 //
 // WHY THE AXES CHANGED (Krish, 2026-09-24 — docs/DECISIONS/024)
 //
-// docs/MINDMAKE_OS_ARCHITECTURE.md section 3 defined Draw as "technical-leader
+// docs/MINDMAKE_OS_ARCHITECTURE.md section 3 (now 0a.3) defined Draw as "technical-leader
 // density, where Krish wants to be", justified by podcast guest supply: every
 // technical leader in a room is a potential Signal & Noise guest. That
 // definition worked as specified and produced exactly what it asked for. On

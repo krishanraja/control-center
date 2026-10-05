@@ -7,7 +7,7 @@ import { useHomeCity, type HomeCity } from '../lib/homeCity'
  *
  * `events` has been live since August 2026 and NOTHING in this repo read it
  * until now: no route, no hook, no component. 355 rows, two working SQL
- * functions, a spec in docs/MINDMAKE_OS_ARCHITECTURE.md §3, and no surface. The
+ * functions, a spec in docs/MINDMAKE_OS_ARCHITECTURE.md §0a.3, and no surface. The
  * tab labelled Events was reading `visibility_targets`, which is a press and
  * podcast register: on 2026-09-24 its live queue was 46 press contacts, 9
  * podcasts and 1 expired CFP, and no events at all.

@@ -1,17 +1,48 @@
 # Agents
 
-> **Scope.** Source of truth for the agent roster surfaced by Control
-> Center, the taxonomy that classifies them, and the rules that govern how
-> their identity flows through the system.
+> **Scope.** The agent roster surfaced by Control Center, the taxonomy that
+> classifies the agents, and the rules that govern how their identity flows
+> through the system.
 >
 > **Not in this document.** The `agents` table schema lives in
-> [`DATABASE.md`](./DATABASE.md). The N8N execution model and webhook
-> chain live in [`DATA-PIPELINE.md`](./DATA-PIPELINE.md). System
-> architecture (event loop, realtime, error boundaries) lives in
-> [`ARCHITECTURE.md`](./ARCHITECTURE.md). UI surfaces consuming agent data
-> are specified in [`PRODUCT.md`](./PRODUCT.md). The canonical fleet
-> description (agent purpose, KPIs, cron cadence) lives in
-> `MINDMAKE_OS_ARCHITECTURE.md` §2 on the VPS workspace root.
+> [`DATABASE.md`](./DATABASE.md). The n8n execution model and webhook chain
+> live in [`DATA-PIPELINE.md`](./DATA-PIPELINE.md). The engineering contract
+> lives in [`ARCHITECTURE.md`](./ARCHITECTURE.md). The tabs that show agent
+> data are specified in [`PRODUCT.md`](./PRODUCT.md). What each agent is for
+> in the OS as a whole is section 3 of
+> [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md) on GitHub
+> `main`, with deep detail in
+> [`architecture/03-agent-fleet.md`](./architecture/03-agent-fleet.md). Where
+> this file and that core disagree, the core wins.
+>
+> Last checked 2026-10-05 against the live `agents` table and
+> `api/agents/[name].ts`.
+
+---
+
+## The rules every agent works under
+
+These come from section 0a of the architecture core. Each holds for every
+agent below.
+
+- **Agents report to Control Center, never into Drive (Krish, 2026-10-05).**
+  An agent writes its runs, status and output to tables Control Center reads
+  (`workflow_runs`, `tasks`, `agents.last_run` and `last_output`, and the
+  output tables it owns). No agent creates or edits a Google Doc in Krish's
+  Drive. OpenClaw runs reach `workflow_runs` through `openclaw-runs-to-cc.py`
+  on the VPS (every 15 minutes, `workflow_id = 'openclaw:<jobId>'`).
+- **Pull-only (2026-09-06).** No agent contacts Krish. No Telegram, no push.
+  He reads Control Center when he chooses.
+- **Draft for approval.** Agents draft; Krish sends or publishes. Control
+  Center never sends (CI guard `check-bridges-never-send`).
+- **The priority and reporting block (2026-10-05).** Every active
+  `agents.brief_content` and every live OpenClaw template opens with the same
+  block: 1. Heartside and Full Time. 2. Legibility. 3. CTRL and Pulse.
+  Mindmake and its publication run alongside. Circle is dormant: preserved,
+  never purged, not worked. The one code source of the ranking is
+  `src/lib/portfolio.ts`.
+- **No retired or dormant work.** Section 0c of the core is the only list of
+  retired things.
 
 ---
 
@@ -29,7 +60,10 @@ The single most important rule in the codebase:
 | `audit_log` | `actor` | slug, `krish`, `system`, or `vps-pipeline` |
 | `workflow_runs` | `agent_id` | slug (legacy `agent` for pre-2026-04-15 rows) |
 | `leads` | `assignee_agent` | slug |
-| `google_drive_sync` | `agent_id` | slug |
+
+`google_drive_sync.agent_id` also used the slug. That table's rows were all
+deleted on 2026-10-05 when the per-agent Drive mirrors were retired; nothing
+reads it now.
 
 ### Consequences
 
@@ -49,15 +83,15 @@ The single most important rule in the codebase:
 ## Pod Hierarchy
 
 Pods are an organisational concept, not a database constraint. They drive
-visual grouping and section ordering on the Org tab.
+visual grouping and section ordering on OS > Org.
 
 | Pod | Slug | Purpose | Accent |
 |---|---|---|---|
 | Executive | `executive` | Sets direction. Owns cross-venture decisions. | Purple |
-| Operations | `ops` | Runs the machine. Quality, infrastructure, product, revenue ops. | Blue |
-| Growth | `growth` | Revenue motion, pipeline, visibility, content. | Emerald |
+| Operations | `ops` | Runs the machine. Quality, infrastructure, revenue reporting. | Blue |
+| Growth | `growth` | Content, acquisition, visibility, guests, signals, jobs. | Emerald |
 
-**Render order is fixed**: Executive → Operations → Growth → any
+**Render order is fixed**: Executive, then Operations, then Growth, then any
 unrecognised pod. This is enforced in `DesktopOrg.POD_ORDER` and is a
 product decision (the CEO scans top-down, and Executive blockers always
 trump Growth experiments).
@@ -70,13 +104,13 @@ trump Growth experiments).
 
 | Type | Behaviour | Example |
 |---|---|---|
-| **Coordinator** | Plans, delegates, reviews. Does not execute N8N workflows directly. | Agatha (COO), Cleo (Content) |
-| **Executor** | Runs scheduled N8N workflows; produces artefacts. | Maya (Marketing/SEO), Marcus (Synthesis) |
-| **Monitor** | Continuous health/audit; rarely surfaces unless something is wrong. | Vera (Audit/Standards), Arlo (Infra), Kai (Integrations) |
+| **Coordinator** | Plans, delegates, reviews. Does not execute n8n workflows directly. | Agatha (COO), Cleo (Content) |
+| **Executor** | Runs scheduled jobs; produces artefacts. | Maya (Acquisition), Marcus (Synthesis) |
+| **Monitor** | Continuous health and audit; rarely surfaces unless something is wrong. | Vera (Quality), Arlo (Infrastructure) |
 
 A coordinator with zero `workflow_runs` is **expected behaviour**, not a
 data-pipeline failure. A coordinator with stale `audit_log` activity *is*
-a problem — they should still be logging coordination events.
+a problem: it should still be logging coordination events.
 
 ### By cadence
 
@@ -96,80 +130,75 @@ check.
 
 ## Roster
 
-The canonical fleet is 14 tracked production agents, 11 active. Three are
-retired with `active = false` and their rows kept for history: Felix
-(2026-07-10), Kai (2026-09-07) and Priya (2026-09-14). Hunter is NOT retired
-despite older notes in this file saying so: it was re-armed in August 2026 and
-still runs from GitHub Actions, parked in the UI only (see its row below).
-Supabase `agents` (where `active = true`) is authoritative; the roster
-below mirrors that list and is the definitive product reference. The same list is hard-coded as a
-fallback in `api/agents/[name].ts:available_agents` — **the table and the
-fallback list must agree.**
+Read live from Supabase `agents` on 2026-10-05: **14 tracked, 11 active**.
+Three are retired with `active = false` and their rows kept for history:
+Felix (2026-07-10), Kai (2026-09-07) and Priya (2026-09-14). The `agents`
+table is the only source of truth; the tables below mirror it. Since PR #386
+(2026-10-05), `api/agents/[name].ts` reads its 404 roster live from the table
+instead of a hardcoded list, so a new or retired agent needs no code change
+there.
 
 ### Executive
 
-| Slug | Display | Role |
+| Slug | Display | What it does now |
 |---|---|---|
-| `agatha` | Agatha | Chief Operating Officer |
-| `marcus` | Marcus | Business Development Intelligence / Synthesis |
+| `agatha` | Agatha | Chief operating officer: the strategic chat, the weekly plan refresh, decomposing objectives |
+| `marcus` | Marcus | Synthesis: the daily brief and `home_intelligence`, the Friday retro, the Monday pre-mortem |
 
 ### Operations
 
-| Slug | Display | Role |
+| Slug | Display | What it does now |
 |---|---|---|
-| `vera` | Vera | Chief of Staff & Quality |
-| `leo` | Leo | Chief Revenue Officer |
-| `priya` | Priya | Product Strategy. RETIRED 2026-09-14 (health scan + weekly rollup produced Google Doc bug reports and Telegram alerts nobody acted on; `active = false`, both workflows unpublished and moved to `scripts/n8n/_retired/`) |
-| `arlo` | Arlo | Technical Operations & Infrastructure |
-| `kai` | Kai | Technical Architecture / Integrations. RETIRED 2026-09-07 (superseded by `/api/health/fleet-reconcile` and `/api/health/connections-sweep`; workflows archived, `active = false` set 2026-09-14 after the row was found still live with `expected_runs_per_day = 6` and no run since the retirement) |
+| `vera` | Vera | Quality and standards: audits, feedback aggregation into `corrections`, the gap-closure loop, skill induction from wins |
+| `leo` | Leo | Revenue reporting, weekly |
+| `arlo` | Arlo | Mechanical liveness of the VPS and the build. Diagnoses a failed Vercel build and writes the cause and the fix it would make into `workflow_runs`; it changes nothing. **Arlo cannot push to `main`** (2026-10-05): the VPS clone's push URL is anonymous, so a fetch works and a push fails |
+| `priya` | Priya | RETIRED 2026-09-14. Product health is covered by `/api/health/fleet-reconcile` and the Vercel deploy checks |
+| `kai` | Kai | RETIRED 2026-09-07. Superseded by `/api/health/fleet-reconcile` and `/api/health/connections-sweep` |
 
 ### Growth
 
-| Slug | Display | Role |
+| Slug | Display | What it does now |
 |---|---|---|
-| `cleo` | Cleo | Content Production & Voice (Coordinator) |
-| `felix` | Felix | Enterprise Sales Pipeline. RETIRED 2026-07-10 (advisory sales dropped; `active = false`, Opportunity Pipeline Tracker unpublished) |
-| `maya` | Maya | Customer Acquisition (Marketing / SEO) |
-| `nell` | Nell | Outbound + Podcast Guest Booking |
-| `nova` | Nova | Visibility & Speaking |
-| `zara` | Zara | Signal Intelligence & Market Research |
-| `hunter` | Hunter | Job Sourcing, Packages and Warm Intros. Re-armed in August 2026 (`active = true`, the Bridges lane). Parked 2026-09-06 under the ikigai v4 (ADR-016) and un-parked 2026-09-07 on Krish's instruction. The Hunt lane is in the People nav on every device as of 2026-09-15; `VITE_BRIDGES_LANE_ENABLED` is retired. Setting `active = false` is Krish's call |
+| `cleo` | Cleo | Content production and voice (coordinator). Its last two n8n workflows, `Draft Post on Demand` and `LinkedIn Distribution`, were retired on 2026-10-05; drafting lives in the Content tab and the content engine, and publishing to LinkedIn is manual |
+| `maya` | Maya | Customer acquisition and SEO. Its B2B prospecting reads who a product is for from `product_icp` only; a product with no row there is blocked with the reason shown, never prospected against another product's buyer. On 2026-10-05 only `mindmake` had a row |
+| `nell` | Nell | Podcast guest booking and briefings. The guest briefing lands in `guests.briefing_md` and opens in Control Center (2026-10-05); older guests keep their old Doc link, labelled as such |
+| `nova` | Nova | Visibility and speaking, held to Nova's standard (2026-10-05): the room, standing and only-him must all be true; the score is the lowest of the three; every refusal is written with its reason (`api/_visibilityScore.ts`) |
+| `zara` | Zara | Signal intelligence and market research |
+| `hunter` | Hunter | Job sourcing, packages and warm intros; the Hunt lane on People. **Kept** (un-parked 2026-09-07, confirmed 2026-10-05). Runs from GitHub Actions and the `/api/hunter/tick` Vercel cron, not from n8n or OpenClaw, and reports into Control Center. Setting `active = false` is Krish's call alone |
+| `felix` | Felix | RETIRED 2026-07-10 |
 
-> **Source of truth.** The Supabase `agents` table is authoritative. The
-> roster above must match `api/agents/[name].ts:available_agents`. If the
-> table grows or shrinks, update both in the same commit.
-
-**Personal-life agents** (Lozatron, Aria, Finno, Devi) live only in
-OpenClaw config on the VPS, outside the Mindmake business. They are not
-in the `agents` table and never appear in Control Center.
+**Personal-life agents.** Four personal-life agents live only in the
+OpenClaw config on the VPS, outside the Mindmake business. They are not in
+the `agents` table and never appear in Control Center.
 
 ---
 
 ## Briefs
 
-Each agent has a long-form brief that defines voice, mandate, and
-operating envelope. Briefs are authored either by Krish or by Agatha and
-stored in Supabase as `agents.brief_content`. They are rendered to
-`~/.openclaw/skills/agent-{id}/SKILL.md` on the VPS by
-`render-identity.py` (every 15 min). **Edit in the DB, not the rendered
-files** — the renderer overwrites the file on every tick.
+Each agent has a long-form brief that defines voice, mandate and operating
+envelope. **`agents.brief_content` in Supabase is the only canonical brief
+surface.** It is rendered to `~/.openclaw/skills/agent-{id}/SKILL.md` on the
+VPS by `render-identity.py` (every 15 minutes). Edit in the database, never in
+the rendered files: the renderer overwrites them.
+
+**Never run `sync-briefs-to-skills.sh`.** It copied per-agent Google Docs into
+SKILL.md and then into Supabase. Those Google Doc sources were retired with the
+Drive mirrors on 2026-10-05, so a run would gut every brief.
 
 | Field on `agents` | Source of truth | Purpose |
 |---|---|---|
-| `personality` | Brief intro paragraph | Voice + tone shown in the Org drawer |
+| `personality` | Brief intro paragraph | Voice and tone shown in the Org drawer |
 | `mission` | Brief mission section | One-paragraph north star |
 | `mandate` | Brief mandate section | Operating charter |
-| `brief_content` | Full brief text | Excerpted in the Org drawer; full text via the linked Doc |
+| `brief_content` | Full brief text | Excerpted in the Org drawer |
 | `brief_updated_at` | Last write | Used to detect drift |
 | `brief_checksum` | Content hash | Used to detect drift |
 
-Drive sync is owned by `google_drive_sync` (joined on `agent_id`). When a
-brief edit lands in Supabase, the sync writes content to Drive and bumps
-the timestamp; the Org drawer shows the updated brief on next mount.
-
-The Org tab's inline brief editor writes to `/api/sync-brief` which then
-PATCHes `agents.brief_content`. The render pipeline runs independently
-and will pick up the edit on its next 15-minute tick.
+The Org tab's inline brief editor writes to `/api/sync-brief`, which PATCHes
+`agents.brief_content`. The render runs independently and picks up the edit
+on its next 15-minute tick. The per-agent Identity and Action Google Doc
+mirrors (`sync-to-drive.py`, `google_drive_sync`) are retired (2026-10-05);
+there is no Drive copy of a brief.
 
 ---
 
@@ -178,15 +207,15 @@ and will pick up the edit on its next 15-minute tick.
 ### Activation
 - New agents are inserted into `agents` with `active = true`.
 - The slug must be chosen at insert time and never renamed (it is a join
-  key — see [Slug-as-Key](#slug-as-key)).
-- Add the slug to `api/agents/[name].ts:available_agents`.
+  key; see [Slug-as-Key](#slug-as-key)).
 - Add an entry to the [Roster](#roster) table in this file.
-- Add the rendered SKILL.md output path to the VPS cron's render list.
+- Add the priority and reporting block to the top of its brief.
+- Add the rendered SKILL.md output path to the VPS render list.
 
 ### Deactivation
-- Set `active = false`. Do not delete — historic `tasks`, `audit_log`,
-  `workflow_runs`, and `leads.assignee_agent` rows are still meaningful.
-- The Org tab filters on `active = true` so deactivated agents disappear
+- Set `active = false`. Do not delete: historic `tasks`, `audit_log`,
+  `workflow_runs` and `leads.assignee_agent` rows are still meaningful.
+- OS > Org filters on `active = true`, so deactivated agents disappear
   from the list, but their history remains queryable from Intel and
   Flows.
 
@@ -201,39 +230,36 @@ and will pick up the edit on its next 15-minute tick.
 
 ## Manual Triggering
 
-The Org tab exposes a ▶︎ button on agent cards (visible on hover) for
-agents with `expected_runs_per_day != null`.
+OS > Org exposes a run button on agent cards (visible on hover) for agents
+with `expected_runs_per_day != null`.
 
 | Step | Behaviour |
 |---|---|
 | 1 | UI sends `POST /api/trigger-agent { agent: <slug-or-name> }` |
 | 2 | Server lowercases and trims the agent token |
 | 3 | Server inserts a row into `tasks` with `agent: <slug>`, `status: 'active'`, `source: 'manual'` |
-| 4 | Supabase webhook (pg_net) fires; N8N picks up and runs the workflow |
+| 4 | Supabase webhook (pg_net) fires; n8n picks up and runs the workflow |
 | 5 | Workflow logs into `workflow_runs` keyed by `agent_id = <slug>` |
-| 6 | UI receives the realtime update; Org drawer's N8N Runs section refreshes |
+| 6 | UI receives the realtime update; the Org drawer's runs section refreshes |
 
 If step 3 succeeds but step 5 never happens, the failure is in the
-agent's N8N workflow, not in Control Center.
+agent's n8n workflow, not in Control Center.
 
 ---
 
-## Flagging and Escalation
+## Rulings and corrections
 
-Krish can flag an agent from:
-- The Org drawer (`Flag` button).
-- Any inline action in Today / Plans (`Flag` verb).
-
-Flags persist in the flag store and are surfaced on the next session
-start via `PendingFlagModal`. The intent is *unmissable accountability* —
-a flag should never be silently dismissed; it is either acknowledged
-with notes or resolved with a corrective action.
+The OS Queue was removed on 2026-10-04. A ruling that waits on Krish is
+answered in the tab that owns it; agent rulings and Vera's corrections lead
+OS > Org's one move (`src/lib/surfaceMoves.ts`), answered in place with
+Approve or Reject.
 
 ---
 
 ## Data Quality Invariants
 
-The following must hold at all times. If any is violated, file an issue.
+The following must hold at all times. If any is violated, record it where
+Control Center shows it (a task or an `audit_log` row).
 
 1. Every `agents.id` is lowercase, alphanumeric, no spaces.
 2. Every `tasks.agent` value either equals an `agents.id` or is null.
@@ -242,10 +268,10 @@ The following must hold at all times. If any is violated, file an issue.
    `system`, or `vps-pipeline`.
 5. Every `workflow_runs.agent_id` value equals an `agents.id` (legacy
    `agent` column may carry historical mixed-case values; new writes must
-   not).
+   not). OpenClaw runs carry the owning agent's slug.
 6. Every `leads.assignee_agent` value equals an `agents.id` or is null.
-7. The Roster table in this document, `api/agents/[name].ts:available_agents`,
-   and `SELECT id FROM agents WHERE active` must all agree.
+7. The Roster table in this document and `SELECT id FROM agents WHERE active`
+   agree. (`api/agents/[name].ts` reads the table live, so it cannot drift.)
 
 A periodic audit (Vera is the natural owner) verifies these and writes a
 single `audit_log` row per check, healthy or otherwise.

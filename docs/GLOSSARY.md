@@ -1,487 +1,463 @@
 # Glossary
 
-> **Scope.** Single source of truth for terms used across the codebase,
-> the UI, and the documentation. Where a term is defined in detail in
-> another doc, that doc is linked — the entry here is the short form.
-> OS-wide terms (fleet, schema, workflows) also appear in
-> [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md) section 18;
-> where the two disagree, that file wins and this one is stale.
+> **Scope.** One place for the terms used across the codebase, the UI and the
+> documentation. Where a term is defined in detail elsewhere, that doc is
+> linked; the entry here is the short form. Section 18 of
+> [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md) points here
+> and carries no glossary of its own. Where this file and that core disagree,
+> the core wins and this file is fixed. Retired names are listed in the
+> core's section 0c; an entry below that names one says so.
+>
+> Last checked 2026-10-05.
 
 ---
 
 ## A
 
-**ADR** — Architecture Decision Record. A short markdown file in
+**ADR** - Architecture Decision Record. A short markdown file in
 [`docs/DECISIONS/`](./DECISIONS/) capturing one architectural choice and
 the trade-offs considered. Numbered sequentially.
 
-**Agent** — A non-human actor in the organisation. Has a slug, display
-name, pod, and brief. May be a Coordinator, Executor, or Monitor (see
-[`AGENTS.md`](./AGENTS.md#agent-taxonomy)).
+**Advisory (People lane)** - The People lane for Mindmake conversations,
+labelled by `ADVISORY_LABEL` in `src/hooks/usePilots.ts`. Called the Room
+until 2026-09-16 and Pilots after (ADR-023); `?lane=pilots` and `?lane=room`
+still land on it. Its one move: a reply first, then a drafted note to send,
+then the people just found.
 
-**`agent_id`** — The owning-agent column on `workflow_runs`. Stores the
+**Agent** - A non-human actor in the OS. Has a slug, display name, pod and
+brief. May be a Coordinator, Executor or Monitor (see
+[`AGENTS.md`](./AGENTS.md#agent-taxonomy)). Agents report to Control Center,
+never into Drive.
+
+**`agent_id`** - The owning-agent column on `workflow_runs`. Stores the
 lowercase slug. Renamed from `agent` on 2026-04-15.
 
-**`agents.id`** — Primary key of the `agents` table. The lowercase slug
+**`agents.id`** - Primary key of the `agents` table. The lowercase slug
 (e.g. `cleo`). The canonical join key for every cross-table agent
 reference. See [Slug-as-Key](./AGENTS.md#slug-as-key).
 
-**Agatha** — The COO agent. Only agent accountable directly to Krish;
-delegates to the rest of the fleet. Bound to the primary Telegram bot.
+**Agatha** - The COO agent: the strategic chat, the weekly plan refresh,
+decomposing objectives. Never messages Krish (pull-only).
 
-**Audit log** — The `audit_log` table. Append-only stream of every
-significant event in the system. Drives Live Activity and the Intel feed.
+**Arlo** - The infrastructure agent. Diagnoses a failed build into
+`workflow_runs` and changes nothing. Cannot push to `main` (2026-10-05).
+
+**Audit log** - The `audit_log` table. Append-only stream of every
+significant event. Drives live activity and the Intel feed.
 
 ---
 
 ## B
 
-**Bet** — A row in the `bets` table. A falsifiable business hypothesis
-with a time-box, an `est_mrr_impact_usd`, and a status
-(`live`/`won`/`lost`/`partial`). The Bets tab tracks the 90-day hit
-rate.
+**Bet** - A row in the `bets` table: a falsifiable business hypothesis with
+a time box, `est_mrr_impact_usd` and a status (`live`/`won`/`lost`/`partial`).
+The Bets tab is retired; bets are read under OS > Intel.
 
-**Brief** — Long-form text defining an agent's voice, mission, and
-mandate. Stored as `agents.brief_content`. Rendered to
-`~/.openclaw/skills/agent-{id}/SKILL.md` on the VPS every 15 min by
-`render-identity.py`.
+**Board** - A drawer tab (`#/board`, 2026-10-03). Work that Claude and Codex
+sessions wrote for Krish: waiting on him, in progress, done. One waiting item
+at a time, answered in place.
 
-**Blocker** — A task with `status='blocked'` whose progress depends on
-an external action. Blockers age and are surfaced on Home / Today.
+**Brief** - Long-form text defining an agent's voice, mission and mandate.
+Stored only as `agents.brief_content` and rendered to
+`~/.openclaw/skills/agent-{id}/SKILL.md` on the VPS every 15 minutes by
+`render-identity.py`. There is no Google Doc copy. Every active brief opens
+with the priority and reporting block.
 
-**Built** — One of the two Mindmake's publication formats: conversations with
-people who have actually built something with AI, dug past what they
-built to why they really built it. Carries the builder economy thesis.
-Corpus key `built`. It replaced the Builder Economy podcast brand, which
-was fully retired on 2026-08-11 (`builder_economy` is inactive in
-`venture_registry`, kept only so historical rows resolve).
+**Blocker** - A task with `status='blocked'` whose progress depends on an
+external action.
+
+**Built, Paid** - RETIRED publication formats. Paid and Built (2026-08-11)
+became The Money of AI and Built with AI, which were retired on 2026-09-17 in
+favour of the three subchannels. `PUBLIC_SERIES` in `src/lib/publicSeries.ts`
+stays keyed `built` / `paid` only because those are the two wordmark images
+that exist.
 
 ---
 
 ## C
 
-**Cleo** — The content coordinator agent. Owns voice quality across all
-five content streams. Receives ideas via the Cmd+I QuickCaptureIdea
-surface.
+**Circle** - Fractionl's thesis-validation product at circle.fractionl.ai.
+**Dormant** since 2026-10-05: preserved, never purged, not worked. Dormant is
+not retired; the two words must not collapse into each other.
 
-**Completeness Contract** — A row in `completeness_contracts` declaring
-the minimum acceptable output of a workflow. Tier 1 of the four-tier
-self-healing system.
+**Cleo** - The content coordinator agent. Its last two n8n workflows
+(`Draft Post on Demand`, `LinkedIn Distribution`) were retired on 2026-10-05;
+content work happens in the Content tab and the content engine.
 
-**Coordinator** — An agent that plans and reviews but does not execute
-N8N workflows directly. Has `expected_runs_per_day = null`. A coordinator
-with no `workflow_runs` is expected, not broken.
+**Completeness Contract** - A row in `completeness_contracts` declaring the
+minimum acceptable output of a workflow. Tier 1 of the self-healing system.
 
-**Control Center** — This product. The CEO-facing dashboard for
-mind/make OS. Previously known as "org-os-dashboard" (name banned).
+**Concept** - The durable identity of a piece of work (a company, a guest, a
+visibility target) that may show up as many rows across tables. Identified by
+a slug like `concept:org:<name>` in `concept_id`. Closed with `close_concept`,
+recorded in `concept_decisions`, never by patching rows one by one.
 
-**Corrections** — Rows in the `corrections` table. Patterns Vera
-extracts from `feedback_queue` (≥3 matches, confidence > 0.8) or from
-`silent_failures` (Failure Pattern Sweep). Drive agent brief edits and
-new `standards_registry` rules.
+**Connections sweep** - `/api/health/connections-sweep`, a Vercel cron every
+6 hours that sends the cheapest live request proving each key Vercel holds
+still works. Since 2026-10-05 it watches the Stripe organisation key and
+Heartside's Shopify credential with strict checks, so a rejected credential
+reads as failed, never green. It replaced Kai.
 
-**Critical Infrastructure Monitor** — N8N system workflow, 5-min cadence.
-Tier 3 of the self-healing system. Watches `credential_health`,
-`system_health`, and RLS denials in `audit_log`; writes critical-severity
-rows to `silent_failures`.
+**Content engine** - The sibling repo `krishanraja/content-engine`, which
+runs the editorial routes, the Composer's routes, the content crons and the
+video control plane (ADR-019). Control Center keeps the Content tab and
+reaches the rest through `vercel.json` rewrites.
 
-**Customer** — A row in the `customers` table. Cross-product ledger
-keyed by `(customer_product, stripe_customer_id)`. `customer_kind` enum:
-`paid`/`free_signup`/`trial`/`waitlist`/`churned`.
+**Control Center** - This product: the dashboard of mind/make OS at
+controlcenter.krishraja.com. Formerly "org-os-dashboard" (name banned).
 
-**`customer_contacts`** — One row per logged conversation with a
-customer. Feeds the CustomerCouncilCard on the Customers tab and
-Marcus's `customer_voice` synthesis.
+**Coordinator** - An agent that plans and reviews but does not execute n8n
+workflows directly. Has `expected_runs_per_day = null`.
+
+**Corrections** - Rows in `corrections`. Patterns Vera extracts from
+`feedback_queue` or `silent_failures`; once approved they edit agent briefs
+or `standards_registry`.
+
+**CTRL** - The AI brain app at ctrl.mindmake.co, repo `mm-ctrl`. Sells one
+thing, **CTRL Pro at $49 a month** (renamed from Edge Pro on 2026-10-05),
+charged by Supabase edge functions in that repo. Zero paying customers as of
+2026-10-05. Priority 3.
+
+**Customer** - A row in `customers`: the cross-product ledger keyed by
+product and Stripe customer id. `customer_kind`:
+`paid`/`free_signup`/`trial`/`waitlist`/`churned`. Stripe is its ground truth.
+
+**`customer_contacts`** - One row per logged conversation with a customer.
 
 ---
 
 ## D
 
-**Decisions Waiting** — The unified Postgres view + Home panel covering
-everything across tasks / leads / guests / visibility / ideas currently
-awaiting Krish. Reads from `decisions_waiting`. New "waiting on Krish"
-surfaces must add a `UNION ALL` branch to the view, never a sibling
-panel.
+**Decisions Waiting** - The `decisions_waiting` view: one union of
+everything waiting on Krish. A new kind of waiting item adds a branch to the
+view, never a sibling panel. Home shows its fresh count; each ruling is
+answered in the tab that owns it (the OS Queue was removed 2026-10-04).
 
-**Deep enrich** — The act of running an LLM-backed enrichment over a
-freshly captured `leads` / `guests` / `visibility_targets` row. Fired by
-the appropriate Orchestrator webhook (lead-deep-enrich,
-guest-deep-enrich, visibility-deep-enrich) or by the hourly Deep Enrich
-Retry Sweep.
+**Deep enrich** - Running a model-backed enrichment over a freshly captured
+lead, guest or visibility row.
 
-**Deep Enrich Retry Sweep** — Hourly N8N workflow that re-fires deep
-enrich for any unenriched row.
+**Deliver Gate** - `deliver_gate.py` on the VPS. Enforces standards before
+agent output leaves the workspace.
 
-**Deliver Gate** — `deliver_gate.py` on the VPS. Enforces standards
-before agent output leaves the workspace. Not invoked by Control Center.
+**Dormant** - Preserved and not worked. Circle is dormant. Compare retired
+(section 0c of the core).
 
-**Drive sync** — The background job that syncs polished agent output
-into Google Drive. Logged via `audit_log` `event_type='drive_sync_run'`.
+**Drive sync** - RETIRED 2026-10-05. `sync-to-drive.py` and the
+`google_drive_sync` rows are gone; agents never write into Krish's Drive.
+The Content tab's "Send to Google Docs", pressed by Krish, is not agent
+writing.
 
 ---
 
 ## E
 
-**Executor** — An agent that runs scheduled N8N workflows and produces
-artefacts. Has `expected_runs_per_day != null` and contributes to the
-agent-freshness health check.
+**Executor** - An agent that runs scheduled jobs and produces artefacts.
 
-**Event-driven** — The platform's overall pattern. State changes write
-to Supabase, Supabase fires webhooks (via `pg_net`), agents react,
-agents write back. See [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+**Event** - A row in `events`, the one event table for attending and
+speaking. Scored on two axes, Draw (peer density) and Demand (buyer density).
+See core section 0a.3.
 
 ---
 
 ## F
 
-**Failure Pattern Sweep** — Weekly N8N workflow (Sun 07:00 UTC) owned by
-Vera. Tier 4 of the self-healing system. Groups `silent_failures` rows
-over the last 7 days; ≥3 matches in the same class → write a
-`corrections` row.
+**Feedback Queue** - `feedback_queue`. Krish's rejections and comments, fuel
+for the learning loop.
 
-**Feedback Queue** — `feedback_queue`. Krish's rejections + comments.
-Fuel for the learning loop. Consumed by Vera Feedback Aggregation
-(Sun 06:00 UTC).
+**Felix** - RETIRED 2026-07-10 (enterprise sales pipeline).
 
-**Felix** — The enterprise sales pipeline agent. Receives warm paths
-from Zara; runs Apollo enrichment, drafts proposals, tracks deals.
+**Five Questions** - The shape of OS > Intel since 2026-08-26: what is it
+costing, what is coming in, what is broken, is anything converting, what
+should I decide. The sixth is AskMarcus.
 
-**Flag** — A CEO-initiated note against an agent indicating something
-needs attention. Surfaced via `PendingFlagModal` on next session start.
-Cannot be silently dismissed.
+**Flag** - A note Krish raises against an agent. Surfaced via
+`PendingFlagModal` on next session start; cannot be silently dismissed.
 
-**Flow** — Synonym for an N8N workflow. The Flows tab lists them grouped
-by `workflow_id`.
+**Fleet reconcile** - `/api/health/fleet-reconcile`, a Vercel cron every 6
+hours that reconciles every workflow against the n8n API.
+
+**Flow** - An n8n workflow. OS > Flows lists them.
+
+**Full Time** - Football recaps read by a pundit you pick, at fulltime.fm.
+Full Time Pro is $4.99 a month; it has never collected a payment
+(2026-10-05). Priority 1.
 
 ---
 
 ## G
 
-**Goal** — A row in the `goals` table representing a measurable target
-for a period (weekly / monthly / quarterly). Surfaced on Home with a
-progress bar.
+**Goal** - A row in `goals`, the one goal table, with four horizons (`os`,
+`mid_term`, `weekly`, `venture_objective`) laddered by `parent_id`. Entered
+only through `GoalLadder`.
 
-**Growth (pod)** — One of the three primary pods. Owns revenue, pipeline,
-visibility, and content. Members: Cleo, Felix, Maya, Nell, Nova, Zara,
-Hunter.
+**Growth (pod)** - Cleo, Maya, Nell, Nova, Zara, Hunter.
 
-**Guest** — A row in the `guests` table. A podcast guest candidate for a
-Built conversation, carried on the Signal & Noise feed. Lifecycle: `new` → `enriched` →
-`confirmed` → `done` (or `skipped`). Replaces the deprecated
-`nell_candidates` table (dropped in PR #56).
+**Growth gold standard** - Krish's ruling of 2026-10-05: the Growth tab is
+the standard for how data becomes insight becomes action, and every tab now
+meets it. Five rules: numbers at a glance; insight only when asked; one move
+at a time with the verdict where he pressed; honest emptiness said once;
+recomposed per layout.
+
+**Guest** - A row in `guests`: a podcast guest candidate. The briefing lands
+in `guests.briefing_md` and opens in Control Center (2026-10-05).
 
 ---
 
 ## H
 
-**Home Intelligence** — The singleton row in `home_intelligence` keyed
-by `id='current'`. Contains the headline, body, recommended-focus
-summary, KPI metrics, external signals, customer signals, customer
-voice, and Marcus's COO surfaces (`daily_brief`, `weekly_retro`,
-`monday_premortem`). Refreshed by Marcus's synthesis workflows.
+**Heartside** - Gifts written by your dog. A Shopify store at heartside.io
+opening on 2026-10-20. Takes payment through Shopify Payments, not Stripe;
+reported in USD as one-off orders (orders, revenue, average order value,
+repeat customers), never MRR. Krish reads its numbers in the Shopify admin,
+which Control Center links to. Priority 1.
 
-**Hunter** — Agent. Daily job sourcing + application specialist. Scans
-boards at 08:00 UTC, scores roles against Krish's rubric (only 9-10/10
-reach Krish).
+**Home Intelligence** - The singleton row in `home_intelligence`
+(`id='current'`), refreshed by Marcus.
+
+**Hunter** - The job sourcing, packages and warm intros agent; the Hunt lane
+on People. Kept (confirmed 2026-10-05). Runs from GitHub Actions and
+`/api/hunter/tick`.
 
 ---
 
 ## I
 
-**Intel (tab)** — The OS subtab whose page title is **Business
-Intelligence**; the short `intel` sub id and the "Intel" door label stay.
-Implemented as `intel/BusinessIntelTab.tsx` (one tree, both shells) and
-also routed under the legacy `exec` tab id. See **Five Questions**.
+**Intel** - The OS subtab titled Business Intelligence, also routed under
+the legacy `exec` id. See **Five Questions**.
 
-**Five Questions** — The governing shape of Business Intelligence since
-2026-08-26: what is it costing, what is coming in, what is broken, is
-anything converting, what should I decide. Fixed order, one live
-one-line answer each, expanding in place. The sixth is AskMarcus.
+**Intake** - `intake_items`: one row per thing that arrived from any source,
+before it becomes an idea or is dropped with a reason.
 
 ---
 
 ## K
 
-**Kai** — The integrations / technical-architecture agent. Owns
-credential health, workflow health, API quirks (kept in
-`system_config.known_quirks`).
+**Kai** - RETIRED 2026-09-07. Replaced by fleet reconcile and the
+connections sweep.
 
-**KPI strip** — Retired 2026-08-26. `home_intelligence.metrics` are
-Marcus's own authored targets, so they now render as **his scoreboard**
-inside `intel/MarcusReadSheet.tsx`, never beside deterministic numbers.
-
-**Krish** — The CEO. The only intended user of Control Center. Audit-log
+**Krish** - The CEO and the only intended user of Control Center. Audit-log
 actor for every manual action (`actor='krish'`).
 
 ---
 
 ## L
 
-**Lane** — A column on the Leads tab. One per active row in
-`venture_registry`. Rendered by `LeadVentureLane`, and the options come
-from the single shared list in `src/lib/ventureOptions.ts`.
+**Lead** - A row in `leads`: a prospect with `assignee_agent`, `tags[]`,
+per-venture `icp_scores`, `primary_venture`, `fit_score`.
 
-**Lead** — A row in the `leads` table. A sales prospect with
-`assignee_agent`, `tags[]`, per-venture `icp_scores` jsonb,
-`primary_venture` (FK), `fit_score`, `attainability_score`,
-`promoted_task_id`, `deep_enriched_at`.
-
-**Live Activity** — The realtime activity feed on Home. Subscribes to
-`audit_log` INSERTs.
+**Legibility** - Typed product data for AI agents, over REST and MCP, at
+legibility.io. Private beta, $0 revenue (2026-10-05). Priority 2.
 
 ---
 
 ## M
 
-**Mandate** — The operating charter section of an agent's brief. Defines
-what the agent is allowed and required to do.
+**Maya** - The acquisition and SEO agent. Its prospecting reads `product_icp`
+only and is blocked, with the reason shown, for a product with no row.
 
-**Marcus** — The synthesis agent. Refreshes Home Intelligence
-(Mon/Wed/Fri + Sunday deep) and writes the daily brief, Friday retro,
-and Monday pre-mortem.
+**Marcus** - The synthesis agent: Home Intelligence, the daily brief, the
+Friday retro, the Monday pre-mortem.
 
-**mind/make OS** — The broader autonomous-organisation platform Control
-Center is the dashboard for. Canonical architecture lives in
-`MINDMAKE_OS_ARCHITECTURE.md` on the VPS workspace root.
+**Meter (usage meter)** - `meter_daily`, one row per provider, unit, day
+and sub-dimension: which unit of the OS spent the money. Surfaces in
+`/api/spend`.
 
-**Meter (usage meter)** — `meter_daily`, one row per provider × unit ×
-day × sub-dimension, answering which unit of the OS spent the money where
-receipts only answer how much a provider cost. Apify in dollars per
-actor, n8n in executions per workflow, Anthropic in dollars per agent
-from self-metered token counts. Provider-derived days are REPLACED so a
-re-sync cannot double-count; self-metered calls are ADDED. Surfaces in
-`/api/spend` as `spenders`. See **Prepaid line**, **Self-metering**.
+**mind/make OS** - The operating system Krish runs his businesses on.
+Architecture: `docs/MINDMAKE_OS_ARCHITECTURE.md` on GitHub `main`, the one
+copy.
 
-**Mission** — The one-paragraph north star of an agent's brief.
+**mind.the.gap** - The publication's hero subchannel, due on Fridays. Notice
+the pattern and say what it means is coming. Mandate in `venture_formats`.
 
-**Monitor (agent type)** — An agent whose job is continuous health or
-audit. Examples: Vera, Arlo, Kai. Monitors should rarely surface unless
-something is wrong.
+**Mindmake** - The business and the mission, at mindmake.co. Two doors,
+Build your AI brain and Build your AI GTM, lead into one privately scoped
+paid proof. Canon: `github.com/krishanraja/mindmake`.
 
-**MrrTicker** — Live MRR tile on Home and Customers. Sums
-`customers.mrr_usd` where `customer_kind='paid'`.
+**Monitor (agent type)** - An agent whose job is continuous health or audit:
+Vera, Arlo.
+
+**MRR** - Monthly recurring revenue. Never used for Heartside, which sells
+one-off orders.
 
 ---
 
 ## N
 
-**N8N** — The workflow orchestration engine that hosts agent
-automations. ~76 workflows on the production tenant
-(`krishraja10101.app.n8n.cloud`). Reachable via webhooks fired from
-Supabase or from Control Center's `/api/*` routes.
+**n8n** - The workflow engine that hosts many agent jobs, on n8n Cloud.
+The live list is the n8n API; mirrors live in `scripts/n8n/`.
 
-**Nell** — The outbound + podcast-guest-booking agent. Owns Apollo
-enrichment, cold sequences via Instantly, and the Guest pipeline.
+**Nell** - The podcast guest booking and briefing agent.
 
-**Nova** — The visibility + speaking agent. Runs the weekly Visibility
-Sweeper (Mon 11:00 UTC, Perplexity sonar-pro → Sonnet 4.6).
+**Nova** - The visibility and speaking agent.
+
+**Nova's standard** - Ruling of 2026-10-05: a visibility target passes only
+when three conditions are all true: the room (someone who can move a decision
+is in it), standing (naming the platform later helps him) and only-him (the
+angle rests on his own operating record). The score is the lowest of the
+three, not the mean, and a refusal is written with its reason
+(`api/_visibilityScore.ts`).
 
 ---
 
 ## O
 
-**Operations (pod)** — One of the three primary pods. Runs the machine —
-infrastructure, quality, product, revenue ops. Members: Vera, Leo,
-Arlo, Kai. (Priya retired 2026-09-14.)
+**`openclaw-runs-to-cc.py`** - VPS script, every 15 minutes, that copies
+finished OpenClaw cron runs into `workflow_runs` as `openclaw:<jobId>`, so
+those runs show in OS > Org (2026-10-05).
 
-**Orchestrator** — Central N8N webhook router
-(`u0kIULJBJL4dGcuR`, `/webhook/mindmaker-orchestrator`) that dispatches
-Control Center events to the right agent workflow.
+**Operations (pod)** - Vera, Leo, Arlo. (Kai and Priya retired.)
+
+**Orchestrator** - The central n8n webhook router that dispatches Control
+Center events to the right agent workflow.
 
 ---
 
 ## P
 
-**Pod** — Organisational grouping for agents. Three primary pods:
-Executive, Operations, Growth. Render order is fixed top-to-bottom on
-the Org tab.
+**Pod** - Organisational grouping for agents: Executive, Operations, Growth.
 
-**Prepaid line** — The usage a plan price already covers
-(`service_registry.included_usd`; Apify's is $29), and the point past it
-where the vendor charges early rather than invoicing later
-(`overage_trigger_usd`; Apify's is $50). Before 2026-08-27 the tracker
-reported headroom to the vendor's HARD cap instead, which is why it read
-"Apify: $130.53, ok" in the week Apify emailed to say the prepaid was
-spent. Crossing it is a state (`OVER PREPAID` / `CHARGING`), not a
-number, and it emails.
+**Portfolio ladder** - Krish's product ranking of 2026-10-05: 1 Heartside
+and Full Time; 2 Legibility; 3 CTRL and Pulse; Circle dormant. The one code
+source is `src/lib/portfolio.ts`. It ranks products against each other, not
+the portfolio against the Mindmake mission (core section 0.3).
 
-**Priority** — Task urgency tier. Recognised values: `critical`,
-`urgent`, `high`, `medium`, `normal`, `low`. Drives the Needs You
-ranking on Home.
+**Prepaid line** - The usage a plan price already covers
+(`service_registry.included_usd`) and the point past it where the vendor
+charges early (`overage_trigger_usd`).
 
-**`priority_override`** — Integer column on `tasks` for manual CEO
-boosting. Higher values rank earlier within the same priority tier.
+**Priority and reporting block** - The block at the top of every active
+agent brief and OpenClaw template since 2026-10-05, carrying the portfolio
+ladder and the rule that agents report to Control Center.
 
-**Primary Venture** — The `primary_venture` FK on `leads` and `guests`.
-Drives which lane the row appears in on the Leads / Guests tabs.
+**`product_icp`** - The one place a product's buyer is defined: one row per
+`venture_registry.slug`, edited on Growth > Buyers, read through
+`src/lib/icp.ts` and `api/icp.ts`. A product with no row is blocked, never
+defaulted. On 2026-10-05 only `mindmake` was defined.
 
-**Proposal** — A workflow improvement suggested by an agent. Lives in
-`workflow_proposals`. Awaits Krish approve / reject on the Flows tab.
+**Proposal** - A workflow improvement an agent suggests, in
+`workflow_proposals`.
+
+**Publication** - Mindmake's publication on Substack (makeyourmindup), slug
+`publication`. Three subchannels. Its two founding members are the only live
+revenue in the portfolio (2026-10-05).
+
+**Pull-only** - The rule since 2026-09-06: the OS never contacts Krish. No
+Telegram, no push. He reads Control Center when he chooses.
+
+**Pulse** - Market intelligence for fractional executives at
+pulse.fractionl.ai. Pulse Pro $99 a month or $948 a year, kept as the data
+feed licence. Cannot take a payment yet: no button calls `startCheckout()`.
+Priority 3.
 
 ---
 
 ## Q
 
-**Quick Capture Idea** — The Cmd+I surface available on every tab.
-POSTs to the Cleo idea-capture webhook (Sonnet 4.6 extractor) and either
-inserts into `content_ideas` or logs a skip.
+**Quick Capture Idea** - The Cmd+I surface, available on every tab. Captures
+an idea into the content pipeline.
 
 ---
 
 ## R
 
-**Realtime** — Supabase `postgres_changes` subscriptions. The UI joins
-one shared channel per table (`tasks-rt-shared`, `leads-rt-shared`,
-etc.) and fans updates out. ADR-002.
+**Realtime** - Supabase `postgres_changes` subscriptions. One shared
+channel per table, fanned out (ADR-002).
 
-**Revenue Pulse** — The headline + body + recommended-focus block on
-Home. Sourced from `home_intelligence.summary`. Stored as JSON-encoded
-text and parsed defensively.
+**Retired** - Gone for good unless Krish rules again. The only list is
+section 0c of the core.
 
-**RLS** — Row Level Security. Postgres-level access control. Enabled on
-every Supabase table. `anon` reads (for the dashboard), `service_role`
-writes (for the OS).
+**RLS** - Row Level Security. On every table. Anon reads where a policy
+allows; service role writes through `/api/*`.
 
 ---
 
 ## S
 
-**Self-metering** — Recording an API's cost from the OS's own side of the
-call, because the vendor will not report it. Anthropic's usage and cost
-reports are Admin-key endpoints and an individual account cannot hold an
-Admin key, so every call in the OS logs the token counts on its own
-response, prices them from `api/_prices.ts`, and stamps the calling
-agent. The invoice stays the truth for TOTAL spend; the meter answers
-which agent spent it. Calls made outside these helpers — an n8n node with
-its own Anthropic credential — are invisible to it, and the console says
-so rather than implying full coverage.
+**Self-metering** - Recording an API's cost from the OS's own side of the
+call, because the vendor will not report it to this account.
 
-**Signal & Noise** — The podcast brand for AI in media. Slug
-`signal_noise` in `venture_registry`. Co-founded with Rio Longacre +
-Brett House.
+**Signal & Noise** - A podcast distribution channel only, not a venture
+(since 2026-08-11). Nothing is commissioned for it.
 
-**Silent Failure** — A row in the `silent_failures` table. A workflow
-that ran without erroring but produced no actual value. Tiered 1-4 by
-detection mechanism (completeness contract / Silent Success Detector /
-Critical Infrastructure Monitor / Failure Pattern Sweep). Tier 3
-surfaces on Home as the CriticalAlertBanner.
+**Silent Failure** - A row in `silent_failures`: a run that did not error
+but produced nothing. The tell is a non-zero scanned count beside a zero
+written count.
 
-**Silent Success Detector** — N8N system workflow, 4h cadence. Tier 2
-of the self-healing system. For each (workflow_id, ok=true) run in the
-last 4h, checks for zero downstream effects in the target table; writes
-a tier-2 silent_failures row if so.
+**Slug** - The lowercase identifier for an agent, stored as `agents.id`.
 
-**Slug** — The lowercase, alphanumeric identifier for an agent. Stored
-as `agents.id`. The single canonical token used to join across tables.
-See [Slug-as-Key](./AGENTS.md#slug-as-key).
+**Standards Registry** - `standards_registry`, the behavioural rules every
+agent loads through the nightly standards digest. Count it live.
 
-**SLI** — Service Level Indicator. A measurable signal of system
-behaviour. Listed in [`OBSERVABILITY.md`](./OBSERVABILITY.md).
+**Stripe organisation key** - One read-only key that reads all five Stripe
+accounts in Krish's organisation (mind/make, Full Time, Legibility,
+Heartside, Fractionl) when each request names the account. Used by
+`api/_stripe.ts` and `api/revenue/sync.ts` since 2026-10-05.
 
-**Split pane** — Master-detail layout primitive used by Today, Plans,
-and Org. See [`COMPONENTS.md`](./COMPONENTS.md).
+**Subscriptions** - The drawer tab for money: tiles, the Substack line, the
+ranked portfolio board and what to wire next.
 
-**Standards Registry** — Supabase `standards_registry`. ~167 behavioural
-rules enforced fleet-wide. Rendered nightly to `hot/standards-digest.md`
-on the VPS. Loaded on agent session wake; enforced by `deliver_gate.py`
-before any output ships.
+**Substack plans** - The publication's paid plans, created and owned by
+Substack and billed through the mind/make Stripe account. Filed under
+`publication`, not CTRL (migration `20261005140000`). Never rename them.
 
-**Sweeper** — A workflow that polls something on a cron (Maya for
-customer Supabases nightly; Deep Enrich Retry hourly; Nova Visibility
-weekly).
+**Surface moves** - `src/lib/surfaceMoves.ts`: the rules that pick each
+surface's one move, shared by desk and phone and tested without a browser.
 
-**Sync pipeline** — The VPS-hosted process that pushes a snapshot of
-external task state into Supabase via `POST /api/sync`. Authenticated
-with `SYNC_SECRET`.
-
-**System (actor)** — The `audit_log.actor` value used for unattended
-jobs that are not attributable to an individual agent. Example: drive
-sync runs.
-
-**Systems (tab)** — The infrastructure-health tab. Renders from
-`system_health`, `credential_health`, `silent_failures`, and the live
-`/api/health` snapshot.
+**Sync pipeline** - The VPS process that pushes task state into Supabase via
+`POST /api/sync`.
 
 ---
 
 ## T
 
-**Tab** — A top-level section of the UI. The eleven tabs are Home,
-Today, Leads, Customers, Guests, Content, Bets, Org, Intel (routed as
-`exec`), Flows (routed as `workflows`), Systems. Routed via `App.tsx`.
+**Tab** - A top-level section of the UI. The registry is `src/lib/tabs.ts`:
+Home, Content, People, Growth, OS, and in the drawer Focus, Board and
+Subscriptions. Today, Leads, Bets, Plans and the OS Queue are retired.
 
-**Task** — A unit of work. The primary row in the `tasks` table. Lives
-through statuses `active → in_progress → waiting → blocked → done`,
-with branches into `pending-agatha-review`, `pending-review`, `paused`,
-`superseded`. Also carries `lever_score` and `est_hours_to_revenue`
-(PR #47) for anti-busywork rating.
-
-**Today** — The "what needs you before EOD" tab. Splits into Due and
-Waiting on You.
-
-**Token** — In the slug-expansion sense: any of the candidate strings
-(`id`, `name`, lowercased variants) the UI uses when querying with
-`.in()` to tolerate legacy data.
+**Task** - A unit of work in `tasks`.
 
 ---
 
 ## U
 
-**Unknown (health)** — The fourth status value used when a component
-cannot be checked. Excluded from the worst-component overall rollup.
+**under.the.hood** - The publication's subchannel due on Wednesdays. Take a
+shipped thing apart and draw the build lesson.
+
+**Unknown (health)** - The status used when a component cannot be checked.
+
+**Unwired** - A metric nothing reads yet. It says what is missing, never
+shows a zero (`src/lib/portfolio.ts`).
 
 ---
 
 ## V
 
-**Venture** — A business project. The legacy `ventures` table holds 9
-rows, 3 active (`mindmake`, `mindmake-live`, `fractionl`) and 6
-archived. Read `status` rather than assuming every row is live. Meliora,
-Gutted and Merciless were retired in July 2026 and have no rows.
-Techonomic retired 2026-08-06; Builder Economy, Signal & Noise and MYMU
-stopped being ventures on 2026-08-11 (see **Venture Registry**).
+**Venture** - A business project. Two tables carry ventures:
+`venture_registry` (canonical, drives lanes and keys `product_icp`) and the
+older `ventures`. Update both. Read `active` rather than assuming a row is
+live; inactive rows are kept so history resolves.
 
-**Venture Registry** — The canonical `venture_registry` table: 12 rows,
-7 active (`mindmake`, `publication`, `mm_ctrl`, `fractionl_circle`,
-`fractionl_pulse`, `full_time`, `investor`) and 5 inactive (`mymu`
-having been renamed to `publication`, plus `builder_economy`,
-`signal_noise`, `legibility`, `adfixus`, `meliora`). It drives multi-tag
-leads and per-venture lanes. Inactive rows are kept, never deleted, so
-historical contacts and leads still resolve their pill; what they must
-never do is appear as a choice for new work.
+**Venture formats** - `venture_formats`: each publication subchannel's
+mandate, cadence and status. The only source of what a subchannel is for.
 
-**Vera** — The Chief of Staff / Quality agent. Owns standards
-compliance, drift detection, and audit closure. Runs daily,
-deep audit Fridays, feedback aggregation Sundays, failure pattern sweep
-Sundays.
+**Vera** - The quality and standards agent.
 
-**Verify (CI job)** — The single CI job (`.github/workflows/ci.yml`).
-Runs `npm ci`, `npm run lint`, `npx tsc --noEmit`.
+**Vercel** - Hosts the UI, the `/api/*` functions and this repo's crons.
 
-**Vercel** — The hosting platform. Provides the Vite-built static UI and
-the `/api/*` serverless functions.
-
-**Visibility Target** — A row in `visibility_targets`. A speaking or PR
-opportunity. Replaces the deprecated `nova_target_conferences` table
-(dropped in PR #56).
+**Visibility Target** - A row in `visibility_targets`: a speaking, press or
+podcast opportunity, held to Nova's standard.
 
 ---
 
 ## W
 
-**Webhook (pg_net)** — Supabase's outbound HTTP mechanism. Fires N8N
-workflows in response to row changes.
+**Workflow** - An automation owned by an agent, identified by `workflow_id`.
 
-**Workflow** — An N8N automation owned by an agent. Identified by
-`workflow_id`; many runs per workflow over time.
-
-**`workflow_runs`** — Append-only log of every N8N execution. Joined to
-agents via `agent_id` (legacy `agent` for pre-2026-04-15 rows).
+**`workflow_runs`** - Append-only log of every run, from n8n and (since
+2026-10-05) OpenClaw.
 
 ---
 
 ## Z
 
-**Zara** — The signal intelligence agent. Runs the daily signal sweep
-(Mon-Fri 10AM), feeds warm paths to Felix, and seeds content ideas to
-Cleo.
+**Zara** - The signal intelligence and market research agent.
