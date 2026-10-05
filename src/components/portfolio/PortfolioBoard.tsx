@@ -178,24 +178,24 @@ export function PortfolioList({ rows, onOpen, headline }: {
             >
               <TierBadge tier={tier} size={tier === 1 ? 'md' : 'sm'} />
               <span className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="flex items-baseline gap-2">
+                <span className="flex flex-wrap items-baseline gap-x-2">
                   <span className={`font-display font-semibold text-ink ${tier === 1 ? 'text-lede' : 'text-ui'}`}>{r.product.label}</span>
-                  {opens && <span className="text-micro text-ink-faint">{opens}</span>}
+                  {opens && <span className="whitespace-nowrap text-micro text-ink-faint">{opens}</span>}
                 </span>
-                <span className="flex gap-1" aria-label={METRICS.map(m => `${m.label}: ${r.cells[m.key].state === 'unwired' ? 'not wired' : r.cells[m.key].value}`).join(', ')}>
+                <span className="grid w-full max-w-[8.5rem] grid-cols-6 gap-1" aria-label={METRICS.map(m => `${m.label}: ${r.cells[m.key].state === 'unwired' ? 'not wired' : r.cells[m.key].value}`).join(', ')}>
                   {METRICS.map(m => {
                     const s = r.cells[m.key].state
                     return (
                       <span
                         key={m.key}
-                        className={`h-1.5 w-5 rounded-full ${s === 'live' ? 'bg-accent' : s === 'zero' ? 'border border-accent/50' : 'border border-dashed border-white/25'}`}
+                        className={`h-1.5 rounded-full ${s === 'live' ? 'bg-accent' : s === 'zero' ? 'border border-accent/50' : 'border border-dashed border-white/25'}`}
                       />
                     )
                   })}
                 </span>
               </span>
-              <span className="flex flex-col items-end">
-                <span className={`font-mono text-ui tabular-nums ${c.state === 'live' ? 'font-semibold text-ink' : 'text-ink-faint'}`}>{c.value}</span>
+              <span className="flex flex-shrink-0 flex-col items-end">
+                <span className={`whitespace-nowrap font-mono text-ui tabular-nums ${c.state === 'live' ? 'font-semibold text-ink' : 'text-ink-faint'}`}>{c.value}</span>
                 <span className="text-micro text-ink-faint">{METRICS.find(m => m.key === headline)?.label}</span>
               </span>
               <ChevronRight size={14} className="flex-shrink-0 text-ink-faint" aria-hidden />
