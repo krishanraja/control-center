@@ -33,6 +33,20 @@ export interface ProviderCheck {
   parseBalance?(json: unknown, ctx: BalanceContext): { balance: number; unit: string } | null
   /** Rough cost of one check, for the metering ledger. Undefined = free. */
   estCostUsd?: number
+  /**
+   * Opt out of the ping remap. pingClassify treats 400/404/405 as a live key,
+   * on the reasoning that a rejected request shape still proved the key was
+   * accepted. That reasoning is false for an OAuth token endpoint, which answers
+   * a WRONG secret and a wrong client id with the same 400 it would give a bad
+   * shape. Without this, a dead credential there reads green forever.
+   */
+  strict?: boolean
+  /**
+   * The vendor's own reading of a response, consulted before the generic
+   * classifier. Return null to fall through. Lets a 400 that carries an OAuth
+   * error read as auth_failed (rotate the credential) rather than error.
+   */
+  classifyResponse?(httpStatus: number, body: string): ProviderStatus | null
 }
 
 type J = Record<string, unknown>
@@ -115,6 +129,51 @@ export const PROVIDERS: Record<string, ProviderCheck> = {
   // is inactive (supabase/migrations/20261003220000_telegram_is_retired.sql).
   stripe: { build: k => ({ url: 'https://api.stripe.com/v1/balance', init: { headers: { Authorization: `Bearer ${k}` } } }) },
   'stripe-fractionl': { build: k => ({ url: 'https://api.stripe.com/v1/balance', init: { headers: { Authorization: `Bearer ${k}` } } }) },
+  // The Stripe organisation key: the one credential api/_stripe.ts actually
+  // reads revenue with since 2026-10-05. The per-account keys above are now
+  // only a fallback used when this is unset, so watching them alone would read
+  // green while revenue silently stopped. An org-key v1 call needs BOTH a
+  // Stripe-Context (any account in the org proves the key) AND a
+  // Stripe-Version, or Stripe rejects it for a missing version.
+  'stripe-org': {
+    strict: true,
+    build: k => ({
+      url: 'https://api.stripe.com/v1/balance',
+      init: {
+        headers: {
+          Authorization: `Bearer ${k}`,
+          'Stripe-Context': 'acct_1RiiZEHGqJqsGEJL',
+          'Stripe-Version': '2025-08-27.basil',
+        },
+      },
+    }),
+  },
+  // Heartside's store, Shopify Payments. A Dev Dashboard custom app shows no
+  // token: the client credentials grant trades the client id and secret for a
+  // token that lasts 24 hours, so this check mints one, which is exactly the
+  // proof a sync would need. The client id and store are not secret; the key
+  // passed in is the client secret. STRICT, because Shopify answers a wrong
+  // secret AND a wrong client id with HTTP 400, which the ping remap would
+  // read as a live key.
+  'shopify-heartside': {
+    strict: true,
+    build: k => ({
+      url: 'https://bnf1em-ge.myshopify.com/admin/oauth/access_token',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: 'fd237e79c820021bbfc94af06f6a9c17',
+          client_secret: k,
+        }).toString(),
+      },
+    }),
+    classifyResponse: (status, body) =>
+      status === 400 && /oauth error|invalid_client|invalid_request|application_cannot_be_found/i.test(body)
+        ? 'auth_failed'
+        : null,
+  },
 
   // --- Data / enrichment / search ---
   apify: {
@@ -301,7 +360,8 @@ export async function runCheck(
     const { url, init } = provider.build(apiKey)
     const res = await fetch(url, { ...init, signal: ctrl.signal })
     const body = await res.text().catch(() => '')
-    const status = kind === 'ping' ? pingClassify(res.status, body) : classify(res.status, body)
+    const status = provider.classifyResponse?.(res.status, body)
+      ?? (kind === 'ping' && !provider.strict ? pingClassify(res.status, body) : classify(res.status, body))
     let balance: number | null = null
     let balanceUnit: string | null = null
     if (status === 'ok' && provider.parseBalance) {
