@@ -193,7 +193,10 @@ export function DesktopOrg() {
       const inList = `(${tokens.map(t => `"${t}"`).join(',')})`
 
       const [tasks, runs, planRes] = await Promise.all([
-        supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).neq('status', 'done').order('updated_at', { ascending: false }).limit(20),
+        // Open work only. `superseded` is how stale agent work is retired
+        // without deleting it (2026-10-05: 47 superseded rows were crowding
+        // Agatha's live tasks out of this list).
+        supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).not('status', 'in', '(done,superseded)').order('updated_at', { ascending: false }).limit(20),
         supabase.from('workflow_runs').select('*').in('agent_id', tokens).order('run_at', { ascending: false }).limit(10),
         supabase.from('agent_plans').select('*').eq('agent_id', id).maybeSingle(),
       ])
