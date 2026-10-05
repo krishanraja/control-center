@@ -18,6 +18,23 @@ interface Props {
   /** Test id for the bounded body, so a spec can find the tab's one scroller
    *  (Content's is `content-room-scroll`). */
   bodyTestId?: string
+  /**
+   * Reserve room for the ⌘I and ⌘/ pills INSIDE the scrolling body, instead of
+   * letting the shell shorten the whole frame to clear them.
+   *
+   * `src/index.css` already says this is the rule: "Surfaces that scroll to the
+   * bottom-right add it as padding". The shell was doing the opposite for every
+   * scrolling desk tab, taking `--capture-gutter` (72px, plus 24px of its own)
+   * off the frame's height. The body then ended 96px above the bottom of the
+   * screen and sliced its last row clean through, with 96px of dead paper
+   * underneath it and no scrollbar to say there was more. That is what "the
+   * Content tab cuts off at the bottom" was. It is the same failure the CSS
+   * comment already records against the Visibility rails on 2026-09-23.
+   *
+   * Only meaningful with scroll='auto'; a fixed stage has nothing to scroll
+   * past the pills, so it keeps its clearance from the shell.
+   */
+  capturePills?: boolean
   children: React.ReactNode
 }
 
@@ -40,6 +57,7 @@ export function AppFrame({
   className = '',
   bodyClassName = '',
   bodyTestId,
+  capturePills = false,
   children,
 }: Props) {
   const body =
@@ -48,10 +66,14 @@ export function AppFrame({
       ? 'flex-1 min-h-0 overflow-hidden flex flex-col'
       : 'flex-1 min-h-0 overflow-y-auto'
   const gutter = padded ? 'px-6 py-5' : ''
+  // The pill clearance rides with the content, so the scrollport keeps the full
+  // height of the frame. `--capture-gutter` is 0px under 900px, so a phone pays
+  // nothing for this.
+  const pills = capturePills && scroll !== 'none' ? 'pb-[var(--capture-gutter)]' : ''
   return (
     <div className={`flex flex-col h-full max-h-[100dvh] min-h-0 ${className}`}>
       {header && <div className="flex-shrink-0">{header}</div>}
-      <div data-testid={bodyTestId} className={`${body} ${gutter} ${bodyClassName}`}>{children}</div>
+      <div data-testid={bodyTestId} className={`${body} ${gutter} ${pills} ${bodyClassName}`}>{children}</div>
       {footer && <div className="flex-shrink-0">{footer}</div>}
     </div>
   )

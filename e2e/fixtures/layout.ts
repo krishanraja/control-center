@@ -288,3 +288,55 @@ export async function assertFrameDoesNotScroll(page: Page, frameSelector: string
   }, frameSelector)
   expect(over, `${frameSelector} is ${over}px taller than its own box`).toBeLessThanOrEqual(2)
 }
+
+/**
+ * A bounded body must reach the bottom of the frame that clips it.
+ *
+ * This is the probe no other measure in this repo can take. A scroller that
+ * stops short of its frame does not scroll the window, does not overlap, does
+ * not leave a hole big enough to flag, and reports zero clipped elements
+ * (`clippedBelow` excuses everything inside a scroller by design). It simply
+ * slices its last row part way up the screen and leaves dead paper under it,
+ * which is what a person reads as "the tab cuts off at the bottom".
+ *
+ * It happened because the shell reserved `--capture-gutter` (the ⌘I / ⌘/ pills,
+ * 72px plus 24px of its own) by SHORTENING the frame, when `src/index.css` says
+ * a scrolling surface adds it as padding inside the scroller. `src/index.css`
+ * records the same failure against the Visibility rails on 2026-09-23.
+ *
+ * `slack` is what the frame is allowed to keep for itself below the body: its
+ * own bottom padding, nothing more.
+ */
+export async function assertBodyReachesFrame(
+  page: Page,
+  bodySelector: string,
+  frameSelector: string,
+  slack = 28,
+) {
+  const m = await page.evaluate(([b, f]) => {
+    const body = document.querySelector(b) as HTMLElement | null
+    const frame = document.querySelector(f) as HTMLElement | null
+    if (!body || !frame) return null
+    const fr = frame.getBoundingClientRect()
+    const br = body.getBoundingClientRect()
+    return {
+      gap: Math.round(fr.bottom - br.bottom),
+      frameBottom: Math.round(fr.bottom),
+      bodyBottom: Math.round(br.bottom),
+      // Proof the body really is the scroller, so a gap of 0 on a box that
+      // never scrolls cannot pass this by accident.
+      overflow: body.scrollHeight - body.clientHeight,
+      overflowY: getComputedStyle(body).overflowY,
+    }
+  }, [bodySelector, frameSelector] as const)
+
+  expect(m, `${bodySelector} or ${frameSelector} is not on the page`).not.toBeNull()
+  expect(m!.overflowY, `${bodySelector} is not the scroller`).toMatch(/auto|scroll/)
+  expect(
+    m!.gap,
+    `${bodySelector} stops ${m!.gap}px above the bottom of ${frameSelector} ` +
+    `(body ends at ${m!.bodyBottom}, frame at ${m!.frameBottom}, ${m!.overflow}px of content below the fold). ` +
+    'Dead paper under a sliced last row reads as a cut-off tab. Reserve the pill gutter ' +
+    'inside the scroller (AppFrame `capturePills`), never by shortening the frame.',
+  ).toBeLessThanOrEqual(slack)
+}

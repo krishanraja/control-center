@@ -318,7 +318,13 @@ export default function App() {
               </div>
             ) : tab === 'content' ? (
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div></DeferredFallback>}>
-                <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
+                {/* Content reserves the ⌘I / ⌘/ pill gutter INSIDE its own
+                    scroller (AppFrame `capturePills`), not here. Taking it off
+                    the frame instead ended the scrollport 96px above the bottom
+                    of the screen, sliced its last row through, and left dead
+                    paper under it: "the content tab cuts off at the bottom".
+                    `src/index.css` already states the rule this follows. */}
+                <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 pt-6 pb-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
               </Suspense>
             ) : tab === 'home' ? (
               // Home owns its own height: the canon must fit the viewport with

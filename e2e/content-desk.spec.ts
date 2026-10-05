@@ -3,7 +3,7 @@ import { assertFixturesLanded } from './fixtures/populated'
 import { mockContentMorning } from './fixtures/content'
 import {
   assertNothingOverflows, assertNoSqueezedText, assertNoRawErrors, assertRendered,
-  scrollContainers, largestHole, assertFrameDoesNotScroll,
+  scrollContainers, largestHole, assertFrameDoesNotScroll, assertBodyReachesFrame,
 } from './fixtures/layout'
 
 /**
@@ -76,4 +76,20 @@ test('the desk has no hole in it', async ({ page }) => {
 
 test('the page itself does not scroll', async ({ page }) => {
   await assertFrameDoesNotScroll(page, 'main')
+})
+
+/**
+ * Krish, 2026-10-05: "content tab has a glitch where it cuts off at the bottom
+ * of the screen on desktop."
+ *
+ * It was not unreachable content and not a page scroll, so every gate here was
+ * green. The shell took `--capture-gutter` off the frame's HEIGHT, so the one
+ * scroller ended 96px above the bottom of the window, sliced its last row
+ * through, and left 96px of dead paper under it. Measured at 1440x900 before
+ * the fix: the scrollport ran 75 to 804 in a 900px window. After: 75 to 876,
+ * with the pill clearance moved inside the scroller where index.css says it
+ * belongs. 72px of desk came back at every width.
+ */
+test('the one scroller reaches the bottom of the frame', async ({ page }) => {
+  await assertBodyReachesFrame(page, '[data-testid="content-room-scroll"]', 'main')
 })
