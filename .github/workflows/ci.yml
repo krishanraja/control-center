@@ -138,6 +138,18 @@ jobs:
       # lane on 2026-09-24, because a shape check cannot tell whether a developer
       # meetup is actually rejected, and that is the whole point of the change.
       - run: npx tsx scripts/check-events-honesty.mts
+      # Nova's standard, same class, same reasons. Four rules that are invisible
+      # on the card when they break: the headline number must be the MINIMUM of
+      # the three axes and not their mean (a mean lets a famous platform carry a
+      # wrong room, which is how a trade title at room 30 / standing 90 reached
+      # a floor of 50); a refusal must carry a reason from the ONE taxonomy; no
+      # evidence must be written as 'unjudged' with null axes rather than a zero;
+      # and relevance_score must never be the gate, because that column is two
+      # scales at once (7-9 from the nell-* sources, 72-95 from the nova_* ones)
+      # so any threshold on it is a source filter. The arithmetic sections run
+      # the real cases, because a shape check cannot tell whether a room full of
+      # journalists is actually refused and that is the whole point.
+      - run: npx tsx scripts/check-visibility-standard.mts
       # The fleet observer is the one health signal not self-reported by the
       # thing it measures, so its two classifiers decide what anyone believes
       # about a failure. Both are ordering sensitive and both shipped wrong

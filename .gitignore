@@ -19,3 +19,7 @@ supabase/.temp/
 # The layout audit writes screenshots + a JSON report here on every run.
 # It is evidence for one session, not a build artefact to carry in the repo.
 audit/
+
+# The visibility shot spec writes evidence screenshots here on demand
+# (VISIBILITY_SHOTS=1). Same reason as audit/: evidence, not source.
+shots/

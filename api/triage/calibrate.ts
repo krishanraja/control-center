@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { legacyRelevanceOutOfTen } from '../../src/lib/visibilityScale.js'
 import { supabase } from '../_supabase.js'
 import {
   TABLE_OF_DOMAIN, DOMAIN_OF, DEFAULT_WEIGHTS,
@@ -139,7 +140,15 @@ function summarize(table: string, row: any): string {
   const bits: string[] = []
   if (row.quality_score) bits.push(`${row.quality_score} quality`)
   if (row.fit_score != null) bits.push(`fit ${row.fit_score}/10`)
-  if (row.relevance_score != null) bits.push(`relevance ${row.relevance_score}/10`)
+  // Nova's standard first, as a conjunction of three axes. The legacy
+  // relevance_score is two scales in one column, so it is normalised through
+  // visibilityScale rather than printed with a "/10" it may not be on: a Nova
+  // row at 88 used to read "relevance 88/10" here.
+  if (row.visibility_score != null) bits.push(`worth taking ${row.visibility_score}/100`)
+  else {
+    const legacy = legacyRelevanceOutOfTen(row.relevance_score)
+    if (legacy != null) bits.push(`old relevance mark ${legacy}/10`)
+  }
   if (row.confidence != null) bits.push(`confidence ${Math.round(row.confidence * 100)}%`)
   if (row.brand_fit_score != null) bits.push(`brand fit ${row.brand_fit_score}/10`)
   if (row.lever_score != null) bits.push(`lever ${row.lever_score}/10`)

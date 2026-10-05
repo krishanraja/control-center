@@ -92,6 +92,94 @@ const EVENT_TITLES = [
 const VIS_STATUSES = ['sourced', 'queued', 'queued', 'queued', 'applied', 'accepted', 'rejected', 'done', 'dropped'] as const
 const VIS_TYPES = ['cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'other'] as const
 
+/**
+ * The verdict mix for the visibility fixture.
+ *
+ * One `take`, because that is the honest shape of the lane: the standard is a
+ * conjunction of three floors and almost nothing clears all three. Two
+ * `stretch`, which is the cap. Then one refusal per reason code so the refusals
+ * panel renders every sentence it can print, one `unjudged`, and nulls for the
+ * rest so the "not reached yet" count is not zero.
+ *
+ * score_version is 1 on everything judged, because axesOf() treats any other
+ * version as unjudged and the surface would render empty with no clue why.
+ */
+const VIS_REFUSALS = [
+  'visibility_wrong_audience',
+  'visibility_too_technical',
+  'visibility_off_vertical',
+  'visibility_pay_to_play',
+  'visibility_no_relevant_talk',
+  'visibility_too_low_tier',
+] as const
+
+function visibilityVerdictFor(n: number): Record<string, unknown> {
+  // The spread sits LAST in the row literal, so these override the generic
+  // fields deliberately. They have to: the generic `deadline_at` puts every
+  // fourth row 100 days in the past, and a row whose date has passed is dead
+  // whatever its verdict says, so the one `take` would never reach the surface.
+  const judged = (extra: Record<string, unknown>) => ({
+    score_version: 1, scored_at: daysAgo(1), status: 'queued',
+    deadline_at: daysOut(21), event_start_at: daysOut(45), buried_at: null,
+    ...extra,
+  })
+  if (n === 0) {
+    return judged({
+      verdict: 'take', reject_reason: null,
+      room_score: 84, standing_score: 71, only_him_score: 88, visibility_score: 71,
+      who_is_in_the_room: 'About forty owners and managing directors of mid-market publishers, four platform vendors, and no engineers.',
+      why_him: 'He runs a portfolio on a fleet of AI agents in public, with the failures left in, and this room is deciding what to do about exactly that.',
+      why_now: 'They are writing next year budgets in the six weeks after this.',
+      angle: 'Every AI they can buy already knows the market and none of them knows their business. What that costs, in their own numbers.',
+      feeds_channel: 'the money of ai',
+      score_reason: 'The right room, a platform worth citing, and an argument that rests on his own operating record.',
+      named_people: ['J. Okonkwo, Chief Executive at a mid-market publisher'],
+    })
+  }
+  if (n === 1 || n === 2) {
+    return judged({
+      verdict: 'stretch', reject_reason: null,
+      room_score: 78, standing_score: 44, only_him_score: 81, visibility_score: 44,
+      who_is_in_the_room: 'Twenty-five founders of businesses past first revenue, invitation only.',
+      why_him: 'The hosts have asked for the fleet numbers specifically.',
+      why_now: '',
+      angle: 'What eleven agents actually cost to run, and which three earned their keep.',
+      feeds_channel: 'built with ai',
+      score_reason: 'The right room and the right angle on a platform almost nobody outside it has heard of.',
+      named_people: [],
+    })
+  }
+  if (n >= 3 && n < 3 + VIS_REFUSALS.length) {
+    const reason = VIS_REFUSALS[n - 3]
+    return judged({
+      verdict: 'rejected', reject_reason: reason,
+      room_score: 28, standing_score: 62, only_him_score: 33, visibility_score: 28,
+      who_is_in_the_room: 'Mostly journalists and analysts, a handful of vendor marketers.',
+      why_him: '',
+      why_now: '',
+      feeds_channel: 'neither',
+      score_reason: 'A well-known name in front of people who report on decisions rather than make them.',
+      named_people: [],
+    })
+  }
+  if (n === 3 + VIS_REFUSALS.length) {
+    return judged({
+      verdict: 'unjudged', reject_reason: null,
+      room_score: null, standing_score: null, only_him_score: null, visibility_score: null,
+      who_is_in_the_room: null, why_him: null, why_now: null, feeds_channel: null,
+      score_reason: 'Not enough on the page to say who is in this audience.',
+      named_people: null,
+    })
+  }
+  // The rest: the standard has not reached them. Not a verdict, a queue length.
+  return {
+    score_version: null, scored_at: null, verdict: null, reject_reason: null,
+    room_score: null, standing_score: null, only_him_score: null, visibility_score: null,
+    who_is_in_the_room: null, why_him: null, why_now: null, score_reason: null,
+    feeds_channel: null, named_people: null,
+  }
+}
+
 export const VISIBILITY_TARGETS = EVENT_TITLES.flatMap((title, i) =>
   [0, 1, 2, 3, 4].map(k => {
     const n = i * 5 + k
@@ -131,6 +219,14 @@ export const VISIBILITY_TARGETS = EVENT_TITLES.flatMap((title, i) =>
       audience_seniority: 'Director and above',
       past_speakers: [{ name: 'A. Speaker', role: 'CPO' }],
       cfp_requirements: { needs_bio: true, needs_headshot: true },
+      // Nova's standard. The mix is deliberate and it is the only way the gates
+      // render the surface as it actually behaves: ONE `take` across the whole
+      // set, two `stretch`, a spread of refusals with four different reasons,
+      // one `unjudged`, and the rest left with verdict null so the "not reached
+      // yet" count is real. A fixture where everything passes renders a world
+      // the production data does not have, which is what
+      // `relevance_score: 95 - n` above was doing on its own.
+      ...visibilityVerdictFor(n),
     }
   }),
 )

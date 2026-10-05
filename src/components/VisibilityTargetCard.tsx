@@ -10,6 +10,7 @@ import { useToast } from './shared/Toast'
 import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisibilityTargets'
 import { Working } from './shared/Working'
 import { WhyBadge } from './shared/WhyBadge'
+import { axesOf, verdictOf, VERDICT_LABEL, rejectSentence } from '../lib/visibilityScale'
 
 interface Props {
   target: VisibilityTargetRow
@@ -39,6 +40,8 @@ function isStubTarget(t: VisibilityTargetRow): boolean {
  * deadline + audience + why_relevant + suggested_talk_title on every row.
  */
 export function VisibilityTargetCard({ target: t, onOpen }: Props) {
+  const verdict = verdictOf(t)
+  const axes = axesOf(t)
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'apply' | 'pass' | 'enrich'>(null)
   const [enrichTarget, setEnrichTarget] = useState<EnrichTarget | null>(null)
@@ -153,19 +156,38 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
                 {t.location}
               </span>
             )}
-            {typeof t.relevance_score === 'number' && t.relevance_score > 0 && (
-              <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 tabular-nums">
-                Fit {t.relevance_score}
-              </span>
-            )}
-            {t.quality_score && (
-              <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
-                t.quality_score === 'green' ? 'bg-emerald-500/10 text-emerald-300' :
-                t.quality_score === 'amber' ? 'bg-amber-500/10 text-amber-300' :
-                'bg-rose-500/10 text-rose-300'
-              }`}>
-                {t.quality_score}
-              </span>
+            {/* The verdict, once the standard has judged the row.
+                What was here was `Fit {relevance_score}` and the quality chip,
+                and both were hollow. relevance_score is two scales in one
+                column, so "Fit 88" and "Fit 8" were the same claim written by
+                different agents. quality_score was green on 91 of 129 rows
+                because Nova's old brief said not to write a row that could not
+                reach green, so green was the entry ticket rather than a
+                judgement and the chip could not discriminate between anything.
+                A refused row carried the same green as a good one. */}
+            {verdict ? (
+              <>
+                <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
+                  verdict === 'take' ? 'bg-emerald-500/10 text-emerald-300' :
+                  verdict === 'stretch' ? 'bg-violet-500/15 text-violet-200' :
+                  verdict === 'rejected' ? 'bg-rose-500/10 text-rose-300' :
+                  'bg-white/[0.06] text-ink-faint'
+                }`}>
+                  {VERDICT_LABEL[verdict]}
+                </span>
+                {verdict === 'rejected' && (
+                  <span className="text-micro text-ink-faint">{rejectSentence(t.reject_reason)}</span>
+                )}
+                {axes.overall != null && verdict !== 'rejected' && (
+                  <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-muted tabular-nums">
+                    {axes.overall}
+                  </span>
+                )}
+              </>
+            ) : (
+              // Not judged yet. A queue position, said as one, rather than a
+              // mark that looks like a verdict.
+              <span className="text-micro text-ink-faint">Not judged yet</span>
             )}
           </div>
         </div>

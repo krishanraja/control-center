@@ -1,4 +1,5 @@
 import { supabase } from './_supabase.js'
+import { legacyRelevanceOutOfTen } from '../src/lib/visibilityScale.js'
 
 /**
  * Shared deterministic grader used by the backburner sweep
@@ -89,7 +90,13 @@ export function features(table: Table, row: any): Record<string, number> {
       return { quality: q(row.quality_score), fit: row.fit_score ?? 5 }
     case 'visibility_targets':
       return {
-        relevance: row.relevance_score ?? 4,
+        // visibility_score is Nova's standard on ONE declared 0-100 scale, so it
+        // is divided to the /10 convention every other row here uses. The legacy
+        // relevance_score is two scales at once (7-9 from the nell-* sources,
+        // 72-95 from the nova_* ones) and is normalised rather than read raw.
+        relevance: row.visibility_score != null
+          ? row.visibility_score / 10
+          : (legacyRelevanceOutOfTen(row.relevance_score) ?? 4),
         quality: q(row.quality_score),
         deadline_soon: within(row.deadline_at, 14) ? 1 : 0,
       }

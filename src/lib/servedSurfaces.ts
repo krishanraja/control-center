@@ -21,6 +21,10 @@
 // Codes are append-only. 389 feedback rows already reference the existing
 // ones; renaming a code silently orphans its history.
 
+import {
+  axesOf, verdictOf, legacyRelevanceOutOfTen, VERDICT_LABEL, rejectSentence,
+} from './visibilityScale.js'
+
 /** Every table `/api/feedback` accepts. Must equal ALLOWED_TABLES in api/feedback.ts. */
 export type ServedTable =
   | 'tasks'
@@ -309,17 +313,37 @@ export const SURFACES: Record<ServedTable, SurfaceContract> = {
       { code: 'visibility_off_vertical',      label: 'Off-vertical' },
       { code: 'visibility_other',             label: 'Other' },
     ],
-    why: r => why(firstText(r.why_relevant, r.suggested_angle, r.angle, r.strategic_value), {
-      agent: 'nova',
-      at: r.updated_at || r.created_at || null,
-      score: num(r.relevance_score) != null ? num(r.relevance_score)! * 10 : null,
-      factors: factors(
-        outOfTen('Relevance', r.relevance_score),
-        outOfTen('Fit', r.fit_score),
-        plain('Quality', r.quality_score),
-        plain('Organiser', r.organizer_reputation),
-      ),
-    }),
+    // The badge now carries Nova's standard rather than one number nobody could
+    // interpret. Three things have to be true at once, so the breakdown names
+    // all three and the headline number is their minimum, not their mean.
+    //
+    // What was here until 2026-10-05: `score: relevance_score * 10` and
+    // `outOfTen('Relevance', relevance_score)`. That column is two scales (7-9
+    // from the nell-* sources, 72-95 from the nova_* ones), so a Nova row at 88
+    // rendered the string "88/10", a strength bar pinned at full, and a
+    // composite of 880. The number the badge exists to explain was the number it
+    // got wrong. src/lib/visibilityScale.ts owns the scale question now.
+    why: r => {
+      const ax = axesOf(r)
+      const verdict = verdictOf(r)
+      const legacy = ax.overall == null ? legacyRelevanceOutOfTen(r.relevance_score) : null
+      return why(firstText(r.score_reason, r.why_him, r.why_relevant, r.suggested_angle, r.angle, r.strategic_value), {
+        agent: 'nova',
+        at: r.scored_at || r.updated_at || r.created_at || null,
+        score: ax.overall,
+        factors: factors(
+          pct('Room: can they move a decision', ax.room),
+          pct('Platform: worth citing later', ax.standing),
+          pct('Angle: only he could give it', ax.onlyHim),
+          verdict ? plain('Verdict', VERDICT_LABEL[verdict]) : null,
+          verdict === 'rejected' ? plain('Refused because', rejectSentence(r.reject_reason as string)) : null,
+          // Shown only while a row is still waiting for the standard, and
+          // labelled as the old number so it cannot be mistaken for the new one.
+          legacy != null ? { label: 'Old relevance mark, before the standard', value: `${legacy}/10`, strength: legacy / 10 } : null,
+          plain('Organiser', r.organizer_reputation),
+        ),
+      })
+    },
   },
 
   // The attend lane (2026-09-24). Same vocabulary as visibility_targets, for the

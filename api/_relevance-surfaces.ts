@@ -8,6 +8,7 @@
 // codes, and guarded statuses.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { legacyRelevanceOutOfTen } from '../src/lib/visibilityScale.js'
 import { classifyRelevance, relevanceReasonCode, DEFAULT_MUTED_VERTICALS, type RelevanceItem } from './_relevance.js'
 
 export type TableName = 'content_ideas' | 'leads' | 'guests' | 'visibility_targets' | 'contacts'
@@ -87,12 +88,31 @@ export const SURFACES: Record<TableName, SurfaceCfg> = {
   },
   visibility_targets: {
     prefix: 'visibility', kind: 'visibility', statusCol: 'status', eligible: ['sourced', 'queued'],
-    selectCols: 'id, title, status, origin, relevance_score, quality_score, deadline_at, why_relevant, buried_at, protected_at, created_at',
+    selectCols: 'id, title, status, origin, relevance_score, visibility_score, verdict, score_version, quality_score, deadline_at, why_relevant, buried_at, protected_at, created_at',
+    // trimReason is the code written when the SWEEP buries a row for being at
+    // the bottom of the queue. It is a position, not a judgement about tier, and
+    // on 2026-06-17 two rows buried this way produced the only two
+    // `visibility_too_low_tier` downvotes in the corpus, which then became the
+    // entire evidence base for a proposed hard score floor. The code is kept
+    // because 389 feedback rows reference the vocabulary and renaming orphans
+    // history; what changed is that scoreOf below no longer invents a number.
     hasOrigin: true, relevanceDefault: false, trimReason: 'visibility_too_low_tier',
     dropPayload: () => ({ status: 'dropped', rejected_at: new Date().toISOString() }),
     agentOf: () => 'nova',
     classifyOf: r => ({ id: r.id, title: r.title, text: r.why_relevant }),
-    scoreOf: r => (r.relevance_score ?? 4) * 8 + qScore(r.quality_score) + (within(r.deadline_at, 14) ? 25 : 0) - Math.min(25, idleDays(r) / 2),
+    // Nova's standard when the row has been judged, and nothing invented when it
+    // has not. The old line was `(r.relevance_score ?? 4) * 8 + ...`, so a row
+    // with no score and no quality mark came out at a confident 38 built
+    // entirely from defaults, and 38 is the number the proposed floor was
+    // argued against. A row the standard has not reached sorts last rather than
+    // carrying a made-up middling score.
+    scoreOf: r => {
+      const judged = r.score_version === 1 && typeof r.visibility_score === 'number'
+      const base = judged
+        ? r.visibility_score
+        : (legacyRelevanceOutOfTen(r.relevance_score) ?? 0) * 8
+      return base + qScore(r.quality_score) + (within(r.deadline_at, 14) ? 25 : 0) - Math.min(25, idleDays(r) / 2)
+    },
     guarded: r => within(r.deadline_at, 21),
     titleOf: r => String(r.title || '(untitled)'),
   },
