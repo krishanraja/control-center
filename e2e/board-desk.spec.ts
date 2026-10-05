@@ -23,9 +23,9 @@ test('one card, one Send, and the queue beside it, not under it', async ({ page 
   await expect(page.getByRole('button', { name: 'Send reply' })).toHaveCount(1)
 
   const card = (await page.getByTestId('board-on-you').boundingBox())!
-  const queue = (await page.getByTestId('board-in-progress').boundingBox())!
+  const queue = (await page.getByTestId('board-queue').boundingBox())!
   expect(queue.x, 'the queue sits beside the card').toBeGreaterThan(card.x + card.width - 1)
-  expect(queue.y, 'the queue starts level with the card, not below it').toBeLessThan(card.y + card.height / 2)
+  expect(Math.abs(queue.y - card.y), 'the queue starts level with the card, not below it').toBeLessThanOrEqual(2)
 })
 
 test('the window never scrolls, and nothing on the board is laid out past its edges', async ({ page }) => {

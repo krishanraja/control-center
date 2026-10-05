@@ -163,7 +163,7 @@ export function WorkBoard() {
   )
 
   const queue = (
-    <div className="flex min-w-0 flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3" data-testid="board-queue">
       {rest.length > 0 && (
         <section className="flex flex-col gap-2" aria-label="Also waiting on you">
           <Eyebrow>Also waiting on you</Eyebrow>
