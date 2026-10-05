@@ -2,7 +2,7 @@
 repo: krishanraja/control-center
 product: Control Center
 as_of: 2026-10-05
-head: f31af50a
+head: 4ff9089b
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -47,6 +47,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-10-05 **makeyourmindup's Substack lives at home.makeyourmindup.ai** (`4ff9089b`, migration `20261005220000`). Decision (Krish, 2026-10-05): "mindmakerlive.substack.com is now replaced with home.makeyourmindup.ai as the substack homepage. should I call it something different? if not, sub this out absolutely everywhere"; the name stays "home". The website reading, the AI-answer probes and the AEO subject count both addresses, so visits and citations under the old one still count; Substack's own name for the publication, `mindmakerlive`, stays where its API uses it.
 - 2026-10-05 **The architecture doc became something an agent can actually load** (this rebuild). Why: at 415 KB it carried four dated canon blocks that overruled each other, a 140 KB changelog and retired brands described as live, so an agent could not tell what was true. Now a lean core with one canon, the open issues and the only retired list up front; detail in `docs/architecture/`, history in `docs/history/`. Rebuilding it nearly broke the weekly engine: with no `### ` heading after the oldest engine entry, a re-run of that week would have cut the file to its end. `tests/api/architectureDoc.test.ts` now pins every anchor, mutation-tested.
 - 2026-10-05 **Subscriptions, People and OS reached the Growth standard, and every desk tab reaches the bottom of the screen** (#393). Why: Org's rulings, the ones Home's waiting count routes to Org, were nowhere on Org; phone Systems called an unchecked board "All systems healthy"; and the shared wrapper reserved the capture-pill gutter by shortening the frame, so every scroller on Customers, People and OS stopped at 804 of 900 pixels. Ruling (Krish, 2026-10-05): Heartside is read in Shopify for now, never as MRR.
 - 2026-10-05 **Home, Content, Focus and Board reached the Growth standard, and Home fits a phone again** (#392). Why: four phone fit tests failed only from Monday, because a fixture left out the current week and the app fell back to the pinned clock; fixing it exposed a real fold bug, now fixed. Content on a phone used to stack all ten calls as full cards, 7,080 pixels of scroll at 390x844.
