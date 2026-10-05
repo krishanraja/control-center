@@ -264,9 +264,8 @@ export function SystemsPanel() {
       {/* Arlo note */}
       <div className="rounded-xl border border-accent/15 bg-accent/[0.04] px-4 py-3">
         <p className="text-micro text-violet-300/50 leading-relaxed">
-          <strong className="text-violet-300/70">Arlo</strong> runs hourly health checks and a full sweep every Sunday 3AM UTC.
-          Statuses update via the <code className="text-micro bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
-          Red or critical warnings route to ops-bot immediately.
+          <strong className="text-violet-300/70">Arlo</strong> checks these every 15 minutes and writes them to the <code className="text-micro bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
+          Nothing is pushed to you. A real failure shows on Home.
         </p>
       </div>
       </div>

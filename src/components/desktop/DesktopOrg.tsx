@@ -103,6 +103,20 @@ const POD_DEFS: Record<string, PodDef> = {
 }
 const POD_ORDER = ['executive', 'ops', 'growth']
 
+// agent_plans has RLS on and no anon policy, so a browser read always came back
+// empty and every agent showed "No plan set yet" (found 2026-10-05). The plan
+// is read through /api/agents/[name], which uses the service role.
+async function fetchPlan(agentId: string): Promise<AgentPlan | null> {
+  try {
+    const r = await fetch(`/api/agents/${encodeURIComponent(agentId)}`, { cache: 'no-store' })
+    if (!r.ok) return null
+    const j = await r.json()
+    return j?.agent?.plan ? { agent_id: agentId, ...j.agent.plan } : null
+  } catch {
+    return null
+  }
+}
+
 function podOf(pod?: string): PodDef {
   const key = (pod || '').toLowerCase()
   return POD_DEFS[key] || {
@@ -193,9 +207,12 @@ export function DesktopOrg() {
       const inList = `(${tokens.map(t => `"${t}"`).join(',')})`
 
       const [tasks, runs, planRes] = await Promise.all([
-        supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).neq('status', 'done').order('updated_at', { ascending: false }).limit(20),
+        // Open work only. `superseded` is how stale agent work is retired
+        // without deleting it (2026-10-05: 47 superseded rows were crowding
+        // Agatha's live tasks out of this list).
+        supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).not('status', 'in', '(done,superseded)').order('updated_at', { ascending: false }).limit(20),
         supabase.from('workflow_runs').select('*').in('agent_id', tokens).order('run_at', { ascending: false }).limit(10),
-        supabase.from('agent_plans').select('*').eq('agent_id', id).maybeSingle(),
+        fetchPlan(id),
       ])
 
       const mergedRunsMap = new Map<string, any>()
@@ -209,7 +226,7 @@ export function DesktopOrg() {
       }).slice(0, 10)
 
       setDetail({ tasks: (tasks.data as any) || [], runs: mergedRuns })
-      setPlan(((planRes as any).data as AgentPlan | null) ?? null)
+      setPlan(planRes)
     }
     load()
   }, [selected?.id])
@@ -262,10 +279,10 @@ export function DesktopOrg() {
       // Reload so the read-only view reflects the saved changes.
       const [agAll, planAfter] = await Promise.all([
         supabase.from('agents').select('*').eq('active', true).order('pod'),
-        supabase.from('agent_plans').select('*').eq('agent_id', selected.id).maybeSingle(),
+        fetchPlan(selected.id),
       ])
       setAgents(((agAll.data as any) as Agent[]) || [])
-      setPlan(((planAfter.data as any) as AgentPlan | null) ?? null)
+      setPlan(planAfter)
       setIsEditing(false)
     } catch (e: any) {
       setSaveError(e?.message || 'Save failed')
@@ -603,7 +620,7 @@ function PlanReadonly({ plan }: { plan: AgentPlan | null }) {
       <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70">Plan</p>
       {plan.objective && (
         <div>
-          <p className="text-micro text-ink-faint uppercase tracking-wider">May KPI / Objective</p>
+          <p className="text-micro text-ink-faint uppercase tracking-wider">Objective</p>
           <p className="text-body text-ink-muted mt-0.5 leading-relaxed">{plan.objective}</p>
         </div>
       )}
@@ -660,7 +677,7 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
         <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-400/70">Plan</p>
 
         <div>
-          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">May KPI / Objective</label>
+          <label className="text-micro uppercase tracking-wider text-ink-faint block mb-1">Objective</label>
           <input
             value={form.objective}
             onChange={(e) => set('objective', e.target.value)}

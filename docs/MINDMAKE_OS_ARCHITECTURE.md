@@ -353,7 +353,30 @@ mv /root/.openclaw/workspace/scripts/sync-architecture-surfaces.py /root/.opencl
 grep -rn "MINDMAKER_OS_ARCHITECTURE\|sync-architecture-surfaces" /root/.openclaw /root/.claude /root/.cursor --include=*.py --include=*.sh --include=*.md -l
 ```
 
-**What it does not change.** `sync-to-drive.py` keeps mirroring agent briefs and actions to Drive; only the architecture entry goes. Section 4's regeneration from the live schema, where it still runs, must write to the checkout and push, never to a local copy.
+**What it does not change.** Section 4's regeneration from the live schema, where it still runs, must write to the checkout and push, never to a local copy. (This paragraph used to say `sync-to-drive.py` keeps mirroring agent briefs to Drive. That was retired on 2026-10-05; see 0d.)
+
+## 0d. CANON as of 2026-10-05 - agents report to Control Center, never into Drive
+
+**Ruling (Krish, 2026-10-05).** Control Center (Supabase-backed, https://controlcenter.krishraja.com) is the one place every agent reports what it is doing. An agent writes its runs, status and output to the Supabase tables Control Center reads (`workflow_runs`, `tasks`, `agents.last_run` / `last_output`, and the output tables it owns, such as `home_intelligence`, `corrections`, `visibility_targets`). **An agent never creates or updates a Google Doc in Krish's Drive**, and never pings him (0b still holds: no Telegram). A VPS file that nothing in Control Center reads is not a report.
+
+**Retired the same day (crontab lines commented out, backups kept on the VPS):**
+- `sync-to-drive.py` (the 6-hourly per-agent Identity and Action Google Doc mirrors). All 28 `google_drive_sync` rows deleted (backup `/root/google_drive_sync-backup-20261005.json`); the agents' Drive docs trashed; `api/agents/[name].ts` no longer reads the table.
+- `cc-doc-creator.sh` (every 15 minutes, turned any task without `link_primary` into a Google Doc, which is how about 50 "Marcus Weekly Synthesis Ready" docs piled up). The doc links it had written were nulled on 52 tasks.
+- `arlo-daily-contradiction-audit.sh` (syntactically broken since its Python body was lost; wrote only to a VPS log).
+- OpenClaw jobs disabled: `Hunter - Daily Sourcing` (its template `job-hunt-agent.md` does not exist, so it errored every run; Hunter runs from GitHub Actions and `/api/hunter/tick`), `product-agent` (Priya, retired 2026-09-14, was still scanning OnAlert, Gutted and Merciless), `newsletter-draft` (wrote a Mindmaker Live edition into a Google Doc).
+
+**Added the same day.** `openclaw-runs-to-cc.py` on the VPS (root crontab, every 15 minutes) copies every finished OpenClaw cron run from `/root/.openclaw/cron/runs/*.jsonl` into `workflow_runs` (`workflow_id = 'openclaw:<jobId>'`, mapped to the owning agent), so Vera's audits, Marcus's synthesis, Arlo's checks and the Monday agents show in OS > Org instead of only in VPS files. `trg_agents_last_run` advances `agents.last_run` from those rows.
+
+**The second pass, the same day, after Krish read the first.** His rulings, and what each one did:
+
+- **Hunter stays.** Its brief, mandate, KPI and plan now say what it actually is: it runs from GitHub Actions and the `hunter/tick` Vercel cron, not from an OpenClaw job, and it reports into Control Center.
+- **Circle is dormant, not retired.** Its rows, repos and workflows are untouched and nothing about it is purged. It is simply off the ladder, so it gets no proactive work. Every brief and template says so in those words, because "retired" and "dormant" had been collapsing into each other.
+- **The guest briefing keeps its producer and loses its Doc.** The Nell workflow (`4RfAKh6U5guCmTrc`) still runs three research arms, both gates, the quote verification and the markdown render. Only its tail changed: the markdown it already produced now goes to `guests.briefing_md` instead of being converted to HTML, uploaded to Drive and stamped as a Doc URL, and both Telegram nodes went with it. `GuestCard` opens it in a panel (`src/components/guests/BriefingSheet.tsx`). Guests briefed before today keep their Doc link, labelled as the old Doc. Retiring the workflow outright would have cost the research arms and the verified quotes, which the local fallback in `api/guests/[id]/briefing.ts` does not reproduce; that fallback now works for the first time, because it no longer needs a Google service account to mint a Doc.
+- **Both remaining Cleo n8n workflows are retired**, and one of them takes a capability with it. `Draft Post on Demand` (`UL59ByPJJtOK7sBG`) had its only delivery node disabled, so it drafted posts and dropped them; drafting lives in the Content tab. `LinkedIn Distribution` (`O6AUi9W6UxBxhH94`) was the one path that could publish to LinkedIn automatically. It had **zero executions, ever**, and Control Center deliberately never sends (CI guard `check-bridges-never-send`), so publishing to LinkedIn is now a manual act by design rather than by accident. That is a removal, not a migration, and it is written down here as one.
+- **The Orchestrator stopped erroring and stopped lying.** `cleo` is unmapped in Agent Dispatch, because it pointed at the retired factory and every Cleo task update ended in "Workflow is not active and cannot be executed". The SEO-brief branch is gone too: it POSTed Maya's briefs to the retired factory webhook with `neverError` set and then marked the task `done` regardless, so a dead factory read as a finished brief. Those briefs now stand as tasks in Control Center.
+- **Arlo can no longer push to this repository.** It had unreviewed `git commit` and `git push` to `main` on the repo that is the single source of truth. Its job now diagnoses a failed Vercel build and writes the cause and the fix it would make into `workflow_runs`; it changes nothing. The restriction is enforced, not just asked for: the VPS clone's `remote.origin.pushurl` is the anonymous HTTPS URL, so a fetch still works and a push fails with no credentials. `sync-control-center.sh`, the only other VPS script that pushed, is manual and in no schedule.
+
+**The priority ladder every brief and template now carries** (a "PRIORITY AND REPORTING BLOCK, 2026-10-05" at the top of each active `agents.brief_content` and each live OpenClaw template): 1. Heartside and Full Time. 2. Legibility (formerly Plinth, being re-armed). 3. CTRL and Pulse. Mindmake and its publication run alongside. `agents.brief_content` stays canonical; `render-identity.py` renders it to each SKILL.md. Do not run `sync-briefs-to-skills.sh`: its Google Doc sources are gone.
 
 ## 1. Outcomes - what the OS is for
 
@@ -867,7 +890,8 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 ### 5.5 Sync infrastructure (Arlo's domain)
 
 - `cc-sync-engine.sh` - every 5 min, refreshes `home_intelligence`, polls N8N for workflow status, flags stale tasks, writes audit trail.
-- `cc-doc-creator.sh` - every 15 min, for any task with `description` but no `link_primary`, creates a Google Doc and writes the URL back.
+- ~~`cc-doc-creator.sh`~~ - RETIRED 2026-10-05 (see 0d). It turned every task without `link_primary` into a Google Doc. Tasks live in Control Center only.
+- `openclaw-runs-to-cc.py` - every 15 min, copies finished OpenClaw cron runs into `workflow_runs` (added 2026-10-05, see 0d).
 - `cc-task-router.sh` - routes ad-hoc instructions from chat into `tasks`.
 - `poll_sync_queue.py` - every 5 min, drains `sync_queue` (cross-system reconciliation).
 - `Control Center Live Sync` (N8N) - auxiliary realtime layer.
@@ -1817,10 +1841,10 @@ These run shell scripts and Python that never call an LLM. Cheapest possible cad
 */2  *   * * *   fire-pending-flags.py            # Process pending flags
 */5  *   * * *   cc-sync-engine.sh                # Control Center sync
 */5  *   * * *   poll_sync_queue.py               # Supabase sync queue
-*/15 *   * * *   cc-doc-creator.sh                # Auto-create Google Docs
+#    RETIRED 2026-10-05: cc-doc-creator.sh (per-task Google Docs) and refresh_token.sh + sync-to-drive.py (agent Drive doc mirrors), see 0d
 */15 *   * * *   render-identity.py               # Render agent identities
-0    */6 * * *   refresh_token.sh + sync-to-drive.py   # agent briefs and actions only since 2026-09-07; the architecture doc is no longer mirrored
-0    3   * * *   workspace_maintenance.sh + arlo-daily-contradiction-audit.sh
+*/15 *   * * *   openclaw-runs-to-cc.py           # OpenClaw cron runs -> workflow_runs (added 2026-10-05)
+0    3   * * *   workspace_maintenance.sh         # arlo-daily-contradiction-audit.sh retired 2026-10-05 (broken script)
 0    3   * * 1   vera-contradiction-audit.sh
 0    6   * * *   Download Cleo's DRAFTS.md from Google Doc
 0    8   * * *   vera-n8n-audit.js
@@ -1888,7 +1912,7 @@ All polished output lands in a fixed Drive hierarchy. **Hard rule: never create 
 | Signal Inbox | `1zspGabjdCcVTs037EsgnmPHTix9UOMsJ` | Krish drops files here; Layer 1 Signal Inbox processes them |
 | Signal Processed | `16j9xgtd1ZlhqP4CkmLwHnejCMDNEqo72` | Processed signal files (moved after extraction) |
 
-`google_drive_sync` table tracks every synced file ID + last-modified.
+`google_drive_sync` used to track the per-agent Drive doc mirrors. Its rows were deleted and the mirrors retired on 2026-10-05 (see 0d); agents do not write into Drive.
 
 ---
 
@@ -2038,10 +2062,10 @@ Traces to O-2 (revenue), O-3 (one person running 15-30), O-6 (nothing external w
 | Pattern of silent failures across workflows | `silent_failures` over last 7d | Vera Failure Pattern Sweep Sun 07:00 → corrections |
 | Cron missed | `audit_log` actor=cron | `Silent Success Detector` backstop |
 | Output didn't match what cron claimed | `audit_log` vs reality | `Truth Reconciler` |
-| Workspace contradictions piling up | Nightly contradiction audits | `arlo-daily-contradiction-audit` + `vera-contradiction-audit` (Mon) |
+| Workspace contradictions piling up | Nightly contradiction audits | `vera-contradiction-audit` (Mon); the Arlo daily audit was retired 2026-10-05 (broken script) |
 | Standards drift | `standards_efficacy` | Vera Friday deep audit |
 | Plan render stale | `agent_plans.last_rendered_at > 72h` | Agatha Weekly Plan Refresh (primary), READ-ONLY mode (safety net) |
-| Drive file missing | `google_drive_sync` | `sync-to-drive.py` every 6h |
+| Agent run invisible in Control Center | `workflow_runs` with `workflow_id like 'openclaw:%'` | `openclaw-runs-to-cc.py` every 15 min (the Drive-mirror row this replaced was retired 2026-10-05) |
 | Sync queue backing up | `sync_queue` row count | `poll_sync_queue.py` every 5 min |
 | Leads/guests stuck unenriched | `enrichment_status='new'` / `guests.status='new'` | Deep Enrich Retry Sweep hourly |
 | Email draft fails | `email_drafts` row missing for entity + Vercel function log | Re-click Draft email - idempotent on `(entity, intent, 24h)` |
@@ -2356,13 +2380,14 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 
 # Key automation scripts
 /root/.openclaw/workspace-ops/scripts/cc-sync-engine.sh      # Control Center sync (5m)
-/root/.openclaw/workspace-ops/scripts/cc-doc-creator.sh      # Doc auto-create (15m)
+/root/.openclaw/workspace-ops/scripts/cc-doc-creator.sh      # RETIRED 2026-10-05, cron line commented out
+/root/.openclaw/workspace/scripts/openclaw-runs-to-cc.py     # OpenClaw runs -> workflow_runs (15m, added 2026-10-05)
 /root/.openclaw/workspace-ops/scripts/cc-task-router.sh      # Chat → tasks router
 /root/.openclaw/workspace-ops/scripts/poll_sync_queue.py     # Sync queue drain (5m)
 /root/.openclaw/workspace/scripts/render-identity.py         # Brief → SKILL.md (15m)
 /root/.openclaw/workspace/scripts/regenerate-standards-digest.py  # 2:30 AM UTC
 /root/.openclaw/workspace/scripts/fire-pending-flags.py      # (2m)
-/root/.openclaw/workspace/scripts/sync-to-drive.py           # (6h) agent briefs and actions; architecture doc entry removed 2026-09-07
+/root/.openclaw/workspace/scripts/sync-to-drive.py           # RETIRED 2026-10-05, cron line commented out (agents report to Control Center, not Drive)
 
 # Repos
 ~/Projects/control-center/                                   # Control Center repo (PRs land here)

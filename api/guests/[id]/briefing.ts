@@ -2,20 +2,38 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js' // .js extension MANDATORY (ESM, "type":"module")
 import { researchBrief } from '../../_enrich.js'
 import { callClaude } from '../../_content.js'
-import { googleConfigured, createDriveDoc } from '../../_google.js'
 import { guard } from '../../_auth.js'
 
 // POST /api/guests/:id/briefing
 //
 // Generate-only internal Speaker Briefing prep doc (no publish; PUB-001/005 satisfied).
-// Optimistically flips the guest to briefing_status='generating' (Realtime swaps the
-// GuestCard button instantly), then fires the Nell Guest Speaker Briefing webhook.
+//
+// Ruling (Krish, 2026-10-05): the briefing is stored in Supabase as
+// `guests.briefing_md` and read in Control Center. It is never a Google Doc in
+// Krish's Drive.
+//
+// What that changed, and what it deliberately did not. The Nell n8n workflow
+// is still the producer: it runs three research arms (Brave on the person,
+// Brave on the company, Perplexity for verbatim quotes), verifies every quote
+// against the sources it actually fetched, scores the fit and builds the angle
+// ladder. None of that is reproducible here in one call, so retiring it would
+// have cost real capability. Only its tail changed: it used to render the
+// markdown, convert it to HTML, upload it to Drive and stamp the Doc URL. It
+// now writes that same markdown straight to `guests.briefing_md`.
+//
+// The local path below is the fallback for when n8n is unreachable. It is
+// thinner (one research call, no quote verification) and says so. It used to
+// be unreachable in practice because it required a Google service account to
+// mint the Doc; with the Doc gone it actually works.
+//
+// Guests briefed before today keep `briefing_doc_url` and the card still links
+// it. Nothing rewrites that history.
 //
 // Idempotency: if a briefing is already 'generating' and was requested within the last
-// 15 min, returns without re-firing (allow re-fire if older, or if body.force).
+// 15 min, returns without re-running (allow re-run if older, or if body.force).
 //
-// Body: { force?: boolean }
-// Response: { ok, briefing_status } | { ok:false, error }
+// Body: { force?: boolean, mode?: 'direct' }
+// Response: { ok, briefing_status, briefing_md? } | { ok:false, error }
 
 const N8N_BRIEFING_URL =
   process.env.N8N_SPEAKER_BRIEFING_WEBHOOK_URL ||
@@ -24,6 +42,9 @@ const N8N_BRIEFING_URL =
 const AGATHA_SECRET = process.env.AGATHA_WEBHOOK_SECRET || ''
 
 const STALE_MS = 15 * 60 * 1000
+
+// The fallback does research plus a 1800-token write inside the request.
+export const config = { maxDuration: 120 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (guard(req, res, ['POST'])) return
@@ -79,11 +100,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     details: JSON.stringify({ name: g.name, podcast_target: g.podcast_target, force }),
   })
 
-  // Direct (non-n8n) briefing: research the guest, write the doc with Claude, and
-  // drop it in Drive. Only possible when a Google service account is configured
-  // (the briefing needs a doc URL). Returns true on success.
-  const tryDirect = async (): Promise<boolean> => {
-    if (!googleConfigured()) return false
+  // Research the guest, write the briefing with Claude, and store the markdown
+  // on the row. Returns the markdown, or null with the reason recorded.
+  const produce = async (): Promise<string | null> => {
     try {
       const { summary } = await researchBrief({
         kind: 'person',
@@ -140,13 +159,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         maxTokens: 1800,
         temperature: 0.4,
       })
-      const doc = await createDriveDoc({ name: `Speaker Briefing — ${g.name || 'Guest'}`, content: docText })
-      if (!doc) return false
-      await supabase.from('guests').update({ briefing_status: 'ready', briefing_doc_url: doc.url }).eq('id', id)
-      return true
+      const text = (docText || '').trim()
+      // An empty body is a failure, not a briefing. Storing it would flip the
+      // card to "ready" over a blank panel.
+      if (!text) throw new Error('the model returned an empty briefing')
+      await supabase
+        .from('guests')
+        .update({
+          briefing_status: 'ready',
+          briefing_md: text,
+          briefing_generated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+      return text
     } catch (e: unknown) {
       // The reason used to be discarded here, so the row landed on
-      // briefing_status 'failed' with nothing anywhere saying why — a missing
+      // briefing_status 'failed' with nothing anywhere saying why: a missing
       // Drive scope and a model refusal looked identical from the outside.
       await supabase.from('audit_log').insert({
         event_type: 'guest_briefing_failed',
@@ -154,16 +182,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         target: id,
         details: JSON.stringify({ name: g.name, reason: String((e as Error)?.message || e).slice(0, 400) }),
       }).then(() => {}, () => {})
-      return false
+      return null
     }
   }
 
-  // Explicit direct mode: skip n8n entirely.
-  if (forceDirect) {
-    if (await tryDirect()) return res.status(200).json({ ok: true, mode: 'direct', briefing_status: 'ready' })
+  const fallback = async (why: string) => {
+    const briefing = await produce()
+    if (briefing) {
+      return res.status(200).json({ ok: true, mode: 'direct', briefing_status: 'ready', briefing_md: briefing })
+    }
     await supabase.from('guests').update({ briefing_status: 'failed' }).eq('id', id)
-    return res.status(502).json({ ok: false, error: 'Direct briefing needs a Google service account (GOOGLE_SERVICE_ACCOUNT_*).' })
+    // The reason is already in audit_log with the message; the card shows Retry.
+    return res.status(502).json({ ok: false, error: `Could not write the briefing (${why}). The reason is in audit_log.` })
   }
+
+  // Explicit direct mode: skip n8n and take the thinner local path.
+  if (forceDirect) return fallback('direct mode')
 
   try {
     const r = await fetch(N8N_BRIEFING_URL, {
@@ -185,17 +219,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         force,
       }),
     })
-    if (!r.ok) {
-      // n8n rejected — try the direct path before giving up.
-      if (await tryDirect()) return res.status(200).json({ ok: true, mode: 'direct', briefing_status: 'ready' })
-      await supabase.from('guests').update({ briefing_status: 'failed' }).eq('id', id)
-      const body = await r.text()
-      return res.status(502).json({ ok: false, error: `N8N ${r.status}`, body: body.slice(0, 300) })
-    }
-    return res.status(200).json({ ok: true, briefing_status: 'generating' }) // fire-and-forward
+    if (!r.ok) return fallback(`n8n ${r.status}`)
+    // Fire and forward: n8n writes briefing_md and flips briefing_status, and
+    // Realtime carries both to the card.
+    return res.status(200).json({ ok: true, briefing_status: 'generating' })
   } catch (e: any) {
-    if (await tryDirect()) return res.status(200).json({ ok: true, mode: 'direct', briefing_status: 'ready' })
-    await supabase.from('guests').update({ briefing_status: 'failed' }).eq('id', id)
-    return res.status(502).json({ ok: false, error: `N8N call failed: ${e?.message || String(e)}` })
+    return fallback(`n8n unreachable: ${e?.message || String(e)}`)
   }
 }
