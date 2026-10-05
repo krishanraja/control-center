@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Plus, Inbox, MapPin, Film, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle, MessageSquare,
+  Plus, Inbox, MapPin, Film, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle, MessageSquare, Rocket,
   type LucideIcon,
 } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
@@ -67,6 +67,9 @@ export function CreateSheet({ tab }: { tab: string }) {
             { id: 'today3', label: "Set today's 3", hint: 'Pick the three things today is for', icon: ListChecks, run: go(() => openFocusRitual('daily')) },
             { id: 'weekly', label: 'Add a weekly objective', hint: 'What moves an OS goal this week', icon: CalendarCheck, run: go(() => requestCreate('goal:weekly')) },
             { id: 'os', label: 'Add an OS goal', hint: 'What the whole system is for', icon: Target, run: go(() => requestCreate('goal:os')) },
+            // The phone's vitals band has no room for an inline Log, and a
+            // create on a phone is the + anyway (AGENTS.md).
+            { id: 'ship', label: 'Log a ship', hint: 'Something you put out into the world', icon: Rocket, run: go(() => requestCreate('ship')) },
             // The strategist (ADR-026): say it or type it, and it comes back
             // as next steps, objectives to take and one move.
             { id: 'strategist', label: "Tell Marcus how it's going", hint: 'Say it or type it. It comes back as next steps', icon: MessageSquare, run: go(() => openStrategist({ mode: 'talk' })) },

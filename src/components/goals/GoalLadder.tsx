@@ -48,9 +48,9 @@ export function GoalLadder({ variant = 'desktop', fold, pinned = null, onPin, we
   /** Open a folded section (it stays open), or close the one he opened. */
   onPin?: (section: 'os' | 'week' | null) => void
   /** Home's week ask ("Set this week's 3"), carried on the This week line
-   *  instead of as its own full-width button. Home passes it only when the
-   *  screen has run out and a move is proposed (the `cta` fold): one primary
-   *  ask per screen, and the ask stays one tap away on the rung it fills. */
+   *  instead of as its own full-width button. Home passes it while a move is
+   *  proposed: one primary ask per screen, and the week's ask stays one tap
+   *  away on the rung it fills. */
   weekAsk?: string | null
 }) {
   const h = useHaptics()

@@ -9,7 +9,7 @@ test('the move is the last thing a short screen gives up', () => {
   assert.equal(HOME_FOLDS[HOME_FOLDS.length - 1], 'card')
   // The canon he knows by heart gives way first, the OS goals before the week;
   // the move's own reasons outrank both on a morning with a move.
-  assert.deepEqual([...HOME_FOLDS], ['os', 'week', 'survived', 'why', 'tests', 'slots', 'cta', 'actions', 'card'])
+  assert.deepEqual([...HOME_FOLDS], ['os', 'week', 'why', 'tests', 'slots', 'actions', 'card'])
 })
 
 test('level 0 folds nothing, and each level folds exactly one more thing', () => {

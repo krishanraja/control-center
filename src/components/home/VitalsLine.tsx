@@ -13,6 +13,7 @@ import { useDeferredPending } from '../shared/useDeferredPending'
 import { LogShipForm } from '../pilot/LogShipForm'
 import { Eyebrow } from '../shared/Eyebrow'
 import { ScorecardPanel } from './ScorecardPanel'
+import { useQuickCreateListener } from '../../lib/quickCreate'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -65,15 +66,19 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
   const shown = compact ? cells.filter(c => !c.full) : cells
 
   const openPanel = () => { h.select(); setPanel(true) }
+  // The + sheet's "Log a ship" lands here (the phone has no inline Log).
+  useQuickCreateListener('ship', () => setLogging(true))
 
   return (
-    // Compact (phone) is a fixed band that can NEVER wrap: wrapping is exactly
-    // how an earlier fourth item ended up alone on a second line. Every cell is
-    // nowrap. The band shares its row with the identity mark, which leaves it
-    // under 240px on a phone, so it scrolls sideways (scrollbar hidden) rather
-    // than clipping the Waiting cell out of reach or folding. Vertical
-    // overflow stays at zero, which is what the home-noscroll spec pins.
-    <div className={`flex items-center ${compact ? 'flex-nowrap gap-x-2 min-h-[28px] overflow-x-auto overflow-y-hidden scrollbar-hide' : 'flex-nowrap gap-x-4 min-h-[34px]'}`}>
+    // Compact (phone) holds three numbers, Sent, Paid and Waiting, and every
+    // one is on screen at a glance. It used to scroll sideways with its
+    // scrollbar hidden, which on a 360 or 390 phone put Waiting out of sight
+    // and slid Log under the alarm mark (measured 2026-10-05): a number you
+    // have to know to swipe for is not a number at a glance, and Home may
+    // not scroll at all. Log moved into the + sheet, where a phone creates
+    // things. The cells never break inside themselves; the band may wrap
+    // between them, two numbers over one, and the stage folds to fit.
+    <div className={`flex items-center ${compact ? 'flex-wrap gap-x-3 gap-y-0.5 min-h-[28px]' : 'flex-nowrap gap-x-4 min-h-[34px]'}`}>
       {shown.map((c, i) => (
         <React.Fragment key={c.key}>
           {!compact && i > 0 && <span className="w-px h-3.5 bg-white/[0.08] shrink-0" aria-hidden />}
@@ -93,14 +98,15 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
 
       {!compact && <span className="w-px h-3.5 bg-white/[0.08] shrink-0" aria-hidden />}
 
-      {/* The ship log, one tap. The ledger facts live inside the modal. */}
-      <button
+      {/* The ship log, one tap. The ledger facts live inside the modal. On a
+          phone it is in the + sheet instead. */}
+      {!compact && <button
         type="button"
         onClick={() => { h.tap(); setLogging(true) }}
-        className={`shrink-0 min-h-[28px] ${compact ? 'px-1.5' : 'px-2'} rounded-md text-micro text-ink-faint hover:text-ink border border-white/[0.08] hover:border-white/20 transition-colors`}
+        className={`shrink-0 min-h-[28px] px-2 rounded-md text-micro text-ink-faint hover:text-ink border border-white/[0.08] hover:border-white/20 transition-colors`}
       >
         Log
-      </button>
+      </button>}
 
       {!compact && <span className="w-px h-3.5 bg-white/[0.08] shrink-0" aria-hidden />}
 

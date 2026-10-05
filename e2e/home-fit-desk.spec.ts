@@ -40,6 +40,10 @@ test('the longest morning stays whole with the reasons open, and with each fold 
   await expect(page.getByRole('group', { name: 'Why not this one?' })).toBeVisible()
   await whole(page, 'reasons open')
   await page.getByRole('button', { name: 'Keep it' }).click()
+  // Closing the reasons gives the room back and the stage unfolds. Measure the
+  // settled stage, not the frame between: a fold read mid-refit is a toggle
+  // that is about to leave the page.
+  await whole(page, 'reasons closed')
   for (const id of ['due-tests-fold', 'ladder-week-fold', 'ladder-os-fold']) {
     const toggle = page.getByTestId(id)
     if (await toggle.count() === 0 || await toggle.getAttribute('aria-expanded') === 'true') continue

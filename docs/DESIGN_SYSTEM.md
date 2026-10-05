@@ -859,6 +859,47 @@ the accent channels so both themes hold. Growth is their only reader; a second
 reader moves the family to `shared/` together. The ring sets its own line width
 like `Sparkline`, and is on `check-icons`' `STROKE_OK` list for the same reason.
 
+### Growth as the standard for Home, Content, Focus and Board (2026-10-05)
+
+Krish, 2026-10-05: "use the current Growth tab as the gold standard for UI and
+how data>insight>actions are made crystal clear and actionable to me". Growth's
+five rules, as every tab now applies them: numbers compressed to a glance; the
+evidence only when asked; ONE primary action, with the verdict landing where
+he pressed and Next a press; emptiness said once, with why; and the same
+content recomposed per width (`useContainerWidth`), never shrunk.
+
+No sibling hero was built. `DoThisNextHero` carries every case as it stands
+(`layout="card"` with `eyebrow`, `meta` and `children`), so it is unchanged.
+What grew, all off by default so every other call site renders as before:
+
+- `AskCard` `hero`: Focus's spine renders through `DoThisNextHero` card, one
+  step at a time. A past day's unresolved ask is the step BEFORE today's, not a
+  second action stacked above it ("Answer it later" steps past it); after an
+  answer the one-line lesson lands in place and "Next: today's ask" is a press.
+  The strategist's seeded ask keeps the plain card.
+- `GoalLadder` `weekAsk`: Home's week ask ("Set this week's 3") carried on the
+  This week line instead of as a full-width button, while a move is proposed.
+- The + sheet on Home gained "Log a ship" (bus kind `ship`, heard by
+  `VitalsLine`). The phone's vitals band no longer carries an inline Log and
+  no longer scrolls sideways: Sent, Paid and Waiting are all on screen.
+- Home's fold list lost two entries. `survived` (what the move survived) is
+  never inline at any size; it lives in the move's "?". `cta` is gone because
+  "Pick your 3" and the week ask step aside whenever a move is proposed, not
+  only when the screen runs out: the move is the one ask.
+- Board (`components/board/WorkBoard.tsx`) is built from the house parts:
+  `SurfaceHeader`, a three-number line, `DoThisNextHero` card for the ONE item
+  waiting on him (one reply box, the item's link as the secondary, the verdict
+  in place, Next a press), and `StatusLane` + `EmptyLanes` for in progress and
+  done. It used to open a reply box under every waiting item at once.
+- Content on a phone (the `stack` shape) shows the call in focus as the one
+  card and every other call as a numbered `CallRow` that brings its card up,
+  as the desk already did. It used to stack all ten as full cards: 7,080px of
+  scroll at 390x844 with ten primary buttons in it.
+
+Focus keeps one deliberate exception to rule 1: its pilot-layer rule is "no
+streaks, no scores, no charts, nothing that watches him back", so it carries no
+numbers strip. Its spine is the one action; the tools stay one tap away.
+
 ---
 
 ## Where the system lives

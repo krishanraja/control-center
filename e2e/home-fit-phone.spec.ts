@@ -156,6 +156,25 @@ test('a midweek morning with no week set keeps the move whole, and the week ask 
   expect(await landsOn(ask)).toBe(true)
 })
 
+test('every number on the vitals band is on screen at a glance, none under the alarm', async ({ page }) => {
+  // The band used to scroll sideways with its scrollbar hidden: at 360 and
+  // 390 the Waiting count sat out of sight and Log slid under the alarm mark
+  // (2026-10-05). Seen failing before the fix: Waiting did not take its own
+  // tap and the band was wider inside than out.
+  await openHome(page, true)
+  const waiting = page.getByTestId('vitals-waiting')
+  expect(await landsOn(waiting), 'Waiting is hidden or covered').toBe(true)
+  const sideways = await waiting.evaluate(el => {
+    const band = el.parentElement as HTMLElement
+    return band.scrollWidth - band.clientWidth
+  })
+  expect(sideways, 'the vitals band scrolls sideways').toBeLessThanOrEqual(1)
+  for (const name of [/^Sent /, /^Paid /]) {
+    expect(await landsOn(page.getByRole('button', { name })), `${name} is hidden or covered`).toBe(true)
+  }
+  await whole(page, 'the vitals band')
+})
+
 test('a morning with no move is one screen too', async ({ page }) => {
   await page.clock.setFixedTime(WEDNESDAY)
   await mockWorstMorning(page)

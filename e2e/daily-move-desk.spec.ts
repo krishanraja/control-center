@@ -35,12 +35,16 @@ test('the proposal sits in the first slot: who, why, and what it survived, insid
   await expect(page.getByTestId('daily-move-person')).toHaveText('Riley Stone, Chief operating officer at Fixture Media Holdings')
   await expect(slot).toContainText(MOVES[0].why)
 
-  // In full on the desk, no tap needed.
-  const survived = page.getByTestId('daily-move-survived')
-  await expect(survived).toBeVisible()
-  await expect(survived).toContainText(`${CHALLENGE.by} argued against it: ${CHALLENGE.objection}`)
-  await expect(survived).toContainText(`Why it stayed first: ${CHALLENGE.why}`)
-  await expect(page.getByTestId('daily-move-show-survived')).toHaveCount(0)
+  // What it survived is evidence, so it is shown when asked, on the desk too
+  // (Growth's rule, 2026-10-05): never inline, and whole in the "?".
+  await expect(page.getByTestId('daily-move-survived')).toHaveCount(0)
+  await expect(slot).not.toContainText('argued against it')
+  await page.getByRole('button', { name: 'Why this suggestion is here.' }).click()
+  const why = page.getByRole('dialog').last()
+  await expect(why).toContainText(`${CHALLENGE.by} argued against it: ${CHALLENGE.objection}`)
+  await expect(why).toContainText(`Why it stayed first: ${CHALLENGE.why}`)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 
   // The read drafted an ask to this move's person, so it offers that; there
   // is no draft, so no draft link.

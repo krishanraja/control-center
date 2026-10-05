@@ -43,14 +43,13 @@ type SlotN = 1 | 2 | 3
 
 /** Home's folds that reach Today (src/lib/homeFolds.ts). */
 export interface TodayFolds {
-  survived: boolean
   why: boolean
   slots: boolean
   actions: boolean
   card: boolean
 }
 
-const NO_FOLDS: TodayFolds = { survived: false, why: false, slots: false, actions: false, card: false }
+const NO_FOLDS: TodayFolds = { why: false, slots: false, actions: false, card: false }
 
 export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove }: {
   compact?: boolean
@@ -210,7 +209,7 @@ export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove
                 challenge={rank === 1 ? daily.wire?.read?.challenge : null}
                 hasAsk={hasAsk}
                 compact={compact}
-                fold={{ survived: folds.survived, why: folds.why, actions: folds.actions, card: folds.card }}
+                fold={{ why: folds.why, actions: folds.actions, card: folds.card }}
                 onShow={onShowMove}
                 onTake={() => {
                   void saveSlot(1, move.text).then(ok => {

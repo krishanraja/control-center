@@ -44,9 +44,10 @@ export function MobileHome({ onNavigate }: {
   const [pinned, setPinned] = useState<HomePin>(null)
   const fit = useFitFolds(HOME_FOLDS.length, pinned)
   const folds = foldsAt(fit.level, pinned)
-  // "Pick your 3" steps aside only while a move is proposed and the screen
-  // has run out: the move is then the ask, and the Add on Today sets the rest.
-  const ctaAside = folds.cta && Boolean(daily.current)
+  // While a move is proposed the move IS the ask: one primary action on the
+  // screen, as on Growth. "Pick your 3" steps aside (the Add on Today sets the
+  // rest) and the week's ask moves onto the This week line.
+  const ctaAside = Boolean(daily.current)
 
   // Bottom padding clears the nav only; the band the + button floats in
   // (56px tall, at safe+92 native) now belongs to the doors row below, so
@@ -63,10 +64,9 @@ export function MobileHome({ onNavigate }: {
   }
 
   const cta = alt.cta
-  // The week's ask steps aside too, onto the This week line, so a morning
-  // with no week set and a long move keeps the move whole. Measured
-  // 2026-10-05 at 360x640: the full-width ask cost 61px and folded the move
-  // on its own, which only something he opens may do.
+  // Measured 2026-10-05 at 360x640: the full-width week ask beside a long
+  // move cost 61px and folded the move on its own, which only something he
+  // opens may do.
   const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
 
   return (
@@ -113,7 +113,7 @@ export function MobileHome({ onNavigate }: {
           <TodayList
             compact
             daily={daily}
-            folds={{ survived: folds.survived, why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}
+            folds={{ why: folds.why, slots: folds.slots, actions: folds.actions, card: folds.card }}
             onShowMove={() => setPinned('card')}
           />
           {cta && cta.target !== 'weekly' && !ctaAside && <CanonCta cta={cta} />}

@@ -6,23 +6,25 @@
 // a short screen gives up, and the move he has to answer this morning is the
 // last. Every fold keeps what it folded one tap away, never gone.
 //
+// Two things are not folds any more (2026-10-05, Growth as the standard: one
+// primary action, and the evidence only when asked). What the move survived
+// is always in its "?", never inline, at every size. And while a move is
+// proposed, the move IS the ask: "Pick your 3" steps aside into the Today
+// header's Add, and "Set this week's 3" moves onto the This week line
+// (GoalLadder's weekAsk). Neither waits for the screen to run out first.
+//
 //   os       the OS goals fold to one line: the stable frame he knows by
 //            heart gives way first
 //   week     this week's objectives fold to one line
-//   survived what the move survived goes into its "?": the long audit trail
-//            of the challenge gives way before the reason to act
-//   why      the move's why goes into its "?" too: on a morning with a move,
+//   why      the move's why goes into its "?": on a morning with a move,
 //            its reasons still outrank the canon he knows
 //   tests    a due test folds to one line that says a test is due
 //   slots    empty Today slots fold into the Today header's Add
-//   cta      the one ask steps aside while a move is being proposed: "Pick
-//            your 3" into the Today header's Add, "Set this week's 3" onto
-//            the This week line (GoalLadder's weekAsk)
 //   actions  the move's controls fit one row; the person line opens the ask
 //   card     the move itself folds to one line, which happens only when he
 //            has opened something else by hand
 
-export const HOME_FOLDS = ['os', 'week', 'survived', 'why', 'tests', 'slots', 'cta', 'actions', 'card'] as const
+export const HOME_FOLDS = ['os', 'week', 'why', 'tests', 'slots', 'actions', 'card'] as const
 export type HomeFold = typeof HOME_FOLDS[number]
 export type HomeFolds = Record<HomeFold, boolean>
 
