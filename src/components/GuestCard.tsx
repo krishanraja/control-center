@@ -7,6 +7,7 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import { buildLookupLinks } from '../lib/lookupLinks'
 import type { GuestRow, GuestStatus } from '../hooks/useRealtimeGuests'
 import { WhyBadge } from './shared/WhyBadge'
+import { BriefingSheet } from './guests/BriefingSheet'
 
 const TARGET_LABEL: Record<GuestRow['podcast_target'], string> = {
   signal_noise: 'Signal & Noise',
@@ -33,6 +34,11 @@ export function GuestCard({ guest: g, onOpen }: Props) {
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState<null | 'confirm' | 'drop' | 'briefing' | GuestStatus>(null)
+  // The briefing is read here now, not in a Google Doc (Krish, 2026-10-05).
+  // Held locally as well as on the row so a fresh generate opens immediately,
+  // without waiting for the Realtime round trip.
+  const [briefingOpen, setBriefingOpen] = useState(false)
+  const [briefing, setBriefing] = useState<string | null>(null)
 
   const patchStatus = async (next: GuestStatus) => {
     h.heavy()
@@ -86,7 +92,15 @@ export function GuestCard({ guest: g, onOpen }: Props) {
       const body = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
       h.success()
-      toast('Briefing generating, Doc lands in ~60 to 120s.', 'success')
+      // The local fallback answers with the briefing in hand. The n8n producer
+      // answers 'generating' and Realtime carries briefing_md to the row.
+      if (typeof body?.briefing_md === 'string' && body.briefing_md.trim()) {
+        setBriefing(body.briefing_md)
+        setBriefingOpen(true)
+        toast('Briefing ready.', 'success')
+      } else {
+        toast('Briefing being written, it lands on this card in about a minute.', 'success')
+      }
     } catch (err: any) {
       h.error()
       toast(`Could not start briefing: ${err?.message || 'try again'}`, 'error')
@@ -96,6 +110,10 @@ export function GuestCard({ guest: g, onOpen }: Props) {
   }
 
   const briefable = BRIEFABLE.has(g.status)
+  // A briefing written here, or (for guests briefed before 2026-10-05) the Doc
+  // it was written into back then.
+  const briefingText = briefing || g.briefing_md || ''
+  const hasBriefing = !!briefingText || !!g.briefing_doc_url
 
   return (
     <article className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
@@ -242,25 +260,39 @@ export function GuestCard({ guest: g, onOpen }: Props) {
           </button>
         )}
         {briefable && (
-          g.briefing_doc_url && g.briefing_status === 'ready' ? (
+          hasBriefing && g.briefing_status === 'ready' ? (
             <>
-              <a
-                href={g.briefing_doc_url}
-                target="_blank"
-                rel="noreferrer noopener"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 transition-colors"
-                title="Open the Speaker Briefing Google Doc"
-              >
-                <FileText size={11} />
-                View briefing
-              </a>
+              {briefingText ? (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setBriefing(briefingText); setBriefingOpen(true) }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 transition-colors"
+                  title="Read the speaker briefing"
+                >
+                  <FileText size={11} />
+                  View briefing
+                </button>
+              ) : (
+                // Briefed before 2026-10-05, when the briefing was a Doc.
+                // The link still works and the history is not rewritten.
+                <a
+                  href={g.briefing_doc_url || undefined}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-ink-muted hover:bg-white/[0.06] transition-colors"
+                  title="This briefing predates Control Center briefings and is still a Doc. Regenerate to bring it in."
+                >
+                  <FileText size={11} />
+                  View briefing (old Doc)
+                </a>
+              )}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); generateBriefing(true) }}
                 disabled={busy !== null}
                 className="text-micro text-ink-faint hover:text-ink-muted disabled:opacity-40 transition-colors"
-                title="Regenerate the briefing (updates the same Doc)"
+                title="Write the briefing again from fresh research"
               >
                 {busy === 'briefing' ? 'Regenerating…' : 'Regenerate'}
               </button>
@@ -282,7 +314,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               onClick={(e) => { e.stopPropagation(); generateBriefing(false) }}
               disabled={busy !== null || g.briefing_status === 'generating'}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
-              title="Generate a 10/10 Speaker Briefing Doc via Nell"
+              title="Write the speaker briefing, read here in Control Center"
             >
               <FileText size={11} />
               {busy === 'briefing' || g.briefing_status === 'generating' ? 'Briefing…' : 'Generate briefing'}
@@ -339,6 +371,12 @@ export function GuestCard({ guest: g, onOpen }: Props) {
           )}
         </div>
       </div>
+      <BriefingSheet
+        open={briefingOpen}
+        onClose={() => setBriefingOpen(false)}
+        name={g.name || 'Guest'}
+        markdown={briefingText}
+      />
     </article>
   )
 }

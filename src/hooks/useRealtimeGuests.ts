@@ -45,7 +45,10 @@ export interface GuestRow {
   triage_reason: string | null
   /** Speaker Briefing generation lifecycle (rides guests-rt-shared). */
   briefing_status: GuestBriefingStatus | null
+  /** Pre-2026-10-05 briefings only: the Google Doc they were written into. */
   briefing_doc_url: string | null
+  /** The briefing itself, rendered in Control Center (BriefingSheet). */
+  briefing_md: string | null
   briefing_requested_at: string | null
   briefing_generated_at: string | null
   scheduled_at: string | null
