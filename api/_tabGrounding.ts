@@ -182,7 +182,7 @@ interface NetworkHealth {
 }
 
 async function groundGrowth(): Promise<string> {
-  const [touch, council, stalls, probes, metrics, sites] = await Promise.all([
+  const [touch, council, stalls, probes, metrics, sites, icps] = await Promise.all([
     supabase.from('growth_touchpoints')
       .select('product_slug, channel, watering_hole, coverage_status, cost_efficiency_score, assumption_flag, rationale')
       .order('cost_efficiency_score', { ascending: false, nullsFirst: false }).limit(25),
@@ -204,6 +204,9 @@ async function groundGrowth(): Promise<string> {
     supabase.from('web_property_insights').select('property, as_of, health, insight, run_at')
       .gte('run_at', new Date(Date.now() - 8 * 86_400_000).toISOString())
       .order('run_at', { ascending: false }).limit(12),
+    // Who each product is for. Growth could say where the buyers are and what
+    // the review thought of it, and could not say who the buyer WAS.
+    supabase.from('product_icp').select('*'),
   ])
 
   const probeRows = probes.data || []
@@ -224,6 +227,13 @@ async function groundGrowth(): Promise<string> {
   }
 
   return [
+    // Both halves matter. A product with no ICP is named as having none, so
+    // the answer to "who is this for?" is "nobody has said" rather than
+    // whichever product's buyer happened to be nearest in the context.
+    block('Who each product is for (the ICP, defined on Growth > Buyers)', icps.data, () =>
+      (icps.data || []).map(r => r.defined
+        ? `  ${r.venture}: ${r.who} Titles: ${(r.buyer_titles || []).join(', ')}.${r.who_not ? ` Not for: ${r.who_not}` : ''}`
+        : `  ${r.venture}: NO ICP DEFINED. Prospecting for it is blocked. Never substitute the buyer of another product.`).join('\n')),
     block('Touchpoints (where buyers already are)', touch.data, () =>
       (touch.data || []).map(r => `  ${r.product_slug || '?'} · ${r.channel || '?'} · ${r.watering_hole || '?'} — ${r.coverage_status || '?'}, efficiency ${r.cost_efficiency_score ?? '?'}${r.assumption_flag ? ' [ASSUMPTION, unverified]' : ''}`).join('\n')),
     block('Growth council reviews (most recent first)', council.data, () =>

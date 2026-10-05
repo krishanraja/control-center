@@ -1,4 +1,5 @@
 import { supabase } from './_supabase.js'
+import { icpPromptLine, icpMissingLine, ventureKey, type ProductIcp } from '../src/lib/icp.js'
 
 /**
  * The prompt spine. One place renders a lane's LOCKED direction into the
@@ -43,6 +44,23 @@ export interface LaneDirection {
  * Falls back to venture_registry.voice_profile only if no direction row exists
  * at all (pre-migration safety). Returns null if the lane is unknown.
  */
+/**
+ * The lane's ICP, from the one place an ICP is defined (`product_icp`,
+ * migration 20261005140000, written on Growth > Buyers).
+ *
+ * It OUTRANKS `lane_directions.icp` and `voice_profile.icp`, which are a line
+ * of prose each, because it is the row Krish edits and the only one carrying
+ * buyer titles. It never invents one: a lane with no defined ICP returns null
+ * and `directionPrompt` then says so out loud instead of letting the writer
+ * assume an audience.
+ */
+export async function laneIcp(lane: string): Promise<ProductIcp | null> {
+  const { data } = await supabase
+    .from('product_icp').select('*').eq('venture', ventureKey(lane)).maybeSingle()
+  const row = data as ProductIcp | null
+  return row && row.defined ? row : null
+}
+
 export async function getLaneDirection(lane: string): Promise<LaneDirection | null> {
   const { data } = await supabase
     .from('lane_directions')
@@ -81,7 +99,7 @@ export async function getLaneDirection(lane: string): Promise<LaneDirection | nu
  * product brand', 'a win-back email'). Always returns product-brand voice rules
  * and the personal-brand prohibition.
  */
-export function directionPrompt(dir: LaneDirection, context: string): string {
+export function directionPrompt(dir: LaneDirection, context: string, icp?: ProductIcp | null): string {
   const sender = dir.creative_direction?.sender || 'the product team'
   const pillars = (dir.messaging_pillars || [])
     .map(p => p?.pillar ? `- ${p.pillar}${p.proof ? ` (proof: ${p.proof})` : ''}` : null)
@@ -93,7 +111,10 @@ export function directionPrompt(dir: LaneDirection, context: string): string {
   return [
     `You are writing ${context} for ${sender}.`,
     dir.positioning ? `POSITIONING: ${dir.positioning}` : null,
-    dir.icp ? `AUDIENCE (ICP): ${dir.icp}` : null,
+    // The defined ICP wins. Then the lane's own prose. Then an explicit
+    // statement that there is none, which is the only honest third option: a
+    // writer handed no audience line quietly invents one.
+    icpPromptLine(icp) || (dir.icp ? `AUDIENCE (ICP): ${dir.icp}` : icpMissingLine(dir.lane)),
     dir.voice ? `VOICE: ${dir.voice}` : null,
     pillars.length ? `MESSAGING PILLARS (stay on these):\n${pillars.join('\n')}` : null,
     offers.length ? `OFFERS you may reference:\n${offers.join('\n')}` : null,
@@ -110,9 +131,9 @@ export async function directionSpine(
   lane: string,
   context: string,
 ): Promise<{ prompt: string; version: number; direction: LaneDirection } | null> {
-  const dir = await getLaneDirection(lane)
+  const [dir, icp] = await Promise.all([getLaneDirection(lane), laneIcp(lane)])
   if (!dir) return null
-  return { prompt: directionPrompt(dir, context), version: dir.version, direction: dir }
+  return { prompt: directionPrompt(dir, context, icp), version: dir.version, direction: dir }
 }
 
 /**

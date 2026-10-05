@@ -114,7 +114,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 
   const frame = (children: React.ReactNode, busy = false) => (
     <div ref={boxRef} className="flex h-full min-h-0 flex-col" data-testid="content-tab" data-layout={shape} aria-busy={busy || undefined}>
-      <AppFrame header={header} bodyTestId="content-room-scroll" bodyClassName={cn(header && 'pt-5', mobile && BOTTOM_NAV_PAD)}>
+      <AppFrame header={header} bodyTestId="content-room-scroll" capturePills={!mobile} bodyClassName={cn(header && 'pt-5', mobile && BOTTOM_NAV_PAD)}>
         {mobile && <h1 className="sr-only">Content</h1>}
         {children}
       </AppFrame>

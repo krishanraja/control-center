@@ -210,7 +210,47 @@
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst ks = d.killSwitches || {};\nif (d.productDown) return [{ json: { skipped: true, msg: '\\ud83d\\udeab <b>Maya B2B</b> [<code>' + d.product + '</code>]\\n\\nSkipped: product health check shows service down/5xx' } }];\nif (ks.apollo || ks.instantly) return [{ json: { skipped: true, msg: '\\ud83d\\udeab <b>Maya B2B</b> [<code>' + d.product + '</code>]\\n\\nSkipped: kill switch active for Apollo/Instantly' } }];\nconst icps = { 'mm-ctrl': { t: ['Founder','CEO'], l: 'CTRL' }, 'fractionl-circle': { t: ['Fractional CMO','Fractional CFO','Fractional CTO'], l: 'Circle' }, 'mindmaker': { t: ['Chief Strategy','Head of AI','Chief AI Officer'], l: 'Mindmaker' } };\nconst icp = icps[d.product] || icps.mindmaker;\nconst wk = Math.ceil((new Date() - new Date(new Date().getFullYear(),0,1)) / 604800000);\nconst utm = d.product + '_' + new Date().getFullYear() + '-W' + String(wk).padStart(2,'0');\nreturn [{ json: { skipped: false, product: d.product, icp, utm, rules: d.optimizationRules, identityPrefix: d.identityPrefix || '', apolloBody: JSON.stringify({ person_titles: icp.t, person_seniority: ['c_suite','vp','director'], per_page: 25, page: 1 }) } }];"
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/product_icp?select=*&venture=eq.{{ String($json.product || '').replace(/-/g, '_') }}",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1744,
+        320
+      ],
+      "id": "e08c0a70-2b4e-4835-bd98-d89237aa777a",
+      "name": "Read Product ICP",
+      "notes": "The one ICP per venture (public.product_icp), written by Krish on Control Center > Growth > Buyers. Buyer titles used to be a hardcoded map inside B2B Prep that fell back to Mindmake's titles for any unconfigured product. fullResponse is on so B2B Prep can tell a 200 with no row (no ICP, skip) from a 401 (a fault, say so).",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Product Router').first().json;\nconst ks = d.killSwitches || {};\nif (d.productDown) return [{ json: { skipped: true, product: d.product, msg: 'Maya B2B [' + d.product + '] skipped: product health check shows service down/5xx' } }];\nif (ks.apollo || ks.instantly) return [{ json: { skipped: true, product: d.product, msg: 'Maya B2B [' + d.product + '] skipped: kill switch active for Apollo/Instantly' } }];\n\n// The ICP comes from Supabase (public.product_icp), where Krish defines it on\n// Control Center > Growth > Buyers. It used to be a map in this node holding\n// three products, with `icps[d.product] || icps.mindmake` underneath it, so an\n// unconfigured product prospected against MINDMAKE'S buyer and the run still\n// reported success. There is no fallback here now and there must never be one:\n// no row means no prospecting, and the reason is said out loud.\n//\n// Krish sets the titles, Maya runs the next day. Nothing else has to change.\nconst r = $input.first().json || {};\nconst status = r.statusCode;\nconst rows = Array.isArray(r.body) ? r.body : [];\nconst venture = String(d.product || '').replace(/-/g, '_');\n\n// A read that failed is a FAULT, not an absent ICP. Reporting it as \"no ICP\"\n// would turn a broken credential into a quiet, permanent, green skip.\nif (status !== 200) {\n  return [{ json: { skipped: true, fault: true, product: d.product, msg: 'Maya B2B [' + d.product + '] skipped: could not READ the ICP from Supabase (HTTP ' + status + '). That is a fault, not a missing ICP. Nothing was prospected.' } }];\n}\n\nconst row = rows.find(function (x) { return x && x.venture === venture; }) || null;\nif (!row || !row.defined) {\n  return [{ json: { skipped: true, needs_icp: true, product: d.product, venture: venture, msg: 'Maya B2B [' + d.product + '] skipped: no ICP is defined for it. Set the buyer titles on Control Center > Growth > Buyers and this lane runs the next day. Nothing was prospected, and no other product\\'s buyer was used.' } }];\n}\n\nconst titles = Array.isArray(row.buyer_titles) ? row.buyer_titles.filter(Boolean) : [];\nconst seniorities = (Array.isArray(row.seniorities) && row.seniorities.length) ? row.seniorities : ['c_suite', 'vp', 'director'];\nconst geos = Array.isArray(row.geos) ? row.geos.filter(Boolean) : [];\n\n// `t` and `l` keep the names the scoring node already reads, so nothing\n// downstream changed. who / who_not / shape / trigger are new and additive.\nconst icp = { t: titles, l: d.product, who: row.who || null, who_not: row.who_not || null, shape: row.company_shape || null, trigger: row.buying_trigger || null };\nconst wk = Math.ceil((new Date() - new Date(new Date().getFullYear(), 0, 1)) / 604800000);\nconst utm = d.product + '_' + new Date().getFullYear() + '-W' + String(wk).padStart(2, '0');\nconst apollo = { person_titles: titles, person_seniorities: seniorities, per_page: 25, page: 1 };\nif (geos.length) apollo.person_locations = geos;\n\nreturn [{ json: { skipped: false, product: d.product, venture: venture, icp: icp, utm: utm, rules: d.optimizationRules, identityPrefix: d.identityPrefix || '', apolloBody: JSON.stringify(apollo) } }];"
       },
       "name": "B2B Prep",
       "type": "n8n-nodes-base.code",
@@ -2382,7 +2422,7 @@
       "main": [
         [
           {
-            "node": "B2B Prep",
+            "node": "Read Product ICP",
             "type": "main",
             "index": 0
           }
@@ -3326,6 +3366,17 @@
         [
           {
             "node": "Earned Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Product ICP": {
+      "main": [
+        [
+          {
+            "node": "B2B Prep",
             "type": "main",
             "index": 0
           }
