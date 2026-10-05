@@ -26,6 +26,11 @@ const ROOT = process.cwd()
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', 'coverage', '.vercel', '.next',
   'playwright-report', 'test-results', '.turbo',
+  // Gitignored agent space. `.claude/worktrees/` holds whole checkouts of this
+  // repo, so scanning it reports every finding once per worktree and, worse,
+  // reports an agent's own scratch file as a committed secret. Nothing under
+  // `.claude` can reach a commit, which is the only thing this guard is for.
+  '.claude', '.scratch', '.steward',
 ])
 
 /** Files whose whole job is to describe these patterns. */
@@ -64,17 +69,37 @@ const RULES: Rule[] = [
     // commit on these three while this checker passed it. A guard that is
     // weaker than the remote's is a guard that teaches false confidence.
     name: 'github-token',
-    re: /gh[pousr]_[A-Za-z0-9]{30,}/g,
+    re: /gh[pousr]_[A-Za-z0-9]{30,}/g,
     why: 'a GitHub token. Move it to the environment and rotate it.',
   },
   {
     name: 'stripe-key',
-    re: /(?:sk|rk)_live_[A-Za-z0-9]{20,}/g,
-    why: 'a LIVE Stripe key. Move it to the environment and rotate it.',
+    // Three things here, each learned on 2026-10-05.
+    // The leading \b is gone: `sk_live_` is preceded by `_` or `-` as often as
+    // by a boundary (`STRIPE_KEY=sk_live_...`), and `_` is a word character, so
+    // the boundary never matched there. That is also why the backspace
+    // corruption above went unnoticed for so long: the rule looked plausible.
+    // `sk_org_live_` is named explicitly because the organisation key reads
+    // EVERY account in the org, so it is the most valuable Stripe credential
+    // there is and must not depend on a prefix match going the right way.
+    // Test keys are included because a test key still names the account.
+    re: /(?:sk_org_live|sk_live|rk_live|sk_test|rk_test)_[A-Za-z0-9]{20,}/g,
+    why: 'a Stripe secret key. Move it to the environment and rotate it.',
+  },
+  {
+    // Added 2026-10-05 while arming Stripe webhook verification. Every other
+    // rule is about a key that MAKES requests, so none of them matched a
+    // signing secret, which is the thing that stops someone forging an inbound
+    // event into the revenue ledger. The gap was live: the n8n Stripe intake
+    // reads its secrets from `system_config`, so arming it by pasting a whsec_
+    // into a workflow snapshot or a runbook would have passed this guard.
+    name: 'stripe-webhook-secret',
+    re: /whsec_[A-Za-z0-9]{16,}/g,
+    why: 'a Stripe webhook signing secret. Anyone holding it can forge events into the revenue ledger. Keep it in the environment or system_config, and rotate it.',
   },
   {
     name: 'resend-key',
-    re: /re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{20,}/g,
+    re: /re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{20,}/g,
     why: 'a Resend API key. Move it to the environment and rotate it.',
   },
   {

@@ -7,11 +7,26 @@ import { supabase } from '../_supabase.js'
 // "Sync now" control on the Subscriptions tab uses).
 // Shape follows api/feed/ingest.ts (Bearer $CRON_SECRET, service-role writes).
 //
-// PULL, NOT WEBHOOK, for a specific reason. `system_config.
-// stripe_webhook_signing_secrets` is unarmed (GROWTH_TAB_RUNBOOK.md:75), so
-// every Stripe webhook into `customers` today is processed UNVERIFIED. A pull
-// needs no signature, backfills all history in one run, and is idempotent on
-// the balance-transaction id. It also leaves the existing n8n path untouched.
+// PULL, NOT WEBHOOK, and it stays that way. The original reason was that
+// `system_config.stripe_webhook_signing_secrets` was unarmed, so webhooks into
+// `customers` were processed unverified. That is fixed elsewhere now
+// (./webhook.ts verifies and fails closed; the n8n intake no longer falls
+// through), but the pull remains the ONE writer of revenue_events and
+// revenue_subscriptions, because two writers of the same truth is how the repo
+// ended up with five incompatible MRR sums. A verified webhook is accepted and
+// audited; this route is what reconciles the money.
+//
+// A pull also backfills all history in one run and is idempotent on the
+// balance-transaction id, so re-running it can never double count.
+//
+// NO DATE WINDOW AND NO PAGE CAP, deliberately. A 2026-10-05 audit reported a
+// third of the history missing ("$1,244.00 across 20 charges" in Stripe against
+// "$842.56 across 9 payments" recorded). There was no missing history: 11 of
+// those 20 charge objects FAILED, and $1,244.00 was 111,500 AUD cents added to
+// 12,900 USD cents as though currency did not matter. The nine real payments
+// reconcile exactly, $911.45 gross and $842.56 net.
+// `npx tsx scripts/stripe-reconcile.mts` prints that comparison per account so
+// the next version of that question is answered by a measurement.
 //
 // Balance transactions are the grain because they settle the FEES. The charge
 // object alone does not tell you what landed after Stripe's cut and Substack's
@@ -24,48 +39,43 @@ import { supabase } from '../_supabase.js'
 // reconciliation now runs here, off the subscriptions this route already
 // pulls, so the roster and the money are refreshed by the same daily tick.
 
-const STRIPE = 'https://api.stripe.com/v1'
-
-/** account key -> env var holding that account's secret key. */
-const ACCOUNTS: Record<string, string> = {
-  mindmaker_llc: 'STRIPE_API_KEY',
-  fractionl_ai: 'STRIPE_API_KEY_FRACTIONL',
-  // Full Time sells one thing (Pro) from its own account, so its subscribers
-  // need no price map entry: anything unmapped on it is Full Time. Unset, the
-  // account is skipped like the others. Added 2026-10-05 when Full Time became
-  // a priority 1 product and its revenue still read nowhere.
-  full_time: 'STRIPE_API_KEY_FULLTIME',
-}
-
-/** An account that sells exactly one product files its unmapped prices there. */
-export const ACCOUNT_DEFAULT_PRODUCT: Record<string, string> = {
-  full_time: 'full_time',
-}
+// The five accounts, the one org key that reads them all, and how to
+// authenticate against each, live in api/_stripe.ts. This route used to
+// hardcode two of them, which is why Full Time, Legibility and Heartside could
+// never appear here however much they earned.
+import { configuredStripeAccounts, stripeHeaders, STRIPE_ACCOUNTS, STRIPE_BASE, type StripeAuth } from '../_stripe.js'
 
 type Json = Record<string, any>
 
-async function stripeGet(key: string, path: string, params: Record<string, string | number> = {}): Promise<Json> {
+async function stripeGet(auth: StripeAuth, path: string, params: Record<string, string | number> = {}): Promise<Json> {
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) qs.append(k, String(v))
-  const r = await fetch(`${STRIPE}${path}?${qs}`, { headers: { Authorization: `Bearer ${key}` } })
+  const r = await fetch(`${STRIPE_BASE}${path}?${qs}`, { headers: stripeHeaders(auth) })
   if (!r.ok) throw new Error(`Stripe ${r.status} on ${path}: ${(await r.text()).slice(0, 200)}`)
   return r.json() as Promise<Json>
 }
 
-/** Every page, oldest-first is not needed; we upsert so order is irrelevant. */
-async function stripeList(key: string, path: string, params: Record<string, string | number> = {}): Promise<Json[]> {
+/**
+ * Every page. `has_more` is the only stop condition that is safe: a page cap
+ * alone silently truncates history, and a date window silently drops the start
+ * of it. There is no `created` filter here on purpose, so the pull is the whole
+ * ledger every time and stays idempotent on the balance-transaction id.
+ */
+async function stripeList(auth: StripeAuth, path: string, params: Record<string, string | number> = {}): Promise<Json[]> {
   const out: Json[] = []
   let starting_after: string | undefined
-  for (let page = 0; page < 100; page++) {
+  for (let page = 0; page < 1000; page++) {
     const p: Record<string, string | number> = { ...params, limit: 100 }
     if (starting_after) p.starting_after = starting_after
-    const res = await stripeGet(key, path, p)
+    const res = await stripeGet(auth, path, p)
     const data = (res.data || []) as Json[]
     out.push(...data)
-    if (!res.has_more || data.length === 0) break
+    if (!res.has_more || data.length === 0) return out
     starting_after = data[data.length - 1].id
   }
-  return out
+  // 100,000 rows in and Stripe still says there is more: report it rather than
+  // return a truncated ledger that would read as a complete one.
+  throw new Error(`${path}: more than 100000 rows, pull aborted rather than truncated`)
 }
 
 // No local FX table, on purpose. Stripe settles every balance transaction into
@@ -236,22 +246,63 @@ export function pickLedgerSubscription(subs: SubRow[]): SubRow {
   })[0]
 }
 
-async function reconcileCustomers(subRows: SubRow[], priceMap: Record<string, string>, accountDefault: string | null = null): Promise<{ upserted: number; unmapped: string[] }> {
+/** The price (or its legacy `plan` mirror) a subscription is billed on. */
+export function priceOf(s: SubRow): Json {
+  return s.raw?.items?.data?.[0]?.price || s.raw?.plan || {}
+}
+
+/**
+ * Which product a subscription belongs to: its price id first, then its product
+ * id, then the account default for an account that sells exactly one thing.
+ * Returns null when nothing claims it, so the report can NAME the unmapped
+ * price instead of filing the money under a guess.
+ */
+export function resolveProduct(
+  s: SubRow,
+  priceMap: Record<string, string>,
+  accountDefault: string | null = null,
+): string | null {
+  const price = priceOf(s)
+  return normaliseProduct(priceMap[String(price.id)])
+    ?? normaliseProduct(priceMap[String(price.product)])
+    ?? normaliseProduct(accountDefault)
+}
+
+/**
+ * Stamp `product` on every subscription row BEFORE it is written.
+ *
+ * This used to happen inside reconcileCustomers, which runs AFTER the
+ * `revenue_subscriptions` upsert, so the column was written null on every row
+ * and then set on an in-memory object nobody saved again. Measured on
+ * production 2026-10-05: all six rows in `revenue_subscriptions` had
+ * `product = null` while `customers` had them attributed, so the two tables
+ * disagreed about the same subscription and only one of them could be read.
+ */
+export function assignProducts(
+  subRows: SubRow[],
+  priceMap: Record<string, string>,
+  accountDefault: string | null = null,
+): { unmapped: string[] } {
   const unmapped = new Set<string>()
+  for (const s of subRows) {
+    const product = resolveProduct(s, priceMap, accountDefault)
+    s.product = product
+    if (!product) {
+      const price = priceOf(s)
+      unmapped.add(`${String(price.id || price.product || s.id)} ${String(price.nickname || '')}`.trim())
+    }
+  }
+  return { unmapped: [...unmapped] }
+}
+
+async function reconcileCustomers(subRows: SubRow[]): Promise<{ upserted: number }> {
   const groups = new Map<string, SubRow[]>()
   for (const s of subRows) {
-    if (!s.customer_id) continue
-    const price = s.raw?.items?.data?.[0]?.price || s.raw?.plan || {}
-    const product = normaliseProduct(priceMap[String(price.id)]) ?? normaliseProduct(priceMap[String(price.product)]) ?? normaliseProduct(accountDefault)
-    if (!product) {
-      unmapped.add(`${String(price.id || price.product || s.id)} ${String(price.nickname || '')}`.trim())
-      continue
-    }
-    s.product = product
-    const k = `${product}|${s.customer_id}`
-    groups.set(k, [...(groups.get(k) || []), s])
+    // Products are already stamped by assignProducts, before the write above.
+    if (!s.customer_id || !s.product) continue
+    groups.set(`${s.product}|${s.customer_id}`, [...(groups.get(`${s.product}|${s.customer_id}`) || []), s])
   }
-  if (groups.size === 0) return { upserted: 0, unmapped: [...unmapped] }
+  if (groups.size === 0) return { upserted: 0 }
 
   const subIds = subRows.map(s => s.id)
   const custIds = [...new Set(subRows.map(s => s.customer_id).filter(Boolean))] as string[]
@@ -267,7 +318,7 @@ async function reconcileCustomers(subRows: SubRow[], priceMap: Record<string, st
   for (const [, subs] of groups) {
     const s = pickLedgerSubscription(subs)
     const cust = (s.raw?.customer && typeof s.raw.customer === 'object' ? s.raw.customer : {}) as Json
-    const price = s.raw?.items?.data?.[0]?.price || s.raw?.plan || {}
+    const price = priceOf(s)
     const kind = kindForStatus(s.status)
     const row = existing.find(r => subs.some(x => x.id === r.stripe_subscription_id))
       || existing.find(r => r.product === s.product && r.stripe_customer_id === s.customer_id)
@@ -300,18 +351,19 @@ async function reconcileCustomers(subRows: SubRow[], priceMap: Record<string, st
     }
     upserted += 1
   }
-  return { upserted, unmapped: [...unmapped] }
+  return { upserted }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (guardCronRoute(req, res)) return
 
-  const configured = Object.entries(ACCOUNTS).filter(([, envVar]) => !!process.env[envVar])
+  const configured = configuredStripeAccounts()
   if (configured.length === 0) {
     return res.status(200).json({
       ok: true,
-      skipped: `no Stripe key configured (set ${Object.values(ACCOUNTS).join(' or ')})`,
+      skipped: 'no Stripe key configured. Set STRIPE_ORG_KEY to read all five accounts with one credential, '
+        + `or a per-account key (${STRIPE_ACCOUNTS.map(a => a.legacyEnvVar).filter(Boolean).join(', ')}).`,
     })
   }
 
@@ -323,15 +375,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // the Full Time key expiring is exactly what froze the old n8n
     // reconciliation for every product at once.
     const failures: string[] = []
-    for (const [account, envVar] of configured) {
+    for (const { account: acct, auth } of configured) {
+      const account = acct.key
       try {
-      const key = process.env[envVar] as string
       const syncedAt = new Date().toISOString()
 
       // ── subscriptions: the ONLY source of MRR ─────────────────────────────
       // The customer is expanded so the ledger below gets an email and a name
       // without a request per subscriber.
-      const subs = await stripeList(key, '/subscriptions', { status: 'all', 'expand[]': 'data.customer' })
+      const subs = await stripeList(auth, '/subscriptions', { status: 'all', 'expand[]': 'data.customer' })
       const subsByCustomer = new Map<string, Json[]>()
       for (const s of subs) {
         const c = idOf(s.customer)
@@ -374,14 +426,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // the plain list rather than failing the whole sync.
       let invoices: Json[]
       try {
-        invoices = await stripeList(key, '/invoices', { 'expand[]': 'data.payments' })
+        invoices = await stripeList(auth, '/invoices', { 'expand[]': 'data.payments' })
       } catch {
-        invoices = await stripeList(key, '/invoices', {})
+        invoices = await stripeList(auth, '/invoices', {})
       }
       const links = linkInvoices(invoices)
 
       // ── cash ──────────────────────────────────────────────────────────────
-      const txns = await stripeList(key, '/balance_transactions', { 'expand[]': 'data.source' })
+      const txns = await stripeList(auth, '/balance_transactions', { 'expand[]': 'data.source' })
       const eventRows = []
       for (const t of txns) {
         const type = String(t.type || '')
@@ -448,6 +500,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (settled) s.mrr_usd_cents = monthlyCents(settled.gross_cents, s.interval, s.interval_count, 1)
       }
 
+      // Stamp the product BEFORE the write, so revenue_subscriptions.product
+      // is not null on every row while customers says otherwise.
+      const mapping = assignProducts(subRows, priceMap, acct.defaultProduct)
+
       if (subRows.length) {
         const { error } = await supabase.from('revenue_subscriptions').upsert(subRows, { onConflict: 'id' })
         if (error) throw new Error(`revenue_subscriptions upsert: ${error.message}`)
@@ -457,15 +513,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (error) throw new Error(`revenue_events upsert: ${error.message}`)
       }
 
-      const ledger = await reconcileCustomers(subRows, priceMap, ACCOUNT_DEFAULT_PRODUCT[account] ?? null)
+      const ledger = await reconcileCustomers(subRows)
 
       report.push({
         account,
+        label: acct.label,
+        stripe_account_id: acct.accountId,
+        read_via: auth.via === 'org' ? 'organisation key' : `account key (${acct.legacyEnvVar})`,
+        payments_via: acct.paymentsVia,
         subscriptions: subRows.length,
         events: eventRows.length,
         recurring_events: eventRows.filter(e => e.kind === 'recurring').length,
         customers_reconciled: ledger.upserted,
-        unmapped_prices: ledger.unmapped,
+        unmapped_prices: mapping.unmapped,
+        // An account that takes money elsewhere must not read as a Stripe zero.
+        ...(acct.note ? { note: acct.note } : {}),
       })
       } catch (e) {
         const error = e instanceof Error ? e.message : 'sync failed'

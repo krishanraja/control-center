@@ -92,13 +92,43 @@ Rejection rates feed Vera's weekly ladder check via `feedback_queue`.
 
 ## Outstanding (deliberate)
 
-- **Stripe price map** covers only CTRL (`monthly8usd`, `prod_UA0VCxc0WVM898`) —
-  add Fractionl/Legibility/Full Time price IDs to
-  `system_config.stripe_price_product_map` as those lanes wire up, or nightly
-  reconciliation will skip them.
-- **Stripe webhook signing secrets** are unarmed
-  (`system_config.stripe_webhook_signing_secrets`) — arm before Full Time goes
-  live (playbook §7.4).
+- ~~**Stripe price map** covers only CTRL~~ **Done, and it was wrong rather than
+  thin (2026-10-05).** Every lane is mapped. More importantly, the three plans
+  the map filed under CTRL are the Substack's: read live from Stripe, all three
+  carry `metadata.substack = "yes"`, so Control Center had been reporting the
+  publication's founding members as CTRL revenue ("CTRL: $13.51/mo, 2 paying"
+  against a product with no paying customers at all). Migration
+  `20261005140000_substack_revenue_is_not_ctrl.sql` moved them to `publication`
+  and kept the old row under
+  `stripe_price_product_map_backup_20261005`. CTRL's one real line, Edge Pro at
+  $49 a month, stays mapped to `mm_ctrl`.
+- ~~**Stripe webhook signing secrets** are unarmed~~ **Partly resolved, and the
+  shape of it was worse than "unarmed" (2026-10-05).** Measured rather than
+  assumed:
+  - Every LIVE PRODUCT endpoint already verifies and fails closed. A forged
+    `invoice.payment_succeeded` with no signature was POSTed to all five on
+    2026-10-05 and every one refused it: CTRL `400 missing_signature`, Full Time
+    `400 Missing signature`, Legibility `400 bad signature`, Circle
+    `400 Missing signature`, Pulse `400 invalid signature`.
+  - The unverified path was the OS-side n8n intake (`Stripe | Revenue Intake`,
+    three webhooks, no credential on any of them). Its check read
+    `if (secret && raw) { ...verify... }`, so with the secret store empty it
+    SKIPPED verification and fell through to the `customers` upsert. The only
+    reasons it was never exploitable are that all three code nodes are disabled
+    and their database headers were blanked on 2026-10-03, and neither of those
+    is a security control.
+  - `scripts/n8n/stripe-revenue-intake.workflow.json` now fails closed: no
+    secret, no crypto, an unreachable secret store or a stale timestamp each
+    REFUSE, and the signature compare is constant time. **Not yet pushed to n8n
+    cloud**, so the cloud copy still holds the fall-through behind its disabled
+    nodes.
+  - `POST /api/revenue/webhook?account=<key>` is the verified replacement
+    (`api/_stripeWebhook.ts`, 13 tests in `tests/api/stripeWebhook.test.ts`
+    including a mutation test that fails the moment the fall-through returns).
+  - Still open: the four n8n webhook paths answer `200 "Workflow was started"`
+    to any unauthenticated POST. Nothing is written (23 `customers` rows before
+    and after the probe), but each call is a billable execution. Deactivating
+    the workflow is Krish's call.
 - Legibility / Full Time / Pulse capture intakes: clone the CTRL pattern
   (checked-in reference: `acquisition-ctrl-capture-intake.workflow.json`) with
   their lane slug; the whole Growth tab lights up per lane automatically.

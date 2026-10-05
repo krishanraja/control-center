@@ -103,7 +103,10 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: null, gap: 'Full Time accounts live in its own database and are not copied to the OS.', fix: 'Bridge Full Time sign-ups into the OS the way CTRL sign-ups are.' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: null, gap: 'The Full Time Stripe account has never collected a payment, and it is not in the daily revenue pull.', fix: 'Set STRIPE_API_KEY_FULLTIME (a read-only key) on the Control Center project, so the first Pro payment shows here.' },
+      // In the pull since 2026-10-05: one organisation key reads all five
+      // accounts, so this no longer waits on a per-account key. Zero here is a
+      // measured zero, not an unwired one.
+      revenue: { source: 'Stripe, Full Time account (daily pull). Checkout is wired and live; it has never collected a payment.' },
     },
   },
   {
@@ -118,12 +121,13 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: null, gap: 'Legibility accounts live in its own database and are not copied to the OS.', fix: 'Send Legibility sign-ups into the audience pipeline.' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: null, gap: 'The Legibility Stripe account has never collected a payment (its customers are QA accounts and you), and it is not in the daily revenue pull.', fix: 'Add its Stripe account to the revenue pull once a real customer pays.' },
+      // In the pull since 2026-10-05 (see the Full Time note above).
+      revenue: { source: 'Stripe, Legibility account (daily pull). Growth at $199 a month and Starter at $29 are live; every customer so far is a QA account or you.' },
     },
   },
   {
     venture: 'mm_ctrl', label: 'CTRL', tier: 3, domain: 'ctrl.mindmake.co',
-    what: 'The AI brain app. Its paid tier is sold through the Substack.',
+    what: 'The AI brain app. It sells one thing, Edge Pro at $49 a month, and nobody has bought it.',
     opensOn: null,
     growthSlug: 'ctrl', customerProduct: 'mm_ctrl', webPrefix: null, metricsProduct: 'mm_ctrl', audienceSource: 'ctrl',
     attributionApps: ['ctrl'],
@@ -133,7 +137,17 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: 'CTRL sign-ups through the audience pipeline (leads)' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: 'Stripe, Mindmaker LLC account (daily pull); the paid tier is sold through the Substack' },
+      // Corrected 2026-10-05. This read "sold through the Substack", and the
+      // price map agreed: all three Substack plans were mapped to mm_ctrl, so
+      // the tab reported CTRL at $13.51 a month with 2 paying. Read live from
+      // Stripe, those plans carry metadata.substack=yes and belong to the
+      // publication. CTRL has zero paying customers; saying so is the point.
+      // A MEASURED zero, not an unwired one, and the difference matters. CTRL
+      // has a product (Edge Pro, $49 a month), an active price, a live Stripe
+      // webhook and working checkout in the mm-ctrl edge functions, and its
+      // account is in the daily pull. So nothing is missing: nobody has bought
+      // it. "Not wired" would excuse that; 0 states it.
+      revenue: { source: 'Stripe, Mindmaker LLC account (daily pull). CTRL sells Edge Pro at $49 a month through the mm-ctrl edge functions and has never taken a payment. The $8, $81 and A$115 plans that used to read here are the Substack’s and now read under the publication.' },
     },
   },
   {
@@ -148,7 +162,13 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: 'The customers ledger (waitlist and free sign-ups)' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: null, gap: 'Pulse has no checkout, so it cannot take a payment yet.', fix: 'Give Pulse a Stripe price and checkout before it can earn.' },
+      // Pulse has the prices and now the keys; what it does not have is a
+      // checkout. Confirmed 2026-10-05: Pulse Pro exists on the Fractionl
+      // account at $99 a month and $948 a year (Krish's ruling: keep that
+      // pricing as the data feed licence, do not invent new price points), and
+      // the Fractionl account is in the daily pull, so a payment would appear
+      // here. Nothing in the Pulse app can start one.
+      revenue: { source: null, gap: 'Pulse Pro exists in Stripe at $99 a month and $948 a year, and the Fractionl account is in the daily pull, but the Pulse app has no checkout so it cannot start a payment.', fix: 'Add a checkout to the Pulse app on the existing Pulse Pro prices.' },
     },
   },
 ]
