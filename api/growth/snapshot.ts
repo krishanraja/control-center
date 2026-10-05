@@ -24,7 +24,7 @@ import {
  *   app_paid_subs, app_mrr_usd, guests_confirmed_30d, visibility_accepted_30d,
  *   and per GA4 property in src/lib/webProperties.ts (four: site_ for
  *   mindmake.co, mymu_ for the makeyourmindup newsletter on
- *   mindmakerlive.substack.com, fulltime_ for fulltime.fm, legibility_ for
+ *   home.makeyourmindup.ai, fulltime_ for fulltime.fm, legibility_ for
  *   legibility.io): <prefix>_sessions_1d, _users_1d, _pageviews_1d,
  *   _key_events_1d.
  *
@@ -47,6 +47,10 @@ import {
 
 export const config = { maxDuration: 120 }
 
+// `pub` is Substack's own subdomain for a publication, the name its API knows
+// it by. Substack keeps it after a custom domain, so 'mindmakerlive' still
+// names the publication whose address is home.makeyourmindup.ai since
+// 2026-10-05.
 const SUBSTACKS: Array<{ key: string; pub: string }> = [
   { key: 'substack_publication_total', pub: 'mindmakerlive' },
   { key: 'substack_tech0nomic_total', pub: 'tech0nomic' },

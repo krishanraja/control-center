@@ -7,7 +7,7 @@ import type { KrishAction, WebInsightsResponse, WebPropertyView } from '../../sr
  * One card per verdict family the panel has to render differently, so a layout
  * or copy claim is made against the real mix rather than four copies of one:
  *   - mindmake.co: quiet, consent-gated, the rung-3 Plausible key
- *   - mindmakerlive.substack.com: ok, a trend, an AI referral, a rung-5 action
+ *   - home.makeyourmindup.ai: ok, a trend, an AI referral, a rung-5 action
  *     with its swing
  *   - fulltime.fm: provisional, the rung-4 ruling, a closed item, a later fix
  *   - legibility.io: api_disabled, no numbers, waiting on the shared step
@@ -112,7 +112,7 @@ const SITE: WebPropertyView = {
 
 const MYMU: WebPropertyView = {
   prefix: 'mymu',
-  label: 'mindmakerlive.substack.com',
+  label: 'home.makeyourmindup.ai',
   venture: 'publication',
   goal: 'The newsletter publishes every week and readers subscribe free and click through to mindmake.co.',
   canon: 'live',

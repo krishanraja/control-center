@@ -33,8 +33,10 @@ verdict, what the OS fixed on its own, and at most one thing only Krish can do.
 Added 2026-09-27, when fulltime.fm and legibility.io got their tags.
 
 **The registry.** `src/lib/webProperties.ts` is the one list: mindmake.co
-(`site`), the makeyourmindup newsletter on mindmakerlive.substack.com (`mymu`),
-fulltime.fm (`fulltime`) and legibility.io (`legibility`). Each entry carries
+(`site`), the makeyourmindup newsletter on home.makeyourmindup.ai (`mymu`),
+fulltime.fm (`fulltime`) and legibility.io (`legibility`). The newsletter's
+old address, mindmakerlive.substack.com, stays in its entry as a host alias,
+so visits Google records under either address count. Each entry carries
 the domain (the card title, never a venture label), the G- measurement id the
 page must load, the env var that overrides its numeric property id, a code
 default where the id is known (fulltime.fm and legibility.io), its venture, its

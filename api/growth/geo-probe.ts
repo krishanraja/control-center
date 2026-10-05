@@ -37,6 +37,9 @@ const OUR_DOMAINS = [
   'ctrl.mindmake.co',
   'mindmake.co',
   'fractionl.ai',
+  // The publication. Its address since 2026-10-05, then the old one, which
+  // AI answers written before the move still cite.
+  'home.makeyourmindup.ai',
   'mindmakerlive.substack.com',
 ]
 

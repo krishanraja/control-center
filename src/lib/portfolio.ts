@@ -238,7 +238,7 @@ export function portfolioRank(slug: string | null | undefined): number {
  */
 export const SUBSTACK = {
   label: 'Substack',
-  publication: 'mindmakerlive.substack.com',
+  publication: 'home.makeyourmindup.ai',
   paidCountedUnder: 'mm_ctrl',
   freeAudienceSource: 'publication',
   totalMetricKey: 'substack_publication_total',

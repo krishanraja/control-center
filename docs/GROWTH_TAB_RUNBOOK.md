@@ -168,7 +168,7 @@ lands one packet per subject per week on `POST /api/aeo/ingest`. Full spec:
 
 Growth > What's moving carries a third read between the GEO probes and the SEO
 sweep: one card per site Google Analytics reads (mindmake.co,
-mindmakerlive.substack.com, fulltime.fm, legibility.io). The registry is
+home.makeyourmindup.ai, fulltime.fm, legibility.io). The registry is
 `src/lib/webProperties.ts`; adding a site is one entry there. The panel is
 `src/components/growth/WebPropertiesPanel.tsx`, reading
 `GET /api/growth/web-insights` through `src/hooks/useWebInsights.ts`. Full

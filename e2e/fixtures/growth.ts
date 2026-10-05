@@ -317,7 +317,7 @@ const SITES: Record<WebPrefix, Seed> = {
       title: 'Publish this week\'s newsletter post, the first since 16 March',
       why: 'Nothing has gone out since 16 March, six and a half months. The newsletter had 0 visits this week and 3 the week before.',
       first_step: 'Pick one thing you said on a call this week and write it up in 600 words. Publish it as it is.',
-      job: 'feed_demand', minutes: 90, link: { label: 'Open Substack', href: 'https://mindmakerlive.substack.com/publish' },
+      job: 'feed_demand', minutes: 90, link: { label: 'Open Substack', href: 'https://home.makeyourmindup.ai/publish' },
     },
   },
   fulltime: {
@@ -471,7 +471,7 @@ export function growthAccounts(): SocialAccountRow[] {
     ({ id, product_slug, platform, handle, profile_url, status, notes: null })
   return [
     a('acct-1', 'mindmake', 'linkedin', 'live', 'krishraja', 'https://www.linkedin.com/in/krishraja'),
-    a('acct-2', 'mindmake', 'substack', 'live', 'mindmakerlive', 'https://mindmakerlive.substack.com'),
+    a('acct-2', 'mindmake', 'substack', 'live', 'mindmakerlive', 'https://home.makeyourmindup.ai/'),
     a('acct-3', 'full-time', 'youtube', 'live', '@fulltimefm', 'https://youtube.com/@fulltimefm'),
     a('acct-4', 'ctrl', 'linkedin', 'live', 'mm-ctrl', 'https://www.linkedin.com/company/mm-ctrl'),
     a('acct-5', 'full-time', 'instagram', 'planned'),

@@ -184,7 +184,7 @@ test('snapshot is one batch of three over the last 3 days, filtered only when as
   }
   for (const r of snapshotRequests(FULLTIME, { hostFilter: false })) assert.equal('dimensionFilter' in r, false)
   assert.deepEqual(hostFilter(FULLTIME), { filter: { fieldName: 'hostName', inListFilter: { values: ['fulltime.fm', 'www.fulltime.fm'] } } })
-  assert.deepEqual(hostFilter(MYMU), { filter: { fieldName: 'hostName', inListFilter: { values: ['mindmakerlive.substack.com'] } } })
+  assert.deepEqual(hostFilter(MYMU), { filter: { fieldName: 'hostName', inListFilter: { values: ['home.makeyourmindup.ai', 'mindmakerlive.substack.com'] } } })
 })
 
 test('insight batch A is five requests, quota on the totals', () => {
@@ -574,7 +574,7 @@ test('ladder findings: each raised by its verdict and absent otherwise', () => {
 
   const nr = findingsFor(read(MYMU, { lifetime: 0 }))
   assert.equal(find(nr, 'never_received')?.line,
-    'mindmakerlive.substack.com has its tag and the right property, but Google Analytics has never recorded a visit.')
+    'home.makeyourmindup.ai has its tag and the right property, but Google Analytics has never recorded a visit.')
   const nrPh = findingsFor(read(FULLTIME, { lifetime: 0, posthog: { pageviews7d: 6, users7d: 4, date: '2026-10-09' } }))
   assert.match(find(nrPh, 'never_received')?.line ?? '', /, while PostHog counted 6 page views this week\.$/)
   assert.equal(find(findingsFor(read(SITE, { lifetime: 0 })), 'never_received'), undefined, 'consent by design never raises rung 2')
@@ -687,9 +687,9 @@ test('auto findings: restated, held, removed, discovered, timezone, recovered, u
   const snap = { writes: 12, holds: ['2026-09-26', '2026-09-25'], deletes: 1,
     corrections: [{ metric_key: 'mymu_sessions_1d', metric_date: '2026-09-24', from: 3, to: 5 }, { metric_key: 'mymu_users_1d', metric_date: '2026-09-24', from: 2, to: 4 }] }
   const fs = findingsFor(read(MYMU), os({ snapshotGa: { mymu: snap } }))
-  assert.equal(find(fs, 'restated')?.line, 'Corrected 1 earlier day for mindmakerlive.substack.com once Google finished counting.')
-  assert.equal(find(fs, 'zero_held')?.line, 'Held back 2 empty days for mindmakerlive.substack.com instead of writing them as zero.')
-  assert.equal(find(fs, 'zero_removed')?.line, 'Removed 1 zero reading for mindmakerlive.substack.com that Google had not confirmed.')
+  assert.equal(find(fs, 'restated')?.line, 'Corrected 1 earlier day for home.makeyourmindup.ai once Google finished counting.')
+  assert.equal(find(fs, 'zero_held')?.line, 'Held back 2 empty days for home.makeyourmindup.ai instead of writing them as zero.')
+  assert.equal(find(fs, 'zero_removed')?.line, 'Removed 1 zero reading for home.makeyourmindup.ai that Google had not confirmed.')
   assert.ok(fs.filter(f => ['restated', 'zero_held', 'zero_removed'].includes(f.id)).every(f => f.cls === 'auto'))
   const none = findingsFor(read(MYMU), os({ snapshotGa: { mymu: { writes: 12, holds: [], deletes: 0, corrections: [] } } }))
   for (const id of ['restated', 'zero_held', 'zero_removed']) assert.equal(find(none, id), undefined, id)
@@ -699,11 +699,11 @@ test('auto findings: restated, held, removed, discovered, timezone, recovered, u
   assert.equal(find(findingsFor(read(LEGIBILITY, { idSource: 'discovered', discoveredFrom: null })), 'property_discovered'), undefined, 'discovered on an earlier run')
 
   const prevOk = { health: 'ok' as HealthVerdict, property_tz: 'Europe/London', as_of: '2026-10-08', run_at: '2026-10-09T13:20:00Z', action: null, llm: null }
-  assert.equal(find(findingsFor(read(MYMU)), 'timezone_learned')?.line, 'Learned that mindmakerlive.substack.com counts days in Europe/London.')
+  assert.equal(find(findingsFor(read(MYMU)), 'timezone_learned')?.line, 'Learned that home.makeyourmindup.ai counts days in Europe/London.')
   assert.equal(find(findingsFor(read(MYMU, { previous: prevOk })), 'timezone_learned'), undefined)
   assert.ok(find(findingsFor(read(MYMU, { previous: { ...prevOk, property_tz: 'UTC' } })), 'timezone_learned'))
 
-  assert.equal(find(findingsFor(read(MYMU, { previous: { ...prevOk, health: 'no_access' } })), 'recovered')?.line, 'mindmakerlive.substack.com is readable again.')
+  assert.equal(find(findingsFor(read(MYMU, { previous: { ...prevOk, health: 'no_access' } })), 'recovered')?.line, 'home.makeyourmindup.ai is readable again.')
   assert.equal(find(findingsFor(read(MYMU, { previous: prevOk })), 'recovered'), undefined)
 
   const under = find(findingsFor(read(FULLTIME, { totals: { cur: win(2, 4), prev: win(0) }, posthog: { pageviews7d: 12, users7d: 5, date: '2026-10-09' } })), 'undercounting')
@@ -721,6 +721,13 @@ test('hosts_excluded: 2 vs 3 hits and 4.9% vs 5% of host events, only with the f
   assert.ok(f([own(950), { host: 'staging.mindmake.co', pageviews: 5, events: 50 }]), '5%')
   assert.equal(f([own(950), { host: 'staging.mindmake.co', pageviews: 5, events: 50 }], 'off'), undefined)
   assert.equal(f([own(950), { host: 'www.mindmake.co', pageviews: 5, events: 50 }]), undefined, 'an alias is not foreign')
+
+  // The publication moved from mindmakerlive.substack.com on 2026-10-05. Visits
+  // Google still records under the old address count as its own.
+  const moved = [{ host: 'home.makeyourmindup.ai', pageviews: 100, events: 300 }, { host: 'mindmakerlive.substack.com', pageviews: 50, events: 150 }]
+  assert.equal(find(findingsFor(read(MYMU, { hosts: moved })), 'hosts_excluded'), undefined, 'the old Substack address is an alias')
+  assert.equal(find(findingsFor(read({ ...MYMU, hostAliases: [] }, { hosts: moved })), 'hosts_excluded')?.line,
+    'Left out 50 page views from mindmakerlive.substack.com, which are not home.makeyourmindup.ai.', 'without the alias it would be left out')
 })
 
 // ------------------------------------------------------------------ 8. insightLine
@@ -891,7 +898,7 @@ test('rung 1 variants: no id, a bad key, the Data API off', () => {
   assert.equal(key.action?.hero_line, 'Fix the Google Analytics key')
   const data = runLadder(read(MYMU, { dataRead: failed('service_disabled', 403) }))
   assert.equal(data.action?.title, 'Turn on the Google Analytics Data API')
-  assert.equal(data.action?.why, 'Every read of mindmakerlive.substack.com is refused because the Data API is off in project cc-analytics.')
+  assert.equal(data.action?.why, 'Every read of home.makeyourmindup.ai is refused because the Data API is off in project cc-analytics.')
   assert.equal(data.action?.link?.href, 'https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com?project=cc-analytics')
 })
 
@@ -1042,7 +1049,7 @@ test('the Admin API is shared even for one property, and the grant outranks it',
   assert.equal(one.shared?.id, 'shared:admin_api')
   assert.equal(one.shared?.rung, 2)
   assert.deepEqual(one.shared?.members, ['mymu'])
-  assert.equal(one.shared?.why, 'mindmakerlive.substack.com has recorded nothing, and without this API Control Center cannot tell a wrong property id from a quiet site.')
+  assert.equal(one.shared?.why, 'home.makeyourmindup.ai has recorded nothing, and without this API Control Center cannot tell a wrong property id from a quiet site.')
   assert.equal(one.shared?.hero_line, 'Turn on one Google setting so the sites can be checked')
   assert.equal(one.shared?.link?.label, 'Open Google Cloud')
   assert.match(one.shared?.link?.href ?? '', /overview\?project=1$/)
@@ -1281,7 +1288,7 @@ test('webActionUser parses, carries no email or id, and leaves unknown sources o
   assert.ok(!s.includes('@'))
   assert.ok(!s.includes('123456'), 'no property id')
   const e = evidenceOf(s)
-  assert.equal(e.site, 'mindmakerlive.substack.com')
+  assert.equal(e.site, 'home.makeyourmindup.ai')
   assert.equal(e.visits.cur.sessions, 30)
   assert.equal(e.series_7d.length, 7)
   assert.equal('posthog' in e, false)
@@ -1400,8 +1407,8 @@ test('toView: shared actions wait, later and drafted come from the findings, lin
 
   const own = action({ id: 'mymu:growth:2026-10-10', prefix: 'mymu', rung: 5 })
   assert.equal(toView(MYMU, row0({ action: own }), []).action, own)
-  assert.equal(toView(MYMU, row0({ meta: { wait_line: 'Nothing only you can do on mindmakerlive.substack.com this week.' } }), []).wait_line,
-    'Nothing only you can do on mindmakerlive.substack.com this week.')
+  assert.equal(toView(MYMU, row0({ meta: { wait_line: 'Nothing only you can do on home.makeyourmindup.ai this week.' } }), []).wait_line,
+    'Nothing only you can do on home.makeyourmindup.ai this week.')
   assert.equal(toView({ ...FULLTIME, canon: { status: 'measure_only' } }, row0({ property: 'fulltime' }), []).wait_line, 'Measure only, by your ruling.')
 })
 

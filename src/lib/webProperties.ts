@@ -62,12 +62,15 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
     rssUrl: null, substackArchiveUrl: null, jobs: ['fill_pilots'],
     goal: 'More senior leaders who fit the face ask for the free AI brief, and one of them books a pilot.',
     canon: { status: 'live' }, tagLiveAt: '2026-09-25T00:00:00Z', consentByDesign: true, neverPublishName: false },
-  { prefix: 'mymu', label: 'mindmakerlive.substack.com', about: 'the makeyourmindup newsletter',
-    host: 'mindmakerlive.substack.com', hostAliases: [], probeUrl: 'https://mindmakerlive.substack.com/',
+  // The publication moved from mindmakerlive.substack.com to its own domain on
+  // 2026-10-05. The old host stays an alias so visits Google still records
+  // under it keep counting.
+  { prefix: 'mymu', label: 'home.makeyourmindup.ai', about: 'the makeyourmindup newsletter',
+    host: 'home.makeyourmindup.ai', hostAliases: ['mindmakerlive.substack.com'], probeUrl: 'https://home.makeyourmindup.ai/',
     measurementId: 'G-VC5V9LDE17', env: 'GA4_PROPERTY_MAKEYOURMINDUP', venture: 'publication',
     touchpointSlug: 'publication', councilSlug: null, posthogProduct: null, plausibleSiteId: null, repo: null,
     sitemapUrl: null, rssUrl: null,
-    substackArchiveUrl: 'https://mindmakerlive.substack.com/api/v1/archive?sort=new&limit=1',
+    substackArchiveUrl: 'https://home.makeyourmindup.ai/api/v1/archive?sort=new&limit=1',
     jobs: ['feed_demand'], goal: 'The newsletter publishes every week and readers subscribe free and click through to mindmake.co.',
     canon: { status: 'live' }, tagLiveAt: '2026-09-25T00:00:00Z', consentByDesign: false, neverPublishName: false },
   { prefix: 'fulltime', label: 'fulltime.fm', about: 'fulltime.fm', host: 'fulltime.fm', hostAliases: ['www.fulltime.fm'],
