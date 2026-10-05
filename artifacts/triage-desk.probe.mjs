@@ -29,9 +29,9 @@ const DESK = 'file://' + join(dirname(fileURLToPath(import.meta.url)), 'triage-d
 const CHROME = process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 
 const FORMATS = [
-  { slug: 'follow_the_money', label: 'follow.the.money', hero: false, cadence_label: 'Wednesdays', mandate: 'What it costs and who pays.' },
+  { slug: 'follow_the_money', label: 'follow.the.money', hero: false, cadence_label: 'Mondays', mandate: 'What it costs and who pays.' },
   { slug: 'mind_the_gap', label: 'mind.the.gap', hero: true, cadence_label: 'Fridays', mandate: 'The gap between claim and reality.' },
-  { slug: 'under_the_hood', label: 'under.the.hood', hero: false, cadence_label: 'standing', mandate: 'Sharper or dependent.' },
+  { slug: 'under_the_hood', label: 'under.the.hood', hero: false, cadence_label: 'Wednesdays', mandate: 'Sharper or dependent.' },
 ]
 const SEEDS = [
   // Seed one was judged by the ladder, so its bin must carry the run id: that

@@ -285,13 +285,13 @@ test('cadence words become weekdays, from the table\'s own wording', () => {
 test('the coming Monday, Wednesday and Friday, today included', () => {
   const slots = weekSlots([], SUBCHANNELS, SUNDAY)
   assert.deepEqual(slots.map(s => [s.series, s.weekday, s.date]), [
-    ['under_the_hood', 'Monday', '2026-10-05'],
-    ['follow_the_money', 'Wednesday', '2026-10-07'],
+    ['follow_the_money', 'Monday', '2026-10-05'],
+    ['under_the_hood', 'Wednesday', '2026-10-07'],
     ['mind_the_gap', 'Friday', '2026-10-09'],
   ])
   // On a Monday, Monday's slot is today.
   const monday = weekSlots([], SUBCHANNELS, new Date('2026-10-05T08:00:00Z'))
-  assert.equal(monday.find(s => s.series === 'under_the_hood')!.date, '2026-10-05')
+  assert.equal(monday.find(s => s.series === 'follow_the_money')!.date, '2026-10-05')
   assert.equal(monday.find(s => s.series === 'mind_the_gap')!.date, '2026-10-09')
 })
 
@@ -315,8 +315,8 @@ test('each slot names its picked piece: furthest along first, an exact date beat
 
   const dated = [
     ...LIVE,
-    idea({ id: 'dd', state: 'drafting', lane_slot: 'follow_the_money', body: draftBody('50%'), scheduled_for: '2026-10-07' }),
-    idea({ id: 'later', state: 'approved', lane_slot: 'follow_the_money', body: draftBody('50%'), scheduled_for: '2026-10-14' }),
+    idea({ id: 'dd', state: 'drafting', lane_slot: 'follow_the_money', body: draftBody('50%'), scheduled_for: '2026-10-05' }),
+    idea({ id: 'later', state: 'approved', lane_slot: 'follow_the_money', body: draftBody('50%'), scheduled_for: '2026-10-12' }),
   ]
   const ftm = weekSlots(dated, SUBCHANNELS, SUNDAY).find(s => s.series === 'follow_the_money')!
   assert.equal(ftm.picked?.id, 'dd')
@@ -488,8 +488,9 @@ test('the live morning: approve, two to put out, paid checks, a number to set, a
   ])
   // Every series has its next piece, so there is nothing to pick this week.
   assert.equal(list.filter(c => c.kind === 'pick_for_series').length, 0)
-  // An approved piece is offered its series' coming day.
-  assert.equal(list.find(c => c.key === 'go_out:a1')!.date, '2026-10-05')
+  // An approved piece is offered its series' coming day: under.the.hood's
+  // Wednesday since 2026-10-05.
+  assert.equal(list.find(c => c.key === 'go_out:a1')!.date, '2026-10-07')
   assert.equal(list.find(c => c.key === 'go_out:a2')!.date, '2026-10-09')
   // Without the engine's read, the stored result is a guess and says so.
   assert.equal(list.find(c => c.key === 'allow_fact_check:d1')!.checkedBy, 'stored')

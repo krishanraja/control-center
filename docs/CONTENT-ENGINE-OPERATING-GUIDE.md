@@ -64,8 +64,8 @@ from a copy.
 | Slug | Shown as | Cadence | Target/week | Hero |
 |---|---|---|---|---|
 | `mind_the_gap` | mind.the.gap | Fridays | 1 | yes |
-| `follow_the_money` | follow.the.money | Wednesdays | 1 | |
-| `under_the_hood` | under.the.hood | Mondays | 1 | |
+| `follow_the_money` | follow.the.money | Mondays | 1 | |
+| `under_the_hood` | under.the.hood | Wednesdays | 1 | |
 
 The boundary between them is a test on the **question**, not the surface:
 *what it costs and who pays* is follow.the.money; *sharper or dependent* is
@@ -244,9 +244,9 @@ of them deliberately leave the draft alone.
 
 1. **Daily.** Feed ingest, editorial radar, triage, clustering, stale archive.
    Sweeps run twice. Supply accumulates without you.
-2. **Mon.** under.the.hood is due. Lens radar. Purge.
+2. **Mon.** follow.the.money is due. Lens radar. Purge.
 3. **Tue.** Creator scout.
-4. **Wed.** follow.the.money is due. Synthesis engine runs at noon.
+4. **Wed.** under.the.hood is due. Synthesis engine runs at noon.
 5. **Thu.** Investigations.
 6. **Fri.** mind.the.gap is due. Shift detection, then weekly surfacing, then
    the **weekly brief assembles at 18:00 UTC**.
@@ -257,6 +257,11 @@ under.the.hood moved to Mondays, one a week, on 2026-09-26, because the
 makeyourmindup cover page promises Mon, Wed and Fri. Until then it had no fixed
 day and a target of 0.5 a week
 (`supabase/migrations/20260926150000_under_the_hood_goes_weekly_on_mondays.sql`).
+On 2026-10-05 the two swapped days: follow.the.money is due on Mondays and
+under.the.hood on Wednesdays
+(`supabase/migrations/20261005170000_follow_the_money_on_mondays.sql`).
+Krish: "Let's just make follow the money permanently a monday thing, and swap
+it out."
 
 ---
 
