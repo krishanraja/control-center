@@ -93,10 +93,22 @@ test('buildBoard: an unwired cell never prints a zero, a wired empty one says so
   assert.equal(by.mm_ctrl.cells.analytics.value, '1 user')
   assert.equal(by.fractionl_pulse.cells.signups.value, '1')
   assert.equal(by.fractionl_pulse.cells.hacks.value, '1 of 1')
-  assert.equal(by.fractionl_pulse.cells.revenue.value, '$0/mo')
+  assert.equal(by.fractionl_pulse.cells.revenue.state, 'unwired', 'Pulse cannot take a payment, so it is not a $0')
+  assert.equal(by.fractionl_pulse.mrrUsd, null)
 
   assert.equal(gaps[0].product.venture, 'heartside', 'priority 1 gaps first')
   assert.ok(gaps.findIndex(g => g.product.venture === 'legibility') > gaps.findIndex(g => g.product.venture === 'full_time'))
+})
+
+test('QA, audit and owner accounts never count as sign-ups or customers', async () => {
+  const { isTestRecord } = await import('../../src/lib/recordHygiene.ts')
+  for (const email of ['qa_desktop_1780967337717@example.com', 'ctrl-qa-1782077550632@example.com', 'qa-bot@merciless-qa.dev',
+    'pulse-qa-test@gmail.com', 'audit-1@example.com', 'verify-1781997550188@test.com', 'krishanraja@gmail.com']) {
+    assert.equal(isTestRecord({ email }), true, email)
+  }
+  for (const email of ['hello@cameronrambert.com', 'thin.list9496@fastmail.com', 'aqa@company.com', 'qasim@company.com']) {
+    assert.equal(isTestRecord({ email }), false, email)
+  }
 })
 
 test('substackSlice: only plans Substack made, never added to the totals', () => {

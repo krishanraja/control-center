@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { withoutTestRecords } from '../lib/recordHygiene'
 import { useCustomers } from './useCustomers'
 import { useRevenue } from './useRevenue'
 import { useProductMetrics } from './useProductMetrics'
@@ -33,12 +34,16 @@ function useAudience() {
     let alive = true
     const load = async () => {
       const counts = await Promise.all(AUDIENCE_TAGS.map(async tag => {
-        const { count, error } = await supabase
+        // Rows, not a head count: the count has to pass the same test-record
+        // filter every other live list uses. On 2026-10-05 all 103 rows
+        // tagged ctrl were QA and test accounts, and a head count said 103.
+        const { data, error } = await supabase
           .from('leads')
-          .select('id', { count: 'exact', head: true })
+          .select('id, email, full_name, company')
           .contains('audience_sources', [tag])
           .or('status.is.null,status.neq.churned')
-        return [tag, error || count == null ? null : count] as const
+          .limit(5000)
+        return [tag, error || !data ? null : withoutTestRecords(data as Array<Record<string, unknown>>).length] as const
       }))
       const { data: gm } = await supabase
         .from('growth_metrics')

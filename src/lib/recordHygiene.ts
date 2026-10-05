@@ -14,6 +14,14 @@ const TEST_PATTERNS: RegExp[] = [
   /@(test|example|demo)\.(com|org|net)$/i, // throwaway domains
   /\bplaceholder\b/i,
   /\blorem ipsum\b/i,
+  // QA and audit accounts the fleet's own test runs create (measured
+  // 2026-10-05: all 103 "CTRL sign-ups" in leads were these, and the Stripe
+  // accounts hold qa-bot@merciless-qa.dev and pulse-qa-test@ customers).
+  /^\s*qa[-_]/i,                 // "qa_desktop_1780967337717@...", "qa-bot@..."
+  /^\s*[a-z]+-qa[-_@]/i,         // "ctrl-qa-1782077550632@...", "pulse-qa-test@..."
+  /@merciless-qa\./i,
+  /^\s*audit[-_]/i,              // "audit-1@example.com"
+  /^\s*verify-\d{6,}@/i,         // "verify-1781997550188@test.com"
 ]
 
 // Known one-off demo/non-business accounts (exact, lowercased). laurenkthermos is
@@ -21,6 +29,12 @@ const TEST_PATTERNS: RegExp[] = [
 const KNOWN_TEST = new Set<string>([
   'laurenkthermos',
   'laurenkthermos@gmail.com',
+  // Krish's own addresses: he subscribes to his own products to test them,
+  // and a founder paying himself is not a customer (2026-10-05).
+  'krishanraja@gmail.com',
+  'krish@themindmaker.ai',
+  'krish@mindmake.co',
+  'krish@heartside.io',
 ])
 
 /** Fields that, if they look like test data, mark the whole row as test. */

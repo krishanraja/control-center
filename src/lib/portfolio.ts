@@ -103,7 +103,7 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: null, gap: 'Full Time accounts live in its own database and are not copied to the OS.', fix: 'Bridge Full Time sign-ups into the OS the way CTRL sign-ups are.' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: null, gap: 'The Full Time Stripe account is not in the daily revenue pull.', fix: 'Set STRIPE_API_KEY_FULLTIME (a read-only key) on the Control Center project.' },
+      revenue: { source: null, gap: 'The Full Time Stripe account has never collected a payment, and it is not in the daily revenue pull.', fix: 'Set STRIPE_API_KEY_FULLTIME (a read-only key) on the Control Center project, so the first Pro payment shows here.' },
     },
   },
   {
@@ -118,7 +118,7 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: null, gap: 'Legibility accounts live in its own database and are not copied to the OS.', fix: 'Send Legibility sign-ups into the audience pipeline.' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: null, gap: 'Legibility bills through Stripe, but its account is not in the daily revenue pull.', fix: 'Add its Stripe account to the revenue pull once it charges real money.' },
+      revenue: { source: null, gap: 'The Legibility Stripe account has never collected a payment (its customers are QA accounts and you), and it is not in the daily revenue pull.', fix: 'Add its Stripe account to the revenue pull once a real customer pays.' },
     },
   },
   {
@@ -133,7 +133,7 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: 'CTRL sign-ups through the audience pipeline (leads)' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: 'Stripe, Mindmaker LLC account (daily pull)' },
+      revenue: { source: 'Stripe, Mindmaker LLC account (daily pull); the paid tier is sold through the Substack' },
     },
   },
   {
@@ -148,7 +148,7 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       signups: { source: 'The customers ledger (waitlist and free sign-ups)' },
       suggestions: REVIEW,
       hacks: PLACES,
-      revenue: { source: 'Stripe, Fractionl account (daily pull)' },
+      revenue: { source: null, gap: 'Pulse has no checkout, so it cannot take a payment yet.', fix: 'Give Pulse a Stripe price and checkout before it can earn.' },
     },
   },
 ]

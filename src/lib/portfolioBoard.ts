@@ -149,7 +149,9 @@ export function buildBoard(input: BoardInput, now: Date): { rows: BoardRow[]; ga
     // Revenue
     const revenue = !p.sources.revenue.source
       ? unwired('revenue', p)
-      : cell('revenue', p, mrr > 0 ? 'live' : 'zero', `${fmtUsd(mrr)}/mo`, live.length ? `${plural(live.length, 'paying customer')}` : 'no one paying yet')
+      : mrr > 0
+        ? cell('revenue', p, 'live', `${fmtUsd(mrr)}/mo`, plural(live.length, 'paying customer'))
+        : cell('revenue', p, 'zero', 'None yet', 'no one paying')
 
     return {
       product: p,
