@@ -7,7 +7,7 @@ moved here keep their body verbatim under a Historical banner.
 
 ## 2026-10-06
 
-- reconciled at `cb9a3f11`: merged main at `e08f820e` (#399: the Content desk's clear-out badge and calendar clocks, and Krish's second batch of 2026-10-06 rulings on Full Time and Pulse) into the Drive exception branch, whose phone e2e had failed twice before #399 and passes locally on the merge. NOW.md does not yet carry #399; the next steward pass adds it from #399's own record.
+- reconciled at `cb9a3f11`: merged main at `e08f820e` (#399: the Content desk's clear-out badge and calendar clocks, and Krish's second batch of 2026-10-06 rulings on Full Time and Pulse) into the Drive exception branch, whose phone e2e failed twice in CI before #399 while all 109 phone tests passed locally with CI's build settings. NOW.md does not yet carry #399; the next steward pass adds it from #399's own record.
 - reconciled at `19d28a11`: NOW.md takes rule 0a.5's one Drive exception, the makeyourmindup library folder. The head also moves past #397 (Krish's rulings of 2026-10-06, whose NOW.md entry came with it) and #398 (the Content specs pinned to one clock; tests only, nothing in NOW.md changes).
 - decision (Krish, 2026-10-06): "yes, merge the library sync to main", after "I want every single asset in there, permanent and for individual posts, categorized properly, clear what to use them for, and every new post gets its own new folder with all assets including the article HTML I can copy paste, video scripts, etc etc". Recorded in `docs/MINDMAKE_OS_ARCHITECTURE.md` 0a.5 and section 10 at `19d28a11`.
 
