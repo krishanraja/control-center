@@ -22,6 +22,10 @@ import {
  * desk projects (1440 and 1920) actually mean something.
  */
 
+// The fixture pins the page's clock to FIXTURE_NOW; UTC is the calendar the
+// engine keeps its series days on (see content-rooms.spec.ts).
+test.use({ timezoneId: 'UTC' })
+
 test.beforeEach(async ({ page }) => {
   await mockContentMorning(page)
   await page.goto('/#/content')
