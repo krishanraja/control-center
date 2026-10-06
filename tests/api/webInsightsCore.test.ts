@@ -1253,11 +1253,13 @@ test('fallbackGrowthAction for each property', () => {
   const empty = fallbackGrowthAction(FULLTIME_RULED, read(FULLTIME_RULED), os({ rssItems: 0 }), TODAY)
   assert.equal(empty?.title, 'Say go on the first episode so pilot listeners have something to hear')
   assert.equal(empty?.why, 'The feed has 0 episodes, so a pilot listener would find nothing to play.')
-  assert.deepEqual([empty?.detector, empty?.job], [{ kind: 'rss_items_up', baseline: 0 }, 'fill_pilots'])
+  assert.deepEqual([empty?.detector, empty?.job], [{ kind: 'rss_items_up', baseline: 0 }, 'fill_listeners'])
   const ft = fallbackGrowthAction(FULLTIME_RULED, read(FULLTIME_RULED), os({ rssItems: 6 }), TODAY)
   assert.equal(ft?.title, 'Ask five football fans you know to be pilot listeners')
-  assert.equal(ft?.why, 'The show is ready for pilot users and the feed has 6 episodes to play. Visits do not find listeners; you can.')
-  assert.deepEqual([ft?.detector, ft?.job, ft?.minutes], [{ kind: 'today_slot_done' }, 'fill_pilots', 20])
+  assert.equal(ft?.why, 'The show is ready for pilot listeners and the feed has 6 episodes to play. Visits do not find listeners; you can.')
+  assert.deepEqual([ft?.detector, ft?.job, ft?.minutes], [{ kind: 'today_slot_done' }, 'fill_listeners', 20])
+  const counted = fallbackGrowthAction(FULLTIME_RULED, read(FULLTIME_RULED), os({ rssItems: 6, listeners: { count: 3, target: 100 } }), TODAY)
+  assert.equal(counted?.why, 'The show is ready for pilot listeners and the feed has 6 episodes to play. 3 of 100 pilot listeners so far. Visits do not find listeners; you can.')
   for (const a of [empty, ft]) {
     assert.ok(!`${a?.title} ${a?.why} ${a?.first_step}`.match(/Full Time|fulltime\.fm/i), 'never names Full Time')
   }
@@ -1743,4 +1745,37 @@ test('toView closes an answered ruling at once, before the next run', () => {
   const open = toView(FULLTIME, newest, [])
   assert.equal(open.action, stored)
   assert.equal(open.closed.length, 0)
+})
+
+// Ruling (Krish, 2026-10-06): Full Time's pilot listeners and Mindmake's pilot
+// customers "are TOTALLY unrelated and cannot be confused with one another".
+// Before it, every site's evidence carried pilot_deals, so the fulltime.fm
+// action was reasoned over Mindmake's drafted approaches.
+test('each site sees only its own pilots: pilot_deals for mindmake.co, pilot listeners for fulltime.fm', () => {
+  const o = os({ pilot: { drafted: 2, oldestDraftedAt: '2026-09-20T00:00:00Z', maxRank: 1 }, listeners: { count: 7, target: 100 } })
+  const site = evidenceOf(webActionUser(read(SITE), classifyHealth(read(SITE)), [], o))
+  assert.deepEqual(site.os.pilot_deals, { drafted: 2, oldest_drafted_at: '2026-09-20T00:00:00Z' })
+  assert.equal('pilot_listeners' in site.os, false, 'mindmake.co never sees Full Time listeners')
+
+  const ft = evidenceOf(webActionUser(read(FULLTIME_RULED), classifyHealth(read(FULLTIME_RULED)), [], o))
+  assert.deepEqual(ft.os.pilot_listeners, { count: 7, target: 100 })
+  assert.equal('pilot_deals' in ft.os, false, 'fulltime.fm never sees Mindmake pilot customers')
+
+  const mymu = evidenceOf(webActionUser(read(MYMU), classifyHealth(read(MYMU)), [], o))
+  assert.equal('pilot_deals' in mymu.os, false)
+  assert.equal('pilot_listeners' in mymu.os, false)
+
+  // An uncounted listener total is left out, never written as 0.
+  const unknown = evidenceOf(webActionUser(read(FULLTIME_RULED), classifyHealth(read(FULLTIME_RULED)), [], os({ listeners: null })))
+  assert.equal('pilot_listeners' in unknown.os, false)
+})
+
+test('the fulltime.fm action rules name pilot listeners and forbid calling them pilot customers', () => {
+  const rules = webActionRules(FULLTIME_RULED, allowedDetectors(FULLTIME_RULED))
+  assert.ok(rules.includes('Find pilot listeners for Full Time (fill_listeners)'))
+  assert.ok(!rules.includes('(fill_pilots)'))
+  assert.match(rules, /never pilot customers/)
+  const site = webActionRules(SITE, allowedDetectors(SITE))
+  assert.ok(site.includes('Find pilot customers (fill_pilots)'))
+  assert.ok(!site.includes('fill_listeners'))
 })

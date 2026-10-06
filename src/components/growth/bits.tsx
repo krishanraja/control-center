@@ -38,7 +38,7 @@ export const KIND: Record<MoveKind, { label: string; icon: LucideIcon }> = {
  */
 export const ANSWER_WORDS: Record<string, { label: string; hint: string }> = {
   proof: { label: 'Keep it as a proof piece', hint: 'It shows what you can build. It is not for sale.' },
-  pilot: { label: 'Get pilot users', hint: 'It is ready for its first real users.' },
+  pilot: { label: 'Get pilot listeners', hint: 'It is ready for its first real listeners.' },
   measure: { label: 'Just measure it for now', hint: 'Keep counting visits and decide again later.' },
   park: { label: 'Park it', hint: 'Leave it alone for now.' },
   live: { label: 'Yes, it is live', hint: 'It is a product you are selling.' },

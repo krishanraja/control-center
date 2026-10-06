@@ -84,8 +84,11 @@ const KIND_META: Record<string, { label: string; bg: string; text: string; Icon:
   revenue: { label: 'Revenue', bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
   growth:  { label: 'Growth',  bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
   risk:    { label: 'Risk',    bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
-  // The five jobs of the OS, for the picks derived from this week's objectives.
-  fill_pilots:   { label: 'Find pilots',     bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
+  // The five jobs of the OS, for the picks derived from this week's objectives,
+  // then Full Time's own. The two pilot chips name whose pilots they are in
+  // full (Ruling, Krish, 2026-10-06: the two are totally unrelated).
+  fill_pilots:   { label: 'Find pilot customers', bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
+  fill_listeners: { label: 'Find Full Time pilot listeners', bg: 'bg-sky-500/20', text: 'text-sky-200', Icon: TrendingUp },
   keep_honest: { label: 'Keep me honest',  bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
   run_pilots:    { label: 'Run the pilots',  bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
   feed_demand: { label: 'Feed the demand engine', bg: 'bg-violet-500/20', text: 'text-violet-200', Icon: SparkleIcon },

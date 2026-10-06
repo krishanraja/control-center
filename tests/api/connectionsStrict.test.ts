@@ -75,3 +75,17 @@ test('a 400 on a non-strict provider still gets the ping remap', async () => {
     assert.equal(r.status, 'ok')
   } finally { f.mock.restore() }
 })
+
+// The Full Time read key behind the pilot listener copy (2026-10-06). A wrong
+// project answers 404; under the remap the copy could stop and read green.
+test('the Full Time read key is strict: a 404 is not a live key, a 401 is a dead one', async () => {
+  assert.equal(PROVIDERS['supabase-fulltime'].strict, true)
+  let f = stubFetch(404, '{"message":"not found"}')
+  try {
+    assert.notEqual((await runCheck('supabase-fulltime', 'k', 'ping')).status, 'ok')
+  } finally { f.mock.restore() }
+  f = stubFetch(401, '{"message":"Invalid API key"}')
+  try {
+    assert.equal((await runCheck('supabase-fulltime', 'k', 'ping')).status, 'auth_failed')
+  } finally { f.mock.restore() }
+})

@@ -38,6 +38,10 @@ import {
   type AdminFacts, type AdminState, type ProbeFacts, type PropertyRead, type OsFacts, type DetectorFacts,
   type Health, type WebInsightRow, type ReportMeta, type PlausibleRead,
 } from './_webInsightsCore.js'
+import {
+  LISTENER_PRODUCT, LISTENER_SOURCE, LISTENER_SYNC_WORKFLOW_ID, countPilotListeners, listenerSyncState,
+} from '../src/lib/pilotListeners.js'
+import { PORTFOLIO } from '../src/lib/portfolio.js'
 
 const WORKFLOW_ID = 'growth-web-insights'
 const WORKFLOW_NAME = 'Site visits check'
@@ -147,9 +151,14 @@ async function gatherOs(now: Date, ident: { email: string | null; project: strin
   const mymu = WEB_PROPERTIES.find(p => p.substackArchiveUrl)
   const rssProp = WEB_PROPERTIES.find(p => p.rssUrl)
 
-  const [ventures, pilots, focus, ideas, substackCount, posthog, snapshot, previous, archive, rss] = await Promise.all([
+  const [ventures, pilots, listenerRows, listenerRuns, focus, ideas, substackCount, posthog, snapshot, previous, archive, rss] = await Promise.all([
     supabase.from('venture_registry').select('slug, active').in('slug', ['mindmake', 'publication', 'full_time', 'legibility']),
     supabase.from('pilot_deals').select('state, drafted_at, updated_at'),
+    // Full Time's pilot listeners: a different table from pilot_deals, read
+    // separately and handed only to the site that serves fill_listeners.
+    supabase.from('customers').select('product, kind, raw').eq('product', LISTENER_PRODUCT).eq('source', LISTENER_SOURCE).limit(100000),
+    supabase.from('workflow_runs').select('status, run_at, outcome, error_message').eq('workflow_id', LISTENER_SYNC_WORKFLOW_ID)
+      .order('run_at', { ascending: false }).limit(20),
     supabase.from('daily_focus')
       .select('focus_date, target_1_text, target_1_completed_at, target_2_text, target_2_completed_at, target_3_text, target_3_completed_at')
       .gte('focus_date', since14),
@@ -183,6 +192,16 @@ async function gatherOs(now: Date, ident: { email: string | null; project: strin
     const maxRank = rows.reduce((m, r) => Math.max(m, PILOT_STATE_RANK[r.state] ?? -1), -1)
     pilot = { drafted: drafted.length, oldestDraftedAt: oldest, maxRank }
   }
+
+  // Full Time pilot listeners: counted only when the copy has worked and both
+  // reads did. Anything else is null, which the evidence leaves out.
+  note('customers (pilot listeners)', listenerRows.error)
+  note('workflow_runs (pilot listeners)', listenerRuns.error)
+  const listenerTarget = PORTFOLIO.find(p => p.customerProduct === LISTENER_PRODUCT)?.goal?.target ?? null
+  const listenerSync = listenerSyncState(listenerRuns.error ? null : (listenerRuns.data ?? []) as Array<{ status: string | null; run_at: string | null }>)
+  const listeners: OsFacts['listeners'] = !listenerRows.error && listenerSync.ok && listenerTarget
+    ? { count: countPilotListeners((listenerRows.data ?? []) as Array<{ product: string; kind: string; raw: Record<string, unknown> | null }>), target: listenerTarget }
+    : null
 
   note('daily_focus', focus.error)
   const todayDone: Gathered['todayDone'] = []
@@ -237,6 +256,7 @@ async function gatherOs(now: Date, ident: { email: string | null; project: strin
     // A failed pilot read is null, never "no pilots". The core's evidence builder
     // skips a null pilot, and the site fallback is withheld below.
     pilot: pilot as OsFacts['pilot'],
+    listeners,
     substackLastPost, rssItems, reviewIdeas,
     // An unread count raises nothing: the finding would claim a gap nobody saw.
     substackCountPresent: substackCountKnown ? substackCountPresent : true,

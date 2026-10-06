@@ -19,7 +19,7 @@
 
 export type WebPrefix = 'site' | 'mymu' | 'fulltime' | 'legibility'
 /** Same ids as api/_mission.ts Job and src/content/jobs.ts Job (a test asserts equality). */
-export type WebJob = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge'
+export type WebJob = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge' | 'fill_listeners'
 export type WebCanon =
   | { status: 'live' }
   | { status: 'ruling_owed'; question: string; conflict: string; options: string[] }
@@ -84,10 +84,13 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
     // autonomous AI football podcast." That closes "What is fulltime.fm for?"
     // (owed since 2026-09-27; options were proof, measure, park). None of the
     // three fit, so the answer is the new 'pilot' option: live, and its job is
-    // getting pilot listeners. fill_pilots is the one job about bringing in
-    // first users; on this site the goal line says they are listeners.
-    jobs: ['fill_pilots'],
-    goal: 'Football fans become pilot listeners: they find the show, follow the feed and come back for the next episode.',
+    // getting pilot listeners.
+    // Ruling (Krish, 2026-10-06, later the same day): "those two are TOTALLY
+    // unrelated and cannot be confused with one another". This site served
+    // fill_pilots, Mindmake's pilot customers, for a few hours; it now has
+    // Full Time's own job, fill_listeners, toward 100 pilot listeners.
+    jobs: ['fill_listeners'],
+    goal: 'Football fans become pilot listeners: they make a Full Time account, find the show and come back for the next episode.',
     canon: { status: 'live' },
     ruled: { choice: 'pilot', on: '2026-10-06', said: 'fulltime is ready for pilot users, it is an autonomous AI football podcast' },
     tagLiveAt: '2026-09-27T09:56:53Z', consentByDesign: false, neverPublishName: true },
@@ -138,7 +141,7 @@ export function ga4PropertyId(p: WebProperty, env: Record<string, string | undef
 // is ignored rather than fighting it.
 
 /** Every job id, in the order src/content/jobs.ts offers them (a test asserts the set). */
-export const WEB_JOBS: readonly WebJob[] = ['fill_pilots', 'keep_honest', 'run_pilots', 'feed_demand', 'keep_edge']
+export const WEB_JOBS: readonly WebJob[] = ['fill_pilots', 'keep_honest', 'run_pilots', 'feed_demand', 'keep_edge', 'fill_listeners']
 
 export function isWebJob(v: unknown): v is WebJob {
   return typeof v === 'string' && (WEB_JOBS as readonly string[]).includes(v)
@@ -175,8 +178,10 @@ export function choiceNeedsJob(choice: string): boolean {
  *   park, retire   -> retired: only visits are read (taking a tag off the
  *                     page is a change to that site's own repo, not this one)
  *   proof          -> live, feeding demand
- *   pilot          -> live, getting its first pilot users (added 2026-10-06
- *                     for fulltime.fm, when none of proof, measure or park fit)
+ *   pilot          -> live, getting pilot listeners (added 2026-10-06 for
+ *                     fulltime.fm, when none of proof, measure or park fit).
+ *                     Full Time's job, fill_listeners, never Mindmake's
+ *                     fill_pilots: the two are unrelated (Krish, 2026-10-06)
  *   live + job     -> live, serving that job. 'live' alone is not an answer:
  *                     a live site with no job has nothing to grow toward.
  */
@@ -187,7 +192,7 @@ export function canonFromChoice(p: WebProperty, choice: string, job?: WebJob | n
     case 'park':
     case 'retire': return { canon: { status: 'retired' }, jobs: [] }
     case 'proof': return { canon: { status: 'live' }, jobs: ['feed_demand'] }
-    case 'pilot': return { canon: { status: 'live' }, jobs: ['fill_pilots'] }
+    case 'pilot': return { canon: { status: 'live' }, jobs: ['fill_listeners'] }
     case 'live': return isWebJob(job) ? { canon: { status: 'live' }, jobs: [job] } : null
     default: return null
   }

@@ -76,6 +76,13 @@ export interface PortfolioProduct {
    * are measured somewhere else on purpose. Never a zero, never an MRR.
    */
   externalDashboard?: { href: string; label: string; metrics: MetricKey[]; why: string }
+  /**
+   * The one number this product is being grown toward, where Krish has set
+   * one. Its count is the `signups` cell, read against `target`. Kept on the
+   * product rather than in `goals`, whose ladder holds only the mission and
+   * this week's three (horizon 'os' or 'weekly'): a product target is neither.
+   */
+  goal?: { noun: string; target: number; job: string; ruled: { on: string; said: string } }
 }
 
 const REVIEW: MetricSource = { source: 'The Sunday growth review (growth_council_reviews)' }
@@ -112,14 +119,18 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
     venture: 'full_time', label: 'Full Time', tier: 1, domain: 'fulltime.fm',
     // Ruling (Krish, 2026-10-06): an autonomous AI football podcast, a B2C
     // monetisation experiment app, ready for pilot users.
-    what: 'An autonomous AI football podcast: recaps read by a pundit you pick. Ready for pilot users. Free, with Pro at $4.99 a month.',
+    what: 'An autonomous AI football podcast: recaps read by a pundit you pick. Ready for pilot listeners. Free, with Pro at $4.99 a month.',
     opensOn: null,
     growthSlug: 'full-time', customerProduct: 'full_time', webPrefix: 'fulltime', metricsProduct: 'full_time', audienceSource: null,
     attributionApps: ['full-time', 'fulltime', 'full_time'],
     sources: {
       aeo: PROBES,
       analytics: { source: 'Google Analytics for fulltime.fm (the daily site check)' },
-      signups: { source: null, gap: 'Full Time accounts, so its pilot users, live in its own database and are not copied to the OS.', fix: 'Bridge Full Time sign-ups into the OS the way CTRL sign-ups are, so pilot users can be counted here.' },
+      // Wired 2026-10-06 (Ruling, Krish: "yes and 100"). Every Full Time
+      // account with a confirmed email is copied into the customers ledger
+      // every six hours (api/audience/fulltime-listeners.ts); the definition
+      // and the count are src/lib/pilotListeners.ts.
+      signups: { source: 'Full Time accounts, copied to the customers ledger every six hours (pilot listeners)' },
       suggestions: REVIEW,
       hacks: PLACES,
       // In the pull since 2026-10-05: one organisation key reads all five
@@ -127,6 +138,9 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       // measured zero, not an unwired one.
       revenue: { source: 'Stripe, Full Time account (daily pull). Checkout is wired and live; it has never collected a payment.' },
     },
+    // Ruling (Krish, 2026-10-06): "yes and 100". Pilot LISTENERS, Full Time's
+    // own job; never Mindmake's pilot customers, never summed with them.
+    goal: { noun: 'pilot listeners', target: 100, job: 'fill_listeners', ruled: { on: '2026-10-06', said: 'yes and 100' } },
   },
   {
     venture: 'legibility', label: 'Legibility', tier: 2, domain: 'legibility.io',

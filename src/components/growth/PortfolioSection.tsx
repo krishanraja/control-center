@@ -10,6 +10,8 @@ import { Eyebrow } from '../shared/Eyebrow'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { PortfolioDetail, PortfolioList, PortfolioTable, WireNext } from '../portfolio/PortfolioBoard'
 import { Overlay } from './bits'
+import { ListenerGoal } from './ListenerGoal'
+import { LISTENER_PRODUCT, countPilotListeners } from '../../lib/pilotListeners'
 import type { Layout } from './NextView'
 import type { GrowthTabModel } from './useGrowthTab'
 
@@ -18,12 +20,25 @@ export function PortfolioSection({ m, mobile, layout }: { m: GrowthTabModel; mob
   const [open, setOpen] = useState<string | null>(null)
   const row = open ? p.rows.find(r => r.product.venture === open) ?? null : null
   const desk = layout === 'wide' || layout === 'xwide'
+  // Full Time's target and its count, from the same board row the table shows.
+  const ft = p.rows.find(r => r.product.goal && r.product.customerProduct === LISTENER_PRODUCT) ?? null
+  const listenerGoal = ft?.product.goal && !p.listenerSync.loading
+    ? { target: ft.product.goal.target, count: countPilotListeners(p.customers) }
+    : null
   return (
     <section id="growth-numbers-portfolio" className="surface flex scroll-mt-4 flex-col gap-4 rounded-3xl p-5" data-testid="growth-numbers-portfolio">
       <div className="flex flex-wrap items-baseline gap-3">
         <Eyebrow className="flex-1">Products, in priority order</Eyebrow>
         <span className="text-label text-ink-muted">The same six numbers as Subscriptions</span>
       </div>
+      {listenerGoal && (
+        <ListenerGoal
+          count={listenerGoal.count}
+          target={listenerGoal.target}
+          sync={p.listenerSync.state}
+          siteAction={m.web.data?.properties.find(w => w.prefix === 'fulltime')?.action ?? null}
+        />
+      )}
       {desk
         ? <PortfolioTable rows={p.rows} onOpen={setOpen} emphasis={['aeo', 'analytics', 'hacks']} />
         : <PortfolioList rows={p.rows} onOpen={setOpen} headline="aeo" />}

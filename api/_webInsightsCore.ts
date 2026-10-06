@@ -638,7 +638,14 @@ export function planRestate(args: {
 // ---------- OS facts, detector facts ----------
 export interface OsFacts {
   saEmail: string | null; saProject: string | null; adminActivationUrl: string | null
+  /** Mindmake's pilot customers (pilot_deals). Only a site serving fill_pilots ever sees it. */
   pilot: { drafted: number; oldestDraftedAt: string | null; maxRank: number }
+  /**
+   * Full Time's pilot listeners (src/lib/pilotListeners.ts) against the target.
+   * Only a site serving fill_listeners ever sees it. Null = not counted (the
+   * copy has never worked, or the read failed), never "0 listeners".
+   */
+  listeners?: { count: number; target: number } | null
   substackLastPost: string | null                                 // null = unknown (fetch failed), never 'no post'
   rssItems: number | null
   reviewIdeas: string[]                                           // unburied content_ideas in 'review', max 3
@@ -1323,6 +1330,9 @@ export function webActionRules(p: WebProperty, allowed: DetectorKind[]): string 
   ]
   if (p.prefix === 'site') lines.push(`Never propose changing the cookie consent on ${p.label}. It was Krish's decision.`)
   if (p.neverPublishName) lines.push('Anything public must not name Full Time or fulltime.fm.')
+  if (p.jobs.includes('fill_listeners')) {
+    lines.push('Pilot listeners are people with a Full Time account. They are never pilot customers, never pilots on their own, and never Mindmake\'s. Always write "pilot listeners".')
+  }
   lines.push(
     'Order the proposals by how much each would move results, most first. The first proposal that is not the wildcard becomes the action.',
     'Plain English a 12 year old can follow. No em dashes, no "--", no spaced hyphen as a dash, no ellipses.',
@@ -1356,10 +1366,19 @@ function llmEvidence(r: PropertyRead, h: Health, findings: Finding[], os: OsFact
     e.plausible = pl
   }
   const o: Record<string, unknown> = {}
-  if (os.pilot) {
+  // Each site sees only the pilots of its own job. Mindmake's pilot customers
+  // (pilot_deals) reach only a site serving fill_pilots; Full Time's pilot
+  // listeners reach only a site serving fill_listeners. Before 2026-10-06 every
+  // site's evidence carried pilot_deals, so the fulltime.fm action was reasoned
+  // over Mindmake's drafted approaches (Ruling, Krish, 2026-10-06: the two
+  // "are TOTALLY unrelated and cannot be confused with one another").
+  if (os.pilot && r.p.jobs.includes('fill_pilots')) {
     const pd: Record<string, unknown> = { drafted: os.pilot.drafted }
     if (os.pilot.oldestDraftedAt) pd.oldest_drafted_at = os.pilot.oldestDraftedAt
     o.pilot_deals = pd
+  }
+  if (os.listeners && r.p.jobs.includes('fill_listeners')) {
+    o.pilot_listeners = { count: os.listeners.count, target: os.listeners.target }
   }
   if (os.substackLastPost) o.last_substack_post = os.substackLastPost
   if (typeof os.rssItems === 'number') o.rss_items = os.rssItems
@@ -1518,7 +1537,8 @@ export function fallbackGrowthAction(p: WebProperty, r: PropertyRead, os: OsFact
       // only he can do is ask the first listeners in. With an empty feed there
       // is nothing for them to hear yet, and the action is to get one out.
       if (typeof os.rssItems !== 'number') return null
-      const job: WebJob = p.jobs.includes('fill_pilots') ? 'fill_pilots' : p.jobs[0]
+      // Full Time's own job, never Mindmake's fill_pilots (Ruling, Krish, 2026-10-06).
+      const job: WebJob = p.jobs.includes('fill_listeners') ? 'fill_listeners' : p.jobs[0]
       if (os.rssItems === 0) {
         return growthAction(p, now, 'fallback', {
           title: 'Say go on the first episode so pilot listeners have something to hear',
@@ -1527,10 +1547,11 @@ export function fallbackGrowthAction(p: WebProperty, r: PropertyRead, os: OsFact
           minutes: 30, link: null, job, detector: { kind: 'rss_items_up', baseline: os.rssItems },
         })
       }
+      const progress = os.listeners ? ` ${os.listeners.count} of ${os.listeners.target} pilot listeners so far.` : ''
       return growthAction(p, now, 'fallback', {
         title: 'Ask five football fans you know to be pilot listeners',
-        why: `The show is ready for pilot users and the feed has ${plural(os.rssItems, 'episode', 'episodes')} to play. Visits do not find listeners; you can.`,
-        first_step: 'Pick five people who follow football, send each the link from your own phone or inbox, and ask them to listen to one episode and tell you what they think.',
+        why: `The show is ready for pilot listeners and the feed has ${plural(os.rssItems, 'episode', 'episodes')} to play.${progress} Visits do not find listeners; you can.`,
+        first_step: 'Pick five people who follow football, send each the link from your own phone or inbox, and ask them to make a free account, listen to one episode and tell you what they think.',
         minutes: 20, link: null, job, detector: { kind: 'today_slot_done' },
       })
     }

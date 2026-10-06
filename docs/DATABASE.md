@@ -91,7 +91,7 @@ to agents or waiting for human review.
 | `venture_id` | text | Associated venture |
 | `lever_score` | int | 0-10 anti-busywork rating (PR #47) |
 | `est_hours_to_revenue` | numeric | Estimated path to revenue impact (PR #47) |
-| `job` | text | Which of the five jobs of the OS this serves: `fill_pilots`, `keep_honest`, `run_pilots`, `feed_demand`, `keep_edge`. Nullable (ADR-016) |
+| `job` | text | Which job this serves: one of the five jobs of the OS (`fill_pilots`, `keep_honest`, `run_pilots`, `feed_demand`, `keep_edge`), or Full Time's own `fill_listeners` (2026-10-06, never Mindmake's pilot customers). Nullable (ADR-016) |
 
 (There is no `source` column on `tasks`; an earlier version of this table listed one.)
 
