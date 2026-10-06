@@ -141,10 +141,13 @@ each ruling lives in the tab that owns it (the OS Queue was removed
 2026-10-04), venture health on **Growth → Numbers**, the Sunday review on
 **Growth → Week**, bets on **OS → Intel**.
 
-> **2026-10-05.** The scorecard numbers, the stop rule (5 Oct) and day 90
-> (5 Dec) below come from the ikigai's ninety day plan, which Krish PAUSED
-> on 2026-10-05 pending a reset (core section 0.3). The code still shows
-> them; read them as a paused plan, not a live target. While today's move is
+> **2026-10-05, updated 2026-10-06.** The scorecard numbers, the stop rule
+> (5 Oct) and day 90 (5 Dec) below come from the ikigai's original ninety
+> day plan. On 2026-10-05 it was marked PAUSED; on 2026-10-06 Krish ruled
+> the commitment ongoing (core section 0.3). The stop rule fell due unmet
+> and he chose to continue; no new stop date is set, and the 5 Dec day 90
+> date was not restated, so it is unconfirmed. The code still shows them;
+> read them as the original plan's figures, not confirmed targets. While today's move is
 > proposed (`home/DailyMoveSlot`, ADR-028) it is the one ask on screen: "Pick
 > your 3" and "Set this week's 3" step aside, and the week ask moves onto the
 > This week line (#392). On a phone the vitals band shows Sent, Paid and
@@ -446,8 +449,9 @@ dropped with the reason, and the oldest queued targets with no research in
 > **2026-10-05.** The lane is labelled **Advisory** in the nav
 > (`ADVISORY_LABEL`); the id, the deep links (`?lane=pilots`, `?lane=room`)
 > and the tables (`pilot_deals`) keep the old names. The "25 then 100" list and
-> the charter's arithmetic come from the one-swing plan, whose ninety day
-> plan is paused (core section 0.3). Mindmake's offer is two doors into one
+> the charter's arithmetic come from the one-swing plan, whose ikigai
+> commitment is ongoing while its original dates are history (core section
+> 0.3, ruling 2026-10-06). Mindmake's offer is two doors into one
 > privately scoped paid proof (canon in `krishanraja/mindmake`); any older
 > offer wording below is superseded.
 

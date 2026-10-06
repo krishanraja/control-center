@@ -1,10 +1,10 @@
 # Krish's portfolio: every venture
 
-**Every venture Krish Raja runs, in priority order, each described the same way so an agent can compare them.** Read [`docs/KRISH.md`](KRISH.md) first: it holds the decision rules every proposal here must pass, and the rule for when this portfolio and the mission compete for Krish's own time.
+**Every venture Krish Raja runs, in priority order, each described the same way so an agent can compare them.** Read [`docs/KRISH.md`](KRISH.md) first: it holds the decision rules every proposal here must pass, and how the products sit inside the mission.
 
 | | |
 |---|---|
-| As of | 2026-10-05 |
+| As of | 2026-10-06 (money measured 2026-10-05) |
 | Priority order | `src/lib/portfolio.ts` (the single code source of the ranking) |
 | Money | Measured live on 2026-10-05 across all five Stripe accounts and the Shopify Admin API |
 | Live buyer definitions (ICP) | Supabase `product_icp`, edited in Control Center at **Growth > Buyers** |
@@ -14,7 +14,9 @@
 
 > **Ruling (Krish, 2026-10-05): priority ladder.** Priority 1: Heartside and Full Time. Priority 2: Legibility. Priority 3: CTRL and Pulse. Circle is DORMANT: preserved, never purged, not worked.
 
-> **Ruling (Krish, 2026-10-05): mission versus portfolio, both, explicitly split.** Mindmake is the mission and the one swing. The products below are a separate portfolio the OS grows. The two pull against each other (ikigai Rules 7 and 8). Agents do not resolve that. The rule for agents is in [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
+> **Ruling (Krish, 2026-10-06): the portfolio rolls into the mission.** Krish: "portfolio rolls in to mission." Mindmake is the one company and the one swing; the products below are parts of it, not a separate lane. One queue: when a surface can show only one thing the mission leads, and products are ordered beneath it by the ladder above. This supersedes the 2026-10-05 ruling "both, explicitly split" and its seven-point rule. The tension with ikigai Rules 7 and 8 is resolved by this ruling, not by rewriting the rules. Detail in [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
+
+> **Rulings (Krish, 2026-10-06), also:** Full Time is "a b2c monetization experiment app", not a job-search asset. "CTRL is fine priced": CTRL Pro at $49 a month stands. The publication has three channels. "Hunter is active yes." Founder visibility is still open.
 
 ## Contents
 
@@ -41,11 +43,11 @@
 | Venture | What it is | Priority | Stage | Real money to date | Takes payment through | ICP defined in `product_icp`? |
 |---|---|---|---|---|---|---|
 | **Heartside** | A Shopify store selling gifts written in your dog's voice | 1 | Pre-launch. Opens 20 October 2026 | $0. 0 orders, 0 customers | Shopify Payments, in USD | No |
-| **Full Time** | AI football audio: six AI pundits recap one match a day | 1 | Live beta | $0. Has never collected a payment | Stripe (Full Time account), Full Time Pro $4.99 a month | No |
+| **Full Time** | A B2C monetisation experiment app: AI football audio, six AI pundits recap one match a day | 1 | Live beta | $0. Has never collected a payment | Stripe (Full Time account), Full Time Pro $4.99 a month | No |
 | **Legibility** | An API that gives AI agents typed product data | 2 | Private beta | $0. Every customer so far was a QA bot or Krish | Stripe (Legibility account), Starter $29 and Growth $199 a month | No |
 | **CTRL** | An AI briefing and decision app for founders and small-team CEOs | 3 | Live | $0. Zero paying customers | Stripe (mind/make account), CTRL Pro $49 a month | No |
 | **Pulse** | A free public index of demand for fractional executives | 3 | Live | $0. **Cannot take a payment**: no button starts a checkout | Stripe (Fractionl account), Pulse Pro $99 a month or $948 a year, not reachable | No |
-| **Mindmake** | Krish's AI and commercial strategy practice. **The mission.** | Not ranked: the mission | Live | Part of the $842.56 below (split by product not measured) | Privately agreed fee, Stripe (mind/make account) | **Yes** |
+| **Mindmake** | Krish's AI and commercial strategy practice. **The mission**, which every product above rolls into. | Not ranked: the parent of the ladder | Live | Part of the $842.56 below (split by product not measured) | Privately agreed fee, Stripe (mind/make account) | **Yes** |
 | **Circle** | Personal contact memory for independent operators | Dormant | Dormant | $0 | Stripe (Fractionl account) | Not applicable while dormant |
 
 **Whole portfolio, lifetime: $842.56 net** from 9 real payments, all in the mind/make Stripe account, last charge 2026-08-18. **The only live recurring revenue is the Substack publication:** 2 founding members, $13.51 a month combined.
@@ -109,7 +111,7 @@ These apply to every venture below. Each venture adds its own.
 - Spend money. Paid tests are capped at $500 a month across all products and start only after revenue flows through owned or earned channels (Acquisition OS v1.1, Gate 4). Spend is Krish's action.
 - Prospect against a buyer that is not defined. Where `product_icp` has no row, the prospecting lane stays blocked until Krish fills Growth > Buyers. Do not borrow another product's buyer.
 - Invent a number, a customer, a review or a claim. Cited or silent.
-- Put Krish's name or face in public, or put football or music into his own working time, without asking him first (see [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio)).
+- Put Krish's name or face in public without asking him first, or put football or music into his own working time without flagging it in one line (ikigai Rule 8; see [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio)).
 - Write agent output into Krish's Google Drive. Agents report to Control Center (Ruling, Krish, 2026-10-05).
 
 ---
@@ -192,23 +194,23 @@ Free US shipping on everything. No strike-through "was" prices.
 - The Body Double pillow's base cost and shipping must be re-read before any ad money goes behind it.
 - Whether Teeinblue can prefill its fields from the homepage review builder is unconfirmed.
 - The empty Heartside Stripe account is waiting on Krish's decision to close it.
-- Ikigai tension: a gift shop does not put a leader's edge back (Rule 7). Krish ranked it priority 1 knowing that. See [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
+- Ikigai tension, resolved by ruling: a gift shop does not put a leader's edge back (Rule 7). Krish ranked it priority 1 knowing that, and on 2026-10-06 placed the portfolio inside the mission. See [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
 
 ---
 
 ## Priority 1: Full Time
 
 ### What it is
-An AI football audio app. Each day one finished Premier League match becomes six short audio shows, each written and voiced by a different AI pundit, with automated fact checks deciding what is allowed to publish.
+**A B2C monetisation experiment app** (Ruling, Krish, 2026-10-06: "fulltime is not a job search thing, its a b2c monetization experiment app"). An AI football audio app: each day one finished Premier League match becomes six short audio shows, each written and voiced by a different AI pundit, with automated fact checks deciding what is allowed to publish.
 
 ### What it does and for whom
 It turns one checked set of match facts into six different readings of the game. Listeners pick a pundit. All six are free without an account; Full Time Pro is $4.99 a month.
 
 - **Buyer:** no ICP is defined in `product_icp` yet.
-- The older `venture_registry` text frames Full Time as a job-search asset ("Employers are the buyers; the payoff is the role"). That is stale. See [Inconsistencies found](#inconsistencies-found).
+- It is **not** a job-search or career asset. The `venture_registry` and `ventures` rows that said so were corrected on 2026-10-06 (see [Inconsistencies found](#inconsistencies-found), items 1 and 2).
 
 ### Objective now and how success is measured
-- **No growth objective or success number is recorded** for Full Time in Control Center, `venture_registry` or the facts of 2026-10-05. Krish should set one. Until then, report the six measures.
+- **No growth objective or success number is recorded** for Full Time in Control Center, `venture_registry` or the rulings of 2026-10-05 and 2026-10-06. Krish has set no target. Until he does, report the six measures.
 - Its own repository measures editorial quality: an edition publishes only if it passes every gate (`docs/00-product.md`; `NOW.md`).
 
 ### Priority and why
@@ -250,7 +252,7 @@ Stripe, Full Time account. One product: Full Time Pro, $4.99 a month. The 2026-1
 - The Premier League's own mark (club crests are used under a founder ruling; the league mark is not).
 - Public forecast accuracy figures before release evidence allows them (`docs/00-product.md`).
 - Cold outreach to clubs, fans, media or sponsors.
-- Krish's own time on football without asking him first (ikigai Rule 8).
+- Krish's own time on football without flagging it to him first (ikigai Rule 8's test; the product itself is inside the mission by the 2026-10-06 ruling).
 
 ### Open issues
 - No edition has published since 2026-09-05, per the repository as of 2026-10-03.
@@ -258,7 +260,7 @@ Stripe, Full Time account. One product: Full Time Pro, $4.99 a month. The 2026-1
 - Sign-ups are not bridged into the OS.
 - No ICP in `product_icp`.
 - The repository's `never_publish` list asks writers not to name the product, its domain or the sport. This document names them, under Krish's publication ruling of 2026-10-05.
-- Ikigai tension: football is protected (Rule 8), and Full Time is priority 1. See [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
+- Ikigai tension, resolved by ruling: football is protected (Rule 8), and Full Time is priority 1. Krish placed the portfolio inside the mission on 2026-10-06. See [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
 
 ---
 
@@ -330,7 +332,7 @@ Paid-plan overage is not yet reported to Stripe. x402 payments are on a test net
 - A paid fallback for hard sites is dormant pending a payment method.
 - No ICP in `product_icp`; AEO and sign-ups not wired.
 - The repository has no `NOW.md`, so the docs steward has no current-state file to read.
-- Ikigai tension: a data API for agents does not put a leader's edge back (Rule 7).
+- Ikigai tension, resolved by ruling: a data API for agents does not put a leader's edge back (Rule 7). Krish placed the portfolio inside the mission on 2026-10-06.
 
 ---
 
@@ -347,10 +349,10 @@ It keeps a leader's own context and judgement in one place and uses it on their 
 
 ### Objective now and how success is measured
 - **No portfolio objective or success number is recorded** for CTRL in Control Center for this tier. Report the six measures.
-- The ikigai gates CTRL's growth on paid rooms: build the leader's edge file after the first paid room, a paid ongoing product once two leaders ask to keep it (Sheet 3, section 3). Those gates sit inside the PAUSED ninety day plan's world; see [`docs/KRISH.md`](KRISH.md#what-is-paused-right-now).
+- The ikigai gates CTRL's growth on paid rooms: build the leader's edge file after the first paid room, a paid ongoing product once two leaders ask to keep it (Sheet 3, section 3). Those gates belong to the ikigai commitment, which is ongoing; the original plan's dates are history and no new ones are set (see [`docs/KRISH.md`](KRISH.md#the-ikigai-commitment-ongoing)). CTRL Pro being priced now is fine by Krish's ruling of 2026-10-06.
 
 ### Priority and why
-Priority 3, by Krish's ruling of 2026-10-05. He did not record a reason. It sits in both the mission and the portfolio.
+Priority 3, by Krish's ruling of 2026-10-05. He did not record a reason. Like every product, it sits inside the mission (Ruling, 2026-10-06).
 
 ### Status and stage
 Live. Free tier plus one paid tier.
@@ -359,7 +361,7 @@ Live. Free tier plus one paid tier.
 $0. **Zero paying customers.** It has never taken a payment.
 
 ### How it takes payment
-Stripe, mind/make account. One product: **CTRL Pro, $49 a month** (renamed from "Edge Pro" on 2026-10-05). Charged through Supabase edge functions in `mm-ctrl`. The checkout works; nobody has bought.
+Stripe, mind/make account. One product: **CTRL Pro, $49 a month** (renamed from "Edge Pro" on 2026-10-05). Charged through Supabase edge functions in `mm-ctrl`. The checkout works; nobody has bought. **Ruling (Krish, 2026-10-06): "CTRL is fine priced."** Any line saying CTRL is never priced is wrong for CTRL itself; see [Inconsistencies found](#inconsistencies-found), item 20, for the canon's wording about mindmake.co.
 
 ### The six measures
 
@@ -391,8 +393,7 @@ Stripe, mind/make account. One product: **CTRL Pro, $49 a month** (renamed from 
 - Cold outreach.
 
 ### Open issues
-- `src/lib/portfolio.ts` still calls the product "Edge Pro".
-- The Substack price mapping that once credited Substack revenue to CTRL; see [Inconsistencies found](#inconsistencies-found).
+- Resolved 2026-10-06: `src/lib/portfolio.ts` now says "CTRL Pro", and its `SUBSTACK` constant counts paid Substack members under the publication, matching migration `20261005140000` (items 7 and 8 below).
 - The repository's docs still carry the old "Mindmaker" name (`mm-ctrl` `NOW.md`).
 - No ICP in `product_icp`.
 
@@ -476,10 +477,10 @@ Two public doors, **Build your AI brain** and **Build your AI GTM**, lead to **o
 ### Objective now and how success is measured
 - **Mission (WORKING):** "Build the company that gives leaders their edge back before what is coming takes it, and sell it at scale with my name on it." (ikigai, Sheet 1)
 - **A proof counts as working** when the client says it is useful in practice and will stand behind that view (`01_CANON.md`, "The offer").
-- **The ikigai's ninety day plan, scorecard and stop rule are PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** There is no live numeric target until he sets one.
+- **The ikigai's twelve month commitment is ONGOING** (Ruling, Krish, 2026-10-06; it had been marked PAUSED on 2026-10-05). The 5 Oct stop rule was not met and Krish chose to continue. No new stop date or numeric target has been set, and the original plan's day 90 review date (5 Dec 2026) is unconfirmed. See [`docs/KRISH.md`](KRISH.md#the-ikigai-commitment-ongoing).
 
 ### Priority and why
-Not ranked. It is the mission and the one swing, separate from the portfolio ranking by Krish's ruling of 2026-10-05. `src/lib/portfolio.ts` tracks it on Growth as unranked.
+Not ranked against the products: it is the mission and the one swing, and the products roll into it (Ruling, Krish, 2026-10-06, superseding the 2026-10-05 split). When a surface can show only one thing, the mission leads. `src/lib/portfolio.ts` tracks it on Growth as unranked.
 
 ### Status and stage
 Live at mindmake.co. Approved R3 homepage and companion pages live (`mindmake` `NOW.md`, 2026-10-04).
@@ -502,7 +503,7 @@ Mindmake is tracked on Growth as unranked (`UNRANKED_GROWTH` in `src/lib/portfol
 
 | Channel | What it is | Status and money |
 |---|---|---|
-| **The publication** (Substack) | Mindmake's publication. Canon: exactly two channels, **The Money of AI** and **Built with AI**, no third (`02_PUBLICATION.md`). Long-form is the asset; social is the trailer. | The only live recurring revenue in the portfolio: 2 founding members, $13.51 a month. Two Substack addresses answer today (see [Not verified](#not-verified)). |
+| **The publication** (Substack, at home.makeyourmindup.ai) | Mindmake's publication. **Three channels** (Ruling, Krish, 2026-10-06, matching the database): **follow.the.money** on Mondays, **under.the.hood** on Wednesdays, **mind.the.gap** on Fridays. Each one's mandate lives in `venture_formats`. The canon's "exactly two channels" (`02_PUBLICATION.md`) is stale. Long-form is the asset; social is the trailer. | The only live recurring revenue in the portfolio: 2 founding members, $13.51 a month. Two Substack addresses answer today (see [Not verified](#not-verified)). |
 | **Signal & Noise** | A co-hosted podcast on AI in media. A distribution channel, not a venture, since 2026-08-11. | Active in `venture_registry` and `ventures`. Revenue: none recorded. |
 | **Maven** | Free lessons only. Their job is feeding CTRL and the publication. The paid cohort ladder is retired. | Maven teaching sits in the mind/make Stripe account. |
 | **Keynotes and the room** | The ikigai's demand engine: "closest thing to the purpose lived" (Sheet 1, section 8). | Not a product line in Stripe. |
@@ -510,7 +511,7 @@ Mindmake is tracked on Growth as unranked (`UNRANKED_GROWTH` in `src/lib/portfol
 ### Growth levers
 **May pull:**
 - Warm intros, drafted for Krish, never sent without him.
-- Published thinking through the two channels, built on owned artifacts, passing the five standards (`02_PUBLICATION.md`).
+- Published thinking through the three channels, built on owned artifacts, passing the five standards (`02_PUBLICATION.md`).
 - Search and AI answer visibility for mindmake.co.
 - The Start here flow and its bounded follow-up (results, then one follow-up fourteen days later).
 
@@ -518,7 +519,7 @@ Mindmake is tracked on Growth as unranked (`UNRANKED_GROWTH` in `src/lib/portfol
 - A public price, discount, diary link or "Book a call" button; an offer ladder; a chatbot (`00_NORTH_STAR.md`, "What we will not do").
 - Attendee brands described as clients; a count of leaders helped that is not evidenced.
 - Any name but Mindmake ("Mindmaker" only inside verbatim quotes and the legal entity).
-- A third publication channel or a revived old channel name.
+- A fourth publication channel, or a revived old channel name (The Money of AI, Built with AI, Paid, Built).
 - Cold email, or an email nobody asked for.
 - The internal buyer psychology, sales wedge or routing notes in public copy (`01_CANON.md`).
 
@@ -526,7 +527,8 @@ Mindmake is tracked on Growth as unranked (`UNRANKED_GROWTH` in `src/lib/portfol
 - `api/_mission.ts` in this repository still says "a paid three week pilot" and one door; the canon says a 30-day public shape and two doors. It feeds Home's daily move.
 - `api/_venturePositioning.ts` still offers the retired Strategy Day and lists builder_economy as live.
 - Canon conflict, recorded not fixed: `00_NORTH_STAR.md` still carries the older homepage promise "Build the business that can think with you", while `01_CANON.md` and `NOW.md` carry the new headline; `00` outranks `01`.
-- Founder visibility is an open decision for Krish (ikigai Sheet 2, section 4).
+- Canon conflicts with the 2026-10-06 rulings, recorded here and not fixed, because `krishanraja/mindmake` is excluded from the publication ruling and kept out of the canon rollout: `02_PUBLICATION.md` still says exactly two channels (the ruling says three), and the canon says CTRL is "never priced" (the ruling says CTRL being priced is fine). Both need Krish to edit the canon himself.
+- Founder visibility is an open decision for Krish (ikigai Sheet 2, section 4). Still open on 2026-10-06.
 - The partner (ikigai "the binding") does not exist yet.
 
 ---
@@ -582,21 +584,21 @@ Each of these is stopped. Do not source, score, draft or build for any of them. 
 
 ## Inconsistencies found
 
-Found while writing this on 2026-10-05. Each is recorded, not silently resolved. Where the 2026-10-05 facts or rulings settle it, that is said.
+Found while writing this on 2026-10-05. Each is recorded, not silently resolved. Where the 2026-10-05 facts or rulings settle it, that is said. Items settled by Krish's rulings of 2026-10-06 are marked "Resolved by ruling" with that date and left in place.
 
 **Ranking and status**
 
-1. **`venture_registry` still frames Full Time as a job-search asset.** Its `icp_description` reads "Employers are the buyers; the payoff is the role (Sept 2026 urgency)... Keep running, no new build", kind `career`. Full Time is a priority 1 product by ruling. The registry row is stale.
-2. **The `ventures` table calls Full Time, Pulse and Circle "Build experiment acquiring test customers... Never a product for sale."** Full Time and Pulse are ranked products with Stripe prices. The CTRL row says "Kept alive deliberately cheaply." Both predate the 2026-10-05 ranking.
+1. **`venture_registry` still frames Full Time as a job-search asset.** Its `icp_description` reads "Employers are the buyers; the payoff is the role (Sept 2026 urgency)... Keep running, no new build", kind `career`. Full Time is a priority 1 product by ruling. The registry row is stale. **Resolved by ruling (Krish, 2026-10-06):** "fulltime is not a job search thing, its a b2c monetization experiment app." The row was corrected that day: `kind` is `product`, and `icp_description` and `scoring_criteria` describe a B2C monetisation experiment with no buyer defined yet. The previous row is backed up outside the repository.
+2. **The `ventures` table calls Full Time, Pulse and Circle "Build experiment acquiring test customers... Never a product for sale."** Full Time and Pulse are ranked products with Stripe prices. The CTRL row says "Kept alive deliberately cheaply." Both predate the 2026-10-05 ranking. **Resolved by ruling for Full Time (Krish, 2026-10-06):** its `ventures` description now reads as a B2C monetisation experiment app with Full Time Pro at $4.99 a month. Still open for Pulse and Circle, which no ruling covered.
 3. **Circle is marked active in both `venture_registry` and `ventures`,** and `src/lib/portfolio.ts` still tracks it on Growth (unranked). The ruling and Circle's own `NOW.md` say dormant.
 4. **`docs/MINDMAKE_OS_ARCHITECTURE.md` section 11 is out of date:** it says the OS tracks 8 ventures, omits Heartside, gives Full Time's domain as a preview address with Stripe in test mode only, says Legibility has no Stripe webhook, and says Circle and Pulse "are now run outside the OS". A second writer is rewriting that document in parallel.
 5. **This repository's `NOW.md` ("What it is")** describes the portfolio as Mindmake, the publication with Paid and Built formats, mm-ctrl and Fractionl. It does not reflect the 2026-10-05 ladder.
-6. **The ikigai and the one-swing plan call the portfolio the avoidance pattern** ("Working on anything outside the one swing", Sheet 4, section 3; `docs/plans/one-swing/CHARTER.md`). Krish's 2026-10-05 ruling keeps both. Named in [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio), not resolved.
+6. **The ikigai and the one-swing plan call the portfolio the avoidance pattern** ("Working on anything outside the one swing", Sheet 4, section 3; `docs/plans/one-swing/CHARTER.md`). Krish's 2026-10-05 ruling keeps both. Named in [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio), not resolved. **Resolved by ruling (Krish, 2026-10-06):** "portfolio rolls in to mission." This supersedes the 2026-10-05 split; the ikigai text stays unchanged.
 
 **Money and payment**
 
-7. **CTRL's paid tier name:** the facts of 2026-10-05 say "CTRL Pro" (renamed from Edge Pro that day). `src/lib/portfolio.ts` (`what` and the revenue note) and `mm-ctrl` `NOW.md` still say "Edge Pro".
-8. **Substack revenue attribution:** `src/lib/portfolio.ts` says CTRL's revenue was corrected and the Substack plans now read under the publication, but the `SUBSTACK` constant in the same file still says `paidCountedUnder: 'mm_ctrl'` and its comment says the price map files Substack subscribers under CTRL.
+7. **CTRL's paid tier name:** the facts of 2026-10-05 say "CTRL Pro" (renamed from Edge Pro that day). `src/lib/portfolio.ts` (`what` and the revenue note) and `mm-ctrl` `NOW.md` still say "Edge Pro". **Resolved 2026-10-06:** `src/lib/portfolio.ts` now says "CTRL Pro" (Krish's ruling of the same day: "CTRL is fine priced").
+8. **Substack revenue attribution:** `src/lib/portfolio.ts` says CTRL's revenue was corrected and the Substack plans now read under the publication, but the `SUBSTACK` constant in the same file still says `paidCountedUnder: 'mm_ctrl'` and its comment says the price map files Substack subscribers under CTRL. **Resolved 2026-10-06:** `SUBSTACK.paidCountedUnder` is now `publication`, and its comment says so; `tests/api/portfolio.test.ts` pins both.
 9. **Full Time checkout:** the facts and `src/lib/portfolio.ts` say the checkout is wired and live. `full-time` `NOW.md` (2026-10-03) lists "new checkout" among things built but switched off by flag. Either way, it has collected $0.
 10. **Mindmake's price:** the 2026-10-05 ruling publishes pricing in this repository, but the canon says the rate card is private and "No number appears anywhere public, ever" (`01_CANON.md`, "Pricing"), and `mindmake` `NOW.md` lists the rate card under `never_publish`. This document does not restate it. **Krish should say whether the ruling covers Mindmake's private rate card.** (The ikigai, published verbatim by the same ruling, does contain his 2026 diagnostic and embedded price ranges.)
 11. **Heartside ad spend:** the store's plan puts $100 to $150 behind organic clips after 72 hours. The Acquisition OS Gate 4 rule says paid spend starts only after revenue flows through owned or earned channels. Spend is Krish's action either way.
@@ -612,12 +614,12 @@ Found while writing this on 2026-10-05. Each is recorded, not silently resolved.
 **Names, domains, channels**
 
 17. **CTRL's address:** `src/lib/portfolio.ts` and the canon use ctrl.mindmake.co; `mm-ctrl` `NOW.md` and its product file use makeyourmindup.ai. Both answered on 2026-10-05.
-18. **Publication channels:** the canon (`02_PUBLICATION.md`, reviewed 24 September 2026) says exactly two channels, The Money of AI and Built with AI. This repository's `NOW.md` says the publication runs three subchannels (`follow_the_money`, `mind_the_gap`, `under_the_hood`, ruling 2026-09-19, names 2026-09-25), enforced in the database.
+18. **Publication channels:** the canon (`02_PUBLICATION.md`, reviewed 24 September 2026) says exactly two channels, The Money of AI and Built with AI. This repository's `NOW.md` says the publication runs three subchannels (`follow_the_money`, `mind_the_gap`, `under_the_hood`, ruling 2026-09-19, names 2026-09-25), enforced in the database. **Resolved by ruling (Krish, 2026-10-06):** three channels, matching the database: follow.the.money on Mondays, under.the.hood on Wednesdays, mind.the.gap on Fridays, at home.makeyourmindup.ai. The canon file is stale and is Krish's to edit (the mindmake repo is out of the canon rollout).
 19. **Substack address:** the publication's address is home.makeyourmindup.ai, which Krish chose on 2026-10-05, and `src/lib/portfolio.ts` uses it. Until then it was mindmakerlive.substack.com (page title "makeyourmind/up"). The site checks keep the old address as an alias, so visits and AI answers that still use it keep counting. The canon named the old address on 2026-10-05 and still needs the same change. A second Substack, makeyourmindup.substack.com ("Make Your Mind Up | Krish Raja"), also answers. The facts call the paid publication "makeyourmindup". `live.themindmaker.ai`, which the old architecture doc said redirects to the Substack, returned 404 on 2026-10-05: Vercel has no deployment there.
-20. **CTRL on the Mindmake site:** the canon says CTRL is "never a third thing to buy, never linked, never priced". CTRL itself sells CTRL Pro at $49 a month on its own site. The canon governs mindmake.co only; the conflict is in how the two are described, not in what is live.
-21. **Founder visibility:** the ikigai mission says "with my name on it" and Sheet 2 recommends founder visible. The Acquisition OS v1.1 rule (2026-07-06) says no motion may require Krish's personal brand, and the canon speaks as "we". Open for Krish.
+20. **CTRL on the Mindmake site:** the canon says CTRL is "never a third thing to buy, never linked, never priced". CTRL itself sells CTRL Pro at $49 a month on its own site. The canon governs mindmake.co only; the conflict is in how the two are described, not in what is live. **Resolved by ruling for CTRL itself (Krish, 2026-10-06):** "CTRL is fine priced", so CTRL Pro at $49 a month stands. The canon's "never priced" line conflicts and is recorded, not edited, because the mindmake repo is excluded.
+21. **Founder visibility:** the ikigai mission says "with my name on it" and Sheet 2 recommends founder visible. The Acquisition OS v1.1 rule (2026-07-06) says no motion may require Krish's personal brand, and the canon speaks as "we". Open for Krish. **Still open on 2026-10-06:** not ruled.
 22. **The offer shape:** the ikigai (Sheet 2) and `api/_mission.ts` describe a three week diagnostic and one door; the canon has two doors and a 30-day public shape. The canon wins for Mindmake's offer.
-23. **Hunter:** the ikigai parks the job search, and the 2026-10-05 facts record that the Hunter agent (job sourcing) is KEPT active. Both are Krish's calls; noted so nobody "fixes" one by reading the other.
+23. **Hunter:** the ikigai parks the job search, and the 2026-10-05 facts record that the Hunter agent (job sourcing) is KEPT active. Both are Krish's calls; noted so nobody "fixes" one by reading the other. **Resolved by ruling (Krish, 2026-10-06):** "Hunter is active yes."
 24. **Repository `never_publish` lists versus the ruling:** `full-time`, `fractionl-pulse` and `fractionl-circle` ask writers not to name the product or domain, and `mm-ctrl` and this repository's `NOW.md` forbid publishing revenue or scorecard figures. Those rules govern Mindmake content writers; Krish's 2026-10-05 ruling publishes venture objectives, pricing and revenue in this repository.
 
 ## Not verified

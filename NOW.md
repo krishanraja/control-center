@@ -36,17 +36,18 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 - **Live** at controlcenter.krishraja.com behind an access code, auto-deployed from `main`. CI runs lint, three typechecks, the structural guards and the Playwright gates on every push (`.github/workflows/ci.yml`, listed in `AGENTS.md`). A logged-in production render of all eight tabs at 1440x900, 1280x800 and 390x844 showed no page scroll and no crash on 2026-10-05.
 - **Six destinations and a drawer** (`src/lib/tabs.ts`): Home, Content, People, Growth, OS; Focus, Board and Subscriptions in the drawer. The OS Queue is gone (2026-10-04); each ruling is decided in the tab that owns it.
 - **Every tab meets the Growth standard** (PRs #392, #393): numbers at a glance, insight only when asked, one move with its verdict in place, honest emptiness, recomposed per width. Each surface's move is chosen by `src/lib/surfaceMoves.ts` (tested in `tests/api/surfaceMoves.test.ts`); every desk scroller reaches the bottom of the frame (`e2e/frame-reach-desk.spec.ts`).
-- **One product ladder** (`src/lib/portfolio.ts`, #387): Heartside and Full Time first, Legibility second, CTRL and Pulse third, Circle dormant. Growth and Subscriptions render the same ranked board, and a number nothing reads says what is missing instead of 0.
+- **One product ladder, inside the mission** (`src/lib/portfolio.ts`, #387): Heartside and Full Time first, Legibility second, CTRL and Pulse third, Circle dormant. Since 2026-10-06 the products roll into Mindmake rather than run as a separate lane (architecture doc, section 0.3). Growth and Subscriptions render the same ranked board, and a number nothing reads says what is missing instead of 0.
 - **Money is read from all five Stripe accounts** on one read-only organisation key (#388), and Substack's plans are filed under the publication, not CTRL. Unsigned Stripe webhooks are refused (`POST /api/revenue/webhook`). Heartside sells through Shopify Payments and is read in the Shopify admin, linked from Subscriptions (#393). `scripts/stripe-reconcile.mts` re-measures.
 - **The connections sweep watches the keys revenue uses** (#391): the Stripe organisation key and Heartside's Shopify credential, both strict, so a rejected credential reads as failed rather than green.
 - **Each product's buyer is defined once**, in `product_icp`, on Growth > Buyers (#389). Only Mindmake's row is defined; the other five are blocked, by design, until Krish fills them.
 - **Nova's visibility standard** is three conditions, all true at once, and every refusal is written with its reason (#390, `api/_visibilityScore.ts`).
 - **Agents report here, never into Drive** (#386): OS > Org shows each agent's plan (read through the API, because RLS hides it from the browser), open tasks and last runs; OpenClaw runs arrive in `workflow_runs`; the guest briefing opens in Control Center.
 - **The architecture doc was rebuilt** on 2026-10-05: a lean core with one canon, open issues and the retired list up front, detail in `docs/architecture/`, history in `docs/history/`. The engine's anchors are pinned by `tests/api/architectureDoc.test.ts`.
-- **Known broken, not hidden** (architecture doc, section 0b): `api/_mission.ts` and `api/_venturePositioning.ts` still describe retired offers; the scorecard still encodes the paused ninety day plan; `hasAccess()` fails open when its code is unset; six migration version collisions; Pulse cannot take a payment.
+- **Known broken, not hidden** (architecture doc, section 0b): `api/_mission.ts` and `api/_venturePositioning.ts` still describe retired offers; the scorecard still encodes the original ninety day plan's spent stop rule and its unconfirmed day 90 date; `hasAccess()` fails open when its code is unset; six migration version collisions; Pulse cannot take a payment.
 
 ## What changed recently
 
+- 2026-10-06 **Krish's rulings of 2026-10-06 are recorded, and Full Time's venture rows stop calling it a job search** (#397). Ruling (Krish, 2026-10-06): "portfolio rolls in to mission", superseding the 2026-10-05 "both, explicitly split" and its seven-point rule, so there is one queue and the mission leads when a surface can show one thing; the ikigai commitment is ongoing ("its ongoing"), replacing the PAUSED status, with no new stop date set; "fulltime is not a job search thing, its a b2c monetization experiment app"; "CTRL is fine priced"; three publication channels; "Hunter is active yes". Founder visibility stays open. Why: the 2026-10-05 docs told every agent to treat the plan as paused and the products as a rival lane, and `venture_registry` still scored Full Time leads as employers hiring for a role. `src/lib/portfolio.ts` now says CTRL Pro and counts paid Substack members under the publication, matching the data.
 - 2026-10-05 **makeyourmindup's Substack lives at home.makeyourmindup.ai** (`4ff9089b`, migration `20261005220000`). Decision (Krish, 2026-10-05): "mindmakerlive.substack.com is now replaced with home.makeyourmindup.ai as the substack homepage. should I call it something different? if not, sub this out absolutely everywhere"; the name stays "home". The website reading, the AI-answer probes and the AEO subject count both addresses, so visits and citations under the old one still count; Substack's own name for the publication, `mindmakerlive`, stays where its API uses it.
 - 2026-10-05 **The architecture doc became something an agent can actually load** (this rebuild). Why: at 415 KB it carried four dated canon blocks that overruled each other, a 140 KB changelog and retired brands described as live, so an agent could not tell what was true. Now a lean core with one canon, the open issues and the only retired list up front; detail in `docs/architecture/`, history in `docs/history/`. Rebuilding it nearly broke the weekly engine: with no `### ` heading after the oldest engine entry, a re-run of that week would have cut the file to its end. `tests/api/architectureDoc.test.ts` now pins every anchor, mutation-tested.
 - 2026-10-05 **Subscriptions, People and OS reached the Growth standard, and every desk tab reaches the bottom of the screen** (#393). Why: Org's rulings, the ones Home's waiting count routes to Org, were nowhere on Org; phone Systems called an unchecked board "All systems healthy"; and the shared wrapper reserved the capture-pill gutter by shortening the frame, so every scroller on Customers, People and OS stopped at 804 of 900 pixels. Ruling (Krish, 2026-10-05): Heartside is read in Shopify for now, never as MRR.
@@ -74,7 +75,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What is next and what is waiting on Krish
 
-- **Reset the ikigai's stop rule and plan.** The twelve month commitment and the ninety day plan are paused as of 2026-10-05; the new stop date and terms are his to set. Until then the Monday scorecard's day-90 lines describe a paused plan.
+- **Say whether the ikigai's day 90 review (5 Dec 2026) stands.** The commitment is ongoing (ruling 2026-10-06) and no new stop date is set; the original plan's 5 Dec date was not restated, so the Monday scorecard's day 90 lines show an unconfirmed date.
 - **Fill Growth > Buyers** for Heartside, Full Time, Legibility, CTRL and Pulse. Maya's prospecting is blocked for each until he does.
 - **Decide whether to close the empty Heartside Stripe account**, and fix the sling priced below landed cost before the 2026-10-20 launch (Heartside's own store notes).
 - **Settle the business canon headline** in `krishanraja/mindmake` (00 and 01 disagree; 00 outranks).
@@ -87,7 +88,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 2. `docs/KRISH.md` and `docs/PORTFOLIO.md`: who Krish is and each product's objectives.
 3. `README.md`: what this repo is, the stack and the layout.
 4. `docs/PRODUCT.md` and `docs/ARCHITECTURE.md`: each tab, and the engineering contract.
-5. `docs/plans/one-swing/STATE.md`: the operating ledger (its plan is paused; see above).
+5. `docs/plans/one-swing/STATE.md`: the operating ledger (its commitment is ongoing; its original dates are history).
 6. `docs/DECISIONS/`: why things are the way they are.
 7. `docs/ICP.md`, `docs/icp.json` and `product_icp`: who the OS scores and drafts for.
 8. `AGENTS.md`: rules for coding agents working in this repo.
@@ -96,9 +97,8 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 - Anything in `docs/history/`, including the old canon blocks and changelog of the architecture doc (moved 2026-10-05). It is the record, not current guidance.
 - The "Known stale in this file" items at the top of each `docs/architecture/` file: that text predates 2026-10-05 and the core wins.
-- `docs/plans/one-swing/CHARTER.md` where it says "Portfolio is the avoidance pattern": Krish ruled mission and portfolio both, explicitly split, on 2026-10-05 (architecture doc, section 0.3).
+- `docs/plans/one-swing/CHARTER.md` where it says "Portfolio is the avoidance pattern": Krish ruled on 2026-10-06 that the portfolio rolls into the mission, superseding the 2026-10-05 "both, explicitly split" (architecture doc, section 0.3).
 - `PUBLIC_SERIES` in `src/lib/publicSeries.ts` as the format vocabulary: it is the wordmark asset registry; `venture_formats` is the truth.
-- The `SUBSTACK` comment in `src/lib/portfolio.ts` saying paid Substack subscribers are counted under CTRL: migration `20261005140000` moved them to the publication.
 - Any copy of `scripts/cron/crontab.txt` older than 2026-09-19, and any prose saying the VPS governor caps n8n spend: it warns only.
 - `n8n/workflows/README.md`'s claim that the n8n editor is canonical: direction of truth is per workflow (`AGENTS.md`).
 - `docs/CONTENT_TAB_SPEC.md`, the `docs/pr-*.md` notes and `docs/visibility-followups-2026-05.md`: dated build notes, not architecture.

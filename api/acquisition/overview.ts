@@ -32,8 +32,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const laneFilter = typeof req.query.lane === 'string' ? req.query.lane : null
 
-    // Lane roster comes from config, not venture kind — full_time is
-    // kind='career' and mindmake is kind='product', so kind can't select.
+    // Lane roster comes from config, not venture kind: most rows are
+    // kind='product' (full_time too, since 2026-10-06), so kind can't select.
     const { data: laneCfg } = await supabase
       .from('system_config')
       .select('value')

@@ -1,5 +1,7 @@
 # Rebrand to Mindmake, 29 August 2026
 
+> **Partly superseded (note added 2026-10-06).** The architecture doc has since been rewritten, so it wins over this file. These things below are no longer true: the publication now has three channels (follow.the.money on Mondays, under.the.hood on Wednesdays, mind.the.gap on Fridays, at home.makeyourmindup.ai; ruling, Krish, 2026-10-06), and The Money of AI and Built with AI were retired on 2026-09-17. And Full Time is a B2C monetisation experiment app, not a job-search asset (ruling, Krish, 2026-10-06), so the line saying it is never described as a product for sale no longer holds for it.
+
 This file is the canonical map for the pivot. Every other change in this pass derives
 from it. Where this file and an older OS doc disagree, this one wins until the
 architecture doc is rewritten to match.

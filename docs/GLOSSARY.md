@@ -8,7 +8,8 @@
 > the core wins and this file is fixed. Retired names are listed in the
 > core's section 0c; an entry below that names one says so.
 >
-> Last checked 2026-10-05.
+> Last checked 2026-10-05; the Full Time, CTRL, Hunter, Mindmake, Portfolio ladder and
+> Publication entries rechecked against the rulings of 2026-10-06.
 
 ---
 
@@ -115,8 +116,9 @@ or `standards_registry`.
 
 **CTRL** - The AI brain app at ctrl.mindmake.co, repo `mm-ctrl`. Sells one
 thing, **CTRL Pro at $49 a month** (renamed from Edge Pro on 2026-10-05),
-charged by Supabase edge functions in that repo. Zero paying customers as of
-2026-10-05. Priority 3.
+charged by Supabase edge functions in that repo. Being priced is fine
+(ruling, Krish, 2026-10-06). Zero paying customers as of 2026-10-05.
+Priority 3.
 
 **Customer** - A row in `customers`: the cross-product ledger keyed by
 product and Stripe customer id. `customer_kind`:
@@ -178,9 +180,10 @@ hours that reconciles every workflow against the n8n API.
 
 **Flow** - An n8n workflow. OS > Flows lists them.
 
-**Full Time** - Football recaps read by a pundit you pick, at fulltime.fm.
-Full Time Pro is $4.99 a month; it has never collected a payment
-(2026-10-05). Priority 1.
+**Full Time** - A B2C monetisation experiment app: football recaps read by
+a pundit you pick, at fulltime.fm. Never a job-search or career asset
+(ruling, Krish, 2026-10-06). Full Time Pro is $4.99 a month; it has never
+collected a payment (2026-10-05). Priority 1.
 
 ---
 
@@ -215,7 +218,8 @@ which Control Center links to. Priority 1.
 (`id='current'`), refreshed by Marcus.
 
 **Hunter** - The job sourcing, packages and warm intros agent; the Hunt lane
-on People. Kept (confirmed 2026-10-05). Runs from GitHub Actions and
+on People. Active (confirmed 2026-10-05; ruling, Krish, 2026-10-06: "Hunter is
+active yes"). Runs from GitHub Actions and
 `/api/hunter/tick`.
 
 ---
@@ -271,7 +275,8 @@ the pattern and say what it means is coming. Mandate in `venture_formats`.
 
 **Mindmake** - The business and the mission, at mindmake.co. Two doors,
 Build your AI brain and Build your AI GTM, lead into one privately scoped
-paid proof. Canon: `github.com/krishanraja/mindmake`.
+paid proof. Every product rolls into it (ruling, Krish, 2026-10-06). Canon:
+`github.com/krishanraja/mindmake`.
 
 **Monitor (agent type)** - An agent whose job is continuous health or audit:
 Vera, Arlo.
@@ -318,8 +323,11 @@ Center events to the right agent workflow.
 
 **Portfolio ladder** - Krish's product ranking of 2026-10-05: 1 Heartside
 and Full Time; 2 Legibility; 3 CTRL and Pulse; Circle dormant. The one code
-source is `src/lib/portfolio.ts`. It ranks products against each other, not
-the portfolio against the Mindmake mission (core section 0.3).
+source is `src/lib/portfolio.ts`. It ranks products against each other.
+The products roll into the Mindmake mission, which is the parent: when a
+surface can show only one thing the mission leads and the ladder orders the
+products beneath it (ruling, Krish, 2026-10-06, superseding the 2026-10-05
+"both, explicitly split"; core section 0.3).
 
 **Prepaid line** - The usage a plan price already covers
 (`service_registry.included_usd`) and the point past it where the vendor
@@ -338,8 +346,10 @@ defaulted. On 2026-10-05 only `mindmake` was defined.
 `workflow_proposals`.
 
 **Publication** - Mindmake's publication on Substack (makeyourmindup), slug
-`publication`. Three subchannels. Its two founding members are the only live
-revenue in the portfolio (2026-10-05).
+`publication`, at home.makeyourmindup.ai. Three channels (ruling, Krish,
+2026-10-06): follow.the.money on Mondays, under.the.hood on Wednesdays,
+mind.the.gap on Fridays. Its two founding members are the only live revenue
+in the portfolio (2026-10-05).
 
 **Pull-only** - The rule since 2026-09-06: the OS never contacts Krish. No
 Telegram, no push. He reads Control Center when he chooses.
