@@ -12,7 +12,9 @@
 
 > **Ruling (Krish, 2026-10-05):** publish his ikigai, venture objectives, pricing and revenue in `krishanraja/control-center` and `krishanraja/ai-harness`. The `krishanraja/mindmake` repository is excluded.
 
-## Status at a glance (2026-10-05)
+## Status at a glance (2026-10-06)
+
+> **Ruling (Krish, 2026-10-06): the commitment is ONGOING.** Krish: "its ongoing." This replaces the "PAUSED, being reset" status written on 2026-10-05. *"Ongoing" is the coordinator's reading of those two words, recorded as such.*
 
 | Part | Status | Where |
 |---|---|---|
@@ -20,13 +22,13 @@
 | Mission | **WORKING**, not locked | Sheet 1, section 1 |
 | The binding (a partner) | **OPEN**: no partner exists yet | Sheet 1, section 1 |
 | Decision rules v2 (eight rules) | In force | Sheet 1, section 4 |
-| Twelve month commitment | **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** | Sheet 1, section 5 |
-| Ninety day plan | **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** | Sheet 1, section 6 |
-| Twelve week scorecard | **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** Holds only the week one example values. | Sheet 1, section 7 |
-| Stop rule ("fewer than 2 of 25 leaders take a call, or no paid room by 5 Oct 2026") | **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** It fell due on 5 October 2026 and was not met. | Sheet 1, sections 5 and 7 |
+| Twelve month commitment | **ONGOING** (ruling, Krish, 2026-10-06). It continues, 7 Sep 2026 to 6 Sep 2027. No new stop date has been set. | Sheet 1, section 5 |
+| Ninety day plan | Part of the ongoing commitment. Its dated steps (5 Sep to 5 Dec 2026) are history from the original plan. The day 90 review date (5 Dec 2026) was not restated by Krish, so it is **unconfirmed, not live**. | Sheet 1, section 6 |
+| Twelve week scorecard | Part of the ongoing commitment. Holds only the week one example values; its targets are the original plan's and were not restated. | Sheet 1, section 7 |
+| Stop rule ("fewer than 2 of 25 leaders take a call, or no paid room by 5 Oct 2026") | Fell due on 5 October 2026 and was not met. **Krish chose to continue** (ruling, 2026-10-06). No new stop date has been set. | Sheet 1, sections 5 and 7 |
 | Decision rules v1 (seven rules, Appendix D) | Superseded by the eight rules in Sheet 1, section 4. Kept as the record. | Sheet 8 |
 
-Agents must not act on the twelve month commitment, the ninety day plan, the scorecard or the stop rule as if they were live.
+The commitment is live. Do not invent a new stop date, targets or plan dates, and do not treat the original plan's 5 Dec 2026 review date as confirmed: Krish has not restated it.
 
 ## How to cite a row
 
@@ -43,14 +45,14 @@ Every answer carries a reference. Cite it so anyone can check.
 2. Rows became markdown tables. A row the sheet left shorter than its table is padded with empty cells. A single-cell note row is printed as a paragraph after its table, in the same order.
 3. Four tables in Sheet 8 had no header row in the sheet. Their column labels are in **[square brackets]** because they are additions, not his words.
 4. Sheet titles are numbered (Sheet 1 to Sheet 8) for citing.
-5. Dated status notes (the PAUSED and "Note added" boxes) were added above the parts they govern. They sit outside the verbatim text.
+5. Dated status notes (the status and "Note added" boxes) were added above the parts they govern. They sit outside the verbatim text.
 6. No private individual other than Krish is named anywhere in the workbook, so no name was replaced. Company names (Microsoft, Nine, Captify, Sincera) are his employers or public companies and stay.
 7. The export's sheet identifier and mailbox were left out. They are infrastructure, not content.
 
 ## Read it with these cautions
 
 - **Sheets 2 to 4 were written without reading the live repositories or the business canon.** Sheet 2 (Mindmake positioning) predates the business canon reviewed on 24 September 2026 in `krishanraja/mindmake` (`project-documentation/00_NORTH_STAR.md`, `01_CANON.md`). For anything public about Mindmake, the canon wins. Sheet 3 (CTRL) and Sheet 4 (Control Center) say so themselves.
-- **The ikigai describes the person.** The product portfolio Krish ranked on 2026-10-05 (Heartside, Full Time, Legibility, CTRL, Pulse) is a separate track. How the two fit, and where they pull against each other, is in [`docs/KRISH.md`](../KRISH.md#mission-versus-portfolio) and [`docs/PORTFOLIO.md`](../PORTFOLIO.md).
+- **The ikigai describes the person.** The product portfolio Krish ranked on 2026-10-05 (Heartside, Full Time, Legibility, CTRL, Pulse) rolls into the mission (ruling, Krish, 2026-10-06, superseding "both, explicitly split" of 2026-10-05). The tension with Rules 7 and 8 is resolved by that ruling, not by changing the text below. How the two fit is in [`docs/KRISH.md`](../KRISH.md#mission-versus-portfolio) and [`docs/PORTFOLIO.md`](../PORTFOLIO.md).
 
 ## Contents
 
@@ -120,7 +122,7 @@ Version 4, 5 September 2026. Built from 138 ranked answers: batch one (8 Aug), b
 
 ### 5. The twelve month commitment
 
-> **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** The stop rule fell due on 5 October 2026 and was not met: the scorecard holds only the week one example values. Agents must not act on this section as if it were live. The verbatim text below is unchanged.
+> **ONGOING (ruling, Krish, 2026-10-06).** The commitment continues. Its stop rule fell due on 5 October 2026 and was not met, and Krish chose to continue rather than stop. No new stop date has been set. This replaces the "PAUSED" note of 2026-10-05. The verbatim text below is unchanged.
 
 | Commitment | Terms | Revisit trigger | Flip condition |
 |---|---|---|---|
@@ -130,7 +132,7 @@ Version 4, 5 September 2026. Built from 138 ranked answers: batch one (8 Aug), b
 
 ### 6. Ninety day plan. Room first, company second, raise third
 
-> **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** The stop rule fell due on 5 October 2026 and was not met: the scorecard holds only the week one example values. Agents must not act on this section as if it were live. The verbatim text below is unchanged.
+> **Status 2026-10-06: the commitment is ONGOING, and these dated steps are history.** The windows dated 5 Sep to 5 Dec 2026 are the original plan's. The day 90 review date (5 Dec 2026) was not restated by Krish, so it is unconfirmed, not live. This replaces the "PAUSED" note of 2026-10-05. The verbatim text below is unchanged.
 
 | Window | Do | Done when | Owner |
 |---|---|---|---|
@@ -142,7 +144,7 @@ Version 4, 5 September 2026. Built from 138 ranked answers: batch one (8 Aug), b
 
 ### 7. Twelve week scorecard. Fill the yellow cells weekly. Totals and gaps are formulas.
 
-> **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** The stop rule fell due on 5 October 2026 and was not met: the scorecard holds only the week one example values. Agents must not act on this section as if it were live. The verbatim text below is unchanged.
+> **Status 2026-10-06: part of the ONGOING commitment.** It holds only the week one example values. Its targets and its day 90 read (5 Dec 2026) come from the original plan and were not restated by Krish, so they are unconfirmed. This replaces the "PAUSED" note of 2026-10-05. The verbatim text below is unchanged.
 
 | Week ending | Approaches sent | Calls taken | Paid rooms | Cash invoiced (GBP) | Pieces published | Hours building unasked |
 |---|---|---|---|---|---|---|
@@ -179,7 +181,7 @@ Week one carries example values (3 sent, 1 call, 1 published) to show the format
 
 ### 9. Assumption ledger. Beliefs the plan rests on, with flip rules
 
-> **Note added 2026-10-05.** The flip rules dated 5 October 2026 and 31 October 2026 belong to the ninety day plan, which is PAUSED while Krish resets it. The beliefs themselves stand. The verbatim text below is unchanged.
+> **Note added 2026-10-05, updated 2026-10-06.** The flip rules dated 5 October 2026 and 31 October 2026 belong to the original ninety day plan. The 5 October stop rule was not met and Krish chose to continue: the commitment is ONGOING (ruling, Krish, 2026-10-06). The beliefs themselves stand. The verbatim text below is unchanged.
 
 | Belief | Confidence | Evidence that set it | Flip rule |
 |---|---|---|---|
@@ -249,7 +251,7 @@ Recommendation: A above the fold, B directly beneath it, C on the room page. No 
 
 ### 5. Tests, ninety days
 
-> **PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** These tests share the ninety day plan's dates and its 5 October 2026 stop rule. The verbatim text below is unchanged.
+> **Status 2026-10-06.** These tests share the original ninety day plan's dates and its 5 October 2026 stop rule, which was not met. Krish chose to continue and the commitment is ONGOING; no new dates have been set. This replaces the "PAUSED" note of 2026-10-05. The verbatim text below is unchanged.
 
 | Test | Measure | Pass | Fail |
 |---|---|---|---|
@@ -310,7 +312,7 @@ Deliberately written without reading the current repo or corpus. This is the pro
 
 ### Control Center (the OS): how it evolves to serve the ikigai
 
-> **Note added 2026-10-05.** The scorecard columns, the list of 25 and the stop rule this sheet refers to belong to the ninety day plan, which is PAUSED while Krish resets it. The verbatim text below is unchanged.
+> **Note added 2026-10-05, updated 2026-10-06.** The scorecard columns, the list of 25 and the stop rule this sheet refers to belong to the original ninety day plan. The commitment is ONGOING (ruling, Krish, 2026-10-06); no new stop date has been set. The verbatim text below is unchanged.
 
 Written without reading github.com/krishanraja/control-center, by request. This describes what the engine under one swing has to do. Reconcile against the repo afterwards.
 
