@@ -426,6 +426,9 @@ export function useContentCalls() {
     error: ideasQ.error && !ideas.length ? ideasQ.error : null,
     retry: refreshAll,
     today,
+    // The instant the visit read the clock: the clear-out badge needs the
+    // hour, not just the day, because the purge runs Monday 14:00 UTC.
+    now,
     ideas,
     calls,
     unsupported: model?.unsupported ?? [],

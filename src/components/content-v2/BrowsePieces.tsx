@@ -88,20 +88,20 @@ function SeriesPieces({ slug, s }: { slug: string; s: ContentCalls }) {
       <section className="flex flex-col gap-2">
         <h3 className="leading-none"><Eyebrow>Being made ({making.length})</Eyebrow></h3>
         {making.length
-          ? <ul className="flex flex-col divide-y divide-white/[0.06]">{making.map(i => <PieceRow key={i.id} idea={i} note={STAGE_WORDS[stageOf(i) ?? ''] ?? 'In the works'} today={s.today} />)}</ul>
+          ? <ul className="flex flex-col divide-y divide-white/[0.06]">{making.map(i => <PieceRow key={i.id} idea={i} note={STAGE_WORDS[stageOf(i) ?? ''] ?? 'In the works'} now={s.now} />)}</ul>
           : <p className="text-ui text-ink-faint">Nothing is being made for this series right now.</p>}
       </section>
       <section className="flex flex-col gap-2">
         <h3 className="leading-none"><Eyebrow>Judged ready ({ready.length})</Eyebrow></h3>
         {ready.length
-          ? <ul className="flex flex-col divide-y divide-white/[0.06]">{ready.map(i => <PieceRow key={i.id} idea={i} note={`Scored ${ladderVerdict(i)?.score ?? 'no score'} of 10`} today={s.today} withArgument />)}</ul>
+          ? <ul className="flex flex-col divide-y divide-white/[0.06]">{ready.map(i => <PieceRow key={i.id} idea={i} note={`Scored ${ladderVerdict(i)?.score ?? 'no score'} of 10`} now={s.now} withArgument />)}</ul>
           : <p className="text-ui text-ink-faint">No piece is judged ready for this series yet. The judges look again every morning at 05:00 UTC.</p>}
       </section>
     </div>
   )
 }
 
-function PieceRow({ idea, note, today, withArgument = false }: { idea: ContentIdeaRow; note: string; today: string; withArgument?: boolean }) {
+function PieceRow({ idea, note, now, withArgument = false }: { idea: ContentIdeaRow; note: string; now: Date; withArgument?: boolean }) {
   const arg = withArgument ? argumentOf(idea) : null
   return (
     <li className="flex flex-col gap-1 py-3">
@@ -111,7 +111,7 @@ function PieceRow({ idea, note, today, withArgument = false }: { idea: ContentId
       </a>
       <span className="flex flex-wrap items-center gap-2 text-label text-ink-faint">
         <span>{note}</span>
-        {clearsOutMonday(idea, today) && <Badge variant="warning">Clears out Monday</Badge>}
+        {clearsOutMonday(idea, now) && <Badge variant="warning">Clears out Monday</Badge>}
       </span>
       {arg && <p className="text-ui text-ink-muted">{arg}</p>}
     </li>

@@ -26,9 +26,10 @@ import type { Page, Route } from '@playwright/test'
  * "now" is and no spec reads the calendar. They used to read the real date on
  * both sides, which is not day-independent: the second follow.the.money
  * candidate expires an hour from now, and the app marks a piece "Clears out
- * Monday" only when it expires before the end of the coming Monday, UTC. On a
- * Monday from 23:00 UTC an hour from now is Tuesday, so the badge was rightly
- * absent and content-rooms.spec.ts failed in that hour every Monday
+ * Monday" only when it expires by the next purge (Monday 14:00 UTC since
+ * 2026-10-06; it was the end of Monday before, which disagreed with the purge).
+ * On a Monday from 23:00 UTC an hour from now was Tuesday, so the badge was
+ * rightly absent and content-rooms.spec.ts failed in that hour every Monday
  * (2026-10-05 at 23:28 and 23:38 UTC, green at 00:01). The app was right; the
  * fixture was reading the clock.
  */
