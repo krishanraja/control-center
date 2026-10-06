@@ -62,5 +62,5 @@ test('the window does not scroll, the header holds only the switcher, and the mo
   const panelTop = await page.getByTestId('growth-panel-next').evaluate(el => el.getBoundingClientRect().top)
   const navBottom = await page.getByTestId('growth-section-next').evaluate(el => el.getBoundingClientRect().bottom)
   expect(panelTop - navBottom).toBeLessThan(40)
-  await expect(page.getByTestId('growth-move-card')).toContainText('What is fulltime.fm for?')
+  await expect(page.getByTestId('growth-move-card')).toContainText('Is legibility.io live?')
 })

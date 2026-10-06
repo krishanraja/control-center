@@ -197,10 +197,12 @@ const WEB = {
       action: act({ id: 'mymu:growth:2026-10-02', prefix: 'mymu', title: 'Publish this week\'s post to break the six and a half month silence since March 16',
         minutes: 90, link: { label: 'Open Content', href: '#/content' }, job: 'feed_demand' }),
     }),
+    // Ruled 2026-10-06 (ready for pilot users), so fulltime.fm carries a
+    // growth step, not a ruling.
     view('fulltime', 'full_time', {
-      canon: 'ruling_owed', totals: { cur: win(3), prev: win(0) },
-      action: act({ id: 'fulltime:canon_ruling', prefix: 'fulltime', rung: 4, kind: 'ruling', title: 'Decide what fulltime.fm is for',
-        minutes: 2, first_step: FT_FIRST_STEP, detector: { kind: 'canon_ruled' } }),
+      canon: 'live', totals: { cur: win(3), prev: win(0) },
+      action: act({ id: 'fulltime:growth:2026-10-06', prefix: 'fulltime', title: 'Ask five football fans you know to be pilot listeners',
+        minutes: 20, job: 'fill_pilots' }),
     }),
     view('legibility', 'legibility', {
       canon: 'ruling_owed', totals: null,
@@ -240,8 +242,8 @@ const LIVE_INPUT = { reviews: LIVE_REVIEWS, web: WEB, accounts: ACCOUNTS, touchp
 test('nextMoves on the live shape: quick choices, short site step, long site step, accounts, clips, then the spend call', () => {
   const ids = nextMoves(LIVE_INPUT, SUN_NOON).map(m => m.id)
   assert.deepEqual(ids, [
-    'site:fulltime:canon_ruling',
     'site:legibility:canon_ruling',
+    'site:fulltime:growth:2026-10-06',
     'site:site:growth:2026-10-04',
     'site:mymu:growth:2026-10-02',
     'account:full-time:instagram',
@@ -266,17 +268,11 @@ test('nextMoves never offers an old week: the August moves stay history and the 
 })
 
 test('the quick choices carry their chips, worded from the action\'s own first step', () => {
-  const [ft, leg] = nextMoves(LIVE_INPUT, SUN_NOON)
-  assert.equal(ft.primary.kind, 'answer')
-  assert.equal(ft.secondary?.kind, 'today')
-  assert.equal(ft.property, 'fulltime')
-  assert.equal(ft.product, 'full-time')
-  assert.equal(ft.minutes, 2)
-  assert.deepEqual(ft.choices, [
-    { value: 'proof', label: 'Proof', hint: 'it feeds demand for the pilot', needsJob: false },
-    { value: 'measure', label: 'Measure', hint: 'keep reading visits, no actions', needsJob: false },
-    { value: 'park', label: 'Park', hint: 'take the tag off', needsJob: false },
-  ])
+  const [leg] = nextMoves(LIVE_INPUT, SUN_NOON)
+  assert.equal(leg.primary.kind, 'answer')
+  assert.equal(leg.secondary?.kind, 'today')
+  assert.equal(leg.property, 'legibility')
+  assert.equal(leg.minutes, 2)
   assert.deepEqual(leg.choices, [
     { value: 'live', label: 'Live', hint: null, needsJob: true },
     { value: 'measure', label: 'Measure', hint: null, needsJob: false },
@@ -284,9 +280,12 @@ test('the quick choices carry their chips, worded from the action\'s own first s
   ])
   assert.equal(leg.product, 'legibility')
   assert.deepEqual(siteChoices('site', 'anything'), [], 'a live site owes no ruling')
+  // Ruling (Krish, 2026-10-06): fulltime.fm is ready for pilot users, so its
+  // old question offers no chips even if a stale action still words them.
+  assert.deepEqual(siteChoices('fulltime', FT_FIRST_STEP), [], 'fulltime.fm was ruled on 2026-10-06')
   // A ruling the view says is already answered is not a quick choice any more.
-  const answered = { ...WEB, properties: WEB.properties.map(v => (v.prefix === 'fulltime' ? { ...v, canon: 'measure_only' } : v)) }
-  const m = nextMoves({ ...LIVE_INPUT, web: answered }, SUN_NOON).find(x => x.id === 'site:fulltime:canon_ruling')
+  const answered = { ...WEB, properties: WEB.properties.map(v => (v.prefix === 'legibility' ? { ...v, canon: 'measure_only' } : v)) }
+  const m = nextMoves({ ...LIVE_INPUT, web: answered }, SUN_NOON).find(x => x.id === 'site:legibility:canon_ruling')
   assert.equal(m?.choices, undefined)
 })
 
@@ -308,7 +307,7 @@ test('site steps keep their own words, minutes and link', () => {
   const s = withShared.find(x => x.id === 'site:shared:ga_grant')!
   assert.equal(s.property, undefined)
   assert.equal(s.product, null)
-  assert.equal(withShared.indexOf(s), 2, 'after the 2-minute choices, before the 20-minute step')
+  assert.equal(withShared.indexOf(s), 1, 'after the 2-minute choice, before the 20-minute steps')
 })
 
 test('accounts: the one that opens the best-rated places first, with a plain why', () => {
@@ -364,8 +363,8 @@ test('after tonight\'s run: this week\'s moves sit after the short site steps, f
   const m = nextMoves({ ...LIVE_INPUT, reviews: [...LIVE_REVIEWS, ...TONIGHT] }, SUN_EVE)
   const ids = m.map(x => x.id)
   assert.deepEqual(ids.slice(0, 8), [
-    'site:fulltime:canon_ruling',
     'site:legibility:canon_ruling',
+    'site:fulltime:growth:2026-10-06',
     'site:site:growth:2026-10-04',
     'review:2026-09-28:ctrl:1',
     'review:2026-09-28:circle:1',

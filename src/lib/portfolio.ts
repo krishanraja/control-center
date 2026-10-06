@@ -110,14 +110,16 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
   },
   {
     venture: 'full_time', label: 'Full Time', tier: 1, domain: 'fulltime.fm',
-    what: 'Football recaps read by a pundit you pick. Free, with Pro at $4.99 a month.',
+    // Ruling (Krish, 2026-10-06): an autonomous AI football podcast, a B2C
+    // monetisation experiment app, ready for pilot users.
+    what: 'An autonomous AI football podcast: recaps read by a pundit you pick. Ready for pilot users. Free, with Pro at $4.99 a month.',
     opensOn: null,
     growthSlug: 'full-time', customerProduct: 'full_time', webPrefix: 'fulltime', metricsProduct: 'full_time', audienceSource: null,
     attributionApps: ['full-time', 'fulltime', 'full_time'],
     sources: {
       aeo: PROBES,
       analytics: { source: 'Google Analytics for fulltime.fm (the daily site check)' },
-      signups: { source: null, gap: 'Full Time accounts live in its own database and are not copied to the OS.', fix: 'Bridge Full Time sign-ups into the OS the way CTRL sign-ups are.' },
+      signups: { source: null, gap: 'Full Time accounts, so its pilot users, live in its own database and are not copied to the OS.', fix: 'Bridge Full Time sign-ups into the OS the way CTRL sign-ups are, so pilot users can be counted here.' },
       suggestions: REVIEW,
       hacks: PLACES,
       // In the pull since 2026-10-05: one organisation key reads all five
@@ -169,7 +171,9 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
   },
   {
     venture: 'fractionl_pulse', label: 'Pulse', tier: 3, domain: 'pulse.fractionl.ai',
-    what: 'Market intelligence for fractional executives.',
+    // Ruling (Krish, 2026-10-06): not for sale yet; planned for sale in a few
+    // months under the licence-fee model. No launch date is set.
+    what: 'Market intelligence for fractional executives. Free for now; for sale in a few months under a licence fee.',
     opensOn: null,
     growthSlug: 'pulse', customerProduct: 'fractionl_pulse', webPrefix: null, metricsProduct: 'fractionl_pulse', audienceSource: null,
     attributionApps: ['pulse'],

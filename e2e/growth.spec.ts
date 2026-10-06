@@ -77,7 +77,7 @@ test('one Growth tab, four views, the next move first', async ({ page }) => {
   await expect(page.getByTestId('growth-summary')).toHaveText('Hardly anyone is finding you yet, but it ticked up this week.')
   // One card, and the quick choice is first.
   await expect(page.getByTestId('growth-move-card')).toHaveCount(1)
-  await expect(page.getByTestId('growth-move-card')).toContainText('What is fulltime.fm for?')
+  await expect(page.getByTestId('growth-move-card')).toContainText('Is legibility.io live?')
   await expect(page.getByTestId('growth-move-position')).toHaveText(/^1 of \d+$/)
 })
 
@@ -105,14 +105,16 @@ test('one tap answers the quick choice, and the verdict lands on the card', asyn
   await mock(page, { onAnswer: b => { answer = b } })
   await open(page)
   const card = page.getByTestId('growth-move-card')
-  await card.getByRole('button', { name: /Keep it as a proof piece/ }).click()
+  // fulltime.fm's question was ruled on 2026-10-06 (ready for pilot users),
+  // so legibility.io's is the one quick choice left.
+  await card.getByRole('button', { name: /Just measure it for now/ }).click()
   await expect.poll(() => answer).not.toBeNull()
-  expect(answer).toMatchObject({ action: 'answer', property: 'fulltime', choice: 'proof' })
-  await expect(page.getByTestId('growth-move-verdict')).toContainText('Saved: Keep it as a proof piece.')
+  expect(answer).toMatchObject({ action: 'answer', property: 'legibility', choice: 'measure' })
+  await expect(page.getByTestId('growth-move-verdict')).toContainText('Saved: Just measure it for now.')
   // Nothing moves on its own: the card holds still until Next move is pressed.
   await expect(page.getByTestId('growth-move-position')).toHaveText(/^1 of /)
   await page.getByTestId('growth-move-next').click()
-  await expect(page.getByTestId('growth-move-card')).toContainText('Is legibility.io live?')
+  await expect(page.getByTestId('growth-move-card')).not.toContainText('Is legibility.io live?')
   await expect(page.getByTestId('growth-move-position')).toHaveText(/^2 of /)
 })
 
@@ -140,8 +142,16 @@ test('why opens the evidence only when asked', async ({ page }) => {
   const why = page.getByTestId('growth-why')
   await expect(why).toBeVisible()
   await expect(why).toContainText('Why it is asking')
-  await expect(why).toContainText('Three of your own notes give it three different jobs')
-  await expect(why).toContainText('Visits to fulltime.fm')
+  await expect(why).toContainText('It was marked as retired on 11 August')
+  await expect(why).toContainText('Visits to legibility.io')
+})
+
+test('fulltime.fm asks for pilot listeners, not a ruling (Krish, 2026-10-06)', async ({ page }) => {
+  await mock(page)
+  await open(page, '/#/growth?section=week')
+  const moves = page.getByTestId('growth-week-move')
+  await expect(moves.filter({ hasText: 'Ask five football fans you know to be pilot listeners' })).toHaveCount(1)
+  await expect(moves.filter({ hasText: 'What is fulltime.fm for?' })).toHaveCount(0)
 })
 
 test('a review move becomes a clip filed into this loop week', async ({ page }) => {
@@ -202,7 +212,7 @@ test('when the growth tables fail, the site moves stay and Try again is offered'
   await open(page)
   await expect(page.getByTestId('growth-read-error')).toBeVisible()
   await expect(page.getByTestId('growth-read-error').getByRole('button', { name: 'Try again' })).toBeVisible()
-  await expect(page.getByTestId('growth-move-card')).toContainText('What is fulltime.fm for?')
+  await expect(page.getByTestId('growth-move-card')).toContainText('Is legibility.io live?')
 })
 
 test('the panel never carries an em dash', async ({ page }) => {

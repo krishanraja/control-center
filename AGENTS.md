@@ -256,11 +256,12 @@ nine guards that do not exist in `scripts/` — `check-content-vocabulary`,
 `check-selection`, `check-teardown-beat` — while omitting seven that CI really
 runs. Anyone reaching for "the vocabulary guard" found nothing, which is part
 of how five files came to hold five different labels for the same venture.
-A separate `e2e` job runs nine Playwright specs at the default viewport
+A separate `e2e` job runs ten Playwright specs at the default viewport
 (`content-rooms`, `content-queue-window`, `composer`, `video-engine-mobile`,
 `growth-scroll`, `home-noscroll` since 2026-09-20, `events-lane` since
 2026-09-24, `fact-check-strip` since 2026-09-25, `strategist` since
-2026-09-27) AND every `*-desk.spec.ts` at 1440 and 1920 AND every
+2026-09-27, `content-calendar` since 2026-10-06, which runs the Library
+calendar in New York and Sydney time) AND every `*-desk.spec.ts` at 1440 and 1920 AND every
 `*-phone.spec.ts` at 390 and 360 (those two steps have no file filter, so the
 desk and phone projects cover whatever matches their `testMatch`, which is how
 `strategist-phone.spec.ts` runs). Everything else, including `mindmake-identity.spec.ts`,

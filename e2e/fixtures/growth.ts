@@ -322,12 +322,13 @@ const SITES: Record<WebPrefix, Seed> = {
   },
   fulltime: {
     cur: 3, prev: 0, flags: [],
+    // Ruled 2026-10-06: ready for pilot users, so a growth step, not a ruling.
     action: {
-      id: 'fulltime:canon_ruling', rung: 4, kind: 'ruling',
-      title: 'Decide what fulltime.fm is for',
-      why: 'Three of your own notes give it three different jobs, so the daily check cannot tell what better looks like.',
-      first_step: 'Pick one answer. You can change it later.',
-      job: 'keep_honest', minutes: 2, link: null,
+      id: 'fulltime:growth:pilot-listeners', rung: 5, kind: 'growth',
+      title: 'Ask five football fans you know to be pilot listeners',
+      why: 'The show is ready for pilot users and the feed has 6 episodes to play. Visits do not find listeners; you can.',
+      first_step: 'Pick five people who follow football, send each the link from your own phone or inbox, and ask them to listen to one episode and tell you what they think.',
+      job: 'fill_pilots', minutes: 20, link: null,
     },
   },
   legibility: {
