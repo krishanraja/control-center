@@ -24,7 +24,7 @@ const DETECTORS = every<DetectorKind>()(
   'consent_default_denied', 'substack_new_post', 'rss_items_up', 'pilot_state_advanced',
   'today_slot_done', 'condition_cleared',
 )
-const WEB_JOBS = every<WebJob>()('fill_pilots', 'keep_honest', 'run_pilots', 'feed_demand', 'keep_edge')
+const WEB_JOBS = every<WebJob>()('fill_pilots', 'keep_honest', 'run_pilots', 'feed_demand', 'keep_edge', 'fill_listeners')
 
 const EM_DASH = '—'
 
@@ -36,18 +36,21 @@ test('four properties with unique prefixes, in registry order', () => {
 // Ruling (Krish, 2026-10-06): "fulltime is ready for pilot users, it is an
 // autonomous AI football podcast." It closed "What is fulltime.fm for?", whose
 // options (proof, measure, park) did not fit, so 'pilot' was added.
-test('fulltime.fm is ruled: live, getting pilot users, with the ruling and its date kept', () => {
+// Ruling (Krish, 2026-10-06, later): pilot listeners and pilot customers "are
+// TOTALLY unrelated", so the site serves Full Time's own job, never fill_pilots.
+test('fulltime.fm is ruled: live, getting pilot listeners under its own job, with the ruling and its date kept', () => {
   const ft = webProperty('fulltime')!
   assert.deepEqual(ft.canon, { status: 'live' })
-  assert.deepEqual(ft.jobs, ['fill_pilots'])
+  assert.deepEqual(ft.jobs, ['fill_listeners'])
+  assert.ok(!ft.jobs.includes('fill_pilots'), "never Mindmake's pilot customers")
   assert.match(ft.goal, /pilot listeners/)
   assert.deepEqual([ft.ruled?.choice, ft.ruled?.on], ['pilot', '2026-10-06'])
   assert.equal(ft.neverPublishName, true, 'the ruling did not lift the never-publish rule')
 })
 
-test('a pilot answer makes a site live and points it at its first users', () => {
+test('a pilot answer makes a site live and points it at pilot listeners, never pilot customers', () => {
   const owed = { ...webProperty('fulltime')!, canon: { status: 'ruling_owed' as const, question: 'q', conflict: 'c', options: ['pilot', 'measure'] } }
-  assert.deepEqual(canonFromChoice(owed, 'pilot'), { canon: { status: 'live' }, jobs: ['fill_pilots'] })
+  assert.deepEqual(canonFromChoice(owed, 'pilot'), { canon: { status: 'live' }, jobs: ['fill_listeners'] })
   assert.equal(canonFromChoice(webProperty('legibility')!, 'pilot'), null, 'only a site that offers it accepts it')
 })
 

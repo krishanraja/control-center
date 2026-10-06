@@ -253,8 +253,9 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
   lines.push(
     '',
     `When ${context}, prefer what serves a goal above and say which one, and name`,
-    'which of the five jobs it serves. Refuse work that serves none of the five',
-    'jobs and say so plainly, rather than quietly inventing a reason it fits.',
+    'which of the five jobs it serves (Full Time work serves fill_listeners, never',
+    'fill_pilots). Refuse work that serves none of them and say so plainly, rather',
+    'than quietly inventing a reason it fits.',
   )
   if (spine.stale_count > 0) {
     lines.push(

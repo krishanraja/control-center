@@ -107,6 +107,18 @@ export const PROVIDERS: Record<string, ProviderCheck> = {
       init: { headers: { apikey: k, Authorization: `Bearer ${k}` } },
     }),
   },
+  // Full Time's own database, read every six hours to count its pilot
+  // listeners (api/audience/fulltime-listeners.ts). The check reads one
+  // profile id, which proves the key AND that the copy's tables answer.
+  // STRICT: a wrong project answers 404 and a revoked key 401, and the ping
+  // remap would read the 404 as a live key while the copy stopped.
+  'supabase-fulltime': {
+    strict: true,
+    build: k => ({
+      url: `${(process.env.FULLTIME_SUPABASE_URL || '').replace(/\/+$/, '')}/rest/v1/profiles?select=id&limit=1`,
+      init: { headers: { apikey: k, Authorization: `Bearer ${k}` } },
+    }),
+  },
   n8n: {
     build: k => ({
       url: `${(process.env.N8N_BASE_URL || 'https://krishraja10101.app.n8n.cloud').replace(/\/+$/, '')}/api/v1/workflows?limit=1`,

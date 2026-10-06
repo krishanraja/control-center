@@ -22,6 +22,18 @@ the OS. Product brands only; no personal brand anywhere.
   position per property into `maya_striking_distance` (deduped across
   domain+subdomain properties). GSC owns those columns; the Serper sweep owns
   `search_volume` / `priority`; merge-duplicates upsert keeps them separate.
+- **Full Time pilot listeners** (`customers`, product `full_time`, source
+  `fulltime_accounts`): `api/audience/fulltime-listeners.ts`, a Vercel cron every
+  six hours (Ruling, Krish, 2026-10-06: "yes and 100"). One row per Full Time
+  account with a confirmed email, keyed by the Full Time user id, carrying no
+  email or name; test accounts are marked and never counted. It reuses the
+  product sign-up ledger Pulse already uses, not `leads`: leads keeps one row per
+  email across every product and feeds Mindmake's outreach, and listeners must
+  never be confused with Mindmake's pilot customers. Each run writes a
+  `workflow_runs` heartbeat (`cc-fulltime-listeners`); the connections sweep
+  checks its read key (`supabase-fulltime`, strict). Growth > Numbers shows the
+  count against 100. Live once the read key is set; until then every run fails
+  loudly and Growth says "Not connected".
 - **OP3 podcast downloads** — the `op3.dev/e/` enclosure prefix is live in Full
   Time's RSS (`src/routes/api/public/feed[.]rss.ts`) and serving (verified), so
   downloads are counting at OP3.

@@ -17,6 +17,7 @@ import { asList } from './growth'
 import type { CouncilReviewRow } from './growth'
 import type { ProductSignal } from './growthModel'
 import { PORTFOLIO, METRICS, type MetricKey, type PortfolioProduct } from './portfolio'
+import { LISTENER_PRODUCT, countPilotListeners } from './pilotListeners'
 
 export type CellState = 'live' | 'zero' | 'unwired' | 'external'
 
@@ -51,6 +52,8 @@ export interface CustomerLite {
   kind: string
   mrr_usd?: number | null
   churned_at?: string | null
+  /** Read only to count Full Time's pilot listeners (src/lib/pilotListeners.ts). */
+  raw?: Record<string, unknown> | null
 }
 
 export interface UsageLite { product: string; metric_date: string; active_users: number | null }
@@ -62,6 +65,11 @@ export interface BoardInput {
   /** Free sign-ups per leads.audience_sources tag (e.g. { ctrl: 103 }). Missing key = not read. */
   audience: Readonly<Record<string, number>>
   usage: ReadonlyArray<UsageLite>
+  /**
+   * Whether the Full Time listener copy has ever succeeded, and if not, why,
+   * in one plain line. Missing = not read, which counts as not connected.
+   */
+  listenerSync?: { ok: boolean; line: string | null } | null
 }
 
 const DAY_MS = 86_400_000
@@ -132,7 +140,22 @@ export function buildBoard(input: BoardInput, now: Date): { rows: BoardRow[]; ga
     let signups: BoardCell
     let signupCount: number | null = null
     if (!p.sources.signups.source) signups = external('signups', p) ?? unwired('signups', p)
-    else {
+    else if (p.goal && p.customerProduct === LISTENER_PRODUCT) {
+      // Full Time: pilot listeners against Krish's target. Counted from the
+      // listener rows alone, so no other product's sign-ups can reach it.
+      // Until the copy has succeeded once, the ledger holds no listener rows
+      // and a 0 would look measured, so the cell says what is missing.
+      if (input.listenerSync?.ok !== true) {
+        signups = {
+          key: 'signups', state: 'unwired', value: 'Not connected', note: null,
+          source: input.listenerSync?.line ?? 'The copy of Full Time accounts has not run yet, so pilot listeners cannot be counted.',
+          fix: 'Give Control Center the read key for Full Time’s database.',
+        }
+      } else {
+        signupCount = countPilotListeners(mine)
+        signups = cell('signups', p, signupCount > 0 ? 'live' : 'zero', `${signupCount} of ${p.goal.target}`, p.goal.noun)
+      }
+    } else {
       const fromAudience = p.audienceSource ? input.audience[p.audienceSource] : undefined
       const free = mine.filter(c => c.kind === 'free_signup' || c.kind === 'trial').length
       const wait = mine.filter(c => c.kind === 'waitlist').length

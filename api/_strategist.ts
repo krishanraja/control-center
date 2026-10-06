@@ -35,7 +35,7 @@ import type {
   ProgressSection, NextStepSection, AskSection, AskPerson, AskRecipient, WorrySection,
   KillSection, LearningSection, CloseSection, LensStatus, ProgressVerdict,
 } from '../src/types/strategist.js'
-import { MISSION, FACE, DOOR, JOBS, BINDING, isJob, type Job } from './_mission.js'
+import { MISSION, FACE, DOOR, JOBS, MISSION_JOBS, PILOT_SEPARATION, BINDING, isJob, type Job } from './_mission.js'
 import { proposalPlay } from './_humor.js'
 import { unsupportedNumbers } from './_numbers.js'
 import { sanitizeVoice } from './_content.js'
@@ -59,7 +59,7 @@ export const WIRE_UNIONS_AGREE =
 
 /** Bump on any change to the prompt or the contract. Stamped on every row as
  *  producer.prompt_rev, so trust earned by one version is not inherited. */
-export const STRATEGIST_PROMPT_REV = '2026-10-03.1'
+export const STRATEGIST_PROMPT_REV = '2026-10-06.1'
 
 /** The meter stamp. The voice is Marcus's; no new roster agent (G4 is closed). */
 export const STRATEGIST_AGENT = 'goal-strategist'
@@ -250,7 +250,10 @@ export function buildStrategistSystem(input: { source: StrategistSource; rung?: 
   const shape = readShapeFor(input)
   const counts = READ_SHAPES[shape]
   const drafts = counts.objective[1] > 0
-  const openJobs = JOBS.filter(j => j.gate === 'now')
+  // Mindmake's jobs only. Full Time's fill_listeners is open too, but it is a
+  // product's job and this read is the mission's (Ruling, Krish, 2026-10-06:
+  // pilot listeners and pilot customers are totally unrelated).
+  const openJobs = MISSION_JOBS.filter(j => j.gate === 'now')
   const traps = TRAPS.filter(t => t.id === 'avoiding_ask' || t.id === 'polishing')
 
   return [
@@ -275,6 +278,7 @@ export function buildStrategistSystem(input: { source: StrategistSource; rung?: 
     'THE JOBS a move may serve (open now):',
     ...openJobs.map(j => `- [${j.id}] ${j.label}: ${j.does}`),
     'run_pilots and keep_edge are behind closed gates. Never use them. No job covers raising money: an investor move carries job null, and the read says so.',
+    PILOT_SEPARATION,
     '',
     'THE LENSES:',
     ...lensLines(),

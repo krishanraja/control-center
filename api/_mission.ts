@@ -38,31 +38,55 @@ export const BINDING = {
   reads: 'Find the binding by 31 Oct 2026. No partner by then: hire the accountability rather than continue solo.',
 } as const
 
-export type Job = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge'
+/** The five jobs of the OS: Mindmake's, from the ikigai. */
+export type MissionJob = 'fill_pilots' | 'keep_honest' | 'run_pilots' | 'feed_demand' | 'keep_edge'
+/**
+ * Jobs that belong to one product, not to Mindmake. Ruling (Krish,
+ * 2026-10-06): Full Time's pilot listeners and Mindmake's pilot customers
+ * "are TOTALLY unrelated and cannot be confused with one another", so Full
+ * Time gets its own job and its own words. fill_pilots is Mindmake only.
+ */
+export type ProductJob = 'fill_listeners'
+export type Job = MissionJob | ProductJob
 
 export interface JobDef {
   id: Job
-  /** Priority order from the Control Center Evolution tab. */
-  n: 1 | 2 | 3 | 4 | 5
+  /** Priority order: the Control Center Evolution tab for the five, then products. */
+  n: 1 | 2 | 3 | 4 | 5 | 6
   label: string
   /** What the OS does under this job, one line. */
   does: string
   /** Which evolution gate opens it. */
   gate: 'now' | 'g2' | 'g3'
+  /** Whose job it is: Mindmake's (the five), or one product's. */
+  venture: 'mindmake' | 'full_time'
 }
 
 export const JOBS: JobDef[] = [
-  { id: 'fill_pilots', n: 1, label: 'Find pilot customers', gate: 'now',
+  { id: 'fill_pilots', n: 1, label: 'Find pilot customers', gate: 'now', venture: 'mindmake',
     does: 'Keep the list of 25 (then 100) named leaders who fit the face. Draft warm approaches in his voice from live signals. Queue them. Never send.' },
-  { id: 'keep_honest', n: 2, label: 'Keep him honest', gate: 'now',
+  { id: 'keep_honest', n: 2, label: 'Keep him honest', gate: 'now', venture: 'mindmake',
     does: 'Track sent, calls, paid, published and hours building unasked. Monday scorecard, Friday variance note. Rule 6 tripwire when unasked build hours exceed zero.' },
-  { id: 'run_pilots', n: 3, label: 'Run the pilots', gate: 'g2',
+  { id: 'run_pilots', n: 3, label: 'Run the pilots', gate: 'g2', venture: 'mindmake',
     does: 'Prepare the dossier before the pilot and draft the edge file after. Opens when the first pilot is booked.' },
-  { id: 'feed_demand', n: 4, label: 'Feed the demand engine', gate: 'now',
+  { id: 'feed_demand', n: 4, label: 'Feed the demand engine', gate: 'now', venture: 'mindmake',
     does: 'Turn every pilot, keynote and podcast into one published piece a week aimed at the face, with sources.' },
-  { id: 'keep_edge', n: 5, label: 'Keep the edge', gate: 'g3',
+  { id: 'keep_edge', n: 5, label: 'Keep the edge', gate: 'g3', venture: 'mindmake',
     does: 'Run CTRL for paying leaders. Opens when two leaders ask to keep it after the pilot.' },
+  // Full Time's, not Mindmake's. Ruling (Krish, 2026-10-06): "yes and 100".
+  { id: 'fill_listeners', n: 6, label: 'Find pilot listeners for Full Time', gate: 'now', venture: 'full_time',
+    does: 'Bring football fans in as Full Time pilot listeners (an account on fulltime.fm), toward 100. They are listeners, never pilot customers, and are never counted with them.' },
 ]
+
+/** The five jobs of the OS: Mindmake's own. Every mission prompt lists these and only these. */
+export const MISSION_JOBS: JobDef[] = JOBS.filter(j => j.venture === 'mindmake')
+
+/**
+ * The one line every mission prompt carries so a model can never fold the two
+ * kinds of pilot together. Kept here so the wording is said once.
+ */
+export const PILOT_SEPARATION =
+  "Pilots means Mindmake's pilot customers: leaders who buy the paid three week pilot. Full Time's pilot listeners are a different product and a different count (job fill_listeners). Never add them to pilots, never call a listener a pilot customer, and never file Full Time work under fill_pilots."
 
 const JOB_IDS = new Set<string>(JOBS.map(j => j.id))
 
@@ -77,7 +101,7 @@ export function jobLabel(id: Job | string | null | undefined): string {
 
 /** The rules from the Master tab that the engine holds above memory and workflows. */
 export const STANDARDS = [
-  'North Star: the mission line above. Any task that cannot name which of the five jobs it serves is refused.',
+  'North Star: the mission line above. Any task that cannot name which of the five jobs it serves (or, for Full Time, fill_listeners) is refused.',
   'Cited or silent: no number, name or claim ships without a source.',
   'Approval walls: drafts never send. Krish or the partner sends. No outbound tool has send authority.',
   'Public by default: every build is shown or announced the week it exists.',
@@ -93,7 +117,8 @@ export function missionBlock(): string {
     `The face: ${FACE}`,
     `The door: ${DOOR}`,
     'The five jobs of the OS, in priority order:',
-    ...JOBS.map(j => `${j.n}. ${j.label}${j.gate === 'now' ? '' : ' (gated, not yet open)'}: ${j.does}`),
+    ...MISSION_JOBS.map(j => `${j.n}. ${j.label}${j.gate === 'now' ? '' : ' (gated, not yet open)'}: ${j.does}`),
+    PILOT_SEPARATION,
     'Standards: ' + STANDARDS.join(' '),
   ].join('\n')
 }

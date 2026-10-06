@@ -20,6 +20,8 @@
 
 > **Rulings (Krish, 2026-10-06), second batch:** Full Time: "fulltime is ready for pilot users, it is an autonomous AI football podcast." It is an autonomous AI football podcast, a B2C monetisation experiment app, ready for pilot users, and its job now is getting pilot listeners. This closes the owed ruling "What is fulltime.fm for?" (`src/lib/webProperties.ts`). Pulse: "Pulse can be for sale in a few months but not yet." It is not for sale yet and is planned for sale in a few months under the licence-fee model. No launch date is set.
 
+> **Rulings (Krish, 2026-10-06), third batch:** "yes and 100": Full Time sign-ups are copied into Control Center so pilot listeners can be counted, and the target is 100 pilot listeners. And "those two are TOTALLY unrelated and cannot be confused with one another": Full Time's pilot listeners and Mindmake's pilot customers. Full Time has its own job, `fill_listeners`; `fill_pilots` is Mindmake's alone. Definition and count under [Priority 1: Full Time](#priority-1-full-time).
+
 ## Contents
 
 1. [Summary](#summary)
@@ -213,7 +215,11 @@ It turns one checked set of match facts into six different readings of the game.
 
 ### Objective now and how success is measured
 - **Objective: get pilot listeners** (Ruling, Krish, 2026-10-06: ready for pilot users). Control Center's site check reads fulltime.fm against that goal: football fans become pilot listeners, find the show, follow the feed and come back for the next episode. Its growth step asks Krish to invite the first listeners himself (`api/_webInsightsCore.ts`).
-- **No success number is recorded.** Krish has not said how many pilot listeners counts as a result. Until he does, report the six measures; sign-ups, the measure closest to pilot users, is not wired yet.
+- **The target is 100 pilot listeners** (Ruling, Krish, 2026-10-06: "yes and 100"). It lives once, on the Full Time entry in `src/lib/portfolio.ts` (`goal`), and Growth > Numbers shows the count against it.
+- **What a pilot listener is.** A person with a Full Time account: a user in Full Time's own auth with a confirmed email address, who is not an anonymous session and not a test, QA or founder account (the same test filter every live list uses, `src/lib/recordHygiene.ts`). Paying or not: Full Time Pro is a separate number, read from Stripe as revenue. On Full Time's launch list or not. The definition is code in `src/lib/pilotListeners.ts`.
+- **Pilot listeners are not pilot customers** (Ruling, Krish, 2026-10-06: "those two are TOTALLY unrelated and cannot be confused with one another"). Mindmake's pilot customers are leaders who buy the paid three week pilot and live in `pilot_deals`, under the job `fill_pilots`. Full Time's pilot listeners live in `customers` (product `full_time`), under Full Time's own job `fill_listeners`. No surface, count, goal, prompt or brief adds one to the other.
+- **How many today.** 1, counted on 2026-10-06 against Full Time's database with the definition above. It is a July sign-up that has not signed in since, on a domain the test filter does not flag, so it may yet prove to be a test account.
+- **How they reach Control Center.** `api/audience/fulltime-listeners.ts` runs every six hours: it reads Full Time's accounts, profiles and launch list with a read key for Full Time's database, and writes one `customers` row per account (kind `free_signup`, source `fulltime_accounts`), keyed by the Full Time user id. It copies no email and no name. It never writes `leads`: leads keeps one row per email across every product and feeds Mindmake's outreach, which is exactly the mixing the ruling forbids. Every run leaves a `workflow_runs` heartbeat, and a missing or refused key is a failed run that Growth shows as "Not connected", never as 0. The connections sweep checks the key (`supabase-fulltime`, strict).
 - Its own repository measures editorial quality: an edition publishes only if it passes every gate (`docs/00-product.md`; `NOW.md`).
 
 ### Priority and why
@@ -234,7 +240,7 @@ Stripe, Full Time account. One product: Full Time Pro, $4.99 a month. The 2026-1
 |---|---|---|
 | AEO / GEO | Yes | The Monday AI answer check |
 | Analytics | Yes | Google Analytics for fulltime.fm (the daily site check) |
-| Sign-ups | No | Full Time accounts, so its pilot users, live in its own database and are not copied to the OS. Fix: bridge them the way CTRL sign-ups are, so pilot users can be counted here. |
+| Sign-ups | Yes, once the read key is set | Pilot listeners: Full Time accounts copied to the customers ledger every six hours, shown as a count of 100. Until the copy has worked once, the cell says "Not connected". |
 | Suggestions | Yes | The Sunday growth review |
 | Growth hacks | Yes | The places map |
 | Revenue | Yes | Stripe, Full Time account, daily pull. A measured $0. |
@@ -260,9 +266,8 @@ Stripe, Full Time account. One product: Full Time Pro, $4.99 a month. The 2026-1
 ### Open issues
 - No edition has published since 2026-09-05, per the repository as of 2026-10-03.
 - The model provider was switched after the Anthropic account hit its monthly cap (2026-09-21), with some judge floors lowered until it switches back (`full-time` `NOW.md`).
-- Sign-ups are not bridged into the OS, so pilot users cannot be counted in Control Center yet.
+- The pilot listener copy needs Full Time's read key in Control Center (the two names in `.env.example`, or `app_secrets`). Until it is set, Growth says "Not connected".
 - No ICP in `product_icp`.
-- No target number of pilot listeners.
 - The repository's `never_publish` list asks writers not to name the product, its domain or the sport. This document names them, under Krish's publication ruling of 2026-10-05.
 - Ikigai tension, resolved by ruling: football is protected (Rule 8), and Full Time is priority 1. Krish placed the portfolio inside the mission on 2026-10-06. See [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
 
@@ -632,7 +637,8 @@ Found while writing this on 2026-10-05. Each is recorded, not silently resolved.
 - **Which Substack address holds the 2 founding members.** Both addresses answer; the public pages do not say. Check the Substack dashboard.
 - **Whether Full Time has published an edition since 2026-09-05.** A database fact; its repository could not confirm it as of 2026-10-03.
 - **Whether Full Time's new checkout flag is on in production.** Check its production environment.
-- **A success number for Full Time and a growth objective for CTRL.** Full Time's objective is set (pilot listeners, 2026-10-06) but not how many; CTRL has neither. Krish should set them.
+- **A growth objective for CTRL.** Full Time's is set (100 pilot listeners, 2026-10-06); CTRL has none. Krish should set it.
+- **Whether Full Time's one account today is a real listener.** It signed up in July and has not signed in since; the test filter does not flag it.
 - **Why Krish ranked each product where he did.** He did not record reasons.
 - **Which of the six measures are wired for Mindmake.** `src/lib/portfolio.ts` defines none; check the Growth tab.
 - **Circle's prices.** Four products exist in Stripe; prices were not re-read on 2026-10-05.

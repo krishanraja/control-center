@@ -217,6 +217,10 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/audience/fulltime-listeners",
+      "schedule": "25 */6 * * *"
+    },
+    {
       "path": "/api/spend/ingest",
       "schedule": "15 7 * * *"
     },
@@ -293,6 +297,9 @@
       "maxDuration": 300
     },
     "api/health/connections-sweep.ts": {
+      "maxDuration": 120
+    },
+    "api/audience/fulltime-listeners.ts": {
       "maxDuration": 120
     },
     "api/meter/apify-sync.ts": {
