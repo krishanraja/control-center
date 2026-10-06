@@ -144,7 +144,7 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
   },
   {
     venture: 'mm_ctrl', label: 'CTRL', tier: 3, domain: 'ctrl.mindmake.co',
-    what: 'The AI brain app. It sells one thing, Edge Pro at $49 a month, and nobody has bought it.',
+    what: 'The AI brain app. It sells one thing, CTRL Pro at $49 a month, and nobody has bought it.',
     opensOn: null,
     growthSlug: 'ctrl', customerProduct: 'mm_ctrl', webPrefix: null, metricsProduct: 'mm_ctrl', audienceSource: 'ctrl',
     attributionApps: ['ctrl'],
@@ -160,11 +160,11 @@ export const PORTFOLIO: readonly PortfolioProduct[] = [
       // Stripe, those plans carry metadata.substack=yes and belong to the
       // publication. CTRL has zero paying customers; saying so is the point.
       // A MEASURED zero, not an unwired one, and the difference matters. CTRL
-      // has a product (Edge Pro, $49 a month), an active price, a live Stripe
-      // webhook and working checkout in the mm-ctrl edge functions, and its
+      // has a product (CTRL Pro, renamed from Edge Pro on 2026-10-05, $49 a
+      // month), an active price, a live Stripe webhook and working checkout in the mm-ctrl edge functions, and its
       // account is in the daily pull. So nothing is missing: nobody has bought
       // it. "Not wired" would excuse that; 0 states it.
-      revenue: { source: 'Stripe, Mindmaker LLC account (daily pull). CTRL sells Edge Pro at $49 a month through the mm-ctrl edge functions and has never taken a payment. The $8, $81 and A$115 plans that used to read here are the Substack’s and now read under the publication.' },
+      revenue: { source: 'Stripe, Mindmaker LLC account (daily pull). CTRL sells CTRL Pro at $49 a month through the mm-ctrl edge functions and has never taken a payment. The $8, $81 and A$115 plans that used to read here are the Substack’s and now read under the publication.' },
     },
   },
   {
@@ -227,19 +227,20 @@ export function portfolioRank(slug: string | null | undefined): number {
 }
 
 /**
- * The Substack. Not a ranked product: it is where CTRL's paid tier is sold and
- * where the publication's free readers sign up, so both tabs account for it on
- * its own line. Paid subscribers arrive automatically: Substack charges through
- * the Mindmaker LLC Stripe account and every such plan carries
+ * The Substack. Not a ranked product: it is the publication's home, where its
+ * paid members subscribe and its free readers sign up, so both tabs account
+ * for it on its own line. Paid subscribers arrive automatically: Substack
+ * charges through the Mindmaker LLC Stripe account and every such plan carries
  * `metadata.substack = "yes"`, which the daily Stripe pull keeps. The price map
- * files those subscribers under CTRL, so they are counted once, there. Free
+ * files those subscribers under the publication (migration 20261005140000;
+ * until 2026-10-05 it filed them under CTRL), so they are counted once, there. Free
  * subscribers arrive only from the CSV export dropped on Subscriptions, because
  * Substack has no API.
  */
 export const SUBSTACK = {
   label: 'Substack',
   publication: 'home.makeyourmindup.ai',
-  paidCountedUnder: 'mm_ctrl',
+  paidCountedUnder: 'publication',
   freeAudienceSource: 'publication',
   totalMetricKey: 'substack_publication_total',
 } as const

@@ -12,7 +12,7 @@
 >
 > **Last engine refresh:** 2026-10-04
 >
-> **Last rebuilt by hand:** 2026-10-05, against the live Supabase schema, the Stripe organisation, the repository at `f31af50a` and Krish's rulings of that day. The text it replaced is kept in `docs/history/` (see section 21).
+> **Last rebuilt by hand:** 2026-10-05, against the live Supabase schema, the Stripe organisation, the repository at `f31af50a` and Krish's rulings of that day. The text it replaced is kept in `docs/history/` (see section 21). Not rebuilt since: on 2026-10-06 sections 0.2, 0.3, 0.5, 0a and 0b (and one line each in sections 15 and 17) were edited by hand to record Krish's rulings of that day, and nothing else was re-checked.
 >
 > **No secrets, no private people.** This repository is public. Nothing here is a credential, a secret's name, an infrastructure identifier (project ids, cron secrets, keys) or another person's personal details. Company names are fine.
 
@@ -28,31 +28,31 @@ The full picture of Krish (his ikigai in full, his eight decision rules, how he 
 
 ### 0.2 What exists, in what order, and what it earns
 
-Krish's ruling of 2026-10-05 splits his work in two: **Mindmake is the mission**, and **a separate product portfolio** is what the OS grows. Section 0.3 says how the two relate. The single code source of the product ranking is [`src/lib/portfolio.ts`](../src/lib/portfolio.ts). The full portfolio, with each product's objectives, is in [`docs/PORTFOLIO.md`](./PORTFOLIO.md).
+**Mindmake is the mission, and the products roll into it** (Ruling, Krish, 2026-10-06, superseding the 2026-10-05 split). The products are parts of the one company, ordered by a ladder; the OS grows them. Section 0.3 says how they relate. The single code source of the product ranking is [`src/lib/portfolio.ts`](../src/lib/portfolio.ts). The full portfolio, with each product's objectives, is in [`docs/PORTFOLIO.md`](./PORTFOLIO.md).
 
 | Name | What it is | Role | Priority | Status (2026-10-05) | Money, and where the live number is |
 |---|---|---|---|---|---|
 | **Mindmake** | Krish's principal-led AI and commercial strategy practice at mindmake.co. Two doors, "Build your AI brain" and "Build your AI GTM", lead into one privately scoped paid proof. Canon: `github.com/krishanraja/mindmake` | The mission | Not ranked against products (0.3) | Live | Privately agreed fee, billed through the mind/make Stripe account. How the account's 9 lifetime payments split between advisory, the Substack and Maven was not measured (`scripts/stripe-reconcile.mts` can settle it) |
-| **The publication** (makeyourmindup, on Substack at home.makeyourmindup.ai) | Mindmake's publication. The database enforces three subchannels: mind.the.gap (Fridays, the hero), follow.the.money (Mondays), under.the.hood (Wednesdays); mandates live in `venture_formats`. The business canon still says two channels (0b) | Part of the mission | Runs alongside | Live | **The only live recurring revenue in the whole portfolio**: 2 founding members, $13.51 a month combined. Stripe, mind/make account, on plans Substack owns |
-| **Heartside** | A Shopify store at heartside.io selling gifts written in your dog's voice. Brand line "Your dog has notes." Repo `krishanraja/heartside` | Portfolio | **1** | Pre-launch, opens **2026-10-20**. 0 orders, 0 customers | Shopify Payments, not Stripe. Measured in USD as one-off orders, never MRR. Read in the Shopify admin analytics, which Control Center links to |
-| **Full Time** | AI football audio: six AI pundits recap one match a day, at fulltime.fm. Free, with Full Time Pro at $4.99 a month | Portfolio | **1** | Live beta | $0: it has never collected a payment, though checkout is wired. Stripe, Full Time account |
-| **Legibility** | An API that gives AI agents typed product data, over REST and MCP, at legibility.io. Starter $29 and Growth $199 a month | Portfolio | **2** | Private beta | $0 (every past "customer" was a QA bot or Krish). Stripe, Legibility account |
-| **CTRL** | An AI briefing and decision app for founders and small-team CEOs, at ctrl.mindmake.co. Sells one thing, CTRL Pro at $49 a month (renamed from Edge Pro on 2026-10-05), charged by Supabase edge functions in repo `mm-ctrl` | Portfolio | **3** | Live | **$0: zero paying customers.** Stripe, mind/make account |
-| **Pulse** | A free public index of demand for fractional executives, at pulse.fractionl.ai. Pulse Pro $99 a month or $948 a year, kept as the data feed licence | Portfolio | **3** | Live, but **cannot take a payment**: no button in the app calls `startCheckout()` | $0. Stripe, Fractionl account |
-| **Circle** | Personal contact memory for independent operators, at circle.fractionl.ai | Portfolio | **Dormant** | Preserved, never purged, not worked | $0. Stripe, Fractionl account |
+| **The publication** (makeyourmindup, on Substack at home.makeyourmindup.ai) | Mindmake's publication. Three channels, by ruling (Krish, 2026-10-06) and enforced by the database: mind.the.gap (Fridays, the hero), follow.the.money (Mondays), under.the.hood (Wednesdays); mandates live in `venture_formats`. The business canon's "exactly two channels" is stale (0b) | Part of the mission | Runs alongside | Live | **The only live recurring revenue in the whole portfolio**: 2 founding members, $13.51 a month combined. Stripe, mind/make account, on plans Substack owns |
+| **Heartside** | A Shopify store at heartside.io selling gifts written in your dog's voice. Brand line "Your dog has notes." Repo `krishanraja/heartside` | Product, inside the mission | **1** | Pre-launch, opens **2026-10-20**. 0 orders, 0 customers | Shopify Payments, not Stripe. Measured in USD as one-off orders, never MRR. Read in the Shopify admin analytics, which Control Center links to |
+| **Full Time** | A B2C monetisation experiment app (Ruling, Krish, 2026-10-06; never a job-search asset): AI football audio, six AI pundits recap one match a day, at fulltime.fm. Free, with Full Time Pro at $4.99 a month | Product, inside the mission | **1** | Live beta | $0: it has never collected a payment, though checkout is wired. Stripe, Full Time account |
+| **Legibility** | An API that gives AI agents typed product data, over REST and MCP, at legibility.io. Starter $29 and Growth $199 a month | Product, inside the mission | **2** | Private beta | $0 (every past "customer" was a QA bot or Krish). Stripe, Legibility account |
+| **CTRL** | An AI briefing and decision app for founders and small-team CEOs, at ctrl.mindmake.co. Sells one thing, CTRL Pro at $49 a month (renamed from Edge Pro on 2026-10-05), charged by Supabase edge functions in repo `mm-ctrl`. Being priced is fine (Ruling, Krish, 2026-10-06) | Product, inside the mission | **3** | Live | **$0: zero paying customers.** Stripe, mind/make account |
+| **Pulse** | A free public index of demand for fractional executives, at pulse.fractionl.ai. Pulse Pro $99 a month or $948 a year, kept as the data feed licence | Product, inside the mission | **3** | Live, but **cannot take a payment**: no button in the app calls `startCheckout()` | $0. Stripe, Fractionl account |
+| **Circle** | Personal contact memory for independent operators, at circle.fractionl.ai | Product, inside the mission | **Dormant** | Preserved, never purged, not worked | $0. Stripe, Fractionl account |
 | **Control Center** | This repository: the dashboard and crons of the OS | Infrastructure | Not sold | Live at controlcenter.krishraja.com | None |
 
 **Money across the whole portfolio, measured 2026-10-05:** $842.56 net lifetime revenue from 9 real payments, all in the mind/make account, the last on 2026-08-18 (gross settled $911.45; the gap is fees). An earlier figure of "$1,244 across 20 charges" was wrong: it counted 11 failed charges and added Australian cents to US cents. Never repeat it. To re-measure, run `scripts/stripe-reconcile.mts`, which reconciles all five Stripe accounts exactly.
 
-### 0.3 Mission and portfolio: both, explicitly split, and the tension named
+### 0.3 Mission and portfolio: the portfolio rolls into the mission
 
-**The ruling (Krish, 2026-10-05).** Mindmake is the mission and the one swing, from the ikigai. Heartside, Full Time, Legibility, CTRL and Pulse are a separate product portfolio that the OS grows, in the priority order above.
+**The ruling (Krish, 2026-10-06): "portfolio rolls in to mission."** Mindmake is the one company and the one swing. Heartside, Full Time, Legibility, CTRL and Pulse are parts of it, not a separate lane competing for his time; Circle is dormant. There is one queue, and the mission is the parent. When a surface can show only one "do this next", the mission leads; product work is ordered beneath it by the ladder in `src/lib/portfolio.ts` (Heartside and Full Time 1, Legibility 2, CTRL and Pulse 3, Circle dormant).
 
-**The tension, which is real and is not resolved here.** The ikigai's Rule 7 says "if it does not put a leader's edge back, it is off mission", and Rule 8 says "music and football are protected". Yet Full Time, a football app, and Heartside, a retail gift shop, sit at priority 1. The one-swing charter written from the ikigai (`docs/plans/one-swing/CHARTER.md`, ADR-016) says "Portfolio is the avoidance pattern." Krish ruled for both, split. He did not say which wins when they collide, so no agent may decide it for him.
+**What it superseded.** On 2026-10-05 Krish ruled "both, explicitly split": Mindmake as the mission and the products as a separate portfolio, with a seven-point rule in `docs/KRISH.md` telling agents never to choose between the two and to put both in front of him side by side. That ruling and its seven-point rule are retired. The current rule for agents is in [`docs/KRISH.md`, "Mission versus portfolio"](./KRISH.md#mission-versus-portfolio); this document does not restate a second version.
 
-**The rule for agents when the two compete for Krish's own time** is the seven-point rule in [`docs/KRISH.md`, "Mission versus portfolio"](./KRISH.md#mission-versus-portfolio). It is the authority; this document does not restate a second version. In one line: never choose between the two yourself; put both in front of him side by side, each with the minutes it needs, what it moves and the rules it strains; order each side by its own order; and portfolio work that needs none of his time runs on the ladder.
+**The tension, resolved by ruling.** The ikigai's Rule 7 says "if it does not put a leader's edge back, it is off mission", and Rule 8 says "music and football are protected". Full Time, a football app, and Heartside, a retail gift shop, sit at priority 1, and the one-swing charter (`docs/plans/one-swing/CHARTER.md`, ADR-016) says "Portfolio is the avoidance pattern." Krish resolved this by placing the portfolio inside the mission on 2026-10-06, not by rewriting the rules: the ikigai stays verbatim, and neither rule may be used to veto or demote a product on the ladder.
 
-**The ikigai's stop rule and plans are paused.** The rule read: fewer than 2 of 25 leaders take a call, or no paid room by 5 October 2026, means stop. It fell due on 2026-10-05 and was not met. The twelve month commitment and the ninety day plan are **PAUSED as of 2026-10-05, being reset by Krish; the new stop date and terms are pending.** Agents must not act on the ninety day plan, its targets or its stop rule as if they were live. (The Monday scorecard code still carries them; see 0b.) The full list of what is paused, and what is not (the locked core, the eight decision rules, the acquisition doctrine, the kill and park list), is in [`docs/KRISH.md`, "What is paused right now"](./KRISH.md#what-is-paused-right-now).
+**The ikigai commitment is ongoing (Ruling, Krish, 2026-10-06: "its ongoing").** The twelve month commitment (7 Sep 2026 to 6 Sep 2027) continues. Its stop rule (fewer than 2 of 25 leaders take a call, or no paid room by 5 October 2026) fell due on 2026-10-05 and was not met; Krish chose to continue, and no new stop date has been set. On 2026-10-05 this was written as "PAUSED, being reset"; that status is superseded. The ninety day plan's dated steps (5 Sep to 5 Dec 2026) are history from the original plan, and the day 90 review date of 5 Dec 2026 was not restated, so it is unconfirmed, not live. Agents must not invent a new stop date, targets or plan dates. ("Ongoing" is the coordinator's reading of Krish's two words.) The full status is in [`docs/KRISH.md`, "The ikigai commitment: ongoing"](./KRISH.md#the-ikigai-commitment-ongoing). The Monday scorecard code still carries the original stop rule and day 90 date; see 0b.
 
 ### 0.4 What the OS is for, and its shape
 
@@ -88,7 +88,7 @@ These are the short form. Section 0a holds each one in full, with the date it wa
 7. **Live source over documentation, documentation over memory.** Cite where a fact came from. If it is not in a live source, say "unknown" and where it would be found. Never invent a number.
 8. **One place per thing.** Every kind of fact has exactly one home and one table (2026-08-06). Read the existing one; never build a parallel copy.
 9. **A product with no buyer definition is blocked, not guessed.** Who a product is for lives only in `product_icp`. With no row, prospecting for that product stops and says why (2026-10-05).
-10. **The ikigai's ninety day plan is paused.** Do not act on it (2026-10-05).
+10. **One queue, the mission first.** The products roll into the mission; when a surface can show only one thing the mission leads and products follow the ladder. The ikigai commitment is ongoing: never invent a stop date, target or plan date Krish has not set (2026-10-06; replaces "the ninety day plan is paused" of 2026-10-05).
 
 ### 0.6 Where to look next
 
@@ -112,13 +112,13 @@ These are the short form. Section 0a holds each one in full, with the date it wa
 
 ## 0a. CANON: the rules in force
 
-> One list. It folds the four dated canon blocks this document used to carry (2026-08-06, 2026-09-06, 2026-09-07, 2026-10-05; kept verbatim in `docs/history/2026-10-05-MINDMAKE_OS_ARCHITECTURE-superseded-sections.md`) and the rulings Krish made on 2026-10-05. Each rule carries the date it was set. Where an older rule and a newer one disagreed, the newer one is the one written here. A new ruling is added here by a person, never by the engine.
+> One list. It folds the four dated canon blocks this document used to carry (2026-08-06, 2026-09-06, 2026-09-07, 2026-10-05; kept verbatim in `docs/history/2026-10-05-MINDMAKE_OS_ARCHITECTURE-superseded-sections.md`) and the rulings Krish made on 2026-10-05 and 2026-10-06. Each rule carries the date it was set. Where an older rule and a newer one disagreed, the newer one is the one written here. A new ruling is added here by a person, never by the engine.
 
 ### 0a.1 Content: venture, format, channel
 
 - **One source of truth for everything (2026-08-06).** There is exactly one place to enter any given thing, and exactly one table behind it. Many surfaces may read a table and show different slices; none may invent a parallel concept for something that already has a home. Two surfaces disagreeing about what a table means is the bug.
 - **Three layers, never two (2026-08-06).** Venture (what am I working on, `venture_registry`), then format (what shape is this, `venture_formats`), then channel (where does it go, `media_channels` into `content_ideas.distribution`). A channel is never a venture.
-- **The publication has three subchannels and the database enforces it (2026-09-19; final names 2026-09-25; days swapped 2026-10-05).** mind.the.gap is the hero and is due on Fridays; follow.the.money is due on Mondays; under.the.hood on Wednesdays. `venture_formats.mandate` is the only source of what each one is for. Read it live; never restate a mandate in a file. The earlier two formats, The Money of AI and Built with AI (and before them Paid and Built), are retired (2026-09-17).
+- **The publication has three subchannels and the database enforces it (2026-09-19; final names 2026-09-25; days swapped 2026-10-05; confirmed by ruling 2026-10-06).** mind.the.gap is the hero and is due on Fridays; follow.the.money is due on Mondays; under.the.hood on Wednesdays. The publication lives at home.makeyourmindup.ai (2026-10-05). Any line saying "exactly two channels" is stale. `venture_formats.mandate` is the only source of what each one is for. Read it live; never restate a mandate in a file. The earlier two formats, The Money of AI and Built with AI (and before them Paid and Built), are retired (2026-09-17).
 - **The question decides the subchannel, never the surface (2026-09-19).** If the reader would change a price, budget or contract next, it is follow.the.money; what they build or buy, under.the.hood; how they think or what they expect, mind.the.gap. Each piece ends with one dated, checkable prediction, and only Krish sets the confidence number.
 - **Not us (2026-09-19).** No subchannel's subject is ever Krish, Mindmake, CTRL or his own builds.
 - **Content work lives in Control Center and the content engine (2026-09-08, ADR-019).** The editorial routes, Composer routes, content crons and the video control plane run from `krishanraja/content-engine`, reached through `vercel.json` rewrites. This repo keeps the Content tab.
@@ -164,7 +164,9 @@ These are the short form. Section 0a holds each one in full, with the date it wa
 ### 0a.6 Money and the portfolio
 
 - **The priority ladder (2026-10-05).** 1: Heartside and Full Time. 2: Legibility. 3: CTRL and Pulse. Circle is dormant: preserved, never purged, not worked. The one code source is `src/lib/portfolio.ts`; Growth, Subscriptions and the Sunday growth review all read it.
-- **Mission and portfolio are both, explicitly split (2026-10-05).** See 0.3 for the rule when they compete for Krish's time.
+- **The portfolio rolls into the mission (2026-10-06).** Krish: "portfolio rolls in to mission." One queue, the mission as the parent; when a surface can show only one thing the mission leads and products are ordered beneath it by the ladder. This supersedes "both, explicitly split" (2026-10-05) and its seven-point rule. See 0.3.
+- **Full Time is a B2C monetisation experiment app, not a job-search asset (2026-10-06).** Krish: "fulltime is not a job search thing, its a b2c monetization experiment app." Both venture tables were corrected the same day (`venture_registry` kind `product`; `ventures` description).
+- **CTRL being priced is fine (2026-10-06).** Krish: "CTRL is fine priced." CTRL Pro at $49 a month stands; any line saying CTRL is never priced is wrong for CTRL itself (the business canon's wording is a recorded conflict, 0b).
 - **Stripe is one organisation with five accounts (2026-10-05):** mind/make (AI Brain, AI GTM, the makeyourmindup Substack, Maven teaching, CTRL), Full Time, Legibility, Heartside (empty and redundant; closing it is Krish's call), and Fractionl (Pulse and Circle). Control Center reads all five with one read-only organisation key (`api/_stripe.ts`, `api/revenue/sync.ts`, daily 08:00 UTC). The retired offer ladder was archived in Stripe the same day.
 - **Substack revenue is the publication's, not CTRL's (2026-10-05).** Substack creates and owns its plans (named "$81 a year", "A$115 a year", "$8 a month"; never rename them) and bills through the mind/make account. Migration `20261005140000` moved them to `publication`.
 - **A Stripe webhook with no signing secret is refused, never trusted (2026-10-05).** The verified route is `POST /api/revenue/webhook`.
@@ -180,13 +182,14 @@ These are the short form. Section 0a holds each one in full, with the date it wa
 - **Publication ruling (Krish, 2026-10-05).** After an explicit warning that the repos are public and indexed permanently, Krish chose to publish his full ikigai, venture objectives, pricing and revenue in `krishanraja/control-center` and `krishanraja/ai-harness`. The `krishanraja/mindmake` repo is excluded ("just one product focused on one thing"). Two boundaries still hold because they are not his to give away: no credentials, secret names or infrastructure identifiers; no other people's personal details.
 - **Live state beats documentation; documentation beats memory (standing canon).** When two sources disagree, stop destructive work and report the conflict.
 - **Numbers are computed, never emitted by a model (standing; 15.5).** A model judges; code does arithmetic.
+- **The mindmake repo stays out of the canon rollout (2026-10-06).** Krish closed its canon pull request; it must not be reopened by a nightly run. Where a ruling conflicts with that repo's canon (three channels, CTRL priced), the conflict is recorded here (0b) and the repo is not edited.
 - **Canon wins on the business; this document wins on the machine.** If this document makes a business claim that contradicts `github.com/krishanraja/mindmake`, canon is right and this document is stale.
 
 ### 0a.8 Agents and engineering
 
 - **The Growth tab is the UI gold standard, and every tab now meets it (2026-10-05).** Five rules: numbers compressed to a glance; insight only when asked; one action at a time, with the verdict landing where he pressed; honest emptiness, said once; recomposed per layout, not shrunk. Each surface's one move is chosen by `src/lib/surfaceMoves.ts`.
 - **Nova's standard (2026-10-05).** A visibility target must be true on three conditions at once: the room (someone who can move a decision is in it), standing (naming the platform later helps him), and only-him (the angle rests on his own operating record). The score is the minimum of the three, not the mean. A refusal is written with its reason and shown. `api/_visibilityScore.ts`.
-- **Hunter is kept (2026-09-07 un-parked; confirmed 2026-10-05).** It runs from GitHub Actions and the `hunter/tick` Vercel cron and reports into Control Center.
+- **Hunter is active (2026-09-07 un-parked; confirmed 2026-10-05; ruled 2026-10-06: "Hunter is active yes").** The ikigai's park on the job search stays as written; the two are not a conflict to fix. It runs from GitHub Actions and the `hunter/tick` Vercel cron and reports into Control Center.
 - **Arlo cannot push to `main` (2026-10-05).** Enforced: the VPS clone's push URL is anonymous, so a fetch works and a push fails. Arlo diagnoses a failed build and writes the cause into `workflow_runs`; it changes nothing.
 - **Retirement is a status, never a delete.** Agents are set `active = false`; goals `dropped`; concepts closed through `close_concept`.
 - **One capability, one system (2026-08-22, ADR-013).** Extend the house primitive; never fork it. The list and its guards are in `AGENTS.md`.
@@ -203,15 +206,13 @@ These are the short form. Section 0a holds each one in full, with the date it wa
 
 ## 0b. Open issues agents must not paper over
 
-Each is real as of 2026-10-05. Do not work around one silently: name it when it touches your task.
+Each is real as of 2026-10-06. Do not work around one silently: name it when it touches your task.
 
 | Issue | Where | Why it matters |
 |---|---|---|
 | The mission text the agents read is stale. `api/_mission.ts` still says "a paid three week pilot" and one door; canon is the thirty-day proof and two doors. It feeds Home's daily move | `api/_mission.ts` | Every daily move is grounded in the wrong offer until it is fixed |
 | `api/_venturePositioning.ts` still offers the retired Strategy Day and lists `builder_economy` as live | `api/_venturePositioning.ts` | Agents grounded on it can propose a retired offer |
-| The Monday scorecard still encodes the paused ikigai plan: `STOP_RULE` and `DAY_90` (2026-12-05) | `api/_scorecard.ts`, `api/scorecard/monday.ts` | Its "gap to day 90" lines describe a plan that is paused (0.3) |
-| CTRL's product line in the portfolio still says "Edge Pro"; Stripe renamed it CTRL Pro on 2026-10-05 | `src/lib/portfolio.ts` | A label, but it is the one code source of the ladder |
-| `SUBSTACK.paidCountedUnder` in `src/lib/portfolio.ts` is still `mm_ctrl`, and its comment says paid Substack subscribers are counted under CTRL; migration `20261005140000` moved them to `publication` | `src/lib/portfolio.ts` | The code constant contradicts the data |
+| The Monday scorecard still encodes the original ikigai plan: `STOP_RULE` and `DAY_90` (2026-12-05). The commitment is ongoing (0.3), but that stop rule fell unmet and Krish chose to continue, and the 5 Dec day 90 date is unconfirmed | `api/_scorecard.ts`, `api/scorecard/monday.ts` | Its "gap to day 90" lines present an unconfirmed date and a spent stop rule as live |
 | Five of six products have no buyer definition: Heartside, Full Time, Legibility, CTRL and Pulse are undefined in `product_icp` (only `mindmake` is defined, read 2026-10-05). Maya's prospecting lane is visibly blocked for them | Growth > Buyers | Nothing prospects for the portfolio until Krish fills them |
 | Pulse cannot take a payment: the server checkout is live, but nothing in the app calls `startCheckout()` | `krishanraja/fractionl-pulse`, `src/lib/checkout.ts` | Priority 3 product with no way to buy |
 | `hasAccess()` fails open when its access code is unset | `api/_auth.ts` | A misconfigured deploy would open every guarded route |
@@ -222,13 +223,14 @@ Each is real as of 2026-10-05. Do not work around one silently: name it when it 
 | Canon conflict in the business repo, to record not fix: `00_NORTH_STAR.md` still carries an older homepage promise ("Build the business that can think with you"), while `NOW.md` and `01_CANON.md` carry "Build the human + AI business that augments your vision", and 00 outranks 01 | `krishanraja/mindmake` | Quote the headline from `01_CANON.md` only after Krish settles it |
 | Heartside's own store notes say the sling is priced below landed cost once the 30% discount applies | `krishanraja/heartside`, `docs/STORE-STATE.md` | Launch is 2026-10-20 |
 | Credentials owed a rotation, listed by name in the one-swing ledger (not here) | `docs/plans/one-swing/STATE.md` | Several were pasted into chat or found inline in n8n history |
-| The publication's channels: the database enforces three subchannels (ruling 2026-09-19), but the business canon `02_PUBLICATION.md` (reviewed 2026-09-24) still says exactly two, The Money of AI and Built with AI | `krishanraja/mindmake`, `venture_formats` | Write to the subchannels the database enforces; the canon file needs Krish to reconcile it |
-| Krish's name or face in public: the 2026-07-06 Acquisition OS ruling says no motion may require it; the ikigai mission says "with my name on it"; the canon speaks as "we" | `docs/KRISH.md`, "Acquisition doctrine" | Open for Krish. Ask whenever a plan depends on it |
+| Canon conflicts with Krish's rulings of 2026-10-06, recorded not fixed (the mindmake repo is out of the canon rollout): `02_PUBLICATION.md` (reviewed 2026-09-24) still says exactly two channels, The Money of AI and Built with AI, where the ruling and the database say three; and the canon says CTRL is "never priced", where the ruling says CTRL being priced is fine | `krishanraja/mindmake`, `venture_formats` | Write to the three subchannels and treat CTRL Pro as priced; the canon files are Krish's to edit |
+| Krish's name or face in public: the 2026-07-06 Acquisition OS ruling says no motion may require it; the ikigai mission says "with my name on it"; the canon speaks as "we" | `docs/KRISH.md`, "Acquisition doctrine" | Open for Krish, and still not ruled on 2026-10-06. Ask whenever a plan depends on it |
 | Mindmake's price: the 2026-10-05 publication ruling covers pricing in this repo, but the canon keeps Mindmake's rate card private ("no number appears anywhere public") | `docs/PORTFOLIO.md`, Mindmake | Do not publish the rate card until Krish says the ruling covers it |
-| The venture tables lag the 2026-10-05 ladder: `venture_registry` still frames Full Time as a job-search asset (kind `career`), `ventures` calls Full Time, Pulse and Circle build experiments, and Circle is marked active in both | Supabase `venture_registry`, `ventures` | Read priority and status from `src/lib/portfolio.ts` and `docs/PORTFOLIO.md`, never from those rows |
+| The venture tables still lag the 2026-10-05 ladder for Pulse and Circle: `ventures` calls them build experiments "never a product for sale", and Circle is marked active in both tables. (Full Time's rows in both tables were corrected on 2026-10-06 by ruling.) | Supabase `venture_registry`, `ventures` | Read priority and status from `src/lib/portfolio.ts` and `docs/PORTFOLIO.md`, never from those rows |
 | Mindmake has two buyer definitions: its `product_icp` row (seeded from the canon) and the `pilot_face` lane in `docs/ICP.md` (ADR-016) | `product_icp`, `docs/ICP.md` | `product_icp` is the product's buyer; the lane scores inbound people |
-| The ikigai parks the job search, yet the Hunter agent (job sourcing) is kept active | `docs/KRISH.md`, section 0a.8 | Both are Krish's calls. Do not "fix" one by reading the other |
 | The full list of 24 source conflicts found while writing the portfolio | [`docs/PORTFOLIO.md`, "Inconsistencies found"](./PORTFOLIO.md#inconsistencies-found) | Check it before quoting a product's name, domain, buyer or price |
+
+**Closed on 2026-10-06, kept here so nobody reopens them:** `src/lib/portfolio.ts` now names CTRL's tier "CTRL Pro" and counts paid Substack members under the publication (`SUBSTACK.paidCountedUnder` is `publication`, pinned by `tests/api/portfolio.test.ts`); Full Time's rows in `venture_registry` and `ventures` no longer frame it as a job-search asset; and Hunter being active alongside the ikigai's parked job search is ruled ("Hunter is active yes"), not a conflict.
 
 ---
 
@@ -507,7 +509,7 @@ Each is recorded in full in [`docs/DECISIONS/`](./DECISIONS/) or the detail file
 - **15.14** `/api/*` is the only service-role path from the browser.
 - **15.16** Closure is concept-level, not row-level.
 - **15.17** Harness learning uses one remote inbox (ADR-020).
-- ADR-013 one system per job; ADR-016 the one swing (its ninety day plan paused, 0.3); ADR-019 the content engine owns the control plane; ADR-024 OpenRouter is the rescue provider only; ADR-025 Draw is peer density; ADR-026 the strategist; ADR-028 the daily move and the cheap lane.
+- ADR-013 one system per job; ADR-016 the one swing (its commitment ongoing by ruling 2026-10-06, its original dates history, 0.3); ADR-019 the content engine owns the control plane; ADR-024 OpenRouter is the rescue provider only; ADR-025 Draw is peer density; ADR-026 the strategist; ADR-028 the daily move and the cheap lane.
 
 ---
 
@@ -526,7 +528,7 @@ Krish opens Control Center when he chooses. Nothing comes to him. Home shows tod
 
 ## 17. Where this is going
 
-The live plans are Krish's, not this document's: the ladder in `src/lib/portfolio.ts`, the objectives in `goals`, and each product's objectives in [`docs/PORTFOLIO.md`](./PORTFOLIO.md). The ikigai's ninety day plan is paused (0.3). Two older aspirations stay as reference only: the remaining closure work (generator guards, a synthesis-time join on `concept_decisions`, a reopen route) and the ideas around multi-channel waiting items. Neither changes the rule that Control Center never sends. Detail: [`docs/architecture/17-roadmap-and-closure.md`](./architecture/17-roadmap-and-closure.md).
+The live plans are Krish's, not this document's: the ladder in `src/lib/portfolio.ts`, the objectives in `goals`, and each product's objectives in [`docs/PORTFOLIO.md`](./PORTFOLIO.md). The ikigai commitment is ongoing; its original dated plan is history and no new dates are set (0.3). Two older aspirations stay as reference only: the remaining closure work (generator guards, a synthesis-time join on `concept_decisions`, a reopen route) and the ideas around multi-channel waiting items. Neither changes the rule that Control Center never sends. Detail: [`docs/architecture/17-roadmap-and-closure.md`](./architecture/17-roadmap-and-closure.md).
 
 ---
 

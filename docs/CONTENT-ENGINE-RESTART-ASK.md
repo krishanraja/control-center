@@ -1,5 +1,7 @@
 # Content Engine Restart: what we need, and why
 
+> **Superseded on channels (note added 2026-10-06).** The two publications named below, Built with AI and The Money of AI, were retired on 2026-09-17. The publication has three channels (ruling, Krish, 2026-10-06): follow.the.money on Mondays, under.the.hood on Wednesdays, mind.the.gap on Fridays, at home.makeyourmindup.ai. The rest of this file is a dated record.
+
 Written 2026-08-26 for someone with no prior context. Plain English throughout.
 Also published as a page: https://claude.ai/code/artifact/455073dd-8e3a-4225-8826-34e98743325e
 

@@ -4,13 +4,15 @@
 
 | | |
 |---|---|
-| As of | 2026-10-05 |
+| As of | 2026-10-06 |
 | Main source | Master Ikigai v4 (5 September 2026), published verbatim at [`docs/krish/IKIGAI_v4.md`](krish/IKIGAI_v4.md) |
 | Business canon | `github.com/krishanraja/mindmake`, `project-documentation/00_NORTH_STAR.md` and `01_CANON.md` (read only) |
 | His ventures | [`docs/PORTFOLIO.md`](PORTFOLIO.md) |
 | Published | By Krish's own decision on 2026-10-05 (ruling below) |
 
 > **Ruling (Krish, 2026-10-05):** publish his ikigai, venture objectives, pricing and revenue in `krishanraja/control-center` and `krishanraja/ai-harness`. The `krishanraja/mindmake` repository is excluded. Two boundaries still hold because they are not his to give away: no credentials, secret names or infrastructure identifiers, and no other people's personal details.
+
+> **Rulings (Krish, 2026-10-06), which supersede the 2026-10-05 rulings where they conflict:** the ikigai commitment is ongoing ("its ongoing"); the portfolio rolls into the mission ("portfolio rolls in to mission"); Full Time is a B2C monetisation experiment app, not a job-search asset; CTRL being priced is fine; the publication has three channels; Hunter is active. Founder visibility is still open. Detail in [Mission versus portfolio](#mission-versus-portfolio) and [The ikigai commitment: ongoing](#the-ikigai-commitment-ongoing).
 
 ## Contents
 
@@ -24,7 +26,7 @@
 8. [What is protected](#what-is-protected)
 9. [What he has killed and parked](#what-he-has-killed-and-parked)
 10. [Mission versus portfolio](#mission-versus-portfolio)
-11. [What is paused right now](#what-is-paused-right-now)
+11. [The ikigai commitment: ongoing](#the-ikigai-commitment-ongoing)
 12. [Background](#background)
 13. [Working with him](#working-with-him)
 
@@ -35,11 +37,11 @@
 - **Purpose (LOCKED):** "I see what is coming before it is obvious and make it legible to people while it still counts." (Sheet 1, section 1; won under six framings: B1, B3, B4, R2.6, R3.6, R6.1)
 - **Mission (WORKING, not locked):** "Build the company that gives leaders their edge back before what is coming takes it, and sell it at scale with my name on it." (R12.1, R12.3, R12.4, R12.5)
 - **The vehicle for the mission is Mindmake**, his AI and commercial strategy practice (R10.4 rank 1: "Keep the name, reposition everything under the mission").
-- **Separately, he runs a product portfolio** that the OS grows: Heartside and Full Time (priority 1), Legibility (priority 2), CTRL and Pulse (priority 3). Circle is dormant. Ruling (Krish, 2026-10-05). This sits in tension with two of his own decision rules. He chose both. See [Mission versus portfolio](#mission-versus-portfolio).
+- **The products roll into the mission.** Heartside and Full Time (priority 1), Legibility (priority 2), CTRL and Pulse (priority 3) are parts of Mindmake, not a separate lane. Circle is dormant. One queue, with the mission as the parent. Ruling (Krish, 2026-10-06), superseding the 2026-10-05 "both, explicitly split". See [Mission versus portfolio](#mission-versus-portfolio).
 - **His strongest asset is seeing it early and explaining it plainly. His most avoided activity is selling.** (Appendix D, contradiction 2; B1 to B5; A6)
 - **He will not do cold outbound.** Warm intros, the room, and published thinking only. (Rule 2; E5, F3, R5.2)
 - **Music and football are protected.** (Rule 8; R11.5)
-- **The twelve month commitment, the ninety day plan, the scorecard and the stop rule are PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.** Do not act on them.
+- **The twelve month commitment is ONGOING** (7 Sep 2026 to 6 Sep 2027). The 5 Oct 2026 stop rule was not met and Krish chose to continue; no new stop date has been set. The ninety day plan's dated steps are history, and its day 90 review date (5 Dec 2026) is unconfirmed. Ruling (Krish, 2026-10-06), replacing the 2026-10-05 "PAUSED". See [The ikigai commitment: ongoing](#the-ikigai-commitment-ongoing).
 
 ## Status words used here
 
@@ -48,7 +50,7 @@
 | **LOCKED** | Settled by Krish. Use it as written. Do not reopen it unless he does. |
 | **WORKING** | His current best wording, not final. Use it, but do not quote it as settled in public. |
 | **OPEN** | Not decided. Do not decide it for him. |
-| **PAUSED** | Was live, now suspended while Krish resets it. Do not act on it as if live. |
+| **ONGOING** | Live and continuing, with no new end or stop date set. Act on it as live; do not invent the dates Krish has not set. |
 | **PARKED** | Set aside with a condition to reopen. Do not work on it unless the condition is met. |
 | **KILLED** | Stopped. Do not propose it again unless its reopen condition is met. |
 
@@ -175,11 +177,13 @@ From Sheet 1, section 8 of the ikigai.
 |---|---|---|---|
 | Kill | Track 2, the displaced worker media property | Zero evidence. People being pushed, not pulled (Rule 1). | The company is worth something and runs without him. |
 | Kill | The fund or capital vehicle as a route | No capital; advisory equity without capital is worth almost nothing. | After a sale or a raise. |
-| Park | The job search | "Only a role that is literally the mission with a salary." | The 25 approaches fail the stop rule. (That rule is PAUSED; see below.) |
+| Park | The job search | "Only a role that is literally the mission with a salary." | The 25 approaches fail the stop rule. (That rule fell due on 5 Oct 2026 unmet and Krish chose to continue; see below.) |
 | Park | The OS as a product | It is the engine under the swing, not a thing to sell. | A paying leader asks to buy it. |
 | Double down | The room: a confidential session for a leader at a fork | The door to the company. | None. |
 | Double down | Keynotes and the podcast as the demand engine | Closest thing to the purpose lived. | None, but they fill the room, not replace it. |
 | Double down, redefined | CTRL as what the leader keeps after the room | R12.3 rank 1 names the product. | None. |
+
+**Note on the job search and Hunter.** Hunter, the job-sourcing agent, is active. Ruling (Krish, 2026-10-06): "Hunter is active yes." The park above stays as the ikigai wrote it; Hunter running is Krish's call, so do not "fix" one by reading the other. Full Time is not part of any job search: it is a B2C monetisation experiment app (Ruling, Krish, 2026-10-06).
 
 **Note on "the room".** The ikigai describes a three week private diagnostic (Sheet 2). The business canon reviewed 24 September 2026 replaced that with two doors and one privately scoped paid proof with a public 30-day shape (`01_CANON.md`). For Mindmake's current offer, the canon wins. See [`docs/PORTFOLIO.md`](PORTFOLIO.md#mindmake-the-mission).
 
@@ -187,52 +191,53 @@ Ventures and brands he has retired are listed in [`docs/PORTFOLIO.md`](PORTFOLIO
 
 ## Mission versus portfolio
 
-**Ruling (Krish, 2026-10-05): both, explicitly split.**
+**Ruling (Krish, 2026-10-06): the portfolio rolls into the mission.** Krish: "portfolio rolls in to mission." Mindmake is the one company and the one swing. Heartside, Full Time, Legibility, CTRL and Pulse are parts of it, not a separate lane competing for his time. Circle is dormant.
 
-- **The mission** is Mindmake: the one swing from the ikigai (Sheet 1, sections 1 and 8; R12.1, R12.3, R10.4).
-- **The portfolio** is a separate set of products the OS grows: Heartside and Full Time (priority 1), Legibility (priority 2), CTRL and Pulse (priority 3). Circle is dormant. The single ranking lives in `src/lib/portfolio.ts`. Details: [`docs/PORTFOLIO.md`](PORTFOLIO.md).
-- **CTRL sits in both.** The ikigai names CTRL as "what the leader keeps after the room" (Sheet 3). The portfolio ranks it priority 3 as a self-serve app.
+- **The mission** is Mindmake: the one swing from the ikigai (Sheet 1, sections 1 and 8; R12.1, R12.3, R10.4). It is the parent.
+- **The products** sit inside it, in the order of the ladder in `src/lib/portfolio.ts`: Heartside and Full Time (priority 1), Legibility (priority 2), CTRL and Pulse (priority 3). Circle is dormant. Details: [`docs/PORTFOLIO.md`](PORTFOLIO.md).
+- **CTRL** is also named in the ikigai as "what the leader keeps after the room" (Sheet 3). Under this ruling that is no longer a second home: it is one product inside the mission, ranked 3.
 
-### The tension, named
+### What this replaced
 
-This split is not coherent with the ikigai as written, and the docs do not pretend it is.
+On 2026-10-05 Krish ruled "both, explicitly split": Mindmake as the mission and the products as a separate portfolio. That ruling came with a seven-point rule for agents: never choose between the two, put a mission item and a portfolio item side by side whenever both needed his time, order each side by its own order, and flag the missing default when a surface could show only one thing. **The 2026-10-06 ruling supersedes it.** The seven-point rule is retired; its text is in this file's git history.
 
-- **Rule 7:** "If it does not put a leader's edge back, it is off mission." Heartside is a gift shop for dog owners. Full Time is AI football audio. Neither puts a leader's edge back. Both are priority 1.
-- **Rule 8:** "Music and football are protected. They enter the work only after it runs without him." Full Time is a football product, and it is priority 1.
-- **The ikigai also calls the portfolio itself a risk.** "Portfolio is the avoidance pattern" (Sheet 4, section 3; R5.5 rank 1: "It is how I avoid the one swing, and I know it"). Rule 3 (pay inside 90 days) and Rule 4 (not alone) also strain: every portfolio product is solo, and the whole portfolio has earned $0 to date (see [`docs/PORTFOLIO.md`](PORTFOLIO.md)).
-- **The other side, in his own answers.** R4.6 note: given a clean slate he would start "a portfolio - in AI literacy, in music, in football, in media". R5.5 note: "a bit of avoidance and a bit of trying to play the endgame, and a bit of playing my strengths". E2 ranks "a portfolio of three or four" second. R6.6 note: he hesitates to drop the others "until I am clear in my mind what my mission is".
+### The tension, and how it was resolved
 
-Krish made the call knowing both sides. **Agents do not resolve it, in either direction.**
+The ikigai's Rule 7 says "If it does not put a leader's edge back, it is off mission." Rule 8 says "Music and football are protected. They enter the work only after it runs without him." Heartside is a gift shop for dog owners and Full Time is AI football audio, both at priority 1. The ikigai also calls the portfolio "the avoidance pattern" (Sheet 4, section 3; R5.5 rank 1), and the one-swing charter repeats it.
 
-### The rule for agents when the two compete for Krish's own time
+**That tension is resolved by Krish's ruling, not by rewriting the rules.** On 2026-10-06 he placed the portfolio inside the mission. Rules 7 and 8 stay verbatim and in force, and the ikigai is unchanged. What changed is the reading: a product on the ladder is part of the mission by his decision, so neither rule is grounds to veto it or demote it.
 
-"Krish's own time" means his hours, his attention, the decisions only he can make, the sends only he can approve, and his name or face in public. Agent runs, drafts and measurement are not his time.
+The other side, in his own answers, is why the call is coherent for him: given a clean slate he would start "a portfolio - in AI literacy, in music, in football, in media" (R4.6 note); the portfolio is "a bit of avoidance and a bit of trying to play the endgame, and a bit of playing my strengths" (R5.5 note); E2 ranks "a portfolio of three or four" second.
 
-1. **Do not choose between them.** Never rank a portfolio item above a mission item, or a mission item above a portfolio item, on your own judgement.
-2. **Put both in front of him, side by side.** When a mission item and a portfolio item both need his own time in the same window, show both. For each, give one line on: the minutes it needs from him, what it moves (money, learning or distribution), and which decision rules it strains. He picks.
-3. **Inside each side, use that side's order.** Portfolio work is ordered by the tiers in `src/lib/portfolio.ts`. Mission work is ordered by the ikigai and the business canon. Never re-rank the portfolio by mission fit, and never demote mission work by portfolio tier.
-4. **Do not use Rule 7 or Rule 8 to veto portfolio work, and do not use the portfolio ranking to excuse breaking them.** When a portfolio proposal needs Krish's own time, name the rule it strains in one line, then let him decide.
-5. **Ask before a portfolio proposal puts football or music into his working hours, puts his name or face in public, or needs him to sell.** That is exactly where the rules bite.
-6. **When a surface can show only one thing** (for example a single "do this next"), do not invent a default. Say which side the item comes from, and flag the missing default as an open decision for Krish.
-7. **Portfolio work that needs none of his time** runs on the portfolio ranking and that product's allowed levers in [`docs/PORTFOLIO.md`](PORTFOLIO.md). The OS growing the portfolio is his ruling.
+### The rule for agents
 
-## What is paused right now
+1. **One queue.** Mission work and product work are one queue, with the mission as the parent. There is no second lane to balance against it.
+2. **When a surface can show only one thing** (for example a single "do this next"), the mission leads. Product work is ordered beneath it by the ladder in `src/lib/portfolio.ts`.
+3. **Among the products, the ladder decides.** Never re-rank the products by your own sense of mission fit.
+4. **Product work that needs none of his time** runs on the ladder and that product's allowed levers in [`docs/PORTFOLIO.md`](PORTFOLIO.md).
+5. **The rules still bite where they always did.** Run all eight decision rules. Rule 8's one-line flag still applies when a proposal would put football or music into Krish's own hours, and a proposal that needs his name or face in public, or needs him to sell, is still asked before it is planned (see [Acquisition doctrine](#acquisition-doctrine)). A flag is not a veto.
 
-**PAUSED on 2026-10-05, being reset by Krish. New stop date and terms pending.**
+## The ikigai commitment: ongoing
 
-| Paused item | What it said | Why paused |
+**Ruling (Krish, 2026-10-06): the commitment is ONGOING.** Krish: "its ongoing." *"Ongoing" is the coordinator's reading of those two words, recorded as such.*
+
+**What this replaced.** On 2026-10-05 the twelve month commitment, the ninety day plan, the scorecard and the stop rule were marked "PAUSED, being reset by Krish", because the stop rule fell due that day and was not met. The 2026-10-06 ruling supersedes that: Krish chose to continue rather than stop or reset.
+
+| Item | What it said | Status as of 2026-10-06 |
 |---|---|---|
-| Twelve month commitment | 7 Sep 2026 to 6 Sep 2027, the mission is the only swing (Sheet 1, section 5). | Its stop rule fell due and was not met. |
-| Ninety day plan | Room first, company second, raise third; 25 warm approaches; first paid room by 5 Oct 2026 (Sheet 1, section 6). | Same. |
-| Twelve week scorecard | Weekly approaches, calls, paid rooms, cash, pieces, unasked build hours (Sheet 1, section 7). | It holds only the week one example values. |
-| Stop rule | "Fewer than 2 of 25 leaders take a call, or no paid room by 5 Oct 2026" means stop (Sheet 1, section 5). | It fell on 2026-10-05 and was not met. Krish is resetting it rather than applying it. |
+| Twelve month commitment | 7 Sep 2026 to 6 Sep 2027, the mission is the only swing (Sheet 1, section 5). | **ONGOING.** It continues. |
+| Stop rule | "Fewer than 2 of 25 leaders take a call, or no paid room by 5 Oct 2026" means stop (Sheet 1, section 5). | Fell due on 5 Oct 2026 and was not met. Krish chose to continue. **No new stop date has been set.** |
+| Ninety day plan | Room first, company second, raise third; 25 warm approaches; first paid room by 5 Oct 2026 (Sheet 1, section 6). | Its dated steps (5 Sep to 5 Dec 2026) are history from the original plan. The day 90 review date, 5 Dec 2026, was not restated by Krish, so it is **unconfirmed, not live**. |
+| Twelve week scorecard | Weekly approaches, calls, paid rooms, cash, pieces, unasked build hours (Sheet 1, section 7). | Part of the ongoing commitment. It holds only the week one example values, and its targets come from the original plan; Krish has not restated them. |
 
 What this means for agents:
 
-- Do not act on the ninety day plan, its dates or its targets as if they were live.
-- Do not apply the stop rule. Do not conclude that "the network advantage is not real" from it. Krish is resetting the terms.
-- The OS's one-swing plan (`docs/plans/one-swing/`) was built from this commitment. Treat its dates and targets as paused until Krish sets new ones.
-- What is **not** paused: the locked core, the decision rules, the acquisition doctrine, what is protected, and the kill and park list.
+- Treat the commitment as live: the mission is the swing, and the products roll into it.
+- Do not invent a new stop date, new targets or new plan dates. None has been set.
+- Do not treat 5 Dec 2026 as a confirmed review date. Ask Krish before putting it, or any other date from the original plan, in front of him as a deadline.
+- Do not apply the 5 Oct stop rule, and do not conclude from it that "the network advantage is not real". Krish read it and chose to continue.
+- The OS's one-swing plan (`docs/plans/one-swing/`) was built from this commitment. Its direction stands; its dates after 5 Oct 2026 carry the same caution.
+- Unchanged throughout: the locked core, the decision rules, the acquisition doctrine, what is protected, and the kill and park list.
 
 ## Background
 
@@ -260,4 +265,4 @@ These follow from the ikigai and from how he runs the OS.
 
 ---
 
-*Sources: [`docs/krish/IKIGAI_v4.md`](krish/IKIGAI_v4.md) (verbatim); the business canon in `krishanraja/mindmake` (read only); Krish's rulings of 2026-10-05; `docs/MINDMAKE_OS_ARCHITECTURE.md` section 11.5 for the Acquisition OS rulings. Where this file and the ikigai disagree, the ikigai wins on who Krish is, and the business canon wins on what Mindmake sells.*
+*Sources: [`docs/krish/IKIGAI_v4.md`](krish/IKIGAI_v4.md) (verbatim); the business canon in `krishanraja/mindmake` (read only); Krish's rulings of 2026-10-05 and 2026-10-06 (the later wins where they conflict); `docs/MINDMAKE_OS_ARCHITECTURE.md` section 11.5 for the Acquisition OS rulings. Where this file and the ikigai disagree, the ikigai wins on who Krish is, and the business canon wins on what Mindmake sells.*

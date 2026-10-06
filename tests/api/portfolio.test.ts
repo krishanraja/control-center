@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
-import { PORTFOLIO, GROWTH_ORDER, METRICS, UNRANKED_GROWTH, portfolioRank, tierOf } from '../../src/lib/portfolio.ts'
+import { PORTFOLIO, GROWTH_ORDER, METRICS, UNRANKED_GROWTH, SUBSTACK, portfolioRank, tierOf } from '../../src/lib/portfolio.ts'
 import { PRODUCTS } from '../../src/lib/growth.ts'
 import { VENTURE_OPTIONS, ventureLabel } from '../../src/lib/ventureOptions.ts'
 import { buildBoard, subscriptionsSummary } from '../../src/lib/portfolioBoard.ts'
@@ -160,4 +160,14 @@ test('the Subscriptions sentence says who pays and how much of priority 1 is vis
   assert.match(line, /^2 paying, all through the Substack\./)
   assert.match(line, /Priority 1 shows \d+ of its 12 numbers/)
   assert.doesNotMatch(line, /—/)
+})
+
+test('CTRL sells CTRL Pro, and paid Substack members count under the publication', () => {
+  // Stripe renamed Edge Pro to CTRL Pro on 2026-10-05, and migration
+  // 20261005140000 moved the Substack plans from mm_ctrl to publication. The
+  // one code source of the ladder has to say both.
+  const ctrl = PORTFOLIO.find(p => p.venture === 'mm_ctrl')!
+  assert.match(ctrl.what, /CTRL Pro at \$49 a month/)
+  assert.doesNotMatch(JSON.stringify(ctrl), /sells Edge Pro|one thing, Edge Pro/)
+  assert.equal(SUBSTACK.paidCountedUnder, 'publication')
 })
