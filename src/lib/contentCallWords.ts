@@ -11,6 +11,7 @@
  */
 import { callSectionOf, displayThesis, type IdeaInput } from './contentModel'
 import { ladderVerdict } from './ladder'
+import { clearsAtNextPurge, nextPurgeRun } from './purgeClock'
 
 const DAY_MS = 86_400_000
 
@@ -57,20 +58,17 @@ export function numberWord(n: number): string {
 }
 
 /**
- * The end of the coming Monday, UTC: the moment the weekly clear-out runs.
- * On a Monday it is the end of today.
+ * When the weekly clear-out next runs, in ms: Monday 14:00 UTC, the same
+ * clock the purge itself runs on (src/lib/purgeClock.ts). On a Monday before
+ * 14:00 it is this afternoon; from 14:00 it is the Monday after.
  */
-export function clearOutEnd(today: string): number {
-  const wd = at(today).getUTCDay()
-  const toMonday = (1 - wd + 7) % 7
-  return at(today).getTime() + (toMonday + 1) * DAY_MS
+export function clearOutEnd(now: Date | number): number {
+  return nextPurgeRun(now).getTime()
 }
 
 /** Whether Monday's clear-out removes this piece if nobody picks it. */
-export function clearsOutMonday(idea: Pick<IdeaInput, 'expires_at'>, today: string): boolean {
-  if (!idea.expires_at) return false
-  const t = Date.parse(idea.expires_at)
-  return Number.isFinite(t) && t < clearOutEnd(today)
+export function clearsOutMonday(idea: Pick<IdeaInput, 'expires_at'>, now: Date | number): boolean {
+  return clearsAtNextPurge(idea.expires_at, now)
 }
 
 const CONFIDENCE_LINE = /(How sure we are|\bConfidence):[^\n]*/gi

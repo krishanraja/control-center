@@ -4,72 +4,52 @@ import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Working } from '../shared/Working'
+import { calendarDate } from '../../lib/contentModel'
+import { dayName, monthGrid, monthName, monthOf, pieceDay, stepMonth as stepCursor, type MonthCell } from '../../lib/contentCalendar'
 
 // The month grid of scheduled and published pieces, with click-a-day
 // scheduling. Ported unchanged from the retired v1 desktop surface so the
 // Library keeps the one calendar the pipeline ever had.
+//
+// Every day on it is a UTC calendar day (src/lib/contentCalendar.ts), the same
+// clock as the rest of the Content desk and the engine's series days. It used
+// to read the browser's local day, which filed a scheduled piece a day early
+// anywhere west of UTC.
 
-interface CalendarCell {
-  date: Date
-  inMonth: boolean
+interface CalendarCell extends MonthCell {
   ideas: ContentIdeaRow[]
 }
 
 export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
-  const [cursor, setCursor] = useState<Date>(() => {
-    const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1)
-  })
-  const year = cursor.getFullYear()
-  const month = cursor.getMonth()
-  const monthLabel = cursor.toLocaleString(undefined, { month: 'long', year: 'numeric' })
+  // Read once per visit, like the rest of the desk.
+  const today = useMemo(() => calendarDate(new Date()), [])
+  const [cursor, setCursor] = useState(() => monthOf(today))
+  const { year, month } = cursor
+  const monthLabel = monthName(year, month)
 
-  // Bucket ideas by ISO date. Use scheduled_for first (planned), then published_at
-  // (historical) as a fallback. Anything without either is dropped from the grid.
+  // Bucket ideas by UTC day: scheduled_for first (planned), then published_at
+  // (historical). Anything without either is dropped from the grid.
   const byDay = useMemo(() => {
     const out: Record<string, ContentIdeaRow[]> = {}
     for (const i of ideas) {
-      const when = i.scheduled_for || i.published_at
-      if (!when) continue
-      const d = new Date(when)
-      if (Number.isNaN(d.getTime())) continue
-      const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+      const key = pieceDay(i)
+      if (!key) continue
       out[key] = out[key] || []
       out[key].push(i)
     }
     return out
   }, [ideas])
 
-  const cells: CalendarCell[] = useMemo(() => {
-    const first = new Date(year, month, 1)
-    const startDow = first.getDay() // 0..6 (Sun..Sat)
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const result: CalendarCell[] = []
-    // Leading days from previous month
-    for (let i = 0; i < startDow; i++) {
-      const d = new Date(year, month, i - startDow + 1)
-      result.push({ date: d, inMonth: false, ideas: [] })
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-      const d = new Date(year, month, day)
-      const key = `${year}-${month + 1}-${day}`
-      result.push({ date: d, inMonth: true, ideas: byDay[key] || [] })
-    }
-    // Trailing pad to a full 6 rows (42 cells) so layout doesn't jump.
-    while (result.length < 42) {
-      const last = result[result.length - 1].date
-      const d = new Date(last)
-      d.setDate(last.getDate() + 1)
-      result.push({ date: d, inMonth: false, ideas: [] })
-    }
-    return result
-  }, [year, month, byDay])
+  const cells: CalendarCell[] = useMemo(
+    () => monthGrid(year, month).map(c => ({ ...c, ideas: c.inMonth ? byDay[c.ymd] || [] : [] })),
+    [year, month, byDay],
+  )
 
   const monthIdeas = useMemo(() => ideas.filter(i => {
-    const when = i.scheduled_for || i.published_at
-    if (!when) return false
-    const d = new Date(when)
-    return d.getFullYear() === year && d.getMonth() === month
+    const key = pieceDay(i)
+    if (!key) return false
+    const m = monthOf(key)
+    return m.year === year && m.month === month
   }), [ideas, year, month])
 
   // In-flight ideas with no scheduled/published date — the pool that can be
@@ -83,7 +63,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
 
   const { toast } = useToast()
   const h = useHaptics()
-  const [pickerDay, setPickerDay] = useState<Date | null>(null)
+  const [pickerDay, setPickerDay] = useState<string | null>(null)
   const [pickerQuery, setPickerQuery] = useState('')
   const [scheduling, setScheduling] = useState<string | null>(null)
 
@@ -104,11 +84,11 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
   // Reset the picker search each time it opens.
   useEffect(() => { setPickerQuery('') }, [pickerDay])
 
-  // Schedule an idea onto a day. scheduled_for is a `date` column, so we send
-  // the YYYY-MM-DD built from the clicked cell's LOCAL components (not ISO/UTC)
-  // so it lands on exactly the day that was clicked. Realtime refreshes the grid.
-  const schedule = async (ideaId: string, day: Date) => {
-    const ymd = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+  // Schedule an idea onto a day. scheduled_for is a `date` column and every
+  // cell is already a UTC calendar day, so the cell's own YYYY-MM-DD is sent
+  // and the piece lands on exactly the day that was clicked. Realtime
+  // refreshes the grid.
+  const schedule = async (ideaId: string, ymd: string) => {
     h.heavy()
     setScheduling(ideaId)
     try {
@@ -131,7 +111,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
 
   const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-  const stepMonth = (delta: number) => setCursor(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1))
+  const stepMonth = (delta: number) => setCursor(prev => stepCursor(prev, delta))
 
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
@@ -155,7 +135,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         </button>
         <button
           type="button"
-          onClick={() => setCursor(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })}
+          onClick={() => setCursor(monthOf(today))}
           className="ml-2 px-2 py-1 rounded-md text-micro text-ink-faint hover:text-ink-muted hover:bg-white/[0.06] transition-colors"
         >
           Today
@@ -180,11 +160,12 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
 
       <div className="grid grid-cols-7 gap-1">
         {cells.map((c, idx) => {
-          const isToday = isSameDay(c.date, new Date())
+          const isToday = c.ymd === today
           return (
             <div
               key={idx}
-              onClick={c.inMonth ? () => { h.tap(); setPickerDay(c.date) } : undefined}
+              data-testid={c.inMonth ? `content-calendar-day-${c.ymd}` : undefined}
+              onClick={c.inMonth ? () => { h.tap(); setPickerDay(c.ymd) } : undefined}
               role={c.inMonth ? 'button' : undefined}
               title={c.inMonth ? 'Schedule a draft on this day' : undefined}
               className={`group relative min-h-[80px] rounded-md border p-1.5 transition-colors ${
@@ -196,7 +177,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
               }`}
             >
               <div className={`flex items-center justify-between text-micro tabular-nums mb-1 ${isToday ? 'text-violet-200 font-semibold' : 'text-ink-faint'}`}>
-                <span>{c.date.getDate()}</span>
+                <span>{Number(c.ymd.slice(8, 10))}</span>
                 {c.inMonth && <Plus size={11} className="opacity-0 group-hover:opacity-60 text-ink-muted" />}
               </div>
               <div className="space-y-0.5">
@@ -244,7 +225,7 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
           <div className="relative w-full max-w-md max-h-[80vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
             <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
               <h3 className="text-ui font-semibold text-ink">
-                Schedule for {pickerDay.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                Schedule for {dayName(pickerDay)}
               </h3>
               <p className="text-micro text-ink-faint mt-0.5">
                 {unscheduledIdeas.length} unscheduled idea{unscheduledIdeas.length === 1 ? '' : 's'}
@@ -291,8 +272,4 @@ export function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
       )}
     </section>
   )
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }

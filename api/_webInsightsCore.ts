@@ -1074,14 +1074,6 @@ export function actionForFinding(f: Finding, r: PropertyRead, h: Health, os: OsF
     case 'canon_ruling': {
       const conflict = p.canon.status === 'ruling_owed' ? p.canon.conflict : ''
       const options = p.canon.status === 'ruling_owed' ? p.canon.options : []
-      if (p.prefix === 'fulltime') {
-        return make({
-          title: `Decide what ${p.label} is for`,
-          why: `${conflict} Until you pick, no growth action can name a job.`,
-          first_step: 'Reply in chat with one word: proof (it feeds demand for the pilot), measure (keep reading visits, no actions) or park (take the tag off). Merging the PR that follows closes this.',
-          minutes: 2, link: null, hero_line: null,
-        })
-      }
       if (p.prefix === 'legibility') {
         return make({
           title: `Decide whether ${p.label} is live`,
@@ -1522,15 +1514,24 @@ export function fallbackGrowthAction(p: WebProperty, r: PropertyRead, os: OsFact
       })
     }
     case 'fulltime': {
+      // Ruling (Krish, 2026-10-06): ready for pilot users, so the one thing
+      // only he can do is ask the first listeners in. With an empty feed there
+      // is nothing for them to hear yet, and the action is to get one out.
       if (typeof os.rssItems !== 'number') return null
+      const job: WebJob = p.jobs.includes('fill_pilots') ? 'fill_pilots' : p.jobs[0]
+      if (os.rssItems === 0) {
+        return growthAction(p, now, 'fallback', {
+          title: 'Say go on the first episode so pilot listeners have something to hear',
+          why: 'The feed has 0 episodes, so a pilot listener would find nothing to play.',
+          first_step: 'Listen to the latest edition from start to end, then reply go or no go in chat.',
+          minutes: 30, link: null, job, detector: { kind: 'rss_items_up', baseline: os.rssItems },
+        })
+      }
       return growthAction(p, now, 'fallback', {
-        title: 'Run the listening test on the latest edition and say go or no go',
-        why: os.rssItems === 0
-          ? 'The feed has 0 episodes, so directories have nothing to list.'
-          : `The feed has ${plural(os.rssItems, 'episode', 'episodes')}, and the next one goes out only when you say go.`,
-        first_step: 'Listen to the latest edition from start to end, then reply go or no go in chat.',
-        minutes: 30, link: null, job: p.jobs.includes('feed_demand') ? 'feed_demand' : p.jobs[0],
-        detector: { kind: 'rss_items_up', baseline: os.rssItems },
+        title: 'Ask five football fans you know to be pilot listeners',
+        why: `The show is ready for pilot users and the feed has ${plural(os.rssItems, 'episode', 'episodes')} to play. Visits do not find listeners; you can.`,
+        first_step: 'Pick five people who follow football, send each the link from your own phone or inbox, and ask them to listen to one episode and tell you what they think.',
+        minutes: 20, link: null, job, detector: { kind: 'today_slot_done' },
       })
     }
     case 'legibility':

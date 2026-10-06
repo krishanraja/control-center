@@ -33,11 +33,12 @@ export const KIND: Record<MoveKind, { label: string; icon: LucideIcon }> = {
 
 /**
  * What each site answer MEANS, never what the system will do with it. The
- * registry stores one word per answer (proof, measure, park, live, retire);
+ * registry stores one word per answer (proof, pilot, measure, park, live, retire);
  * a word on its own does not say what choosing it commits to.
  */
 export const ANSWER_WORDS: Record<string, { label: string; hint: string }> = {
   proof: { label: 'Keep it as a proof piece', hint: 'It shows what you can build. It is not for sale.' },
+  pilot: { label: 'Get pilot users', hint: 'It is ready for its first real users.' },
   measure: { label: 'Just measure it for now', hint: 'Keep counting visits and decide again later.' },
   park: { label: 'Park it', hint: 'Leave it alone for now.' },
   live: { label: 'Yes, it is live', hint: 'It is a product you are selling.' },

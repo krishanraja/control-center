@@ -49,6 +49,8 @@ export interface WebProperty {
   jobs: WebJob[]                 // [] unless canon.status === 'live'
   goal: string                   // what better results means here, one plain line
   canon: WebCanon
+  /** The ruling that closed an owed question, kept so the answer and its date stay with the entry. */
+  ruled?: { choice: string; on: string; said: string }
   tagLiveAt: string              // ISO instant the tag went live on the page
   consentByDesign: boolean       // true only for mindmake.co (Krish's r31 call; never auto-changed)
   neverPublishName: boolean      // true for fulltime.fm (full-time NOW.md never_publish)
@@ -77,11 +79,17 @@ export const WEB_PROPERTIES: readonly WebProperty[] = [
     probeUrl: 'https://fulltime.fm/', measurementId: 'G-W2QL8RKFJ1', env: 'GA4_PROPERTY_FULLTIME', defaultId: '556143202',
     venture: 'full_time', touchpointSlug: 'full-time', councilSlug: 'full-time', posthogProduct: 'full_time',
     plausibleSiteId: null, repo: 'krishanraja/full-time', sitemapUrl: 'https://fulltime.fm/sitemap.xml',
-    rssUrl: 'https://fulltime.fm/api/public/feed.rss', substackArchiveUrl: null, jobs: [],
-    goal: 'Undecided. The registry, the rebrand note and the full-time repo give three different goals.',
-    canon: { status: 'ruling_owed', question: 'What is fulltime.fm for?',
-      conflict: 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale.',
-      options: ['proof', 'measure', 'park'] },
+    rssUrl: 'https://fulltime.fm/api/public/feed.rss', substackArchiveUrl: null,
+    // Ruling (Krish, 2026-10-06): "fulltime is ready for pilot users, it is an
+    // autonomous AI football podcast." That closes "What is fulltime.fm for?"
+    // (owed since 2026-09-27; options were proof, measure, park). None of the
+    // three fit, so the answer is the new 'pilot' option: live, and its job is
+    // getting pilot listeners. fill_pilots is the one job about bringing in
+    // first users; on this site the goal line says they are listeners.
+    jobs: ['fill_pilots'],
+    goal: 'Football fans become pilot listeners: they find the show, follow the feed and come back for the next episode.',
+    canon: { status: 'live' },
+    ruled: { choice: 'pilot', on: '2026-10-06', said: 'fulltime is ready for pilot users, it is an autonomous AI football podcast' },
     tagLiveAt: '2026-09-27T09:56:53Z', consentByDesign: false, neverPublishName: true },
   { prefix: 'legibility', label: 'legibility.io', about: 'legibility.io', host: 'legibility.io', hostAliases: ['www.legibility.io'],
     probeUrl: 'https://legibility.io/', measurementId: 'G-J5173WPD98', env: 'GA4_PROPERTY_LEGIBILITY', defaultId: '556114272',
@@ -116,8 +124,8 @@ export function ga4PropertyId(p: WebProperty, env: Record<string, string | undef
 
 // ---------- answering a ruling from the dashboard ----------
 //
-// A site whose canon is 'ruling_owed' carries a rung-4 action ("Decide what
-// fulltime.fm is for"). Its detector, canon_ruled, used to fire only when a PR
+// A site whose canon is 'ruling_owed' carries a rung-4 action ("Decide whether
+// legibility.io is live"). Its detector, canon_ruled, used to fire only when a PR
 // changed the canon above, so the card asked for a reply in chat and nothing
 // on the dashboard could answer it. The answer can now be stored in
 // system_config (one key per site, so two answers never race on one value),
@@ -166,8 +174,9 @@ export function choiceNeedsJob(choice: string): boolean {
  *   measure        -> measure_only: keep reading visits, no actions
  *   park, retire   -> retired: only visits are read (taking a tag off the
  *                     page is a change to that site's own repo, not this one)
- *   proof          -> live, feeding demand ("proof (it feeds demand for the
- *                     pilot)" is how the fulltime.fm action words it)
+ *   proof          -> live, feeding demand
+ *   pilot          -> live, getting its first pilot users (added 2026-10-06
+ *                     for fulltime.fm, when none of proof, measure or park fit)
  *   live + job     -> live, serving that job. 'live' alone is not an answer:
  *                     a live site with no job has nothing to grow toward.
  */
@@ -178,6 +187,7 @@ export function canonFromChoice(p: WebProperty, choice: string, job?: WebJob | n
     case 'park':
     case 'retire': return { canon: { status: 'retired' }, jobs: [] }
     case 'proof': return { canon: { status: 'live' }, jobs: ['feed_demand'] }
+    case 'pilot': return { canon: { status: 'live' }, jobs: ['fill_pilots'] }
     case 'live': return isWebJob(job) ? { canon: { status: 'live' }, jobs: [job] } : null
     default: return null
   }

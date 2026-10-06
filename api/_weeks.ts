@@ -19,13 +19,9 @@ export function startOfIsoWeek(d = new Date()): Date {
 }
 
 // The purge boundary: the Monday 14:00 UTC that ends the week containing `d`.
-export function purgeBoundary(d = new Date()): Date {
-  const monday = startOfIsoWeek(d)
-  const next = new Date(monday)
-  next.setUTCDate(next.getUTCDate() + 7)
-  next.setUTCHours(14, 0, 0, 0)
-  return next
-}
+// It lives in src/lib/purgeClock.ts so the Content tab's "Clears out Monday"
+// label reads the same clock as the purge; never redefine it here.
+export { purgeBoundary } from '../src/lib/purgeClock.js'
 
 // The oldest week the Content tab still shows.
 //

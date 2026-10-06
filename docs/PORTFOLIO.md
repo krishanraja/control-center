@@ -18,6 +18,8 @@
 
 > **Rulings (Krish, 2026-10-06), also:** Full Time is "a b2c monetization experiment app", not a job-search asset. "CTRL is fine priced": CTRL Pro at $49 a month stands. The publication has three channels. "Hunter is active yes." Founder visibility is still open.
 
+> **Rulings (Krish, 2026-10-06), second batch:** Full Time: "fulltime is ready for pilot users, it is an autonomous AI football podcast." It is an autonomous AI football podcast, a B2C monetisation experiment app, ready for pilot users, and its job now is getting pilot listeners. This closes the owed ruling "What is fulltime.fm for?" (`src/lib/webProperties.ts`). Pulse: "Pulse can be for sale in a few months but not yet." It is not for sale yet and is planned for sale in a few months under the licence-fee model. No launch date is set.
+
 ## Contents
 
 1. [Summary](#summary)
@@ -43,10 +45,10 @@
 | Venture | What it is | Priority | Stage | Real money to date | Takes payment through | ICP defined in `product_icp`? |
 |---|---|---|---|---|---|---|
 | **Heartside** | A Shopify store selling gifts written in your dog's voice | 1 | Pre-launch. Opens 20 October 2026 | $0. 0 orders, 0 customers | Shopify Payments, in USD | No |
-| **Full Time** | A B2C monetisation experiment app: AI football audio, six AI pundits recap one match a day | 1 | Live beta | $0. Has never collected a payment | Stripe (Full Time account), Full Time Pro $4.99 a month | No |
+| **Full Time** | An autonomous AI football podcast, a B2C monetisation experiment app: six AI pundits recap one match a day | 1 | Live beta, ready for pilot users | $0. Has never collected a payment | Stripe (Full Time account), Full Time Pro $4.99 a month | No |
 | **Legibility** | An API that gives AI agents typed product data | 2 | Private beta | $0. Every customer so far was a QA bot or Krish | Stripe (Legibility account), Starter $29 and Growth $199 a month | No |
 | **CTRL** | An AI briefing and decision app for founders and small-team CEOs | 3 | Live | $0. Zero paying customers | Stripe (mind/make account), CTRL Pro $49 a month | No |
-| **Pulse** | A free public index of demand for fractional executives | 3 | Live | $0. **Cannot take a payment**: no button starts a checkout | Stripe (Fractionl account), Pulse Pro $99 a month or $948 a year, not reachable | No |
+| **Pulse** | A free public index of demand for fractional executives | 3 | Live and free. Not for sale yet; for sale in a few months under a licence fee | $0. **Cannot take a payment**: no button starts a checkout | Stripe (Fractionl account), Pulse Pro $99 a month or $948 a year, not reachable | No |
 | **Mindmake** | Krish's AI and commercial strategy practice. **The mission**, which every product above rolls into. | Not ranked: the parent of the ladder | Live | Part of the $842.56 below (split by product not measured) | Privately agreed fee, Stripe (mind/make account) | **Yes** |
 | **Circle** | Personal contact memory for independent operators | Dormant | Dormant | $0 | Stripe (Fractionl account) | Not applicable while dormant |
 
@@ -201,7 +203,7 @@ Free US shipping on everything. No strike-through "was" prices.
 ## Priority 1: Full Time
 
 ### What it is
-**A B2C monetisation experiment app** (Ruling, Krish, 2026-10-06: "fulltime is not a job search thing, its a b2c monetization experiment app"). An AI football audio app: each day one finished Premier League match becomes six short audio shows, each written and voiced by a different AI pundit, with automated fact checks deciding what is allowed to publish.
+**An autonomous AI football podcast, a B2C monetisation experiment app, ready for pilot users** (Rulings, Krish, 2026-10-06: "fulltime is not a job search thing, its a b2c monetization experiment app"; "fulltime is ready for pilot users, it is an autonomous AI football podcast"). Each day one finished Premier League match becomes six short audio shows, each written and voiced by a different AI pundit, with automated fact checks deciding what is allowed to publish.
 
 ### What it does and for whom
 It turns one checked set of match facts into six different readings of the game. Listeners pick a pundit. All six are free without an account; Full Time Pro is $4.99 a month.
@@ -210,14 +212,15 @@ It turns one checked set of match facts into six different readings of the game.
 - It is **not** a job-search or career asset. The `venture_registry` and `ventures` rows that said so were corrected on 2026-10-06 (see [Inconsistencies found](#inconsistencies-found), items 1 and 2).
 
 ### Objective now and how success is measured
-- **No growth objective or success number is recorded** for Full Time in Control Center, `venture_registry` or the rulings of 2026-10-05 and 2026-10-06. Krish has set no target. Until he does, report the six measures.
+- **Objective: get pilot listeners** (Ruling, Krish, 2026-10-06: ready for pilot users). Control Center's site check reads fulltime.fm against that goal: football fans become pilot listeners, find the show, follow the feed and come back for the next episode. Its growth step asks Krish to invite the first listeners himself (`api/_webInsightsCore.ts`).
+- **No success number is recorded.** Krish has not said how many pilot listeners counts as a result. Until he does, report the six measures; sign-ups, the measure closest to pilot users, is not wired yet.
 - Its own repository measures editorial quality: an edition publishes only if it passes every gate (`docs/00-product.md`; `NOW.md`).
 
 ### Priority and why
 Priority 1, by Krish's ruling of 2026-10-05. He did not record a reason.
 
 ### Status and stage
-Live beta at fulltime.fm since 2026-09-04, set live by founder override. Its repository records one edition published (2026-09-05) and none since, as of 2026-10-03; a later edition would be a database fact the repository cannot confirm (`full-time` `NOW.md`). Premier League only, one match at a time.
+Live beta at fulltime.fm since 2026-09-04, set live by founder override. Ready for pilot users (Ruling, Krish, 2026-10-06). Its repository records one edition published (2026-09-05) and none since, as of 2026-10-03; a later edition would be a database fact the repository cannot confirm (`full-time` `NOW.md`). Premier League only, one match at a time.
 
 ### Money to date
 $0. 0 paying customers. Full Time has **never collected a payment**. An older memory that "real money flows" was wrong.
@@ -231,7 +234,7 @@ Stripe, Full Time account. One product: Full Time Pro, $4.99 a month. The 2026-1
 |---|---|---|
 | AEO / GEO | Yes | The Monday AI answer check |
 | Analytics | Yes | Google Analytics for fulltime.fm (the daily site check) |
-| Sign-ups | No | Full Time accounts live in its own database and are not copied to the OS. Fix: bridge them the way CTRL sign-ups are. |
+| Sign-ups | No | Full Time accounts, so its pilot users, live in its own database and are not copied to the OS. Fix: bridge them the way CTRL sign-ups are, so pilot users can be counted here. |
 | Suggestions | Yes | The Sunday growth review |
 | Growth hacks | Yes | The places map |
 | Revenue | Yes | Stripe, Full Time account, daily pull. A measured $0. |
@@ -257,8 +260,9 @@ Stripe, Full Time account. One product: Full Time Pro, $4.99 a month. The 2026-1
 ### Open issues
 - No edition has published since 2026-09-05, per the repository as of 2026-10-03.
 - The model provider was switched after the Anthropic account hit its monthly cap (2026-09-21), with some judge floors lowered until it switches back (`full-time` `NOW.md`).
-- Sign-ups are not bridged into the OS.
+- Sign-ups are not bridged into the OS, so pilot users cannot be counted in Control Center yet.
 - No ICP in `product_icp`.
+- No target number of pilot listeners.
 - The repository's `never_publish` list asks writers not to name the product, its domain or the sport. This document names them, under Krish's publication ruling of 2026-10-05.
 - Ikigai tension, resolved by ruling: football is protected (Rule 8), and Full Time is priority 1. Krish placed the portfolio inside the mission on 2026-10-06. See [`docs/KRISH.md`](KRISH.md#mission-versus-portfolio).
 
@@ -420,7 +424,7 @@ From `docs/CORPORATE_STRATEGY.md`:
 Priority 3, by Krish's ruling of 2026-10-05. He did not record a reason.
 
 ### Status and stage
-Live at pulse.fractionl.ai, free.
+Live at pulse.fractionl.ai, free. **Not for sale yet:** Krish plans to sell it in a few months under the licence-fee model (Ruling, Krish, 2026-10-06: "Pulse can be for sale in a few months but not yet"). No launch date is set.
 
 ### Money to date
 $0.
@@ -457,9 +461,9 @@ $0.
 - Cold outreach to firms or executives.
 
 ### Open issues
-- The missing checkout button. One button would let it take a payment.
+- The missing checkout button. One button would let it take a payment, and it is needed before the planned sale; there is no date for that yet.
 - No ICP in `product_icp`; its `venture_registry` text and its own strategy name different buyers.
-- The `ventures` table calls Pulse "never a product for sale".
+- Resolved 2026-10-06: the `ventures` table used to call Pulse "never a product for sale"; it now reads not for sale yet, planned for sale in a few months under the licence-fee model.
 
 ---
 
@@ -589,7 +593,7 @@ Found while writing this on 2026-10-05. Each is recorded, not silently resolved.
 **Ranking and status**
 
 1. **`venture_registry` still frames Full Time as a job-search asset.** Its `icp_description` reads "Employers are the buyers; the payoff is the role (Sept 2026 urgency)... Keep running, no new build", kind `career`. Full Time is a priority 1 product by ruling. The registry row is stale. **Resolved by ruling (Krish, 2026-10-06):** "fulltime is not a job search thing, its a b2c monetization experiment app." The row was corrected that day: `kind` is `product`, and `icp_description` and `scoring_criteria` describe a B2C monetisation experiment with no buyer defined yet. The previous row is backed up outside the repository.
-2. **The `ventures` table calls Full Time, Pulse and Circle "Build experiment acquiring test customers... Never a product for sale."** Full Time and Pulse are ranked products with Stripe prices. The CTRL row says "Kept alive deliberately cheaply." Both predate the 2026-10-05 ranking. **Resolved by ruling for Full Time (Krish, 2026-10-06):** its `ventures` description now reads as a B2C monetisation experiment app with Full Time Pro at $4.99 a month. Still open for Pulse and Circle, which no ruling covered.
+2. **The `ventures` table calls Full Time, Pulse and Circle "Build experiment acquiring test customers... Never a product for sale."** Full Time and Pulse are ranked products with Stripe prices. The CTRL row says "Kept alive deliberately cheaply." Both predate the 2026-10-05 ranking. **Resolved by ruling for Full Time (Krish, 2026-10-06):** its `ventures` description now reads as a B2C monetisation experiment app with Full Time Pro at $4.99 a month. **Resolved for Pulse (Krish, 2026-10-06):** "Pulse can be for sale in a few months but not yet." Its `ventures` description now says it is not for sale yet and is planned for sale in a few months under the licence-fee model, with no launch date; the row was backed up first and read back. Its `venture_registry` row never said "not for sale" and was left as it is. Still open for Circle, which is dormant and no ruling covered.
 3. **Circle is marked active in both `venture_registry` and `ventures`,** and `src/lib/portfolio.ts` still tracks it on Growth (unranked). The ruling and Circle's own `NOW.md` say dormant.
 4. **`docs/MINDMAKE_OS_ARCHITECTURE.md` section 11 is out of date:** it says the OS tracks 8 ventures, omits Heartside, gives Full Time's domain as a preview address with Stripe in test mode only, says Legibility has no Stripe webhook, and says Circle and Pulse "are now run outside the OS". A second writer is rewriting that document in parallel.
 5. **This repository's `NOW.md` ("What it is")** describes the portfolio as Mindmake, the publication with Paid and Built formats, mm-ctrl and Fractionl. It does not reflect the 2026-10-05 ladder.
@@ -628,7 +632,7 @@ Found while writing this on 2026-10-05. Each is recorded, not silently resolved.
 - **Which Substack address holds the 2 founding members.** Both addresses answer; the public pages do not say. Check the Substack dashboard.
 - **Whether Full Time has published an edition since 2026-09-05.** A database fact; its repository could not confirm it as of 2026-10-03.
 - **Whether Full Time's new checkout flag is on in production.** Check its production environment.
-- **A growth objective or success number for Full Time and CTRL.** None recorded. Krish should set one.
+- **A success number for Full Time and a growth objective for CTRL.** Full Time's objective is set (pilot listeners, 2026-10-06) but not how many; CTRL has neither. Krish should set them.
 - **Why Krish ranked each product where he did.** He did not record reasons.
 - **Which of the six measures are wired for Mindmake.** `src/lib/portfolio.ts` defines none; check the Growth tab.
 - **Circle's prices.** Four products exist in Stripe; prices were not re-read on 2026-10-05.

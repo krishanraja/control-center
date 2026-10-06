@@ -53,10 +53,10 @@ test('four sites, in registry order', async ({ page }) => {
 test('a site that cannot be read shows its verdict and no visit count', async ({ page }) => {
   await mock(page)
   await openNumbers(page)
-  const legibility = page.getByTestId('growth-site-legibility')
-  await expect(legibility).toHaveAttribute('data-health', 'api_disabled')
-  await expect(legibility.getByRole('img', { name: /this week, .* the week before/ })).toHaveCount(0)
-  await expect(legibility).toContainText('Cannot be checked until one Google setting is on.')
+  const fulltime = page.getByTestId('growth-site-fulltime')
+  await expect(fulltime).toHaveAttribute('data-health', 'api_disabled')
+  await expect(fulltime.getByRole('img', { name: /this week, .* the week before/ })).toHaveCount(0)
+  await expect(fulltime).toContainText('Cannot be checked until one Google setting is on.')
   // Proves the probe can find a count where one is honest.
   await expect(page.getByTestId('growth-site-mymu').getByRole('img', { name: /this week, .* the week before/ })).toHaveCount(1)
 })
@@ -64,11 +64,11 @@ test('a site that cannot be read shows its verdict and no visit count', async ({
 test('the ruling is the first move, a quick choice, and the shared step is one move', async ({ page }) => {
   await mock(page)
   await page.goto('/#/growth')
-  await expect(page.getByTestId('growth-move-card')).toContainText('What is fulltime.fm for?')
+  await expect(page.getByTestId('growth-move-card')).toContainText('Is legibility.io live?')
   await page.getByTestId('growth-section-week').click()
   const moves = page.getByTestId('growth-week-move')
   await expect(moves.filter({ hasText: 'Admin API' })).toHaveCount(1)
-  await expect(moves.nth(0)).toContainText('What is fulltime.fm for?')
+  await expect(moves.nth(0)).toContainText('Is legibility.io live?')
 })
 
 test('Put on today writes the action title and its job', async ({ page }) => {

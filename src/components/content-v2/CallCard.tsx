@@ -277,7 +277,7 @@ function Body({ call, s, reader }: { call: TodaysCall; s: ContentCalls; reader: 
         </div>
       )
     case 'expiry_notice': {
-      const going = s.ideas.filter(i => !i.buried_at && !i.library_at && ladderVerdict(i)?.band === 'ready' && clearsOutMonday(i, s.today))
+      const going = s.ideas.filter(i => !i.buried_at && !i.library_at && ladderVerdict(i)?.band === 'ready' && clearsOutMonday(i, s.now))
       return (
         <div className="flex flex-col gap-3">
           {why}
@@ -371,7 +371,7 @@ function PickBody({ call, s, reader }: { call: TodaysCall; s: ContentCalls; read
   const list = s.candidatesFor(call)
   const chosenId = s.chosen[call.key] ?? list[0]?.idea.id
   const series = call.series!
-  const clearing = list.filter(c => clearsOutMonday(c.idea, s.today)).length
+  const clearing = list.filter(c => clearsOutMonday(c.idea, s.now)).length
   const columns = reader && list.length > 1
   return (
     <div className={cn('flex flex-col', reader ? 'gap-6' : 'gap-4')}>
@@ -417,7 +417,7 @@ function PickBody({ call, s, reader }: { call: TodaysCall; s: ContentCalls; read
                 </span>
                 <span className={cn('min-w-0 flex-1 text-ui leading-snug text-ink', on && 'font-semibold')}>{(c.idea.idea || '').trim()}</span>
               </button>
-              {clearsOutMonday(c.idea, s.today) && <Badge variant="warning" className="w-fit">Clears out Monday</Badge>}
+              {clearsOutMonday(c.idea, s.now) && <Badge variant="warning" className="w-fit">Clears out Monday</Badge>}
               {arg
                 ? <p className="text-ui leading-relaxed text-ink-muted">{arg}</p>
                 : <p className="text-label text-ink-faint">Its summary was cut off where it came from, so it is not shown. Open it to read the whole piece.</p>}
