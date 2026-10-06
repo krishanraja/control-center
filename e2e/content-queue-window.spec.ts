@@ -20,7 +20,14 @@ import { answerPilotGate } from './pilot-gate-mock'
  * bounded window, newest first, and an old card is not what greets you.
  */
 
-const NOW = new Date()
+// A fixed instant, pinned on both sides (mockQueue sets the page clock), and
+// the file runs in UTC, the calendar the engine's weeks are kept on. NOW used
+// to be the real date read once at module load while the page read its own,
+// so a run that straddled Sunday midnight UTC computed THIS_WEEK in one week
+// and the app's window in the next (reproduced 2026-10-06 with both clocks
+// held at Sunday 23:59:50 UTC: "bounded week window" failed).
+const NOW = new Date('2026-09-16T10:00:00Z')
+test.use({ timezoneId: 'UTC' })
 
 function isoWeek(d: Date): string {
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
@@ -66,6 +73,7 @@ const ANCIENT_CARD = {
 
 async function mockQueue(page: Page, rows: Array<{ week: string }>) {
   const urls: string[] = []
+  await page.clock.setFixedTime(NOW)
   // Catch-alls first: Playwright checks handlers in REVERSE registration order.
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
