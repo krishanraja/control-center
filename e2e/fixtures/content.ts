@@ -1,5 +1,5 @@
 import type { Page, Route } from '@playwright/test'
-import { contentTables, mockPopulatedContent } from './populated'
+import { FIXTURE_NOW, contentTables, mockPopulatedContent } from './populated'
 import { videoStudioReviewFixture } from './video-studio'
 
 /**
@@ -49,7 +49,7 @@ export const JUDGE_VERDICTS = [
 export async function mockContentMorning(page: Page, opts: { reviews?: unknown[]; tables?: Record<string, unknown[]> } = {}) {
   await mockPopulatedContent(page, { ...contentTables(), judge_verdicts: JUDGE_VERDICTS, ...opts.tables })
   await page.route('**/api/video-studio/reviews?*', (r: Route) => r.fulfill({ json: {
-    ok: true, schema_version: 1, reviews: opts.reviews ?? [videoListItem()], server_time: new Date().toISOString(),
+    ok: true, schema_version: 1, reviews: opts.reviews ?? [videoListItem()], server_time: FIXTURE_NOW.toISOString(),
   } }))
   // The engine's gate, read for each real draft. The approved and in-review
   // pieces passed on these exact words; the drafting one was never checked.
@@ -62,7 +62,7 @@ export async function mockContentMorning(page: Page, opts: { reviews?: unknown[]
       gate: { ok: passed, reason: passed ? null : 'No fact check has run on this draft yet.' },
       ready: passed,
       next_run: { fresh_sentences: passed ? 0 : 14 },
-      fact_check: passed ? { ran_at: new Date(Date.now() - 6 * 3_600_000).toISOString() } : null,
+      fact_check: passed ? { ran_at: new Date(FIXTURE_NOW.getTime() - 6 * 3_600_000).toISOString() } : null,
     } })
   })
 }

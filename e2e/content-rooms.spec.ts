@@ -13,9 +13,15 @@ import { contentTables, IDEAS } from './fixtures/populated'
  * Every fixture is a realistic morning (fixtures/populated.ts): a finished
  * piece with no date, a draft whose facts passed, a draft never checked, a
  * series with nothing picked and five ready pieces, a Studio video and three
- * weekly rulings. None of it is day-dependent: the series days are computed
- * from the real date, so no assertion here names a weekday.
+ * weekly rulings. None of it is day-dependent: the fixture's rows and the
+ * page's clock are both pinned to FIXTURE_NOW (a Wednesday, 10:00 UTC; see
+ * fixtures/populated.ts), and the file runs in UTC, the calendar the engine
+ * keeps its series days on. They used to read the real date, and the pick test
+ * failed every Monday from 23:00 UTC: an expiry an hour away was Tuesday, past
+ * Monday's clear-out, so "Clears out Monday" was rightly not shown.
  */
+
+test.use({ timezoneId: 'UTC' })
 
 const MTG = IDEAS.find(i => i.id === 'idea-mtg-review')!
 

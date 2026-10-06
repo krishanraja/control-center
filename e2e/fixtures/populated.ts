@@ -18,13 +18,28 @@ import type { Page, Route } from '@playwright/test'
  * `assertFixturesLanded` exists so a spec cannot quietly repeat it.
  */
 
-const now = Date.now()
+/**
+ * The fixture's clock, and the page's: a fixed Wednesday, 10:00 UTC.
+ *
+ * Every time below is built from this instant, and `mockPopulatedContent` pins
+ * the page's clock to the same instant, so node and the browser agree on what
+ * "now" is and no spec reads the calendar. They used to read the real date on
+ * both sides, which is not day-independent: the second follow.the.money
+ * candidate expires an hour from now, and the app marks a piece "Clears out
+ * Monday" only when it expires before the end of the coming Monday, UTC. On a
+ * Monday from 23:00 UTC an hour from now is Tuesday, so the badge was rightly
+ * absent and content-rooms.spec.ts failed in that hour every Monday
+ * (2026-10-05 at 23:28 and 23:38 UTC, green at 00:01). The app was right; the
+ * fixture was reading the clock.
+ */
+export const FIXTURE_NOW = new Date('2026-09-16T10:00:00Z')
+const now = FIXTURE_NOW.getTime()
 const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString()
 const daysAgo = (d: number) => new Date(now - d * 86_400_000).toISOString()
 
-/** The ISO week label the engine writes, for the current week. */
-export function isoWeek(at = new Date()): string {
-  const d = new Date(Date.UTC(at.getFullYear(), at.getMonth(), at.getDate()))
+/** The ISO week label the engine writes (a UTC week), for the fixture's week. */
+export function isoWeek(at = FIXTURE_NOW): string {
+  const d = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()))
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
   const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
   const week = Math.ceil(((d.getTime() - start.getTime()) / 86_400_000 + 1) / 7)
@@ -329,6 +344,9 @@ export function contentTables(): Record<string, unknown[]> {
 }
 
 export async function mockPopulatedContent(page: Page, tables = contentTables()) {
+  // The page reads the instant the rows were built from. Every caller mocks
+  // before page.goto, which is when the pin has to land.
+  await page.clock.setFixedTime(FIXTURE_NOW)
   await page.route('**/realtime/**', (r: Route) => r.abort())
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   // ONE PostgREST handler, so nothing can shadow anything.
@@ -346,7 +364,7 @@ export async function mockPopulatedContent(page: Page, tables = contentTables())
     morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
     last_evening: null, evening_done_today: true, yesterday: null,
     timezone: 'Australia/Sydney',
-    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
+    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(FIXTURE_NOW),
   } }))
 }
 
