@@ -1,8 +1,8 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-10-05
-head: 4ff9089b
+as_of: 2026-10-06
+head: eedf8aba
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet, and honest.
 
-## Where it is right now (as of 2026-10-05)
+## Where it is right now (as of 2026-10-06)
 
 - **Live** at controlcenter.krishraja.com behind an access code, auto-deployed from `main`. CI runs lint, three typechecks, the structural guards and the Playwright gates on every push (`.github/workflows/ci.yml`, listed in `AGENTS.md`). A logged-in production render of all eight tabs at 1440x900, 1280x800 and 390x844 showed no page scroll and no crash on 2026-10-05.
 - **Six destinations and a drawer** (`src/lib/tabs.ts`): Home, Content, People, Growth, OS; Focus, Board and Subscriptions in the drawer. The OS Queue is gone (2026-10-04); each ruling is decided in the tab that owns it.
