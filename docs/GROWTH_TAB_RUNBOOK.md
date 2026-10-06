@@ -184,8 +184,9 @@ measurement rules: `docs/MEASUREMENT_SPINE.md`, "Google Analytics, four sites".
 - **The ladder: one action per site.** Rung 1 is read access (a grant or a
   missing id), rung 2 is wiring (wrong stream, tag missing, nothing
   received, the Admin API), rung 3 is data (the Plausible key for
-  mindmake.co), rung 4 is a ruling Krish owes (what fulltime.fm is for,
-  whether legibility.io is live), rung 5 is a growth action chosen by the
+  mindmake.co), rung 4 is a ruling Krish owes (whether legibility.io is
+  live; what fulltime.fm is for was ruled on 2026-10-06: ready for pilot
+  users), rung 5 is a growth action chosen by the
   model or a fixed fallback, retired after 14 days unacted. The lowest open
   rung wins. Every action says why, the first step, which job it serves,
   how many minutes, and what closes it; the check closes it on its own when

@@ -36,7 +36,19 @@ const P = (prefix: WebPrefix): WebProperty => webProperty(prefix) as WebProperty
 // SITE is the not-yet-ruled shape (no Plausible decision), so the rung-3 cases stay
 // covered after Krish ruled "GA is enough" for mindmake.co on 2026-10-02.
 const SITE: WebProperty = { ...P('site'), plausible: undefined }
-const MYMU = P('mymu'), FULLTIME = P('fulltime'), LEGIBILITY = P('legibility')
+const MYMU = P('mymu'), LEGIBILITY = P('legibility')
+// FULLTIME is the not-yet-ruled shape, so the ruling machinery (rung 4, the
+// stored answer, the canon_ruled detector) stays covered after Krish ruled on
+// 2026-10-06 that fulltime.fm is ready for pilot users. FULLTIME_RULED is the
+// registry as it now reads.
+const FULLTIME_RULED = P('fulltime')
+const FULLTIME: WebProperty = {
+  ...FULLTIME_RULED, jobs: [], ruled: undefined,
+  goal: 'Undecided. The registry, the rebrand note and the full-time repo give three different goals.',
+  canon: { status: 'ruling_owed', question: 'What is fulltime.fm for?',
+    conflict: 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale.',
+    options: ['proof', 'measure', 'park'] },
+}
 
 /** Well past every tag's first 48 hours. */
 const LATER = '2026-10-10T13:20:00Z'
@@ -1236,13 +1248,23 @@ test('fallbackGrowthAction for each property', () => {
   assert.equal(fallbackGrowthAction(MYMU, read(MYMU), os({ substackLastPost: null }), TODAY), null, 'unknown last post: not offered')
 
   assert.equal(fallbackGrowthAction(FULLTIME, read(FULLTIME), os(), TODAY), null, 'unruled')
-  const proof = { ...FULLTIME, canon: { status: 'live' as const }, jobs: ['feed_demand' as const] }
-  const ft = fallbackGrowthAction(proof, read(proof), os({ rssItems: 0 }), TODAY)
-  assert.equal(ft?.title, 'Run the listening test on the latest edition and say go or no go')
-  assert.equal(ft?.why, 'The feed has 0 episodes, so directories have nothing to list.')
-  assert.deepEqual(ft?.detector, { kind: 'rss_items_up', baseline: 0 })
-  assert.ok(!`${ft?.title} ${ft?.why} ${ft?.first_step}`.match(/Full Time|fulltime\.fm/i), 'never names Full Time')
-  assert.equal(fallbackGrowthAction(proof, read(proof), os({ rssItems: null }), TODAY), null)
+  // Ruling (Krish, 2026-10-06): ready for pilot users. The registry entry
+  // itself, not a fixture, so the ruling and the action cannot drift.
+  const empty = fallbackGrowthAction(FULLTIME_RULED, read(FULLTIME_RULED), os({ rssItems: 0 }), TODAY)
+  assert.equal(empty?.title, 'Say go on the first episode so pilot listeners have something to hear')
+  assert.equal(empty?.why, 'The feed has 0 episodes, so a pilot listener would find nothing to play.')
+  assert.deepEqual([empty?.detector, empty?.job], [{ kind: 'rss_items_up', baseline: 0 }, 'fill_pilots'])
+  const ft = fallbackGrowthAction(FULLTIME_RULED, read(FULLTIME_RULED), os({ rssItems: 6 }), TODAY)
+  assert.equal(ft?.title, 'Ask five football fans you know to be pilot listeners')
+  assert.equal(ft?.why, 'The show is ready for pilot users and the feed has 6 episodes to play. Visits do not find listeners; you can.')
+  assert.deepEqual([ft?.detector, ft?.job, ft?.minutes], [{ kind: 'today_slot_done' }, 'fill_pilots', 20])
+  for (const a of [empty, ft]) {
+    assert.ok(!`${a?.title} ${a?.why} ${a?.first_step}`.match(/Full Time|fulltime\.fm/i), 'never names Full Time')
+  }
+  assert.equal(fallbackGrowthAction(FULLTIME_RULED, read(FULLTIME_RULED), os({ rssItems: null }), TODAY), null)
+  // An older 'proof' answer still feeds demand.
+  const proof = withCanonRuling(FULLTIME, { choice: 'proof', job: null, at: TODAY })
+  assert.equal(fallbackGrowthAction(proof, read(proof), os({ rssItems: 0 }), TODAY)?.job, 'feed_demand')
 
   assert.equal(fallbackGrowthAction(LEGIBILITY, read(LEGIBILITY), os(), TODAY), null, 'unruled')
   const live = { ...LEGIBILITY, canon: { status: 'live' as const }, jobs: ['fill_pilots' as const] }

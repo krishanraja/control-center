@@ -9,8 +9,9 @@ import type { KrishAction, WebInsightsResponse, WebPropertyView } from '../../sr
  *   - mindmake.co: quiet, consent-gated, the rung-3 Plausible key
  *   - home.makeyourmindup.ai: ok, a trend, an AI referral, a rung-5 action
  *     with its swing
- *   - fulltime.fm: provisional, the rung-4 ruling, a closed item, a later fix
- *   - legibility.io: api_disabled, no numbers, waiting on the shared step
+ *   - fulltime.fm: api_disabled, no numbers, waiting on the shared step
+ *     (ruled 2026-10-06: live, getting pilot listeners)
+ *   - legibility.io: provisional, the rung-4 ruling, a closed item, a later fix
  * Real domains only. `@example.com` is dropped as test data by recordHygiene,
  * so a fixture using it looks populated and renders empty.
  */
@@ -49,13 +50,13 @@ export const SHARED_ADMIN_API = action({
   rung: 2,
   kind: 'setup',
   title: "Turn on the Google Analytics Admin API for Control Center's Google project",
-  why: 'legibility.io has recorded nothing, and without this API Control Center cannot tell a wrong property id from a quiet site.',
+  why: 'fulltime.fm has recorded nothing, and without this API Control Center cannot tell a wrong property id from a quiet site.',
   first_step: 'Open the link, check the project is mindmake-analytics, and press Enable. Nothing else changes.',
   job: 'keep_honest',
   minutes: 2,
   link: { label: 'Open Google Cloud', href: 'https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com?project=mindmake-analytics' },
   detector: { kind: 'admin_api_ok' },
-  members: ['legibility'],
+  members: ['fulltime'],
   hero_line: 'Turn on one Google setting so the sites can be checked',
 })
 
@@ -169,11 +170,40 @@ const MYMU: WebPropertyView = {
   ],
 }
 
+// Ruled 2026-10-06: ready for pilot users, so fulltime.fm is live with a
+// pilot-listener goal. In this fixture it is the site that waits on the shared
+// setup step; the open ruling is legibility.io's.
 const FULLTIME: WebPropertyView = {
   prefix: 'fulltime',
   label: 'fulltime.fm',
   venture: 'full_time',
-  goal: 'Undecided. The registry, the rebrand note and the full-time repo give three different goals.',
+  goal: 'Football fans become pilot listeners: they find the show, follow the feed and come back for the next episode.',
+  canon: 'live',
+  as_of: AS_OF,
+  run_at: RUN_AT,
+  health: 'api_disabled',
+  flags: [],
+  health_line: 'Cannot be checked until one Google setting is on.',
+  property_tz: null,
+  id_source: 'default',
+  totals: null,
+  series: null,
+  top: { sources: [], pages: [], ai: [], channels: [] },
+  crosscheck: { posthog: { pageviews_7d: 5, users_7d: 5, date: AS_OF }, plausible: null },
+  insight: 'fulltime.fm has recorded nothing, and with the Admin API off Control Center cannot tell a wrong property from a quiet site. PostHog counted 5 page views this week, so the site has visitors Google cannot show yet.',
+  fixed: [],
+  closed: [],
+  action: null,
+  wait_line: 'Waiting on the step at the top.',
+  later: [],
+  drafted: [],
+}
+
+const LEGIBILITY: WebPropertyView = {
+  prefix: 'legibility',
+  label: 'legibility.io',
+  venture: 'legibility',
+  goal: 'Undecided. Retired in the registry on 11 August, then built, priced and tagged in September.',
   canon: 'ruling_owed',
   as_of: AS_OF,
   run_at: RUN_AT,
@@ -195,16 +225,16 @@ const FULLTIME: WebPropertyView = {
   },
   crosscheck: { posthog: { pageviews_7d: 5, users_7d: 4, date: AS_OF }, plausible: null },
   insight: 'Counting started 27 September. 3 visits so far.',
-  fixed: [{ id: 'timezone_learned', line: 'Learned that fulltime.fm counts days in Europe/London.', at: RUN_AT }],
-  closed: [{ title: 'Give Control Center read access to fulltime.fm', detector: 'ga_read_ok', how: 'done', closed_at: RUN_AT }],
+  fixed: [{ id: 'timezone_learned', line: 'Learned that legibility.io counts days in Europe/London.', at: RUN_AT }],
+  closed: [{ title: 'Give Control Center read access to legibility.io', detector: 'ga_read_ok', how: 'done', closed_at: RUN_AT }],
   action: action({
-    id: 'fulltime:canon_ruling',
-    prefix: 'fulltime',
+    id: 'legibility:canon_ruling',
+    prefix: 'legibility',
     rung: 4,
     kind: 'ruling',
-    title: 'Decide what fulltime.fm is for',
-    why: 'Three of your own notes give it three different jobs: a career show, an experiment, and a proof piece that is not for sale. Until you pick, no growth action can name a job.',
-    first_step: 'Reply in chat with one word: proof (it feeds demand for the pilot), measure (keep reading visits, no actions) or park (take the tag off). Merging the PR that follows closes this.',
+    title: 'Decide whether legibility.io is live',
+    why: 'It was marked as retired on 11 August. This month it still got 17 updates, paid plans and a visit counter. The dashboard calls it retired until you say otherwise.',
+    first_step: 'Reply in chat with live and the job it serves, measure, or retire. Merging the PR that follows closes this.',
     job: 'keep_honest',
     minutes: 2,
     detector: { kind: 'canon_ruled' },
@@ -212,34 +242,8 @@ const FULLTIME: WebPropertyView = {
   }),
   wait_line: null,
   later: [
-    { id: 'consent_missing', line: 'fulltime.fm loads Google Analytics before asking visitors. UK rules want consent first.', job: 'keep_honest' },
+    { id: 'consent_missing', line: 'legibility.io loads Google Analytics before asking visitors. UK rules want consent first.', job: 'keep_honest' },
   ],
-  drafted: [],
-}
-
-const LEGIBILITY: WebPropertyView = {
-  prefix: 'legibility',
-  label: 'legibility.io',
-  venture: 'legibility',
-  goal: 'Undecided. Retired in the registry on 11 August, then built, priced and tagged in September.',
-  canon: 'ruling_owed',
-  as_of: AS_OF,
-  run_at: RUN_AT,
-  health: 'api_disabled',
-  flags: [],
-  health_line: 'Cannot be checked until one Google setting is on.',
-  property_tz: null,
-  id_source: 'default',
-  totals: null,
-  series: null,
-  top: { sources: [], pages: [], ai: [], channels: [] },
-  crosscheck: { posthog: { pageviews_7d: 5, users_7d: 5, date: AS_OF }, plausible: null },
-  insight: 'legibility.io has recorded nothing, and with the Admin API off Control Center cannot tell a wrong property from a quiet site. PostHog counted 5 page views this week, so the site has visitors Google cannot show yet.',
-  fixed: [],
-  closed: [],
-  action: null,
-  wait_line: 'Waiting on the step at the top.',
-  later: [],
   drafted: [],
 }
 

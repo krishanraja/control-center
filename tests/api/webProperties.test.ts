@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   WEB_PROPERTIES, WEB_METRIC_SUFFIXES, webProperty, webMetricKeys, ga4PropertyId,
-  HEALTH_LINE, HEALTH_CHIP, FLAG_LINE, DONE_HINT, WEB_JOBS as REGISTRY_JOBS, isWebJob,
+  HEALTH_LINE, HEALTH_CHIP, FLAG_LINE, DONE_HINT, WEB_JOBS as REGISTRY_JOBS, isWebJob, canonFromChoice,
   type HealthVerdict, type HealthFlag, type DetectorKind, type WebJob,
 } from '../../src/lib/webProperties.ts'
 import { isJob, JOBS } from '../../api/_mission.js'
@@ -31,6 +31,24 @@ const EM_DASH = '—'
 test('four properties with unique prefixes, in registry order', () => {
   assert.deepEqual(WEB_PROPERTIES.map(p => p.prefix), ['site', 'mymu', 'fulltime', 'legibility'])
   assert.equal(new Set(WEB_PROPERTIES.map(p => p.prefix)).size, WEB_PROPERTIES.length)
+})
+
+// Ruling (Krish, 2026-10-06): "fulltime is ready for pilot users, it is an
+// autonomous AI football podcast." It closed "What is fulltime.fm for?", whose
+// options (proof, measure, park) did not fit, so 'pilot' was added.
+test('fulltime.fm is ruled: live, getting pilot users, with the ruling and its date kept', () => {
+  const ft = webProperty('fulltime')!
+  assert.deepEqual(ft.canon, { status: 'live' })
+  assert.deepEqual(ft.jobs, ['fill_pilots'])
+  assert.match(ft.goal, /pilot listeners/)
+  assert.deepEqual([ft.ruled?.choice, ft.ruled?.on], ['pilot', '2026-10-06'])
+  assert.equal(ft.neverPublishName, true, 'the ruling did not lift the never-publish rule')
+})
+
+test('a pilot answer makes a site live and points it at its first users', () => {
+  const owed = { ...webProperty('fulltime')!, canon: { status: 'ruling_owed' as const, question: 'q', conflict: 'c', options: ['pilot', 'measure'] } }
+  assert.deepEqual(canonFromChoice(owed, 'pilot'), { canon: { status: 'live' }, jobs: ['fill_pilots'] })
+  assert.equal(canonFromChoice(webProperty('legibility')!, 'pilot'), null, 'only a site that offers it accepts it')
 })
 
 test('every measurement id is a G- id', () => {
