@@ -156,6 +156,7 @@ These are the short form. Section 0a holds each one in full, with the date it wa
 
 - **Control Center is the one place agents report (2026-10-05).** An agent writes its runs, status and output to tables Control Center reads (`workflow_runs`, `tasks`, `agents.last_run` and `last_output`, and the output tables it owns). A VPS file nothing reads is not a report.
 - **No agent writes into Krish's Drive (2026-10-05).** Retired that day: `sync-to-drive.py` (the per-agent Identity and Action Doc mirrors; all `google_drive_sync` rows deleted), `cc-doc-creator.sh` (turned tasks into Google Docs) and the broken `arlo-daily-contradiction-audit.sh`. OpenClaw jobs `Hunter - Daily Sourcing`, `product-agent` and `newsletter-draft` were disabled. Krish pressing "Send to Google Docs" on the Content tab stays: he started it.
+- **One exception: the makeyourmindup library folder (Krish, 2026-10-06).** His words: "make sure the brand kit is always updated here", then "I want every single asset in there, permanent and for individual posts, categorized properly, clear what to use them for, and every new post gets its own new folder with all assets including the article HTML I can copy paste, video scripts, etc etc", and "yes, merge the library sync to main". For that one folder only, the content engine's library sync, a scheduled task on his always-on Windows machine, writes the files a session sends to the engine's private store (`content_library_files`, routes `/api/library/*`; content-engine `scripts/post-pack`). It keeps the brand kit current, gives every post its own folder, never deletes or renames anything, and keeps a file Krish changed, putting the new one beside it. Every other folder in his Drive stays closed to agents.
 - **OpenClaw runs reach Control Center (2026-10-05).** `openclaw-runs-to-cc.py` (VPS, every 15 minutes) copies finished OpenClaw cron runs into `workflow_runs` as `openclaw:<jobId>`, so they show in OS > Org.
 - **Agent briefs live in Supabase only (2026-10-05).** `agents.brief_content` is canonical, rendered to each agent's SKILL.md by `render-identity.py`. Never run `sync-briefs-to-skills.sh`: its Google Doc sources are gone and a run would gut every brief.
 - **Every active brief and template carries the priority and reporting block (2026-10-05):** 1. Heartside and Full Time. 2. Legibility. 3. CTRL and Pulse. Mindmake and its publication run alongside.
@@ -428,7 +429,7 @@ Retired on 2026-10-05: `sync-to-drive.py`, `cc-doc-creator.sh`, `arlo-daily-cont
 
 ## 10. Google Drive
 
-**Agents never write into Krish's Drive** (0a.5). Drive holds Krish's own documents. The one OS path that creates a Google Doc is the Content tab's "Send to Google Docs", which runs only when he presses it. The old folder map of agent destinations is history: `docs/history/2026-10-05-MINDMAKE_OS_ARCHITECTURE-superseded-sections.md`.
+**Agents never write into Krish's Drive** (0a.5). Drive holds Krish's own documents. The one exception is the makeyourmindup library folder, written only by the content engine's library sync on his always-on machine (0a.5, 2026-10-06). The one OS path that creates a Google Doc is the Content tab's "Send to Google Docs", which runs only when he presses it. The old folder map of agent destinations is history: `docs/history/2026-10-05-MINDMAKE_OS_ARCHITECTURE-superseded-sections.md`.
 
 ---
 
