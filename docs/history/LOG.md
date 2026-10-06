@@ -5,6 +5,11 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-10-06
+
+- reconciled at `19d28a11`: NOW.md takes rule 0a.5's one Drive exception, the makeyourmindup library folder. The head also moves past #397 (Krish's rulings of 2026-10-06, whose NOW.md entry came with it) and #398 (the Content specs pinned to one clock; tests only, nothing in NOW.md changes).
+- decision (Krish, 2026-10-06): "yes, merge the library sync to main", after "I want every single asset in there, permanent and for individual posts, categorized properly, clear what to use them for, and every new post gets its own new folder with all assets including the article HTML I can copy paste, video scripts, etc etc". Recorded in `docs/MINDMAKE_OS_ARCHITECTURE.md` 0a.5 and section 10 at `19d28a11`.
+
 ## 2026-10-05
 
 - reconciled at `4ff9089b`: NOW.md takes the publication's move to home.makeyourmindup.ai, shipped once Substack served the address on 2026-10-05, with Krish's decision in his words. Migration `20261005220000_publication_home_address.sql` applied the same day; it keeps a copy of every row it changed under `system_config` key `publication_home_address_backup_20261005`.
