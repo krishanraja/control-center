@@ -68,7 +68,8 @@ import type {
  * week's close think (20000 tokens at medium effort: adaptive thinking spends
  * max_tokens before it writes, and at 12000 with no effort a full Monday note
  * spent the lot and stopped mid-read on 2026-10-07. 20000 streams in about
- * 220s, inside DEADLINE_MS). A weekly objective and a mid-week update do not (2500). No
+ * 220s, inside DEADLINE_MS). A weekly objective and a mid-week update do not
+ * (4000: an update's battle plan carries up to eight timed steps). No
  * temperature: thinking reads it as an error.
  */
 
@@ -480,7 +481,7 @@ function callModel(
     agent: 'goal-strategist',
     model: SYNTHESIS_MODEL,
     think: false,
-    maxTokens: 2500,
+    maxTokens: 4000,
     system,
     messages: [{ role: 'user', content: user }],
     onText,

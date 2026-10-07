@@ -5,7 +5,7 @@ import {
   buildStrategistSystem, buildStrategistUser, renderGroundingText, createLineSplitter, parseLine,
   validateLine, validateRead, createReadAccumulator, buildValidationCtx, incompleteSentence,
   readShapeFor, thinksFor, suggestionRowsFor, stampSuggestionIds, cleanText, inventedNumbers,
-  diagnosisIn, roomForOffer, nameIn,
+  diagnosisIn, roomForOffer, nameIn, planFields, PLAN_SHAPES,
   READ_SHAPES, SECTION_ORDER, NO_JOB_FOR_CAPITAL, NOTE_MAX_CHARS, STRATEGIST_AGENT, WIRE_UNIONS_AGREE,
   type StrategistGrounding, type ValidationCtx,
 } from '../../api/_strategist.ts'
@@ -15,6 +15,7 @@ import {
 } from '../../src/content/focusTheory.ts'
 import { BINDING } from '../../api/_mission.ts'
 import { proposalPlay } from '../../api/_humor.ts'
+import { planGroups, minutesLabel } from '../../src/lib/battlePlan.ts'
 import type { ReadShape, StrategistRead, AskSection, LensSection } from '../../src/types/strategist.ts'
 
 // Everything here is SYNTHETIC: tests/api/fixtures/strategist.* invent their
@@ -716,3 +717,50 @@ test('importing the pure modules needs no database credentials', async () => {
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /loaded/)
 })
+
+// ── The battle plan (2026-10-07) ─────────────────────────────────────────────
+// "Turn my ideas, goals, momentum and things I need to get done into a
+// deconstructed ADHD-ready battle plan." A Monday note naming five threads
+// used to come back as three steps.
+
+test('a Monday or mid-week note asks for a battle plan; the other shapes do not', () => {
+  for (const shape of READ_SHAPES_KEYS()) {
+    const sys = buildStrategistSystem(inputFor(shape as ReadShape))
+    const plan = PLAN_SHAPES.includes(shape as ReadShape)
+    assert.equal(sys.includes('BATTLE PLAN.'), plan, `${shape} battle plan`)
+    if (plan) {
+      assert.match(sys, /"when":"now \| today \| week"/)
+      assert.match(sys, /"minutes":<5 to 90>/)
+      assert.match(sys, /Cover every thread he named/)
+    }
+  }
+  assert.ok(READ_SHAPES.week_open.next_step[1] >= 10, 'room for a step per thread')
+})
+
+test('a plan step keeps when, minutes and thread through validation', () => {
+  const { verdict } = runRead(golden('week_open'), ctxFor('week_open'))
+  const steps = (verdict as { read: StrategistRead }).read.next_steps
+  assert.deepEqual(steps.map(n => n.when), ['now', 'today', 'week'])
+  assert.equal(steps[0].minutes, 10)
+  assert.equal(steps[0].thread, 'Pilots')
+})
+
+test('plan fields are read leniently: a bad field is null, never a refused step', () => {
+  assert.deepEqual(planFields({ when: 'NOW', minutes: '15', thread: ' Hats ' }), { when: 'now', minutes: 15, thread: 'Hats' })
+  assert.deepEqual(planFields({ when: 'tomorrow', minutes: -3 }), { when: null, minutes: null, thread: null })
+  assert.equal(planFields({ minutes: 9999 }).minutes, 240)
+})
+
+test('the plan renders now, today, this week, keeping each step its own verdict index', () => {
+  const s = (when: 'now' | 'today' | 'week' | null, minutes: number | null) =>
+    ({ kind: 'next_step' as const, text: 't', goal_id: null, job: null, when, minutes, thread: 'x' })
+  const g = planGroups([s('week', 30), s('now', 10), s('today', 20), s(null, 15)])!
+  assert.deepEqual(g.map(x => x.when), ['now', 'today', 'week'])
+  assert.deepEqual(g[1].items.map(x => x.i), [2, 3], 'a step with no when lands under today, in order')
+  assert.equal(g[1].minutes, 35)
+  assert.equal(planGroups([{ kind: 'next_step', text: 't', goal_id: null, job: null }]), null, 'an older read renders as before')
+  assert.equal(minutesLabel(90), '1 h 30 min')
+  assert.equal(minutesLabel(25), '25 min')
+})
+
+function READ_SHAPES_KEYS() { return Object.keys(READ_SHAPES).filter(k => k !== 'daily') }

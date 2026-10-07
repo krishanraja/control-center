@@ -22,6 +22,7 @@ import { requestOk, failureMessage } from '../../lib/apiFetch'
 import { civilYmd, getZone } from '../../lib/civilDate'
 import { DECISION_RULES, LENSES } from '../../content/focusTheory'
 import { jobLabel } from '../../content/jobs'
+import { PLAN_LABEL, minutesLabel, planGroups } from '../../lib/battlePlan'
 import type { Compilation } from '../../lib/worryStates'
 import type {
   AskPerson,
@@ -254,6 +255,8 @@ const PROGRESS_WORD: Record<ProgressSection['verdict'], {
   carry: { label: 'Keep going', action: null, note: 'Nothing to change. If it is still open when the week closes, the ritual offers to carry it.' },
   drop: { label: 'Drop it', action: { label: 'Drop it', confirm: 'Tap again to drop it', status: 'dropped', done: 'Dropped.' }, note: null },
 }
+
+// ── The battle plan ────────────────────────────────────────────────────────
 
 const BTN = 'tap-44 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 text-label transition-colors disabled:opacity-40'
 const BTN_PRIMARY = `${BTN} border-violet-400/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30`
@@ -557,15 +560,15 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
         </section>
       )}
 
-      {parts.next_steps.length > 0 && (
-        <section className="flex flex-col gap-2 min-w-0" aria-label={read?.shape === 'daily' ? 'Today\'s moves' : 'Next steps'}>
-          <Eyebrow>{read?.shape === 'daily' ? 'Today\'s moves, best first' : 'Next steps'}</Eyebrow>
-          <ul className="flex flex-col gap-2">
-            {parts.next_steps.map((n, i) => {
+      {parts.next_steps.length > 0 && (() => {
+        const step = (n: NextStepSection, i: number) => {
               const key = `next-${i}`
               if (answered[key] === 'set_aside') return null
               return (
                 <li key={key} data-testid={`strategist-next-${i}`} className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 flex flex-col gap-1.5 min-w-0">
+                  {(n.thread || n.minutes) && (
+                    <p className="text-label text-ink-faint break-words">{[n.thread, n.minutes ? minutesLabel(n.minutes) : null].filter(Boolean).join(' · ')}</p>
+                  )}
                   <p className="text-body leading-relaxed text-ink break-words">{n.text}</p>
                   {/* A daily move carries who it is about and why today (ADR-028). */}
                   {n.person && (
@@ -596,10 +599,29 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
                   {rejectBar(key, n.suggestion_id)}
                 </li>
               )
-            })}
-          </ul>
-        </section>
-      )}
+        }
+        const plan = planGroups(parts.next_steps)
+        if (plan) {
+          // The battle plan (week_open and update): small timed steps, now,
+          // then today, then this week, each tagged with its thread.
+          return (
+            <section data-testid="strategist-plan" className="flex flex-col gap-4 min-w-0" aria-label="Battle plan">
+              {plan.map(g => (
+                <div key={g.when} data-testid={`strategist-plan-${g.when}`} className="flex flex-col gap-2 min-w-0">
+                  <Eyebrow>{PLAN_LABEL[g.when]}{g.minutes ? ` · ${minutesLabel(g.minutes)}` : ''}</Eyebrow>
+                  <ul className="flex flex-col gap-2">{g.items.map(({ n, i }) => step(n, i))}</ul>
+                </div>
+              ))}
+            </section>
+          )
+        }
+        return (
+          <section className="flex flex-col gap-2 min-w-0" aria-label={read?.shape === 'daily' ? 'Today\'s moves' : 'Next steps'}>
+            <Eyebrow>{read?.shape === 'daily' ? 'Today\'s moves, best first' : 'Next steps'}</Eyebrow>
+            <ul className="flex flex-col gap-2">{parts.next_steps.map((n, i) => step(n, i))}</ul>
+          </section>
+        )
+      })()}
 
       {parts.worry && <WorryHandoff worry={parts.worry} />}
 

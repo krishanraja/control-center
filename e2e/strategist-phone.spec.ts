@@ -73,7 +73,11 @@ const SECTIONS: StrategistSection[] = [
     kind: 'objective', text: 'Book two calls with named leaders about the pilot', job: 'fill_pilots',
     serves: OS_ID, serves_title: OS_TITLE, lens: 'sell_first', why: 'It is the week you asked for, in your words.', play: false,
   },
-  { kind: 'next_step', text: 'Send Riley the one-page pilot scope with a Thursday call slot', goal_id: null, job: 'fill_pilots' },
+  // The battle plan (2026-10-07): small timed steps under their threads.
+  { kind: 'next_step', thread: 'Pilots', when: 'now', minutes: 10, text: 'Send Riley the one-page pilot scope with a Thursday call slot', goal_id: null, job: 'fill_pilots' },
+  { kind: 'next_step', thread: 'Publication', when: 'today', minutes: 20, text: 'Post the launch note on LinkedIn with a link to the second edition', goal_id: null, job: null },
+  { kind: 'next_step', thread: 'Pilots', when: 'today', minutes: 30, text: 'List fifteen warm names who could take an advisory call', goal_id: null, job: 'fill_pilots' },
+  { kind: 'next_step', thread: 'Product samples', when: 'week', minutes: 15, text: 'Order the samples so ad production can start on Friday', goal_id: null, job: null },
   MOVE,
   { kind: 'close', stop: 'Once Riley names a day, stop and confirm it.' },
 ]
@@ -84,7 +88,7 @@ function sse(): string {
     v: 1, shape: 'week_open',
     headline: of('headline')[0], heard: of('heard')[0], lenses: of('lens'), reframe: null,
     objectives: of('objective').map(o => ({ ...o, suggestion_id: 'sug-obj-1' })), progress: [],
-    next_steps: of('next_step').map(n => ({ ...n, suggestion_id: 'sug-next-1' })),
+    next_steps: of('next_step').map((n, i) => ({ ...n, suggestion_id: `sug-next-${i + 1}` })),
     asks: of('ask').map(a => ({ ...a, suggestion_id: 'sug-ask-1' })),
     worry: null, kill: null, learning: null, close: of('close')[0],
   }
@@ -94,7 +98,7 @@ function sse(): string {
     frame('stage', { stage: 'grounding' }),
     frame('stage', { stage: 'thinking' }),
     ...SECTIONS.map((section, index) => frame('section', { index, section })),
-    frame('done', { ok: true, read_id: 'read-fixture-1', suggestion_ids: ['sug-obj-1', 'sug-ask-1', 'sug-next-1'], persisted: true, read, notes: [] }),
+    frame('done', { ok: true, read_id: 'read-fixture-1', suggestion_ids: ['sug-obj-1', 'sug-ask-1', 'sug-next-1', 'sug-next-2', 'sug-next-3', 'sug-next-4'], persisted: true, read, notes: [] }),
   ].join('')
 }
 
@@ -160,6 +164,17 @@ test('the + sheet, then the editor, then the read: nothing past the edge, and th
   expect(posts).toHaveLength(1)
   expect(posts[0]).toMatchObject({ source: 'note', kind: 'week_open', body: NOTE })
   await expect(page.getByTestId('strategist-you-said')).toContainText(NOTE)
+
+  // The plan reads start here, today, this week, each step with its thread
+  // and its time box, and a day's total on the group.
+  const plan = page.getByTestId('strategist-plan')
+  await expect(plan.locator('[data-testid^="strategist-plan-"]')).toHaveCount(3)
+  const order = await plan.locator('[data-testid^="strategist-plan-"]').evaluateAll(els => els.map(e => (e as HTMLElement).dataset.testid))
+  expect(order).toEqual(['strategist-plan-now', 'strategist-plan-today', 'strategist-plan-week'])
+  await expect(page.getByTestId('strategist-plan-today')).toContainText('Today · 50 min')
+  await expect(page.getByTestId('strategist-next-1')).toContainText('Publication · 20 min')
+  await page.getByTestId('strategist-plan').scrollIntoViewIfNeeded()
+  await page.screenshot({ path: `test-results/battle-plan-${page.viewportSize()!.width}.png` })
 
   // No horizontal overflow, measured element by element.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)

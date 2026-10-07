@@ -59,7 +59,7 @@ export const WIRE_UNIONS_AGREE =
 
 /** Bump on any change to the prompt or the contract. Stamped on every row as
  *  producer.prompt_rev, so trust earned by one version is not inherited. */
-export const STRATEGIST_PROMPT_REV = '2026-10-03.1'
+export const STRATEGIST_PROMPT_REV = '2026-10-07.1'
 
 /** The meter stamp. The voice is Marcus's; no new roster agent (G4 is closed). */
 export const STRATEGIST_AGENT = 'goal-strategist'
@@ -76,7 +76,7 @@ export const NO_JOB_FOR_CAPITAL =
   'No job of the five covers raising money. This move sits outside them by your ruling of 27 September 2026.'
 
 /** The shapes that think before they write (think: true, effort medium, maxTokens 20000). The
- *  others are short reads (think: false, maxTokens 2500). */
+ *  others are short reads (think: false, maxTokens 4000). */
 export const THINKING_SHAPES: readonly ReadShape[] = ['os', 'week_open', 'week_close']
 
 const OPEN_JOBS: readonly StrategistJob[] = ['fill_pilots', 'keep_honest', 'feed_demand']
@@ -122,11 +122,11 @@ export const READ_SHAPES: Record<ReadShape, Record<ContentKind, Count>> = {
   },
   week_open: {
     headline: ONE, heard: ONE, lens: [1, 3], reframe: NONE, objective: [1, 3], progress: NONE,
-    next_step: [1, 3], ask: [1, 3], worry: [0, 1], kill: NONE, learning: NONE, close: ONE,
+    next_step: [3, 12], ask: [1, 3], worry: [0, 1], kill: NONE, learning: NONE, close: ONE,
   },
   update: {
     headline: ONE, heard: ONE, lens: [0, 2], reframe: NONE, objective: NONE, progress: [0, 6],
-    next_step: [1, 3], ask: ONE, worry: [0, 1], kill: NONE, learning: NONE, close: ONE,
+    next_step: [1, 8], ask: ONE, worry: [0, 1], kill: NONE, learning: NONE, close: ONE,
   },
   week_close: {
     headline: ONE, heard: ONE, lens: [1, 3], reframe: NONE, objective: [1, 3], progress: [0, 6],
@@ -157,23 +157,47 @@ const TEMPLATES: Record<ContentKind | 'end', string> = {
 }
 
 /** Where a shape's line differs from the shared template. */
+const PLAN_STEP = '{"kind":"next_step","thread":"which of his threads this moves, two or three words he would use","when":"now | today | week","minutes":<5 to 90>,"text":"one physical action, verb first, under 240 characters","goal_id":"<goal id from CANON GOALS, or null>","job":"<job id, or null>"}'
+
 const SHAPE_TEMPLATES: Partial<Record<ReadShape, Partial<Record<ContentKind, string>>>> = {
+  week_open: { next_step: PLAN_STEP },
+  update: { next_step: PLAN_STEP },
   daily: {
     next_step: '{"kind":"next_step","text":"the move, verb first, under 240 characters, naming nobody","why":"why this beats everything else today, one sentence tied to a goal, a date or a number in GROUNDING","goal_id":"<goal id from CANON GOALS, or null>","job":"<job id, or null>","contact_id":"<contact_id from CANDIDATES or OPEN DRAFTS when the move is about one person, else null>","pilot_deal_id":"<id from OPEN DRAFTS when the move is that drafted approach, else null>"}',
     close: '{"kind":"close","stop":"what done looks like by tonight, in one line"}',
   },
 }
 
+/** The shapes whose next steps are a battle plan rather than one to three lines. */
+export const PLAN_SHAPES: readonly ReadShape[] = ['week_open', 'update']
+
+/**
+ * His ask, 2026-10-07: "take my ideas, goals, momentum, and things I need to
+ * get done and turn them into a deconstructed ADHD-ready battle plan for the
+ * whole OS." A note that names five threads used to come back as three steps,
+ * so four threads went nowhere.
+ */
+export const BATTLE_PLAN = [
+  'BATTLE PLAN. The next_step lines are his plan, built for a brain that starts fast and stalls on anything vague.',
+  '- Cover every thread he named (a launch, an account to set up, a number of calls, a product, a test). Skip none, and add none he did not name unless GROUNDING makes it urgent.',
+  '- Break each thread into its smallest real actions. A step is one physical thing he can start in under two minutes of thinking: open, write, send, order, list, book. "Work on outreach" is not a step; "List 15 warm names for advisory calls" is.',
+  '- minutes is an honest time box, 5 to 90. Anything bigger is two steps.',
+  '- when: exactly one step is now (the first thing, small, sure to land, so the momentum turns into a win in minutes); then today; then week for what can wait or depends on something else first. Order the lines now, then today, then week, and within each the order he should do them.',
+  '- thread is the same short label on every step of one thread, so his plan reads as one column per thread.',
+  '- Keep his energy: never scold, never add a step about planning, prioritising or reflecting. Outward steps (in front of a buyer, a reader, a partner) come before polishing.',
+].join('\n')
+
 function templateFor(kind: ContentKind, shape: ReadShape): string {
   return SHAPE_TEMPLATES[shape]?.[kind] ?? TEMPLATES[kind]
 }
 
-const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six']
+const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']
 
 function countWords(kind: ContentKind, [min, max]: Count): string {
   if (kind === 'lens' && min === 6) return 'exactly six, one per lens, in the order the lenses are listed'
   if (kind === 'worry') return 'only if he names a worry that keeps coming back; at most one'
   if (kind === 'progress') return 'one per weekly objective the note says something about; none if it says nothing'
+  if (kind === 'next_step' && max > 3) return `${WORDS[min]} to ${WORDS[max]}: the battle plan, see BATTLE PLAN`
   if (min === max) return `exactly ${WORDS[min]}`
   if (min === 0) return `up to ${WORDS[max]}`
   return `${WORDS[min]} to ${WORDS[max]}`
@@ -188,10 +212,25 @@ function contractFor(shape: ReadShape): string {
     'OUTPUT. One JSON object per line (NDJSON), in exactly this order, and nothing else: no prose, no headings, no code fences.',
     ...lines,
     `${TEMPLATES.end}\n  (always the last line, exactly once: a read without it is treated as cut off)`,
+    ...(PLAN_SHAPES.includes(shape) ? [BATTLE_PLAN] : []),
     shape === 'daily'
       ? 'The first next_step is the one move; the others are what he sees if he says not this, best first. Write an ask line for any move that is a new request to a person, to that person. A drafted approach needs none.'
       : 'The first ask is the one move. Put the ask he should make first, first.',
   ].join('\n')
+}
+
+/**
+ * The plan fields, read leniently: a step with a bad time box or no thread is
+ * still a step he can take, so a field that does not parse is left null
+ * rather than refusing the line.
+ */
+export function planFields(v: Record<string, unknown>): Pick<NextStepSection, 'when' | 'minutes' | 'thread'> {
+  const w = typeof v.when === 'string' ? v.when.trim().toLowerCase() : ''
+  const when = w === 'now' || w === 'today' || w === 'week' ? w : null
+  const n = typeof v.minutes === 'number' ? v.minutes : typeof v.minutes === 'string' ? Number(v.minutes) : NaN
+  const minutes = Number.isFinite(n) && n >= 1 ? Math.min(240, Math.round(n)) : null
+  const t = typeof v.thread === 'string' ? cleanText(v.thread).slice(0, 40) : ''
+  return { when, minutes, thread: t || null }
 }
 
 // ── The prompt ───────────────────────────────────────────────────────────────
@@ -217,8 +256,8 @@ const LENS_INSTRUCTION: Record<ReadShape, string> = {
 const SHAPE_FOCUS: Record<ReadShape, string> = {
   os: 'This is the full read. Say what he is missing between the big goal and the small tasks, lens by lens, draft one to three weekly objectives that would close the biggest gaps (wording only: he decides), give one to three asks, and name the dated signal that would kill the goal.',
   weekly: 'This is a short read of one objective. Test it: is it outward (it puts the work in front of someone who can buy it, fund it, introduce it or sell it) or inward (building, preparing, polishing, alone)? If inward, reword it outward in his register. Then give exactly one ask.',
-  week_open: 'He is starting the week. Turn what he said into one to three weekly objectives in his own words, faced outward, one to three steps for today, and one to three asks. He decides which objectives to take.',
-  update: 'He is reporting progress mid-week. Say which of this week\'s objectives his words show as done, to carry, or to drop, give one to three steps for today, and one ask.',
+  week_open: 'He is starting the week. Turn what he said into one to three weekly objectives in his own words, faced outward, a battle plan that covers every thread he named, and one to three asks. He decides which objectives to take.',
+  update: 'He is reporting progress mid-week. Say which of this week\'s objectives his words show as done, to carry, or to drop, give a battle plan for what is left, and one ask.',
   week_close: 'He is closing the week. Say what the week shows, mark this week\'s objectives, draft one to three objectives for Monday in his words, give one ask, and one learning line.',
   daily: 'Nobody asked for this read: it is waiting for him when he opens Home. Choose the single move that would most change where he stands today, and two runner-ups. A move is something he can do today, in under an hour, that puts the work in front of someone who can buy it, fund it, introduce it or sell it. Prefer finishing what is already started (an approach drafted and not sent beats a new one), and say how close the stop rule is when it matters. He reacts to it in one tap, so make the first move the one you would bet on.',
 }
@@ -1026,6 +1065,7 @@ function validateSection(kind: ContentKind, v: Record<string, unknown>, ctx: Val
       const job = v.job == null || v.job === '' ? null : resolveJob(v.job, null, false)
       checkProse(text, ctx, plain)
       const s: NextStepSection = { kind, text, goal_id: id, job }
+      if (PLAN_SHAPES.includes(ctx.shape)) return { ...s, ...planFields(v) }
       if (ctx.shape !== 'daily') return s
       // The daily move. He takes it with one tap and it is written to
       // daily_focus, which the browser key can read: the text names nobody,

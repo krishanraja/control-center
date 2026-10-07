@@ -144,6 +144,8 @@ export interface ProgressSection {
 }
 
 /** One concrete step for today, for "Put on today" (POST /api/daily-focus/slot). */
+export type StepWhen = 'now' | 'today' | 'week'
+
 export interface NextStepSection {
   kind: 'next_step'
   /** At most 240 characters, the slot's own limit. */
@@ -159,6 +161,13 @@ export interface NextStepSection {
   contact_id?: string | null
   /** The drafted approach the move is about, from OPEN DRAFTS. */
   pilot_deal_id?: string | null
+  /** The battle plan (week_open and update reads, 2026-10-07): when the step
+   *  belongs, how long it takes, and which of his threads it moves. A note
+   *  that carries five threads comes back as small timed steps, each under
+   *  its thread, sorted now, today, this week. Older reads leave them out. */
+  when?: StepWhen | null
+  minutes?: number | null
+  thread?: string | null
   /** For the wire only, attached when the read is shown and never stored: the
    *  person the move is about, and the draft link when there is one. */
   person?: AskPerson | null
