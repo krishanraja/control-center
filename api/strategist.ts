@@ -65,8 +65,10 @@ import type {
  * Model: SYNTHESIS_MODEL, stamped goal-strategist, from one of two literal call
  * sites (a ternary would hide the stamp from check-agent-stamps and the
  * thinking flag from check-model-routing). The OS goal, a Monday note and a
- * week's close think (12000 tokens: adaptive thinking spends max_tokens before
- * it writes). A weekly objective and a mid-week update do not (2500). No
+ * week's close think (20000 tokens at medium effort: adaptive thinking spends
+ * max_tokens before it writes, and at 12000 with no effort a full Monday note
+ * spent the lot and stopped mid-read on 2026-10-07. 20000 streams in about
+ * 220s, inside DEADLINE_MS). A weekly objective and a mid-week update do not (2500). No
  * temperature: thinking reads it as an error.
  */
 
@@ -466,7 +468,8 @@ function callModel(
       agent: 'goal-strategist',
       model: SYNTHESIS_MODEL,
       think: true,
-      maxTokens: 12000,
+      effort: 'medium',
+      maxTokens: 20000,
       system,
       messages: [{ role: 'user', content: user }],
       onText,

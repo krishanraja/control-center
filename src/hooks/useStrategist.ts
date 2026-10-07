@@ -140,6 +140,7 @@ export function stampIds(read: StrategistRead, ids: string[]): StrategistRead {
 
 const STOPPED_EARLY = 'The read stopped before it finished, so nothing was kept from it. What you said is still here. Try again.'
 const NO_READ = 'Marcus did not send a read back. What you said is still here. Try again.'
+const DROPPED = 'The connection dropped before the read finished. What you said is kept. Try again.'
 
 /** Codes a route may answer with before the stream opens, in words. */
 const SAID: Record<string, string> = {
@@ -165,6 +166,10 @@ export function plainFailure(message: string | null | undefined): string {
   if (SAID[code]) return SAID[code]
   if (/^[a-z0-9_:.-]+$/i.test(m)) return NO_READ
   if (/request failed \(\d+\)/i.test(m) || /failed to fetch/i.test(m)) return NO_READ
+  // What a browser says when a stream is cut mid-read: Chrome "network error",
+  // Safari "Load failed", Firefox "NetworkError when attempting to fetch
+  // resource". Each has a space, so without this it reached him raw.
+  if (/^network ?error\b|^load failed$|^the network connection was lost/i.test(m)) return DROPPED
   return m
 }
 

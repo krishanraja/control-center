@@ -75,7 +75,7 @@ export const WARM_TIERS = ['1_reciprocated', '2_core_network', '3_known_network'
 export const NO_JOB_FOR_CAPITAL =
   'No job of the five covers raising money. This move sits outside them by your ruling of 27 September 2026.'
 
-/** The shapes that think before they write (think: true, maxTokens 12000). The
+/** The shapes that think before they write (think: true, effort medium, maxTokens 20000). The
  *  others are short reads (think: false, maxTokens 2500). */
 export const THINKING_SHAPES: readonly ReadShape[] = ['os', 'week_open', 'week_close']
 

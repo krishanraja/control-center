@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node'
 import { supportsSampling, anthropicKey } from './_content.js'
-import { thinkingParam } from './_models.js'
+import { thinkingParam, effortParam, type Effort } from './_models.js'
 import * as meter from './_meter.js'
 import { fetchWithRetry } from './_retry.js'
 import { anthropicIsShut, openBreaker, shouldFallBack, streamRescue } from './_providerFallback.js'
@@ -71,6 +71,10 @@ export interface StreamClaudeOpts {
    *  Sonnet 5 spends the whole max_tokens budget on reasoning and streams no
    *  text at all, which reaches the client as a successful empty answer. */
   think?: boolean
+  /** How hard a thinking call reasons before it writes, on models that take it.
+   *  A thinking call with no effort can spend its whole max_tokens reasoning
+   *  and stop mid-answer: the strategist's Monday read did, on 2026-10-07. */
+  effort?: Effort
   /** Called with each text delta, so the caller can both relay and accumulate. */
   onText: (chunk: string) => void
   signal?: AbortSignal
@@ -143,6 +147,7 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
       model: opts.model,
       max_tokens: opts.maxTokens,
       ...thinkingParam(opts.model, opts.think === true),
+      ...effortParam(opts.model, opts.effort),
       system: opts.system,
       messages: opts.messages,
       ...(opts.temperature !== undefined && supportsSampling(opts.model) ? { temperature: opts.temperature } : {}),
