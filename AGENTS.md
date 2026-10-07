@@ -370,10 +370,10 @@ that differs, so the snapshot cannot become a fifth copy. It needs
 rather than passing, and is out of CI for that reason. Run it after any change
 to `venture_formats`.
 
-<!-- krish-canon:start release=v2026.10.05.1 sha=362cdbbd0db5 rendered=2026-10-06 -->
+<!-- krish-canon:start release=v2026.10.06.3 sha=6307629b4030 rendered=2026-10-06 -->
 ## Krish canon
 
-Rendered from `krishanraja/ai-harness` at release v2026.10.05.1. Nothing inside these
+Rendered from `krishanraja/ai-harness` at release v2026.10.06.3. Nothing inside these
 markers is hand-maintained: an edit here is detected and proposed back to the canon,
 never silently overwritten, and never lost. Everything outside the markers belongs to
 this repository and is never read or rewritten by the harness.
@@ -416,11 +416,11 @@ skill wins; a broad "always" or "mandatory" claim inside a skill never overrides
 router. One primary writer; validators may stack after it, competing writers may not.
 
 **Who Krish is.** Purpose: "I see what is coming before it is obvious and make it
-legible to people while it still counts." Mindmake is his mission; Heartside, Full Time,
-Legibility, CTRL and Pulse are a separate product portfolio. Both are current: when they
-compete for his own time, surface the trade-off and let him choose. Profile, decision
-rules and paused plans: `skills/krish-principles/references/who-krish-is.md` in the
-harness. What he works on is live, never copied here; read it from Control Center at
+legible to people while it still counts." Mindmake is his mission and his one company;
+Heartside, Full Time, Legibility, CTRL and Pulse roll into it. One queue: the mission
+leads, and product work is ordered beneath it by the live priority ladder. Profile,
+decision rules and standing rulings: `skills/krish-principles/references/who-krish-is.md`
+in the harness. What he works on is live, never copied here; read it from Control Center at
 https://raw.githubusercontent.com/krishanraja/control-center/main/docs/KRISH.md (and `docs/PORTFOLIO.md` beside it).
 
 **Where the rest lives.** The operating contract, the routing contract and the
