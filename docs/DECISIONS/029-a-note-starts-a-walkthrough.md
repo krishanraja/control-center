@@ -44,6 +44,8 @@ meant "I expect Control Center to help me do this". Nothing had been done.
 
 ## Consequences
 
+- Migration `20261008090000` was applied to production on 2026-10-08 and read back: both tables exist, row-level security is on, service role only, and anon and authenticated cannot read them.
+
 - He needs to create the routine once at claude.ai/code/routines (repository
   control-center, Supabase connector on, prompt: run the walkthrough skill for
   the read id in the payload), generate its API token, and set
