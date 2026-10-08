@@ -213,3 +213,48 @@ test('the contact click opens the channel and never sends', async ({ page, conte
   await expect(page.getByRole('button', { name: /^Send$/ })).toHaveCount(0)
   await opened.close()
 })
+
+const REVIEW = {
+  ok: true,
+  toRule: [{
+    job_id: 'runway:head-of-gtm', company: 'Runway', title: 'Head of GTM', url: 'https://jobs.ashbyhq.com/runway/9',
+    score: 8, location: 'New York', comp: '$250,000 to $300,000', presented_at: '2026-09-07T12:00:00Z', fit: 7,
+    why_it_fits: 'Runway wants its first GTM leader. FIT: the commercial build he has done before. RISK: early stage.',
+  }],
+  approvals: {
+    'legora:director-of-corporate-development': {
+      state: 'awaiting', sent_at: '2026-09-07T12:00:00Z', opened_at: null,
+      open_url: 'https://jobs.ashbyhq.com/legora/a6#hunter=tok.0123456789abcdef0123456789abcdef',
+    },
+  },
+  pending: {},
+}
+
+test('a new role is ruled on here, and the press goes to hunter, never to the sheet', async ({ page }) => {
+  const pressed: unknown[] = []
+  await mock(page)
+  await page.route('**/api/hunter/review', (r: Route) => r.fulfill({ json: REVIEW }))
+  await page.route('**/api/hunter/act', async (r: Route) => {
+    pressed.push(r.request().postDataJSON())
+    await r.fulfill({ json: { ok: true, action: { id: 1 }, dispatched: true } })
+  })
+  await page.goto('/#/people?lane=bridges')
+  const card = page.getByTestId('hunt-rule').filter({ hasText: 'Runway' })
+  await expect(card).toContainText('FIT: the commercial build')
+  await card.getByTestId('hunt-rule-no').click()
+  await card.getByRole('button', { name: 'stage wrong' }).click()
+  await expect(card.getByTestId('hunt-rule-pending')).toContainText('Declined, stage wrong')
+  expect(pressed).toEqual([{ kind: 'verdict', job_id: 'runway:head-of-gtm', payload: { verdict: 'declined', reason: 'stage wrong' } }])
+})
+
+test('a prepared application opens filled from the lane, and an applied one asks what happened', async ({ page }) => {
+  await mock(page)
+  await page.route('**/api/hunter/review', (r: Route) => r.fulfill({ json: REVIEW }))
+  await page.goto('/#/people?lane=bridges')
+  const rows = page.getByTestId('hunt-role')
+  await expect(rows.filter({ hasText: 'Legora' }).getByTestId('hunt-open-form'))
+    .toHaveAttribute('href', /#hunter=tok\.0123456789abcdef0123456789abcdef$/)
+  await expect(rows.filter({ hasText: 'Anthropic' }).getByTestId('hunt-outcome')).toContainText('What happened next?')
+  // Nothing on the lane can press Submit on an application.
+  await expect(page.getByRole('button', { name: /submit/i })).toHaveCount(0)
+})

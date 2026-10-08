@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ExternalLink, FileText, Mail, Play, Send, Target } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { Eyebrow } from '../shared/Eyebrow'
@@ -13,6 +13,10 @@ import { useBridges } from '../../hooks/useBridges'
 import { useHuntRoles, type HuntRole } from '../../hooks/useHuntRoles'
 import { contactAction, copyText } from '../../lib/contactAction'
 import { useToast } from '../shared/Toast'
+import { HuntRuleList } from '../HuntRuleList'
+import { OptionChips } from '../goals/GoalPickers'
+import { useHuntReview, type OpenApplication, type PendingPress } from '../../hooks/useHuntReview'
+import { OUTCOMES, OUTCOME_LABEL } from '../../lib/hunterActions'
 
 type Toast = ReturnType<typeof useToast>['toast']
 
@@ -23,7 +27,7 @@ type Toast = ReturnType<typeof useToast>['toast']
 
 const MAX_CARDS = 5
 
-export const HUNT_LINE = 'The roles you said Yes to, and the person who can get you in. Change column A in the sheet, press Process, and everything else lands here.'
+export const HUNT_LINE = 'Rule on new roles, open the applications hunter filled in for you, and reach the person who can get you in. Every press here goes to hunter, which keeps the sheet up to date.'
 
 // Krish's own column A verdict, mirrored onto the role by hunter: "Applied",
 // "Already applied", or null for not applied. Shown because the lane could name the
@@ -60,7 +64,65 @@ async function contactRole(r: HuntRole, toast: Toast) {
     : 'Could not reach the clipboard. Open the Hunt card to copy the draft by hand.')
 }
 
-function RoleRow({ r }: { r: HuntRole }) {
+type ActFn = ReturnType<typeof useHuntReview>['act']
+
+// Applying, here instead of the email: prepare the filled application, open it
+// in his own browser for the extension to fill, and say what happened after.
+// He presses Submit on the employer's page himself; nothing here can.
+function ApplyLine({ r, open, pending, act }: {
+  r: HuntRole; open: OpenApplication | undefined; pending: PendingPress | undefined; act: ActFn
+}) {
+  const { toast } = useToast()
+  const [busy, setBusy] = useState(false)
+  const built = !!(r.cv_url && r.letter_url)
+  const press = async (kind: 'prepare' | 'outcome' | 'verdict', payload: Record<string, string> = {}) => {
+    setBusy(true)
+    const err = await act({ kind, job_id: r.job_id, payload })
+    setBusy(false)
+    toast(err || 'Sent to hunter. It acts on this within a few minutes.')
+  }
+  const btn = 'tap-44 inline-flex items-center gap-1 rounded px-2 py-0.5 text-micro font-medium disabled:opacity-50'
+  if (pending) {
+    return <p className="mt-2 text-label text-emerald-300" data-testid="hunt-apply-pending">Sent to hunter. It acts on this within a few minutes.</p>
+  }
+  if (r.application_state) {
+    return (
+      <div className="mt-2" data-testid="hunt-outcome">
+        <OptionChips
+          label="What happened next?"
+          options={OUTCOMES.map(o => ({ value: o, label: OUTCOME_LABEL[o] }))}
+          value=""
+          disabled={busy}
+          onChange={o => { void press('outcome', { outcome: o }) }}
+        />
+      </div>
+    )
+  }
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-label" data-testid="hunt-apply">
+      {open?.open_url ? (
+        <a href={open.open_url} target="_blank" rel="noreferrer" data-testid="hunt-open-form"
+           className={`${btn} bg-violet-500/15 text-violet-200 hover:bg-violet-500/25`}>
+          <ExternalLink size={10} /> Open the filled form
+        </a>
+      ) : built ? (
+        <button type="button" disabled={busy} onClick={() => press('prepare')} data-testid="hunt-prepare"
+                className={`${btn} bg-violet-500/15 text-violet-200 hover:bg-violet-500/25`}>
+          <FileText size={10} /> Prepare the application
+        </button>
+      ) : null}
+      <button type="button" disabled={busy} onClick={() => press('verdict', { verdict: 'applied' })} data-testid="hunt-applied-btn"
+              className={`${btn} bg-white/[0.05] text-ink-muted hover:bg-white/[0.09]`}>
+        <CheckCircle2 size={10} /> I applied
+      </button>
+      {open?.open_url && <span className="text-micro text-ink-faint">Your extension fills it in; you press Submit.</span>}
+    </div>
+  )
+}
+
+function RoleRow({ r, open, pending, act }: {
+  r: HuntRole; open?: OpenApplication; pending?: PendingPress; act: ActFn
+}) {
   const { toast } = useToast()
   const built = !!(r.cv_url && r.letter_url)
   const applied = appliedLine(r)
@@ -105,6 +167,7 @@ function RoleRow({ r }: { r: HuntRole }) {
           </>
         )}
       </div>
+      <ApplyLine r={r} open={open} pending={pending} act={act} />
       <div className="mt-2 text-label text-ink-muted" data-testid="hunt-person">
         {r.person ? (
           <>
@@ -145,6 +208,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
   const { bridges, stateCounts, loading, refetch } = useBridges()
   const hunt = useHuntRoles()
   const hunter = useHunterStatus()
+  const review = useHuntReview()
   const { toast } = useToast()
   const top = useMemo(() => bridges.slice(0, MAX_CARDS), [bridges])
 
@@ -179,7 +243,11 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
       el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       el?.querySelector<HTMLElement>('button, a[href]')?.focus({ preventScroll: true })
     },
-    verdicts: () => { window.open(SHEET_URL, '_blank', 'noopener') },
+    verdicts: () => {
+      const el = document.getElementById('hunt-rule-list')
+      if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      else window.open(SHEET_URL, '_blank', 'noopener')
+    },
     build: () => { void hunter.queue('packages') },
     running: undefined,
     clear: undefined,
@@ -247,6 +315,8 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
       {narrow && hero}
       <HunterStatus hunter={hunter} />
 
+      <HuntRuleList roles={review.toRule} pending={review.pending} act={review.act} narrow={narrow} />
+
       {/* An empty list on a quiet lane is not a section: the move already
           said why there is nothing, and a heading over nothing says it again. */}
       {!(quiet && hunt.roles.length === 0) && (
@@ -258,7 +328,10 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
           </p>
         ) : (
           <ul className={narrow ? 'space-y-3 mt-2' : 'grid grid-cols-1 xl:grid-cols-2 gap-3 mt-2'}>
-            {hunt.roles.map(r => <RoleRow key={r.job_id} r={r} />)}
+            {hunt.roles.map(r => (
+              <RoleRow key={r.job_id} r={r} open={review.approvals[r.job_id]}
+                       pending={review.pending[r.job_id]} act={review.act} />
+            ))}
           </ul>
         )}
       </section>
