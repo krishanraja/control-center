@@ -70,8 +70,8 @@ fail-closed `guardSensitiveRead` is the alternative if that trade changes.
 |---|---|
 | `{source:'goal', goalId}`, the OS goal | The full read: all six lenses, 1 to 3 drafted objectives, 1 to 3 asks, a dated kill signal |
 | `{source:'goal', goalId}`, a weekly objective | The short read: outward or inward, the outward wording, one ask |
-| `{source:'note', kind:'week_open', body}` | What he said, in one line; 1 to 3 lenses; 1 to 3 drafted objectives; 1 to 3 steps for today; 1 to 3 asks |
-| `{source:'note', kind:'update', body}` | What he said; up to 2 lenses; done, carry or drop on this week's objectives; 1 to 3 steps for today; one ask |
+| `{source:'note', kind:'week_open', body}` | What he said, in one line; 1 to 3 lenses; 1 to 3 drafted objectives; 3 to 12 steps, each marked now, today or week (amended 2026-10-07); 1 to 3 asks |
+| `{source:'note', kind:'update', body}` | What he said; up to 2 lenses; done, carry or drop on this week's objectives; 1 to 8 steps (amended 2026-10-07); one ask |
 | `{source:'note', kind:'week_close', body}` | What he said; 1 to 3 lenses; done, carry or drop; 1 to 3 objectives for Monday; one ask; one learning line |
 
 - Every read opens on a headline (what he is missing, with the rule it tests)
@@ -83,8 +83,10 @@ fail-closed `guardSensitiveRead` is the alternative if that trade changes.
   textarea built for dictation.
 - The model is `SYNTHESIS_MODEL` through `streamClaude`, from two literal call
   sites:
-  - the OS goal, `week_open` and `week_close` think, with `maxTokens: 12000`;
-  - a weekly objective and an `update` do not think, with `maxTokens: 2500`;
+  - the OS goal, `week_open` and `week_close` think, with `maxTokens: 20000`
+    at medium effort (amended 2026-10-07: at 12000 with no effort, a full
+    Monday note spent the budget thinking and stopped mid-section);
+  - a weekly objective and an `update` do not think, with `maxTokens: 4000`;
   - neither sets a temperature.
 - Sections stream one at a time, each after it passes validation. The server
   writes a `: ping` every 10 seconds while the model thinks, and races the call

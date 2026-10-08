@@ -5,6 +5,10 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-10-08
+
+- reconciled at `6703ac4e`: NOW.md takes the battle-plan strategist read and the full-Monday-read fix from their own commit bodies. `docs/DECISIONS/026-the-strategist.md` and `docs/API.md` now state the token budgets the code holds (20000 at medium effort for thinking reads, 4000 for short reads) and the step counts of the extended `next_step`. The 2026-10-06 note that NOW.md lacked #399 stands: #399 is a Content desk and rulings change already covered by the 2026-10-06 entries, and no further NOW.md bullet was written for it.
+
 ## 2026-10-06
 
 - reconciled at `cb9a3f11`: merged main at `e08f820e` (#399: the Content desk's clear-out badge and calendar clocks, and Krish's second batch of 2026-10-06 rulings on Full Time and Pulse) into the Drive exception branch, whose phone e2e failed twice in CI before #399 while all 109 phone tests passed locally with CI's build settings. NOW.md does not yet carry #399; the next steward pass adds it from #399's own record.

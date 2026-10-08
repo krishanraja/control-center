@@ -1,8 +1,8 @@
 ---
 repo: krishanraja/control-center
 product: Control Center
-as_of: 2026-10-06
-head: cb9a3f11
+as_of: 2026-10-08
+head: 6703ac4e
 lifecycle: live
 production_url: https://controlcenter.krishraja.com
 state_doc: docs/plans/one-swing/STATE.md
@@ -31,7 +31,7 @@ Angles a writer can use without asking Krish:
 
 Objection it answers: "AI agents in a real business just make noise." Here is the dashboard that made them quiet, and honest.
 
-## Where it is right now (as of 2026-10-06)
+## Where it is right now (as of 2026-10-08)
 
 - **Live** at controlcenter.krishraja.com behind an access code, auto-deployed from `main`. CI runs lint, three typechecks, the structural guards and the Playwright gates on every push (`.github/workflows/ci.yml`, listed in `AGENTS.md`). A logged-in production render of all eight tabs at 1440x900, 1280x800 and 390x844 showed no page scroll and no crash on 2026-10-05.
 - **Six destinations and a drawer** (`src/lib/tabs.ts`): Home, Content, People, Growth, OS; Focus, Board and Subscriptions in the drawer. The OS Queue is gone (2026-10-04); each ruling is decided in the tab that owns it.
@@ -47,6 +47,7 @@ Objection it answers: "AI agents in a real business just make noise." Here is th
 
 ## What changed recently
 
+- 2026-10-07 **Marcus turns a note into a battle plan, and a full Monday read finishes** (`229193a8`, `460d3fbc`; plan in `docs/plans/2026-10-07-week-battle-plan.md`). Krish, 2026-10-07: "Marcus needs to take my ideas, goals, momentum, and things I need to get done and turn them into a deconstructed ADHD-ready battle plan for the whole OS." Why: a Monday note naming five threads (a launch, socials, 20 calls, testing the service, a product) came back as at most three steps, so most threads went nowhere. A step now says when (now, today or week), its minutes and its thread, a week_open read carries 3 to 12 steps, and the read shows Start here, Today and This week. The same day an 829-character week_open note failed twice: both runs reached the model and ended stopped early after about 130 seconds, because adaptive thinking at 12000 tokens with no effort spent the budget before the read finished, and the phone then showed the browser's raw "network error". Thinking reads now get 20000 tokens at medium effort, and a dropped stream is told in a plain sentence that says the note is kept. The note itself was never lost.
 - 2026-10-06 **One Drive folder is open to the engine: the makeyourmindup library** (`19d28a11`; content-engine `85705c8`, `b693b26`). Decision (Krish, 2026-10-06): "I want every single asset in there, permanent and for individual posts, categorized properly, clear what to use them for, and every new post gets its own new folder with all assets including the article HTML I can copy paste, video scripts, etc etc", then "yes, merge the library sync to main". Rule 0a.5 now names that folder as its only exception: the content engine's library sync on his always-on machine writes it, never deleting or renaming anything, and every other folder stays closed to agents.
 - 2026-10-06 **Krish's rulings of 2026-10-06 are recorded, and Full Time's venture rows stop calling it a job search** (#397). Ruling (Krish, 2026-10-06): "portfolio rolls in to mission", superseding the 2026-10-05 "both, explicitly split" and its seven-point rule, so there is one queue and the mission leads when a surface can show one thing; the ikigai commitment is ongoing ("its ongoing"), replacing the PAUSED status, with no new stop date set; "fulltime is not a job search thing, its a b2c monetization experiment app"; "CTRL is fine priced"; three publication channels; "Hunter is active yes". Founder visibility stays open. Why: the 2026-10-05 docs told every agent to treat the plan as paused and the products as a rival lane, and `venture_registry` still scored Full Time leads as employers hiring for a role. `src/lib/portfolio.ts` now says CTRL Pro and counts paid Substack members under the publication, matching the data.
 - 2026-10-05 **makeyourmindup's Substack lives at home.makeyourmindup.ai** (`4ff9089b`, migration `20261005220000`). Decision (Krish, 2026-10-05): "mindmakerlive.substack.com is now replaced with home.makeyourmindup.ai as the substack homepage. should I call it something different? if not, sub this out absolutely everywhere"; the name stays "home". The website reading, the AI-answer probes and the AEO subject count both addresses, so visits and citations under the old one still count; Substack's own name for the publication, `mindmakerlive`, stays where its API uses it.
