@@ -163,7 +163,11 @@ export function worstMove() {
 
 export async function mockWorstMorning(page: Page): Promise<DailyMoveWrites> {
   const writes = await mockDailyMove(page)
-  const today = new Date().toISOString().slice(0, 10)
+  // The same civil day the audit fixture's check-in reports (Australia/Sydney).
+  // A UTC date here put the due test and "today" on different days from 13:00
+  // UTC, when Sydney passes midnight, and Home ran 114px past its frame in a
+  // state the server never sends: it computes both in one timezone.
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date())
   await page.route(isDailyMoveRead, (r: Route) => r.fulfill({ json: worstMove() }))
   await page.route('**/api/pilot-deals*', (r: Route) => r.fulfill({ json: { ok: true, stateCounts: { drafted: 2 } } }))
   await page.route('**/api/pilot/worries*', (r: Route) => r.fulfill({ json: {
