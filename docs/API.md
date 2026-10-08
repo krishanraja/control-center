@@ -567,8 +567,8 @@ there every failure is said in-band: nothing answers with a status.
 
 **The model.** `SYNTHESIS_MODEL` through `streamClaude`, stamped
 `agent: 'goal-strategist'`, from two literal call sites. The OS goal,
-`week_open` and `week_close` think, with `maxTokens: 12000`. A weekly objective
-and an `update` do not think, with `maxTokens: 2500`. Neither sets a
+`week_open` and `week_close` think, with `maxTokens: 20000` at medium effort. A
+weekly objective and an `update` do not think, with `maxTokens: 4000`. Neither sets a
 temperature. `scripts/modelRoutePolicy.mts` holds the route to this, and never
 to Opus.
 
