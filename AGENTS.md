@@ -47,6 +47,32 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR). User-facing text wraps in full and is never ellipsised or line-clamped. | `scripts/check-editorial-text-integrity.mts` + review |
 | Humour, and prompts that propose work | `api/_humor.ts`. `buildHumourSystem()` for a humour pass on existing text; `proposalPlay(n)` in any prompt that hands Krish work to choose from, which spends one proposal per batch on a marked swing. A proposal prompt that is only prohibitions returns joyless work | review |
 
+## Acting for Krish without stalling (rulings, 2026-10-08)
+
+A one-shot task on 2026-10-08 (apply one migration, create one routine, set
+one Vercel variable) took an hour. These rules close the causes that were
+agent behaviour.
+
+1. **Keys live in the environment's network secrets, nowhere else.** Supabase
+   and Vercel management keys are stored as Bearer network secrets for
+   `api.supabase.com` and `api.vercel.com`, so the proxy adds them and no
+   session reads a value. Call those APIs directly; do not look for keys in
+   files, skills or chat. If a call comes back 401, say the secret is missing
+   or expired and name the setting, once.
+2. **One timeout on a write, then switch path.** If a connector write (for
+   example Supabase `apply_migration`) times out once, read back whether it
+   landed, then go straight to the next route: the management API
+   (`POST https://api.supabase.com/v1/projects/<ref>/database/query` runs a
+   migration file as one request), then the dashboard SQL editor as the last
+   resort. Never retry the same stuck path more than once.
+3. **Once he has given the goal, do every reversible step without asking.**
+   Asking "who creates it?" or "shall I apply it?" after he has said "build
+   it" is stalling. Ask only immediately before an action that sends, posts,
+   spends, deletes, rotates a credential or changes a permission, and ask
+   once. If a safety check blocks a step, try the next legitimate route in
+   the same turn, then report in one line what is still blocked and which
+   setting he can change.
+
 ## Measuring a layout instead of arguing about it
 
 `e2e/layout-audit-desk.spec.ts` and `e2e/layout-audit-phone.spec.ts` walk every
