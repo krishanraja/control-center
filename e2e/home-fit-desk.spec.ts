@@ -39,10 +39,15 @@ test('the longest morning stays whole with the reasons open, and with each fold 
   await page.getByTestId('daily-move-not-this').click()
   await expect(page.getByRole('group', { name: 'Why not this one?' })).toBeVisible()
   await whole(page, 'reasons open')
+  const withReasons = await foldLevel(page)
   await page.getByRole('button', { name: 'Keep it' }).click()
   // Closing the reasons gives the room back and the stage unfolds. Measure the
   // settled stage, not the frame between: a fold read mid-refit is a toggle
-  // that is about to leave the page.
+  // that is about to leave the page. Two still frames are not enough to know
+  // that: the ResizeObserver that starts the refit can land up to ten frames
+  // after the click (measured 2026-10-08), so wait for the unfold itself. A
+  // screen tall enough to fold nothing has nothing to wait for.
+  if (withReasons > 0) await expect.poll(() => foldLevel(page)).toBeLessThan(withReasons)
   await whole(page, 'reasons closed')
   for (const id of ['due-tests-fold', 'ladder-week-fold', 'ladder-os-fold']) {
     const toggle = page.getByTestId(id)
