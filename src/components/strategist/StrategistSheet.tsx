@@ -7,6 +7,7 @@ import { Eyebrow } from '../shared/Eyebrow'
 import { OptionChips } from '../goals/GoalPickers'
 import { TalkBox, NOTE_MAX_CHARS, clearTalkDraft, readTalkDraft, writeTalkDraft } from './TalkBox'
 import { ReadView, StrategistRead, type TakeResult } from './StrategistRead'
+import { WalkthroughCard } from './WalkthroughCard'
 import { requestOk } from '../../lib/apiFetch'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import {
@@ -371,6 +372,10 @@ export function TalkFlow({
         />
       )}
 
+      {note && !tooLong && state.status === 'ready' && state.persisted === true && state.readId && (
+        <WalkthroughCard readId={state.readId} />
+      )}
+
       {/* The last read from this week, when nothing new has been said here. */}
       {!note && stored?.read && (!inline || stored.read.objectives.length > 0) && (
         <section className="flex flex-col gap-3 min-w-0" data-testid="strategist-stored">
@@ -398,6 +403,9 @@ export function TalkFlow({
               objectivesOnly={inline}
               alreadyIn={weekTitles}
             />
+          )}
+          {showStored && !inline && stored.source === 'note' && stored.status === 'complete' && (
+            <WalkthroughCard readId={stored.id} />
           )}
         </section>
       )}

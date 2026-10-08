@@ -639,3 +639,61 @@ test.describe('the strategist in the Focus Ritual', () => {
     expect(cap.patches).toHaveLength(2)
   })
 })
+
+// ── 7. The walkthrough a note starts (api/_walkthrough.ts) ──────────────────
+//
+// Krish, 2026-10-08: a note should start a Claude Code session that walks him
+// through it. The fire runs on the server after `done`, so the read must land
+// first and the stream may carry one more event. The card is the door: the
+// link once a session started, and when one did not, a retry and the prompt
+// to paste by hand. It never leaves him with nothing.
+
+test.describe('the walkthrough a note starts', () => {
+  const SESSION = 'https://claude.ai/code/session_01FIXTURE'
+
+  test('the read lands before the session starts, and the card links to the session', async ({ page }) => {
+    const withFire = sse(WEEK_OPEN, { kind: 'done', shape: 'week_open' }) +
+      frame('walkthrough', { read_id: 'read-fixture-1', run: { status: 'started', session_url: SESSION } })
+    await mockAll(page, { bodies: [withFire] })
+    const gets: string[] = []
+    await page.route('**/api/walkthrough*', r => {
+      gets.push(r.request().url())
+      return r.fulfill({ json: { ok: true, read_id: 'read-fixture-1', prompt: 'Run the walkthrough', run: { status: 'started', session_url: SESSION, error: null, attempts: 1 } } })
+    })
+    await talk(page, 'Two calls booked this week is what I want.')
+
+    await expect(page.getByTestId('strategist-note-read')).toHaveAttribute('data-status', 'ready')
+    const open = page.getByTestId('walkthrough-open')
+    await expect(open).toBeVisible()
+    await expect(open).toHaveAttribute('href', SESSION)
+    expect(gets[0]).toContain('readId=read-fixture-1')
+    await expect(page.getByTestId('walkthrough-start')).toHaveCount(0)
+  })
+
+  test('a session that did not start offers a retry and the prompt, and the retry opens it', async ({ page }) => {
+    await mockAll(page)
+    const posts: Array<Record<string, unknown>> = []
+    let started = false
+    await page.route('**/api/walkthrough*', r => {
+      if (r.request().method() === 'POST') {
+        posts.push(JSON.parse(r.request().postData() || '{}'))
+        started = true
+      }
+      const run = started
+        ? { status: 'started', session_url: SESSION, error: null, attempts: 2 }
+        : { status: 'not_configured', session_url: null, error: 'not_configured: set the routine', attempts: 1 }
+      return r.fulfill({ json: { ok: true, read_id: 'read-fixture-1', prompt: 'Run the walkthrough in .claude/skills/walkthrough/SKILL.md for strategist read read-fixture-1.', run } })
+    })
+    await talk(page, 'Two calls booked this week is what I want.')
+
+    const card = page.getByTestId('walkthrough-card')
+    await expect(card).toHaveAttribute('data-status', 'not_configured')
+    await expect(page.getByTestId('walkthrough-why')).toHaveText('The Claude routine is not connected to Control Center yet.')
+    await expect(page.getByTestId('walkthrough-prompt')).toContainText('.claude/skills/walkthrough/SKILL.md')
+    await expect(page.getByTestId('walkthrough-copy')).toBeVisible()
+
+    await page.getByTestId('walkthrough-start').click()
+    await expect(page.getByTestId('walkthrough-open')).toHaveAttribute('href', SESSION)
+    expect(posts).toEqual([{ readId: 'read-fixture-1' }])
+  })
+})

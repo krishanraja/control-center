@@ -6,8 +6,12 @@ dist/
 *.log
 .vercel/
 public/data/_archived/
+# Local Claude Code state stays out. Two exceptions are committed: the
+# repository's settings (the Supabase allow list) and its own skills, which
+# a routine-started session reads (.claude/skills/walkthrough).
 .claude/*
 !.claude/settings.json
+!.claude/skills/
 test-results/
 # The docs steward's sparse checkout of control-center inside a fleet repo
 .steward/

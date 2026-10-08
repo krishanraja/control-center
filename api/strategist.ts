@@ -17,6 +17,7 @@ import {
   type GoalSubject, type GroundingInput, type StoredReadRow, type ReadFailure,
 } from './_strategistGrounding.js'
 import { recordSuggestions, describeDbError } from './_suggestions.js'
+import { startWalkthrough } from './_walkthrough.js'
 import type {
   StrategistRequest, StrategistStage, StrategistGetResponse, StrategistDoneEvent, StrategistErrorEvent,
   StrategistSectionEvent, StrategistRead, ReadStatus, StrategistReadWire, AskPerson,
@@ -443,6 +444,15 @@ async function post(req: VercelRequest, res: VercelResponse) {
       notes,
     }
     emit('done', done)
+
+    // 6. A kept note read starts a walkthrough session on his subscription
+    //    (api/_walkthrough.ts). After done, so the read never waits on it;
+    //    awaited, so the function lives until the fire settles. It never
+    //    throws, and a failure leaves a row the read's button can retry.
+    if (persisted && readId && request.source === 'note') {
+      const run = await startWalkthrough(readId, 'auto')
+      emit('walkthrough', { read_id: readId, run })
+    }
   } catch (e) {
     // Never a 500 once the stream is open: the failure is said in-band.
     console.warn(`strategist_unexpected: ${(e as Error)?.message || String(e)}`)

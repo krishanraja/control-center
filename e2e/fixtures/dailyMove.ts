@@ -163,7 +163,11 @@ export function worstMove() {
 
 export async function mockWorstMorning(page: Page): Promise<DailyMoveWrites> {
   const writes = await mockDailyMove(page)
-  const today = new Date().toISOString().slice(0, 10)
+  // The same civil day the audit fixture's check-in reports (Australia/Sydney).
+  // A UTC date here put the due test and "today" on different days from 13:00
+  // UTC, when Sydney passes midnight, and Home ran 114px past its frame in a
+  // state the server never sends: it computes both in one timezone.
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date())
   await page.route(isDailyMoveRead, (r: Route) => r.fulfill({ json: worstMove() }))
   await page.route('**/api/pilot-deals*', (r: Route) => r.fulfill({ json: { ok: true, stateCounts: { drafted: 2 } } }))
   await page.route('**/api/pilot/worries*', (r: Route) => r.fulfill({ json: {
@@ -246,6 +250,12 @@ export function foldLevel(page: Page): Promise<number> {
  * A stage refits in the observer step of the frame after a change, before
  * paint, so a check that runs inside that gap measures a layout no one ever
  * sees. A sheet sliding in is the other thing worth waiting out.
+ *
+ * Still is not enough on its own. Measured 2026-10-08 at 1440x900: opening the
+ * reasons left the stage 114px over its box for two to four frames before the
+ * refit, still for long enough to pass as settled. So it also waits for the
+ * stage to fit or to have declared an overrun. An overflow that lasts past the
+ * cap is still measured, and still fails.
  */
 export async function settled(page: Page): Promise<void> {
   await page.evaluate(() => new Promise<void>(resolve => {
@@ -261,7 +271,8 @@ export async function settled(page: Page): Promise<void> {
       const sig = `${stage?.dataset.foldLevel}|${stage?.scrollHeight}|${moving}`
       still = sig === last ? still + 1 : 0
       last = sig
-      if (still >= 2 || ++frames > 90) resolve()
+      const fits = !stage || stage.dataset.fit === 'overrun' || stage.scrollHeight <= stage.clientHeight + 1
+      if ((still >= 2 && fits) || ++frames > 90) resolve()
       else requestAnimationFrame(tick)
     }
     requestAnimationFrame(tick)
