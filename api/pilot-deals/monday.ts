@@ -3,12 +3,15 @@ import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { notifyOps } from '../_alert.js'
 import { draftTarget, TARGET_SELECT, type PilotDeal } from '../_pilotDeals.js'
+import { isHunterCard, NOT_HUNTER_CARD_FILTER } from '../../src/lib/pilotDealsHunter.js'
 
 // GET /api/pilot-deals/monday   cron, 0 10 * * 1 (vercel.json)
 //
 // The Monday half of job 1: five drafted approaches waiting when Krish opens
 // the pilots list. Takes up to five listed deals, freshest trigger first, and runs
-// trigger then draft for each in turn. One failure never stops the rest, and
+// trigger then draft for each in turn. Hunter's door-in cards are never taken:
+// their opening line is already checked, and drafting one is his call, made
+// with the Draft button. One failure never stops the rest, and
 // the Telegram line at the end says the real count, not "ran".
 //
 // Drafts only. This file imports nothing that can send.
@@ -32,11 +35,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from('pilot_deals')
       .select(TARGET_SELECT)
       .eq('state', 'listed')
+      .or(NOT_HUNTER_CARD_FILTER)
       .order('trigger_found_at', { ascending: false, nullsFirst: false })
       .order('listed_at', { ascending: true })
       .limit(BATCH)
     if (error) throw new Error(error.message)
-    const targets = (data || []) as unknown as PilotDeal[]
+    const targets = ((data || []) as unknown as PilotDeal[]).filter(t => !isHunterCard(t.notes))
 
     for (const t of targets) {
       const name = (t.contact?.full_name || '').trim() || t.id
