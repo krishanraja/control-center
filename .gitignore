@@ -6,7 +6,8 @@ dist/
 *.log
 .vercel/
 public/data/_archived/
-.claude/
+.claude/*
+!.claude/settings.json
 test-results/
 # The docs steward's sparse checkout of control-center inside a fleet repo
 .steward/
