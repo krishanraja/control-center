@@ -37,6 +37,7 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | A tap target under 44px | `.tap-44` — grows the hit area with a pseudo-element and leaves the ink where it is | `e2e/layout-audit-phone.spec.ts` measures it by hit-test |
 | Goal reads/writes | `useGoalCanon` + `src/lib/goalsApi.ts` | `check-goal-ladder` / `check-goal-gate` (CI) |
 | Turning a goal or his own words into moves | The strategist: `api/strategist.ts`, opened over `openStrategist()` (`src/lib/strategist.ts`) into the one `StrategistSheet`. It proposes only: an objective becomes a goal through the ritual's `add()`, an ask through `AskCard`. Never a second coach, read or note box ([ADR-026](./docs/DECISIONS/026-the-strategist.md)). Once a day it also writes today's move unasked (`api/_dailyMove.ts`), which `home/DailyMoveSlot` proposes in Today's first slot when it is empty; its answers go to the same bank ([ADR-028](./docs/DECISIONS/028-the-daily-move-and-the-cheap-lane.md)) | `check-model-routing` + `check-bridges-never-send` (CI) |
+| Walking him through a note | A kept note read starts one Claude Code walkthrough on his subscription: `api/_walkthrough.ts` fires the routine with the read id only, `walkthrough_runs` (unique read_id) is the idempotency key, `WalkthroughCard` is the link or the retry plus a copyable prompt, and `.claude/skills/walkthrough/SKILL.md` is the one playbook. Outcomes go to `walkthrough_steps`, where only `done_together` and `did_it` mean done ([ADR-029](./docs/DECISIONS/029-a-note-starts-a-walkthrough.md)). Never a second trigger, never note text on the wire | `check-walkthrough-handoff` (CI) + `e2e/strategist.spec.ts` |
 | Moving a bulk job to a cheaper model | The cheap lane: `api/_cheapLane.ts`, for agents named in `CHEAP_LANE_AGENTS` only. Shadow-measured against Claude's agreement with itself, promoted on agreement, sent back to shadow on drift, never rescued by Claude ([ADR-028](./docs/DECISIONS/028-the-daily-move-and-the-cheap-lane.md)). Never a hand swap of the model id | `check-anthropic-fallback` + `check-model-routing` (CI) |
 | Loading states | The ladder in `docs/DESIGN_SYSTEM.md`; every string in `src/lib/loadingVoice.ts` | convention |
 | Two contact rows that are one person | `merge_contacts(survivor, loser, class, evidence, decided_by)` (migration 20261004060000, applied only on Krish's confirmation because it deletes), survivor from `merge_survivor()`. It snapshots the loser into `contact_merges`, moves every handle and reference, fills only the survivor's blanks and never blends two profiles. Merge automatically only on a shared identity key (the same LinkedIn profile, the same work address and name); anything resting on a name is a `contact_merge` question through `api/network/review.ts`. Never a hand-rolled DELETE, never a second merge routine | `tests/api/metaImport.test.ts` + review |
@@ -240,7 +241,8 @@ builds, tests or deploys it.
 `check-enrichment-honesty`, `check-events-honesty`, `check-fleet-classifier`,
 `check-theme-tokens`, `check-mindmake-design`, `check-mindmake-gate`,
 `check-env-example`, `check-no-secrets`, `check-agent-stamps`,
-`check-model-prices`, `check-anthropic-fallback`, `check-model-routing`
+`check-model-prices`, `check-anthropic-fallback`, `check-model-routing`,
+`check-walkthrough-handoff`
 (all `scripts/check-*.mts`, run with `npx tsx`). Each guard encodes an
 invariant that already shipped broken once; run them locally before pushing.
 `check-safe-dates` and `check-events-honesty` joined on 2026-09-23 and

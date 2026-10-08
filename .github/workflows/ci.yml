@@ -261,6 +261,10 @@ jobs:
       # cloud export can no longer put a retired model back into a mirror
       # without failing here.
       - run: npx tsx scripts/check-model-routing.mts
+      # A note starts a Claude Code walkthrough session (api/_walkthrough.ts).
+      # Only the read id crosses the wire, one session per read, after done,
+      # with a fallback the card never loses (2026-10-08).
+      - run: npx tsx scripts/check-walkthrough-handoff.mts
       # NOW.md is the one file agents are promised is current, and
       # docs/history/LOG.md is where superseded material goes instead of being
       # deleted. Both have a schema (docs/steward/SCHEMA.md). A branch can

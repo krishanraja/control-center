@@ -42,6 +42,7 @@
 | [026](./026-the-strategist.md) | The strategist turns a goal or his own words into the plan | Accepted; extended by ADR-028 |
 | [027](./027-the-question-decides.md) | In a network search, the question decides and the relationship adjusts | Accepted |
 | [028](./028-the-daily-move-and-the-cheap-lane.md) | The daily move, and a measured cheap lane | Accepted |
+| [029](./029-a-note-starts-a-walkthrough.md) | A note starts a walkthrough on his Claude subscription | Accepted |
 
 ---
 

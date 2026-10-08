@@ -5,6 +5,28 @@ Status: OPEN. Owner: Krish. Source: Marcus's week_open read
 rev 2026-10-07.1), from his note of the same morning, with "hat side"
 corrected to Heartside by hand (see "What was corrected" below).
 
+## State on Thursday 2026-10-08 (read this first)
+
+A session walked the plan with Krish on 2026-10-07 and 2026-10-08. **None of
+steps 1 to 10 is done.** He answered "Done" to several, then said: "I haven't
+done any of this stuff. I just expect the control centre to help me do all of
+this stuff". Treat every step as open. What exists:
+
+- Step 3: 30 warm Mindmake buyer candidates are in People > Advisory
+  (`pilot_deals`, `state 'listed'`, `sourced_by 'os'`, note "Battle plan
+  2026-10-07, step 3"). He cuts them to 20 by moving 10 to Not now.
+- Steps 2 and 4: moved by him to Thursday 2026-10-08.
+- Steps 5 and 6: a launch post draft and Rio's ask were drafted in chat only.
+  The post's first prediction is a placeholder only he can fill.
+- Step 7: he chose the plan's two samples (the Body Double pillow sample in
+  Printful, one $39 Annual Review test order). Not ordered.
+- Step 8: bios drafted in chat for @yourdoghasnotes. Nothing linked.
+- **Today's first slot** (`daily_focus` 2026-10-08, slot 1) is Heartside ad
+  production, at his request. Start there.
+- From now on a note starts a walkthrough session by itself (ADR-029); its
+  outcomes live in `walkthrough_steps`, which is the record to check, not
+  `suggestion_verdicts`.
+
 ## How a new session runs this
 
 1. Read this file, then `docs/KRISH.md` and `docs/PORTFOLIO.md` for what is

@@ -210,6 +210,22 @@ async function start(key: string, input: StrategistRequest): Promise<StrategistR
             put(key, s)
           } else if (name === 'done') {
             done = data as StrategistDoneEvent
+            // The read is whole the moment done arrives. The stream stays open
+            // while a note's walkthrough session starts (api/_walkthrough.ts),
+            // and the read must not wait on that.
+            const early = done
+            if (early && early.read) {
+              s = {
+                ...s,
+                status: 'ready',
+                read: stampIds(early.read, Array.isArray(early.suggestion_ids) ? early.suggestion_ids : []),
+                readId: early.read_id ?? null,
+                persisted: early.persisted !== false,
+                error: null,
+                errorCode: null,
+              }
+              put(key, s)
+            }
           } else if (name === 'error') {
             errorEvent = data as StrategistErrorEvent
           }

@@ -6,7 +6,10 @@ dist/
 *.log
 .vercel/
 public/data/_archived/
-.claude/
+# Local Claude Code state stays out. The repository's own skills are the
+# exception: a routine-started session reads .claude/skills/walkthrough.
+.claude/*
+!.claude/skills/
 test-results/
 # The docs steward's sparse checkout of control-center inside a fleet repo
 .steward/
