@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { HUNTER_CARD_PREFIX, isHunterCard } from '../../lib/pilotDealsHunter'
 import { Check, ExternalLink, Inbox, Save, Sparkles, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
@@ -258,6 +259,23 @@ export function PilotCard({ target: t, onChanged, narrow = false, wide = false }
           </details>
         ) : (
           <p className="text-label text-ink-muted mt-2">{t.why_face}</p>
+        )}
+
+        {/* A door-in card from hunter: the route it found and the door it
+            suggests, kept in notes and never shown until 2026-10-08, and the
+            opening line it already checked against the company's own words. */}
+        {isHunterCard(t.notes) && (
+          <div data-testid="pilot-hunter" className="mt-1.5 space-y-1">
+            <p className="text-label text-ink-muted">
+              <span className="mr-1.5 text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-violet-500/15 text-violet-200">
+                From hunter
+              </span>
+              {(t.notes || '').trim().slice(HUNTER_CARD_PREFIX.length).trim()}
+            </p>
+            {t.state === 'listed' && t.draft_body && (
+              <p className="text-label text-ink-muted">Opening line, checked: {t.draft_body}</p>
+            )}
+          </div>
         )}
 
         {/* What to ask THIS person. The lane ranked on warmth and never said what

@@ -1,36 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import { nextBatchUtc } from '../../src/lib/hunterSchedule.js'
 
-// Hunter runs on GitHub Actions: Monday and Thursday on a schedule, and
-// within a minute of a button press. Nothing listens between runs, so this
-// route is observation only. It is not a daemon. Nothing listens between runs, so this route is observation only:
-// it answers "is it alive, and what is waiting on me" and points the
-// waiting work at the sheet, which is where verdicts are actually given.
+// Hunter runs on GitHub Actions: its batches are owed Sunday 13:00 London and
+// Thursday 08:27 UTC (hunter/src/hunter/schedule.py), and a button press wakes
+// it within a minute. Nothing listens between runs, so this route is
+// observation only: it answers "is it alive, and what is waiting on me".
 
 export const config = { maxDuration: 30 }
 
 const AGENT_ID = 'hunter'
-const RUN_DAYS_UTC = [1, 4]   // cron 27 8 * * 1,4
 // Mirrors router.py GO_WORDS. Every other verdict is either "applied" or
 // Krish's free-text rejection, and counting those as approved would promise
 // packages that will never build.
 const GO_WORDS = new Set(['go', 'y', 'yes'])
-const RUN_HOUR_UTC = 8
-const RUN_MINUTE_UTC = 27
 
+/** Kept under its old name for the card; the schedule lives in src/lib/hunterSchedule.ts. */
 export function nextFireUtc(from: Date): string {
-  const next = new Date(from)
-  next.setUTCSeconds(0, 0)
-  for (let i = 0; i < 8; i++) {
-    const candidate = new Date(next)
-    candidate.setUTCDate(next.getUTCDate() + i)
-    candidate.setUTCHours(RUN_HOUR_UTC, RUN_MINUTE_UTC, 0, 0)
-    if (RUN_DAYS_UTC.includes(candidate.getUTCDay()) && candidate > from) {
-      return candidate.toISOString()
-    }
-  }
-  return ''
+  return nextBatchUtc(from)
 }
 
 async function countRoles(filter: (q: any) => any): Promise<number | null> {

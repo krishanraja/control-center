@@ -173,9 +173,9 @@ export function huntMove(i: HuntMoveInput): SurfaceMove<HuntMoveKind> {
     return {
       kind: 'verdicts',
       headline: `Give your verdict on ${plural(waiting, 'role')}`,
-      sub: 'They wait in column A of the Pipeline sheet. Mark them, then press Process.',
-      why: 'Hunter finds roles; you decide which are worth going for on the sheet, and a Process run builds the package and finds the person for each Yes.',
-      actionLabel: 'Open the sheet',
+      sub: 'They are listed below with the case for each. Say Yes or No on each one here.',
+      why: 'Hunter finds roles; you decide which are worth going for, and a Process run builds the package and finds the person for each Yes.',
+      actionLabel: 'Rule on them',
       tone: 'violet',
     }
   }
