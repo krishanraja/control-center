@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 import { NextOrgHero, orgRulings } from '../org/NextOrgHero'
 import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
+import { usePendingPromotions } from '../../hooks/usePendingPromotions'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useElapsed } from '../../hooks/useAsyncAction'
@@ -101,6 +102,7 @@ export function MobileOrg() {
   // under the first, so the phone led with two things at once.
   const { waiting } = useWaitingDecisions()
   const rulings = useMemo(() => orgRulings(waiting), [waiting])
+  const promotions = usePendingPromotions()
   const failing = heroErr ? { agent: heroErr.name, errors: agentRunHealth.get(heroErr.id)?.errorCount ?? 0, of: agentRunHealth.get(heroErr.id)?.recent.length ?? 0 } : null
   const openAgent = (who: string) => {
     const k = who.trim().toLowerCase()
@@ -171,6 +173,9 @@ export function MobileOrg() {
         failing={failing}
         onReview={openCorrection}
         onOpenAgent={openAgent}
+        promotions={promotions.pending}
+        onRulePromotion={promotions.rule}
+        rulingPromotion={promotions.busy}
         narrow
       />
 

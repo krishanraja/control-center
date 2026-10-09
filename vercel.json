@@ -281,6 +281,10 @@
       "schedule": "40 * * * *"
     },
     {
+      "path": "/api/autonomy/review",
+      "schedule": "50 15 * * 0"
+    },
+    {
       "path": "/api/hunter/tick",
       "schedule": "13 * * * *"
     }

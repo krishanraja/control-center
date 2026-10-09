@@ -253,3 +253,19 @@ test('flows: a proposal waits on him before a failing workflow', () => {
   assert.equal(f.sub, '2 of its last 6 runs failed.')
   assert.equal(flowsMove({ proposals: [], failing: [], workflows: 0 }).sub, 'No workflow has run yet and no proposal is waiting.')
 })
+
+test('org: a rung change the weekly review proposed waits after a ruling and before a correction, answered in place', () => {
+  const promotions = [{ id: 'p1', surface: 'strategist_ask', label: 'the ask', from: 'propose', to: 'assist', reason: '23 of 29 ruled asks taken as proposed up to 2026-10-05, at or above 60%.' }]
+  const up = orgMove({ corrections: [{ id: 'c', agent: 'cleo', reason: 'tone_off', downvotes: 3 }], rulings: [], agentCount: 12, working: 5, promotions })
+  assert.equal(up.kind, 'promotion')
+  assert.equal(up.headline, 'Let the OS prepare the ask before you see it?')
+  assert.equal(up.sub, promotions[0].reason)
+  assert.equal(up.actionLabel, undefined)
+  assert.match(up.why!, /never sends, posts or spends/)
+  assert.doesNotMatch(up.why!, /autonomous/)
+  const down = orgMove({ corrections: [], rulings: [], agentCount: 12, working: 5, promotions: [{ ...promotions[0], from: 'assist', to: 'propose' }] })
+  assert.equal(down.headline, 'Send the ask back to proposing?')
+  // A ruling an agent is blocked on still comes first.
+  const r = orgMove({ corrections: [], rulings: [{ id: 't', kind: 'task', title: 'Decide X', agent: 'nova', detail: null }], agentCount: 12, working: 5, promotions })
+  assert.equal(r.kind, 'ruling')
+})

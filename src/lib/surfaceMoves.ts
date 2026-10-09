@@ -418,9 +418,18 @@ export interface OrgMoveInput {
   working: number
   /** The agent whose recent runs fail most, if any failed. */
   failing?: { agent: string; errors: number; of: number } | null
+  /** Rung changes the weekly review proposed and he has not ruled on
+   *  (ADR-030, phase 4), newest first. Answered in place. */
+  promotions?: Array<{ id: string; surface: string; label: string; from: string; to: string; reason: string }>
 }
 
-export type OrgMoveKind = 'ruling' | 'correction' | 'failing' | 'clear'
+export type OrgMoveKind = 'ruling' | 'promotion' | 'correction' | 'failing' | 'clear'
+
+/** What a rung means, in his words, for the move's why. */
+const RUNG_MEANS: Record<string, string> = {
+  assist: 'Assist means the machine prepares the work so it is ready to look at rather than ready to start. Nothing leaves the building: it never sends, posts or spends.',
+  propose: 'Propose means the machine suggests and does nothing else. You decide every instance.',
+}
 
 const AGENT = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : 'An agent')
 
@@ -438,6 +447,20 @@ export function orgMove(i: OrgMoveInput): SurfaceMove<OrgMoveKind> {
       why: r.detail || `${AGENT(r.agent)} asked for this and holds the work until you answer. Rulings an agent is waiting on come before changes to how an agent works.`,
       actionLabel: r.kind === 'task' ? undefined : `Open ${AGENT(r.agent)}`,
       tone: 'amber',
+    }
+  }
+  // A rung change waits on him after a ruling an agent is blocked on and
+  // before a change to an agent's brief: it changes how much the machine does
+  // next week, and only his verdict moves it (never to autonomous).
+  const p = i.promotions?.[0]
+  if (p) {
+    const up = p.to === 'assist'
+    return {
+      kind: 'promotion',
+      headline: up ? `Let the OS prepare ${p.label} before you see it?` : `Send ${p.label} back to proposing?`,
+      sub: `${p.reason}${(i.promotions?.length ?? 0) > 1 ? ` ${plural((i.promotions?.length ?? 1) - 1, 'more rung change')} after this one.` : ''}`,
+      why: `${RUNG_MEANS[p.to] ?? ''} The weekly review proposed this from the bank's own numbers. Approve moves the rung; Reject keeps it where it is. A rung never moves on its own.`,
+      tone: 'violet',
     }
   }
   const c = i.corrections[0]
