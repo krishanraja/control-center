@@ -224,6 +224,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
     roles: hunt.roles.map(r => ({
       id: r.job_id, title: r.title, company: r.company,
       person: r.person?.name ?? null, applied: !!r.application_state, contactable: !!roleAction(r),
+      contact: r.person, draft: r.bridge?.ask ?? null,
     })),
     paths: top.filter(b => b.contact).map(b => ({
       id: b.bridge_id, person: b.contact!.full_name, title: b.role?.title ?? null, company: b.role?.company ?? null,
@@ -231,12 +232,24 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
     running: hunter.inFlight?.command ?? null,
   }), [hunter.s, hunter.failing, hunter.failLine, hunter.inFlight, hunt.roles, top])
 
+  // At the send wall the primary is a link to his mail or the profile (ADR-030);
+  // the copy and the note ride along on the click. Without `his` the act is the
+  // same one-click contact the card offers.
+  const his = move.prepared?.his
   const act: Record<HuntMoveKind, (() => void) | undefined> = {
     fix: () => { void hunter.queue('process') },
-    contact: () => {
-      const r = hunt.roles.find(x => x.person && roleAction(x))
-      if (r) void contactRole(r, toast)
-    },
+    contact: his
+      ? () => {
+          void (async () => {
+            const copied = his.copies != null ? await copyText(his.copies) : true
+            toast(copied ? (his.note || 'Opening it. Nothing sent.')
+              : 'Could not reach the clipboard. Open the Hunt card to copy the draft by hand.')
+          })()
+        }
+      : () => {
+          const r = hunt.roles.find(x => x.person && roleAction(x))
+          if (r) void contactRole(r, toast)
+        },
     path: () => {
       const first = top.find(b => b.contact)
       const el = first ? document.querySelector<HTMLElement>(`[data-bridge-id="${first.bridge_id}"]`) : null
@@ -269,6 +282,7 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
       busy={hunter.busy != null}
       descriptor={{ headline: move.headline, sub: move.sub, actionLabel: move.actionLabel, icon, tone: move.tone, clear: move.clear }}
       onAct={act[move.kind]}
+      primaryHref={his?.href}
       why={move.why}
     />
   )

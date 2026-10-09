@@ -39,3 +39,38 @@ test('a morning whose bank write failed still moves on when he answers', () => {
   assert.equal(currentMove(w, { [answerKey(steps[0], steps)]: 'rejected' })?.move.text, 'two')
   assert.equal(currentMove(w, { [answerKey(steps[1], steps)]: 'deferred' }), null)
 })
+
+// ── The ledger speaks (ADR-030) ─────────────────────────────────────────────
+
+function withOutcomes(w: StrategistReadWire, outcomes: NonNullable<StrategistReadWire['outcomes']>): StrategistReadWire {
+  return { ...w, outcomes }
+}
+
+test('a move the ledger says is done or dropped is skipped; the next one is offered', () => {
+  const w = withOutcomes(wire([step('one', 's1'), step('two', 's2'), step('three', 's3')]), {
+    s1: { outcome: 'did_it', artifact: null },
+    s2: { outcome: 'dropped', artifact: null },
+  })
+  const c = currentMove(w, {})
+  assert.equal(c?.move.text, 'three')
+  assert.equal(c?.rank, 3)
+  assert.equal(c?.outcome, null)
+})
+
+test('a drafted move is still offered, with its outcome, so the card can lead with the draft', () => {
+  const w = withOutcomes(wire([step('one', 's1'), step('two', 's2')]), { s1: { outcome: 'drafted', artifact: 'Sam, twenty minutes?' } })
+  const c = currentMove(w, {})
+  assert.equal(c?.move.text, 'one')
+  assert.equal(c?.outcome, 'drafted')
+  assert.equal(c?.artifact, 'Sam, twenty minutes?')
+})
+
+test('every move done closes the day; his own answers still win over the ledger', () => {
+  const all = withOutcomes(wire([step('one', 's1')]), { s1: { outcome: 'done_together', artifact: null } })
+  assert.equal(currentMove(all, {}), null)
+  // He set a drafted move aside: the ledger does not resurrect it.
+  const w = withOutcomes(wire([step('one', 's1'), step('two', 's2')]), { s1: { outcome: 'drafted', artifact: null } })
+  assert.equal(currentMove(w, { s1: 'rejected' })?.move.text, 'two')
+  // He took one: the day is closed whatever the ledger says about the rest.
+  assert.equal(currentMove(w, { s2: 'accepted' }), null)
+})

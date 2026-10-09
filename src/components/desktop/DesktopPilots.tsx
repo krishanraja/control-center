@@ -6,6 +6,8 @@ import { Working } from '../shared/Working'
 import { AppFrame } from '../shared/AppFrame'
 import { DoThisNextHero } from '../shared/DoThisNextHero'
 import { advisoryMove, type AdvisoryMoveKind } from '../../lib/surfaceMoves'
+import { commitPrepared } from '../../lib/decisionActions'
+import { copyText } from '../../lib/contactAction'
 import { useToast } from '../shared/Toast'
 import { PilotCard } from '../pilotDeals/PilotCard'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -62,6 +64,8 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
   const [view, setView] = useState<PilotState | null>(null)
   const { targets, stateCounts, loading, error, refetch } = usePilots(view)
   const [seeding, setSeeding] = useState(false)
+  /** A prepared move's commit in flight (ADR-030), so the hero shows one wait. */
+  const [committing, setCommitting] = useState(false)
   const [proposals, setProposals] = useState<PilotProposal[] | null>(null)
   const [findNote, setFindNote] = useState<string | null>(null)
   /** True while a swiped draft is actually running, so the deck holds rather
@@ -418,7 +422,10 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
   // drafted note to send, then the people just found, then finding more. On an
   // empty list it IS the empty state, so the lane says its one nothing once.
   const move = advisoryMove({
-    deals: targets.map(t => ({ id: t.id, name: t.contact?.full_name || 'Someone on the list', state: t.state })),
+    deals: targets.map(t => ({
+      id: t.id, name: t.contact?.full_name || 'Someone on the list', state: t.state,
+      draftUrl: t.draft_url, draftBody: t.draft_body, contact: t.contact,
+    })),
     asked, replies: stateCounts.replied || 0, onList,
     proposals: proposals?.length ?? 0, seeding, findNote, error: !!error,
   })
@@ -428,18 +435,32 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
     el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     el?.querySelector<HTMLElement>('button, a[href]')?.focus({ preventScroll: true })
   }
+  // A prepared move (ADR-030). At the send wall the primary is a link to his
+  // draft and the press is his; anything riding along (a clipboard copy, the
+  // note) happens here. A commit is the system's press, through the one runner.
+  const his = move?.prepared?.his
   const act: Record<AdvisoryMoveKind, (() => void) | undefined> = {
     reply: () => { if (targets.some(t => t.state === 'replied')) showDeal('replied'); else setView('replied') },
-    send: () => showDeal('drafted'),
+    send: his
+      ? () => {
+          if (his.copies != null) void copyText(his.copies)
+          if (his.note) toast(his.note, 'info')
+        }
+      : () => showDeal('drafted'),
     triage: undefined,
     finding: undefined,
+    draft: () => {
+      if (!move?.prepared || committing) return
+      setCommitting(true)
+      void commitPrepared(move.prepared, { toast, refresh: refetch }).finally(() => setCommitting(false))
+    },
     find: () => { void findMore() },
     wait: () => { void findMore() },
   }
   const hero = move && (
     <DoThisNextHero
       testId="pilots-move"
-      busy={seeding}
+      busy={seeding || committing}
       descriptor={{
         headline: move.headline, sub: move.sub, actionLabel: move.actionLabel, tone: move.tone, clear: move.clear,
         icon: move.kind === 'find' || move.kind === 'wait' || move.kind === 'finding'
@@ -448,6 +469,8 @@ export function PilotsBody({ narrow, onDeckActive }: { narrow: boolean; onDeckAc
           : <Send size={16} className="text-violet-300" />,
       }}
       onAct={act[move.kind]}
+      primaryHref={his?.href}
+      secondary={move.kind === 'send' && his ? { label: 'See it', onClick: () => showDeal('drafted'), testId: 'pilots-move-secondary' } : undefined}
       why={move.why}
     />
   )

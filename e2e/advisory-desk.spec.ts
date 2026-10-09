@@ -53,3 +53,16 @@ for (const state of ['one', 'full'] as const) {
     })
   })
 }
+
+// A prepared move at the send wall (ADR-030): the lane's one move is a link to
+// the Gmail draft the OS already wrote, and the press is his. Before this the
+// button scrolled to the card and said "Show the note".
+test('the drafted deal\'s move is a link to his Gmail draft, and his press is the only one', async ({ page }) => {
+  await mockPilots(page, 'one')
+  await page.goto('/#/people?lane=pilots')
+  const primary = page.getByTestId('pilots-move-primary')
+  await expect(primary).toBeVisible({ timeout: 15_000 })
+  await expect(primary).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#drafts/abc')
+  await expect(primary).toContainText('Open the draft in Gmail')
+  await expect(page.getByTestId('pilots-move-secondary')).toContainText('See it')
+})

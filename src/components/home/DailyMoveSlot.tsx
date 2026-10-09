@@ -8,7 +8,7 @@ import { BottomSheet } from '../mobile/BottomSheet'
 import { STRATEGIST_SURFACE } from '../../lib/servedSurfaces'
 import { useHaptics } from '../../hooks/useHaptics'
 import { jobLabel } from '../../content/jobs'
-import type { DailyChallenge, NextStepSection } from '../../types/strategist'
+import type { DailyChallenge, NextStepSection, StepOutcome } from '../../types/strategist'
 
 // Today's move, proposed in the first slot of Today when that slot is empty
 // (ADR-028, overturning ADR-018's manual-first Today by Krish's ruling of
@@ -55,9 +55,12 @@ export function survivedLine(challenge: DailyChallenge | null | undefined): stri
 }
 
 export function DailyMoveSlot({
-  move, challenge, hasAsk, compact, fold = NO_FOLDS, onShow, onTake, onNotThis, onLater, onOpenAsk,
+  move, outcome = null, challenge, hasAsk, compact, fold = NO_FOLDS, onShow, onTake, onNotThis, onLater, onOpenAsk,
 }: {
   move: NextStepSection
+  /** What already happened to this move (ADR-030). `drafted` means the words
+   *  exist from a walkthrough and the press is his: the draft leads. */
+  outcome?: StepOutcome | null
   challenge: DailyChallenge | null | undefined
   /** The read drafted an ask to this move's person: offer to open it. */
   hasAsk: boolean
@@ -135,8 +138,13 @@ export function DailyMoveSlot({
     )
   }
 
+  // A move already drafted with him leads with the draft: the words exist and
+  // the press is his (ADR-030). Take it stays, quieter, for putting it in the
+  // slot without opening anything.
+  const drafted = outcome === 'drafted'
+  const eyebrow = drafted ? 'Drafted with you. Your press.' : 'Suggested for today'
   const take = (
-    <button type="button" className={BTN_PRIMARY} data-testid="daily-move-take" onClick={() => { h.success(); onTake() }}>
+    <button type="button" className={drafted && move.draft_url ? BTN_QUIET : BTN_PRIMARY} data-testid="daily-move-take" onClick={() => { h.success(); onTake() }}>
       Take it
     </button>
   )
@@ -161,11 +169,11 @@ export function DailyMoveSlot({
       href={move.draft_url}
       target="_blank"
       rel="noopener noreferrer"
-      className={BTN_QUIET}
+      className={drafted ? BTN_PRIMARY : BTN_QUIET}
       data-testid="daily-move-open-draft"
       onClick={() => h.tap()}
     >
-      <ArrowUpRight size={12} /> Open draft
+      <ArrowUpRight size={12} /> {drafted ? 'Open the draft' : 'Open draft'}
     </a>
   ) : hasAsk ? (
     <button type="button" className={BTN_QUIET} data-testid="daily-move-open-ask" onClick={() => { h.tap(); onOpenAsk() }}>
@@ -204,7 +212,7 @@ export function DailyMoveSlot({
     <li className="flex items-start gap-3" data-testid="daily-move-slot" data-folded="false">
       {ring}
       <div className={`flex-1 min-w-0 flex flex-col ${fold.actions ? 'gap-0.5' : 'gap-1'}`}>
-        <Eyebrow tone="accent">Suggested for today</Eyebrow>
+        <Eyebrow tone="accent">{eyebrow}</Eyebrow>
         <p className="text-body leading-snug text-ink break-words" data-testid="daily-move-text">{move.text}</p>
         {personLine}
         {!fold.why && move.why && <p className="text-label leading-relaxed text-ink-muted break-words" data-testid="daily-move-why">{move.why}</p>}
@@ -217,7 +225,7 @@ export function DailyMoveSlot({
           // Two groups that wrap as units: taking it, and not now. On a phone
           // the second drops to its own line whole, never one control alone.
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
-            <div className="flex items-center gap-1.5">{take}{open}</div>
+            <div className="flex items-center gap-1.5">{drafted && move.draft_url ? <>{open}{take}</> : <>{take}{open}</>}</div>
             <div className="flex items-center gap-1.5">{notThis}{later}{badge}</div>
           </div>
         )}

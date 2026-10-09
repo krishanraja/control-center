@@ -338,8 +338,26 @@ export interface GroundingParts {
   search_lists: ReadonlyArray<ReadonlyArray<Record<string, unknown>>>
   /** Daily reads only: drafted, unsent approaches. Null when unread. */
   open_drafts?: OpenDraft[] | null
+  /** This week's rows from the outcome ledger (walkthrough_steps, ADR-030).
+   *  Undefined on an older caller, null when the ledger could not be read. */
+  step_rows?: ReadonlyArray<{ title: string; outcome: string; updated_at: string }> | null
   /** How a stored timestamp is written for the model: a civil date in tz. */
   at: (iso: string) => string
+}
+
+const STEP_OUTCOMES = new Set(['done_together', 'did_it', 'drafted', 'later', 'dropped'])
+
+/** What already happened this week, newest first, for the grounding. */
+export function alreadyHappenedFrom(
+  rows: GroundingParts['step_rows'],
+  at: (iso: string) => string,
+): StrategistGrounding['already_happened'] {
+  if (rows === undefined) return undefined
+  if (rows === null) return null
+  return rows
+    .filter(r => r && typeof r.title === 'string' && STEP_OUTCOMES.has(r.outcome))
+    .slice(0, 40)
+    .map(r => ({ title: r.title.slice(0, 300), outcome: r.outcome as NonNullable<StrategistGrounding['already_happened']>[number]['outcome'], at: at(r.updated_at) }))
 }
 
 /**
@@ -370,6 +388,7 @@ export function assembleGrounding(p: GroundingParts): StrategistGrounding {
     pilot_deals: p.deal_rows ? dealCounts(p.deal_rows) : null,
     today_ask: p.today_ask_row === undefined ? null : todayAskFrom(p.today_ask_row),
     week_notes: weekNotesFrom(p.week_rows, p.exclude_read_id, p.at, p.subject.source === 'note' ? p.subject.body : null),
+    ...(p.step_rows !== undefined ? { already_happened: alreadyHappenedFrom(p.step_rows, p.at) } : {}),
     last_week_close: lastWeekCloseFrom(p.last_close_row),
     previous_read: p.subject.source === 'goal' ? previousReadFrom(p.previous_row, p.at) : null,
     network_counts: p.network_counts,
@@ -670,7 +689,17 @@ export async function loadStrategistGrounding(
         .limit(10) as unknown as PromiseLike<Result<Array<Record<string, unknown>>>>)
     : Promise.resolve({ data: null, error: null } as Result<Array<Record<string, unknown>>>)
 
-  const [spineR, scoreR, dealsR, askR, weekR, closeR, prevR, counts, lists, draftsR] = await Promise.all([
+  // What already happened to this week's steps (ADR-030), so the read does
+  // not hand him a step he ticked or dropped. Optional: an older database
+  // without the ledger reads as "no rows", never as a failed grounding.
+  const stepsP = read<Array<{ title: string; outcome: string; updated_at: string }>>('already_happened', supabase
+    .from('walkthrough_steps')
+    .select('title, outcome, updated_at')
+    .gte('updated_at', `${opts.weekStart}T00:00:00Z`)
+    .order('updated_at', { ascending: false })
+    .limit(40) as unknown as PromiseLike<Result<Array<{ title: string; outcome: string; updated_at: string }>>>)
+
+  const [spineR, scoreR, dealsR, askR, weekR, closeR, prevR, counts, lists, draftsR, stepsR] = await Promise.all([
     goalsSpine('reading a goal or a note as his strategist')
       .then(s => s.spine)
       .catch((e: unknown) => { note('goals_unavailable', (e as Error)?.message || String(e)); return null }),
@@ -711,6 +740,7 @@ export async function loadStrategistGrounding(
     Promise.all(CANDIDATE_ROLES.map(countFor)),
     Promise.all(CANDIDATE_ROLES.map(searchFor)),
     draftsP,
+    stepsP,
   ])
 
   const networkCounts: Record<string, number> = {}
@@ -728,6 +758,7 @@ export async function loadStrategistGrounding(
     spine: spineR,
     scorecard: scoreR as GroundingParts['scorecard'],
     targets: scorecard.TARGETS as unknown as Record<string, unknown>,
+    step_rows: stepsR.data ?? null,
     stop_rule: scorecard.STOP_RULE,
     deal_rows: dealsR.error ? null : (dealsR.data || []),
     today_ask_row: askR.error ? undefined : askR.data,

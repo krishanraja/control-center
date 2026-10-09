@@ -433,6 +433,10 @@ export interface StrategistGrounding {
   today_ask: { exists: boolean; sent: boolean; outcome: string | null } | null
   /** This week's earlier notes, oldest first, so Friday is read against Monday. */
   week_notes: Array<{ kind: NoteKind; at: string; body: string; headline: string | null }>
+  /** What already happened to this week's steps (walkthrough_steps, ADR-030),
+   *  so a read does not propose a done or dropped step again. Absent on an
+   *  older grounding; null when the ledger could not be read. */
+  already_happened?: Array<{ title: string; outcome: 'done_together' | 'did_it' | 'drafted' | 'later' | 'dropped'; at: string }> | null
   last_week_close: { headline: string | null; learning: string | null } | null
   /** The last complete read of the same goal, so asks are not repeated. */
   previous_read: { at: string; headline: string | null; asks: string[] } | null
@@ -625,6 +629,14 @@ export function renderGroundingText(g: StrategistGrounding): string {
     }
   } else {
     out.push('no rows')
+  }
+  if (g.already_happened !== undefined) {
+    out.push('WHAT ALREADY HAPPENED THIS WEEK (the outcome ledger; do not propose a done or dropped step again, and offer a drafted one as "send it", not as new work):')
+    if (g.already_happened && g.already_happened.length) {
+      for (const s of g.already_happened) out.push(`- ${s.at}: ${s.title} (${s.outcome.replace(/_/g, ' ')})`)
+    } else {
+      out.push('no rows')
+    }
   }
   out.push(`LAST WEEK'S CLOSE: ${g.last_week_close && (g.last_week_close.headline || g.last_week_close.learning)
     ? [g.last_week_close.headline, g.last_week_close.learning ? `Learning: ${g.last_week_close.learning}` : ''].filter(Boolean).join(' ')

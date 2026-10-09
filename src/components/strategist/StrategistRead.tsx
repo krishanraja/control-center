@@ -35,6 +35,7 @@ import type {
   LearningSection,
   LensSection,
   NextStepSection,
+  StepOutcome,
   ObjectiveSection,
   ProgressSection,
   ReframeSection,
@@ -77,6 +78,9 @@ interface Props {
   /** What has streamed so far, used until the read is complete. */
   sections: StrategistSection[]
   narrow: boolean
+  /** What already happened to each step, by suggestion id (ADR-030). A daily
+   *  read carries it on the wire; a streaming read has none yet. */
+  outcomes?: Record<string, { outcome: StepOutcome; artifact: string | null }> | null
   /**
    * "Take it" on a drafted objective. In the ritual this is the weekly step's
    * own add() and resolves 'saved'; in the sheet it hands the wording to the
@@ -256,6 +260,15 @@ const PROGRESS_WORD: Record<ProgressSection['verdict'], {
   drop: { label: 'Drop it', action: { label: 'Drop it', confirm: 'Tap again to drop it', status: 'dropped', done: 'Dropped.' }, note: null },
 }
 
+/** The ledger's outcomes, in plain words. Only the first two mean done. */
+const OUTCOME_WORDS: Record<StepOutcome, string> = {
+  done_together: 'Done, with you, in a walkthrough.',
+  did_it: 'Done. You did it.',
+  drafted: 'Drafted with you. The press is yours.',
+  later: 'You said later.',
+  dropped: 'Dropped.',
+}
+
 // ── The battle plan ────────────────────────────────────────────────────────
 
 const BTN = 'tap-44 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 text-label transition-colors disabled:opacity-40'
@@ -265,7 +278,7 @@ const NOT_THIS = 'tap-44 inline-flex min-h-[36px] items-center px-2 text-label t
 
 // ── the component ────────────────────────────────────────────────────────────
 
-export function StrategistRead({ read, sections, narrow, onTakeObjective, objectivesOnly = false, inline = false, alreadyIn = [] }: Props) {
+export function StrategistRead({ read, sections, narrow, outcomes = null, onTakeObjective, objectivesOnly = false, inline = false, alreadyIn = [] }: Props) {
   const h = useHaptics()
   const parts = useMemo(() => {
     const all = partsOf(read, sections)
@@ -577,6 +590,13 @@ export function StrategistRead({ read, sections, narrow, onTakeObjective, object
                     </p>
                   )}
                   {n.why && <p className="text-label leading-relaxed text-ink-muted break-words">{n.why}</p>}
+                  {/* The ledger's word on this step, when it has one: what
+                      happened, not what he thought (ADR-030). */}
+                  {n.suggestion_id && outcomes?.[n.suggestion_id] && (
+                    <p className="text-label leading-snug text-ink-faint break-words" data-testid={`strategist-next-${i}-outcome`}>
+                      {OUTCOME_WORDS[outcomes[n.suggestion_id].outcome]}
+                    </p>
+                  )}
                   {n.draft_url && (
                     <a href={n.draft_url} target="_blank" rel="noopener noreferrer" className={`${BTN_QUIET} self-start`}>
                       <ArrowUpRight size={12} /> Open draft

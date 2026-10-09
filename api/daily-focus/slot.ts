@@ -16,6 +16,8 @@ interface Body {
   text?: string
   goal_id?: string | null
   job?: string | null
+  /** The suggestion the slot is taken from (ADR-030). Omitted for a slot he writes. */
+  suggestion_id?: string | null
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -36,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     text: typeof body.text === 'string' ? body.text : '',
     goal_id: body.goal_id ?? null,
     job: body.job ?? null,
+    suggestion_id: body.suggestion_id ?? null,
   }
   const problem = validateSlot(slot)
   if (problem) return res.status(400).json({ ok: false, error: problem })

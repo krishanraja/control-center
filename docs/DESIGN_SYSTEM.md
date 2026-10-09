@@ -42,6 +42,13 @@ Five ideas run through everything:
    genuinely failed states. Compatibility names such as `violet-*` and
    `.aurora-*` may remain in code, but they resolve to Mindmake mint.
 
+**The doctrine above this file** lives in
+[`design/corpus/`](./design/corpus/README.md) (2026-10-09, ADR-030): why a
+surface decays and the ratchet that fails a build when it does, what Krish
+is asked at any one point, the motion and consistency rules with their
+incidents, and how a change is checked. This file stays the authority on
+every token and primitive; the corpus never restates one.
+
 ---
 
 ## Themes & the "at will" toggle
