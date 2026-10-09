@@ -130,13 +130,15 @@ export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove
 
   // The one manual write for a slot. Today's civil date, so a row the shutdown
   // wrote for today is the one that gets edited. Shows at once, saves behind.
-  const saveSlot = async (n: SlotN, text: string): Promise<boolean> => {
+  const saveSlot = async (n: SlotN, text: string, suggestionId: string | null = null): Promise<boolean> => {
     h.success()
     setOptimistic(prev => ({ ...prev, [n]: { ...prev[n], text: text || null } }))
     try {
       await requestOk('/api/daily-focus/slot', {
         method: 'POST',
-        body: { date: today?.focus_date ?? civilYmd(new Date()), slot: n, text },
+        // The move's bank id rides with a taken move (ADR-030), so the tick
+        // on this slot can be recorded as did_it against it.
+        body: { date: today?.focus_date ?? civilYmd(new Date()), slot: n, text, ...(suggestionId ? { suggestion_id: suggestionId } : {}) },
         timeoutMs: 12_000,
       })
       await caughtUp()
@@ -197,13 +199,14 @@ export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove
           if (folded(t.n, has)) return null
           const proposal = proposalFor(t.n, has)
           if (proposal) {
-            const { move, rank } = proposal
+            const { move, rank, outcome } = proposal
             const asks = daily.wire?.read?.asks ?? []
             const hasAsk = Boolean(move.contact_id) && asks.some(a => a.to.kind === 'named' && a.to.person.contact_id === move.contact_id)
             return (
               <DailyMoveSlot
                 key="daily-move"
                 move={move}
+                outcome={outcome ?? null}
                 // The challenge was put to the read's first pick. Once that is
                 // set aside it describes a move that is no longer on screen.
                 challenge={rank === 1 ? daily.wire?.read?.challenge : null}
@@ -212,7 +215,7 @@ export function TodayList({ compact = false, daily, folds = NO_FOLDS, onShowMove
                 fold={{ why: folds.why, actions: folds.actions, card: folds.card }}
                 onShow={onShowMove}
                 onTake={() => {
-                  void saveSlot(1, move.text).then(ok => {
+                  void saveSlot(1, move.text, move.suggestion_id ?? null).then(ok => {
                     if (ok) daily.answer(move, 'accepted', { final: { text: move.text } })
                   })
                 }}

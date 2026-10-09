@@ -218,6 +218,105 @@ export async function startWalkthrough(readId: string, firedBy: FiredBy, deps: {
   }
 }
 
+// ── The outcome ledger, read and written from the app too (ADR-030) ──────────
+//
+// walkthrough_steps was written only by the Claude session and read by
+// nothing. It is the one honest record of what happened to a move, so the app
+// writes it too (a tick on Today is did_it) and reads it back (a drafted step
+// shows "Open the draft"; Marcus's grounding stops proposing a done step).
+
+export const STEP_OUTCOMES = ['done_together', 'did_it', 'drafted', 'later', 'dropped'] as const
+export type StepOutcome = typeof STEP_OUTCOMES[number]
+
+export interface StepOutcomeRow {
+  read_id: string
+  step_key: string
+  suggestion_id: string | null
+  title: string
+  outcome: StepOutcome
+  artifact: string | null
+  note: string | null
+  updated_at: string
+}
+
+export function isStepOutcome(v: unknown): v is StepOutcome {
+  return typeof v === 'string' && (STEP_OUTCOMES as readonly string[]).includes(v)
+}
+
+const DONE: ReadonlySet<StepOutcome> = new Set<StepOutcome>(['done_together', 'did_it'])
+
+/**
+ * What the ledger keeps when a step is written twice. A done outcome is never
+ * replaced by one that is not done: he ticked it, or it was finished with him,
+ * and a later session saying "drafted" or "dropped" does not undo that.
+ * done_together is the stronger evidence of the two and is never replaced by
+ * did_it. Outcomes that are not done replace each other freely, because
+ * drafted, later and dropped are his calls as they change.
+ */
+export function mergeOutcome(prev: StepOutcome | null | undefined, next: StepOutcome): StepOutcome {
+  if (!prev) return next
+  if (prev === 'done_together') return prev
+  if (DONE.has(prev) && !DONE.has(next)) return prev
+  return next
+}
+
+/**
+ * Record what happened to a suggestion. The read it belongs to comes from the
+ * suggestion's own subject, so the caller passes only the id. Never throws
+ * into the action it follows; a ledger that cannot be written is logged.
+ */
+export async function recordStepOutcome(input: {
+  suggestion_id: string
+  title: string
+  outcome: StepOutcome
+  note?: string | null
+  artifact?: string | null
+}): Promise<StepOutcomeRow | null> {
+  if (!isReadId(input.suggestion_id) || !isStepOutcome(input.outcome)) return null
+  const { data: s, error: sErr } = await supabase.from('suggestions')
+    .select('id, subject_table, subject_id').eq('id', input.suggestion_id).maybeSingle()
+  if (sErr) { console.warn(`step_outcome_no_suggestion: ${describeDbError(sErr)}`); return null }
+  const sub = s as { subject_table?: string; subject_id?: string } | null
+  if (!sub || sub.subject_table !== 'strategist_reads' || !isReadId(sub.subject_id)) return null
+  const readId = sub.subject_id!.toLowerCase()
+  const stepKey = input.suggestion_id.toLowerCase()
+
+  const { data: existing } = await supabase.from('walkthrough_steps')
+    .select('outcome, artifact').eq('read_id', readId).eq('step_key', stepKey).maybeSingle()
+  const prev = (existing as { outcome?: string; artifact?: string | null } | null)
+  const outcome = mergeOutcome(isStepOutcome(prev?.outcome) ? prev!.outcome : null, input.outcome)
+
+  const { data, error } = await supabase.from('walkthrough_steps')
+    .upsert({
+      read_id: readId,
+      step_key: stepKey,
+      suggestion_id: stepKey,
+      title: input.title.slice(0, 300),
+      outcome,
+      artifact: input.artifact ?? prev?.artifact ?? null,
+      note: input.note ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'read_id,step_key' })
+    .select('read_id, step_key, suggestion_id, title, outcome, artifact, note, updated_at')
+    .maybeSingle()
+  if (error) { console.warn(`step_outcome_not_written: ${describeDbError(error)}`); return null }
+  return (data as StepOutcomeRow | null) ?? null
+}
+
+/** The latest outcome per suggestion id. A missing table or a failure reads as none. */
+export async function loadStepOutcomes(suggestionIds: string[]): Promise<Record<string, { outcome: StepOutcome; artifact: string | null }>> {
+  const ids = [...new Set(suggestionIds.filter(isReadId).map(s => s.toLowerCase()))]
+  if (!ids.length) return {}
+  const { data, error } = await supabase.from('walkthrough_steps')
+    .select('suggestion_id, outcome, artifact, updated_at').in('suggestion_id', ids).order('updated_at', { ascending: true })
+  if (error) { console.warn(`step_outcomes_unavailable: ${describeDbError(error)}`); return {} }
+  const out: Record<string, { outcome: StepOutcome; artifact: string | null }> = {}
+  for (const r of (data || []) as Array<{ suggestion_id: string | null; outcome: string; artifact: string | null }>) {
+    if (r.suggestion_id && isStepOutcome(r.outcome)) out[r.suggestion_id] = { outcome: r.outcome, artifact: r.artifact ?? null }
+  }
+  return out
+}
+
 /** The event and the read id. Never the note, never the token. */
 async function audit(readId: string, eventType: string): Promise<void> {
   try {

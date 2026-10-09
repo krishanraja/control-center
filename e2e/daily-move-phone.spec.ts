@@ -72,7 +72,9 @@ test('Take it fills slot 1 in place, with no editor and no empty slot in between
   const blinks = await watchSlotOneEmpty(page)
   await take.tap()
 
-  await expect.poll(() => writes.slots).toEqual([{ date: TODAY, slot: 1, text: MOVES[0].text }])
+  // The move's bank id rides with the slot write (ADR-030), so the tick on
+  // this slot can be recorded as did_it against the move.
+  await expect.poll(() => writes.slots).toEqual([{ date: TODAY, slot: 1, text: MOVES[0].text, suggestion_id: MOVES[0].suggestion_id }])
   await expect(page.getByRole('button', { name: 'Edit target 1' })).toContainText(MOVES[0].text)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect.poll(() => writes.verdicts.map(v => v.verdict)).toEqual(['accepted'])

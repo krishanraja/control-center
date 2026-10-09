@@ -177,15 +177,29 @@ async function getDaily(res: VercelResponse) {
     const ids = [...read.next_steps, ...read.asks].map(x => x.suggestion_id).filter((x): x is string => !!x)
     const contactIds = read.next_steps.map(m => m.contact_id).filter((x): x is string => !!x)
     const dealIds = read.next_steps.map(m => m.pilot_deal_id).filter((x): x is string => !!x)
-    const [answered, people, drafts, details] = await Promise.all([
+    const { loadStepOutcomes } = await import('./_walkthrough.js')
+    const [answered, people, drafts, details, stepOutcomes, dealStates] = await Promise.all([
       loadAnswered(ids),
       loadPeople(contactIds),
       loadDraftLinks(dealIds),
       loadContactDetails(askContactIds(read)),
+      loadStepOutcomes(ids),
+      loadDealStates(dealIds),
     ])
+    // What happened to each move (ADR-030): the ledger first, and for a move
+    // about a drafted approach, the deal's own ladder. Sent or beyond is the
+    // honest did_it; it never overrides a ledger row that says more.
+    const outcomes: NonNullable<StrategistReadWire['outcomes']> = { ...stepOutcomes }
+    for (const m of read.next_steps) {
+      if (!m.suggestion_id || outcomes[m.suggestion_id] || !m.pilot_deal_id) continue
+      if (dealStates[m.pilot_deal_id] && DEAL_SENT_OR_BEYOND.has(dealStates[m.pilot_deal_id])) {
+        outcomes[m.suggestion_id] = { outcome: 'did_it', artifact: null }
+      }
+    }
     wire = {
       ...wire,
       answered,
+      outcomes,
       read: {
         ...withContacts(read, details),
         next_steps: read.next_steps.map(m => ({
@@ -248,6 +262,19 @@ async function loadDraftLinks(ids: string[]): Promise<Record<string, string>> {
   for (const d of (data || []) as Array<{ id: string; draft_url: string | null }>) {
     if (d.draft_url && /^https:\/\//i.test(d.draft_url.trim())) out[d.id] = d.draft_url.trim()
   }
+  return out
+}
+
+/** The deal states past the send wall: the approach left the machine. */
+const DEAL_SENT_OR_BEYOND = new Set(['sent', 'replied', 'call_booked', 'call_taken', 'pilot_booked', 'pilot_paid'])
+
+/** Each deal's state, by id. A failure reads as none. */
+async function loadDealStates(ids: string[]): Promise<Record<string, string>> {
+  if (!ids.length) return {}
+  const { data, error } = await supabase.from('pilot_deals').select('id, state').in('id', [...new Set(ids)])
+  if (error) { console.warn(`daily_deal_states_unavailable: ${describeDbError(error)}`); return {} }
+  const out: Record<string, string> = {}
+  for (const d of (data || []) as Array<{ id: string; state: string }>) out[d.id] = d.state
   return out
 }
 

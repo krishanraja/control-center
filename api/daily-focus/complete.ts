@@ -1,10 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { guard } from '../_auth.js'
+import { recordStepOutcome } from '../_walkthrough.js'
 
 // POST /api/daily-focus/complete
 //   Body: { date, target_num }
 //   Calls the mark_target_complete RPC. Idempotent.
+//
+// A tick on a slot taken from a move is him saying he did it (ADR-030), so it
+// is recorded as did_it against that suggestion in walkthrough_steps, the one
+// outcome ledger. Best effort: a tick never fails over the ledger.
 
 interface Body {
   date?: string
@@ -34,5 +39,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     p_target_num: body.target_num,
   })
   if (error) return res.status(500).json({ ok: false, error: error.message })
+
+  const n = Number(body.target_num)
+  try {
+    const { data: row } = await supabase.from('daily_focus').select('*').eq('focus_date', body.date).maybeSingle()
+    const r = (row || {}) as Record<string, unknown>
+    const suggestionId = r[`target_${n}_suggestion_id`]
+    const title = r[`target_${n}_text`]
+    if (typeof suggestionId === 'string' && suggestionId) {
+      await recordStepOutcome({
+        suggestion_id: suggestionId,
+        title: typeof title === 'string' && title.trim() ? title : `Today's slot ${n}`,
+        outcome: 'did_it',
+        note: 'Ticked on Home',
+      })
+    }
+  } catch (e) {
+    console.warn(`loop_not_closed: ${(e as Error)?.message || String(e)}`)
+  }
   return res.json({ ok: true, result: data })
 }

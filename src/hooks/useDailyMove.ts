@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { requestOk } from '../lib/apiFetch'
 import { postVerdict } from '../lib/suggestionsApi'
-import type { NextStepSection, StrategistReadWire, StrategistGetResponse, StrategistVerdictKind } from '../types/strategist'
+import type { NextStepSection, StepOutcome, StrategistReadWire, StrategistGetResponse, StrategistVerdictKind } from '../types/strategist'
 
 // Today's move (ADR-028): the strategist's read nobody asked for, written by
 // the cron before he wakes and proposed in Today's first slot when it is
@@ -12,8 +12,9 @@ type Answered = NonNullable<StrategistReadWire['answered']>
 
 export interface DailyMoveState {
   wire: StrategistReadWire | null
-  /** The move to propose now, and its rank (1 is the read's first pick), or null. */
-  current: { move: NextStepSection; rank: number } | null
+  /** The move to propose now, its rank (1 is the read's first pick), and what
+   *  already happened to it when the ledger says (ADR-030), or null. */
+  current: { move: NextStepSection; rank: number; outcome?: StepOutcome | null; artifact?: string | null } | null
   /** Record an answer on one move. Optimistic: the next move shows at once. */
   answer: (move: NextStepSection, verdict: StrategistVerdictKind, extra?: { reason_code?: string | null; note?: string | null; final?: unknown }) => void
 }
@@ -35,14 +36,25 @@ export function answerKey(move: NextStepSection, moves: NextStepSection[]): stri
  * Taken (accepted, tweaked, replaced) or Later (deferred) on any move closes
  * the day's proposal: he has his move, or he has said not today. A move he set
  * aside (rejected) gives way to the next one. Pure, so the rule is tested.
+ *
+ * The ledger speaks too (ADR-030): a move that is done (done_together, did_it)
+ * or dropped is skipped as if he had answered it, and a drafted move is
+ * proposed WITH its outcome, so the card can offer the draft rather than the
+ * words again. A done first move does not close the day: the next one is
+ * offered, because the day's proposal is a move he can still make.
  */
 export function currentMove(wire: StrategistReadWire | null, answered: Answered): DailyMoveState['current'] {
   const moves = wire?.read?.next_steps ?? []
+  const outcomes = wire?.outcomes ?? {}
   const closes = new Set<string>(['accepted', 'tweaked', 'replaced', 'deferred'])
+  const over = new Set<string>(['done_together', 'did_it', 'dropped'])
   const said = (m: NextStepSection) => answered[answerKey(m, moves)]
+  const happened = (m: NextStepSection) => (m.suggestion_id ? outcomes[m.suggestion_id] : undefined)
   if (moves.some(m => closes.has(said(m) ?? ''))) return null
-  const i = moves.findIndex(m => !said(m))
-  return i >= 0 ? { move: moves[i], rank: i + 1 } : null
+  const i = moves.findIndex(m => !said(m) && !over.has(happened(m)?.outcome ?? ''))
+  if (i < 0) return null
+  const h = happened(moves[i])
+  return { move: moves[i], rank: i + 1, outcome: h?.outcome ?? null, artifact: h?.artifact ?? null }
 }
 
 export function useDailyMove(enabled = true): DailyMoveState {

@@ -229,7 +229,7 @@ function DailyRead({ narrow, onTake }: { narrow: boolean; onTake: (o: ObjectiveS
   const c = wire.read.challenge
   return (
     <div data-testid="strategist-daily-read" className="flex flex-col gap-5 min-w-0">
-      <StrategistRead read={wire.read} sections={[]} narrow={narrow} onTakeObjective={onTake} />
+      <StrategistRead read={wire.read} sections={[]} narrow={narrow} outcomes={wire.outcomes ?? null} onTakeObjective={onTake} />
       {c && (
         <section data-testid="strategist-daily-survived" className="flex flex-col gap-1.5 min-w-0">
           <Eyebrow>What the first move survived</Eyebrow>

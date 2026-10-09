@@ -377,3 +377,29 @@ test('the grounding module loads with no database credentials', async () => {
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /loaded/)
 })
+
+// ── What already happened (ADR-030) ─────────────────────────────────────────
+
+import { alreadyHappenedFrom } from '../../api/_strategistGrounding.ts'
+
+test('the grounding names what already happened this week, so a done step is not proposed again', () => {
+  const rows = [
+    { title: 'Send the ask to the broadcaster', outcome: 'drafted', updated_at: '2026-09-29T10:00:00Z' },
+    { title: 'Order the samples', outcome: 'did_it', updated_at: '2026-09-28T09:00:00Z' },
+    { title: 'bad', outcome: 'done', updated_at: '2026-09-28T09:00:00Z' },
+  ]
+  const happened = alreadyHappenedFrom(rows, at)
+  assert.deepEqual(happened, [
+    { title: 'Send the ask to the broadcaster', outcome: 'drafted', at: 'day 2026-09-29' },
+    { title: 'Order the samples', outcome: 'did_it', at: 'day 2026-09-28' },
+  ])
+  const text = renderGroundingText({ ...structuredClone(BASE), already_happened: happened })
+  assert.match(text, /WHAT ALREADY HAPPENED THIS WEEK/)
+  assert.match(text, /- day 2026-09-28: Order the samples \(did it\)/)
+  assert.match(text, /Send the ask to the broadcaster \(drafted\)/)
+  // An older grounding with no ledger field says nothing about it, and a
+  // ledger that could not be read says "no rows", never a guess.
+  assert.doesNotMatch(renderGroundingText(structuredClone(BASE)), /ALREADY HAPPENED/)
+  assert.match(renderGroundingText({ ...structuredClone(BASE), already_happened: null }), /ALREADY HAPPENED[^\n]*\nno rows/)
+  assert.equal(alreadyHappenedFrom(undefined, at), undefined)
+})

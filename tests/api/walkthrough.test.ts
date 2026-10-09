@@ -102,3 +102,28 @@ test('the button re-fires only what did not start', () => {
   assert.equal(mayRetry({ status: 'firing', updated_at: at(STALE_FIRING_MS + 1) }, now), true)
   assert.equal(mayRetry({ status: 'firing', updated_at: null }, now), false)
 })
+
+// ── The outcome ledger, written from the app too (ADR-030) ───────────────────
+
+const { mergeOutcome, isStepOutcome, STEP_OUTCOMES } = await import('../../api/_walkthrough.ts')
+
+test('a done outcome is never replaced by one that is not done', () => {
+  assert.equal(mergeOutcome('did_it', 'drafted'), 'did_it')
+  assert.equal(mergeOutcome('did_it', 'dropped'), 'did_it')
+  assert.equal(mergeOutcome('done_together', 'did_it'), 'done_together')
+  assert.equal(mergeOutcome('done_together', 'later'), 'done_together')
+})
+
+test('outcomes that are not done replace each other, and did_it can become done_together', () => {
+  assert.equal(mergeOutcome(null, 'drafted'), 'drafted')
+  assert.equal(mergeOutcome('drafted', 'later'), 'later')
+  assert.equal(mergeOutcome('later', 'dropped'), 'dropped')
+  assert.equal(mergeOutcome('drafted', 'did_it'), 'did_it')
+  assert.equal(mergeOutcome('did_it', 'done_together'), 'done_together')
+})
+
+test('the vocabulary is the migration\'s five words and nothing else', () => {
+  assert.deepEqual([...STEP_OUTCOMES], ['done_together', 'did_it', 'drafted', 'later', 'dropped'])
+  assert.equal(isStepOutcome('done'), false)
+  assert.equal(isStepOutcome('did_it'), true)
+})

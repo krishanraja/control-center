@@ -22,6 +22,16 @@ export interface SlotInput {
   text: string
   goal_id?: string | null
   job?: string | null
+  /** The suggestion the slot was taken from (ADR-030), so a tick on it can
+   *  be recorded as did_it. Null when he wrote the slot himself. */
+  suggestion_id?: string | null
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Postgres 42703, undefined column: the loop migration is not applied yet. */
+function columnMissing(e: { code?: string; message?: string } | null | undefined): boolean {
+  return !!e && (e.code === '42703' || /suggestion_id/.test(e.message || ''))
 }
 
 export interface UpsertSlotsOptions {
@@ -44,6 +54,7 @@ export function validateSlot(s: Partial<SlotInput>): string | null {
   if (s.text.trim().length > 240) return 'text must be 240 characters or fewer'
   if (s.job != null && s.job !== '' && !isJob(s.job)) return `unknown job '${s.job}'`
   if (s.goal_id != null && typeof s.goal_id !== 'string') return 'goal_id must be a string'
+  if (s.suggestion_id != null && s.suggestion_id !== '' && !(typeof s.suggestion_id === 'string' && UUID.test(s.suggestion_id))) return 'suggestion_id must be a uuid'
   return null
 }
 
@@ -90,6 +101,7 @@ export async function upsertSlots(
       patch[`target_${n}_goal_id`] = null
       patch[`target_${n}_job`] = null
       patch[`target_${n}_completed_at`] = null
+      patch[`target_${n}_suggestion_id`] = null
       written.push(n)
       continue
     }
@@ -97,31 +109,43 @@ export async function upsertSlots(
     patch[`target_${n}_source`] = 'krish_added'
     patch[`target_${n}_goal_id`] = s.goal_id && knownGoals.has(s.goal_id) ? s.goal_id : null
     patch[`target_${n}_job`] = s.job && isJob(s.job) ? s.job : null
+    // A slot written by hand has no suggestion behind it, and a slot taken
+    // from a move keeps the move's id, so the tick can close the loop.
+    patch[`target_${n}_suggestion_id`] = s.suggestion_id && UUID.test(s.suggestion_id) ? s.suggestion_id.toLowerCase() : null
     written.push(n)
   }
 
   if (written.length === 0) return { row: current, error: null, written }
 
+  // Before migration 20261009120000 the suggestion columns do not exist. The
+  // slot write must still land: retry once without them rather than fail the
+  // day over a column that only closes the loop.
+  const withoutSuggestion = (p: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(p).filter(([k]) => !k.endsWith('_suggestion_id')))
+
   if (current) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('daily_focus')
       .update(patch)
       .eq('focus_date', date)
       .select('*')
       .single()
+    if (error && columnMissing(error)) {
+      ({ data, error } = await supabase.from('daily_focus').update(withoutSuggestion(patch)).eq('focus_date', date).select('*').single())
+    }
     return { row: (data as Record<string, unknown>) || null, error: error?.message || null, written }
   }
 
-  const { data, error } = await supabase
-    .from('daily_focus')
-    .insert({
-      focus_date: date,
-      status: 'pending',
-      relevance_index: {},
-      marcus_suggestions: [],
-      ...patch,
-    })
-    .select('*')
-    .single()
+  const fresh = (p: Record<string, unknown>) => ({
+    focus_date: date,
+    status: 'pending',
+    relevance_index: {},
+    marcus_suggestions: [],
+    ...p,
+  })
+  let { data, error } = await supabase.from('daily_focus').insert(fresh(patch)).select('*').single()
+  if (error && columnMissing(error)) {
+    ({ data, error } = await supabase.from('daily_focus').insert(fresh(withoutSuggestion(patch))).select('*').single())
+  }
   return { row: (data as Record<string, unknown>) || null, error: error?.message || null, written }
 }
