@@ -5,6 +5,10 @@ and by people doing the same job by hand. Nothing in this file describes
 current behaviour; `NOW.md` and `docs/plans/one-swing/STATE.md` do. Files
 moved here keep their body verbatim under a Historical banner.
 
+## 2026-10-09
+
+- reconciled at `9008a157`: NOW.md takes the five code phases of the data-to-action audit (#405 to #410), the walkthrough handoff (ADR-029), the Hunt lane rulings and the home-fit fixture fix from their own commit bodies, with Krish's rulings of 2026-10-08 and 2026-10-09 in his words. The design corpus, ADR-030 and the audit were already in NOW.md. No file moved. Stamps older than the code they cover (`docs/ARCHITECTURE.md`, `docs/PRODUCT.md`, `docs/TESTING.md` and others) were not bumped, because their bodies were not re-checked in this run.
+
 ## 2026-10-08
 
 - reconciled at `6703ac4e`: NOW.md takes the battle-plan strategist read and the full-Monday-read fix from their own commit bodies. `docs/DECISIONS/026-the-strategist.md` and `docs/API.md` now state the token budgets the code holds (20000 at medium effort for thinking reads, 4000 for short reads) and the step counts of the extended `next_step`. The 2026-10-06 note that NOW.md lacked #399 stands: #399 is a Content desk and rulings change already covered by the 2026-10-06 entries, and no further NOW.md bullet was written for it.
