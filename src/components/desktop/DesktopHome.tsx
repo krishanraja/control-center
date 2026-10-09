@@ -8,7 +8,10 @@ import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
 import { CriticalAlertMark } from '../CriticalAlert'
 import { DueTestsCard } from '../pilot/DueTestsCard'
-import { PilotStrip } from '../home/PilotStrip'
+import { HomeQueueHero, pressFor, useHomeQueue, type QueuePressHandlers } from '../home/HomeQueue'
+import { queueRest } from '../../lib/homeQueue'
+import { openFocusRitual } from '../../lib/focusRitual'
+import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useSpend, spendAlert } from '../../hooks/useSpend'
@@ -71,7 +74,6 @@ export function DesktopHome({ onNavigate }: {
   // screen, as on Growth. "Pick your 3" steps aside (the Add on Today sets the
   // rest) and the week's ask moves onto the This week line.
   const ctaAside = Boolean(daily.current)
-  if (firstPaint) return <HomeSkeleton />
 
   const cta = alt.cta
   // Measured 2026-10-05 at 360x640: the full-width week ask beside a long
@@ -79,14 +81,27 @@ export function DesktopHome({ onNavigate }: {
   // opens may do.
   const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
 
+  // The one queue (ADR-030, src/lib/homeQueue.ts). The hero shows its head
+  // and yields while the head is today's move, which the slot draws; the
+  // rest is listed behind the Waiting count, each with its own press. Hooks
+  // sit above the skeleton return so their order never changes between renders.
+  const { waiting: fresh } = useWaitingDecisions()
+  const { queue, head } = useHomeQueue({ dailyMove: daily.current ? { text: daily.current.move.text } : null, weekAsk, waiting: fresh.length })
+  const [waitingOpen, setWaitingOpen] = useState(false)
+  const handlers: QueuePressHandlers = {
+    onNavigate,
+    onTests: () => setPinned('tests'),
+    onWaiting: () => setWaitingOpen(true),
+    onWeek: () => openFocusRitual('weekly'),
+  }
+  if (firstPaint) return <HomeSkeleton />
+
   // The instruments: what the machine did and what is owed. Peripheral to the
   // canon, which is why they sit in the rail on a wide desk and above it
   // otherwise. Rendered once, placed twice, so the two layouts cannot drift.
+  // The drafted-approaches strip is gone: it is a queue entry now.
   const instruments = (foldTests: boolean) => (
-    <>
-      <DueTestsCard variant="desktop" fold={foldTests} open={pinned === 'tests'} onPin={o => setPinned(o ? 'tests' : null)} />
-      <PilotStrip onNavigate={onNavigate} />
-    </>
+    <DueTestsCard variant="desktop" fold={foldTests} open={pinned === 'tests'} onPin={o => setPinned(o ? 'tests' : null)} />
   )
 
   // The doorways: Focus, Market signals, Intel as three equal peers — solid,
@@ -128,9 +143,20 @@ export function DesktopHome({ onNavigate }: {
           treatment, both device classes. */}
       <div className="shrink-0 flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1"><VitalsLine onNavigate={onNavigate} /></div>
+          <div className="min-w-0 flex-1">
+            <VitalsLine
+              onNavigate={onNavigate}
+              fresh={fresh}
+              nextUp={queueRest(queue)}
+              onPressNext={e => pressFor(e.press.go, handlers)?.()}
+              waitingOpen={waitingOpen}
+              onWaitingOpen={setWaitingOpen}
+            />
+          </div>
           <CriticalAlertMark />
         </div>
+        {/* The head of the queue, when the hero does not yield to the slot. */}
+        <HomeQueueHero head={head} narrow={false} handlers={handlers} />
       </div>
 
       {/* The direction is exclusive, and it has to be: `flex-col` in the base

@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import { ArrowRight } from '@/lib/icons'
 import { useScorecard, type ScorecardCol } from '../../hooks/useScorecard'
 import { useShipSummary } from '../../hooks/usePilot'
-import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
+import type { DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 import { waitingLine } from '../../lib/freshDecisions'
 import { WaitingSheet } from './WaitingSheet'
+import type { QueueEntry } from '../../lib/homeQueue'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Modal } from '../shared/Modal'
 import { SlideOver } from '../shared/SlideOver'
@@ -39,12 +40,25 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
  * Unasked hours are an estimate from commits and the panel says so; the line
  * keeps the 'h' and nothing else.
  */
-export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: NavigateFn; compact?: boolean }) {
+export function VitalsLine({ onNavigate, compact = false, fresh, nextUp, onPressNext, waitingOpen: openProp, onWaitingOpen }: {
+  onNavigate?: NavigateFn
+  compact?: boolean
+  /** The fresh rulings (src/lib/freshDecisions.ts), read once by Home: it
+   *  feeds the one queue and this count, so there is one subscriber. */
+  fresh: DecisionRow[]
+  /** The rest of the one queue (ADR-030), listed behind the Waiting count. */
+  nextUp?: QueueEntry[]
+  onPressNext?: (entry: QueueEntry) => void
+  /** Home may open the Waiting list itself (the queue's own press). */
+  waitingOpen?: boolean
+  onWaitingOpen?: (open: boolean) => void
+}) {
   const { current, targets, totals, loading: cardLoading, refresh: refreshCard } = useScorecard()
   const { summary, refresh } = useShipSummary()
-  const { waiting: fresh } = useWaitingDecisions()
   const waiting = fresh.length
-  const [waitingOpen, setWaitingOpen] = useState(false)
+  const [waitingOwn, setWaitingOwn] = useState(false)
+  const waitingOpen = openProp ?? waitingOwn
+  const setWaitingOpen = (o: boolean) => { setWaitingOwn(o); onWaitingOpen?.(o) }
   const h = useHaptics()
   const [logging, setLogging] = useState(false)
   const [panel, setPanel] = useState(false)
@@ -127,7 +141,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
         </span>
       </button>
 
-      <WaitingSheet open={waitingOpen} onClose={() => setWaitingOpen(false)} waiting={fresh} onNavigate={onNavigate} />
+      <WaitingSheet open={waitingOpen} onClose={() => setWaitingOpen(false)} waiting={fresh} onNavigate={onNavigate} nextUp={nextUp} onPress={onPressNext} />
 
       {/* The twelve week table, one tap from any cell. */}
       <SlideOver open={panel} onClose={() => setPanel(false)} ariaLabel="Scorecard" label="Scorecard">

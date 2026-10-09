@@ -1,6 +1,7 @@
 import React from 'react'
 import { ArrowRight } from '@/lib/icons'
 import type { DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
+import type { QueueEntry } from '../../lib/homeQueue'
 import { routeDecision } from '../../lib/routeDecision'
 import { waitingLine } from '../../lib/freshDecisions'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -34,11 +35,15 @@ function plainTitle(row: DecisionRow): string {
  * and takes him there, which is the job the OS Queue did badly before it was
  * removed (ruling, Krish 2026-10-04).
  */
-export function WaitingSheet({ open, onClose, waiting, onNavigate }: {
+export function WaitingSheet({ open, onClose, waiting, onNavigate, nextUp = [], onPress }: {
   open: boolean
   onClose: () => void
   waiting: DecisionRow[]
   onNavigate?: NavigateFn
+  /** The rest of the one queue (ADR-030), in order, after what the hero and
+   *  Today's slot already show. Each entry carries its own press. */
+  nextUp?: QueueEntry[]
+  onPress?: (entry: QueueEntry) => void
 }) {
   const h = useHaptics()
   const groups = new Map<string, Array<{ row: DecisionRow; tab: string; params: Record<string, string> }>>()
@@ -54,6 +59,31 @@ export function WaitingSheet({ open, onClose, waiting, onNavigate }: {
     <Modal open={open} onClose={onClose} title="Waiting on you" className="sm:max-w-lg p-4">
       <div data-testid="waiting-sheet" className="space-y-4">
         <p className="text-body text-ink-muted">{waitingLine(waiting.length)}</p>
+        {/* The rest of the one queue, in order (ADR-030): what comes after the
+            thing Home is showing him now, each with its own press. */}
+        {nextUp.length > 0 && (
+          <section className="space-y-1.5" data-testid="waiting-next-up">
+            <Eyebrow>Next up, in order</Eyebrow>
+            <ul className="space-y-1.5">
+              {nextUp.map(e => (
+                <li key={e.id}>
+                  <button
+                    type="button"
+                    data-testid={`waiting-next-${e.id}`}
+                    onClick={() => { h.tap(); onClose(); onPress?.(e) }}
+                    className="w-full flex items-start justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left hover:border-white/15"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-label text-ink">{e.headline}</span>
+                      <span className="block text-micro text-ink-faint">{e.press.label}</span>
+                    </span>
+                    <ArrowRight size={14} className="mt-0.5 shrink-0 text-ink-faint" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {[...groups.entries()].map(([name, items]) => (
           <section key={name} className="space-y-1.5">
             <Eyebrow>In {name}</Eyebrow>

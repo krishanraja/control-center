@@ -144,3 +144,21 @@ test('Open the ask opens today\'s read beside Home, with what the first move sur
   expect(await pastEdges(sheet, box.x, box.x + box.width), 'laid out past the sheet').toEqual([])
   expect(writes.strategistPosts, 'opening the morning read paid for a new one').toBe(0)
 })
+
+// Ruling (Krish, 2026-10-09): a reply waiting on him outranks today's move.
+// The hero shows the reply above the stage, the move keeps its slot, and the
+// drafted notes wait behind the Waiting count, in order.
+test('a reply leads the queue above the stage, the move keeps its slot, and the rest is one tap away', async ({ page }) => {
+  await mockDailyMove(page)
+  await page.route('**/api/pilot-deals*', r => r.fulfill({ json: { ok: true, stateCounts: { replied: 1, drafted: 2 } } }))
+  await page.goto('/#/home')
+  const hero = page.getByTestId('home-queue-move')
+  await expect(hero).toContainText('Someone replied. Book the call', { timeout: 15_000 })
+  await expect(page.getByTestId('daily-move-slot')).toBeVisible()
+  const h = (await hero.boundingBox())!
+  const stage = (await page.getByTestId('home-stage').boundingBox())!
+  expect(h.y, 'the queue head sits above the stage').toBeLessThan(stage.y)
+  await page.getByTestId('vitals-waiting').click()
+  await expect(page.getByTestId('waiting-next-up')).toContainText('Send the 2 drafted notes')
+  await expect(page.getByTestId('waiting-next-advisory-reply')).toHaveCount(0)
+})
