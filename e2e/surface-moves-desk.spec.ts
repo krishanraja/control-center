@@ -82,3 +82,24 @@ test('OS · Intel opens on the question that needs him, not always the last one'
   // A zero said in words, not as a mono figure.
   await expect(page.getByTestId('bi-pane')).toContainText('No live bets')
 })
+
+test('OS · Org leads with a rung change the weekly review proposed, approved or rejected in place', async ({ page }) => {
+  await mockAudit(page, { ...auditTables(), decisions_waiting: [] })
+  await page.route('**/api/network/review*', r => r.fulfill({ json: { ok: true, counts: { contact_merge: 3, contact_link: 2 }, items: [] } }))
+  await page.route('**/api/autonomy/promotions', r => r.fulfill({ json: { ok: true, pending: [
+    { id: '11111111-2222-4333-8444-555555555555', surface: 'strategist_ask', label: 'the ask', from: 'propose', to: 'assist',
+      reason: '23 of 29 ruled asks taken as proposed up to 2026-10-05, at or above 60%.', created_at: '2026-10-05T15:50:00Z' },
+  ] } }))
+  const verdicts: unknown[] = []
+  await page.route('**/api/suggestions/verdict', r => { verdicts.push(r.request().postDataJSON()); r.fulfill({ json: { ok: true, id: 'v1', round: 1, applied: true } }) })
+  await page.goto('/#/os?sub=org')
+  const move = page.getByTestId('org-move')
+  await expect(move).toContainText('Let the OS prepare the ask before you see it?', { timeout: 15_000 })
+  await expect(move).toContainText('23 of 29 ruled asks')
+  await expect(page.getByTestId('org-promotion-reject')).toBeVisible()
+  await page.getByTestId('org-promotion-approve').click()
+  await expect.poll(() => verdicts.length).toBe(1)
+  expect(verdicts[0]).toEqual({ suggestion_id: '11111111-2222-4333-8444-555555555555', verdict: 'accepted' })
+  // Ruled, it leaves the hero; the next move is the roster's.
+  await expect(page.getByTestId('org-promotion-approve')).toHaveCount(0)
+})

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { validateVerdict, recordVerdict, STRATEGIST_SURFACES, type VerdictInput } from '../_suggestions.js'
+import { rulePromotion } from '../_autonomy.js'
 // The one vocabulary for "Not this" (src/lib/servedSurfaces.ts). A code the
 // sheet cannot offer is refused rather than written, so the bank's reasons
 // stay countable. Never a second list here.
@@ -58,6 +59,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (v.note && v.note.length > NOTE_MAX_CHARS) return res.status(400).json({ ok: false, error: 'note_too_long' })
   if (v.final != null && JSON.stringify(v.final).length > FINAL_MAX_CHARS) {
     return res.status(400).json({ ok: false, error: 'final_too_large' })
+  }
+
+  // A promotion proposal (ADR-030, phase 4): accepted moves the ladder, never
+  // past the surface's max_rung, and the refusal comes before the verdict is
+  // written. Anything else is a strategist verdict as before.
+  const promo = await rulePromotion(v)
+  if (promo.kind === 'promotion') {
+    if (promo.result.ok === false) return res.status(promo.result.status).json({ ok: false, error: promo.result.reason })
+    return res.status(201).json({ ok: true, id: promo.result.id, round: promo.result.round, applied: promo.applied })
   }
 
   const r = await recordVerdict(v, STRATEGIST_SURFACES)

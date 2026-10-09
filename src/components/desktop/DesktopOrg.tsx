@@ -9,6 +9,7 @@ import { humanize } from '../shared/tokens'
 import { FlagAgentModal } from '../FlagAgentModal'
 import { NextOrgHero, orgRulings } from '../org/NextOrgHero'
 import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
+import { usePendingPromotions } from '../../hooks/usePendingPromotions'
 import { agentKey, rosterWork, taskStatusWord, type RosterWork } from '../../lib/rosterWork'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
@@ -141,6 +142,7 @@ export function DesktopOrg() {
   // agent is, and the rulings Home counts and routes here were nowhere on the page.
   const { waiting } = useWaitingDecisions()
   const rulings = useMemo(() => orgRulings(waiting), [waiting])
+  const promotions = usePendingPromotions()
   const [rosterTasks, setRosterTasks] = useState<any[]>([])
   const [rosterRuns, setRosterRuns] = useState<any[]>([])
   useEffect(() => {
@@ -539,6 +541,9 @@ export function DesktopOrg() {
         failing={work.worstFailing}
         onReview={focusCorrection}
         onOpenAgent={openAgent}
+        promotions={promotions.pending}
+        onRulePromotion={promotions.rule}
+        rulingPromotion={promotions.busy}
       />
       <div className="flex-1 min-h-0">
         <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" capturePills testIdPrefix="org" />
