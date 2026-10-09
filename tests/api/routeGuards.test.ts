@@ -42,3 +42,21 @@ test('every write method preamble declares is one guard lets through', () => {
     for (const method of declared) assert.ok(guarded.has(method), `${file}: preamble declares ${method} but guard() only allows ${[...guarded].join(', ')}`)
   }
 })
+
+// A prepared move (ADR-030) may commit only through COMMIT_ROUTES in
+// src/lib/surfaceMoves.ts. Every pattern there must be a route that exists,
+// so a typo cannot ship as "the system's press" and 404 on the day it is
+// pressed. `:id` is a bracketed segment on disk.
+test('every commit route a prepared move may use is a route that exists', async () => {
+  const { COMMIT_ROUTES } = await import('../../src/lib/surfaceMoves.js')
+  for (const route of COMMIT_ROUTES) {
+    const rel = route.replace(/^\/api\//, 'api/').replace(/:id/g, '[id]')
+    const file = join(ROOT, `${rel}.ts`)
+    const dir = join(ROOT, rel, 'index.ts')
+    assert.ok(statSafe(file) || statSafe(dir), `${route} has no handler at ${rel}.ts or ${rel}/index.ts`)
+  }
+})
+
+function statSafe(p: string): boolean {
+  try { return statSync(p).isFile() } catch { return false }
+}

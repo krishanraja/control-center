@@ -105,9 +105,21 @@ interface Props {
    * thumb gets a full-width target. Off by default.
    */
   stackAction?: boolean
+  /**
+   * Bar layout: the primary action is a link, not a call. For a prepared move
+   * at a wall (ADR-030) the one press is his own: the Gmail draft, his mail
+   * client, the order page. The button renders as an anchor with this href so
+   * the browser does the opening; `onAct` still fires on the click for
+   * anything that rides along (a clipboard copy, a toast). Off by default.
+   */
+  primaryHref?: string
+  /** Bar layout: a quiet second action after the primary ("See it"). Off by default. */
+  secondary?: { label: string; onClick: () => void; testId?: string }
 }
 
-export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, layout = 'bar', eyebrow, meta, progress, children, testId, why, whyLabel = 'Why this?', stackAction = false }: Props) {
+const BTN = 'inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-body border outline-none focus-visible:ring-2 focus-visible:ring-white/30'
+
+export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, layout = 'bar', eyebrow, meta, progress, children, testId, why, whyLabel = 'Why this?', stackAction = false, primaryHref, secondary }: Props) {
   const { headline, sub, actionLabel, clear } = descriptor
   const icon = narrow && headline.length > NARROW_GLYPH_MAX_CHARS && layout === 'bar' ? undefined : descriptor.icon
   const tone: HeroTone = descriptor.tone || (clear ? 'neutral' : 'violet')
@@ -206,24 +218,53 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow, la
         )}
       </div>
       {!clear && actionSlot && (stackAction ? <div className="basis-full">{actionSlot}</div> : actionSlot)}
-      {!clear && !actionSlot && actionLabel && (
-        <button
-          type="button"
-          onClick={onAct}
-          disabled={busy}
-          className={`${stackAction ? 'basis-full justify-center' : 'flex-shrink-0'} inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-body border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
-        >
-          {busy ? <Working size={14} /> : icon}
-          {actionLabel}
-          {/* Desktop is a keyboard-driven command surface: Tab to the action,
-              press Enter. Hidden on touch, where it's a single tap. */}
-          {!narrow && (
-            <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-micro font-mono leading-none text-ink-faint">
-              ⏎
-            </kbd>
-          )}
-        </button>
-      )}
+      {!clear && !actionSlot && actionLabel && (() => {
+        const inner = (
+          <>
+            {busy ? <Working size={14} /> : icon}
+            {actionLabel}
+            {/* Desktop is a keyboard-driven command surface: Tab to the action,
+                press Enter. Hidden on touch, where it's a single tap. */}
+            {!narrow && (
+              <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-micro font-mono leading-none text-ink-faint">
+                ⏎
+              </kbd>
+            )}
+          </>
+        )
+        const cls = `${stackAction ? 'basis-full justify-center' : 'flex-shrink-0'} ${BTN} ${TONE_BTN[tone]}`
+        const external = /^https?:/.test(primaryHref || '')
+        const primary = primaryHref ? (
+          <a
+            href={primaryHref}
+            target={external ? '_blank' : undefined}
+            rel={external ? 'noopener noreferrer' : undefined}
+            onClick={onAct}
+            data-testid={testId ? `${testId}-primary` : undefined}
+            className={cls}
+          >
+            {inner}
+          </a>
+        ) : (
+          <button type="button" onClick={onAct} disabled={busy} data-testid={testId ? `${testId}-primary` : undefined} className={cls}>
+            {inner}
+          </button>
+        )
+        if (!secondary) return primary
+        return (
+          <div className={`${stackAction ? 'basis-full' : 'flex-shrink-0'} flex items-center gap-2`}>
+            {primary}
+            <button
+              type="button"
+              onClick={secondary.onClick}
+              data-testid={secondary.testId}
+              className="tap-44 rounded-xl px-2 text-label font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            >
+              {secondary.label}
+            </button>
+          </div>
+        )
+      })()}
     </section>
   )
 }

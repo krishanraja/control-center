@@ -2,6 +2,46 @@ import type { SheetAction } from '../components/mobile/DetailSheet'
 import { navigateDecision } from './routeDecision'
 import { deferDateISO } from './taskQueue'
 import type { DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
+import { isCommitRoute, type Prepared } from './surfaceMoves'
+import { postVerdict } from './suggestionsApi'
+
+/**
+ * The one runner for a prepared move's commit (ADR-030). A commit is the
+ * system's press: a deterministic write or a draft-maker on COMMIT_ROUTES,
+ * never a send. A move at a wall has no commit; its press is his own and is
+ * rendered as a link, so this refuses it rather than pretending. On success it
+ * says what it did, refreshes, and posts `accepted` to the bank when the move
+ * came from a suggestion. Resolves true when the write landed.
+ */
+export async function commitPrepared(
+  p: Prepared,
+  ctx: { toast: DecisionActionCtx['toast']; refresh?: () => void },
+): Promise<boolean> {
+  if (p.wall !== 'none' || !p.commit) {
+    ctx.toast('This one is yours to press. Open it from the button.', 'info')
+    return false
+  }
+  if (!isCommitRoute(p.commit.route)) {
+    ctx.toast('That route is not one a move may commit through.', 'error')
+    return false
+  }
+  try {
+    const r = await fetch(p.commit.route, {
+      method: p.commit.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p.commit.payload),
+    })
+    const body = await r.json().catch(() => ({} as { ok?: boolean; error?: string }))
+    if (!r.ok || body?.ok === false) throw new Error(body?.error || `HTTP ${r.status}`)
+    ctx.toast(p.commit.says, 'success')
+    ctx.refresh?.()
+    void postVerdict({ suggestion_id: p.suggestion_id ?? null, verdict: 'accepted' })
+    return true
+  } catch (e) {
+    ctx.toast(`Could not do that: ${(e as Error)?.message || 'try again'}`, 'error')
+    return false
+  }
+}
 
 type Haptics = {
   tap: () => void
