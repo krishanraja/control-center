@@ -196,3 +196,14 @@ test('375x667 holds through the same morning', async ({ browser }, info) => {
   await whole(page, '375x667, reasons open')
   await ctx.close()
 })
+
+// The ask budget (ADR-030): one primary ask outside the Today slots while the
+// move is the head of the queue; the drafted strip is a queue entry now.
+test('the longest morning has one ask: the move in its slot, and no second hero or strip', async ({ page }) => {
+  await mockWorstMorning(page)
+  await page.goto('/#/home')
+  await expect(page.getByTestId('daily-move-slot')).toBeVisible()
+  await expect(page.getByTestId('pilot-strip')).toHaveCount(0)
+  await expect(page.getByTestId('home-queue-move')).toHaveCount(0)
+  expect(await homeScrolls(page), 'Home scrolls or is cut off').toEqual([])
+})

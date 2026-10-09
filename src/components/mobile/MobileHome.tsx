@@ -8,7 +8,10 @@ import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
 import { CriticalAlertMark } from '../CriticalAlert'
 import { DueTestsCard } from '../pilot/DueTestsCard'
-import { PilotStrip } from '../home/PilotStrip'
+import { HomeQueueHero, pressFor, useHomeQueue, type QueuePressHandlers } from '../home/HomeQueue'
+import { queueRest } from '../../lib/homeQueue'
+import { openFocusRitual } from '../../lib/focusRitual'
+import { useWaitingDecisions } from '../../hooks/useRealtimeDecisionsWaiting'
 import { MindmakeIdentity } from '../shared/MindmakeIdentity'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
@@ -49,6 +52,25 @@ export function MobileHome({ onNavigate }: {
   // rest) and the week's ask moves onto the This week line.
   const ctaAside = Boolean(daily.current)
 
+  const cta = alt.cta
+  // Measured 2026-10-05 at 360x640: the full-width week ask beside a long
+  // move cost 61px and folded the move on its own, which only something he
+  // opens may do.
+  const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
+
+  // The one queue (ADR-030, src/lib/homeQueue.ts): the hero shows its head
+  // and yields while the head is today's move, which the slot draws. Hooks
+  // sit above the skeleton return so their order never changes between renders.
+  const { waiting: fresh } = useWaitingDecisions()
+  const { queue, head } = useHomeQueue({ dailyMove: daily.current ? { text: daily.current.move.text } : null, weekAsk, waiting: fresh.length })
+  const [waitingOpen, setWaitingOpen] = useState(false)
+  const handlers: QueuePressHandlers = {
+    onNavigate,
+    onTests: () => setPinned('tests'),
+    onWaiting: () => setWaitingOpen(true),
+    onWeek: () => openFocusRitual('weekly'),
+  }
+
   // Bottom padding clears the nav only; the band the + button floats in
   // (56px tall, at safe+92 native) now belongs to the doors row below, so
   // the canon gains the row the old full-width door used to spend.
@@ -63,21 +85,27 @@ export function MobileHome({ onNavigate }: {
     )
   }
 
-  const cta = alt.cta
-  // Measured 2026-10-05 at 360x640: the full-width week ask beside a long
-  // move cost 61px and folded the move on its own, which only something he
-  // opens may do.
-  const weekAsk = ctaAside && cta?.target === 'weekly' ? cta.label : null
-
   return (
     <div className={frame}>
       {/* Compact header: identity, the vitals line, and the alarm if one is
           live, all in one band. */}
       <div className="shrink-0 flex items-start gap-3 mb-2">
         <div className="pt-[2px]"><MindmakeIdentity size={36} testId="mobile-home-identity" /></div>
-        <div className="flex-1 min-w-0"><VitalsLine onNavigate={onNavigate} compact /></div>
+        <div className="flex-1 min-w-0">
+          <VitalsLine
+            onNavigate={onNavigate}
+            compact
+            fresh={fresh}
+            nextUp={queueRest(queue)}
+            onPressNext={e => pressFor(e.press.go, handlers)?.()}
+            waitingOpen={waitingOpen}
+            onWaitingOpen={setWaitingOpen}
+          />
+        </div>
         <CriticalAlertMark className="mt-[2px]" />
       </div>
+      {/* The head of the queue, when the hero does not yield to the slot. */}
+      {head && <div className="shrink-0 mb-2"><HomeQueueHero head={head} narrow handlers={handlers} /></div>}
 
       {/* The alarm is no longer a block here. It is the mark in the band above
           and the drawer behind it, which costs Home nothing and loses nothing:
@@ -107,7 +135,6 @@ export function MobileHome({ onNavigate }: {
       >
         <div ref={fit.contentRef} className="flex flex-col gap-2">
           <DueTestsCard variant="mobile" fold={folds.tests} open={pinned === 'tests'} onPin={o => setPinned(o ? 'tests' : null)} />
-          <PilotStrip onNavigate={onNavigate} />
           <GoalLadder variant="mobile" fold={{ os: folds.os, week: folds.week }} pinned={pinned} onPin={setPinned} weekAsk={weekAsk} />
           {cta && cta.target === 'weekly' && !weekAsk && <CanonCta cta={cta} />}
           <TodayList

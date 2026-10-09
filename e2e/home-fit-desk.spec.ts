@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { mockDailyMove, mockWorstMorning, homeScrolls, foldLevel, landsOn, MOVES } from './fixtures/dailyMove'
+import { mockDailyMove, mockWorstMorning, homeScrolls, foldLevel, landsOn, settled, MOVES } from './fixtures/dailyMove'
 
 /**
  * Home on the desk never scrolls and never clips (Krish, 2026-10-03: "no
@@ -91,6 +91,12 @@ for (const [w, h] of [[1366, 768], [1280, 720]] as const) {
     await whole(page, `${w}x${h}, reasons open`)
     expect(await landsOn(page.getByRole('button', { name: 'Wrong timing' }))).toBe(true)
     await page.getByRole('button', { name: 'Keep it' }).click()
+    // Closing the reasons gives the stage room back and it refits before the
+    // next paint. A toggle read in the frame before that refit can name a
+    // fold the refit then opens (at 1366x768 the due test unfolds at level
+    // 3), so the click lands on an element that no longer exists. Measure
+    // what is painted: wait for the refit first.
+    await settled(page)
     for (const id of ['due-tests-fold', 'ladder-week-fold', 'ladder-os-fold']) {
       const toggle = page.getByTestId(id)
       if (await toggle.count() === 0 || await toggle.getAttribute('aria-expanded') === 'true') continue
@@ -101,3 +107,17 @@ for (const [w, h] of [[1366, 768], [1280, 720]] as const) {
     await ctx.close()
   })
 }
+
+// The ask budget (ADR-030, docs/design/corpus/03-the-ask.md). While today's
+// move is the head of the queue the hero yields to the slot, the old
+// drafted-approaches strip is a queue entry behind the Waiting count, and
+// Home has one primary ask outside the Today slots.
+test('the longest morning has one ask: the move in its slot, and no second hero or strip', async ({ page }) => {
+  await mockWorstMorning(page)
+  await page.goto('/#/home')
+  await expect(page.getByTestId('daily-move-slot')).toBeVisible()
+  await expect(page.getByTestId('pilot-strip')).toHaveCount(0)
+  await expect(page.getByTestId('home-queue-move')).toHaveCount(0)
+  await expect(page.locator('[aria-label="Do this next"]')).toHaveCount(0)
+  expect(await homeScrolls(page), 'Home scrolls or is cut off').toEqual([])
+})
