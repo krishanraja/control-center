@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   subscriptionsMove, huntMove, advisoryMove, orgMove, systemsMove, flowsMove,
+  COMMIT_ROUTES, isCommitRoute, type SurfaceMove,
 } from '../../src/lib/surfaceMoves.js'
 import { rosterWork, taskStatusWord } from '../../src/lib/rosterWork.js'
 
@@ -100,6 +101,85 @@ test('advisory: a reply beats a draft, a draft beats finding more', () => {
   assert.match(send.sub, /6 of the 25 asks the plan needs\./)
   // A reply outside the default view still leads, by count.
   assert.equal(advisoryMove({ ...adv, replies: 2 })!.headline, '2 people replied. Book the calls')
+})
+
+// ── Prepared moves (ADR-030) ────────────────────────────────────────────────
+
+const CONTACT = { name: 'Sam Patel', email: 'sam@example.com', linkedin_url: 'https://www.linkedin.com/in/sam' }
+
+test('advisory: a drafted deal with a Gmail draft is prepared to the send wall, and the press is his', () => {
+  const m = advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Sam Patel', state: 'drafted', draftUrl: 'https://mail.google.com/mail/u/0/#drafts/abc', contact: CONTACT }] })!
+  assert.equal(m.kind, 'send')
+  assert.equal(m.prepared?.wall, 'send')
+  assert.equal(m.prepared?.commit, undefined)
+  assert.equal(m.prepared?.his?.href, 'https://mail.google.com/mail/u/0/#drafts/abc')
+  assert.equal(m.actionLabel, 'Open the draft in Gmail')
+  assert.equal(m.prepared?.artifact?.kind, 'gmail_draft')
+})
+
+test('advisory: a drafted deal with no Gmail draft falls to his mail or the profile with the draft', () => {
+  const mail = advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Sam Patel', state: 'drafted', draftBody: 'Sam, twenty minutes?', contact: CONTACT }] })!
+  assert.match(mail.prepared!.his!.href, /^mailto:sam@example\.com/)
+  assert.equal(mail.prepared!.his!.copies, undefined)
+  const li = advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Sam Patel', state: 'drafted', draftBody: 'Sam, twenty minutes?', contact: { ...CONTACT, email: null } }] })!
+  assert.equal(li.prepared!.his!.href, 'https://www.linkedin.com/in/sam')
+  assert.equal(li.prepared!.his!.copies, 'Sam, twenty minutes?')
+  // No way to reach them: the move is advice, as before.
+  const none = advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Sam Patel', state: 'drafted' }] })!
+  assert.equal(none.prepared, undefined)
+  assert.equal(none.actionLabel, 'Show the note')
+})
+
+test('advisory: a listed person with a contact is a draft the system can commit, before finding more', () => {
+  const m = advisoryMove({ ...adv, deals: [{ id: 'aaaa', name: 'Alex Morgan', state: 'listed', contact: CONTACT }, { id: 'b', name: 'Bo', state: 'listed', contact: CONTACT }] })!
+  assert.equal(m.kind, 'draft')
+  assert.equal(m.headline, 'Draft the note to Alex Morgan')
+  assert.match(m.sub, /1 more on the list after this one\./)
+  assert.equal(m.prepared?.wall, 'none')
+  assert.equal(m.prepared?.commit?.route, '/api/pilot-deals/aaaa/draft')
+  assert.equal(m.prepared?.his, undefined)
+  // Without a contact the lane waits for Monday, as before.
+  assert.equal(advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Alex', state: 'listed' }] })!.kind, 'wait')
+  noDash(m)
+})
+
+test('hunt: a role with a person and a draft is prepared to the send wall', () => {
+  const m = huntMove({ ...hunt, roles: [{ id: 'r1', title: 'VP Product', company: 'Legora', person: 'Ada', applied: false, contactable: true, contact: { name: 'Ada Lane', email: 'ada@example.com', linkedin_url: null }, draft: 'Ada, a quick one.' }] })
+  assert.equal(m.kind, 'contact')
+  assert.equal(m.prepared?.wall, 'send')
+  assert.match(m.prepared!.his!.href, /^mailto:ada@example\.com\?subject=VP%20Product%20at%20Legora/)
+  assert.equal(m.actionLabel, 'Email Ada')
+})
+
+test('prepared: a wall means no commit and a press of his; a commit means an allowlisted route', () => {
+  const moves: Array<SurfaceMove | null> = [
+    advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Sam', state: 'drafted', draftUrl: 'https://mail.google.com/x', contact: CONTACT }] }),
+    advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Sam', state: 'drafted', draftBody: 'x', contact: { ...CONTACT, email: null } }] }),
+    advisoryMove({ ...adv, deals: [{ id: 'a', name: 'Alex', state: 'listed', contact: CONTACT }] }),
+    huntMove({ ...hunt, roles: [{ id: 'r', title: 'VP', company: 'Y', person: 'Ada', applied: false, contactable: true, contact: { name: 'Ada', email: 'a@example.com', linkedin_url: null }, draft: 'x' }] }),
+  ]
+  for (const m of moves) {
+    const p = m?.prepared
+    assert.ok(p, `${m?.kind} is prepared`)
+    if (p.wall !== 'none') {
+      assert.equal(p.commit, undefined, `${m!.kind}: a wall move has no system commit`)
+      assert.ok(p.his?.href, `${m!.kind}: a wall move has his press`)
+    } else {
+      assert.ok(p.commit, `${m!.kind}: a move with no wall commits`)
+      assert.ok(isCommitRoute(p.commit!.route), `${m!.kind}: ${p.commit!.route} is on COMMIT_ROUTES`)
+      assert.doesNotMatch(p.commit!.says, EMDASH)
+    }
+  }
+})
+
+test('COMMIT_ROUTES never names a route that can reach another person', () => {
+  for (const r of COMMIT_ROUTES) {
+    assert.doesNotMatch(r, /acquisition\/sends|skills\/ship|\/send\b|\/publish\b/, `${r} reaches a person`)
+  }
+  assert.equal(isCommitRoute('/api/acquisition/sends'), false)
+  assert.equal(isCommitRoute('/api/skills/ship'), false)
+  assert.equal(isCommitRoute('/api/pilot-deals/aaaa/draft?x=1'), true)
+  assert.equal(isCommitRoute('/api/pilot-deals/aaaa/draft/extra'), false)
 })
 
 test('advisory: the empty list is one move, and an error is not a move', () => {

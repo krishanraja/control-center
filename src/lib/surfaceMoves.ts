@@ -16,9 +16,73 @@
  *             nothing else about the same nothing
  *
  * Pure: no clock reads, no fetches. Callers pass what they already loaded.
+ *
+ * A move may also be PREPARED (ADR-030, docs/design/corpus/03-the-ask.md):
+ * the artifact already exists, or one press makes it, and the move says which
+ * wall it stops at. `commit` is the system's press and may only name a route
+ * in COMMIT_ROUTES, which holds deterministic writes and draft-makers and
+ * never anything that reaches another person. `his` is the press that is
+ * Krish's own (open the Gmail draft, open the order), present exactly when the
+ * wall is not 'none'. tests/api/surfaceMoves.test.ts pins both.
  */
 
+import { contactAction, type ContactTarget } from './contactAction'
+
 export type MoveTone = 'emerald' | 'violet' | 'sky' | 'amber' | 'neutral'
+
+/** What the move stops at. Nothing past a wall happens without his press. */
+export type Wall = 'none' | 'send' | 'post' | 'spend' | 'delete' | 'permission'
+
+export interface PreparedArtifact {
+  kind: 'gmail_draft' | 'text' | 'list' | 'link' | 'slot'
+  label: string
+  url?: string
+  text?: string
+  count?: number
+}
+
+export interface Prepared {
+  /** What already exists, ready to look at. Null when `commit` makes it. */
+  artifact: PreparedArtifact | null
+  /** The system's one press: a deterministic write or a draft-maker, never a send. */
+  commit?: { route: string; method: 'POST' | 'PATCH'; payload: Record<string, unknown>; says: string }
+  /** His press, where he finishes. Present exactly when `wall` is not 'none'. */
+  his?: { href: string; label: string; copies?: string; note?: string }
+  wall: Wall
+  reversible: boolean
+  /** What his press costs him, printed on the button when it spends. */
+  costs: { usd?: number; minutes?: number } | null
+  /** The bank row this move came from, so the commit can post `accepted`. */
+  suggestion_id?: string | null
+}
+
+/**
+ * The routes a prepared move may commit through. Each is a deterministic
+ * write or a draft-maker; none can put a message in front of another human
+ * (api/acquisition/sends.ts and api/skills/ship.ts are asserted absent by the
+ * test). `:id` stands for one path segment.
+ */
+export const COMMIT_ROUTES = [
+  '/api/daily-focus/slot',
+  '/api/pilot-deals/:id/draft',
+  '/api/pilot-deals/:id',
+  '/api/tasks/update',
+  '/api/corrections/approve',
+  '/api/corrections/reject',
+] as const
+
+export function isCommitRoute(route: string): boolean {
+  const path = route.split('?')[0]
+  return COMMIT_ROUTES.some(p => {
+    const re = new RegExp('^' + p.replace(/:id/g, '[^/]+') + '$')
+    return re.test(path)
+  })
+}
+
+/** A wall move: the artifact exists and the one press is his. */
+function atWall(wall: Exclude<Wall, 'none'>, artifact: PreparedArtifact, his: Prepared['his'], costs: Prepared['costs'] = null): Prepared {
+  return { artifact, his, wall, reversible: true, costs }
+}
 
 export interface SurfaceMove<K extends string = string> {
   kind: K
@@ -28,6 +92,7 @@ export interface SurfaceMove<K extends string = string> {
   actionLabel?: string
   tone?: MoveTone
   clear?: boolean
+  prepared?: Prepared
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -112,8 +177,13 @@ export interface HuntMoveInput {
     waitingOnKrish: number | null
     approvedAwaitingBuild: number | null
   } | null
-  /** Roles he said Yes to, in the order the lane shows them. */
-  roles: Array<{ id: string; title: string; company: string; person: string | null; applied: boolean; contactable: boolean }>
+  /** Roles he said Yes to, in the order the lane shows them. `contact` and
+   *  `draft` make the move prepared: the one press opens his mail or the
+   *  profile with the draft, which is the same act the card offers. */
+  roles: Array<{
+    id: string; title: string; company: string; person: string | null; applied: boolean; contactable: boolean
+    contact?: ContactTarget | null; draft?: string | null
+  }>
   /** Warm paths still proposed, warmest first. */
   paths: Array<{ id: string; person: string; title: string | null; company: string | null }>
   /** A queued or running hunter command, if any. */
@@ -143,6 +213,15 @@ export function huntMove(i: HuntMoveInput): SurfaceMove<HuntMoveKind> {
   const role = i.roles.find(r => r.person && r.contactable)
   if (role) {
     const others = i.roles.filter(r => r.person && r.contactable).length - 1
+    // Prepared to the send wall when the lane passed the person and the draft:
+    // the press opens his own mail with the message waiting, or the profile
+    // with the draft on the clipboard. Nothing here sends.
+    const action = role.contact ? contactAction(role.contact, role.draft || '', { role: role.title, company: role.company }) : null
+    const prepared = action && action.href
+      ? atWall('send', { kind: 'text', label: 'The draft', text: role.draft || '' }, {
+          href: action.href, label: action.label, copies: action.copies ? (role.draft || '') : undefined, note: action.note,
+        })
+      : undefined
     return {
       kind: 'contact',
       headline: role.applied
@@ -152,8 +231,9 @@ export function huntMove(i: HuntMoveInput): SurfaceMove<HuntMoveKind> {
         ? `You have already applied, so this is the follow-up.${others > 0 ? ` ${plural(others, 'more role')} with a person after it.` : ''}`
         : `A role you said Yes to, with the person who can get you in.${others > 0 ? ` ${plural(others, 'more')} after it.` : ''}`,
       why: 'Roles you said Yes to come before warm paths still waiting for one, and the role nearest the top of your sheet comes first. The draft is already written; nothing sends until you press send in your own mail.',
-      actionLabel: 'Write now',
+      actionLabel: prepared?.his?.label ?? 'Write now',
       tone: 'violet',
+      prepared,
     }
   }
   const path = i.paths[0]
@@ -210,8 +290,13 @@ export function huntMove(i: HuntMoveInput): SurfaceMove<HuntMoveKind> {
 export const PILOT_PLAN_ASKS = 25
 
 export interface AdvisoryMoveInput {
-  /** People on the list with their state, in the lane's order. */
-  deals: Array<{ id: string; name: string; state: string }>
+  /** People on the list with their state, in the lane's order. A drafted deal
+   *  with `draftUrl` or a `contact` makes the send move prepared to the wall;
+   *  a listed deal with a `contact` makes a draft move the system can commit. */
+  deals: Array<{
+    id: string; name: string; state: string
+    draftUrl?: string | null; draftBody?: string | null; contact?: ContactTarget | null
+  }>
   /** How many have been written to, at any rung. */
   asked: number
   /** People who replied and are waiting on him (they may sit outside the default view). */
@@ -223,12 +308,28 @@ export interface AdvisoryMoveInput {
   error: boolean
 }
 
-export type AdvisoryMoveKind = 'reply' | 'send' | 'triage' | 'finding' | 'find' | 'wait'
+export type AdvisoryMoveKind = 'reply' | 'send' | 'triage' | 'finding' | 'draft' | 'find' | 'wait'
+
+/** The send wall for a drafted approach: the Gmail draft when there is one,
+ *  else his mail or the profile with the draft on the clipboard. */
+function draftedWall(d: AdvisoryMoveInput['deals'][number]): Prepared | undefined {
+  if (d.draftUrl) {
+    return atWall('send', { kind: 'gmail_draft', label: 'The draft, in Gmail', url: d.draftUrl }, {
+      href: d.draftUrl, label: 'Open the draft in Gmail', note: 'Opening the draft. You press send.',
+    })
+  }
+  const action = d.contact ? contactAction(d.contact, d.draftBody || '') : null
+  if (!action || !action.href) return undefined
+  return atWall('send', { kind: 'text', label: 'The draft', text: d.draftBody || '' }, {
+    href: action.href, label: action.label, copies: action.copies ? (d.draftBody || '') : undefined, note: action.note,
+  })
+}
 
 /**
  * A reply first (someone is waiting on him), then a drafted note to send, then
- * the people just found, then finding more. The plan's arithmetic rides in the
- * supporting line because it is the answer to "why these people".
+ * the people just found, then a listed person whose note the system can draft
+ * now, then finding more. The plan's arithmetic rides in the supporting line
+ * because it is the answer to "why these people".
  */
 export function advisoryMove(i: AdvisoryMoveInput): SurfaceMove<AdvisoryMoveKind> | null {
   if (i.error) return null
@@ -245,10 +346,11 @@ export function advisoryMove(i: AdvisoryMoveInput): SurfaceMove<AdvisoryMoveKind
   const drafted = i.deals.find(d => d.state === 'drafted')
   if (drafted) {
     const more = i.deals.filter(d => d.state === 'drafted').length - 1
+    const prepared = draftedWall(drafted)
     return {
       kind: 'send', headline: `Send ${drafted.name} the note`,
       sub: `${more > 0 ? `${plural(more, 'more draft')} after this one. ` : ''}${progress}`,
-      why, actionLabel: 'Show the note', tone: 'violet',
+      why, actionLabel: prepared?.his?.label ?? 'Show the note', tone: 'violet', prepared,
     }
   }
   if (i.proposals > 0) {
@@ -262,6 +364,26 @@ export function advisoryMove(i: AdvisoryMoveInput): SurfaceMove<AdvisoryMoveKind
     return {
       kind: 'finding', headline: 'Looking through your network for five who fit',
       sub: 'Nothing is added until you keep one.', clear: true,
+    }
+  }
+  // A listed person with a contact: the note is one press away, drafted in his
+  // voice into Gmail drafts by the same route the card's "Draft it" uses. The
+  // Monday run would do it anyway; this does it now.
+  const listed = i.deals.find(d => d.state === 'listed' && d.contact)
+  if (listed) {
+    const more = i.deals.filter(d => d.state === 'listed' && d.contact).length - 1
+    return {
+      kind: 'draft', headline: `Draft the note to ${listed.name}`,
+      sub: `${more > 0 ? `${plural(more, 'more')} on the list after this one. ` : ''}${progress}`,
+      why, actionLabel: 'Draft it', tone: 'violet',
+      prepared: {
+        artifact: null,
+        commit: {
+          route: `/api/pilot-deals/${listed.id}/draft`, method: 'POST', payload: {},
+          says: `Drafting the note to ${listed.name} in your voice. It lands in your Gmail drafts.`,
+        },
+        wall: 'none', reversible: true, costs: null,
+      },
     }
   }
   if (i.onList === 0) {
