@@ -46,6 +46,8 @@ all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-
 | Venture / product names | `ventureLabel()` in `src/lib/ventureOptions.ts` (mirrors `venture_registry`, normalises the three slug spellings). Never a second label map, never a title-cased slug | convention |
 | Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR). User-facing text wraps in full and is never ellipsised or line-clamped. | `scripts/check-editorial-text-integrity.mts` + review |
 | Humour, and prompts that propose work | `api/_humor.ts`. `buildHumourSystem()` for a humour pass on existing text; `proposalPlay(n)` in any prompt that hands Krish work to choose from, which spends one proposal per batch on a marked swing. A proposal prompt that is only prohibitions returns joyless work | review |
+| Motion durations, easings, z-index, phantom heights, opacity soup, hardcoded colour, inline style | The ledger in `docs/design/corpus/01-entropy.md`, with a baseline per row in `scripts/design-entropy.baseline.json`. A count may only go down, after a sweep, by hand. The doctrine above the design system (hierarchy, the ask, interaction, motion, consistency, review) is `docs/design/corpus/` (ADR-030) | `scripts/check-design-entropy.mts` (CI) |
+| What a move is | One of three kinds, and it says which: advice (a sentence and an Open), prepared (the artifact exists; one press commits it, or at a wall one press is his), autonomous (finished inside the walls, reported after). Walls never move: nothing sends, posts, spends, deletes or changes a permission without his press. `docs/design/corpus/03-the-ask.md`; the conversion plan is `docs/audits/2026-10-09-data-to-action-audit.md` | `check-bridges-never-send` (CI) + review |
 
 ## Acting for Krish without stalling (rulings, 2026-10-08)
 
@@ -265,7 +267,7 @@ builds, tests or deploys it.
 `check-icon-stroke`, `check-safe-dates`, `check-content-window`,
 `check-n8n-sync-guard`, `check-served-surfaces`, `check-bridges-never-send`,
 `check-enrichment-honesty`, `check-events-honesty`, `check-fleet-classifier`,
-`check-theme-tokens`, `check-mindmake-design`, `check-mindmake-gate`,
+`check-theme-tokens`, `check-design-entropy`, `check-mindmake-design`, `check-mindmake-gate`,
 `check-env-example`, `check-no-secrets`, `check-agent-stamps`,
 `check-model-prices`, `check-anthropic-fallback`, `check-model-routing`,
 `check-walkthrough-handoff`

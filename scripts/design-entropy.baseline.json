@@ -1,0 +1,14 @@
+{
+  "measured": "2026-10-09",
+  "rows": {
+    "durations": 18,
+    "easings": 1,
+    "transition_all": 33,
+    "z_values": 10,
+    "min_h_values": 28,
+    "bg_white_values": 19,
+    "border_white_values": 15,
+    "hardcoded_colour": 56,
+    "inline_style": 60
+  }
+}

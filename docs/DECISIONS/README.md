@@ -43,6 +43,7 @@
 | [027](./027-the-question-decides.md) | In a network search, the question decides and the relationship adjusts | Accepted |
 | [028](./028-the-daily-move-and-the-cheap-lane.md) | The daily move, and a measured cheap lane | Accepted |
 | [029](./029-a-note-starts-a-walkthrough.md) | A note starts a walkthrough on his Claude subscription | Accepted |
+| [030](./030-the-corpus-and-the-ratchet.md) | Doctrine ships with a guard, and an ask is advice, prepared or autonomous | Accepted |
 
 ---
 
