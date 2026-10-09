@@ -38,6 +38,8 @@ import {
 import type { StrategistRead, DailyChallenge, NextStepSection } from '../src/types/strategist.js'
 import { OPENROUTER_ENDPOINT, openRouterKey, readRescueUsage } from './_providerFallback.js'
 import * as meter from './_meter.js'
+import { liveAskAssist, prepareAskDrafts, type AskAssistDeps } from './_askAssist.js'
+import type { ContactDetails } from './_strategistGrounding.js'
 
 /** The meter stamp for every call the daily move makes. */
 export const DAILY_AGENT = 'daily-move'
@@ -264,9 +266,11 @@ async function challenge(system: string, user: string, timeoutMs: number): Promi
 export interface DailyDeps {
   decide: typeof decide
   challenge: typeof challenge
+  /** The ask at assist (ADR-030, phase 5): the ladder, Gmail and the ledger. */
+  askAssist: AskAssistDeps
 }
 
-const LIVE: DailyDeps = { decide, challenge }
+const LIVE: DailyDeps = { decide, challenge, askAssist: liveAskAssist() }
 
 // ── Effectful: the run ──────────────────────────────────────────────────────
 
@@ -367,9 +371,12 @@ export async function writeDailyMove(opts: {
 
   // 2. The grounding.
   let grounding: StrategistGrounding
+  let contacts: ContactDetails = {}
   try {
     const { loadStrategistGrounding } = await import('./_strategistGrounding.js')
-    grounding = (await loadStrategistGrounding({ source: 'daily' }, tz, { today, weekStart, excludeReadId: readId })).grounding
+    const loaded = await loadStrategistGrounding({ source: 'daily' }, tz, { today, weekStart, excludeReadId: readId })
+    grounding = loaded.grounding
+    contacts = loaded.contacts
   } catch (e) {
     console.warn(`daily_move_grounding_failed: ${(e as Error)?.message?.slice(0, 200)}`)
     return fail('grounding_failed', ['grounding_failed'])
@@ -433,6 +440,12 @@ export async function writeDailyMove(opts: {
   const bank = await recordSuggestions(suggestionRowsFor(read, readId as string, { model: String(producer.model), shape: 'daily', reader: DAILY_AGENT }))
   if (bank.ok === true) read = stampSuggestionIds(read, bank.ids)
   else notes.push(`bank_not_written:${bank.reason}`)
+  // The ask at assist (ADR-030, phase 5): at assist the Gmail draft is made
+  // now and its link rides on the ask; at propose nothing is made.
+  const assist = await prepareAskDrafts(read, contacts, deps.askAssist)
+  read = assist.read
+  if (assist.drafted) notes.push(`asks_drafted:${assist.drafted}`)
+  notes.push(...assist.notes)
   const stored = withoutContacts(stripWire(read))
   const { error } = await supabase.from('strategist_reads').update({
     status: 'complete', sections: stored, headline: stored.headline.text, handoff_reason: null,

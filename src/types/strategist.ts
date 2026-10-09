@@ -239,6 +239,10 @@ export interface AskSection {
   /** Set on an investor ask only: no job covers raising money. */
   job_note: string | null
   suggestion_id?: string | null
+  /** At assist (ADR-030, phase 5): the Gmail draft the read made, addressed
+   *  to the person, in his own drafts folder. His press in Gmail is the only
+   *  thing that sends. Absent at propose. */
+  draft_url?: string | null
 }
 
 /** A worry he named, for "Compile this worry" (POST /api/pilot/worries {action:'compile'}). */

@@ -34,6 +34,8 @@ const ROOTS = [
   'api/_strategist.ts',
   'api/_dailyMove.ts',
   'api/_strategistGrounding.ts',
+  // The ask at assist: makes a Gmail draft at read time, never sends.
+  'api/_askAssist.ts',
   'api/_suggestions.ts',
   'api/suggestions',
   'src/components/strategist',

@@ -18,6 +18,7 @@ import {
 } from './_strategistGrounding.js'
 import { recordSuggestions, describeDbError } from './_suggestions.js'
 import { startWalkthrough } from './_walkthrough.js'
+import { prepareAskDrafts, liveAskAssist } from './_askAssist.js'
 import type {
   StrategistRequest, StrategistStage, StrategistGetResponse, StrategistDoneEvent, StrategistErrorEvent,
   StrategistSectionEvent, StrategistRead, ReadStatus, StrategistReadWire, AskPerson,
@@ -417,6 +418,13 @@ async function post(req: VercelRequest, res: VercelResponse) {
         persistError = bank.reason
         console.warn(`strategist_suggestions_not_written: ${bank.reason}`)
       }
+      // The ask at assist (ADR-030, phase 5): once the surface's rung is
+      // assist, the Gmail draft is made now, addressed to the person, and its
+      // link rides on the ask. At propose nothing is made. Never sends.
+      const assist = await prepareAskDrafts(read, contacts, liveAskAssist())
+      read = assist.read
+      if (assist.drafted) notes.push(`asks_drafted:${assist.drafted}`)
+      notes.push(...assist.notes)
       const stored = withoutContacts(read)
       const { error } = await supabase.from('strategist_reads').update({
         status: 'complete',
