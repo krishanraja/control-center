@@ -372,7 +372,15 @@ export interface StrategistReadWire {
   /** Daily reads only: what he already did with each item, by suggestion id,
    *  so Home shows the next move rather than the one he set aside. */
   answered?: Record<string, 'accepted' | 'rejected' | 'deferred' | 'replaced' | 'tweaked'>
+  /** Daily reads only: what HAPPENED to each move, by suggestion id, from the
+   *  outcome ledger (walkthrough_steps, ADR-029 and ADR-030). Only
+   *  done_together and did_it mean done; drafted means the words exist and
+   *  the press is his. A verdict is what he thought; this is what happened. */
+  outcomes?: Record<string, { outcome: StepOutcome; artifact: string | null }>
 }
+
+/** The honest outcomes of a step (migration 20261008090000). */
+export type StepOutcome = 'done_together' | 'did_it' | 'drafted' | 'later' | 'dropped'
 
 /** GET /api/strategist?goalId= or ?week=current. */
 export interface StrategistGetResponse {

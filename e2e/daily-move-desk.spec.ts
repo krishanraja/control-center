@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { mockDailyMove, watchSlotOneEmpty, pastEdges, landsOn, MOVES, CHALLENGE } from './fixtures/dailyMove'
+import { DAILY_MOVE, isDailyMoveRead } from './fixtures/audit'
 
 /**
  * Today's move on the desk (ADR-028), at 1440x900 and 1920x1080.
@@ -71,7 +72,9 @@ test('Take it makes the move his slot 1, with no empty slot in between, and reco
   const blinks = await watchSlotOneEmpty(page)
   await page.getByTestId('daily-move-take').click()
 
-  await expect.poll(() => writes.slots).toEqual([{ date: TODAY, slot: 1, text: MOVES[0].text }])
+  // The move's bank id rides with the slot write (ADR-030), so the tick on
+  // this slot can be recorded as did_it against the move.
+  await expect.poll(() => writes.slots).toEqual([{ date: TODAY, slot: 1, text: MOVES[0].text, suggestion_id: MOVES[0].suggestion_id }])
   const mine = page.getByRole('button', { name: 'Edit target 1' })
   await expect(mine).toHaveText(MOVES[0].text)
   await expect(page.getByTestId('daily-move-slot')).toHaveCount(0)
@@ -143,4 +146,27 @@ test('Open the ask opens today\'s read beside Home, with what the first move sur
   const box = (await sheet.boundingBox())!
   expect(await pastEdges(sheet, box.x, box.x + box.width), 'laid out past the sheet').toEqual([])
   expect(writes.strategistPosts, 'opening the morning read paid for a new one').toBe(0)
+})
+
+test('a move already drafted with him leads with the draft, and the press is his', async ({ page }) => {
+  await mockDailyMove(page)
+  // The ledger says the first move was drafted in a walkthrough (ADR-030), and
+  // the approach it is about has a Gmail draft. Registered after the fixture's
+  // own route so it wins (Playwright checks handlers newest first).
+  const drafted = structuredClone(DAILY_MOVE) as typeof DAILY_MOVE & { read: { outcomes?: Record<string, unknown>; read: { next_steps: Array<{ suggestion_id: string; draft_url?: string | null }> } } }
+  drafted.read.outcomes = { [MOVES[0].suggestion_id]: { outcome: 'drafted', artifact: 'Riley, twenty minutes this month?' } }
+  drafted.read.read.next_steps[0].draft_url = 'https://mail.google.com/mail/u/0/#drafts/riley'
+  await page.route(isDailyMoveRead, r => r.fulfill({ json: drafted }))
+  await page.goto('/#/home')
+
+  const slot = page.getByTestId('daily-move-slot')
+  await expect(slot).toBeVisible()
+  await expect(slot).toContainText('Drafted with you. Your press.')
+  const open = page.getByTestId('daily-move-open-draft')
+  await expect(open).toContainText('Open the draft')
+  await expect(open).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#drafts/riley')
+  // Take it is still there, quieter, after the draft.
+  const openBox = (await open.boundingBox())!
+  const takeBox = (await page.getByTestId('daily-move-take').boundingBox())!
+  expect(openBox.x, 'the draft leads').toBeLessThan(takeBox.x)
 })
