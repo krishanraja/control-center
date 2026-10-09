@@ -164,6 +164,13 @@ jobs:
       # the property rather than the mechanism, so deliberate fixed mid-tones
       # pass and only genuinely one-sided colours fail.
       - run: npx tsx scripts/check-theme-tokens.mts
+      # The entropy ratchet. Motion durations, off-token easings,
+      # transition-all, z-index and min-height literals, the second generation
+      # of opacity soup, hardcoded colour and inline style were measured on
+      # 2026-10-09 and found growing with no guard. Each row has a baseline
+      # that only a sweep lowers; a count above it fails and names the files.
+      # The doctrine is docs/design/corpus/01-entropy.md.
+      - run: npx tsx scripts/check-design-entropy.mts
       # Control Center and the Video Engine share the Mindmake instrument-room
       # identity. Hold the exact official mark, four type roles, palette anchors
       # and shared chrome so a local purple/fake-logo fork cannot creep back in.

@@ -20,7 +20,8 @@
     "check:cache-metering": "tsx scripts/check-cache-metering.mts",
     "check:harness-events": "tsx scripts/test-harness-events.ts",
     "check:harness-mcp": "tsx scripts/test-harness-mcp.ts",
-    "check:safe-dates": "tsx scripts/check-safe-dates.mts"
+    "check:safe-dates": "tsx scripts/check-safe-dates.mts",
+    "check:design-entropy": "tsx scripts/check-design-entropy.mts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.8",

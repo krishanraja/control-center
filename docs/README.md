@@ -25,6 +25,8 @@
 | [`PRODUCT.md`](./PRODUCT.md) | Each tab: what it is for, what it reads and writes, how it behaves |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | The engineering contract: data flows, auth, deployment, invariants |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | The Mindmake Instrument Room: themes, type roles, material, motion and the shared primitives |
+| [`design/corpus/`](./design/corpus/README.md) | The doctrine above the design system: entropy and its ratchet, hierarchy, what Krish is asked, interaction, motion, consistency, the review ritual. Each rule with its incident, its guard and its number |
+| [`audits/2026-10-09-data-to-action-audit.md`](./audits/2026-10-09-data-to-action-audit.md) | How data becomes insight, recommendation and action today: every move classified as advice, prepared or autonomous, where the loop breaks, and the five phases that convert it |
 | [`COMPONENTS.md`](./COMPONENTS.md) | React component patterns |
 | [`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md) | Operating the Growth tab |
 | [`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md), [`focus-purpose/`](./focus-purpose/) | The Focus tab and the corpus behind it |
