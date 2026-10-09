@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { checkAction, DECLINE_REASONS } from '../../src/lib/hunterActions.ts'
 import { nextBatchUtc } from '../../src/lib/hunterSchedule.ts'
 
@@ -8,8 +8,12 @@ import { nextBatchUtc } from '../../src/lib/hunterSchedule.ts'
 // so a decline reason must be one column A offers, word for word.
 
 test('a decline reason must be one hunter\'s column A offers, word for word', () => {
-  const py = readFileSync(new URL('../../../hunter/src/hunter/verdicts.py', import.meta.url), 'utf8')
-    .split('TASTE_CODES = {')[1]?.split('}')[0] ?? ''
+  // Checked against hunter's own file when a checkout sits beside this one
+  // (a session with both repos); CI has only this repository.
+  const verdicts = new URL('../../../hunter/src/hunter/verdicts.py', import.meta.url)
+  const py = existsSync(verdicts)
+    ? (readFileSync(verdicts, 'utf8').split('TASTE_CODES = {')[1]?.split('}')[0] ?? '')
+    : ''
   if (py) {
     const labels = [...py.matchAll(/:\s*"([^"]+)"/g)].map(m => m[1])
     assert.deepEqual([...DECLINE_REASONS], labels)
