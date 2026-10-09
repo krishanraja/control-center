@@ -432,6 +432,32 @@ test.describe('the strategist on the desk', () => {
     expect(cap.asks).toHaveLength(0)
   })
 
+  test('at assist the draft already exists: the one press opens it in Gmail, and still waits for his guess', async ({ page }) => {
+    // ADR-030, phase 5: once strategist_ask sits at assist, the read makes
+    // the Gmail draft and its link rides on the ask. The order is the
+    // manual's: the words, his guess, then the press. Sending stays in Gmail.
+    const DRAFT = 'https://mail.google.com/mail/u/0/#drafts?compose=fixture-draft-1'
+    const sections = WEEK_OPEN.map(s => (s === MOVE_ASK ? { ...MOVE_ASK, draft_url: DRAFT } : s))
+    const cap = await mockAll(page, { bodies: [sse(sections, { kind: 'done', shape: 'week_open' })] })
+    await talk(page, 'A short Monday note.')
+
+    const move = page.getByTestId('strategist-move')
+    await expect(move).toContainText(MOVE_LINE)
+    await expect(move.getByTestId('strategist-contact-0')).toHaveCount(0)
+    await move.getByTestId('ask-guess-60').click()
+    await move.getByRole('button', { name: 'Make it today’s ask' }).click()
+    await expect.poll(() => cap.verdicts.length).toBe(1)
+
+    const press = move.getByTestId('strategist-contact-0')
+    await expect(press).toBeVisible()
+    await expect(press).toContainText('Open the draft in Gmail')
+    await expect(press).toHaveAttribute('href', DRAFT)
+    await expect(press).toHaveAttribute('target', '_blank')
+    // No mailto, nothing that could send: the anchor is the draft itself.
+    expect(await press.evaluate(el => el.tagName)).toBe('A')
+    expect(await press.getAttribute('href')).not.toMatch(/^mailto:/)
+  })
+
   // ── 3. Failures ──────────────────────────────────────────────────────────
   test('an in-band error is a plain sentence and a Retry that sends the same note again', async ({ page }) => {
     const detail = 'The read stopped before it finished. What you said is kept, and you can run it again.'

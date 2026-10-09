@@ -365,15 +365,18 @@ export function StrategistRead({ read, sections, narrow, outcomes = null, onTake
     const person = reachablePerson(a.to)
     if (!person) return
     const action = contactAction(person, a.message, { role: person.title, company: person.company })
+    // A draft made at assist opens through its own anchor; nothing else to open.
+    const viaDraft = !!(a.draft_url && /^https:\/\//i.test(a.draft_url))
     let copied = true
-    if (action.copies) copied = await copyText(a.message)
-    if (action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
-    say(key, copied ? action.note : 'Could not reach the clipboard. Select the message and copy it by hand.')
+    if (!viaDraft && action.copies) copied = await copyText(a.message)
+    if (!viaDraft && action.href) window.open(action.href, action.kind === 'email' ? '_self' : '_blank', 'noopener')
+    say(key, viaDraft ? `The draft is open in Gmail, addressed to ${person.name}. Nothing sent until you press send there.`
+      : copied ? action.note : 'Could not reach the clipboard. Select the message and copy it by hand.')
     // One verdict per item. The move's was written when he made it today's
     // ask, so contacting after that writes nothing more.
     if (!answered[key]) {
       mark(key, 'taken')
-      void postVerdict({ suggestion_id: a.suggestion_id ?? null, verdict: 'accepted', final: { channel: action.kind } })
+      void postVerdict({ suggestion_id: a.suggestion_id ?? null, verdict: 'accepted', final: { channel: viaDraft ? 'gmail_draft' : action.kind } })
     }
   }
 
@@ -778,11 +781,21 @@ function ContactButtons({ ask, testId, onContact, onCopy }: {
   }
   const action = contactAction(person, ask.message, { role: person.title, company: person.company })
   const Icon = action.kind === 'email' ? Mail : action.kind === 'linkedin' ? Linkedin : Copy
+  // At assist the draft already exists in his Gmail (ADR-030, phase 5): the
+  // one press opens that draft, and sending is his, in Gmail. It still waits
+  // for his guess, like every contact button here.
+  const draft = ask.draft_url && /^https:\/\//i.test(ask.draft_url) ? ask.draft_url : null
   return (
     <>
-      <button type="button" data-testid={testId} onClick={onContact} className={BTN_PRIMARY}>
-        <Icon size={12} /> {action.label}
-      </button>
+      {draft ? (
+        <a href={draft} target="_blank" rel="noopener noreferrer" data-testid={testId} onClick={onContact} className={BTN_PRIMARY}>
+          <Mail size={12} /> Open the draft in Gmail
+        </a>
+      ) : (
+        <button type="button" data-testid={testId} onClick={onContact} className={BTN_PRIMARY}>
+          <Icon size={12} /> {action.label}
+        </button>
+      )}
       {action.kind !== 'clipboard' && (
         <button type="button" onClick={onCopy} className={BTN_QUIET}>
           <Copy size={12} /> Copy
